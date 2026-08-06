@@ -62,18 +62,18 @@ export const LoginPage: React.FC = () => {
     // Simulate standard SaaS secure login latency
     setTimeout(() => {
       setIsLoading(false);
-      
-      if (email === 'student@gmail.com' && password === 'student123') {
+
+      if (email === 'student@ferex.com' && password === 'student123') {
         setSuccessMsg('Authorization successful. Loading secure workspace...');
         setTimeout(() => {
           navigate('/student/dashboard');
         }, 800);
-      } else if (email === 'admin@gmail.com' && password === 'admin123') {
+      } else if (email === 'admin@ferex.com' && password === 'admin123') {
         setSuccessMsg('Authorization successful. Loading admin console...');
         setTimeout(() => {
           navigate('/admin/dashboard');
         }, 800);
-      } else if (email === 'superadmin@gmail.com' && password === 'super123') {
+      } else if (email === 'superadmin@ferex.com' && password === 'super123') {
         setSuccessMsg('Authorization successful. Loading Super Admin Central Console...');
         setTimeout(() => {
           navigate('/central/dashboard');
@@ -216,7 +216,7 @@ export const LoginPage: React.FC = () => {
                   onChange={setRememberMe}
                   disabled={isLoading}
                 />
-                
+
                 <button
                   type="button"
                   onClick={() => {
@@ -324,7 +324,7 @@ export const LoginPage: React.FC = () => {
                   >
                     Send Reset Link
                   </Button>
-                  
+
                   <Button
                     type="button"
                     onClick={() => setShowForgotOverlay(false)}
