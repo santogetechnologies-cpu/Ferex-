@@ -10,12 +10,12 @@ export const Meetings: React.FC = () => {
     {
       id: 1,
       subject: 'Stanford Academic Portfolio Review',
-      date: 'Aug 11, 2026',
+      date: 'Aug 12, 2026',
       time: '10:00 AM - 10:45 AM',
       advisor: 'Dr. Evelyn Carter (Academic Lead)',
       status: 'Scheduled',
       active: true,
-    },
+    },₹
     {
       id: 2,
       subject: 'NAWA Legal Documents Legalization Briefing',
@@ -105,10 +105,10 @@ export const Meetings: React.FC = () => {
                 <div
                   key={day}
                   className={`h-10 rounded-lg flex flex-col items-center justify-center relative cursor-pointer border ${isToday
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                      : isMeeting
-                        ? 'border-[#6A1B2E] bg-[#6A1B2E]/5 font-bold text-[#6A1B2E] hover:bg-[#6A1B2E]/10'
-                        : 'border-slate-100 hover:border-slate-300 bg-white'
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                    : isMeeting
+                      ? 'border-[#6A1B2E] bg-[#6A1B2E]/5 font-bold text-[#6A1B2E] hover:bg-[#6A1B2E]/10'
+                      : 'border-slate-100 hover:border-slate-300 bg-white'
                     }`}
                 >
                   <span>{day}</span>
@@ -134,8 +134,8 @@ export const Meetings: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-bold text-slate-400 uppercase">{meet.date}</span>
                     <span className={`text-[9px] uppercase font-extrabold px-2 py-0.5 border rounded-full ${isCompleted
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                        : 'bg-amber-50 text-amber-700 border-amber-100'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                      : 'bg-amber-50 text-amber-700 border-amber-100'
                       }`}>
                       {meet.status}
                     </span>
