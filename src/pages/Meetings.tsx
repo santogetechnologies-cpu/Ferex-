@@ -15,7 +15,7 @@ export const Meetings: React.FC = () => {
       advisor: 'Dr. Evelyn Carter (Academic Lead)',
       status: 'Scheduled',
       active: true,
-    },₹
+    },
     {
       id: 2,
       subject: 'NAWA Legal Documents Legalization Briefing',
