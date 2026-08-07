@@ -32,10 +32,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={inputType}
             disabled={disabled}
             className={cn(
-              'w-full h-11 px-3.5 rounded-lg border text-base text-slate-900 bg-white placeholder-slate-400 focus:outline-none transition-all duration-200 focus:ring-2 focus:ring-offset-0 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed',
+              'w-full h-11 px-3.5 rounded-lg border text-base text-slate-900 bg-white placeholder-slate-400 focus:outline-none transition-all duration-200 focus:ring-2 focus:ring-offset-0 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed hover:border-slate-300',
               error
                 ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
-                : 'border-slate-200 focus:border-primary focus:ring-primary/20'
+                : 'border-slate-200 focus:border-[#6A1B2E] focus:ring-[#6A1B2E]/10'
             )}
             {...props}
           />

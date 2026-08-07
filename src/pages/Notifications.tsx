@@ -9,7 +9,7 @@ export const Notifications: React.FC = () => {
   const [notifications, setNotifications] = useState([
     { id: 1, type: 'document', title: 'Language Test Scores Verified', body: 'Your TOEFL official report scorecard has been verified by the admissions committee.', date: 'Today', unread: true, icon: FileText, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
     { id: 2, type: 'meeting', title: 'Upcoming Advisory Briefing scheduled', body: 'New video meet scheduled with Evelyn Carter for Aug 12, 10:00 AM.', date: 'Today', unread: true, icon: Calendar, color: 'text-blue-600 bg-blue-50 border-blue-100' },
-    { id: 3, type: 'payment', title: 'Invoice INV-2026-0560 generated', body: 'An outstanding invoice of $1,200.00 is generated for NAWA validation.', date: 'Yesterday', unread: true, icon: DollarSign, color: 'text-amber-600 bg-amber-50 border-amber-100' },
+    { id: 3, type: 'payment', title: 'Invoice INV-2026-0560 generated', body: 'An outstanding invoice of ₹1,08,000 is generated for NAWA validation.', date: 'Yesterday', unread: true, icon: DollarSign, color: 'text-amber-600 bg-amber-50 border-amber-100' },
     { id: 4, type: 'chat', title: 'New chat message from Advisor', body: 'Dr. Evelyn Carter: "Yes, your transcripts look fully verified."', date: 'Yesterday', unread: false, icon: MessageSquare, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
     { id: 5, type: 'document', title: 'Passport Verification Approved', body: 'Your passport copy has cleared compliance checklists successfully.', date: 'Older', unread: false, icon: FileText, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
   ]);

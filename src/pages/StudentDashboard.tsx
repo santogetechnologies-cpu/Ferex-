@@ -43,11 +43,7 @@ export const StudentDashboard: React.FC = () => {
           </div>
 
           <div className="relative z-10 max-w-xl text-left">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] uppercase font-black tracking-widest bg-white/15 backdrop-blur-sm px-3 py-1 rounded-full border border-white/20">
-                FX-2026-001 · Student Console
-              </span>
-            </div>
+
             <h1 className="text-2xl md:text-3xl font-black tracking-tight mb-2">
               Welcome back, Ashly
             </h1>

@@ -7,10 +7,10 @@ import { Button } from '../components/Button';
 export const Payments: React.FC = () => {
   // In-memory transactions
   const [transactions, setTransactions] = useState([
-    { id: 1, refNo: 'TX-2026-8901', desc: 'Ferex Admissions Processing Fee', amount: '$450.00', date: 'Jun 12, 2026', status: 'Paid' },
-    { id: 2, refNo: 'TX-2026-9214', desc: 'Stanford Application Deposit', amount: '$125.00', date: 'Jun 28, 2026', status: 'Paid' },
-    { id: 3, refNo: 'TX-2026-9541', desc: 'MIT Evaluation Documents Legalization', amount: '$150.00', date: 'Jul 04, 2026', status: 'Paid' },
-    { id: 4, refNo: 'TX-2026-1025', desc: 'NAWA Polish Equivalence Deposit', amount: '$1,200.00', date: 'Aug 01, 2026', status: 'Pending Outstanding' },
+    { id: 1, refNo: 'TX-2026-8901', desc: 'Ferex Admissions Processing Fee', amount: '₹40,500', date: 'Jun 12, 2026', status: 'Paid' },
+    { id: 2, refNo: 'TX-2026-9214', desc: 'Stanford Application Deposit', amount: '₹11,250', date: 'Jun 28, 2026', status: 'Paid' },
+    { id: 3, refNo: 'TX-2026-9541', desc: 'MIT Evaluation Documents Legalization', amount: '₹13,500', date: 'Jul 04, 2026', status: 'Paid' },
+    { id: 4, refNo: 'TX-2026-1025', desc: 'NAWA Polish Equivalence Deposit', amount: '₹1,08,000', date: 'Aug 01, 2026', status: 'Pending Outstanding' },
   ]);
 
   // Payment states
@@ -24,9 +24,9 @@ export const Payments: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
 
   // Stats calculation
-  const outstandingAmount = '$1,200.00';
-  const paidAmount = '$725.00';
-  const upcomingAmount = '$850.00';
+  const outstandingAmount = '₹1,08,000';
+  const paidAmount = '₹65,250';
+  const upcomingAmount = '₹76,500';
 
   // Mock submit payment
   const handlePaymentSubmit = (e: React.FormEvent) => {
@@ -54,7 +54,7 @@ export const Payments: React.FC = () => {
     setPayCardExpiry('');
     setPayCardCvv('');
     if (paymentSuccess) {
-      setToastMessage('Payment of $1,200.00 successfully cleared!');
+      setToastMessage('Payment of ₹1,08,000 successfully cleared!');
       setTimeout(() => setToastMessage(''), 3000);
     }
   };
@@ -106,7 +106,7 @@ export const Payments: React.FC = () => {
           { title: 'Upcoming Term Tuition', amount: upcomingAmount, sub: 'Invoice generation Oct 01', type: 'up', color: 'border-l-slate-400' },
         ].map((block, idx) => {
           const isOut = block.type === 'out';
-          const hasOutstanding = block.amount !== '$0.00';
+          const hasOutstanding = block.amount !== '₹0';
 
           return (
             <Card key={idx} className={`p-5 border-l-4 ${block.color} flex flex-col justify-between h-40`}>
@@ -206,7 +206,7 @@ export const Payments: React.FC = () => {
                 <form onSubmit={handlePaymentSubmit} className="space-y-4 text-xs font-semibold">
                   <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-between">
                     <span className="text-slate-500">Processing Amount:</span>
-                    <span className="text-sm font-extrabold text-slate-900">$1,200.00</span>
+                    <span className="text-sm font-extrabold text-slate-900">₹1,08,000</span>
                   </div>
 
                   <div>

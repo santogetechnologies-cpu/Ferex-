@@ -12,7 +12,7 @@ interface AdminLayoutProps { children: React.ReactNode; }
 const menuItems = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, badge: null },
   { name: 'Students', path: '/admin/students', icon: Users, badge: '3' },
-  { name: 'Task Management', path: '/admin/tasks', icon: ClipboardList, badge: '8' },
+  { name: 'Status Tracker', path: '/admin/tasks', icon: ClipboardList, badge: '8' },
   { name: 'Applications', path: '/admin/applications', icon: FileCheck, badge: '5' },
   { name: 'Documents Review', path: '/admin/documents', icon: FolderOpen, badge: '4' },
   { name: 'Payments', path: '/admin/payments', icon: CreditCard, badge: null },

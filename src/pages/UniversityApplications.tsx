@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GraduationCap, MapPin, Calendar, CheckCircle2, Clock, ArrowRight, X } from 'lucide-react';
+import { GraduationCap, MapPin, Calendar, ArrowRight, X, Check } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 
@@ -21,7 +21,7 @@ export const UniversityApplications: React.FC = () => {
       avatarBg: 'bg-red-50 text-red-700',
       checklist: [
         { name: 'Application Form Submission', done: true, time: 'Jun 28' },
-        { name: 'Application Fee Payment (€85)', done: true, time: 'Jun 28' },
+        { name: 'Application Fee Payment (₹7,500)', done: true, time: 'Jun 28' },
         { name: 'IELTS Test Score Verification', done: true, time: 'Jul 12' },
         { name: 'Academic Transcript Clearance', done: true, time: 'Jul 18' },
         { name: 'Admissions Faculty Board Review', done: true, time: 'Aug 02' },
@@ -40,7 +40,7 @@ export const UniversityApplications: React.FC = () => {
       avatarBg: 'bg-indigo-50 text-indigo-700',
       checklist: [
         { name: 'Uni-Assist Online Submission', done: true, time: 'Jul 04' },
-        { name: 'Processing Fee (€75)', done: true, time: 'Jul 04' },
+        { name: 'Processing Fee (₹6,500)', done: true, time: 'Jul 04' },
         { name: 'APS / Credential Records', done: true, time: 'Jul 15' },
         { name: 'Faculty Committee Evaluation', done: false, time: 'In Progress' },
       ]
@@ -131,13 +131,13 @@ export const UniversityApplications: React.FC = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
-              className="fixed right-0 top-0 h-screen w-full max-w-[420px] bg-white border-l border-slate-100 shadow-2xl z-50 p-6 flex flex-col justify-between text-left"
+              className="fixed right-0 top-0 h-screen w-full max-w-[440px] bg-white border-l border-slate-100 shadow-2xl z-50 p-6 flex flex-col justify-between text-left"
             >
               <div className="space-y-6 flex-1 overflow-y-auto pr-1">
                 {/* Header info */}
                 <div className="flex items-start justify-between border-b border-slate-100 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg ${activeApp.avatarBg} font-extrabold flex items-center justify-center text-xs`}>
+                    <div className={`w-10 h-10 rounded-lg ${activeApp.avatarBg} font-extrabold flex items-center justify-center text-xs shadow-xs`}>
                       {activeApp.initials}
                     </div>
                     <div>
@@ -147,48 +147,88 @@ export const UniversityApplications: React.FC = () => {
                   </div>
                   <button
                     onClick={() => setSelectedAppId(null)}
-                    className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Sub info */}
-                <div className="space-y-1">
-                  <span className="text-[9px] uppercase font-bold tracking-widest text-[#6A1B2E] bg-[#6A1B2E]/5 px-2 py-0.5 rounded">
-                    Active Application
+                <div className="space-y-1 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <span className="text-[9px] uppercase font-black tracking-widest text-[#6A1B2E] bg-[#6A1B2E]/10 border border-[#6A1B2E]/20 px-2 py-0.5 rounded-md">
+                    Active Portfolio
                   </span>
-                  <h4 className="text-sm font-bold text-slate-800 pt-1">{activeApp.course}</h4>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold pt-1">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>Submitted: {activeApp.date}</span>
+                  <h4 className="text-xs font-black text-slate-900 pt-1.5">{activeApp.course}</h4>
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold pt-1">
+                    <Calendar className="w-3.5 h-3.5 text-[#6A1B2E]" />
+                    <span>Applied Date: {activeApp.date}</span>
                   </div>
                 </div>
 
-                {/* Checklist steps */}
-                <div className="space-y-4 pt-2">
-                  <h5 className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">
-                    Application Checklist
-                  </h5>
+                {/* Premium Vertical Progress Timeline Checklist */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between px-1 mb-2">
+                    <h5 className="text-[10.5px] uppercase font-black text-slate-400 tracking-wider">
+                      Application Progress Timeline
+                    </h5>
+                    <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                      {activeApp.checklist.filter(i => i.done).length} / {activeApp.checklist.length} Completed
+                    </span>
+                  </div>
 
-                  <div className="space-y-4 pl-1 border-l border-slate-100">
+                  <div className="space-y-1 relative px-1">
                     {activeApp.checklist.map((item, idx) => {
+                      const isLast = idx === activeApp.checklist.length - 1;
+                      const isDone = item.done;
+                      const isCurrent = !item.done && (idx === 0 || activeApp.checklist[idx - 1].done);
+
                       return (
-                        <div key={idx} className="relative pl-5 text-xs">
-                          {/* Circle bullet node */}
-                          <div className="absolute -left-[10.5px] top-0.5 bg-white shrink-0">
-                            {item.done ? (
-                              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                            ) : (
-                              <Clock className="w-5 h-5 text-amber-500 bg-white" />
-                            )}
+                        <div key={idx} className="relative flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50/90 transition-all duration-200 group cursor-default">
+                          {/* Vertical Connector Line */}
+                          {!isLast && (
+                            <div
+                              className={`absolute left-[25.5px] top-[34px] bottom-[-10px] w-[2px] z-0 transition-colors ${
+                                isDone && activeApp.checklist[idx + 1]?.done ? 'bg-emerald-500' : 'bg-slate-200'
+                              }`}
+                            />
+                          )}
+
+                          {/* Left: 28px Node Icon */}
+                          <div className="flex items-center gap-3 min-w-0 flex-1 z-10">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105 ${
+                              isDone
+                                ? 'bg-emerald-500 text-white border-2 border-emerald-500'
+                                : isCurrent
+                                  ? 'bg-[#6A1B2E] text-white border-2 border-[#6A1B2E] ring-4 ring-[#6A1B2E]/15'
+                                  : 'bg-white border-2 border-slate-300 text-transparent'
+                            }`}>
+                              {isDone ? (
+                                <Check className="w-4 h-4 stroke-[3]" />
+                              ) : isCurrent ? (
+                                <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+                              ) : (
+                                <div className="w-2 h-2 rounded-full bg-slate-300" />
+                              )}
+                            </div>
+
+                            {/* Center: Title & Description */}
+                            <div className="min-w-0 flex-1">
+                              <h5 className={`text-xs font-black leading-snug transition-colors ${
+                                isDone ? 'text-slate-800' : isCurrent ? 'text-[#6A1B2E]' : 'text-slate-400'
+                              }`}>
+                                {item.name}
+                              </h5>
+                              <p className="text-[10px] font-semibold text-slate-400 mt-0.5">
+                                {isDone ? 'Verified Step' : isCurrent ? 'Under Faculty Review' : 'Pending Step'}
+                              </p>
+                            </div>
                           </div>
 
-                          <div className="flex items-center justify-between gap-2">
-                            <span className={`font-bold ${item.done ? 'text-slate-700' : 'text-slate-900'}`}>
-                              {item.name}
-                            </span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">
+                          {/* Right: Completion Date / Status */}
+                          <div className="text-right shrink-0 pl-2 select-none z-10">
+                            <span className={`text-[11px] font-extrabold transition-colors ${
+                              isDone ? 'text-slate-500' : isCurrent ? 'text-[#6A1B2E] font-black' : 'text-slate-400'
+                            }`}>
                               {item.time}
                             </span>
                           </div>

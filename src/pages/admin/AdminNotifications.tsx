@@ -63,14 +63,15 @@ export const AdminNotifications: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.read && !n.archived).length;
 
   return (
-    <div className="space-y-5 relative max-w-3xl mx-auto">
+    <div className="space-y-6 text-left antialiased font-sans select-none relative">
       {toast && (
         <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl text-sm font-bold flex items-center gap-3">
           <Bell className="w-5 h-5 text-emerald-400" /> {toast}
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      {/* Header aligned with shared Admin layout */}
+      <div className="flex items-center justify-between gap-4 flex-wrap border-b border-slate-100 pb-3">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-extrabold text-slate-900">Notifications</h1>
           {unreadCount > 0 && (
@@ -82,22 +83,26 @@ export const AdminNotifications: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        {['All', 'Unread', 'Read', 'Archived'].map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`h-8 px-3 rounded-xl text-[10px] font-extrabold border transition-all
-              ${filter === f ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
-            {f}
-          </button>
-        ))}
-        <div className="ml-auto relative">
+      {/* Filter and Search Bar */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {['All', 'Unread', 'Read', 'Archived'].map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`h-8 px-3 rounded-xl text-[10px] font-extrabold border transition-all
+                ${filter === f ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
+              {f}
+            </button>
+          ))}
+        </div>
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..."
-            className="h-9 pl-8 pr-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold placeholder-slate-300 focus:outline-none focus:border-[#6A1B2E]/40 w-44" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search notifications..."
+            className="h-9 pl-8 pr-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold placeholder-slate-300 focus:outline-none focus:border-[#6A1B2E]/40 w-64" />
         </div>
       </div>
 
-      <div className="space-y-2">
+      {/* Notification Cards Stream */}
+      <div className="space-y-2.5">
         <AnimatePresence>
           {filtered.map((n) => (
             <motion.div
@@ -105,7 +110,7 @@ export const AdminNotifications: React.FC = () => {
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, height: 0 }}
-              className={`bg-white border rounded-2xl p-4 shadow-sm transition-all group ${!n.read ? 'border-[#6A1B2E]/20 shadow-[#6A1B2E]/5' : 'border-slate-100'}`}
+              className={`bg-white border rounded-2xl p-4 shadow-xs transition-all group ${!n.read ? 'border-[#6A1B2E]/20 shadow-[#6A1B2E]/5' : 'border-slate-100'}`}
             >
               <div className="flex items-start gap-3">
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${CATEGORY_COLORS[n.category] || 'bg-slate-100 text-slate-500'}`}>

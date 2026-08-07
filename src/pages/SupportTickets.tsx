@@ -29,7 +29,7 @@ export const SupportTickets: React.FC = () => {
       priority: 'Medium',
       status: 'Resolved',
       date: 'Jul 28, 2026',
-      desc: 'Can the legalization fee of $1,200 be split into two monthly installments?',
+      desc: 'Can the legalization fee of ₹1,08,000 be split into two monthly installments?',
       replies: [
         { sender: 'Sarah Jenkins', text: 'Requesting split invoices.', time: 'Jul 28, 9:00 AM', self: true },
         { sender: 'Accounting Team', text: 'Split billing is approved. New invoices INV-0560 and INV-0561 generated.', time: 'Jul 28, 11:45 AM', self: false }

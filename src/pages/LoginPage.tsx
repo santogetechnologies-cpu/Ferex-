@@ -5,8 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { Input } from '../components/Input';
 import { Checkbox } from '../components/Checkbox';
 import { Button } from '../components/Button';
-import { Divider } from '../components/Divider';
-import { SocialButton } from '../components/SocialButton';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -62,14 +60,18 @@ export const LoginPage: React.FC = () => {
     // Simulate standard SaaS secure login latency
     setTimeout(() => {
       setIsLoading(false);
-
-      if (email === 'student@ferex.com' && password === 'student123') {
+      if (email.trim().toLowerCase() === 'digital@ferex.com' && password === 'digital123') {
+        setSuccessMsg('Authorization successful. Loading Ferex Digital Portal...');
+        setTimeout(() => {
+          navigate('/digital/dashboard');
+        }, 800);
+      } else if (email === 'student@ferex.com' && password === 'student123') {
         setSuccessMsg('Authorization successful. Loading secure workspace...');
         setTimeout(() => {
           navigate('/student/dashboard');
         }, 800);
-      } else if (email === 'admin@ferex.com' && password === 'admin123') {
-        setSuccessMsg('Authorization successful. Loading admin console...');
+      } else if ((email === 'admin@ferex.com' || email === 'admin.education@ferex.com') && password === 'admin123') {
+        setSuccessMsg('Authorization successful. Loading Education Admin console...');
         setTimeout(() => {
           navigate('/admin/dashboard');
         }, 800);
@@ -77,6 +79,22 @@ export const LoginPage: React.FC = () => {
         setSuccessMsg('Authorization successful. Loading Super Admin Central Console...');
         setTimeout(() => {
           navigate('/central/dashboard');
+        }, 800);
+      } else if (email === 'trade@ferex.com' && password === 'trade123') {
+        setSuccessMsg('Authorization successful. Loading Ferex Global Trade Portal...');
+        setTimeout(() => {
+          navigate('/trade/dashboard');
+        }, 800);
+      } else if (email.trim().toLowerCase() === 'rimi@ferex.com' && password === 'rimi123') {
+        setSuccessMsg('Authorization successful. Loading Rimi Frozen Distribution Portal...');
+        setTimeout(() => {
+          navigate('/rimi/dashboard');
+        }, 800);
+      } else if (email.trim().toLowerCase() === 'staff.education@ferex.com' && password === 'Staff@12345') {
+        localStorage.setItem('ferex_staff_demo_session', 'true');
+        setSuccessMsg('Authorization successful. Loading Ferex Staff Portal...');
+        setTimeout(() => {
+          navigate('/staff/dashboard');
         }, 800);
       } else {
         setErrorMsg('Invalid email or password');
@@ -101,19 +119,6 @@ export const LoginPage: React.FC = () => {
     setTimeout(() => {
       setIsLoading(false);
       setForgotSent(true);
-    }, 1500);
-  };
-
-  // Mock social login
-  const handleSocialLogin = (provider: string) => {
-    setIsLoading(true);
-    setErrorMsg('');
-    setTimeout(() => {
-      setIsLoading(false);
-      setSuccessMsg(`Authorization via ${provider} successful. Loading workspace...`);
-      setTimeout(() => {
-        navigate('/student/dashboard');
-      }, 800);
     }, 1500);
   };
 
@@ -226,7 +231,7 @@ export const LoginPage: React.FC = () => {
                     setForgotError('');
                   }}
                   disabled={isLoading}
-                  className="text-sm font-bold text-primary hover:text-primary-hover hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded px-0.5"
+                  className="text-sm font-bold text-[#6A1B2E] hover:text-[#521221] hover:underline transition-colors duration-200 focus-visible:outline-none rounded px-0.5"
                 >
                   Forgot password?
                 </button>
@@ -235,29 +240,13 @@ export const LoginPage: React.FC = () => {
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full mt-2"
+                className="w-full h-12 mt-3 font-extrabold shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 bg-[#6A1B2E] hover:bg-[#521221] active:translate-y-0 text-white"
                 isLoading={isLoading}
                 disabled={isLoading}
               >
                 Sign In
               </Button>
             </form>
-
-            {/* Social Logins */}
-            <Divider className="my-6">or sign in with</Divider>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <SocialButton
-                provider="google"
-                disabled={isLoading}
-                onClick={() => handleSocialLogin('Google')}
-              />
-              <SocialButton
-                provider="microsoft"
-                disabled={isLoading}
-                onClick={() => handleSocialLogin('Microsoft')}
-              />
-            </div>
           </motion.div>
         ) : (
           /* FORGOT PASSWORD OVERLAY */
