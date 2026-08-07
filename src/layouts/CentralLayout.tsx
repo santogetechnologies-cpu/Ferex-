@@ -98,17 +98,16 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
           ${isMobileOpen ? 'translate-x-0 w-[270px]' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Sidebar Header */}
-        <div className="h-16 border-b border-slate-100 flex items-center justify-between px-5 select-none shrink-0">
+        <div className="h-16 border-b border-slate-100 flex items-center justify-between px-4 select-none shrink-0">
           <div className="flex items-center gap-2 overflow-hidden">
             {isCollapsed ? (
               <Logo variant="icon" size="sm" />
             ) : (
-              <div className="flex items-center gap-2">
-                <Logo variant="compact" size="sm" subtitle="SUPER ADMIN" />
-              </div>
+              <Logo variant="compact" size="sm" subtitle="SUPER ADMIN" />
             )}
           </div>
-          
+
+          {/* Mobile close */}
           <button
             onClick={() => setIsMobileOpen(false)}
             className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
@@ -166,23 +165,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
           ))}
         </nav>
 
-        {/* Sidebar Footer / Collapse Trigger */}
-        <div className="p-3 border-t border-slate-100 hidden lg:block select-none shrink-0 bg-slate-50/50">
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="w-full flex items-center justify-center h-9 border border-slate-200/80 rounded-xl hover:bg-white transition-all text-slate-500 hover:text-slate-800 shadow-2xs"
-            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-          >
-            <svg
-              className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-        </div>
+        {/* Sidebar Footer – profile/settings strip, no collapse button here */}
       </aside>
 
       {/* CONTENT WORKSPACE VIEWPORT */}

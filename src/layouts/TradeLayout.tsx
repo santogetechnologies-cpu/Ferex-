@@ -135,6 +135,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
             )}
           </div>
 
+          {/* Mobile close */}
           <button
             onClick={() => setIsMobileOpen(false)}
             className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
@@ -190,23 +191,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
           ))}
         </nav>
 
-        {/* Footer Collapse */}
-        <div className="p-3 border-t border-slate-100 hidden lg:block select-none shrink-0 bg-slate-50/50">
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="w-full flex items-center justify-center h-9 border border-slate-200/80 rounded-xl hover:bg-white transition-all text-slate-500 hover:text-slate-800 shadow-2xs"
-            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-          >
-            <svg
-              className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-        </div>
+
       </aside>
 
       {/* Main Content Area */}

@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, LayoutDashboard, Users, UserPlus, FolderKanban, CheckSquare, Calendar,
-  Code, Smartphone, Palette, Megaphone, Search as SearchIcon, Award, FileText,
+  Megaphone, Search as SearchIcon, Award, FileText,
   CreditCard, DollarSign, UserCheck, Clock, TrendingUp, BarChart3, PieChart,
   Bell, User, Settings, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus, CheckCircle2
 } from 'lucide-react';
@@ -31,7 +31,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const sidebarOpen = true;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
@@ -78,9 +78,6 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     {
       title: 'SERVICES',
       items: [
-        { label: 'Web Development', path: '/digital/services/web-development', icon: Code },
-        { label: 'Mobile Apps', path: '/digital/services/mobile-apps', icon: Smartphone },
-        { label: 'UI/UX Design', path: '/digital/services/ui-ux-design', icon: Palette },
         { label: 'Digital Marketing', path: '/digital/services/digital-marketing', icon: Megaphone },
         { label: 'SEO', path: '/digital/services/seo', icon: SearchIcon },
         { label: 'Branding', path: '/digital/services/branding', icon: Award }
@@ -154,7 +151,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
         }`}
       >
         {/* Brand Header */}
-        <div className="h-16 px-5 border-b border-slate-100 flex items-center justify-between shrink-0">
+        <div className="h-16 px-5 border-b border-slate-100 flex items-center shrink-0">
           <Link to="/digital/dashboard" className="flex items-center gap-3 overflow-hidden">
             {!sidebarOpen ? (
               <Logo variant="icon" size="sm" />
@@ -162,13 +159,6 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
               <Logo variant="compact" size="sm" subtitle="DIGITAL" />
             )}
           </Link>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-            title="Toggle Sidebar"
-          >
-            <ChevronRight className={`w-4 h-4 transition-transform ${sidebarOpen ? 'rotate-180' : ''}`} />
-          </button>
         </div>
 
         {/* Navigation Sections */}

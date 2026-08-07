@@ -31,7 +31,7 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const sidebarOpen = true;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
@@ -152,7 +152,7 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
         }`}
       >
         {/* Brand Header */}
-        <div className="h-16 px-5 border-b border-slate-100 flex items-center justify-between shrink-0">
+        <div className="h-16 px-5 border-b border-slate-100 flex items-center shrink-0">
           <Link to="/rimi/dashboard" className="flex items-center gap-3 overflow-hidden">
             {!sidebarOpen ? (
               <Logo variant="icon" size="sm" />
@@ -160,13 +160,6 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
               <Logo variant="compact" size="sm" subtitle="RIMI FROZEN" />
             )}
           </Link>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-            title="Toggle Sidebar"
-          >
-            <ChevronRight className={`w-4 h-4 transition-transform ${sidebarOpen ? 'rotate-180' : ''}`} />
-          </button>
         </div>
 
         {/* Navigation Sections */}
