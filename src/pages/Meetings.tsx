@@ -15,7 +15,7 @@ export const Meetings: React.FC = () => {
       advisor: 'Dr. Evelyn Carter (Academic Lead)',
       status: 'Scheduled',
       active: true,
-    },
+    },₹
     {
       id: 2,
       subject: 'NAWA Legal Documents Legalization Briefing',
@@ -46,7 +46,7 @@ export const Meetings: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left relative">
-      
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -64,7 +64,7 @@ export const Meetings: React.FC = () => {
 
       {/* Main Grid: Calendar on left, Meeting list on right */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Mock Calendar Widget (2 columns) */}
         <Card className="lg:col-span-2 p-6 select-none">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
@@ -96,7 +96,7 @@ export const Meetings: React.FC = () => {
             {Array.from({ length: 5 }).map((_, idx) => (
               <span key={`off-${idx}`} className="h-10" />
             ))}
-            
+
             {calendarDays.map((day) => {
               const isToday = day === 6; // Aug 06
               const isMeeting = day === 12 || day === 24;
@@ -104,13 +104,12 @@ export const Meetings: React.FC = () => {
               return (
                 <div
                   key={day}
-                  className={`h-10 rounded-lg flex flex-col items-center justify-center relative cursor-pointer border ${
-                    isToday 
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                      : isMeeting
-                        ? 'border-[#6A1B2E] bg-[#6A1B2E]/5 font-bold text-[#6A1B2E] hover:bg-[#6A1B2E]/10'
-                        : 'border-slate-100 hover:border-slate-300 bg-white'
-                  }`}
+                  className={`h-10 rounded-lg flex flex-col items-center justify-center relative cursor-pointer border ${isToday
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                    : isMeeting
+                      ? 'border-[#6A1B2E] bg-[#6A1B2E]/5 font-bold text-[#6A1B2E] hover:bg-[#6A1B2E]/10'
+                      : 'border-slate-100 hover:border-slate-300 bg-white'
+                    }`}
                 >
                   <span>{day}</span>
                   {/* Small bullet mark for schedule */}
@@ -134,17 +133,16 @@ export const Meetings: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-bold text-slate-400 uppercase">{meet.date}</span>
-                    <span className={`text-[9px] uppercase font-extrabold px-2 py-0.5 border rounded-full ${
-                      isCompleted 
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                        : 'bg-amber-50 text-amber-700 border-amber-100'
-                    }`}>
+                    <span className={`text-[9px] uppercase font-extrabold px-2 py-0.5 border rounded-full ${isCompleted
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                      : 'bg-amber-50 text-amber-700 border-amber-100'
+                      }`}>
                       {meet.status}
                     </span>
                   </div>
 
                   <h4 className="text-xs font-extrabold text-slate-900 leading-snug">{meet.subject}</h4>
-                  
+
                   <div className="space-y-1.5 text-xs text-slate-500 font-semibold pt-1">
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-slate-400 shrink-0" />
@@ -179,7 +177,7 @@ export const Meetings: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950">
             {/* Main call grid */}
             <div className="w-full h-full relative flex flex-col justify-between p-6">
-              
+
               {/* Top Bar: Subject and Status */}
               <div className="flex items-center justify-between text-white select-none z-10">
                 <div className="text-left space-y-1">
@@ -226,9 +224,8 @@ export const Meetings: React.FC = () => {
                 {/* Mute button */}
                 <button
                   onClick={() => setMicMuted(!micMuted)}
-                  className={`p-4 rounded-full text-white transition-colors ${
-                    micMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-white/10 hover:bg-white/20'
-                  }`}
+                  className={`p-4 rounded-full text-white transition-colors ${micMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-white/10 hover:bg-white/20'
+                    }`}
                   title={micMuted ? 'Unmute Microphone' : 'Mute Microphone'}
                 >
                   {micMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
@@ -237,9 +234,8 @@ export const Meetings: React.FC = () => {
                 {/* Stop Video Button */}
                 <button
                   onClick={() => setVideoOff(!videoOff)}
-                  className={`p-4 rounded-full text-white transition-colors ${
-                    videoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-white/10 hover:bg-white/20'
-                  }`}
+                  className={`p-4 rounded-full text-white transition-colors ${videoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-white/10 hover:bg-white/20'
+                    }`}
                   title={videoOff ? 'Start Video' : 'Stop Video'}
                 >
                   {videoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
