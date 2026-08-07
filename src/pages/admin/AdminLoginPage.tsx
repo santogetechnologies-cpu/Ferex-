@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Logo } from '../../components/Logo';
 
 export const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -53,12 +54,8 @@ export const AdminLoginPage: React.FC = () => {
           <div className="bg-gradient-to-br from-[#6A1B2E] to-[#4A101E] px-8 py-8 text-center relative overflow-hidden">
             <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/5" />
             <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/5" />
-            <div className="relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-7 h-7 text-white" />
-              </div>
-              <h1 className="text-xl font-extrabold text-white">Admin Panel</h1>
-              <p className="text-white/60 text-xs font-semibold mt-1">Ferex Education Management</p>
+            <div className="relative z-10 flex justify-center">
+              <Logo variant="full" color="white" size="md" subtitle="ADMIN CONSOLE" align="center" />
             </div>
           </div>
 

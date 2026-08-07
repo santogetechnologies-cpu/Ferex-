@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   GraduationCap, Calendar, Clock, ArrowRight, ShieldAlert,
-  Compass, FileCheck, CreditCard, Search, BookOpen
+  Compass, FileCheck, CreditCard, Search, BookOpen, CheckCircle2, Circle
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -73,12 +73,12 @@ export const StudentDashboard: React.FC = () => {
       {/* Key Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'Target Universities', value: '3', sub: '2 Apps Submitted', icon: GraduationCap, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
-          { title: 'Journey Progress', value: '57%', sub: 'Stage 4 / 7 Active', icon: Compass, color: 'text-blue-600 bg-blue-50 border-blue-100' },
-          { title: 'Documents Verified', value: '4 / 5', sub: '1 Pending Review', icon: FileCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-          { title: 'Fees & Payments', value: '₹15,000', sub: 'Paid · 0 Overdue', icon: CreditCard, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20' },
+          { title: 'Target Universities', value: '3', sub: '2 Apps Submitted', icon: GraduationCap, color: 'text-indigo-600 bg-indigo-50 border-indigo-100', path: '/student/applications' },
+          { title: 'Journey Progress', value: '57%', sub: 'Stage 4 / 7 Active', icon: Compass, color: 'text-blue-600 bg-blue-50 border-blue-100', path: '/student/journey-tracker' },
+          { title: 'Documents Verified', value: '4 / 5', sub: '1 Pending Review', icon: FileCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', path: '/student/documents' },
+          { title: 'Fees & Payments', value: '₹15,000', sub: 'Paid · 0 Overdue', icon: CreditCard, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20', path: '/student/payments' },
         ].map((stat, idx) => (
-          <motion.div key={idx} variants={itemVariants}>
+          <motion.div key={idx} variants={itemVariants} onClick={() => navigate(stat.path)}>
             <Card className="flex items-center gap-4 p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group">
               <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 ${stat.color} group-hover:scale-105 transition-transform`}>
                 <stat.icon className="w-6 h-6" />
@@ -98,47 +98,78 @@ export const StudentDashboard: React.FC = () => {
 
         {/* Charts & Analytics Widget */}
         <motion.div variants={itemVariants} className="lg:col-span-2 space-y-6">
-          <Card className="p-6 text-left border border-slate-200/70 shadow-xs">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+          <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
               <div>
-                <h3 className="text-sm font-black text-slate-900">Application Evaluation Score</h3>
-                <p className="text-xs text-slate-400 font-semibold mt-0.5">Admissions eligibility index over time</p>
+                <h3 className="text-sm font-black text-slate-900">Journey Checklist</h3>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">Track your step-by-step admission & visa milestone progress</p>
               </div>
               <span className="text-[10px] font-extrabold text-[#6A1B2E] bg-[#6A1B2E]/10 px-2.5 py-1 rounded-full uppercase border border-[#6A1B2E]/20">
-                Index: 89/100
+                4 of 7 Completed
               </span>
             </div>
 
-            {/* SVG Line Chart */}
-            <div className="h-[200px] w-full relative">
-              <svg className="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6A1B2E" stopOpacity="0.18" />
-                    <stop offset="100%" stopColor="#6A1B2E" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <line x1="0" y1="40" x2="500" y2="40" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="0" y1="90" x2="500" y2="90" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="0" y1="140" x2="500" y2="140" stroke="#f1f5f9" strokeWidth="1" />
+            {/* Checklist Items Stream */}
+            <div className="space-y-2">
+              {[
+                { title: 'Profile Completed', status: 'Completed', path: '/student/profile' },
+                { title: 'University Selected', status: 'Completed', path: '/student/select-university' },
+                { title: 'Application Submitted', status: 'Completed', path: '/student/applications' },
+                { title: 'Offer Letter Received', status: 'Completed', path: '/student/offers' },
+                { title: 'Documents Verified', status: 'In Progress', path: '/student/documents' },
+                { title: 'Visa Appointment', status: 'Pending', path: '/student/meetings' },
+                { title: 'Visa Approved', status: 'Pending', path: '/student/journey-tracker' },
+              ].map((item, idx) => {
+                const isDone = item.status === 'Completed';
+                const isProgress = item.status === 'In Progress';
 
-                <path d="M 0 160 Q 100 120, 200 130 T 400 60 T 500 40 L 500 200 L 0 200 Z" fill="url(#chart-grad)" />
-                <path d="M 0 160 Q 100 120, 200 130 T 400 60 T 500 40" fill="none" stroke="#6A1B2E" strokeWidth="3" strokeLinecap="round" />
-                <circle cx="200" cy="130" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
-                <circle cx="400" cy="60" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
-              </svg>
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => navigate(item.path)}
+                    className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer hover:border-slate-300 ${
+                      isDone
+                        ? 'bg-slate-50/60 border-slate-200/60 text-slate-900'
+                        : isProgress
+                        ? 'bg-amber-50/40 border-amber-200/60 text-amber-950 font-bold'
+                        : 'bg-white border-slate-100 text-slate-500'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                          isDone
+                            ? 'bg-emerald-500 text-white'
+                            : isProgress
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-slate-100 border border-slate-200 text-slate-300'
+                        }`}
+                      >
+                        {isDone ? (
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        ) : isProgress ? (
+                          <Clock className="w-3.5 h-3.5" />
+                        ) : (
+                          <Circle className="w-3.5 h-3.5" />
+                        )}
+                      </div>
+                      <span className="text-xs font-bold">{item.title}</span>
+                    </div>
 
-              <div className="absolute top-[35px] left-[350px] bg-slate-900 text-white text-[9px] font-bold px-2 py-1 rounded shadow-md pointer-events-none select-none">
-                Warsaw Admission Index: 89%
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mt-2 px-1 select-none">
-              <span>May</span>
-              <span>Jun</span>
-              <span>Jul</span>
-              <span>Aug (Current)</span>
-              <span>Sep</span>
+                    <span
+                      className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                        isDone
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : isProgress
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-slate-100 text-slate-400 border-slate-200'
+                      }`}
+                    >
+                      {item.status}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </Card>
 
@@ -218,10 +249,10 @@ export const StudentDashboard: React.FC = () => {
                 { time: 'Jul 28', title: 'Passport Verified', desc: 'Ferex team approved identity document.', color: 'bg-blue-500' },
                 { time: 'Jul 15', title: 'Portal Enrollment', desc: 'Ashly registered in Ferex platform.', color: 'bg-[#6A1B2E]' },
               ].map((milestone, idx) => (
-                <div key={idx} className="relative">
-                  <span className={`absolute -left-[20.5px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white ${milestone.color}`} />
+                <div key={idx} onClick={() => handleQuickAction('/student/journey-tracker')} className="relative cursor-pointer group hover:bg-slate-50 p-1 rounded-lg transition-colors">
+                  <span className={`absolute -left-[16.5px] top-2 w-2.5 h-2.5 rounded-full border-2 border-white ${milestone.color}`} />
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase">{milestone.time}</span>
-                  <h4 className="text-xs font-black text-slate-800 mt-0.5">{milestone.title}</h4>
+                  <h4 className="text-xs font-black text-slate-800 group-hover:text-[#6A1B2E] transition-colors mt-0.5">{milestone.title}</h4>
                   <p className="text-[10.5px] text-slate-500 font-semibold mt-0.5">{milestone.desc}</p>
                 </div>
               ))}

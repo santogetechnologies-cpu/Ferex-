@@ -7,12 +7,12 @@ const appData = [12, 18, 24, 30, 22, 38, 45, 52];
 const paymentData = [85, 120, 165, 200, 145, 230, 280, 310];
 
 const countryData = [
-  { country: 'India', flag: '🇮🇳', count: 142, pct: 57 },
-  { country: 'UAE', flag: '🇦🇪', count: 38, pct: 15 },
-  { country: 'Qatar', flag: '🇶🇦', count: 24, pct: 10 },
-  { country: 'Oman', flag: '🇴🇲', count: 18, pct: 7 },
-  { country: 'Mexico', flag: '🇲🇽', count: 14, pct: 6 },
-  { country: 'Others', flag: '🌍', count: 11, pct: 4 },
+  { country: 'India', count: 142, pct: 57 },
+  { country: 'UAE', count: 38, pct: 15 },
+  { country: 'Qatar', count: 24, pct: 10 },
+  { country: 'Oman', count: 18, pct: 7 },
+  { country: 'Mexico', count: 14, pct: 6 },
+  { country: 'Others', count: 11, pct: 4 },
 ];
 
 const docStatusData = [
@@ -23,11 +23,11 @@ const docStatusData = [
 ];
 
 const universityData = [
-  { name: 'University of Warsaw', country: '🇵🇱', applications: 68 },
-  { name: 'TU Berlin', country: '🇩🇪', applications: 54 },
-  { name: 'University of Amsterdam', country: '🇳🇱', applications: 41 },
-  { name: 'Leiden University', country: '🇳🇱', applications: 38 },
-  { name: 'Jagiellonian University', country: '🇵🇱', applications: 33 },
+  { name: 'University of Warsaw', country: 'Poland', applications: 68 },
+  { name: 'TU Berlin', country: 'Germany', applications: 54 },
+  { name: 'University of Amsterdam', country: 'Netherlands', applications: 41 },
+  { name: 'Leiden University', country: 'Netherlands', applications: 38 },
+  { name: 'Jagiellonian University', country: 'Poland', applications: 33 },
 ];
 
 const BarChart: React.FC<{ data: number[]; labels: string[]; color: string; unit?: string }> = ({ data, labels, color, unit = '' }) => {
@@ -161,10 +161,10 @@ export const AdminReports: React.FC = () => {
             </button>
           </div>
           <div className="space-y-3">
-            {countryData.map(({ country, flag, count, pct }) => (
+            {countryData.map(({ country, count, pct }) => (
               <div key={country}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-slate-700">{flag} {country}</span>
+                  <span className="text-xs font-bold text-slate-700">{country}</span>
                   <span className="text-xs font-extrabold text-slate-600">{count} <span className="text-[10px] text-slate-400">({pct}%)</span></span>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -185,11 +185,11 @@ export const AdminReports: React.FC = () => {
             </button>
           </div>
           <div className="space-y-3">
-            {universityData.map(({ name, country, applications }, idx) => (
+            {universityData.map(({ name, applications }, idx) => (
               <div key={name} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
                 <span className="text-xs font-extrabold text-slate-400 w-5 shrink-0">#{idx + 1}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-extrabold text-slate-900 truncate">{country} {name}</p>
+                  <p className="text-xs font-extrabold text-slate-900 truncate">{name}</p>
                 </div>
                 <span className="text-xs font-extrabold text-[#6A1B2E] shrink-0">{applications}</span>
               </div>

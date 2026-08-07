@@ -6,7 +6,7 @@ type TicketStatus = 'Open' | 'Pending' | 'Resolved' | 'Closed';
 type TicketPriority = 'High' | 'Medium' | 'Low';
 
 interface Ticket {
-  id: string; studentId: string; studentName: string; flag: string;
+  id: string; studentId: string; studentName: string;
   subject: string; category: string; priority: TicketPriority; status: TicketStatus;
   assignee: string; created: string; lastUpdate: string; messages: { sender: string; text: string; time: string; self: boolean }[];
 }
@@ -14,11 +14,11 @@ interface Ticket {
 const STAFF = ['Riya Shah', 'Arjun Pillai', 'Meena Iyer', 'Kabir Nair', 'Unassigned'];
 
 const TICKETS: Ticket[] = [
-  { id: 'TK-001', studentId: 'FX-2026-001', studentName: 'Ashly', flag: '🇮🇳', subject: 'Visa appointment date clarification', category: 'Visa', priority: 'High', status: 'Open', assignee: 'Riya Shah', created: 'Aug 4, 2026', lastUpdate: '2h ago', messages: [{ sender: 'Ashly', text: 'Can you please clarify the visa appointment date for my application?', time: '10:00 AM', self: false }, { sender: 'Riya Shah', text: 'Your visa appointment is scheduled for August 12, 2026. Please carry all original documents.', time: '10:45 AM', self: true }] },
-  { id: 'TK-002', studentId: 'FX-2026-002', studentName: 'Rahul Mehta', flag: '🇮🇳', subject: 'Payment receipt not received', category: 'Payment', priority: 'Medium', status: 'Pending', assignee: 'Arjun Pillai', created: 'Aug 3, 2026', lastUpdate: '5h ago', messages: [{ sender: 'Rahul', text: 'I made the payment yesterday but did not receive the receipt on email.', time: '9:30 AM', self: false }] },
-  { id: 'TK-003', studentId: 'FX-2026-003', studentName: 'Priya Sharma', flag: '🇮🇳', subject: 'IELTS document verification status', category: 'Documents', priority: 'Low', status: 'Resolved', assignee: 'Meena Iyer', created: 'Jul 30, 2026', lastUpdate: '1 day ago', messages: [{ sender: 'Priya', text: 'What is the status of my IELTS document verification?', time: '2:00 PM', self: false }, { sender: 'Meena Iyer', text: 'Your IELTS certificate has been successfully verified and uploaded to your profile.', time: '3:00 PM', self: true }] },
-  { id: 'TK-004', studentId: 'FX-2026-004', studentName: 'Amir Hassan', flag: '🇦🇪', subject: 'Accommodation query for Feb 2026', category: 'Accommodation', priority: 'Medium', status: 'Open', assignee: 'Unassigned', created: 'Aug 5, 2026', lastUpdate: '1h ago', messages: [{ sender: 'Amir', text: 'Can you help me with accommodation options near the University of Warsaw campus?', time: '11:00 AM', self: false }] },
-  { id: 'TK-005', studentId: 'FX-2026-005', studentName: 'Fatima Al-Rashid', flag: '🇶🇦', subject: 'Offer letter address correction needed', category: 'Applications', priority: 'High', status: 'Pending', assignee: 'Kabir Nair', created: 'Aug 2, 2026', lastUpdate: '3h ago', messages: [{ sender: 'Fatima', text: 'There is a spelling error in my name on the offer letter. Can this be corrected?', time: '8:30 AM', self: false }] },
+  { id: 'TK-001', studentId: 'FX-2026-001', studentName: 'Ashly', subject: 'Visa appointment date clarification', category: 'Visa', priority: 'High', status: 'Open', assignee: 'Riya Shah', created: 'Aug 4, 2026', lastUpdate: '2h ago', messages: [{ sender: 'Ashly', text: 'Can you please clarify the visa appointment date for my application?', time: '10:00 AM', self: false }, { sender: 'Riya Shah', text: 'Your visa appointment is scheduled for August 12, 2026. Please carry all original documents.', time: '10:45 AM', self: true }] },
+  { id: 'TK-002', studentId: 'FX-2026-002', studentName: 'Rahul Mehta', subject: 'Payment receipt not received', category: 'Payment', priority: 'Medium', status: 'Pending', assignee: 'Arjun Pillai', created: 'Aug 3, 2026', lastUpdate: '5h ago', messages: [{ sender: 'Rahul', text: 'I made the payment yesterday but did not receive the receipt on email.', time: '9:30 AM', self: false }] },
+  { id: 'TK-003', studentId: 'FX-2026-003', studentName: 'Priya Sharma', subject: 'IELTS document verification status', category: 'Documents', priority: 'Low', status: 'Resolved', assignee: 'Meena Iyer', created: 'Jul 30, 2026', lastUpdate: '1 day ago', messages: [{ sender: 'Priya', text: 'What is the status of my IELTS document verification?', time: '2:00 PM', self: false }, { sender: 'Meena Iyer', text: 'Your IELTS certificate has been successfully verified and uploaded to your profile.', time: '3:00 PM', self: true }] },
+  { id: 'TK-004', studentId: 'FX-2026-004', studentName: 'Amir Hassan', subject: 'Accommodation query for Feb 2026', category: 'Accommodation', priority: 'Medium', status: 'Open', assignee: 'Unassigned', created: 'Aug 5, 2026', lastUpdate: '1h ago', messages: [{ sender: 'Amir', text: 'Can you help me with accommodation options near the University of Warsaw campus?', time: '11:00 AM', self: false }] },
+  { id: 'TK-005', studentId: 'FX-2026-005', studentName: 'Fatima Al-Rashid', subject: 'Offer letter address correction needed', category: 'Applications', priority: 'High', status: 'Pending', assignee: 'Kabir Nair', created: 'Aug 2, 2026', lastUpdate: '3h ago', messages: [{ sender: 'Fatima', text: 'There is a spelling error in my name on the offer letter. Can this be corrected?', time: '8:30 AM', self: false }] },
 ];
 
 const STATUS_COLORS: Record<TicketStatus, string> = {
@@ -121,7 +121,7 @@ export const AdminSupportTickets: React.FC = () => {
                       <p className="text-xs font-extrabold text-slate-900">{t.subject}</p>
                       <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[9px] font-bold border ${PRIORITY_COLORS[t.priority]}`}>{t.priority}</span>
                     </div>
-                    <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{t.flag} {t.studentName} · {t.id} · {t.category}</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{t.studentName} · {t.id} · {t.category}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[t.status]}`}>{t.status}</span>

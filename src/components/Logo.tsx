@@ -6,6 +6,7 @@ interface LogoProps {
   color?: 'maroon' | 'white';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   align?: 'left' | 'center';
+  subtitle?: string;
 }
 
 export const Logo: React.FC<LogoProps> = ({
@@ -14,6 +15,7 @@ export const Logo: React.FC<LogoProps> = ({
   color = 'maroon',
   size = 'md',
   align = 'left',
+  subtitle = 'EDUCATION',
 }) => {
   const fillColor = color === 'white' ? '#FFFFFF' : '#6A1B2E';
   
@@ -87,7 +89,7 @@ export const Logo: React.FC<LogoProps> = ({
               className={`font-sans font-extrabold uppercase tracking-[0.25em] leading-none mt-1.5 ${dimensions.edu}`}
               style={{ color: fillColor }}
             >
-              EDUCATION
+              {subtitle}
             </span>
           </div>
         </div>
@@ -105,7 +107,7 @@ export const Logo: React.FC<LogoProps> = ({
             className={`font-sans font-extrabold uppercase tracking-[0.3em] leading-none mt-2.5 ${dimensions.edu}`}
             style={{ color: fillColor }}
           >
-            EDUCATION
+            {subtitle}
           </span>
         </div>
       )}

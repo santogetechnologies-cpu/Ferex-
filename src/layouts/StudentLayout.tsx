@@ -99,7 +99,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
             {isCollapsed ? (
               <Logo variant="icon" size="sm" />
             ) : (
-              <Logo variant="compact" size="sm" />
+              <Logo variant="compact" size="sm" subtitle="STUDENT" />
             )}
           </div>
 

@@ -428,7 +428,6 @@ export const MyProfile: React.FC = () => {
               <h2 className="text-xl font-extrabold text-slate-900">
                 {personal.firstName} {personal.lastName}
               </h2>
-              <span className="text-xl">🇮🇳</span>
             </div>
             <p className="text-sm font-semibold text-slate-500">{education.course} · {education.university}</p>
             <div className="flex items-center gap-2 flex-wrap mt-2">

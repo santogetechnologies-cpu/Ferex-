@@ -104,10 +104,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
               <Logo variant="icon" size="sm" />
             ) : (
               <div className="flex items-center gap-2">
-                <Logo variant="compact" size="sm" />
-                <span className="text-[9px] font-black text-[#6A1B2E] bg-[#6A1B2E]/10 border border-[#6A1B2E]/20 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                  SUPER
-                </span>
+                <Logo variant="compact" size="sm" subtitle="SUPER ADMIN" />
               </div>
             )}
           </div>

@@ -3,15 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, Eye, Edit3, Trash2, X, Save, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Student {
-  id: string; name: string; email: string; phone: string; country: string; flag: string;
+  id: string; name: string; email: string; phone: string; country: string;
   university: string; course: string; intake: string; status: string; statusColor: string;
   counselor: string; joined: string; appStatus: string;
 }
 
 const STUDENTS: Student[] = [
-  { id: 'FX-2026-001', name: 'Ashly', email: 'student@gmail.com', phone: '+91 98765 43210', country: 'India', flag: '🇮🇳', university: 'University of Warsaw', course: 'M.Sc. Computer Science', intake: 'Feb 2026', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', counselor: 'Education Team', joined: 'Nov 10, 2025', appStatus: 'Offer Received' },
-  { id: 'FX-2026-002', name: 'Rahul Mehta', email: 'rahul@example.com', phone: '+91 99000 11223', country: 'India', flag: '🇮🇳', university: 'TU Berlin', course: 'M.Sc. Data Engineering', intake: 'Oct 2026', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', counselor: 'Riya Shah', joined: 'Dec 5, 2025', appStatus: 'Under Review' },
-  { id: 'FX-2026-003', name: 'Priya Sharma', email: 'priya@example.com', phone: '+91 98123 45678', country: 'India', flag: '🇮🇳', university: 'University of Amsterdam', course: 'M.A. Business Analytics', intake: 'Sep 2026', status: 'Pending', statusColor: 'bg-amber-50 text-amber-700 border-amber-100', counselor: 'Arjun Pillai', joined: 'Jan 3, 2026', appStatus: 'Docs Pending' },
+  { id: 'FX-2026-001', name: 'Ashly', email: 'student@gmail.com', phone: '+91 98765 43210', country: 'India', university: 'University of Warsaw', course: 'M.Sc. Computer Science', intake: 'Feb 2026', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', counselor: 'Education Team', joined: 'Nov 10, 2025', appStatus: 'Offer Received' },
+  { id: 'FX-2026-002', name: 'Rahul Mehta', email: 'rahul@example.com', phone: '+91 99000 11223', country: 'India', university: 'TU Berlin', course: 'M.Sc. Data Engineering', intake: 'Oct 2026', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', counselor: 'Riya Shah', joined: 'Dec 5, 2025', appStatus: 'Under Review' },
+  { id: 'FX-2026-003', name: 'Priya Sharma', email: 'priya@example.com', phone: '+91 98123 45678', country: 'India', university: 'University of Amsterdam', course: 'M.A. Business Analytics', intake: 'Sep 2026', status: 'Pending', statusColor: 'bg-amber-50 text-amber-700 border-amber-100', counselor: 'Arjun Pillai', joined: 'Jan 3, 2026', appStatus: 'Docs Pending' },
 ];
 
 export const AdminStudents: React.FC = () => {
@@ -110,7 +110,7 @@ export const AdminStudents: React.FC = () => {
                     </div>
                     <div>
                       <p className="font-extrabold text-slate-900">{s.name}</p>
-                      <p className="text-[10px] font-semibold text-slate-400 flex items-center gap-1 mt-0.5">{s.flag} {s.country}</p>
+                      <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{s.country}</p>
                     </div>
                   </div>
                 </td>
@@ -198,7 +198,7 @@ export const AdminStudents: React.FC = () => {
                 {[
                   { label: 'Email', value: viewStudent.email },
                   { label: 'Phone', value: viewStudent.phone },
-                  { label: 'Country', value: `${viewStudent.flag} ${viewStudent.country}` },
+                  { label: 'Country', value: viewStudent.country },
                   { label: 'University', value: viewStudent.university },
                   { label: 'Course', value: viewStudent.course },
                   { label: 'Intake', value: viewStudent.intake },

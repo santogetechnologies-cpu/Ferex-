@@ -141,7 +141,8 @@ export const CentralDashboard: React.FC = () => {
             metaLeft: '+12 Today',
             metaLeftStyle: 'text-emerald-700 bg-emerald-50 border-emerald-200',
             metaRight: '92% of Target',
-            sub: 'Updated 2m ago · Goal: 1,600'
+            sub: 'Updated 2m ago · Goal: 1,600',
+            path: '/central/students',
           },
           {
             title: 'Gross Annual Volume',
@@ -153,7 +154,8 @@ export const CentralDashboard: React.FC = () => {
             metaLeft: '₹84L This Mo',
             metaLeftStyle: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20',
             metaRight: '88% Cleared',
-            sub: 'Updated Just now · Ledgers verified'
+            sub: 'Updated Just now · Ledgers verified',
+            path: '/central/financials',
           },
           {
             title: 'Partner Universities',
@@ -165,7 +167,8 @@ export const CentralDashboard: React.FC = () => {
             metaLeft: '+4 This Qtr',
             metaLeftStyle: 'text-blue-700 bg-blue-50 border-blue-200',
             metaRight: '98 Active EU',
-            sub: 'Target: 135 European Campuses'
+            sub: 'Target: 135 European Campuses',
+            path: '/central/universities',
           },
           {
             title: 'Counselor Quotas',
@@ -177,10 +180,11 @@ export const CentralDashboard: React.FC = () => {
             metaLeft: '99.4% SLA Rate',
             metaLeftStyle: 'text-emerald-700 bg-emerald-50 border-emerald-200',
             metaRight: '120 St/Staff',
-            sub: 'Zero unresolved SLA backlogs'
+            sub: 'Zero unresolved SLA backlogs',
+            path: '/central/admins',
           },
         ].map((stat, idx) => (
-          <motion.div key={idx} variants={itemVariants}>
+          <motion.div key={idx} variants={itemVariants} onClick={() => navigate(stat.path)}>
             <Card className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full">
               <div>
                 <div className="flex items-center justify-between mb-3">

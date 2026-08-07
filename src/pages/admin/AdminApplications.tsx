@@ -5,20 +5,20 @@ import { Search, Eye, CheckCircle2, XCircle, X } from 'lucide-react';
 type AppStatus = 'Submitted' | 'Under Review' | 'Offer Received' | 'Rejected' | 'Visa Processing';
 
 interface Application {
-  id: string; studentId: string; studentName: string; flag: string;
+  id: string; studentId: string; studentName: string;
   university: string; country: string; course: string; intake: string;
   status: AppStatus; date: string; counselor: string;
 }
 
 const APPS: Application[] = [
-  { id: 'APP-001', studentId: 'FX-2026-001', studentName: 'Ashly', flag: '🇮🇳', university: 'University of Warsaw', country: 'Poland', course: 'M.Sc. Computer Science', intake: 'Feb 2026', status: 'Offer Received', date: 'Nov 15, 2025', counselor: 'Education Team' },
-  { id: 'APP-002', studentId: 'FX-2026-002', studentName: 'Rahul Mehta', flag: '🇮🇳', university: 'TU Berlin', country: 'Germany', course: 'M.Sc. Data Engineering', intake: 'Oct 2026', status: 'Under Review', date: 'Dec 5, 2025', counselor: 'Riya Shah' },
-  { id: 'APP-003', studentId: 'FX-2026-003', studentName: 'Priya Sharma', flag: '🇮🇳', university: 'University of Amsterdam', country: 'Netherlands', course: 'M.A. Business Analytics', intake: 'Sep 2026', status: 'Submitted', date: 'Jan 3, 2026', counselor: 'Arjun Pillai' },
-  { id: 'APP-004', studentId: 'FX-2026-004', studentName: 'Amir Hassan', flag: '🇦🇪', university: 'Leiden University', country: 'Netherlands', course: 'LL.M. International Law', intake: 'Feb 2026', status: 'Visa Processing', date: 'Oct 22, 2025', counselor: 'Education Team' },
-  { id: 'APP-005', studentId: 'FX-2026-005', studentName: 'Fatima Al-Rashid', flag: '🇶🇦', university: 'University of Gdansk', country: 'Poland', course: 'M.Sc. Marine Biology', intake: 'Feb 2026', status: 'Offer Received', date: 'Nov 30, 2025', counselor: 'Riya Shah' },
-  { id: 'APP-006', studentId: 'FX-2026-006', studentName: 'Carlos Rivera', flag: '🇲🇽', university: 'Jagiellonian University', country: 'Poland', course: 'M.Sc. Biotechnology', intake: 'Oct 2026', status: 'Submitted', date: 'Jan 15, 2026', counselor: 'Arjun Pillai' },
-  { id: 'APP-007', studentId: 'FX-2026-007', studentName: 'Nadia Kowalski', flag: '🇵🇱', university: 'Warsaw University of Technology', country: 'Poland', course: 'M.Sc. Civil Engineering', intake: 'Feb 2026', status: 'Offer Received', date: 'Sep 8, 2025', counselor: 'Education Team' },
-  { id: 'APP-008', studentId: 'FX-2026-008', studentName: 'Yusuf Al-Farsi', flag: '🇴🇲', university: 'University of Wroclaw', country: 'Poland', course: 'M.B.A. Global Management', intake: 'Sep 2026', status: 'Under Review', date: 'Feb 1, 2026', counselor: 'Riya Shah' },
+  { id: 'APP-001', studentId: 'FX-2026-001', studentName: 'Ashly', university: 'University of Warsaw', country: 'Poland', course: 'M.Sc. Computer Science', intake: 'Feb 2026', status: 'Offer Received', date: 'Nov 15, 2025', counselor: 'Education Team' },
+  { id: 'APP-002', studentId: 'FX-2026-002', studentName: 'Rahul Mehta', university: 'TU Berlin', country: 'Germany', course: 'M.Sc. Data Engineering', intake: 'Oct 2026', status: 'Under Review', date: 'Dec 5, 2025', counselor: 'Riya Shah' },
+  { id: 'APP-003', studentId: 'FX-2026-003', studentName: 'Priya Sharma', university: 'University of Amsterdam', country: 'Netherlands', course: 'M.A. Business Analytics', intake: 'Sep 2026', status: 'Submitted', date: 'Jan 3, 2026', counselor: 'Arjun Pillai' },
+  { id: 'APP-004', studentId: 'FX-2026-004', studentName: 'Amir Hassan', university: 'Leiden University', country: 'Netherlands', course: 'LL.M. International Law', intake: 'Feb 2026', status: 'Visa Processing', date: 'Oct 22, 2025', counselor: 'Education Team' },
+  { id: 'APP-005', studentId: 'FX-2026-005', studentName: 'Fatima Al-Rashid', university: 'University of Gdansk', country: 'Poland', course: 'M.Sc. Marine Biology', intake: 'Feb 2026', status: 'Offer Received', date: 'Nov 30, 2025', counselor: 'Riya Shah' },
+  { id: 'APP-006', studentId: 'FX-2026-006', studentName: 'Carlos Rivera', university: 'Jagiellonian University', country: 'Poland', course: 'M.Sc. Biotechnology', intake: 'Oct 2026', status: 'Submitted', date: 'Jan 15, 2026', counselor: 'Arjun Pillai' },
+  { id: 'APP-007', studentId: 'FX-2026-007', studentName: 'Nadia Kowalski', university: 'Warsaw University of Technology', country: 'Poland', course: 'M.Sc. Civil Engineering', intake: 'Feb 2026', status: 'Offer Received', date: 'Sep 8, 2025', counselor: 'Education Team' },
+  { id: 'APP-008', studentId: 'FX-2026-008', studentName: 'Yusuf Al-Farsi', university: 'University of Wroclaw', country: 'Poland', course: 'M.B.A. Global Management', intake: 'Sep 2026', status: 'Under Review', date: 'Feb 1, 2026', counselor: 'Riya Shah' },
 ];
 
 const STATUS_COLORS: Record<AppStatus, string> = {
@@ -120,7 +120,7 @@ export const AdminApplications: React.FC = () => {
                     </div>
                     <div>
                       <p className="font-extrabold text-slate-900">{a.studentName}</p>
-                      <p className="text-[10px] text-slate-400 font-semibold">{a.flag} {a.studentId}</p>
+                      <p className="text-[10px] text-slate-400 font-semibold">{a.studentId}</p>
                     </div>
                   </div>
                 </td>
@@ -183,7 +183,7 @@ export const AdminApplications: React.FC = () => {
                 {/* Details */}
                 <div className="space-y-2">
                   {[
-                    { label: 'Student', value: `${viewApp.flag} ${viewApp.studentName}` },
+                    { label: 'Student', value: viewApp.studentName },
                     { label: 'University', value: viewApp.university },
                     { label: 'Country', value: viewApp.country },
                     { label: 'Course', value: viewApp.course },

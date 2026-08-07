@@ -5,19 +5,19 @@ import { Search, Eye, CheckCircle2, XCircle, RefreshCw, X, FileText } from 'luci
 type DocStatus = 'Pending' | 'Approved' | 'Rejected' | 'Re-upload Requested';
 
 interface DocRecord {
-  id: string; studentId: string; studentName: string; flag: string;
+  id: string; studentId: string; studentName: string;
   docType: string; category: string; status: DocStatus; uploaded: string; size: string; comment: string;
 }
 
 const DOCS: DocRecord[] = [
-  { id: 'DOC-001', studentId: 'FX-2026-001', studentName: 'Ashly', flag: '🇮🇳', docType: 'Passport', category: 'Identity', status: 'Pending', uploaded: 'Aug 1, 2026', size: '1.2 MB', comment: '' },
-  { id: 'DOC-002', studentId: 'FX-2026-002', studentName: 'Rahul Mehta', flag: '🇮🇳', docType: 'IELTS Certificate', category: 'Language', status: 'Approved', uploaded: 'Jul 28, 2026', size: '0.8 MB', comment: '' },
-  { id: 'DOC-003', studentId: 'FX-2026-003', studentName: 'Priya Sharma', flag: '🇮🇳', docType: 'Academic Transcript', category: 'Academic', status: 'Pending', uploaded: 'Aug 2, 2026', size: '1.7 MB', comment: '' },
-  { id: 'DOC-004', studentId: 'FX-2026-004', studentName: 'Amir Hassan', flag: '🇦🇪', docType: "Bachelor's Degree", category: 'Academic', status: 'Approved', uploaded: 'Jul 20, 2026', size: '2.1 MB', comment: '' },
-  { id: 'DOC-005', studentId: 'FX-2026-005', studentName: 'Fatima Al-Rashid', flag: '🇶🇦', docType: 'Passport Photo', category: 'Identity', status: 'Re-upload Requested', uploaded: 'Jul 15, 2026', size: '0.3 MB', comment: 'Photo resolution is too low. Please re-upload a high-resolution image.' },
-  { id: 'DOC-006', studentId: 'FX-2026-006', studentName: 'Carlos Rivera', flag: '🇲🇽', docType: 'Bank Statement', category: 'Financial', status: 'Pending', uploaded: 'Aug 3, 2026', size: '0.9 MB', comment: '' },
-  { id: 'DOC-007', studentId: 'FX-2026-007', studentName: 'Nadia Kowalski', flag: '🇵🇱', docType: 'Curriculum Vitae', category: 'Professional', status: 'Rejected', uploaded: 'Jul 10, 2026', size: '0.4 MB', comment: 'CV does not meet the university format requirements.' },
-  { id: 'DOC-008', studentId: 'FX-2026-008', studentName: 'Yusuf Al-Farsi', flag: '🇴🇲', docType: 'Recommendation Letter', category: 'Academic', status: 'Pending', uploaded: 'Aug 4, 2026', size: '0.5 MB', comment: '' },
+  { id: 'DOC-001', studentId: 'FX-2026-001', studentName: 'Ashly', docType: 'Passport', category: 'Identity', status: 'Pending', uploaded: 'Aug 1, 2026', size: '1.2 MB', comment: '' },
+  { id: 'DOC-002', studentId: 'FX-2026-002', studentName: 'Rahul Mehta', docType: 'IELTS Certificate', category: 'Language', status: 'Approved', uploaded: 'Jul 28, 2026', size: '0.8 MB', comment: '' },
+  { id: 'DOC-003', studentId: 'FX-2026-003', studentName: 'Priya Sharma', docType: 'Academic Transcript', category: 'Academic', status: 'Pending', uploaded: 'Aug 2, 2026', size: '1.7 MB', comment: '' },
+  { id: 'DOC-004', studentId: 'FX-2026-004', studentName: 'Amir Hassan', docType: "Bachelor's Degree", category: 'Academic', status: 'Approved', uploaded: 'Jul 20, 2026', size: '2.1 MB', comment: '' },
+  { id: 'DOC-005', studentId: 'FX-2026-005', studentName: 'Fatima Al-Rashid', docType: 'Passport Photo', category: 'Identity', status: 'Re-upload Requested', uploaded: 'Jul 15, 2026', size: '0.3 MB', comment: 'Photo resolution is too low. Please re-upload a high-resolution image.' },
+  { id: 'DOC-006', studentId: 'FX-2026-006', studentName: 'Carlos Rivera', docType: 'Bank Statement', category: 'Financial', status: 'Pending', uploaded: 'Aug 3, 2026', size: '0.9 MB', comment: '' },
+  { id: 'DOC-007', studentId: 'FX-2026-007', studentName: 'Nadia Kowalski', docType: 'Curriculum Vitae', category: 'Professional', status: 'Rejected', uploaded: 'Jul 10, 2026', size: '0.4 MB', comment: 'CV does not meet the university format requirements.' },
+  { id: 'DOC-008', studentId: 'FX-2026-008', studentName: 'Yusuf Al-Farsi', docType: 'Recommendation Letter', category: 'Academic', status: 'Pending', uploaded: 'Aug 4, 2026', size: '0.5 MB', comment: '' },
 ];
 
 const STATUS_COLORS: Record<DocStatus, string> = {
@@ -116,7 +116,7 @@ export const AdminDocumentReview: React.FC = () => {
                     </div>
                     <div>
                       <p className="font-extrabold text-slate-900">{d.studentName}</p>
-                      <p className="text-[10px] text-slate-400 font-semibold">{d.flag} {d.studentId}</p>
+                      <p className="text-[10px] text-slate-400 font-semibold">{d.studentId}</p>
                     </div>
                   </div>
                 </td>
@@ -168,7 +168,7 @@ export const AdminDocumentReview: React.FC = () => {
 
                 <div className="space-y-2">
                   {[
-                    { label: 'Student', value: `${viewDoc.flag} ${viewDoc.studentName}` },
+                    { label: 'Student', value: viewDoc.studentName },
                     { label: 'Document', value: viewDoc.docType },
                     { label: 'Category', value: viewDoc.category },
                     { label: 'Uploaded', value: viewDoc.uploaded },

@@ -4,8 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
   CreditCard, Headphones, MessageSquare, BarChart3, UserCog,
-  Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Shield
+  Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search
 } from 'lucide-react';
+
+import { Logo } from '../components/Logo';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
@@ -63,16 +65,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         {/* Logo Header */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100 shrink-0">
           <Link to="/admin/dashboard" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#6A1B2E] to-[#4A101E] flex items-center justify-center text-white shadow-md shadow-[#6A1B2E]/15 group-hover:scale-105 transition-transform">
-              <Shield className="w-4.5 h-4.5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <p className="text-xs font-extrabold text-slate-900 leading-none">Ferex Admin</p>
-                <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-[#6A1B2E]/10 text-[#6A1B2E] uppercase tracking-wider">PRO</span>
-              </div>
-              <p className="text-[9.5px] font-bold text-slate-400 mt-0.5">Education Console</p>
-            </div>
+            <Logo variant="compact" size="sm" subtitle="ADMIN" />
           </Link>
           <button onClick={() => setIsMobileOpen(false)} className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
             <X className="w-4 h-4" />

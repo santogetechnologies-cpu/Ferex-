@@ -5,19 +5,19 @@ import { Search, Eye, Download, CheckCircle2, X, CreditCard, TrendingUp, Clock }
 type PayStatus = 'Paid' | 'Pending' | 'Overdue' | 'Refunded';
 
 interface Payment {
-  id: string; studentId: string; studentName: string; flag: string;
+  id: string; studentId: string; studentName: string;
   description: string; amount: string; status: PayStatus; date: string; method: string; reference: string;
 }
 
 const PAYMENTS: Payment[] = [
-  { id: 'PAY-001', studentId: 'FX-2026-001', studentName: 'Ashly', flag: '🇮🇳', description: 'Application Processing Fee', amount: '₹15,000', status: 'Paid', date: 'Nov 20, 2025', method: 'Online Transfer', reference: 'REF-AX29184' },
-  { id: 'PAY-002', studentId: 'FX-2026-002', studentName: 'Rahul Mehta', flag: '🇮🇳', description: 'University Registration Fee', amount: '₹45,000', status: 'Pending', date: 'Aug 1, 2026', method: 'Bank Transfer', reference: 'REF-RM91827' },
-  { id: 'PAY-003', studentId: 'FX-2026-003', studentName: 'Priya Sharma', flag: '🇮🇳', description: 'Visa Assistance Fee', amount: '₹8,500', status: 'Paid', date: 'Jan 10, 2026', method: 'Credit Card', reference: 'REF-PS30291' },
-  { id: 'PAY-004', studentId: 'FX-2026-004', studentName: 'Amir Hassan', flag: '🇦🇪', description: 'Accommodation Booking Fee', amount: 'AED 2,500', status: 'Paid', date: 'Oct 30, 2025', method: 'Online Transfer', reference: 'REF-AH10291' },
-  { id: 'PAY-005', studentId: 'FX-2026-005', studentName: 'Fatima Al-Rashid', flag: '🇶🇦', description: 'Document Attestation Fee', amount: 'QAR 1,200', status: 'Refunded', date: 'Dec 5, 2025', method: 'Bank Transfer', reference: 'REF-FA50299' },
-  { id: 'PAY-006', studentId: 'FX-2026-006', studentName: 'Carlos Rivera', flag: '🇲🇽', description: 'Counseling & Admission Fee', amount: '₹25,000', status: 'Overdue', date: 'Jul 15, 2026', method: '—', reference: '—' },
-  { id: 'PAY-007', studentId: 'FX-2026-007', studentName: 'Nadia Kowalski', flag: '🇵🇱', description: 'University Application Fee', amount: 'PLN 450', status: 'Paid', date: 'Sep 15, 2025', method: 'Online Transfer', reference: 'REF-NK00912' },
-  { id: 'PAY-008', studentId: 'FX-2026-008', studentName: 'Yusuf Al-Farsi', flag: '🇴🇲', description: 'Registration & Processing Fee', amount: 'OMR 220', status: 'Pending', date: 'Aug 5, 2026', method: '—', reference: '—' },
+  { id: 'PAY-001', studentId: 'FX-2026-001', studentName: 'Ashly', description: 'Application Processing Fee', amount: '₹15,000', status: 'Paid', date: 'Nov 20, 2025', method: 'Online Transfer', reference: 'REF-AX29184' },
+  { id: 'PAY-002', studentId: 'FX-2026-002', studentName: 'Rahul Mehta', description: 'University Registration Fee', amount: '₹45,000', status: 'Pending', date: 'Aug 1, 2026', method: 'Bank Transfer', reference: 'REF-RM91827' },
+  { id: 'PAY-003', studentId: 'FX-2026-003', studentName: 'Priya Sharma', description: 'Visa Assistance Fee', amount: '₹8,500', status: 'Paid', date: 'Jan 10, 2026', method: 'Credit Card', reference: 'REF-PS30291' },
+  { id: 'PAY-004', studentId: 'FX-2026-004', studentName: 'Amir Hassan', description: 'Accommodation Booking Fee', amount: 'AED 2,500', status: 'Paid', date: 'Oct 30, 2025', method: 'Online Transfer', reference: 'REF-AH10291' },
+  { id: 'PAY-005', studentId: 'FX-2026-005', studentName: 'Fatima Al-Rashid', description: 'Document Attestation Fee', amount: 'QAR 1,200', status: 'Refunded', date: 'Dec 5, 2025', method: 'Bank Transfer', reference: 'REF-FA50299' },
+  { id: 'PAY-006', studentId: 'FX-2026-006', studentName: 'Carlos Rivera', description: 'Counseling & Admission Fee', amount: '₹25,000', status: 'Overdue', date: 'Jul 15, 2026', method: '—', reference: '—' },
+  { id: 'PAY-007', studentId: 'FX-2026-007', studentName: 'Nadia Kowalski', description: 'University Application Fee', amount: 'PLN 450', status: 'Paid', date: 'Sep 15, 2025', method: 'Online Transfer', reference: 'REF-NK00912' },
+  { id: 'PAY-008', studentId: 'FX-2026-008', studentName: 'Yusuf Al-Farsi', description: 'Registration & Processing Fee', amount: 'OMR 220', status: 'Pending', date: 'Aug 5, 2026', method: '—', reference: '—' },
 ];
 
 const STATUS_COLORS: Record<PayStatus, string> = {
@@ -122,7 +122,7 @@ export const AdminPayments: React.FC = () => {
                     </div>
                     <div>
                       <p className="font-extrabold text-slate-900">{p.studentName}</p>
-                      <p className="text-[10px] text-slate-400 font-semibold">{p.flag}</p>
+                      <p className="text-[10px] text-slate-400 font-semibold">{p.studentId}</p>
                     </div>
                   </div>
                 </td>
@@ -178,7 +178,7 @@ export const AdminPayments: React.FC = () => {
 
                 <div className="space-y-2">
                   {[
-                    { label: 'Student', value: `${viewPayment.flag} ${viewPayment.studentName}` },
+                    { label: 'Student', value: viewPayment.studentName },
                     { label: 'Payment ID', value: viewPayment.id },
                     { label: 'Reference', value: viewPayment.reference },
                     { label: 'Method', value: viewPayment.method },

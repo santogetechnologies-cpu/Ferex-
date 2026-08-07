@@ -8,26 +8,26 @@ import {
 } from 'lucide-react';
 
 const statCards = [
-  { label: 'Total Students', value: '247', change: '+12 this month', icon: Users, color: 'bg-blue-50 text-blue-600 border-blue-100', trend: 'up' },
-  { label: 'Active Applications', value: '89', change: '23 pending review', icon: FileCheck, color: 'bg-violet-50 text-violet-600 border-violet-100', trend: 'up' },
-  { label: 'Pending Documents', value: '34', change: '8 need urgent review', icon: FolderOpen, color: 'bg-amber-50 text-amber-600 border-amber-100', trend: 'down' },
-  { label: 'Pending Payments', value: '₹12.4L', change: '18 invoices due', icon: CreditCard, color: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20', trend: 'up' },
-  { label: 'Open Tickets', value: '21', change: '4 critical priority', icon: Headphones, color: 'bg-red-50 text-red-600 border-red-100', trend: 'down' },
-  { label: "Today's Meetings", value: '7', change: 'Next at 2:30 PM', icon: Clock, color: 'bg-emerald-50 text-emerald-600 border-emerald-100', trend: 'up' },
+  { label: 'Total Students', value: '247', change: '+12 this month', icon: Users, color: 'bg-blue-50 text-blue-600 border-blue-100', trend: 'up', path: '/admin/students' },
+  { label: 'Active Applications', value: '89', change: '23 pending review', icon: FileCheck, color: 'bg-violet-50 text-violet-600 border-violet-100', trend: 'up', path: '/admin/applications' },
+  { label: 'Pending Documents', value: '34', change: '8 need urgent review', icon: FolderOpen, color: 'bg-amber-50 text-amber-600 border-amber-100', trend: 'down', path: '/admin/documents' },
+  { label: 'Pending Payments', value: '₹12.4L', change: '18 invoices due', icon: CreditCard, color: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20', trend: 'up', path: '/admin/payments' },
+  { label: 'Open Tickets', value: '21', change: '4 critical priority', icon: Headphones, color: 'bg-red-50 text-red-600 border-red-100', trend: 'down', path: '/admin/support' },
+  { label: "Today's Meetings", value: '7', change: 'Next at 2:30 PM', icon: Clock, color: 'bg-emerald-50 text-emerald-600 border-emerald-100', trend: 'up', path: '/admin/students' },
 ];
 
 const recentStudents = [
-  { id: 'FX-2026-001', name: 'Ashly', country: '🇮🇳', university: 'University of Warsaw', status: 'Offer Received', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  { id: 'FX-2026-002', name: 'Rahul Mehta', country: '🇮🇳', university: 'TU Berlin', status: 'Under Review', statusColor: 'bg-blue-50 text-blue-700 border-blue-200' },
-  { id: 'FX-2026-003', name: 'Priya Sharma', country: '🇮🇳', university: 'University of Amsterdam', status: 'Docs Pending', statusColor: 'bg-amber-50 text-amber-700 border-amber-200' },
+  { id: 'FX-2026-001', name: 'Ashly', country: 'India', university: 'University of Warsaw', status: 'Offer Received', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  { id: 'FX-2026-002', name: 'Rahul Mehta', country: 'India', university: 'TU Berlin', status: 'Under Review', statusColor: 'bg-blue-50 text-blue-700 border-blue-200' },
+  { id: 'FX-2026-003', name: 'Priya Sharma', country: 'India', university: 'University of Amsterdam', status: 'Docs Pending', statusColor: 'bg-amber-50 text-amber-700 border-amber-200' },
 ];
 
 const recentActivities = [
-  { text: 'Ashly submitted Passport document', time: '5 min ago', type: 'doc' },
-  { text: 'Rahul Mehta application approved by University of Berlin', time: '22 min ago', type: 'app' },
-  { text: 'New support ticket opened: Visa query #TK-045', time: '1h ago', type: 'ticket' },
-  { text: 'Payment of ₹45,000 received from Priya Sharma', time: '2h ago', type: 'payment' },
-  { text: 'Staff member Riya assigned to application #APP-004', time: '3h ago', type: 'task' },
+  { text: 'Ashly submitted Passport document', time: '5 min ago', type: 'doc', path: '/admin/documents' },
+  { text: 'Rahul Mehta application approved by University of Berlin', time: '22 min ago', type: 'app', path: '/admin/applications' },
+  { text: 'New support ticket opened: Visa query #TK-045', time: '1h ago', type: 'ticket', path: '/admin/support' },
+  { text: 'Payment of ₹45,000 received from Priya Sharma', time: '2h ago', type: 'payment', path: '/admin/payments' },
+  { text: 'Staff member Riya assigned to application #APP-004', time: '3h ago', type: 'task', path: '/admin/tasks' },
 ];
 
 const appStatusData = [
@@ -77,6 +77,7 @@ export const AdminDashboard: React.FC = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.04, duration: 0.2 }}
+              onClick={() => navigate(card.path)}
               className="bg-white border border-slate-200/70 rounded-2xl p-4 shadow-xs hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer group hover:-translate-y-0.5"
             >
               <div className="flex items-center justify-between mb-3">
@@ -158,7 +159,7 @@ export const AdminDashboard: React.FC = () => {
 
             <div className="space-y-3.5">
               {recentActivities.map((act, idx) => (
-                <div key={idx} className="flex gap-3 items-start group">
+                <div key={idx} onClick={() => navigate(act.path)} className="flex gap-3 items-start group cursor-pointer hover:bg-slate-50 p-1.5 rounded-xl transition-colors">
                   <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ring-4 ${act.type === 'doc' ? 'bg-blue-500 ring-blue-50' : act.type === 'app' ? 'bg-emerald-500 ring-emerald-50' : act.type === 'ticket' ? 'bg-red-500 ring-red-50' : act.type === 'payment' ? 'bg-violet-500 ring-violet-50' : 'bg-amber-500 ring-amber-50'}`} />
                   <div>
                     <p className="text-xs font-bold text-slate-800 leading-snug group-hover:text-[#6A1B2E] transition-colors">{act.text}</p>
@@ -204,7 +205,7 @@ export const AdminDashboard: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {recentStudents.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+                <tr key={s.id} onClick={() => navigate('/admin/students')} className="hover:bg-slate-50/80 cursor-pointer transition-colors">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-xl bg-[#6A1B2E] flex items-center justify-center text-white text-[10px] font-black shrink-0 shadow-xs">

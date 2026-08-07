@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Bell, CheckCheck, Archive, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Search, Bell, CheckCheck, Archive, Clock,
+  FileText, GraduationCap, Headphones, CreditCard, ClipboardCheck,
+  UserCog, Calendar, Users
+} from 'lucide-react';
 
 interface Notification {
   id: number; title: string; body: string; time: string; category: string;
@@ -19,18 +24,19 @@ const INITIAL_NOTIFICATIONS: Notification[] = [
   { id: 9, title: 'New Student Enrolled', body: 'Carlos Rivera has completed enrollment for Oct 2026 intake.', time: '2 days ago', category: 'Students', read: true, archived: true },
 ];
 
-const CATEGORY_COLORS: Record<string, string> = {
-  Documents: 'bg-blue-50 text-blue-600',
-  Applications: 'bg-emerald-50 text-emerald-600',
-  Support: 'bg-red-50 text-red-600',
-  Payments: 'bg-violet-50 text-violet-600',
-  Tasks: 'bg-amber-50 text-amber-600',
-  Staff: 'bg-slate-100 text-slate-600',
-  Meetings: 'bg-cyan-50 text-cyan-600',
-  Students: 'bg-indigo-50 text-indigo-600',
+const CATEGORY_MAP: Record<string, { icon: React.FC<{ className?: string }>; route: string; color: string }> = {
+  Documents: { icon: FileText, route: '/admin/documents', color: 'bg-blue-50 text-blue-600 border-blue-100' },
+  Applications: { icon: GraduationCap, route: '/admin/applications', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
+  Support: { icon: Headphones, route: '/admin/support', color: 'bg-red-50 text-red-600 border-red-100' },
+  Payments: { icon: CreditCard, route: '/admin/payments', color: 'bg-violet-50 text-violet-600 border-violet-100' },
+  Tasks: { icon: ClipboardCheck, route: '/admin/tasks', color: 'bg-amber-50 text-amber-600 border-amber-100' },
+  Staff: { icon: UserCog, route: '/admin/staff', color: 'bg-slate-100 text-slate-600 border-slate-200' },
+  Meetings: { icon: Calendar, route: '/admin/dashboard', color: 'bg-cyan-50 text-cyan-600 border-cyan-100' },
+  Students: { icon: Users, route: '/admin/students', color: 'bg-indigo-50 text-indigo-600 border-indigo-100' },
 };
 
 export const AdminNotifications: React.FC = () => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
@@ -47,6 +53,13 @@ export const AdminNotifications: React.FC = () => {
   const archiveOne = (id: number) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, archived: true } : n));
     showToast('Notification archived.');
+  };
+
+  const handleCardClick = (category: string) => {
+    const config = CATEGORY_MAP[category];
+    if (config?.route) {
+      navigate(config.route);
+    }
   };
 
   const filtered = notifications.filter(n => {
@@ -104,50 +117,73 @@ export const AdminNotifications: React.FC = () => {
       {/* Notification Cards Stream */}
       <div className="space-y-2.5">
         <AnimatePresence>
-          {filtered.map((n) => (
-            <motion.div
-              key={n.id}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, height: 0 }}
-              className={`bg-white border rounded-2xl p-4 shadow-xs transition-all group ${!n.read ? 'border-[#6A1B2E]/20 shadow-[#6A1B2E]/5' : 'border-slate-100'}`}
-            >
-              <div className="flex items-start gap-3">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${CATEGORY_COLORS[n.category] || 'bg-slate-100 text-slate-500'}`}>
-                  <Bell className="w-4 h-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <p className={`text-xs font-extrabold ${!n.read ? 'text-slate-900' : 'text-slate-600'}`}>{n.title}</p>
-                      {!n.read && <span className="w-2 h-2 rounded-full bg-[#6A1B2E] shrink-0" />}
-                    </div>
-                    <span className="text-[10px] font-semibold text-slate-400 shrink-0 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {n.time}
-                    </span>
+          {filtered.map((n) => {
+            const categoryConfig = CATEGORY_MAP[n.category] || { icon: Bell, route: '/admin/dashboard', color: 'bg-slate-100 text-slate-600 border-slate-200' };
+            const IconComp = categoryConfig.icon;
+
+            return (
+              <motion.div
+                key={n.id}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, height: 0 }}
+                onClick={() => handleCardClick(n.category)}
+                className={`bg-white border rounded-2xl p-4 shadow-2xs hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 transition-all duration-200 cursor-pointer group ${!n.read ? 'border-[#6A1B2E]/20 shadow-[#6A1B2E]/5 bg-slate-50/30' : 'border-slate-100'}`}
+              >
+                <div className="flex items-start gap-3.5">
+                  {/* Source-specific Module Icon */}
+                  <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${categoryConfig.color}`}>
+                    <IconComp className="w-4.5 h-4.5" />
                   </div>
-                  <p className="text-[11px] font-semibold text-slate-500 mt-0.5 leading-relaxed">{n.body}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold ${CATEGORY_COLORS[n.category] || 'bg-slate-100 text-slate-500'}`}>{n.category}</span>
-                    <div className="flex items-center gap-1.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                      {!n.read && (
-                        <button onClick={() => markRead(n.id)}
-                          className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 flex items-center gap-1">
-                          <CheckCheck className="w-3 h-3" /> Mark read
-                        </button>
-                      )}
-                      {!n.archived && (
-                        <button onClick={() => archiveOne(n.id)}
-                          className="text-[10px] font-bold text-slate-400 hover:text-slate-600 flex items-center gap-1">
-                          <Archive className="w-3 h-3" /> Archive
-                        </button>
-                      )}
+
+                  <div className="flex-1 min-w-0">
+                    {/* Top Row: Title + Right Side Category Badge & Timestamp */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <p className={`text-xs font-extrabold ${!n.read ? 'text-slate-900' : 'text-slate-700'}`}>{n.title}</p>
+                        {!n.read && <span className="w-2 h-2 rounded-full bg-[#6A1B2E] shrink-0" />}
+                      </div>
+
+                      {/* Right-aligned Module Badge & Timestamp */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${categoryConfig.color}`}>
+                          {n.category}
+                        </span>
+                        <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-slate-400" /> {n.time}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Notification Body */}
+                    <p className="text-[11px] font-semibold text-slate-500 mt-1 leading-relaxed">{n.body}</p>
+
+                    {/* Action Triggers */}
+                    <div className="flex items-center justify-end gap-2 mt-2 pt-1 border-t border-slate-100/60">
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {!n.read && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); markRead(n.id); }}
+                            className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-emerald-50 transition-colors"
+                          >
+                            <CheckCheck className="w-3 h-3" /> Mark read
+                          </button>
+                        )}
+                        {!n.archived && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); archiveOne(n.id); }}
+                            className="text-[10px] font-bold text-slate-400 hover:text-slate-700 flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors"
+                          >
+                            <Archive className="w-3 h-3" /> Archive
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
 
         {filtered.length === 0 && (
