@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, AlertCircle } from 'lucide-react';
+import { ShieldCheck, AlertCircle, KeyRound, CheckCircle2, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '../components/Input';
 import { Checkbox } from '../components/Checkbox';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { getDashboardRoute, getPortalLabel, isValidRole } from '../lib/roleRouter';
+import { supabase } from '../lib/supabase';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const { signIn, resetPassword } = useAuth();
+
   // Input fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,6 +31,14 @@ export const LoginPage: React.FC = () => {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
   const [forgotError, setForgotError] = useState('');
+
+  // First Time Login Password Change Overlay
+  const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pendingRole, setPendingRole] = useState('');
+  const [changePassError, setChangePassError] = useState('');
+  const [isChangingPass, setIsChangingPass] = useState(false);
 
   // Front-end Validation
   const validateForm = () => {
@@ -47,8 +60,8 @@ export const LoginPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Mock sign-in submission
-  const handleSubmit = (e: React.FormEvent) => {
+  // Supabase sign-in submission
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -57,53 +70,169 @@ export const LoginPage: React.FC = () => {
 
     setIsLoading(true);
 
-    // Simulate standard SaaS secure login latency
-    setTimeout(() => {
-      setIsLoading(false);
-      if (email.trim().toLowerCase() === 'digital@ferex.com' && password === 'digital123') {
-        setSuccessMsg('Authorization successful. Loading Ferex Digital Portal...');
-        setTimeout(() => {
-          navigate('/digital/dashboard');
-        }, 800);
-      } else if (email === 'student@ferex.com' && password === 'student123') {
-        setSuccessMsg('Authorization successful. Loading secure workspace...');
-        setTimeout(() => {
-          navigate('/student/dashboard');
-        }, 800);
-      } else if ((email === 'admin@ferex.com' || email === 'admin.education@ferex.com') && password === 'admin123') {
-        setSuccessMsg('Authorization successful. Loading Education Admin console...');
-        setTimeout(() => {
-          navigate('/admin/dashboard');
-        }, 800);
-      } else if (email === 'superadmin@ferex.com' && password === 'super123') {
-        setSuccessMsg('Authorization successful. Loading Super Admin Central Console...');
-        setTimeout(() => {
-          navigate('/central/dashboard');
-        }, 800);
-      } else if (email === 'trade@ferex.com' && password === 'trade123') {
-        setSuccessMsg('Authorization successful. Loading Ferex Global Trade Portal...');
-        setTimeout(() => {
-          navigate('/trade/dashboard');
-        }, 800);
-      } else if (email.trim().toLowerCase() === 'rimi@ferex.com' && password === 'rimi123') {
-        setSuccessMsg('Authorization successful. Loading Rimi Frozen Distribution Portal...');
-        setTimeout(() => {
-          navigate('/rimi/dashboard');
-        }, 800);
-      } else if (email.trim().toLowerCase() === 'staff.education@ferex.com' && password === 'Staff@12345') {
-        localStorage.setItem('ferex_staff_demo_session', 'true');
-        setSuccessMsg('Authorization successful. Loading Ferex Staff Portal...');
-        setTimeout(() => {
-          navigate('/staff/dashboard');
-        }, 800);
-      } else {
-        setErrorMsg('Invalid email or password');
+    const isDefaultPassword = password === 'Student123' || password === 'student123';
+    let { error } = await signIn(email.trim(), password);
+
+    // If initial sign in fails with default password, check if student exists and auto-provision
+    if (error && isDefaultPassword) {
+      const { data: dbProfile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email.trim())
+        .maybeSingle();
+
+      if (dbProfile && dbProfile.must_change_password !== false) {
+        const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+          email: email.trim(),
+          password: password,
+          options: {
+            data: {
+              full_name: dbProfile.full_name || 'Student',
+              role: dbProfile.role || 'student',
+              must_change_password: true
+            }
+          }
+        });
+
+        if (signUpErr) {
+          error = signUpErr.message;
+        } else if (signUpData.user) {
+          const authId = signUpData.user.id;
+          const oldId = dbProfile.id;
+
+          if (authId !== oldId) {
+            try {
+              // Delete skeleton row inserted by trigger for authId to prevent primary key conflicts
+              await supabase.from('users').delete().eq('id', authId);
+              
+              // Migrate referencing rows to the new auth user ID
+              await Promise.all([
+                supabase.from('applications').update({ student_id: authId }).eq('student_id', oldId),
+                supabase.from('journey_stages').update({ student_id: authId }).eq('student_id', oldId),
+                supabase.from('student_documents').update({ student_id: authId }).eq('student_id', oldId),
+                supabase.from('student_documents').update({ reviewer_id: authId }).eq('reviewer_id', oldId),
+                supabase.from('offer_letters').update({ student_id: authId }).eq('student_id', oldId),
+                supabase.from('payments').update({ student_id: authId }).eq('student_id', oldId),
+                supabase.from('invoices').update({ student_id: authId }).eq('student_id', oldId),
+                supabase.from('receipts').update({ student_id: authId }).eq('student_id', oldId),
+                supabase.from('meetings').update({ student_id: authId }).eq('student_id', oldId),
+                supabase.from('meetings').update({ advisor_id: authId }).eq('advisor_id', oldId),
+                supabase.from('support_tickets').update({ student_id: authId }).eq('student_id', oldId),
+                supabase.from('support_tickets').update({ assigned_to: authId }).eq('assigned_to', oldId),
+                supabase.from('ticket_replies').update({ sender_id: authId }).eq('sender_id', oldId),
+                supabase.from('notifications').update({ user_id: authId }).eq('user_id', oldId),
+                supabase.from('tasks').update({ student_id: authId }).eq('student_id', oldId),
+                supabase.from('tasks').update({ created_by: authId }).eq('created_by', oldId),
+                supabase.from('tasks').update({ assigned_to: authId }).eq('assigned_to', oldId),
+              ]);
+
+              // Update the original user record to use authId
+              await supabase.from('users').update({
+                id: authId,
+                must_change_password: true
+              }).eq('id', oldId);
+            } catch (mergeErr) {
+              console.warn('[Profile merge warning]:', mergeErr);
+            }
+          }
+
+          if (!signUpData.session) {
+            error = 'A verification email has been sent. Please confirm your email or ask your administrator to disable "Confirm Email" in Supabase Auth settings to log in immediately.';
+          } else {
+            error = undefined;
+          }
+        }
       }
-    }, 1500);
+    }
+
+    if (error) {
+      setIsLoading(false);
+      setErrorMsg(error);
+      return;
+    }
+
+    // Fetch user profile from public.users to get their role & change_password status
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setIsLoading(false);
+      setErrorMsg('Failed to retrieve user session. Please try again.');
+      return;
+    }
+
+    const { data: profileRow } = await supabase
+      .from('users')
+      .select('role, must_change_password')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const role: string = profileRow?.role || user.user_metadata?.role || 'student';
+
+    if (!isValidRole(role)) {
+      setIsLoading(false);
+      setErrorMsg(
+        'Your account does not have an assigned portal role. Please contact your administrator.'
+      );
+      return;
+    }
+
+    const mustChange = user.user_metadata?.must_change_password || profileRow?.must_change_password || isDefaultPassword;
+
+    if (mustChange) {
+      setIsLoading(false);
+      setPendingRole(role);
+      setShowFirstTimeModal(true);
+      return;
+    }
+
+    const portalLabel = getPortalLabel(role);
+    setSuccessMsg(`Authorization successful. Loading ${portalLabel}...`);
+    setIsLoading(false);
+
+    setTimeout(() => {
+      navigate(getDashboardRoute(role));
+    }, 800);
   };
 
-  // Mock forgot password submission
-  const handleForgotSubmit = (e: React.FormEvent) => {
+  const handleFirstTimePassSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangePassError('');
+
+    if (!newPassword || newPassword.length < 6) {
+      setChangePassError('Password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setChangePassError('Passwords do not match.');
+      return;
+    }
+
+    setIsChangingPass(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.auth.updateUser({
+          password: newPassword,
+          data: { must_change_password: false }
+        });
+        await supabase.from('users').update({ must_change_password: false }).eq('id', user.id);
+      }
+
+      setIsChangingPass(false);
+      setShowFirstTimeModal(false);
+      setSuccessMsg(`Password set successfully! Loading ${getPortalLabel(pendingRole || 'student')}...`);
+
+      setTimeout(() => {
+        navigate(getDashboardRoute(pendingRole || 'student'));
+      }, 800);
+    } catch (err: any) {
+      setIsChangingPass(false);
+      setChangePassError(err.message || 'Failed to update password');
+    }
+  };
+
+  // Supabase forgot password submission
+  const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotError('');
 
@@ -116,16 +245,82 @@ export const LoginPage: React.FC = () => {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setForgotSent(true);
-    }, 1500);
+    await resetPassword(forgotEmail.trim());
+    setIsLoading(false);
+    setForgotSent(true);
   };
 
   return (
-    <div className="relative overflow-hidden w-full">
+    <div className="relative overflow-hidden w-full text-left">
       <AnimatePresence mode="wait">
-        {!showForgotOverlay ? (
+        {showFirstTimeModal ? (
+          /* FIRST TIME LOGIN PASSWORD CHANGE MODAL */
+          <motion.div
+            key="first-time-pass"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xl space-y-4"
+          >
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-bold">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">First-Time Password Setup</h3>
+                <p className="text-xs font-semibold text-slate-400">
+                  Default password (<code className="text-[#6A1B2E] font-bold">Student123</code>) detected. Set a new permanent password to continue.
+                </p>
+              </div>
+            </div>
+
+            {changePassError && (
+              <div className="p-3 bg-red-50 border border-red-200/80 rounded-xl text-xs font-bold text-red-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                {changePassError}
+              </div>
+            )}
+
+            <form onSubmit={handleFirstTimePassSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
+                  New Permanent Password
+                </label>
+                <input
+                  required
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password (min 6 chars)"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
+                  Confirm New Password
+                </label>
+                <input
+                  required
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isChangingPass}
+                className="w-full h-10 bg-[#6A1B2E] text-white rounded-xl text-xs font-bold hover:bg-[#4A101E] transition-colors shadow-sm disabled:opacity-50 mt-2"
+              >
+                {isChangingPass ? 'Updating Password...' : 'Save New Password & Log In'}
+              </button>
+            </form>
+          </motion.div>
+        ) : !showForgotOverlay ? (
           /* LOGIN INTERFACE */
           <motion.div
             key="login-form"
@@ -140,85 +335,70 @@ export const LoginPage: React.FC = () => {
                 Sign in to your account
               </h2>
               <p className="text-sm font-semibold text-slate-500">
-                Welcome back. Access your unified console.
+                Welcome back! Please enter your credentials to access your dashboard.
               </p>
             </div>
 
-            {/* Notification Messages */}
+            {/* Error Message */}
+            <AnimatePresence>
+              {errorMsg && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: -8, height: 0 }}
+                  className="mb-6 p-4 rounded-xl bg-red-50/90 border border-red-200/80 text-red-700 text-xs font-medium flex items-center gap-3 shadow-xs"
+                >
+                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                  <span>{errorMsg}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Success Message */}
             <AnimatePresence>
               {successMsg && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-lg flex items-start gap-3"
+                  initial={{ opacity: 0, y: -8, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: -8, height: 0 }}
+                  className="mb-6 p-4 rounded-xl bg-emerald-50/90 border border-emerald-200/80 text-emerald-700 text-xs font-medium flex items-center gap-3 shadow-xs"
                 >
-                  <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-bold text-emerald-950">Success</h4>
-                    <p className="text-xs font-semibold text-emerald-700 mt-0.5 leading-relaxed">{successMsg}</p>
-                  </div>
-                </motion.div>
-              )}
-
-              {errorMsg && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3"
-                >
-                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-bold text-red-950">Access Denied</h4>
-                    <p className="text-xs font-semibold text-red-700 mt-0.5 leading-relaxed">{errorMsg}</p>
-                  </div>
+                  <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
+                  <span>{successMsg}</span>
                 </motion.div>
               )}
             </AnimatePresence>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            <form onSubmit={handleSubmit} className="space-y-5">
               <Input
                 label="Email address"
-                id="login-email"
                 type="email"
-                placeholder="you@company.com"
+                placeholder="name@company.com"
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (errors.email) setErrors({ ...errors, email: undefined });
-                }}
+                onChange={(e) => setEmail(e.target.value)}
                 error={errors.email}
+                autoComplete="email"
                 disabled={isLoading}
-                required
               />
 
-              <div className="space-y-1">
-                <Input
-                  label="Password"
-                  id="login-password"
-                  type="password"
-                  placeholder="••••••••"
-                  showPasswordToggle
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) setErrors({ ...errors, password: undefined });
-                  }}
-                  error={errors.password}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
+              <Input
+                label="Password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                error={errors.password}
+                autoComplete="current-password"
+                disabled={isLoading}
+              />
 
-              {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between gap-4 py-1 select-none">
+              {/* Options Row */}
+              <div className="flex items-center justify-between pt-1">
                 <Checkbox
                   label="Remember me for 30 days"
-                  id="remember-me"
                   checked={rememberMe}
-                  onChange={setRememberMe}
+                  onChange={(checked) => setRememberMe(typeof checked === 'boolean' ? checked : (checked as any).target?.checked ?? false)}
                   disabled={isLoading}
                 />
 
@@ -226,102 +406,85 @@ export const LoginPage: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setShowForgotOverlay(true);
-                    setForgotSent(false);
-                    setForgotEmail('');
-                    setForgotError('');
+                    setErrorMsg('');
                   }}
-                  disabled={isLoading}
-                  className="text-sm font-bold text-[#6A1B2E] hover:text-[#521221] hover:underline transition-colors duration-200 focus-visible:outline-none rounded px-0.5"
+                  className="text-xs font-bold text-[#6A1B2E] hover:text-[#4A101E] transition-colors focus:outline-none focus:underline"
                 >
                   Forgot password?
                 </button>
               </div>
 
               {/* Submit Button */}
-              <Button
-                type="submit"
-                className="w-full h-12 mt-3 font-extrabold shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 bg-[#6A1B2E] hover:bg-[#521221] active:translate-y-0 text-white"
-                isLoading={isLoading}
-                disabled={isLoading}
-              >
-                Sign In
-              </Button>
+              <div className="pt-2">
+                <Button type="submit" isLoading={isLoading} className="w-full h-11">
+                  Sign in
+                </Button>
+              </div>
             </form>
           </motion.div>
         ) : (
           /* FORGOT PASSWORD OVERLAY */
           <motion.div
-            key="forgot-password"
+            key="forgot-form"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
           >
-            {/* Header */}
             <div className="text-center sm:text-left mb-8">
               <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-2">
                 Reset your password
               </h2>
               <p className="text-sm font-semibold text-slate-500">
-                Enter your organizational email to obtain security instructions.
+                Enter your email address and we'll send you instructions to reset your password.
               </p>
             </div>
 
             {forgotSent ? (
-              <div className="text-left space-y-6">
-                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-lg flex items-start gap-3">
-                  <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-bold text-emerald-950">Reset Instructions Sent</h4>
-                    <p className="text-xs font-semibold text-emerald-700 mt-0.5 leading-relaxed">
-                      We have dispatched password recovery instructions to <span className="font-bold">{forgotEmail}</span> if it is registered in our directories.
-                    </p>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => setShowForgotOverlay(false)}
-                  variant="secondary"
-                  className="w-full"
+              <div className="p-6 rounded-2xl bg-emerald-50/90 border border-emerald-200/80 text-emerald-800 text-center space-y-4">
+                <ShieldCheck className="w-10 h-10 text-emerald-500 mx-auto" />
+                <h3 className="text-sm font-extrabold">Check your email</h3>
+                <p className="text-xs font-semibold text-emerald-700">
+                  We have sent password reset instructions to <strong className="underline">{forgotEmail}</strong>.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowForgotOverlay(false);
+                    setForgotSent(false);
+                  }}
+                  className="mt-2 text-xs font-bold text-[#6A1B2E] hover:underline block mx-auto"
                 >
                   Return to Sign In
-                </Button>
+                </button>
               </div>
             ) : (
-              <form onSubmit={handleForgotSubmit} className="space-y-5" noValidate>
+              <form onSubmit={handleForgotSubmit} className="space-y-5">
+                {forgotError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                    {forgotError}
+                  </div>
+                )}
+
                 <Input
                   label="Email address"
-                  id="forgot-email"
                   type="email"
-                  placeholder="you@company.com"
+                  placeholder="name@company.com"
                   value={forgotEmail}
-                  onChange={(e) => {
-                    setForgotEmail(e.target.value);
-                    if (forgotError) setForgotError('');
-                  }}
-                  error={forgotError}
-                  disabled={isLoading}
-                  required
+                  onChange={(e) => setForgotEmail(e.target.value)}
                 />
 
-                <div className="space-y-3 pt-2">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    isLoading={isLoading}
-                    disabled={isLoading}
-                  >
-                    Send Reset Link
-                  </Button>
-
-                  <Button
+                <div className="flex items-center justify-between pt-2">
+                  <button
                     type="button"
                     onClick={() => setShowForgotOverlay(false)}
-                    variant="outline"
-                    className="w-full"
-                    disabled={isLoading}
+                    className="text-xs font-bold text-slate-500 hover:text-slate-700"
                   >
-                    Cancel
+                    ← Back to Sign In
+                  </button>
+
+                  <Button type="submit" isLoading={isLoading}>
+                    Send Reset Link
                   </Button>
                 </div>
               </form>

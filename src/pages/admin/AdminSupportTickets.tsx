@@ -1,213 +1,590 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, CheckCircle2, X, MessageSquare, User, Clock } from 'lucide-react';
+import { 
+  Search, CheckCircle2, X, MessageSquare, User, Clock, 
+  HelpCircle, Send, ShieldAlert, AlertCircle, RefreshCw,
+  Copy, Phone, Mail
+} from 'lucide-react';
+import { useTickets } from '../../hooks/useTickets';
+import { getTicketReplies } from '../../lib/api/tickets';
+import { getStaffMembers } from '../../lib/api/students';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
-type TicketStatus = 'Open' | 'Pending' | 'Resolved' | 'Closed';
+type TicketStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
 type TicketPriority = 'High' | 'Medium' | 'Low';
 
 interface Ticket {
-  id: string; studentId: string; studentName: string;
-  subject: string; category: string; priority: TicketPriority; status: TicketStatus;
-  assignee: string; created: string; lastUpdate: string; messages: { sender: string; text: string; time: string; self: boolean }[];
+  id: string;
+  ticketNo: string;
+  studentId: string;
+  studentName: string;
+  subject: string;
+  category: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+  assignee: string;
+  created: string;
+  lastUpdate: string;
+  messages: { sender: string; text: string; time: string; self: boolean }[];
 }
 
-const STAFF = ['Riya Shah', 'Arjun Pillai', 'Meena Iyer', 'Kabir Nair', 'Unassigned'];
+const STATUS_COLORS: Record<TicketStatus, string> = {
+  Open: 'bg-rose-50 text-rose-700 border-rose-100',
+  'In Progress': 'bg-amber-50 text-amber-700 border-amber-100',
+  Resolved: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  Closed: 'bg-slate-50 text-slate-600 border-slate-200',
+};
 
-const TICKETS: Ticket[] = [
-  { id: 'TK-001', studentId: 'FX-2026-001', studentName: 'Ashly', subject: 'Visa appointment date clarification', category: 'Visa', priority: 'High', status: 'Open', assignee: 'Riya Shah', created: 'Aug 4, 2026', lastUpdate: '2h ago', messages: [{ sender: 'Ashly', text: 'Can you please clarify the visa appointment date for my application?', time: '10:00 AM', self: false }, { sender: 'Riya Shah', text: 'Your visa appointment is scheduled for August 12, 2026. Please carry all original documents.', time: '10:45 AM', self: true }] },
-  { id: 'TK-002', studentId: 'FX-2026-002', studentName: 'Rahul Mehta', subject: 'Payment receipt not received', category: 'Payment', priority: 'Medium', status: 'Pending', assignee: 'Arjun Pillai', created: 'Aug 3, 2026', lastUpdate: '5h ago', messages: [{ sender: 'Rahul', text: 'I made the payment yesterday but did not receive the receipt on email.', time: '9:30 AM', self: false }] },
-  { id: 'TK-003', studentId: 'FX-2026-003', studentName: 'Priya Sharma', subject: 'IELTS document verification status', category: 'Documents', priority: 'Low', status: 'Resolved', assignee: 'Meena Iyer', created: 'Jul 30, 2026', lastUpdate: '1 day ago', messages: [{ sender: 'Priya', text: 'What is the status of my IELTS document verification?', time: '2:00 PM', self: false }, { sender: 'Meena Iyer', text: 'Your IELTS certificate has been successfully verified and uploaded to your profile.', time: '3:00 PM', self: true }] },
-  { id: 'TK-004', studentId: 'FX-2026-004', studentName: 'Amir Hassan', subject: 'Accommodation query for Feb 2026', category: 'Accommodation', priority: 'Medium', status: 'Open', assignee: 'Unassigned', created: 'Aug 5, 2026', lastUpdate: '1h ago', messages: [{ sender: 'Amir', text: 'Can you help me with accommodation options near the University of Warsaw campus?', time: '11:00 AM', self: false }] },
-  { id: 'TK-005', studentId: 'FX-2026-005', studentName: 'Fatima Al-Rashid', subject: 'Offer letter address correction needed', category: 'Applications', priority: 'High', status: 'Pending', assignee: 'Kabir Nair', created: 'Aug 2, 2026', lastUpdate: '3h ago', messages: [{ sender: 'Fatima', text: 'There is a spelling error in my name on the offer letter. Can this be corrected?', time: '8:30 AM', self: false }] },
+const PRIORITY_COLORS: Record<TicketPriority, string> = {
+  High: 'bg-red-50 text-red-700 border-red-100',
+  Medium: 'bg-amber-50 text-amber-700 border-amber-100',
+  Low: 'bg-blue-50 text-blue-700 border-blue-100',
+};
+
+const CANNED_RESPONSES = [
+  { title: '📝 Request Document Re-scan', text: 'Please provide a high-resolution color scan of the requested documents. Ensure that all edges, text, and university/counselor stamps are clearly visible without blur.' },
+  { title: '💳 UTR Transaction Missing', text: 'We received your bank receipt upload, but the UTR/Reference Transaction Number is missing or unreadable. Please reply with the correct UTR number for verification.' },
+  { title: '✈️ Visa Booking Slots Status', text: 'We are currently monitoring the VFS Poland study visa slot bookings. We will notify you immediately once a slot becomes available for reservation.' },
+  { title: '🎓 University Offer Delayed', text: 'Your application is currently under review by the university admissions desk. Standard processing takes 7-14 business days. We will notify you immediately when they release the offer letter.' }
 ];
 
-const STATUS_COLORS: Record<TicketStatus, string> = {
-  'Open': 'bg-red-50 text-red-700 border-red-100',
-  'Pending': 'bg-amber-50 text-amber-700 border-amber-100',
-  'Resolved': 'bg-emerald-50 text-emerald-700 border-emerald-100',
-  'Closed': 'bg-slate-50 text-slate-600 border-slate-200',
-};
-const PRIORITY_COLORS: Record<TicketPriority, string> = {
-  'High': 'bg-red-50 text-red-700 border-red-100',
-  'Medium': 'bg-amber-50 text-amber-700 border-amber-100',
-  'Low': 'bg-emerald-50 text-emerald-700 border-emerald-100',
-};
-
 export const AdminSupportTickets: React.FC = () => {
-  const [tickets, setTickets] = useState(TICKETS);
+  const { user, profile } = useAuth();
+  const { tickets: dbTickets, reply: sendReplyApi, changeStatus, assignTicket, loading, refresh } = useTickets();
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
-  const [viewTicket, setViewTicket] = useState<Ticket | null>(null);
-  const [reply, setReply] = useState('');
+  const [replyText, setReplyText] = useState('');
   const [toast, setToast] = useState('');
+  const [replies, setReplies] = useState<any[]>([]);
+  const [isReplying, setIsReplying] = useState(false);
+
+  useEffect(() => {
+    getStaffMembers().then(data => {
+      setStaffList(data);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (dbTickets.length > 0) {
+      const mapped = dbTickets.map(t => {
+        return {
+          id: t.id,
+          ticketNo: t.ticket_no,
+          studentId: t.student_id,
+          studentName: t.users?.full_name || t.users?.email?.split('@')[0] || 'Student',
+          subject: t.subject,
+          category: t.category,
+          priority: t.priority as TicketPriority,
+          status: t.status as TicketStatus,
+          assignee: t.assigned_to || 'Unassigned',
+          created: new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          lastUpdate: 'Recently',
+          messages: [{ sender: t.users?.full_name || 'Student', text: t.description, time: 'Initial Request', self: false }],
+        };
+      });
+      setTickets(mapped);
+    } else {
+      setTickets([]);
+    }
+  }, [dbTickets, staffList]);
+
+  // Sync replies when active ticket changes
+  const activeTicket = tickets.find(t => t.id === selectedTicketId);
+
+  // Retrieve matching db user metadata
+  const activeDbTicket = dbTickets.find(t => t.id === selectedTicketId);
+  const studentMeta = activeDbTicket?.users;
+
+  useEffect(() => {
+    if (!activeTicket) {
+      setReplies([]);
+      return;
+    }
+
+    // 1. Initial Fetch
+    getTicketReplies(activeTicket.id).then(data => {
+      const mapped = data.map(r => ({
+        id: r.id,
+        sender: r.sender_name || 'System',
+        text: r.message,
+        time: new Date(r.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        self: r.is_staff || r.sender_name === 'Admin' || r.sender_name === 'Support Staff' || r.sender_name === 'Education Admin' || r.sender_id === user?.id,
+      }));
+      setReplies([
+        { sender: activeTicket.studentName, text: activeTicket.messages[0]?.text || '', time: 'Initial Request', self: false },
+        ...mapped
+      ]);
+    }).catch(() => {});
+
+    // 2. Realtime listener for replies
+    const channel = supabase
+      .channel(`admin_replies:${activeTicket.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'ticket_replies',
+          filter: `ticket_id=eq.${activeTicket.id}`,
+        },
+        (payload) => {
+          const newReply = payload.new;
+          setReplies(prev => {
+            const exists = prev.some(r => r.id === newReply.id);
+            if (exists) return prev;
+            return [
+              ...prev,
+              {
+                id: newReply.id,
+                sender: newReply.sender_name || 'System',
+                text: newReply.message,
+                time: new Date(newReply.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                self: newReply.is_staff || newReply.sender_name === 'Admin' || newReply.sender_name === 'Support Staff' || newReply.sender_name === 'Education Admin' || newReply.sender_id === user?.id,
+              }
+            ];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [selectedTicketId, tickets, user?.id]);
+
+  // Realtime subscription to tickets queue changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin_tickets_queue')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'support_tickets',
+        },
+        () => {
+          refresh();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [refresh]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !activeTicket) return;
+    const msgText = replyText.trim();
+    setReplyText('');
+
+    try {
+      setIsReplying(true);
+      await sendReplyApi({
+        ticket_id: activeTicket.id,
+        sender_id: user?.id || '00000000-0000-0000-0000-000000000000',
+        sender_name: profile?.full_name || 'Education Admin',
+        message: msgText,
+        is_staff: true,
+      });
+
+      await changeStatus(activeTicket.id, 'In Progress');
+
+      setReplies(prev => [...prev, {
+        sender: profile?.full_name || 'Education Admin',
+        text: msgText,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        self: true
+      }]);
+
+      setTickets(prev => prev.map(t => t.id === activeTicket.id ? { ...t, status: 'In Progress' } : t));
+      showToast('Reply sent to student.');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to post reply.');
+    } finally {
+      setIsReplying(false);
+    }
+  };
+
+  const handleCloseTicket = async (id: string) => {
+    try {
+      await changeStatus(id, 'Resolved');
+      setTickets(prev => prev.map(t => t.id === id ? { ...t, status: 'Resolved' as TicketStatus } : t));
+      showToast('Ticket marked as resolved.');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to resolve ticket.');
+    }
+  };
+
+  const handleAssign = async (id: string, staffId: string) => {
+    const targetId = staffId === 'Unassigned' ? null : staffId;
+    try {
+      await assignTicket(id, targetId);
+      const staffObj = staffList.find(s => s.id === targetId);
+      const name = staffObj ? (staffObj.full_name || staffObj.email.split('@')[0]) : 'Unassigned';
+      
+      setTickets(prev => prev.map(t => t.id === id ? { ...t, assignee: staffId } : t));
+      showToast(targetId ? `Ticket assigned to ${name}.` : 'Ticket unassigned.');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update assignee.');
+    }
+  };
+
+  const copyEmail = (email?: string) => {
+    if (!email) return;
+    navigator.clipboard.writeText(email);
+    showToast('Student email copied to clipboard.');
+  };
+
+  const useCannedResponse = (text: string) => {
+    setReplyText(text);
+  };
 
   const filtered = tickets.filter(t =>
     (filter === 'All' || t.status === filter) &&
     (t.studentName.toLowerCase().includes(search.toLowerCase()) || t.subject.toLowerCase().includes(search.toLowerCase()) || t.id.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const handleSendReply = () => {
-    if (!reply.trim() || !viewTicket) return;
-    const updatedTicket = {
-      ...viewTicket,
-      messages: [...viewTicket.messages, { sender: 'Admin', text: reply, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), self: true }],
-      lastUpdate: 'Just now',
-      status: 'Pending' as TicketStatus,
-    };
-    setTickets(prev => prev.map(t => t.id === viewTicket.id ? updatedTicket : t));
-    setViewTicket(updatedTicket);
-    setReply('');
-    showToast('Reply sent to student.');
-  };
-
-  const handleClose = (id: string) => {
-    setTickets(prev => prev.map(t => t.id === id ? { ...t, status: 'Resolved' as TicketStatus } : t));
-    setViewTicket(null);
-    showToast('Ticket marked as resolved.');
-  };
-
-  const handleAssign = (id: string, assignee: string) => {
-    setTickets(prev => prev.map(t => t.id === id ? { ...t, assignee } : t));
-    if (viewTicket?.id === id) setViewTicket(prev => prev ? { ...prev, assignee } : null);
-    showToast(`Ticket assigned to ${assignee}.`);
-  };
-
-  const counts = ['All', 'Open', 'Pending', 'Resolved', 'Closed'].map(s => ({
+  const counts = ['All', 'Open', 'In Progress', 'Resolved', 'Closed'].map(s => ({
     label: s, count: s === 'All' ? tickets.length : tickets.filter(t => t.status === s).length
   }));
 
   return (
-    <div className="space-y-5 relative">
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl text-sm font-bold flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" /> {toast}
-        </div>
-      )}
-
-      <div>
-        <h1 className="text-xl font-extrabold text-slate-900">Support Tickets</h1>
-        <p className="text-xs font-semibold text-slate-400 mt-0.5">Manage and respond to student support requests</p>
-      </div>
-
-      <div className="flex items-center gap-2 flex-wrap">
-        {counts.map(({ label, count }) => (
-          <button key={label} onClick={() => setFilter(label)}
-            className={`flex items-center gap-1.5 h-8 px-3 rounded-xl text-[10px] font-extrabold border transition-all
-              ${filter === label ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
-            {label} <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-extrabold ${filter === label ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>{count}</span>
-          </button>
-        ))}
-        <div className="ml-auto relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search tickets..."
-            className="h-9 pl-8 pr-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold placeholder-slate-300 focus:outline-none focus:border-[#6A1B2E]/40 w-52" />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        {filtered.map((t) => (
-          <div key={t.id} className="bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-200 transition-all">
-            <div className="flex items-start gap-4 p-5">
-              <div className="w-9 h-9 rounded-xl bg-[#6A1B2E] flex items-center justify-center text-white text-[10px] font-extrabold shrink-0">
-                {t.studentName.split(' ').map(n => n[0]).join('')}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-xs font-extrabold text-slate-900">{t.subject}</p>
-                      <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[9px] font-bold border ${PRIORITY_COLORS[t.priority]}`}>{t.priority}</span>
-                    </div>
-                    <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{t.studentName} · {t.id} · {t.category}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[t.status]}`}>{t.status}</span>
-                    <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3" /> {t.lastUpdate}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 mt-2 flex-wrap">
-                  <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1"><User className="w-3 h-3" /> {t.assignee}</span>
-                  <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1"><MessageSquare className="w-3 h-3" /> {t.messages.length} messages</span>
-                </div>
-              </div>
-              <button onClick={() => { setViewTicket(t); setReply(''); }}
-                className="shrink-0 h-8 px-3 bg-[#6A1B2E]/10 text-[#6A1B2E] text-[10px] font-extrabold rounded-lg hover:bg-[#6A1B2E]/20 transition-all">
-                Open
-              </button>
-            </div>
-          </div>
-        ))}
-        {filtered.length === 0 && (
-          <div className="text-center py-12 text-sm font-semibold text-slate-400">No tickets match your search.</div>
-        )}
-      </div>
-
-      {/* Ticket Detail Drawer */}
+    <div className="flex flex-col h-[calc(100vh-140px)] antialiased select-none font-sans text-left relative">
+      {/* Toast Alert */}
       <AnimatePresence>
-        {viewTicket && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-50" onClick={() => setViewTicket(null)} />
-            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 w-full md:w-[480px] bg-white shadow-2xl z-50 flex flex-col border-l border-slate-100">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-900">{viewTicket.id}</h3>
-                  <p className="text-[10px] font-semibold text-slate-400 mt-0.5 truncate max-w-[280px]">{viewTicket.subject}</p>
-                </div>
-                <button onClick={() => setViewTicket(null)} className="p-2 rounded-full hover:bg-slate-50 text-slate-400"><X className="w-4 h-4" /></button>
-              </div>
-
-              {/* Metadata bar */}
-              <div className="flex items-center gap-3 px-6 py-3 border-b border-slate-50 bg-slate-50/50 flex-wrap">
-                <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold border ${STATUS_COLORS[viewTicket.status]}`}>{viewTicket.status}</span>
-                <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold border ${PRIORITY_COLORS[viewTicket.priority]}`}>{viewTicket.priority}</span>
-                <div className="flex items-center gap-1 ml-auto">
-                  <span className="text-[10px] font-semibold text-slate-400">Assign:</span>
-                  <select value={viewTicket.assignee} onChange={(e) => handleAssign(viewTicket.id, e.target.value)}
-                    className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded-lg px-2 py-1 focus:outline-none cursor-pointer">
-                    {STAFF.map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-3">
-                {viewTicket.messages.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.self ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.self ? 'bg-[#6A1B2E] text-white rounded-tr-none' : 'bg-slate-100 text-slate-800 rounded-tl-none'}`}>
-                      <p className="text-[10px] font-extrabold opacity-70 mb-1">{msg.sender}</p>
-                      <p className="text-xs font-semibold leading-relaxed">{msg.text}</p>
-                      <p className="text-[9px] font-bold opacity-50 mt-1">{msg.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Reply box */}
-              <div className="p-4 border-t border-slate-100 space-y-3">
-                <textarea rows={2} value={reply} onChange={(e) => setReply(e.target.value)}
-                  placeholder="Type your reply..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40 resize-none" />
-                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => handleClose(viewTicket.id)}
-                    className="h-9 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-xl hover:bg-emerald-50 flex items-center justify-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Close Ticket
-                  </button>
-                  <button onClick={handleSendReply}
-                    className="h-9 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all">
-                    Send Reply
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-6 right-6 z-50 bg-slate-900 border border-slate-800 text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-3"
+          >
+            <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400" />
+            {toast}
+          </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Header bar */}
+      <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4 shrink-0">
+        <div>
+          <h1 className="text-xl font-extrabold text-slate-955 flex items-center gap-2">
+            Support Control Room
+          </h1>
+          <p className="text-xs font-semibold text-slate-400 mt-0.5">Manage, delegate, and resolve student helpdesk tickets.</p>
+        </div>
+      </div>
+
+      {/* Main Dual-Pane Window */}
+      <div className="flex-1 flex gap-5 overflow-hidden min-h-0">
+        
+        {/* LEFT PANEL: Ticket Queue (40%) */}
+        <div className="w-[38%] flex flex-col border border-slate-200/70 rounded-2xl bg-white overflow-hidden shrink-0 shadow-2xs">
+          {/* Filters strip */}
+          <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto shrink-0 scrollbar-none">
+            {counts.map(({ label, count }) => (
+              <button
+                key={label}
+                onClick={() => setFilter(label)}
+                className={`h-7 px-2.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 transition-all whitespace-nowrap border ${
+                  filter === label 
+                    ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]' 
+                    : 'bg-white text-slate-500 hover:bg-slate-100 border-slate-200/80'
+                }`}
+              >
+                {label}
+                <span className={`px-1.5 py-0.2 rounded-md text-[8.5px] font-extrabold ${filter === label ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  {count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Search bar */}
+          <div className="p-3 border-b border-slate-100 shrink-0 relative">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by student or ticket ID..."
+              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/30"
+            />
+          </div>
+
+          {/* Scrollable Queue Stream */}
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+            {loading ? (
+              <div className="py-12 text-center text-xs font-semibold text-slate-400 flex items-center justify-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin text-slate-350" /> Loading inbox...
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="py-16 text-center">
+                <HelpCircle className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                <p className="text-xs font-bold text-slate-400">No matching tickets</p>
+              </div>
+            ) : (
+              filtered.map(t => {
+                const isSelected = selectedTicketId === t.id;
+                return (
+                  <div
+                    key={t.id}
+                    onClick={() => setSelectedTicketId(t.id)}
+                    className={`p-4 text-left cursor-pointer transition-all hover:bg-slate-50/70 border-l-4 ${
+                      isSelected 
+                        ? 'bg-rose-50/15 border-[#6A1B2E]' 
+                        : 'border-transparent bg-white'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center text-xs font-extrabold">
+                          {t.studentName[0]}
+                        </div>
+                        <div>
+                          <p className="text-xs font-black text-slate-900 leading-tight">{t.studentName}</p>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{t.ticketNo}</span>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-0.5 border rounded-full text-[8.5px] font-black uppercase ${STATUS_COLORS[t.status]}`}>
+                        {t.status}
+                      </span>
+                    </div>
+
+                    <p className="text-xs font-extrabold text-slate-700 mt-2.5 truncate">{t.subject}</p>
+                    
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{t.category}</span>
+                      <span className="text-[9px] font-semibold text-slate-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {t.created}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT PANEL: Live Chat Thread (62%) */}
+        <div className="flex-1 flex flex-col border border-slate-200/70 rounded-2xl bg-white overflow-hidden shadow-2xs">
+          {activeTicket ? (
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              {/* Thread Header */}
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#6A1B2E] text-white flex items-center justify-center font-black text-sm shadow-sm">
+                    {activeTicket.studentName[0]}
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 leading-tight flex items-center gap-1.5">
+                      {activeTicket.studentName}
+                      <span className={`px-2 py-0.5 border rounded-full text-[8px] font-black uppercase ${STATUS_COLORS[activeTicket.status]}`}>
+                        {activeTicket.status}
+                      </span>
+                    </h3>
+                    <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">{activeTicket.ticketNo} · {activeTicket.category}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setSelectedTicketId(null)}
+                    className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+                  >
+                    <X className="w-4.5 h-4.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Central Area: Chat History & Metadata Split */}
+              <div className="flex-1 flex min-h-0 overflow-hidden">
+                
+                {/* Scrollable Conversation Stream (70%) */}
+                <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+                  <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                    {/* Log details */}
+                    <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl text-xs text-left mb-6 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-slate-800">Topic: {activeTicket.subject}</span>
+                        <span className={`px-2 py-0.5 border rounded-full text-[9px] font-black uppercase ${PRIORITY_COLORS[activeTicket.priority]}`}>
+                          Priority: {activeTicket.priority}
+                        </span>
+                      </div>
+                      <p className="text-slate-500 font-semibold leading-relaxed">{activeTicket.messages[0]?.text}</p>
+                    </div>
+
+                    {replies.slice(1).map((msg, idx) => (
+                      <div key={idx} className={`flex gap-3 ${msg.self ? 'flex-row-reverse' : ''}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+                          msg.self ? 'bg-[#6A1B2E] text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}>
+                          {msg.sender[0]}
+                        </div>
+                        <div className={`max-w-[75%] p-3.5 rounded-2xl text-xs space-y-1 ${
+                          msg.self 
+                            ? 'bg-[#6A1B2E] text-white rounded-tr-none' 
+                            : 'bg-slate-50 border border-slate-150 text-slate-800 rounded-tl-none'
+                        }`}>
+                          <div className={`flex items-center justify-between gap-3 border-b pb-1 mb-1 ${
+                            msg.self ? 'border-white/10' : 'border-slate-150/40'
+                          }`}>
+                            <span className="font-extrabold">{msg.sender}</span>
+                            <span className={`text-[8.5px] font-bold opacity-60`}>{msg.time}</span>
+                          </div>
+                          <p className="font-semibold leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Reply Input Area */}
+                  <div className="p-4 border-t border-slate-100 shrink-0 space-y-3 bg-white">
+                    {activeTicket.status !== 'Closed' && activeTicket.status !== 'Resolved' ? (
+                      <div className="space-y-3">
+                        {/* Canned Responses Selection Bar */}
+                        <div className="space-y-1 text-left">
+                          <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider">Canned Response Quick-Select</span>
+                          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                            {CANNED_RESPONSES.map((r, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => useCannedResponse(r.text)}
+                                className="h-7 px-3 bg-slate-50 border border-slate-200 hover:border-[#6A1B2E]/30 text-slate-600 hover:text-[#6A1B2E] hover:bg-[#6A1B2E]/5 text-[9px] font-black rounded-lg transition-all whitespace-nowrap cursor-pointer"
+                              >
+                                {r.title}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <textarea 
+                          rows={2.5} 
+                          value={replyText} 
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder="Write your counselor reply here..."
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40 resize-none placeholder-slate-350" 
+                        />
+                        <div className="flex justify-end gap-2.5">
+                          <button 
+                            onClick={() => handleCloseTicket(activeTicket.id)}
+                            className="h-9 px-4 border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <AlertCircle className="w-3.5 h-3.5" /> Close Ticket
+                          </button>
+                          <button 
+                            onClick={handleSendReply}
+                            disabled={isReplying}
+                            className="h-9 px-5 bg-[#6A1B2E] hover:bg-[#4A101E] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            <Send className="w-3.5 h-3.5" /> Send Reply
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl text-[10px] text-center text-slate-400 font-extrabold uppercase tracking-wider">
+                        This support ticket has been closed. No further replies can be posted.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sidebar Controls (30%) */}
+                <div className="w-[30%] border-l border-slate-100 p-4 space-y-5 bg-slate-50/20 overflow-y-auto shrink-0 scrollbar-none">
+                  {/* Assignee Control */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Assignee</span>
+                    <select 
+                      value={activeTicket.assignee} 
+                      onChange={(e) => handleAssign(activeTicket.id, e.target.value)}
+                      className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none"
+                    >
+                      <option value="Unassigned">Unassigned</option>
+                      {staffList.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.full_name || s.email.split('@')[0]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Student Details Widget */}
+                  {studentMeta && (
+                    <div className="border border-slate-200 rounded-xl p-3 bg-white space-y-3">
+                      <span className="text-[9.5px] font-black text-slate-450 uppercase tracking-wider block">Student Profile</span>
+                      <div className="space-y-2 text-xs font-semibold text-slate-655">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span className="font-extrabold truncate text-slate-900">{studentMeta.full_name || 'No Name'}</span>
+                        </div>
+                        {studentMeta.email && (
+                          <div className="flex items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-2 truncate">
+                              <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                              <span className="truncate">{studentMeta.email}</span>
+                            </div>
+                            <button 
+                              onClick={() => copyEmail(studentMeta.email)} 
+                              className="p-1 hover:bg-slate-100 rounded text-slate-400 transition-colors shrink-0"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                        {studentMeta.phone && (
+                          <div className="flex items-center gap-2">
+                            <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                            <span>{studentMeta.phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Ticket Priority</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1 border rounded-full text-xs font-black uppercase ${PRIORITY_COLORS[activeTicket.priority]}`}>
+                        {activeTicket.priority}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Submitted On</span>
+                    <p className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-slate-450" /> {activeTicket.created}
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-blue-50/40 border border-blue-100 rounded-xl space-y-1">
+                    <span className="text-[9px] font-black text-blue-700 uppercase tracking-wider flex items-center gap-1">
+                      <ShieldAlert className="w-3 h-3" /> SLA Notification
+                    </span>
+                    <p className="text-[10.5px] font-semibold text-blue-600/80 leading-normal">Respond to student queries within 24 hours of ticket filing.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
+              <MessageSquare className="w-12 h-12 text-slate-200 mb-3" />
+              <h3 className="text-sm font-black text-slate-800">No Ticket Selected</h3>
+              <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm text-center">
+                Select a ticket from the left panel queue to review inquiry details, delegate counseling tasks, and post replies.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

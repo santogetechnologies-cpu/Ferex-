@@ -1,48 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileCheck, Download, Printer, CheckCircle2, Sparkles, Search, Eye, X, ShieldCheck } from 'lucide-react';
+import { FileCheck, Download, Sparkles, Search } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { getReceipts } from '../lib/api/payments';
+import type { Receipt } from '../lib/types';
 
 export const Receipts: React.FC = () => {
-  const [receipts] = useState([
-    { id: 1, recNo: 'REC-2026-1049', desc: 'Ferex Administrative Processing Fee', refTx: 'TX-2026-8901', amount: '₹40,500', date: 'Jun 12, 2026', method: 'Razorpay UPI / NetBanking', issuer: 'Ferex Financial Ledger' },
-    { id: 2, recNo: 'REC-2026-1180', desc: 'Stanford Application Submission Fee', refTx: 'TX-2026-9214', amount: '₹11,250', date: 'Jun 28, 2026', method: 'Visa Debit Card ending 4410', issuer: 'Stanford University Desk' },
-    { id: 3, recNo: 'REC-2026-1215', desc: 'MIT Transcript Evaluation Legalization', refTx: 'TX-2026-9541', amount: '₹13,500', date: 'Jul 04, 2026', method: 'MasterCard Credit ending 9920', issuer: 'MIT Admissions Attestation' },
-  ]);
-
+  const { user } = useAuth();
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
   const [toastMessage, setToastMessage] = useState('');
+
+  useEffect(() => {
+    getReceipts(user?.id).then(list => {
+      setReceipts(list);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [user]);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 2500);
+  };
 
   const handleDownload = (recNo: string) => {
     showToast(`Downloading Official Receipt: ${recNo}.pdf`);
   };
 
-  const handlePrint = (recNo: string) => {
-    showToast(`Sending ${recNo} to system printer queue...`);
-  };
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 3000);
-  };
-
-  const filteredReceipts = receipts.filter(r =>
-    r.recNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.refTx.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredReceipts = receipts.filter(r => {
+    const recTitle = r.receipt_number || r.title || '';
+    return recTitle.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   return (
-    <div className="space-y-6 text-left relative">
+    <div className="space-y-6 text-left relative min-h-[500px]">
       <AnimatePresence>
         {toastMessage && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white px-4 py-3 rounded-lg shadow-lg text-xs font-bold flex items-center gap-2"
+            className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white px-4 py-3 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4 text-amber-300" />
             {toastMessage}
@@ -50,143 +51,84 @@ export const Receipts: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1.5 flex items-center gap-2.5">
             <span className="w-8 h-8 rounded-lg bg-[#6A1B2E]/5 text-[#6A1B2E] flex items-center justify-center">
               <FileCheck className="w-5 h-5" />
             </span>
-            Receipts
+            Official Payment Receipts
           </h1>
           <p className="text-sm font-semibold text-slate-500">
-            Ferex Education • Secure payment confirmations, billing references, and printable transcripts.
+            Download verified payment receipts issued for application and university processing fees.
           </p>
         </div>
       </div>
 
-      <Card className="p-4 border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      {/* Search */}
+      <div className="bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs">
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search receipt number, transaction, or description..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+            placeholder="Search receipts by receipt number or payment description..."
+            className="w-full h-10 pl-9.5 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
           />
         </div>
-        <span className="text-xs font-bold text-slate-400">{filteredReceipts.length} Official Receipts Cleared</span>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {filteredReceipts.map((rec) => (
-          <Card key={rec.id} className="p-6 flex flex-col justify-between hover:border-slate-200 transition-all h-64 select-none">
-            <div className="space-y-4">
-              <div className="flex items-start justify-between border-b border-slate-50 pb-3">
-                <div className="text-left">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Reference ID</span>
-                  <span className="text-xs font-extrabold text-slate-800">{rec.recNo}</span>
-                </div>
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div className="text-left space-y-1.5">
-                <h4 className="text-xs font-bold text-slate-500 truncate">{rec.desc}</h4>
-                <p className="text-lg font-extrabold text-slate-900 leading-none">{rec.amount}</p>
-                <div className="text-[10px] text-slate-400 font-semibold space-y-0.5 pt-1">
-                  <p>Transaction: {rec.refTx}</p>
-                  <p>Cleared Date: {rec.date}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-              <button
-                onClick={() => setSelectedReceipt(rec)}
-                className="p-1.5 text-slate-400 hover:text-[#6A1B2E] rounded-lg hover:bg-slate-50 transition-colors"
-                title="View Receipt Details"
-              >
-                <Eye className="w-4 h-4" />
-              </button>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handlePrint(rec.recNo)}
-                  className="p-2 text-slate-400 hover:text-[#6A1B2E] rounded hover:bg-slate-50 transition-colors"
-                  title="Print Receipt"
-                >
-                  <Printer className="w-4 h-4" />
-                </button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs flex items-center gap-1.5 h-8.5 font-bold px-3.5"
-                  onClick={() => handleDownload(rec.recNo)}
-                >
-                  <Download className="w-3.5 h-3.5" /> PDF
-                </Button>
-              </div>
-            </div>
-          </Card>
-        ))}
       </div>
 
-      {/* View Receipt Drawer */}
-      <AnimatePresence>
-        {selectedReceipt && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900 z-40"
-              onClick={() => setSelectedReceipt(null)}
-            />
-            <motion.div
-              initial={{ translateX: '100%' }}
-              animate={{ translateX: 0 }}
-              exit={{ translateX: '100%' }}
-              transition={{ duration: 0.25 }}
-              className="fixed top-0 right-0 h-screen w-full max-w-md bg-white z-50 shadow-2xl p-6 overflow-y-auto"
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
-                <h3 className="text-sm font-black text-slate-900">Official Payment Receipt Document</h3>
-                <button onClick={() => setSelectedReceipt(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-4 h-4" /></button>
-              </div>
-
-              <div className="space-y-4 text-left">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-black text-[#6A1B2E] uppercase">{selectedReceipt.recNo}</span>
-                  <h4 className="text-xl font-black text-slate-900">{selectedReceipt.amount}</h4>
-                  <p className="text-xs font-semibold text-slate-500">{selectedReceipt.desc}</p>
+      {/* Receipts List */}
+      {loading ? (
+        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading payment receipts...</div>
+      ) : filteredReceipts.length === 0 ? (
+        <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
+          <FileCheck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-black text-slate-800">No Payment Receipts Available</h3>
+          <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto">
+            Once payments are completed, official confirmation receipts will be automatically generated here.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredReceipts.map((rec) => (
+            <Card key={rec.id} className="p-5 border border-slate-200/80 hover:border-slate-300 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <span className="text-[10px] font-black text-[#6A1B2E] uppercase">{rec.receipt_number || rec.id}</span>
+                    <h3 className="text-sm font-black text-slate-900 leading-snug">{rec.title || 'Fee Payment Receipt'}</h3>
+                  </div>
+                  <span className="text-[9.5px] uppercase font-extrabold tracking-wider px-2.5 py-0.5 border rounded-full bg-emerald-50 text-emerald-700 border-emerald-200">
+                    Verified
+                  </span>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-xl space-y-1">
-                  <span className="text-[10px] font-extrabold uppercase text-slate-400">Payment Reference</span>
-                  <div className="text-xs font-black text-slate-900">Transaction ID: {selectedReceipt.refTx}</div>
-                  <div className="text-xs font-semibold text-slate-500">Method: {selectedReceipt.method}</div>
-                  <div className="text-xs font-semibold text-slate-500">Issuer: {selectedReceipt.issuer}</div>
-                </div>
-
-                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center gap-2 text-xs font-extrabold text-emerald-800">
-                  <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-                  Electronic Receipt Verified & Signed by Ferex Financial Ledger
-                </div>
-
-                <div className="pt-2 flex items-center gap-2">
-                  <Button size="sm" variant="outline" className="flex-1 text-xs font-bold" onClick={() => handlePrint(selectedReceipt.recNo)}>
-                    <Printer className="w-3.5 h-3.5 mr-1" /> Print Official Copy
-                  </Button>
-                  <Button size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => handleDownload(selectedReceipt.recNo)}>
-                    <Download className="w-3.5 h-3.5 mr-1" /> Save PDF Copy
-                  </Button>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 mb-4 flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-600">Amount Paid:</span>
+                  <span className="text-sm font-black text-emerald-700">₹{Number(rec.amount || 0).toLocaleString()}</span>
                 </div>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400">
+                  {new Date(rec.issued_at || rec.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs font-bold"
+                  onClick={() => handleDownload(rec.receipt_number || rec.id)}
+                >
+                  <Download className="w-3.5 h-3.5 mr-1" /> PDF Receipt
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

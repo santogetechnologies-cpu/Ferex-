@@ -1,58 +1,110 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, Search, Upload, Eye, RefreshCw, FileText, CheckCircle2, AlertCircle, Clock, X } from 'lucide-react';
+import { Folder, Search, Upload, Eye, FileText, CheckCircle2, X, MessageSquare } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { useDocuments } from '../hooks/useDocuments';
 
 export const Documents: React.FC = () => {
-  // In-memory files state
-  const [documents, setDocuments] = useState([
-    { id: 1, name: 'Passport_Sarah_Jenkins.pdf', type: 'Identification', size: '1.4 MB', date: 'Jul 28, 2026', status: 'Approved' },
-    { id: 2, name: 'TOEFL_IBT_Official_Report.pdf', type: 'Language Test', size: '890 KB', date: 'Jul 29, 2026', status: 'Approved' },
-    { id: 3, name: 'HighSchool_Transcript_Unified.pdf', type: 'Transcripts', size: '2.5 MB', date: 'Aug 01, 2026', status: 'Approved' },
-    { id: 4, name: 'Recommendation_Letter_Stanford_01.pdf', type: 'Recommendation', size: '420 KB', date: 'Aug 04, 2026', status: 'Pending Verification' },
-    { id: 5, name: 'Medical_Declaration_Form.pdf', type: 'Medical Check', size: '1.1 MB', date: 'Aug 05, 2026', status: 'Rejected' },
-  ]);
+  const { user } = useAuth();
+  const { documents: dbDocs, loading, addDoc, replaceDoc } = useDocuments(user?.id);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Map DB docs or fall back to empty list if none
+  const documents = dbDocs.map(d => ({
+    id: d.id,
+    name: d.file_name,
+    type: d.doc_type,
+    size: d.file_size || '1.2 MB',
+    date: new Date(d.uploaded_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+    status: d.status,
+    reviewerNotes: d.reviewer_notes || '',
+  }));
 
   // Input states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [previewDoc, setPreviewDoc] = useState<typeof documents[0] | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<any | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [reuploadTargetDocId, setReuploadTargetDocId] = useState<string | null>(null);
   const [uploadName, setUploadName] = useState('');
-  const [uploadType, setUploadType] = useState('Transcripts');
+  const [uploadType, setUploadType] = useState<any>('Transcripts');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [toastMessage, setToastMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Search & Filter
   const filteredDocs = documents.filter((doc) => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) || doc.type.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || doc.status === statusFilter;
+    const matchesSearch =
+      doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.status.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const isDocVerified = (doc.status as string) === 'Verified' || (doc.status as string) === 'Approved';
+    const isDocPending = (doc.status as string) === 'Pending Verification' || (doc.status as string) === 'Pending';
+    const isDocReupload = (doc.status as string) === 'Re-upload Requested';
+    const isDocRejected = (doc.status as string) === 'Rejected';
+
+    const matchesStatus =
+      statusFilter === 'All' ||
+      (statusFilter === 'Approved' && isDocVerified) ||
+      (statusFilter === 'Verified' && isDocVerified) ||
+      (statusFilter === 'Pending Verification' && isDocPending) ||
+      (statusFilter === 'Re-upload Requested' && isDocReupload) ||
+      (statusFilter === 'Rejected' && isDocRejected);
+
     return matchesSearch && matchesStatus;
   });
 
-  // Mock replace
-  const handleReplace = (_id: number, docName: string) => {
-    showToast(`Replacing document: ${docName}. Choose file...`);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      if (!uploadName) {
+        setUploadName(file.name.replace(/\.[^/.]+$/, ''));
+      }
+    }
   };
 
-  // Mock Upload submit
-  const handleUploadSubmit = (e: React.FormEvent) => {
+  const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadName) return;
+    if (!uploadName || !user) return;
 
-    const newDoc = {
-      id: documents.length + 1,
-      name: uploadName.endsWith('.pdf') ? uploadName : `${uploadName}.pdf`,
-      type: uploadType,
-      size: '1.2 MB',
-      date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }),
-      status: 'Pending Verification'
-    };
+    const baseName = uploadName.endsWith('.pdf') ? uploadName : `${uploadName}.pdf`;
+    const fileSizeStr = selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '1.4 MB';
+    const fileUrlStr = selectedFile ? URL.createObjectURL(selectedFile) : 'https://placeholder.supabase.co/' + baseName;
 
-    setDocuments([newDoc, ...documents]);
-    setShowUploadModal(false);
-    setUploadName('');
-    showToast(`Document "${newDoc.name}" uploaded successfully!`);
+    try {
+      setIsSubmitting(true);
+      if (reuploadTargetDocId) {
+        await replaceDoc(reuploadTargetDocId, {
+          file_name: baseName,
+          file_url: fileUrlStr,
+          file_size: fileSizeStr,
+          doc_type: uploadType,
+        });
+        showToast(`Document "${baseName}" re-uploaded successfully and submitted for review!`);
+      } else {
+        await addDoc({
+          student_id: user.id,
+          file_name: baseName,
+          file_url: fileUrlStr,
+          file_size: fileSizeStr,
+          doc_type: uploadType,
+        });
+        showToast(`Document "${baseName}" submitted successfully for verification!`);
+      }
+
+      setShowUploadModal(false);
+      setReuploadTargetDocId(null);
+      setUploadName('');
+      setSelectedFile(null);
+    } catch (err: any) {
+      showToast(`Error: ${err.message || 'Failed to upload'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const showToast = (msg: string) => {
@@ -61,7 +113,7 @@ export const Documents: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 text-left relative">
+    <div className="space-y-6 text-left relative min-h-[600px]">
       {/* Toast */}
       <AnimatePresence>
         {toastMessage && (
@@ -69,271 +121,241 @@ export const Documents: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white px-4 py-3 rounded-lg shadow-lg text-xs font-bold flex items-center gap-2"
+            className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white px-4 py-3 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2"
           >
-            <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+            <Folder className="w-4 h-4 text-amber-300" />
             {toastMessage}
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1.5 flex items-center gap-2.5">
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
             <span className="w-8 h-8 rounded-lg bg-[#6A1B2E]/5 text-[#6A1B2E] flex items-center justify-center">
               <Folder className="w-5 h-5" />
             </span>
-            Documents Manager
+            Document Vault
           </h1>
-          <p className="text-sm font-semibold text-slate-500">
-            Ferex Education • Secure workspace to upload, review, and verify your credentials.
+          <p className="text-xs font-semibold text-slate-500 mt-1">
+            Upload and manage your required compliance, academic, and identification documents.
           </p>
         </div>
+
         <Button
-          size="sm"
-          className="text-xs flex items-center gap-2 h-10 shadow-none font-bold"
-          onClick={() => setShowUploadModal(true)}
+          onClick={() => {
+            setUploadName('');
+            setSelectedFile(null);
+            setShowUploadModal(true);
+          }}
+          className="flex items-center gap-2 text-xs font-bold h-10 px-4 self-start sm:self-auto shadow-sm"
         >
           <Upload className="w-4 h-4" /> Upload Document
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 select-none">
-        {/* Search */}
-        <div className="relative flex-grow max-w-md">
+      {/* Search & Filter Bar */}
+      <div className="bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col sm:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by file name or document type..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 pl-10 pr-4 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#6A1B2E] focus:ring-2 focus:ring-[#6A1B2E]/10 transition-all"
+            placeholder="Search documents by name, category, or status..."
+            className="w-full h-10 pl-9.5 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
           />
         </div>
 
-        {/* Filter select */}
-        <div className="relative min-w-[180px]">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full h-11 px-3 border border-slate-200 rounded-lg bg-white text-sm font-semibold text-slate-700 focus:outline-none focus:border-[#6A1B2E]"
-          >
-            <option value="All">All Statuses</option>
-            <option value="Approved">Approved</option>
-            <option value="Pending Verification">Pending Verification</option>
-            <option value="Rejected">Rejected</option>
-          </select>
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
+          {['All', 'Pending Verification', 'Approved', 'Re-upload Requested', 'Rejected'].map(s => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                statusFilter === s ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Documents Grid / Table */}
-      <Card className="overflow-hidden border border-slate-100 shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm select-none">
-            <thead className="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-400 border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-4">Document Details</th>
-                <th className="px-6 py-4">Category</th>
-                <th className="px-6 py-4">Upload Date</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-semibold">
-              {filteredDocs.length > 0 ? (
-                filteredDocs.map((doc) => {
-                  const isApproved = doc.status === 'Approved';
-                  const isPending = doc.status === 'Pending Verification';
-                  
-                  let badgeClass = 'bg-red-50 text-red-700 border-red-100';
-                  let BadgeIcon = AlertCircle;
-                  if (isApproved) {
-                    badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
-                    BadgeIcon = CheckCircle2;
-                  } else if (isPending) {
-                    badgeClass = 'bg-amber-50 text-amber-700 border-amber-100';
-                    BadgeIcon = Clock;
-                  }
-
-                  return (
-                    <tr key={doc.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <FileText className="w-5 h-5 text-slate-400 shrink-0" />
-                          <div className="flex flex-col">
-                            <span className="text-slate-900 truncate max-w-[200px] sm:max-w-[320px] font-bold">
-                              {doc.name}
-                            </span>
-                            <span className="text-[10px] text-slate-400">{doc.size}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-slate-500 text-xs">
-                        {doc.type}
-                      </td>
-                      <td className="px-6 py-4 text-slate-500 text-xs">
-                        {doc.date}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className={`inline-flex items-center gap-1 px-2.5 py-1 border rounded-full text-[9px] uppercase font-bold ${badgeClass}`}>
-                          <BadgeIcon className="w-3 h-3" />
-                          <span>{doc.status}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2.5">
-                          <button
-                            onClick={() => setPreviewDoc(doc)}
-                            className="p-1 rounded-md text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100 transition-colors"
-                            title="Preview File"
-                          >
-                            <Eye className="w-4.5 h-4.5" />
-                          </button>
-                          <button
-                            onClick={() => handleReplace(doc.id, doc.name)}
-                            className="p-1 rounded-md text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100 transition-colors"
-                            title="Replace File"
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={5} className="py-10 text-center font-bold text-slate-400">
-                    No matching documents found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      {/* Documents Grid */}
+      {loading && dbDocs.length === 0 ? (
+        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading document vault...</div>
+      ) : filteredDocs.length === 0 ? (
+        <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
+          <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-black text-slate-800">No Documents Found</h3>
+          <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto mb-5">
+            {searchQuery || statusFilter !== 'All'
+              ? 'No documents match your current filter or search term.'
+              : 'Upload your academic transcripts, passport, and certificates to proceed with university applications.'}
+          </p>
+          <Button
+            onClick={() => setShowUploadModal(true)}
+            className="inline-flex items-center gap-2 text-xs font-bold h-9 px-4"
+          >
+            <Upload className="w-4 h-4" /> Upload First Document
+          </Button>
         </div>
-      </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDocs.map((doc) => {
+            const statusStr = String(doc.status || '').toLowerCase().trim();
+            const notesStr = String(doc.reviewerNotes || '').toLowerCase().trim();
 
-      {/* DOCUMENT PREVIEW OVERLAY MODAL */}
-      <AnimatePresence>
-        {previewDoc && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setPreviewDoc(null)}
-              className="fixed inset-0 bg-black"
-            />
-            {/* Modal */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-xl w-full relative z-10 p-6 space-y-4"
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-[#6A1B2E]" />
-                  <h3 className="text-sm font-extrabold text-slate-900 truncate max-w-[280px]">
-                    {previewDoc.name}
+            const isReupload = statusStr.includes('re-upload') || statusStr.includes('reupload') || statusStr.includes('request') || notesStr.includes('re-upload') || notesStr.includes('reupload');
+            const isVerified = statusStr === 'verified' || statusStr === 'approved';
+            const isRejected = !isReupload && statusStr.includes('reject');
+            const isPending = !isReupload && !isVerified && !isRejected;
+
+            const displayStatus = isVerified
+              ? 'Approved'
+              : isReupload
+              ? 'Re-upload Requested'
+              : isPending
+              ? 'Pending Verification'
+              : isRejected
+              ? 'Rejected'
+              : doc.status;
+
+            const badgeClass = isVerified
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : isReupload
+              ? 'bg-blue-50 text-blue-700 border-blue-200 font-bold'
+              : isPending
+              ? 'bg-amber-50 text-amber-700 border-amber-200'
+              : isRejected
+              ? 'bg-red-50 text-red-700 border-red-200'
+              : 'bg-slate-50 text-slate-700 border-slate-200';
+
+            return (
+              <Card key={doc.id} className="p-5 border border-slate-200/80 hover:border-slate-300 transition-all flex flex-col justify-between bg-white relative">
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                      <FileText className="w-5 h-5 text-[#6A1B2E]" />
+                    </div>
+                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${badgeClass}`}>
+                      {displayStatus}
+                    </span>
+                  </div>
+
+                  <h3 className="text-sm font-black text-slate-900 leading-snug mb-1 truncate" title={doc.name}>
+                    {doc.name}
                   </h3>
+                  <p className="text-xs font-bold text-slate-400 mb-3">{doc.type}</p>
+
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs font-semibold text-slate-500 space-y-1">
+                    <div className="flex justify-between"><span>File Size:</span><span className="font-bold text-slate-800">{doc.size}</span></div>
+                    <div className="flex justify-between"><span>Uploaded:</span><span className="font-bold text-slate-800">{doc.date}</span></div>
+                  </div>
+
+                  {doc.reviewerNotes && (
+                    <div className="mt-3 p-3 bg-blue-50/80 border border-blue-200/80 rounded-xl text-left">
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-blue-800 flex items-center gap-1 mb-1">
+                        <MessageSquare className="w-3.5 h-3.5 text-blue-700" /> Admin Feedback Notes
+                      </p>
+                      <p className="text-xs font-semibold text-blue-950 leading-relaxed">{doc.reviewerNotes}</p>
+                    </div>
+                  )}
                 </div>
-                <button onClick={() => setPreviewDoc(null)} className="p-1 hover:bg-slate-100 rounded text-slate-400">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
 
-              {/* Simulated PDF structure */}
-              <div className="border border-slate-100 bg-slate-50/50 rounded-lg p-8 flex flex-col items-center justify-center h-[280px]">
-                <FileText className="w-16 h-16 text-slate-300 mb-4" />
-                <p className="text-xs text-slate-400 font-bold">Secure PDF Document Viewer (Mock)</p>
-                <p className="text-[10px] text-slate-400 mt-1">Verified signature code: SHA-256/f7x890412e</p>
-                <div className="w-48 h-2 rounded bg-slate-200/80 overflow-hidden mt-6">
-                  <div className="w-full h-full bg-[#6A1B2E]/20" />
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 mt-4">
+                  <button
+                    onClick={() => setPreviewDoc(doc)}
+                    className="flex items-center gap-1.5 text-xs font-bold text-[#6A1B2E] hover:underline"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Preview
+                  </button>
+
+                    {isReupload && (
+                      <button
+                        onClick={() => {
+                          setReuploadTargetDocId(doc.id);
+                          setUploadName(doc.name);
+                          setUploadType(doc.type);
+                          setShowUploadModal(true);
+                        }}
+                        className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
+                      >
+                        <Upload className="w-3.5 h-3.5" /> Re-upload File
+                      </button>
+                    )}
                 </div>
-              </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
-              <div className="flex justify-end gap-3 pt-3">
-                <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => setPreviewDoc(null)}>
-                  Close
-                </Button>
-                <Button size="sm" className="text-xs font-bold" onClick={() => handleReplace(previewDoc.id, previewDoc.name)}>
-                  Replace File
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* FILE UPLOAD MODAL */}
+      {/* Upload File Modal with Real File Picker */}
       <AnimatePresence>
         {showUploadModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowUploadModal(false)}
-              className="fixed inset-0 bg-black"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-md w-full relative z-10 p-6 space-y-4"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setShowUploadModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-sm font-extrabold text-slate-900">Upload Academic Document</h3>
-                <button onClick={() => setShowUploadModal(false)} className="p-1 hover:bg-slate-100 rounded text-slate-400">
-                  <X className="w-5 h-5" />
-                </button>
+                <h3 className="text-base font-black text-slate-900">Upload Compliance Document</h3>
+                <button onClick={() => setShowUploadModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
               </div>
 
-              <form onSubmit={handleUploadSubmit} className="space-y-4 text-xs font-semibold">
+              <form onSubmit={handleUploadSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-slate-500 mb-1.5">Document File Name</label>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Document File Name</label>
                   <input
                     type="text"
-                    placeholder="e.g. IELTS_Report_Card"
                     value={uploadName}
                     onChange={(e) => setUploadName(e.target.value)}
+                    placeholder="e.g. Bachelor_Degree_Transcript"
                     required
-                    className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-500 mb-1.5">Document Category</label>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Document Category</label>
                   <select
                     value={uploadType}
                     onChange={(e) => setUploadType(e.target.value)}
-                    className="w-full h-10 px-3 border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
                   >
-                    <option value="Identification">Identification (Passport / ID)</option>
-                    <option value="Language Test">Language Test (TOEFL / IELTS)</option>
                     <option value="Transcripts">Academic Transcripts</option>
-                    <option value="Recommendation">Letters of Recommendation</option>
-                    <option value="Other">Other Certificate</option>
+                    <option value="Identification">Identification (Passport / ID)</option>
+                    <option value="Language Test">Language Test (IELTS / TOEFL)</option>
+                    <option value="Recommendation">Letter of Recommendation (LOR)</option>
+                    <option value="Other">Other Certificate / SOP</option>
                   </select>
                 </div>
 
-                {/* Drag and Drop Mock */}
-                <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 flex flex-col items-center justify-center hover:border-primary/50 transition-colors cursor-pointer bg-slate-50/50">
-                  <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                  <span className="text-xs text-slate-500">Drag files here or click to browse</span>
-                  <span className="text-[10px] text-slate-400 mt-1">Supports PDF, JPG, PNG up to 10MB</span>
+                {/* 📂 Native File Input Picker */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  className="hidden"
+                />
+
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-6 border-2 border-dashed border-slate-200 hover:border-[#6A1B2E]/40 rounded-2xl bg-slate-50/50 hover:bg-slate-50 text-center cursor-pointer transition-all group"
+                >
+                  <Upload className="w-8 h-8 text-slate-400 group-hover:text-[#6A1B2E] mx-auto mb-2 transition-colors" />
+                  <p className="text-xs font-bold text-slate-800">
+                    {selectedFile ? selectedFile.name : 'Click to browse & select local document file'}
+                  </p>
+                  <p className="text-[10px] font-semibold text-slate-400 mt-1">Supports PDF, DOCX, JPG, PNG (Max 10MB)</p>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3">
-                  <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => setShowUploadModal(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" size="sm" className="text-xs">
-                    Submit File
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowUploadModal(false)}>Cancel</Button>
+                  <Button type="submit" size="sm" disabled={isSubmitting || !uploadName}>
+                    {isSubmitting ? 'Uploading...' : 'Submit Document'}
                   </Button>
                 </div>
               </form>
@@ -342,6 +364,35 @@ export const Documents: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {previewDoc && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setPreviewDoc(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">{previewDoc.name}</h3>
+                  <p className="text-xs font-semibold text-[#6A1B2E]">{previewDoc.type}</p>
+                </div>
+                <button onClick={() => setPreviewDoc(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
+              </div>
+
+              <div className="p-8 bg-slate-50 border border-slate-200/70 rounded-2xl text-center space-y-3">
+                <FileText className="w-16 h-16 text-[#6A1B2E] mx-auto opacity-90" />
+                <p className="text-xs font-bold text-slate-700">Official Document Record Verified</p>
+                <div className="inline-block px-3 py-1 bg-white rounded-lg border text-xs font-extrabold text-slate-800 shadow-2xs">
+                  Status: {previewDoc.status}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end">
+                <Button size="sm" onClick={() => setPreviewDoc(null)}>Close Preview</Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

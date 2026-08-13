@@ -1,28 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, Bell, CheckCheck, Archive, Clock,
   FileText, GraduationCap, Headphones, CreditCard, ClipboardCheck,
-  UserCog, Calendar, Users
+  UserCog, Calendar, Users, Plus, X
 } from 'lucide-react';
+import { useNotifications } from '../../hooks/useNotifications';
+import { getStudents } from '../../lib/api/students';
 
-interface Notification {
-  id: number; title: string; body: string; time: string; category: string;
+interface NotificationItem {
+  id: string; title: string; body: string; time: string; category: string;
   read: boolean; archived: boolean;
 }
-
-const INITIAL_NOTIFICATIONS: Notification[] = [
-  { id: 1, title: 'New Document Uploaded', body: 'Ashly uploaded a new Passport document awaiting review.', time: '5 min ago', category: 'Documents', read: false, archived: false },
-  { id: 2, title: 'Application Approved', body: 'TU Berlin accepted Rahul Mehta\'s application. Offer letter pending.', time: '22 min ago', category: 'Applications', read: false, archived: false },
-  { id: 3, title: 'New Support Ticket', body: 'Support ticket #TK-006 opened by Amir Hassan regarding accommodation.', time: '1h ago', category: 'Support', read: false, archived: false },
-  { id: 4, title: 'Payment Received', body: 'Payment of ₹45,000 received from Priya Sharma for registration fee.', time: '2h ago', category: 'Payments', read: true, archived: false },
-  { id: 5, title: 'Task Due Tomorrow', body: 'Task TK-002: Follow up TU Berlin application is due tomorrow.', time: '3h ago', category: 'Tasks', read: true, archived: false },
-  { id: 6, title: 'Staff Update', body: 'Kabir Nair has requested leave from Aug 10–15, 2026.', time: '4h ago', category: 'Staff', read: true, archived: false },
-  { id: 7, title: 'Document Verified', body: 'IELTS certificate for Rahul Mehta successfully verified by Meena Iyer.', time: 'Yesterday', category: 'Documents', read: true, archived: false },
-  { id: 8, title: 'Meeting Reminder', body: 'Counseling session with Fatima Al-Rashid scheduled at 3:00 PM today.', time: 'Yesterday', category: 'Meetings', read: true, archived: false },
-  { id: 9, title: 'New Student Enrolled', body: 'Carlos Rivera has completed enrollment for Oct 2026 intake.', time: '2 days ago', category: 'Students', read: true, archived: true },
-];
 
 const CATEGORY_MAP: Record<string, { icon: React.FC<{ className?: string }>; route: string; color: string }> = {
   Documents: { icon: FileText, route: '/admin/documents', color: 'bg-blue-50 text-blue-600 border-blue-100' },
@@ -37,7 +27,72 @@ const CATEGORY_MAP: Record<string, { icon: React.FC<{ className?: string }>; rou
 
 export const AdminNotifications: React.FC = () => {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+  const { notifications: dbNotifs, markRead: apiMarkRead, markAllRead: apiMarkAllRead, loading, sendNotification } = useNotifications();
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
+  // Compose Notification States
+  const [showComposeModal, setShowComposeModal] = useState(false);
+  const [students, setStudents] = useState<any[]>([]);
+  const [targetStudentId, setTargetStudentId] = useState('ALL'); // 'ALL' = Broadcast
+  const [newTitle, setNewTitle] = useState('');
+  const [newBody, setNewBody] = useState('');
+  const [newCategory, setNewCategory] = useState('Support');
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  useEffect(() => {
+    getStudents().then(data => {
+      setStudents(data);
+    }).catch(() => {});
+  }, []);
+
+  const handlePublishNotification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !newBody.trim()) return;
+
+    try {
+      setIsPublishing(true);
+      if (targetStudentId === 'ALL') {
+        // Broadcast
+        await Promise.all(students.map(s => sendNotification({
+          user_id: s.id,
+          title: newTitle,
+          body: newBody,
+          category: newCategory
+        })));
+        showToast('Broadcast alert sent to all students.');
+      } else {
+        // Single target
+        await sendNotification({
+          user_id: targetStudentId,
+          title: newTitle,
+          body: newBody,
+          category: newCategory
+        });
+        showToast('Notification published successfully.');
+      }
+      setShowComposeModal(false);
+      setNewTitle('');
+      setNewBody('');
+    } catch (err: any) {
+      showToast(`Error publishing: ${err.message || 'Failed'}`);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  useEffect(() => {
+    const mapped = dbNotifs.map(n => ({
+      id: n.id,
+      title: n.title,
+      body: n.body,
+      time: new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      category: n.category || 'Support',
+      read: n.is_read,
+      archived: false,
+    }));
+    setNotifications(mapped);
+  }, [dbNotifs]);
+
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState('');
@@ -45,12 +100,17 @@ export const AdminNotifications: React.FC = () => {
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); };
 
   const markAllRead = () => {
+    apiMarkAllRead();
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     showToast('All notifications marked as read.');
   };
 
-  const markRead = (id: number) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  const archiveOne = (id: number) => {
+  const markRead = (id: string) => {
+    apiMarkRead(id);
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const archiveOne = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, archived: true } : n));
     showToast('Notification archived.');
   };
@@ -91,9 +151,17 @@ export const AdminNotifications: React.FC = () => {
             <span className="w-6 h-6 rounded-full bg-[#6A1B2E] text-white text-[10px] font-extrabold flex items-center justify-center">{unreadCount}</span>
           )}
         </div>
-        <button onClick={markAllRead} className="flex items-center gap-1.5 h-8 px-3 bg-white border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 transition-all">
-          <CheckCheck className="w-3.5 h-3.5" /> Mark all read
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowComposeModal(true)}
+            className="flex items-center gap-1.5 h-8 px-3.5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] transition-all shadow-sm"
+          >
+            <Plus className="w-3.5 h-3.5" /> Compose Alert
+          </button>
+          <button onClick={markAllRead} className="flex items-center gap-1.5 h-8 px-3 bg-white border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 transition-all">
+            <CheckCheck className="w-3.5 h-3.5" /> Mark all read
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -193,6 +261,110 @@ export const AdminNotifications: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Compose Notification Modal */}
+      <AnimatePresence>
+        {showComposeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowComposeModal(false)}
+              className="fixed inset-0 bg-black"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-2xl overflow-hidden max-w-md w-full relative z-10 p-6 space-y-4 text-left"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-sm font-extrabold text-slate-900">Compose & Send Alert</h3>
+                <button onClick={() => setShowComposeModal(false)} className="p-1 hover:bg-slate-100 rounded text-slate-400">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handlePublishNotification} className="space-y-4 text-xs font-semibold text-left">
+                <div>
+                  <label className="block text-slate-500 mb-1">Target Recipient</label>
+                  <select
+                    required
+                    value={targetStudentId}
+                    onChange={(e) => setTargetStudentId(e.target.value)}
+                    className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:border-[#6A1B2E]"
+                  >
+                    <option value="ALL">Broadcast to All Students</option>
+                    {students.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.full_name || s.email.split('@')[0]} ({s.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-500 mb-1">Alert Type / Module</label>
+                    <select
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      className="w-full h-10 px-3 border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:border-[#6A1B2E]"
+                    >
+                      <option value="Support">Support Helpdesk</option>
+                      <option value="Documents">Documents Verification</option>
+                      <option value="Applications">University Application</option>
+                      <option value="Payments">Fee Installments</option>
+                      <option value="Meetings">Advisory Session</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Topic Title</label>
+                    <input
+                      type="text"
+                      placeholder="Enter subject header..."
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      required
+                      className="w-full h-10 px-3 border border-slate-200 rounded-lg text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:border-[#6A1B2E]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 mb-1">Notification message</label>
+                  <textarea
+                    rows={4}
+                    placeholder="Provide alert content details to students..."
+                    value={newBody}
+                    onChange={(e) => setNewBody(e.target.value)}
+                    required
+                    className="w-full p-3.5 border border-slate-200 rounded-lg text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:border-[#6A1B2E] resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowComposeModal(false)}
+                    className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isPublishing}
+                    className="h-9 px-5 bg-[#6A1B2E] text-white rounded-xl text-xs font-bold hover:bg-[#521221] shadow-xs"
+                  >
+                    {isPublishing ? 'Publishing...' : 'Publish Alert'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

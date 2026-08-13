@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Edit3, Save, X, CheckCircle2, Camera, Eye, Trash2, Upload, Download,
@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { updateStudent } from '../lib/api/students';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PersonalInfo {
@@ -137,6 +139,7 @@ const Toggle: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked,
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const MyProfile: React.FC = () => {
+  const { user, profile } = useAuth();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
 
@@ -146,49 +149,71 @@ export const MyProfile: React.FC = () => {
   });
   const [toast, setToast] = useState('');
   const [activeTab, setActiveTab] = useState('Personal Information');
-  const [completionPct] = useState(78);
+  const [completionPct] = useState(85);
 
   // Editing states
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [editingEmergency, setEditingEmergency] = useState(false);
 
+  const fullNameParts = (profile?.full_name || '').split(' ');
+  const defaultFirstName = fullNameParts[0] || user?.email?.split('@')[0] || 'Student';
+  const defaultLastName = fullNameParts.slice(1).join(' ') || '';
+
   // Personal Information
   const [personal, setPersonal] = useState<PersonalInfo>({
-    firstName: 'Ashly',
-    lastName: '',
-    gender: 'Female',
-    dob: '2000-06-14',
+    firstName: defaultFirstName,
+    lastName: defaultLastName,
+    gender: 'Not Specified',
+    dob: '2000-01-01',
     nationality: 'Indian',
-    passportNo: 'PS-890412A',
-    phone: '+91 98765 43210',
-    email: 'student@gmail.com',
-    address: '24 Greenfield Avenue',
-    city: 'Kochi',
-    country: 'India',
-    postalCode: '682001',
+    passportNo: (profile as any)?.passport_no || '',
+    phone: (profile as any)?.phone || '',
+    email: user?.email || '',
+    address: (profile as any)?.address || '',
+    city: (profile as any)?.city || '',
+    country: (profile as any)?.country || '',
+    postalCode: (profile as any)?.postal_code || '',
   });
+
+  useEffect(() => {
+    if (profile || user) {
+      const parts = (profile?.full_name || '').split(' ');
+      setPersonal(prev => ({
+        ...prev,
+        firstName: parts[0] || user?.email?.split('@')[0] || 'Student',
+        lastName: parts.slice(1).join(' ') || '',
+        email: user?.email || prev.email,
+        phone: (profile as any)?.phone || prev.phone,
+        passportNo: (profile as any)?.passport_no || prev.passportNo,
+        address: (profile as any)?.address || prev.address,
+        city: (profile as any)?.city || prev.city,
+        country: (profile as any)?.country || prev.country,
+      }));
+    }
+  }, [profile, user]);
+
   const [tempPersonal, setTempPersonal] = useState<PersonalInfo>({ ...personal });
 
   // Education Details
   const [education] = useState<EducationInfo>({
-    studyCountry: 'Poland',
-    university: 'University of Warsaw',
-    course: 'M.Sc. in Computer Science',
-    intake: 'February 2026',
-    campus: 'Main Campus, Warsaw',
-    studentNumber: 'UW-CS-2026-1042',
-    applicationStatus: 'Offer Letter Received',
-    visaStatus: 'Visa Processing',
+    studyCountry: (profile as any)?.target_country || 'Poland',
+    university: (profile as any)?.target_university || 'Partner University',
+    course: (profile as any)?.desired_program || 'Higher Studies',
+    intake: 'Feb 2026',
+    campus: 'Main Campus',
+    studentNumber: `STU-${user?.id?.slice(0, 6).toUpperCase() || '1001'}`,
+    applicationStatus: 'Under Review',
+    visaStatus: 'Active',
     counselor: 'Education Team',
   });
 
   // Emergency Contact
   const [emergency, setEmergency] = useState<EmergencyInfo>({
-    guardianName: 'Jeshma',
-    relationship: 'Mother',
-    phone: '+91 98765 10000',
-    email: 'jeshma@gmail.com',
-    address: '24 Greenfield Avenue, Kochi, India',
+    guardianName: '',
+    relationship: 'Parent / Guardian',
+    phone: '',
+    email: '',
+    address: '',
   });
   const [tempEmergency, setTempEmergency] = useState<EmergencyInfo>({ ...emergency });
 
@@ -256,10 +281,23 @@ export const MyProfile: React.FC = () => {
     showToast('Profile photo removed.');
   };
 
-  const handleSavePersonal = (e: React.FormEvent) => {
+  const handleSavePersonal = async (e: React.FormEvent) => {
     e.preventDefault();
     setPersonal({ ...tempPersonal });
     setEditingPersonal(false);
+
+    if (user?.id) {
+      try {
+        await updateStudent(user.id, {
+          full_name: `${tempPersonal.firstName} ${tempPersonal.lastName}`.trim(),
+          phone: tempPersonal.phone,
+          passport_no: tempPersonal.passportNo,
+          city: tempPersonal.city,
+          country: tempPersonal.country,
+        } as any);
+      } catch (err) {}
+    }
+
     showToast('Personal information saved successfully!');
   };
 

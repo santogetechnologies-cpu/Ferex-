@@ -1,58 +1,37 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Check, Sparkles, CheckSquare, Trash2, Calendar, FileText, DollarSign, MessageSquare } from 'lucide-react';
+import { Bell, CheckSquare, Sparkles, FileText, Calendar, DollarSign, MessageSquare, CheckCheck } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../hooks/useNotifications';
 
 export const Notifications: React.FC = () => {
-  // In-memory notifications state
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: 'document', title: 'Language Test Scores Verified', body: 'Your TOEFL official report scorecard has been verified by the admissions committee.', date: 'Today', unread: true, icon: FileText, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-    { id: 2, type: 'meeting', title: 'Upcoming Advisory Briefing scheduled', body: 'New video meet scheduled with Evelyn Carter for Aug 12, 10:00 AM.', date: 'Today', unread: true, icon: Calendar, color: 'text-blue-600 bg-blue-50 border-blue-100' },
-    { id: 3, type: 'payment', title: 'Invoice INV-2026-0560 generated', body: 'An outstanding invoice of ₹1,08,000 is generated for NAWA validation.', date: 'Yesterday', unread: true, icon: DollarSign, color: 'text-amber-600 bg-amber-50 border-amber-100' },
-    { id: 4, type: 'chat', title: 'New chat message from Advisor', body: 'Dr. Evelyn Carter: "Yes, your transcripts look fully verified."', date: 'Yesterday', unread: false, icon: MessageSquare, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
-    { id: 5, type: 'document', title: 'Passport Verification Approved', body: 'Your passport copy has cleared compliance checklists successfully.', date: 'Older', unread: false, icon: FileText, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-  ]);
-
+  const { user } = useAuth();
+  const { notifications, markRead, markAllRead, loading } = useNotifications(user?.id);
   const [filter, setFilter] = useState('All');
   const [toastMessage, setToastMessage] = useState('');
-
-  // Handle Mark as read
-  const handleMarkAsRead = (id: number) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, unread: false } : n)
-    );
-    showToast('Notification marked as read');
-  };
-
-  // Handle Mark all as read
-  const handleMarkAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(n => ({ ...n, unread: false }))
-    );
-    showToast('All notifications marked as read');
-  };
-
-  // Handle delete
-  const handleDelete = (id: number) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-    showToast('Notification cleared');
-  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 2000);
   };
 
-  // Filter logic
+  const handleMarkAsRead = (id: string) => {
+    markRead(id);
+    showToast('Notification marked as read');
+  };
+
+  const handleMarkAllAsRead = () => {
+    markAllRead();
+    showToast('All notifications marked as read');
+  };
+
   const filteredNotifications = notifications.filter(n => {
-    if (filter === 'Unread') return n.unread;
-    if (filter === 'Read') return !n.unread;
+    if (filter === 'Unread') return !n.is_read;
+    if (filter === 'Read') return n.is_read;
     return true;
   });
-
-  // Groups
-  const groups = ['Today', 'Yesterday', 'Older'];
 
   return (
     <div className="space-y-6 text-left relative min-h-[500px]">
@@ -63,7 +42,7 @@ export const Notifications: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white px-4 py-3 rounded-lg shadow-lg text-xs font-bold flex items-center gap-2"
+            className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white px-4 py-3 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4 text-amber-300" />
             {toastMessage}
@@ -72,125 +51,102 @@ export const Notifications: React.FC = () => {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-100 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1.5 flex items-center gap-2.5">
             <span className="w-8 h-8 rounded-lg bg-[#6A1B2E]/5 text-[#6A1B2E] flex items-center justify-center">
               <Bell className="w-5 h-5" />
             </span>
-            Notifications
+            Notifications & Alerts
           </h1>
           <p className="text-sm font-semibold text-slate-500">
-            Ferex Education • Stay updated on admission board reviews, advisor meets, and invoice statuses.
+            Real-time updates regarding application decisions, document reviews, and payments.
           </p>
         </div>
-        
-        {notifications.some(n => n.unread) && (
+
+        {notifications.some(n => !n.is_read) && (
           <Button
-            size="sm"
             variant="outline"
-            className="text-xs flex items-center gap-1.5 h-10 border-slate-200 hover:bg-slate-50 text-slate-700 font-bold"
+            size="sm"
             onClick={handleMarkAllAsRead}
+            className="text-xs font-bold self-start md:self-auto"
           >
-            <CheckSquare className="w-4 h-4" /> Mark all read
+            <CheckCheck className="w-4 h-4 mr-1.5" /> Mark All as Read
           </Button>
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 select-none border-b border-slate-100 pb-2">
-        {['All', 'Unread', 'Read'].map((t) => {
-          const count = t === 'All' 
-            ? notifications.length 
-            : t === 'Unread' 
-              ? notifications.filter(n => n.unread).length 
-              : notifications.filter(n => !n.unread).length;
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3">
+        {['All', 'Unread', 'Read'].map(tab => (
+          <button
+            key={tab}
+            onClick={() => setFilter(tab)}
+            className={`h-8 px-4 rounded-xl text-xs font-bold transition-all ${
+              filter === tab ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/70'
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
 
-          return (
-            <button
-              key={t}
-              onClick={() => setFilter(t)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all border
-                ${filter === t
-                  ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
-                  : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-350'
-                }`}
+      {/* Notifications List */}
+      {loading ? (
+        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading notifications...</div>
+      ) : filteredNotifications.length === 0 ? (
+        <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
+          <Bell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-black text-slate-800">No Notifications</h3>
+          <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto">
+            You're all caught up! Updates from admissions counselors and portal events will show up here.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredNotifications.map((n) => (
+            <Card
+              key={n.id}
+              className={`p-4 border transition-all ${
+                !n.is_read ? 'bg-amber-50/30 border-amber-200/60' : 'bg-white border-slate-200/70'
+              }`}
             >
-              {t} ({count})
-            </button>
-          );
-        })}
-      </div>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    !n.is_read ? 'bg-[#6A1B2E] text-white' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    <Bell className="w-4 h-4" />
+                  </div>
 
-      {/* Notification items */}
-      <div className="space-y-6">
-        {groups.map((group) => {
-          const groupNotifications = filteredNotifications.filter(n => n.date === group);
-          if (groupNotifications.length === 0) return null;
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h4 className="text-xs font-black text-slate-900">{n.title}</h4>
+                      {!n.is_read && (
+                        <span className="w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />
+                      )}
+                    </div>
+                    <p className="text-xs font-semibold text-slate-600 leading-relaxed mb-1.5">{n.body}</p>
+                    <span className="text-[10px] font-extrabold text-slate-400">
+                      {new Date(n.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
 
-          return (
-            <div key={group} className="space-y-3">
-              <h3 className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider pl-1">{group}</h3>
-              <div className="space-y-2.5">
-                {groupNotifications.map((n) => {
-                  const Icon = n.icon;
-                  return (
-                    <Card
-                      key={n.id}
-                      className={`p-4 border flex items-start gap-4 transition-all hover:border-slate-200 relative select-none
-                        ${n.unread ? 'border-l-4 border-l-primary bg-[#6A1B2E]/[0.01]' : 'border-slate-100 bg-white'}`}
-                    >
-                      {/* Icon */}
-                      <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${n.color}`}>
-                        <Icon className="w-4.5 h-4.5" />
-                      </div>
-
-                      {/* Info details */}
-                      <div className="text-left space-y-1 pr-16 flex-1 min-w-0">
-                        <h4 className="text-xs font-extrabold text-slate-900 flex items-center gap-2">
-                          {n.title}
-                          {n.unread && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block shrink-0 animate-ping" />
-                          )}
-                        </h4>
-                        <p className="text-xs text-slate-500 font-semibold leading-relaxed">
-                          {n.body}
-                        </p>
-                      </div>
-
-                      {/* Row actions */}
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                        {n.unread && (
-                          <button
-                            onClick={() => handleMarkAsRead(n.id)}
-                            className="p-1.5 text-slate-400 hover:text-emerald-600 rounded hover:bg-slate-50 transition-colors"
-                            title="Mark as Read"
-                          >
-                            <Check className="w-4.5 h-4.5" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDelete(n.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 rounded hover:bg-slate-50 transition-colors"
-                          title="Delete notification"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </Card>
-                  );
-                })}
+                {!n.is_read && (
+                  <button
+                    onClick={() => handleMarkAsRead(n.id)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100 transition-colors shrink-0"
+                    title="Mark as Read"
+                  >
+                    <CheckSquare className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-            </div>
-          );
-        })}
-
-        {filteredNotifications.length === 0 && (
-          <div className="py-16 text-center font-bold text-slate-400 select-none">
-            No notifications to display.
-          </div>
-        )}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

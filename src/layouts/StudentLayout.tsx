@@ -3,10 +3,11 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home, Milestone, Target, GraduationCap, FileText, Folder, CreditCard,
-  FileSpreadsheet, Receipt, Calendar, MessageSquare, LifeBuoy, Bell, User,
-  Search, Menu, ChevronDown, ChevronRight, LogOut, Settings, X
+  FileSpreadsheet, Calendar, LifeBuoy, Bell, User,
+  Search, Menu, ChevronDown, ChevronRight, LogOut, Settings, X, ShieldCheck
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+import { useAuth } from '../contexts/AuthContext';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,7 @@ interface StudentLayoutProps {
 export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, profile, signOut } = useAuth();
 
   // Responsive states
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -50,24 +52,24 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
 
   const menuItems = [
     { name: 'Dashboard', path: '/student/dashboard', icon: Home, badge: null },
-    { name: 'Journey Tracker', path: '/student/journey-tracker', icon: Milestone, badge: 'Step 4' },
-    { name: 'Select University', path: '/student/select-university', icon: Target, badge: 'NEW' },
-    { name: 'University Applications', path: '/student/applications', icon: GraduationCap, badge: '3' },
-    { name: 'Offer Letters', path: '/student/offers', icon: FileText, badge: '1' },
-    { name: 'Documents', path: '/student/documents', icon: Folder, badge: '5' },
+    { name: 'Journey Tracker', path: '/student/journey-tracker', icon: Milestone, badge: null },
+    { name: 'Select University', path: '/student/select-university', icon: Target, badge: null },
+    { name: 'University Applications', path: '/student/applications', icon: GraduationCap, badge: null },
+    { name: 'Offer Letters', path: '/student/offers', icon: FileText, badge: null },
+    { name: 'Documents', path: '/student/documents', icon: Folder, badge: null },
     { name: 'Payments', path: '/student/payments', icon: CreditCard, badge: null },
+    { name: 'VFS Visa Tracker', path: '/student/visa-tracker', icon: ShieldCheck, badge: 'VFS' },
     { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null },
-    { name: 'Receipts', path: '/student/receipts', icon: Receipt, badge: null },
-    { name: 'Meetings', path: '/student/meetings', icon: Calendar, badge: 'Today' },
-    { name: 'Chat', path: '/student/chat', icon: MessageSquare, badge: '2' },
+    { name: 'Meetings', path: '/student/meetings', icon: Calendar, badge: null },
     { name: 'Support Tickets', path: '/student/support', icon: LifeBuoy, badge: null },
-    { name: 'Notifications', path: '/student/notifications', icon: Bell, badge: '3' },
+    { name: 'Notifications', path: '/student/notifications', icon: Bell, badge: null },
     { name: 'My Profile', path: '/student/profile', icon: User, badge: null },
   ];
 
   const activeItem = menuItems.find(item => location.pathname === item.path)?.name || 'Dashboard';
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await signOut();
     navigate('/');
   };
 
@@ -277,7 +279,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                 </div>
 
                 <div className="hidden sm:block text-left min-w-0">
-                  <span className="block text-xs font-extrabold text-slate-800 leading-none">Ashly</span>
+                  <span className="block text-xs font-extrabold text-slate-800 leading-none">{profile?.full_name || 'Student'}</span>
                   <span className="block text-[9px] font-semibold text-slate-400 mt-0.5">Active Student</span>
                 </div>
 
@@ -295,8 +297,8 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                     className="absolute right-0 mt-2 w-52 bg-white border border-slate-200/80 rounded-2xl shadow-xl p-2 z-50 text-left"
                   >
                     <div className="px-3 py-2 border-b border-slate-100">
-                      <p className="text-xs font-extrabold text-slate-900">Ashly</p>
-                      <p className="text-[10px] font-semibold text-slate-400 truncate">student@gmail.com</p>
+                      <p className="text-xs font-extrabold text-slate-900">{profile?.full_name || 'Student'}</p>
+                      <p className="text-[10px] font-semibold text-slate-400 truncate">{profile?.email || user?.email || 'student@ferex.com'}</p>
                     </div>
                     <div className="py-1">
                       <button

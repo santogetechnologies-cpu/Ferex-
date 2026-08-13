@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Search, X, CheckCircle2, Edit3, Trash2, LayoutGrid, List,
   Clock, Paperclip, MessageSquare, AlertCircle, CheckSquare
 } from 'lucide-react';
+import { useTasks } from '../../hooks/useTasks';
 
 type Priority = 'High' | 'Medium' | 'Low';
 type TaskStatus = 'To Do' | 'In Progress' | 'Review' | 'Done';
@@ -30,147 +31,6 @@ interface Task {
 
 const STAFF = ['Riya Shah', 'Arjun Pillai', 'Education Team', 'Meena Iyer', 'Kabir Nair'];
 
-const INITIAL_TASKS: Task[] = [
-  {
-    id: 'TK-001',
-    title: 'Review Ashly passport & identity documents',
-    description: 'Verify passport validity, apostille attestation, and upload verification seal.',
-    assignee: 'Riya Shah',
-    priority: 'High',
-    status: 'In Progress',
-    due: 'Today',
-    category: 'Documents',
-    studentName: 'Ashly',
-    university: 'University of Warsaw',
-    progress: 75,
-    subtasksCompleted: 3,
-    subtasksTotal: 4,
-    attachmentsCount: 3,
-    commentsCount: 5,
-    isDueToday: true,
-  },
-  {
-    id: 'TK-002',
-    title: 'Follow up TU Berlin admission status',
-    description: 'Check status of Rahul Mehta application with TU Berlin international office.',
-    assignee: 'Arjun Pillai',
-    priority: 'High',
-    status: 'To Do',
-    due: 'Aug 8, 2026',
-    category: 'Applications',
-    studentName: 'Rahul Mehta',
-    university: 'TU Berlin',
-    progress: 25,
-    subtasksCompleted: 1,
-    subtasksTotal: 4,
-    attachmentsCount: 2,
-    commentsCount: 2,
-  },
-  {
-    id: 'TK-003',
-    title: 'Visa guidance session for Priya Sharma',
-    description: 'Conduct a 30-minute embassy interview preparation call.',
-    assignee: 'Education Team',
-    priority: 'Medium',
-    status: 'Done',
-    due: 'Aug 5, 2026',
-    category: 'Visa',
-    studentName: 'Priya Sharma',
-    university: 'University of Amsterdam',
-    progress: 100,
-    subtasksCompleted: 3,
-    subtasksTotal: 3,
-    attachmentsCount: 1,
-    commentsCount: 4,
-  },
-  {
-    id: 'TK-004',
-    title: 'Prepare offer letter bundle for Ashly',
-    description: 'Collate offer letter, tuition breakdown, and acceptance form for student review.',
-    assignee: 'Meena Iyer',
-    priority: 'Medium',
-    status: 'Review',
-    due: 'Aug 9, 2026',
-    category: 'Documents',
-    studentName: 'Ashly',
-    university: 'University of Warsaw',
-    progress: 50,
-    subtasksCompleted: 2,
-    subtasksTotal: 4,
-    attachmentsCount: 4,
-    commentsCount: 3,
-  },
-  {
-    id: 'TK-005',
-    title: 'IELTS certificate verification for Priya',
-    description: 'Cross-verify IELTS score TRF code with British Council database.',
-    assignee: 'Kabir Nair',
-    priority: 'Low',
-    status: 'To Do',
-    due: 'Aug 12, 2026',
-    category: 'Documents',
-    studentName: 'Priya Sharma',
-    university: 'University of Amsterdam',
-    progress: 0,
-    subtasksCompleted: 0,
-    subtasksTotal: 2,
-    attachmentsCount: 1,
-    commentsCount: 1,
-  },
-  {
-    id: 'TK-006',
-    title: 'Pre-departure orientation guide for Rahul',
-    description: 'Dispatch housing list, student insurance options, and airport pickup contact details.',
-    assignee: 'Education Team',
-    priority: 'High',
-    status: 'In Progress',
-    due: 'Today',
-    category: 'Communication',
-    studentName: 'Rahul Mehta',
-    university: 'TU Berlin',
-    progress: 60,
-    subtasksCompleted: 3,
-    subtasksTotal: 5,
-    attachmentsCount: 2,
-    commentsCount: 6,
-    isDueToday: true,
-  },
-  {
-    id: 'TK-007',
-    title: 'Process application fee invoice for Ashly',
-    description: 'Generate receipt and update fee tracking ledger.',
-    assignee: 'Arjun Pillai',
-    priority: 'Low',
-    status: 'Done',
-    due: 'Aug 3, 2026',
-    category: 'Finance',
-    studentName: 'Ashly',
-    university: 'University of Warsaw',
-    progress: 100,
-    subtasksCompleted: 2,
-    subtasksTotal: 2,
-    attachmentsCount: 1,
-    commentsCount: 2,
-  },
-  {
-    id: 'TK-008',
-    title: 'Collect dormitory housing preferences',
-    description: 'Gather student room type preference and meal plan choices.',
-    assignee: 'Riya Shah',
-    priority: 'Medium',
-    status: 'To Do',
-    due: 'Aug 14, 2026',
-    category: 'Administration',
-    studentName: 'Rahul Mehta',
-    university: 'TU Berlin',
-    progress: 15,
-    subtasksCompleted: 1,
-    subtasksTotal: 6,
-    attachmentsCount: 0,
-    commentsCount: 1,
-  },
-];
-
 const PRIORITY_BADGES: Record<Priority, { label: string; style: string }> = {
   High: { label: 'High', style: 'bg-red-50 text-red-700 border-red-200/80' },
   Medium: { label: 'Medium', style: 'bg-amber-50 text-amber-700 border-amber-200/80' },
@@ -187,7 +47,30 @@ const COLUMN_CONFIG: Record<TaskStatus, { color: string; dot: string }> = {
 const COLUMNS: TaskStatus[] = ['To Do', 'In Progress', 'Review', 'Done'];
 
 export const AdminTaskManagement: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const { tasks: dbTasks, addTask, changeStatus, loading } = useTasks();
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    const mapped = dbTasks.map(t => ({
+      id: t.id,
+      title: t.title,
+      description: t.description || '',
+      assignee: t.assignee?.full_name || 'Unassigned',
+      priority: (t.priority === 'Critical' ? 'High' : t.priority) as Priority,
+      status: (t.status === 'Completed' ? 'Done' : t.status === 'Cancelled' ? 'To Do' : t.status) as TaskStatus,
+      due: t.due_date || 'Ongoing',
+      category: 'General',
+      studentName: t.student?.full_name || 'General Task',
+      university: 'Education Portal',
+      progress: t.status === 'Completed' ? 100 : t.status === 'In Progress' ? 50 : 0,
+      subtasksCompleted: 0,
+      subtasksTotal: 1,
+      attachmentsCount: 0,
+      commentsCount: 0,
+    }));
+    setTasks(mapped);
+  }, [dbTasks]);
+
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('All');

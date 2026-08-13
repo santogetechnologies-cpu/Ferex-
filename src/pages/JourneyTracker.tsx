@@ -1,80 +1,227 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Compass, CheckCircle2, Circle, Loader2, Calendar, ShieldCheck } from 'lucide-react';
+import { Compass, CheckCircle2, Clock, ArrowRight, Lock, ShieldCheck, FileCheck, XCircle, Award } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { useApplications } from '../hooks/useApplications';
+import { useDocuments } from '../hooks/useDocuments';
+import { usePayments } from '../hooks/usePayments';
+import { useVisa } from '../hooks/useVisa';
 
 export const JourneyTracker: React.FC = () => {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
+  const { applications } = useApplications(user?.id);
+  const { documents } = useDocuments(user?.id);
+  const { payments } = usePayments(user?.id);
+  const { records: visaRecords } = useVisa(user?.id);
+
+  const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+  const isProfileDone = Boolean(profile?.full_name);
+
+  // Mandatory document verification check
+  const hasPassport = documents.some(d =>
+    d.doc_type === 'Identification' ||
+    d.file_name.toLowerCase().includes('passport') ||
+    d.file_name.toLowerCase().includes('id')
+  );
+
+  const hasMarksheets = documents.some(d =>
+    d.doc_type === 'Transcripts' ||
+    d.file_name.toLowerCase().includes('marksheet') ||
+    d.file_name.toLowerCase().includes('transcript') ||
+    d.file_name.toLowerCase().includes('certificate') ||
+    d.file_name.toLowerCase().includes('degree')
+  );
+
+  const hasUploadedDocs = documents.length > 0;
+  const approvedDocsCount = documents.filter(d => d.status === 'Approved' || d.status === 'Verified' || d.status === 'Passed').length;
+  const hasApprovedDocs = documents.length >= 2 && approvedDocsCount === documents.length;
+  const isDocsUnderReview = hasUploadedDocs && !hasApprovedDocs;
+
+  const inst1Paid = payments.some(p =>
+    (p.description?.includes('1st') || p.description?.includes('1') || p.payment_type?.includes('1st')) &&
+    (p.status === 'Paid' || p.status === 'Verified')
+  );
+
+  const inst2Paid = payments.some(p =>
+    (p.description?.includes('2nd') || p.description?.includes('2') || p.payment_type?.includes('2nd')) &&
+    (p.status === 'Paid' || p.status === 'Verified')
+  );
+
+  const inst3Paid = payments.some(p =>
+    (p.description?.includes('3rd') || p.description?.includes('3') || p.payment_type?.includes('3rd')) &&
+    (p.status === 'Paid' || p.status === 'Verified')
+  );
+
+  const hasApp = applications.length > 0;
+  const hasOffer = applications.some(a => (a.status as string) === 'Offer Issued' || (a.status as string) === 'Accepted' || (a.status as string) === 'Final Acceptance Issued');
+  const isOfferAccepted = applications.some(a => (a.status as string) === 'Accepted' || (a.status as string) === 'Final Acceptance Issued');
+
+  // Final Acceptance Letter from University logic (after 2nd Installment & before VFS)
+  const hasFinalAcceptanceDoc = documents.some(d =>
+    d.file_name.toLowerCase().includes('final_acceptance') ||
+    d.file_name.toLowerCase().includes('final acceptance') ||
+    d.reviewer_notes?.toLowerCase().includes('final acceptance')
+  );
+
+  const isFinalAcceptanceIssued = hasFinalAcceptanceDoc || applications.some(a =>
+    (a.status as string) === 'Final Acceptance Issued' ||
+    (a.status as string) === 'Enrolled' ||
+    Boolean(a.final_acceptance_url)
+  );
+
+  // Visa Status Logic
+  const visaRecord = visaRecords.find(r =>
+    (user?.id && r.student_id === user.id) ||
+    (r.student_name && studentName.toLowerCase().includes(r.student_name.toLowerCase()))
+  );
+
+  const visaStatusStr = String(visaRecord?.status_label || visaRecord?.visa_status || '').toLowerCase();
+  const currentStageNum = visaRecord?.current_stage || 0;
+
+  const rawOutcome = (visaRecord as any)?.decision_outcome ||
+    (visaStatusStr.includes('approv') ? 'Approved' :
+     visaStatusStr.includes('reject') || visaStatusStr.includes('refus') ? 'Rejected' : 'Pending');
+
+  const isVisaFiled = currentStageNum >= 2 || visaStatusStr.includes('filed') || visaStatusStr.includes('subm') || rawOutcome === 'Approved' || rawOutcome === 'Rejected';
+  const isVisaApproved = currentStageNum >= 6 && rawOutcome === 'Approved';
+  const isVisaRejected = currentStageNum >= 6 && rawOutcome === 'Rejected';
 
   const steps = [
     {
       id: 1,
-      name: 'Select University',
-      status: 'completed',
-      date: 'Jun 15, 2026',
-      desc: 'Explore catalog details, select target courses, and save choices to portal shortlist.',
-      detail: 'Ashly completed selections for University of Warsaw (M.Sc. CS) and TU Berlin.'
+      name: '1. Profile & Student Registration',
+      status: isProfileDone ? 'completed' : 'current',
+      date: isProfileDone ? 'Completed' : 'Action Needed',
+      desc: 'Fill out personal information, passport details, and contact address.',
+      detail: isProfileDone ? `${studentName} profile registered.` : 'Complete profile details in settings.',
+      path: '/student/profile'
     },
     {
       id: 2,
-      name: 'Application Submitted',
-      status: 'completed',
-      date: 'Jun 28, 2026',
-      desc: 'Submit target application materials to selected European institutions.',
-      detail: 'University of Warsaw and TU Berlin applications submitted.'
+      name: '2. Mandatory Document Vault (Passport & Marksheets)',
+      status: hasApprovedDocs ? 'completed' : isDocsUnderReview ? 'current' : isProfileDone ? 'current' : 'pending',
+      date: hasApprovedDocs ? '✓ Uploaded & Verified' : isDocsUnderReview ? '⏳ Under Admin Review' : 'Mandatory Step',
+      desc: 'Upload passport scans, bachelor transcripts, and degree certificates before university selection.',
+      detail: hasApprovedDocs
+        ? `${approvedDocsCount} document file(s) verified & approved in vault.`
+        : isDocsUnderReview
+        ? `⏳ ${documents.length} document file(s) uploaded — awaiting Admin verification.`
+        : '🔒 Mandatory: Upload Passport & Marksheets to unlock University Selection.',
+      path: '/student/documents'
     },
     {
       id: 3,
-      name: 'Documents Uploaded',
-      status: 'completed',
-      date: 'Jul 10, 2026',
-      desc: 'Upload passport verification, IELTS scores, and bachelor transcripts.',
-      detail: 'IELTS certificate and academic transcripts uploaded to portal files.'
+      name: '3. 1st Installment Fee Payment (₹15,000)',
+      status: inst1Paid ? 'completed' : (hasApprovedDocs || isDocsUnderReview) ? 'current' : 'pending',
+      date: inst1Paid ? 'Paid & Verified' : 'Due Before Application',
+      desc: 'Pay registration, choice allocation, and legalization audit fee.',
+      detail: inst1Paid ? '1st Installment cleared!' : 'Submit 1st Installment payment proof to unlock course application.',
+      path: '/student/payments'
     },
     {
       id: 4,
-      name: 'Offer Letter Received',
-      status: 'completed',
-      date: 'Aug 04, 2026',
-      desc: 'University admissions selection decision and formal offer letter issued.',
-      detail: 'University of Warsaw issued unconditional offer letter for M.Sc. Computer Science.'
+      name: '4. University Selection & Course Application',
+      status: hasApp ? 'completed' : inst1Paid ? 'current' : 'pending',
+      date: hasApp ? 'Submitted' : 'Action Needed',
+      desc: 'Select target European university courses and submit application for upcoming intakes.',
+      detail: hasApp ? `${applications.length} university application(s) active.` : 'Explore partner universities catalog and apply.',
+      path: '/student/select-university'
     },
     {
       id: 5,
-      name: 'Visa Processing',
-      status: 'current',
-      date: 'In Progress',
-      desc: 'Prepare embassy appointment documentation, financial statements, and visa application.',
-      detail: 'Visa guidance appointment scheduled for August 12, 2026.'
+      name: '5. Official Admission Offer Issued & Accepted',
+      status: isOfferAccepted ? 'completed' : hasOffer ? 'current' : 'pending',
+      date: isOfferAccepted ? 'Offer Accepted' : hasOffer ? 'Offer Released' : 'Pending Review',
+      desc: 'Review official university admission offer letter PDF and accept offer.',
+      detail: isOfferAccepted
+        ? 'Official Admission Offer Accepted!'
+        : hasOffer
+        ? '🎉 Admission Offer Letter issued by university! Action needed.'
+        : 'Awaiting university admissions decision.',
+      path: '/student/offers'
     },
     {
       id: 6,
-      name: 'Pre-Departure Orientation',
-      status: 'pending',
-      date: 'Pending',
-      desc: 'Obtain housing confirmation, flight tickets, and pre-departure checklist.',
-      detail: 'Dormitory options dispatched for review.'
+      name: '6. 2nd Installment Tuition Deposit Fee & Visa Filing Status',
+      status: inst2Paid ? 'completed' : isOfferAccepted ? 'current' : 'pending',
+      date: inst2Paid ? 'Cleared & Visa Ready' : 'Due After Offer',
+      desc: 'Pay university tuition deposit installment to secure enrollment seat & authorize VFS visa filing.',
+      detail: inst2Paid
+        ? `2nd Installment tuition deposit cleared! Live VFS Visa status: ${visaRecord?.status_label || 'Ready for Filing'}.`
+        : 'Submit 2nd Installment payment proof in payments portal.',
+      path: '/student/payments'
     },
     {
       id: 7,
-      name: 'Enrolled & Arrived',
-      status: 'pending',
-      date: 'Pending',
-      desc: 'Complete campus arrival registration and start classes.',
-      detail: 'Feb 2026 intake orientation.'
+      name: '7. Final Acceptance Letter from University (Post-Tuition Deposit)',
+      status: isFinalAcceptanceIssued ? 'completed' : inst2Paid ? 'current' : 'pending',
+      date: isFinalAcceptanceIssued ? '✓ Released by University' : inst2Paid ? '⏳ Awaiting University Release' : 'Pending Deposit',
+      desc: 'Official Final Acceptance & Enrollment Certificate released by European University upon 2nd installment deposit, mandatory for VFS visa filing.',
+      detail: isFinalAcceptanceIssued
+        ? '🎉 Official Final Acceptance Letter released by European University! You may now proceed to VFS Visa Application.'
+        : inst2Paid
+        ? '⏳ Tuition deposit verified! Admissions team is processing your Official Final Acceptance Letter with University.'
+        : 'Clear 2nd Installment tuition deposit to issue Final Acceptance Letter.',
+      path: '/student/offers'
+    },
+    {
+      id: 8,
+      name: '8. VFS Embassy Visa Application Filed',
+      status: isVisaFiled ? 'completed' : isFinalAcceptanceIssued ? 'current' : 'pending',
+      date: isVisaFiled ? 'Visa File Submitted' : 'Pending Filing',
+      desc: 'Book VFS appointment slot and submit physical visa file (with Final Acceptance Letter) at embassy VFS desk.',
+      detail: isVisaFiled
+        ? `VFS File Submitted! Reference: ${visaRecord?.tracking_number || 'VFS-84920'}`
+        : 'Prepare VFS appointment file & checklist.',
+      path: '/student/visa-tracker'
+    },
+    {
+      id: 9,
+      name: '9. Embassy Visa Decision (Visa Approved / Visa Rejected)',
+      status: isVisaApproved ? 'completed' : isVisaRejected ? 'rejected' : isVisaFiled ? 'current' : 'pending',
+      date: isVisaApproved ? 'Visa Approved & Stamped' : isVisaRejected ? 'Visa Decision Declined' : 'Under Embassy Review',
+      desc: 'Embassy consular officer evaluation and visa decision stamping.',
+      detail: isVisaApproved
+        ? '🎉 National Student Visa Granted & Stamped!'
+        : isVisaRejected
+        ? '❌ Visa Application Declined by Embassy. Contact counselor for appeal.'
+        : isVisaFiled
+        ? 'Consular evaluation in progress at Embassy desk.'
+        : 'Awaiting visa file submission at VFS.',
+      path: '/student/visa-tracker'
+    },
+    {
+      id: 10,
+      name: '10. 3rd Installment & Pre-Departure Clearance',
+      status: inst3Paid ? 'completed' : isVisaApproved ? 'current' : 'pending',
+      date: inst3Paid ? 'Cleared & Paid' : 'Due Before Departure',
+      desc: 'Clear final service fee installment and receive pre-departure briefing packet.',
+      detail: inst3Paid ? '3rd Installment cleared!' : 'Submit 3rd Installment payment proof to receive departure packet.',
+      path: '/student/payments'
+    },
+    {
+      id: 11,
+      name: '11. European Campus Enrolled & Departure Complete',
+      status: inst3Paid && isVisaApproved ? 'completed' : 'pending',
+      date: inst3Paid && isVisaApproved ? 'Journey Complete' : 'Final Milestone',
+      desc: 'Flight ticket booking, university dorm room key handover, and European campus arrival orientation.',
+      detail: inst3Paid && isVisaApproved ? '🎉 Student Journey Fully Completed! Welcome to Campus.' : 'Complete previous stages to unlock flight departure.',
+      path: '/student/dashboard'
     }
   ];
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.08, duration: 0.3 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.05, duration: 0.3 } }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } }
+    hidden: { opacity: 0, y: 12 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' as const } }
   };
 
   return (
@@ -82,151 +229,85 @@ export const JourneyTracker: React.FC = () => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6"
+      className="space-y-6 text-left"
     >
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
             <span className="w-8 h-8 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center border border-[#6A1B2E]/20">
-              <Compass className="w-4 h-4" />
+              <Compass className="w-5 h-5" />
             </span>
-            Journey Tracker
+            Complete Step-by-Step Student Journey Checklist
           </h1>
-          <p className="text-xs font-semibold text-slate-400 mt-1">
-            Ferex Roadmap • Step-by-step guidance from selection to campus arrival.
+          <p className="text-sm font-semibold text-slate-500 mt-1">
+            11-Stage Roadmap: Registration ➔ Document Vault ➔ 1st Installment ➔ University Application ➔ Offer Letter ➔ 2nd Installment ➔ Final Acceptance Letter ➔ VFS Visa ➔ Visa Decision ➔ 3rd Installment ➔ Departure.
           </p>
         </div>
       </div>
 
-      {/* Overview Progress Card */}
-      <motion.div variants={itemVariants}>
-        <Card className="p-6 bg-white border border-slate-200/70 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="text-left space-y-1.5">
-            <span className="text-[10px] uppercase font-black text-[#6A1B2E] tracking-wider block">Admissions Journey</span>
-            <h3 className="text-lg font-black text-slate-900">Current Phase: Visa Processing (Stage 5)</h3>
-            <p className="text-xs text-slate-400 font-semibold leading-relaxed max-w-xl">
-              Congratulations! Offer letter received from University of Warsaw. You are currently preparing your visa application package.
-            </p>
-          </div>
-          <div className="flex flex-col items-center shrink-0">
-            <div className="relative w-20 h-20 flex items-center justify-center select-none">
-              <svg className="w-full h-full transform -rotate-95" viewBox="0 0 36 36">
-                <path className="text-slate-100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <path className="text-[#6A1B2E]" strokeDasharray="65, 100" strokeWidth="3" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-              </svg>
-              <span className="absolute text-sm font-black text-slate-900">65%</span>
-            </div>
-            <span className="text-[10px] font-extrabold text-slate-400 mt-2">Overall Completion</span>
-          </div>
-        </Card>
-      </motion.div>
+      {/* Vertical Steps Checklist */}
+      <div className="space-y-3.5">
+        {steps.map((step) => {
+          const isDone = step.status === 'completed';
+          const isCurrent = step.status === 'current';
+          const isRejected = step.status === 'rejected';
 
-      {/* Visual Timeline Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <motion.div variants={itemVariants} className="lg:col-span-2 space-y-4">
-          <Card className="p-6 border border-slate-200/70 shadow-xs">
-            <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-4 mb-6">
-              Milestone Progress Flow
-            </h3>
-
-            <div className="relative border-l-2 border-slate-200/80 pl-6 ml-4 py-2 space-y-7 text-left select-none">
-              {steps.map((step) => {
-                const isCompleted = step.status === 'completed';
-                const isCurrent = step.status === 'current';
-
-                return (
-                  <div key={step.id} className="relative">
-                    <div className="absolute -left-[35px] top-0.5 shrink-0 bg-white">
-                      {isCompleted ? (
-                        <CheckCircle2 className="w-6 h-6 text-emerald-500 bg-white rounded-full" />
-                      ) : isCurrent ? (
-                        <div className="w-6 h-6 rounded-full border-2 border-[#6A1B2E] flex items-center justify-center bg-white">
-                          <Loader2 className="w-3.5 h-3.5 text-[#6A1B2E] animate-spin" />
-                        </div>
-                      ) : (
-                        <Circle className="w-6 h-6 text-slate-300 bg-white rounded-full" />
-                      )}
+          return (
+            <motion.div key={step.id} variants={itemVariants}>
+              <Card className={`p-4 border transition-all ${
+                isDone
+                  ? 'border-slate-200/80 bg-white'
+                  : isRejected
+                  ? 'border-red-200 bg-red-50/40 shadow-xs'
+                  : isCurrent
+                  ? 'border-[#6A1B2E]/40 bg-[#6A1B2E]/5 shadow-xs'
+                  : 'border-slate-100 bg-slate-50/50'
+              }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start sm:items-center gap-3.5">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-bold text-xs ${
+                      isDone
+                        ? 'bg-emerald-500 text-white'
+                        : isRejected
+                        ? 'bg-red-600 text-white'
+                        : isCurrent
+                        ? 'bg-[#6A1B2E] text-white ring-4 ring-[#6A1B2E]/10 animate-pulse'
+                        : 'bg-slate-200 text-slate-500'
+                    }`}>
+                      {isDone ? <CheckCircle2 className="w-4 h-4" /> : isRejected ? <XCircle className="w-4 h-4" /> : isCurrent ? <Clock className="w-3.5 h-3.5" /> : step.id}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-slate-400">Step {step.id}</span>
-                        <h4 className="text-sm font-black text-slate-900">{step.name}</h4>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                        <h3 className="text-xs sm:text-sm font-black text-slate-900">{step.name}</h3>
+                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase border ${
+                          isDone
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : isRejected
+                            ? 'bg-red-50 text-red-700 border-red-200'
+                            : isCurrent
+                            ? 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20'
+                            : 'bg-slate-100 text-slate-400 border-slate-200'
+                        }`}>
+                          {step.date}
+                        </span>
                       </div>
-                      
-                      <div className="flex items-center gap-2 text-[10px] font-extrabold">
-                        {isCompleted && (
-                          <span className="text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
-                            Completed • {step.date}
-                          </span>
-                        )}
-                        {isCurrent && (
-                          <span className="text-[#6A1B2E] bg-[#6A1B2E]/10 px-2.5 py-0.5 rounded-full border border-[#6A1B2E]/20 animate-pulse">
-                            In Progress
-                          </span>
-                        )}
-                        {!isCompleted && !isCurrent && (
-                          <span className="text-slate-400 bg-slate-50 px-2.5 py-0.5 rounded-full border border-slate-100">
-                            Pending
-                          </span>
-                        )}
-                      </div>
+                      <p className="text-xs font-semibold text-slate-500">{step.desc}</p>
+                      <p className="text-[10.5px] font-bold text-[#6A1B2E] bg-white/70 px-2.5 py-1 rounded-lg border border-slate-200/60 mt-1.5 inline-block">
+                        {step.detail}
+                      </p>
                     </div>
-
-                    <p className="text-xs text-slate-500 font-semibold leading-relaxed">
-                      {step.desc}
-                    </p>
                   </div>
-                );
-              })}
-            </div>
-          </Card>
-        </motion.div>
 
-        {/* Right Detail Panel */}
-        <motion.div variants={itemVariants} className="space-y-6 text-left">
-          <Card className="p-5 border-l-4 border-l-[#6A1B2E] border-slate-200/70 shadow-xs">
-            <h4 className="text-xs font-black text-[#6A1B2E] uppercase tracking-wider mb-1 flex items-center gap-1.5">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Active Phase Highlight
-            </h4>
-            <h3 className="text-sm font-black text-slate-900 mb-4">Step 5: Visa Processing</h3>
-            
-            <div className="space-y-4">
-              <div className="p-3 bg-slate-50 rounded-xl space-y-1 border border-slate-100">
-                <span className="text-[10px] font-extrabold text-slate-400 block uppercase">Sub-Task Status</span>
-                <p className="text-xs text-slate-700 font-bold leading-relaxed">
-                  Financial proof and university acceptance letter submitted for embassy appointment booking.
-                </p>
-              </div>
-
-              <div className="space-y-2 text-xs font-semibold text-slate-600">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span>Briefing Appointment: Aug 12, 2026</span>
+                  <Button size="sm" variant="outline" className="shrink-0 text-xs font-bold self-end sm:self-center" onClick={() => navigate(step.path)}>
+                    Proceed <ArrowRight className="w-3 h-3 ml-1" />
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span>Assigned Counselor: Education Team</span>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-5 border border-slate-200/70 shadow-xs">
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-3 mb-3">
-              Need Assistance?
-            </h3>
-            <p className="text-xs text-slate-400 font-semibold leading-relaxed mb-4">
-              If you have any questions regarding visa documentation or embassy guidelines, please open a support ticket.
-            </p>
-            <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => navigate('/student/support')}>
-              Open Support Ticket
-            </Button>
-          </Card>
-        </motion.div>
-
+              </Card>
+            </motion.div>
+          );
+        })}
       </div>
     </motion.div>
   );

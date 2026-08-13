@@ -3,13 +3,31 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   GraduationCap, Calendar, Clock, ArrowRight, ShieldAlert,
-  Compass, FileCheck, CreditCard, Search, BookOpen, CheckCircle2, Circle
+  Compass, FileCheck, CreditCard, BookOpen, CheckCircle2, Circle, Search, XCircle, ShieldCheck
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { useApplications } from '../hooks/useApplications';
+import { useDocuments } from '../hooks/useDocuments';
+import { usePayments } from '../hooks/usePayments';
+import { useMeetings } from '../hooks/useMeetings';
+import { useVisa } from '../hooks/useVisa';
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
+
+  const { applications } = useApplications(user?.id);
+  const { documents } = useDocuments(user?.id);
+  const { payments } = usePayments(user?.id);
+  const { meetings } = useMeetings(user?.id);
+  const { records: visaRecords } = useVisa(user?.id);
+
+  const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+  const approvedDocs = documents.filter(d => d.status === 'Approved' || d.status === 'Verified').length;
+  const paidSum = payments.filter(p => p.status === 'Paid' || p.status === 'Verified' || p.status === 'Completed').reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  const upcomingMeeting = meetings.find(m => m.status === 'Scheduled' || m.status === 'Confirmed') || meetings[0];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -25,30 +43,106 @@ export const StudentDashboard: React.FC = () => {
     navigate(path);
   };
 
+  // Dynamic 10-Stage Journey Checklist Status
+  const isProfileDone = Boolean(profile?.full_name);
+
+  const hasPassport = documents.some(d =>
+    d.doc_type === 'Identification' ||
+    d.file_name.toLowerCase().includes('passport') ||
+    d.file_name.toLowerCase().includes('id')
+  );
+
+  const hasMarksheets = documents.some(d =>
+    d.doc_type === 'Transcripts' ||
+    d.file_name.toLowerCase().includes('marksheet') ||
+    d.file_name.toLowerCase().includes('transcript') ||
+    d.file_name.toLowerCase().includes('certificate') ||
+    d.file_name.toLowerCase().includes('degree')
+  );
+
+  const hasUploadedDocs = documents.length > 0;
+  const approvedDocsCount = documents.filter(d => d.status === 'Approved' || d.status === 'Verified' || d.status === 'Passed').length;
+  const hasApprovedDocs = documents.length >= 2 && approvedDocsCount === documents.length;
+  const isDocsUnderReview = hasUploadedDocs && !hasApprovedDocs;
+
+  const inst1Paid = payments.some(p =>
+    (p.description?.includes('1st') || p.description?.includes('1') || p.payment_type?.includes('1st')) &&
+    (p.status === 'Paid' || p.status === 'Verified')
+  );
+
+  const inst2Paid = payments.some(p =>
+    (p.description?.includes('2nd') || p.description?.includes('2') || p.payment_type?.includes('2nd')) &&
+    (p.status === 'Paid' || p.status === 'Verified')
+  );
+
+  const inst3Paid = payments.some(p =>
+    (p.description?.includes('3rd') || p.description?.includes('3') || p.payment_type?.includes('3rd')) &&
+    (p.status === 'Paid' || p.status === 'Verified')
+  );
+
+  const isUniSelected = applications.length > 0;
+  const hasOffer = applications.some(a => (a.status as string) === 'Offer Issued' || (a.status as string) === 'Accepted');
+  const isOfferAccepted = applications.some(a => (a.status as string) === 'Accepted');
+
+  const visaRecord = visaRecords.find(r =>
+    (user?.id && r.student_id === user.id) ||
+    (r.student_name && studentName.toLowerCase().includes(r.student_name.toLowerCase()))
+  );
+  const visaStatusStr = String(visaRecord?.status_label || visaRecord?.visa_status || '').toLowerCase();
+  const currentStageNum = visaRecord?.current_stage || 0;
+
+  const rawOutcome = (visaRecord as any)?.decision_outcome ||
+    (visaStatusStr.includes('approv') ? 'Approved' :
+     visaStatusStr.includes('reject') || visaStatusStr.includes('refus') ? 'Rejected' : 'Pending');
+
+  const isVisaFiled = currentStageNum >= 2 || visaStatusStr.includes('filed') || visaStatusStr.includes('subm') || rawOutcome === 'Approved' || rawOutcome === 'Rejected';
+  const isVisaApproved = currentStageNum >= 6 && rawOutcome === 'Approved';
+  const isVisaRejected = currentStageNum >= 6 && rawOutcome === 'Rejected';
+
+  const hasFinalAcceptanceDoc = documents.some(d =>
+    d.file_name.toLowerCase().includes('final_acceptance') ||
+    d.file_name.toLowerCase().includes('final acceptance') ||
+    d.reviewer_notes?.toLowerCase().includes('final acceptance')
+  );
+
+  const isFinalAcceptanceIssued = hasFinalAcceptanceDoc || applications.some(a =>
+    (a.status as string) === 'Final Acceptance Issued' ||
+    (a.status as string) === 'Enrolled' ||
+    Boolean(a.final_acceptance_url)
+  );
+
+  const checklistItems = [
+    { title: '1. Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },
+    { title: '2. Mandatory Document Vault (Passport & Marksheets)', isDone: hasApprovedDocs, path: '/student/documents', tag: hasApprovedDocs ? 'Verified' : isDocsUnderReview ? 'Under Review' : 'Mandatory' },
+    { title: '3. 1st Installment Fee Payment (₹15,000)', isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
+    { title: '4. University Selection & Course Application', isDone: isUniSelected, path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Action Needed' },
+    { title: '5. Official Admission Offer Issued & Accepted', isDone: isOfferAccepted, path: '/student/offers', tag: isOfferAccepted ? 'Accepted' : hasOffer ? 'Offer Released' : 'Pending' },
+    { title: '6. 2nd Installment Tuition Deposit & Visa Status', isDone: inst2Paid, path: '/student/payments', tag: inst2Paid ? `Cleared (${visaRecord?.status_label || 'Visa Ready'})` : 'Due' },
+    { title: '7. Final Acceptance Letter from University', isDone: isFinalAcceptanceIssued, path: '/student/offers', tag: isFinalAcceptanceIssued ? 'Released' : inst2Paid ? 'Awaiting Release' : 'Pending Deposit' },
+    { title: '8. VFS Embassy Visa Application Filed', isDone: isVisaFiled, path: '/student/visa-tracker', tag: isVisaFiled ? 'Filed' : 'Pending' },
+    { title: '9. Embassy Visa Decision (Approved / Rejected)', isDone: isVisaApproved, isRejected: isVisaRejected, path: '/student/visa-tracker', tag: isVisaApproved ? 'Approved' : isVisaRejected ? 'Rejected' : 'Review' },
+    { title: '10. 3rd Installment & Pre-Departure Packet', isDone: inst3Paid, path: '/student/payments', tag: inst3Paid ? 'Paid' : 'Due' },
+    { title: '11. European Campus Enrolled & Departure', isDone: inst3Paid && isVisaApproved, path: '/student/journey-tracker', tag: inst3Paid && isVisaApproved ? 'Arrival Ready' : 'Final Milestone' },
+  ];
+
+  const completedCount = checklistItems.filter(i => i.isDone).length;
+
   return (
     <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6"
+      className="space-y-6 text-left"
     >
       {/* Welcome Banner */}
       <motion.div variants={itemVariants}>
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#6A1B2E] to-[#4A101E] text-white p-6 md:p-8 shadow-md">
-          <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
-            <svg width="240" height="240" viewBox="0 0 100 100" fill="none">
-              <path d="M50 5 L92 23 L50 41 L8 23 Z" fill="white" />
-              <path d="M30 36.5 C30 47.5, 70 47.5, 70 36.5 C70 42 63.5 46.5, 50 46.5 C36.5 46.5, 30 42, 30 36.5 Z" fill="white" />
-            </svg>
-          </div>
-
-          <div className="relative z-10 max-w-xl text-left">
-
+          <div className="relative z-10 max-w-xl">
             <h1 className="text-2xl md:text-3xl font-black tracking-tight mb-2">
-              Welcome back, Ashly
+              Welcome back, {studentName}
             </h1>
             <p className="text-xs md:text-sm text-white/80 leading-relaxed font-semibold">
-              You are currently at stage <span className="font-extrabold text-white">4 of 7 (University Offer Received)</span> for your target European universities. Next: Visa appointment prep.
+              Track your admission & visa progress for target European universities.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Button
@@ -57,7 +151,7 @@ export const StudentDashboard: React.FC = () => {
                 className="text-xs text-[#6A1B2E] font-bold shadow-xs hover:scale-105 active:scale-98 transition-transform"
                 onClick={() => handleQuickAction('/student/journey-tracker')}
               >
-                Track Journey <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                Track 10-Stage Journey <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
               </Button>
               <button
                 onClick={() => handleQuickAction('/student/select-university')}
@@ -73,17 +167,17 @@ export const StudentDashboard: React.FC = () => {
       {/* Key Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'Target Universities', value: '3', sub: '2 Apps Submitted', icon: GraduationCap, color: 'text-indigo-600 bg-indigo-50 border-indigo-100', path: '/student/applications' },
-          { title: 'Journey Progress', value: '57%', sub: 'Stage 4 / 7 Active', icon: Compass, color: 'text-blue-600 bg-blue-50 border-blue-100', path: '/student/journey-tracker' },
-          { title: 'Documents Verified', value: '4 / 5', sub: '1 Pending Review', icon: FileCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', path: '/student/documents' },
-          { title: 'Fees & Payments', value: '₹15,000', sub: 'Paid · 0 Overdue', icon: CreditCard, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20', path: '/student/payments' },
+          { title: 'Target Universities', value: `${applications.length}`, sub: `${applications.filter(a => a.status !== 'Draft').length} Apps Active`, icon: GraduationCap, color: 'text-indigo-600 bg-indigo-50 border-indigo-100', path: '/student/applications' },
+          { title: 'Journey Progress', value: `${completedCount} / 10`, sub: 'Checklist Stages Done', icon: Compass, color: 'text-blue-600 bg-blue-50 border-blue-100', path: '/student/journey-tracker' },
+          { title: 'Documents Verified', value: `${approvedDocs} / ${documents.length}`, sub: `${documents.filter(d => d.status === 'Pending Verification' || d.status === 'Pending').length} Pending`, icon: FileCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', path: '/student/documents' },
+          { title: 'Fees & Payments', value: `₹${paidSum.toLocaleString()}`, sub: 'Paid Total', icon: CreditCard, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20', path: '/student/payments' },
         ].map((stat, idx) => (
           <motion.div key={idx} variants={itemVariants} onClick={() => navigate(stat.path)}>
             <Card className="flex items-center gap-4 p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group">
               <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 ${stat.color} group-hover:scale-105 transition-transform`}>
                 <stat.icon className="w-6 h-6" />
               </div>
-              <div className="text-left">
+              <div>
                 <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">{stat.title}</span>
                 <span className="text-xl font-black text-slate-900 leading-none">{stat.value}</span>
                 <span className="text-[10px] font-extrabold text-slate-500 block mt-1">{stat.sub}</span>
@@ -96,173 +190,97 @@ export const StudentDashboard: React.FC = () => {
       {/* Main Workspace Division */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Charts & Analytics Widget */}
+        {/* 10-Stage Journey Checklist */}
         <motion.div variants={itemVariants} className="lg:col-span-2 space-y-6">
-          <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
+          <Card className="p-6 border border-slate-200/70 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
               <div>
-                <h3 className="text-sm font-black text-slate-900">Journey Checklist</h3>
-                <p className="text-xs text-slate-400 font-semibold mt-0.5">Track your step-by-step admission & visa milestone progress</p>
+                <h3 className="text-sm font-black text-slate-900">10-Stage Journey Checklist</h3>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">Comprehensive admission, installment, and visa roadmap</p>
               </div>
               <span className="text-[10px] font-extrabold text-[#6A1B2E] bg-[#6A1B2E]/10 px-2.5 py-1 rounded-full uppercase border border-[#6A1B2E]/20">
-                4 of 7 Completed
+                {completedCount} of 10 Completed
               </span>
             </div>
 
-            {/* Checklist Items Stream */}
+            {/* Checklist Items Grid */}
             <div className="space-y-2">
-              {[
-                { title: 'Profile Completed', status: 'Completed', path: '/student/profile' },
-                { title: 'University Selected', status: 'Completed', path: '/student/select-university' },
-                { title: 'Application Submitted', status: 'Completed', path: '/student/applications' },
-                { title: 'Offer Letter Received', status: 'Completed', path: '/student/offers' },
-                { title: 'Documents Verified', status: 'In Progress', path: '/student/documents' },
-                { title: 'Visa Appointment', status: 'Pending', path: '/student/meetings' },
-                { title: 'Visa Approved', status: 'Pending', path: '/student/journey-tracker' },
-              ].map((item, idx) => {
-                const isDone = item.status === 'Completed';
-                const isProgress = item.status === 'In Progress';
-
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => navigate(item.path)}
-                    className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer hover:border-slate-300 ${
-                      isDone
-                        ? 'bg-slate-50/60 border-slate-200/60 text-slate-900'
-                        : isProgress
-                        ? 'bg-amber-50/40 border-amber-200/60 text-amber-950 font-bold'
-                        : 'bg-white border-slate-100 text-slate-500'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                          isDone
-                            ? 'bg-emerald-500 text-white'
-                            : isProgress
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-slate-100 border border-slate-200 text-slate-300'
-                        }`}
-                      >
-                        {isDone ? (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        ) : isProgress ? (
-                          <Clock className="w-3.5 h-3.5" />
-                        ) : (
-                          <Circle className="w-3.5 h-3.5" />
-                        )}
-                      </div>
-                      <span className="text-xs font-bold">{item.title}</span>
+              {checklistItems.map((item, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => navigate(item.path)}
+                  className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer hover:border-slate-300 ${
+                    item.isDone
+                      ? 'bg-slate-50/60 border-slate-200/60 text-slate-900'
+                      : item.isRejected
+                      ? 'bg-red-50/50 border-red-200 text-red-900'
+                      : 'bg-white border-slate-100 text-slate-500'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                      item.isDone
+                        ? 'bg-emerald-500 text-white'
+                        : item.isRejected
+                        ? 'bg-red-600 text-white'
+                        : 'bg-slate-100 border border-slate-200 text-slate-300'
+                    }`}>
+                      {item.isDone ? <CheckCircle2 className="w-4 h-4" /> : item.isRejected ? <XCircle className="w-4 h-4" /> : <Circle className="w-3.5 h-3.5" />}
                     </div>
-
-                    <span
-                      className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
-                        isDone
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : isProgress
-                          ? 'bg-amber-50 text-amber-700 border-amber-200'
-                          : 'bg-slate-100 text-slate-400 border-slate-200'
-                      }`}
-                    >
-                      {item.status}
+                    <span className={`text-xs font-extrabold ${item.isDone ? 'text-slate-900' : item.isRejected ? 'text-red-900' : 'text-slate-600'}`}>
+                      {item.title}
                     </span>
                   </div>
-                );
-              })}
-            </div>
-          </Card>
 
-          {/* Quick Action Tiles */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-            {[
-              { title: 'Search Universities', desc: 'Find target European courses', path: '/student/select-university', icon: Search },
-              { title: 'Upload Documents', desc: 'Manage passport & certificates', path: '/student/documents', icon: BookOpen },
-              { title: 'Support & Help', desc: 'Contact assigned counselor', path: '/student/support', icon: ShieldAlert },
-            ].map((action, idx) => (
-              <Card
-                key={idx}
-                hoverEffect
-                onClick={() => handleQuickAction(action.path)}
-                className="cursor-pointer group hover:border-[#6A1B2E]/30 p-5 flex flex-col justify-between border border-slate-200/70"
-              >
-                <div>
-                  <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 group-hover:bg-[#6A1B2E] group-hover:text-white flex items-center justify-center mb-4 transition-colors">
-                    <action.icon className="w-5 h-5" />
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase border ${
+                      item.isDone
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : item.isRejected
+                        ? 'bg-red-50 text-red-700 border-red-200'
+                        : 'bg-slate-100 text-slate-400 border-slate-200'
+                    }`}>
+                      {item.tag}
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
                   </div>
-                  <h4 className="text-xs font-black text-slate-900 group-hover:text-[#6A1B2E] transition-colors">{action.title}</h4>
-                  <p className="text-[11px] text-slate-400 font-semibold mt-1 leading-relaxed">{action.desc}</p>
-                </div>
-                <div className="flex items-center gap-1 text-[10px] font-bold text-[#6A1B2E] mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  Open module <ArrowRight className="w-3 h-3" />
-                </div>
-              </Card>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Sidebar Panels */}
-        <motion.div variants={itemVariants} className="space-y-6 text-left">
-
-          {/* Upcoming Meeting Card */}
-          <Card className="p-5 border-l-4 border-l-[#6A1B2E] border-slate-200/70 shadow-xs">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] uppercase font-extrabold text-[#6A1B2E] tracking-wider">
-                Upcoming Advisory
-              </span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            </div>
-            <h3 className="text-sm font-black text-slate-900 mb-3">Visa Guidance Session</h3>
-
-            <div className="space-y-2 text-xs text-slate-600 font-semibold mb-5 bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>Aug 12, 2026</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>10:00 AM – 10:45 AM</span>
-              </div>
-            </div>
-
-            <Button
-              size="sm"
-              className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]"
-              onClick={() => handleQuickAction('/student/meetings')}
-            >
-              Access Meeting Briefing
-            </Button>
-          </Card>
-
-          {/* Recent Milestones Preview */}
-          <Card className="p-5 border border-slate-200/70 shadow-xs">
-            <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
-              Recent Milestones
-              <span className="text-[10px] font-extrabold text-[#6A1B2E] hover:underline cursor-pointer" onClick={() => handleQuickAction('/student/journey-tracker')}>
-                See Full
-              </span>
-            </h3>
-
-            <div className="relative border-l border-slate-200/80 pl-4 py-1.5 space-y-4 select-none">
-              {[
-                { time: 'Aug 04', title: 'Offer Letter Issued', desc: 'University of Warsaw offer released.', color: 'bg-emerald-500' },
-                { time: 'Jul 28', title: 'Passport Verified', desc: 'Ferex team approved identity document.', color: 'bg-blue-500' },
-                { time: 'Jul 15', title: 'Portal Enrollment', desc: 'Ashly registered in Ferex platform.', color: 'bg-[#6A1B2E]' },
-              ].map((milestone, idx) => (
-                <div key={idx} onClick={() => handleQuickAction('/student/journey-tracker')} className="relative cursor-pointer group hover:bg-slate-50 p-1 rounded-lg transition-colors">
-                  <span className={`absolute -left-[16.5px] top-2 w-2.5 h-2.5 rounded-full border-2 border-white ${milestone.color}`} />
-                  <span className="text-[9px] font-extrabold text-slate-400 uppercase">{milestone.time}</span>
-                  <h4 className="text-xs font-black text-slate-800 group-hover:text-[#6A1B2E] transition-colors mt-0.5">{milestone.title}</h4>
-                  <p className="text-[10.5px] text-slate-500 font-semibold mt-0.5">{milestone.desc}</p>
                 </div>
               ))}
             </div>
           </Card>
-
         </motion.div>
 
+        {/* Right Column: Quick Status & Meetings */}
+        <motion.div variants={itemVariants} className="space-y-6">
+          <Card className="p-6 border border-slate-200/70 shadow-xs space-y-4">
+            <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3">Upcoming Counselor Session</h3>
+            {upcomingMeeting ? (
+              <div className="p-4 bg-[#6A1B2E]/5 rounded-xl border border-[#6A1B2E]/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase text-[#6A1B2E] tracking-wider">Scheduled Session</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">{upcomingMeeting.status || 'Confirmed'}</span>
+                </div>
+                <h4 className="text-xs font-black text-slate-900">{upcomingMeeting.title || 'European Admissions Strategy'}</h4>
+                <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500">
+                  <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-[#6A1B2E]" /> {upcomingMeeting.date || 'Tomorrow'}</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-[#6A1B2E]" /> {upcomingMeeting.time || '3:00 PM'}</span>
+                </div>
+                <Button size="sm" className="w-full mt-2 text-xs font-bold bg-[#6A1B2E] text-white" onClick={() => navigate('/student/meetings')}>
+                  Join Session Portal
+                </Button>
+              </div>
+            ) : (
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-center space-y-2">
+                <Clock className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="text-xs font-semibold text-slate-500">No upcoming meetings scheduled.</p>
+                <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => navigate('/student/meetings')}>
+                  Schedule Counselor Meeting
+                </Button>
+              </div>
+            )}
+          </Card>
+        </motion.div>
       </div>
     </motion.div>
   );
 };
-
