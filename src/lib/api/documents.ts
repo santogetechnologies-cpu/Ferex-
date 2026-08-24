@@ -26,7 +26,7 @@ export async function getDocumentsForAdmin(): Promise<StudentDocument[]> {
   try {
     const { data } = await supabase
       .from('student_documents')
-      .select('*')
+      .select('*, users:student_id(id, full_name, email, phone)')
       .order('uploaded_at', { ascending: false });
     return (data ?? []) as unknown as StudentDocument[];
   } catch (err) {

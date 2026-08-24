@@ -34,20 +34,29 @@ export const Payments: React.FC = () => {
 
   // Dynamic Course Fee Lookup from Selected Application
   const activeApp = applications.find(a =>
-    a.course &&
+    Boolean(a.course) &&
+    Boolean(a.university_name) &&
     a.course !== 'Higher Studies' &&
     a.course !== 'Academic Recognition & Admission Initiation' &&
     a.university_name !== 'Pending NAWA Selection' &&
-    a.university_name !== 'Warsaw University of Technology (NAWA Partner)'
-  ) || applications[0] || null;
+    a.university_name !== 'Pending University Selection' &&
+    !a.university_name.includes('NAWA Partner')
+  ) || null;
 
-  const hasCourseSelected = Boolean(activeApp && (activeApp.course || activeApp.program_name));
+  const hasCourseSelected = Boolean(
+    activeApp &&
+    activeApp.course &&
+    activeApp.university_name &&
+    activeApp.university_name !== 'Pending University Selection' &&
+    activeApp.university_name !== 'Pending NAWA Selection'
+  );
+
   const selectedCourse = activeApp?.course || activeApp?.program_name || 'Selected European Program';
   const selectedUniversity = (activeApp?.university_name && activeApp.university_name !== 'Pending University Selection') ? activeApp.university_name : (activeApp?.universities?.name || 'University Applied For');
 
   // Robust Course Tuition Fee Parser (handles "€3,500", "₹3,15,000", "3.15 Lakhs", "315000", "3500")
   const parseCourseFee = (val?: any): { inr: number; formatted: string } => {
-    if (!val) return { inr: 315000, formatted: '₹3,15,000 (€3,500/yr)' };
+    if (!val || !hasCourseSelected) return { inr: 0, formatted: 'Pending University Selection' };
 
     const str = String(val).trim();
     const lower = str.toLowerCase();
@@ -185,12 +194,14 @@ export const Payments: React.FC = () => {
     {
       id: 2,
       stageNum: 2,
-      title: `2nd Installment — Course Tuition Fee (${formattedTuitionFee})`,
+      title: hasCourseSelected
+        ? `2nd Installment — Course Tuition Fee (${formattedTuitionFee})`
+        : '2nd Installment — Course Tuition Fee (Pending University Selection)',
       stageName: 'After Course Selection & Offer Letter',
-      amount: hasCourseSelected ? inst2Amount : courseTuitionFee,
+      amount: hasCourseSelected ? inst2Amount : 0,
       description: hasCourseSelected
         ? `Selected Course Tuition Fee (${formattedTuitionFee}) for ${selectedCourse} at ${selectedUniversity}. Required for Official Final Acceptance Letter.`
-        : `Selected Course Tuition Fee (${formattedTuitionFee}). Required for Official Final Acceptance Letter after university application.`,
+        : 'Selected Course Tuition Fee will be calculated automatically once you select your university and course in the Applications portal.',
       dueDateStr: 'Due After Offer Letter Released',
       status: p2Paid
         ? 'Paid'
@@ -531,7 +542,7 @@ export const Payments: React.FC = () => {
                   <div className="my-3 p-3 bg-slate-50/90 rounded-xl border border-slate-100">
                     <span className="text-[10px] uppercase font-extrabold text-slate-400 block tracking-wider">Installment Amount</span>
                     <span className="text-2xl font-black text-slate-900">
-                      {inst.amount > 0 ? `₹${inst.amount.toLocaleString()}` : 'Course Dependent'}
+                      {inst.amount > 0 ? `₹${inst.amount.toLocaleString('en-IN')}` : 'Pending University Selection'}
                     </span>
                   </div>
 

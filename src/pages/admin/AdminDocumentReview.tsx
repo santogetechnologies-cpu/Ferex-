@@ -4,6 +4,8 @@ import { Search, Eye, CheckCircle2, XCircle, X, RefreshCw, Sparkles, FileText, M
 import { useDocuments } from '../../hooks/useDocuments';
 import { createNawaRecord } from '../../lib/api/nawa';
 
+import { getStudents } from '../../lib/api/students';
+
 type DocStatus = 'Submitted' | 'Under Review' | 'Approved' | 'Rejected';
 
 interface DocItem {
@@ -40,26 +42,49 @@ const normalizeDocStatus = (rawStatus: string, rawNotes?: string): DocStatus => 
 export const AdminDocumentReview: React.FC = () => {
   const { documents: dbDocs, changeStatus } = useDocuments();
   const [docs, setDocs] = useState<DocItem[]>([]);
+  const [studentsMap, setStudentsMap] = useState<Record<string, { full_name: string; email: string }>>({});
+
+  useEffect(() => {
+    getStudents().then(list => {
+      if (list && Array.isArray(list)) {
+        const map: Record<string, { full_name: string; email: string }> = {};
+        list.forEach((s: any) => {
+          if (s.id) {
+            map[s.id] = {
+              full_name: s.full_name || s.name || s.email?.split('@')[0] || 'Student',
+              email: s.email || ''
+            };
+          }
+        });
+        setStudentsMap(map);
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (dbDocs.length > 0) {
-      const mapped = dbDocs.map(d => ({
-        id: d.id,
-        studentId: d.student_id || 'STU-1001',
-        studentName: d.users?.full_name || d.users?.email?.split('@')[0] || 'Student',
-        docType: d.file_name || d.doc_type || 'Document File',
-        category: d.doc_type || 'Academic File',
-        status: normalizeDocStatus(d.status, d.reviewer_notes),
-        uploaded: new Date(d.uploaded_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        size: '1.2 MB',
-        comment: d.reviewer_notes || '',
-        fileUrl: d.file_url,
-      }));
+      const mapped = dbDocs.map(d => {
+        const dbStudent = studentsMap[d.student_id] || (d as any).users;
+        const resolvedName = dbStudent?.full_name || (d as any).student_name || dbStudent?.email?.split('@')[0] || 'Student';
+
+        return {
+          id: d.id,
+          studentId: d.student_id || 'STU-1001',
+          studentName: resolvedName,
+          docType: d.file_name || d.doc_type || 'Document File',
+          category: d.doc_type || 'Academic File',
+          status: normalizeDocStatus(d.status, d.reviewer_notes),
+          uploaded: new Date(d.uploaded_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          size: d.file_size || '1.2 MB',
+          comment: d.reviewer_notes || '',
+          fileUrl: d.file_url,
+        };
+      });
       setDocs(mapped);
     } else {
       setDocs([]);
     }
-  }, [dbDocs]);
+  }, [dbDocs, studentsMap]);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');

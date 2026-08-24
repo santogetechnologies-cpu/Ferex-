@@ -54,39 +54,25 @@ export const JourneyTracker: React.FC = () => {
       try {
         const { supabase } = await import('../lib/supabase');
 
-        // Fetch whatever exists
-        const { data: existing } = await supabase
+        const { data: existing, error } = await supabase
           .from('journey_stages')
           .select('*')
           .eq('student_id', user.id)
           .order('stage_number', { ascending: true });
 
-        const REQUIRED_STAGES = [
-          { stage_number: 1, stage_name: 'Application Submitted', status: 'In Progress', notes: 'Initial submission of visa & university application files.' },
-          { stage_number: 2, stage_name: 'NAWA Process', status: 'Pending', notes: 'Verification of eligibility and NAWA apostille/legalization audit.' },
-          { stage_number: 3, stage_name: 'Decision', status: 'Pending', notes: 'University admissions and visa officer eligibility decision.' },
-          { stage_number: 4, stage_name: 'Visa Outcome', status: 'Pending', notes: 'Passport stamping and visa grant status.' },
+        if (!error && existing && existing.length > 0) {
+          setStages(existing as JourneyStage[]);
+          return;
+        }
+
+        // Provide default stages in memory without client-side unauthorized POST requests
+        const DEFAULT_STAGES: JourneyStage[] = [
+          { id: `stage-1-${user.id}`, student_id: user.id, stage_number: 1, stage_name: 'Application Submitted', status: 'In Progress', notes: 'Initial submission of visa & university application files.' },
+          { id: `stage-2-${user.id}`, student_id: user.id, stage_number: 2, stage_name: 'NAWA Process', status: 'Pending', notes: 'Verification of eligibility and NAWA apostille/legalization audit.' },
+          { id: `stage-3-${user.id}`, student_id: user.id, stage_number: 3, stage_name: 'Decision', status: 'Pending', notes: 'University admissions and visa officer eligibility decision.' },
+          { id: `stage-4-${user.id}`, student_id: user.id, stage_number: 4, stage_name: 'Visa Outcome', status: 'Pending', notes: 'Passport stamping and visa grant status.' },
         ];
-
-        // Find which stage_numbers are missing
-        const existingNums = new Set((existing || []).map((s: any) => s.stage_number));
-        const missing = REQUIRED_STAGES.filter(r => !existingNums.has(r.stage_number));
-
-        if (missing.length > 0) {
-          const toInsert = missing.map(m => ({ ...m, student_id: user.id }));
-          await supabase.from('journey_stages').insert(toInsert);
-        }
-
-        // Re-fetch the complete, up-to-date list
-        const { data: final } = await supabase
-          .from('journey_stages')
-          .select('*')
-          .eq('student_id', user.id)
-          .order('stage_number', { ascending: true });
-
-        if (final) {
-          setStages(final as JourneyStage[]);
-        }
+        setStages(DEFAULT_STAGES);
       } catch (err) {
         console.error('Error fetching stages:', err);
       }
