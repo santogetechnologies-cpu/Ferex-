@@ -16,7 +16,6 @@ export const CentralStudents: React.FC = () => {
       id: 'FX-2026-001',
       name: 'Ashly',
       email: 'student@gmail.com',
-      flag: '🇮🇳',
       country: 'India',
       targetUni: 'University of Warsaw',
       course: 'M.Sc. in Computer Science',
@@ -29,7 +28,6 @@ export const CentralStudents: React.FC = () => {
       id: 'FX-2026-002',
       name: 'Rahul Mehta',
       email: 'rahul.mehta@gmail.com',
-      flag: '🇮🇳',
       country: 'India',
       targetUni: 'TU Berlin',
       course: 'M.Sc. in Data Engineering',
@@ -42,7 +40,6 @@ export const CentralStudents: React.FC = () => {
       id: 'FX-2026-003',
       name: 'Priya Sharma',
       email: 'priya.sharma@gmail.com',
-      flag: '🇮🇳',
       country: 'India',
       targetUni: 'University of Amsterdam',
       course: 'M.A. in Business Analytics',
@@ -72,7 +69,6 @@ export const CentralStudents: React.FC = () => {
     const created = {
       id: `FX-2026-00${students.length + 1}`,
       ...newStudent,
-      flag: '🇮🇳',
       country: 'India',
       stage: 'Profile Registered (Stage 1/7)',
       stageBadge: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20',
@@ -173,8 +169,8 @@ export const CentralStudents: React.FC = () => {
                         {student.name.charAt(0)}
                       </div>
                       <div>
-                        <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                          {student.name} <span className="text-xs">{student.flag}</span>
+                        <div className="font-extrabold text-slate-900">
+                          {student.name}
                         </div>
                         <span className="text-[10px] font-bold text-slate-400">{student.id} · {student.email}</span>
                       </div>

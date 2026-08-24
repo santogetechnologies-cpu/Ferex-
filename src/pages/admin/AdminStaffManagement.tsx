@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, Edit3, Trash2, X, Save, CheckCircle2, Mail, Phone } from 'lucide-react';
+import { getStaffMembers, createStaffMember, updateStudent, deleteStudent } from '../../lib/api/students';
 
 interface StaffMember {
   id: string; name: string; email: string; phone: string; department: string;
@@ -17,14 +18,6 @@ const DEFAULT_PERMS = [
   { label: 'Manage Staff', enabled: false },
 ];
 
-const STAFF: StaffMember[] = [
-  { id: 'ST-001', name: 'Riya Shah', email: 'riya@ferex.com', phone: '+91 99000 12345', department: 'Admissions', role: 'Senior Counselor', status: 'Active', joined: 'Jan 2024', students: 48, permissions: [...DEFAULT_PERMS.map(p => ({ ...p, enabled: ['View Students', 'Edit Applications', 'View Reports'].includes(p.label) }))] },
-  { id: 'ST-002', name: 'Arjun Pillai', email: 'arjun@ferex.com', phone: '+91 99000 67890', department: 'Operations', role: 'Application Manager', status: 'Active', joined: 'Mar 2024', students: 62, permissions: [...DEFAULT_PERMS.map(p => ({ ...p, enabled: ['View Students', 'Edit Applications', 'Approve Documents', 'View Reports'].includes(p.label) }))] },
-  { id: 'ST-003', name: 'Meena Iyer', email: 'meena@ferex.com', phone: '+91 99000 22334', department: 'Documents', role: 'Document Verifier', status: 'Active', joined: 'Jun 2024', students: 35, permissions: [...DEFAULT_PERMS.map(p => ({ ...p, enabled: ['View Students', 'Approve Documents'].includes(p.label) }))] },
-  { id: 'ST-004', name: 'Kabir Nair', email: 'kabir@ferex.com', phone: '+91 99000 44556', department: 'Finance', role: 'Payments Coordinator', status: 'On Leave', joined: 'Sep 2024', students: 29, permissions: [...DEFAULT_PERMS.map(p => ({ ...p, enabled: ['View Students', 'Manage Payments', 'View Reports'].includes(p.label) }))] },
-  { id: 'ST-005', name: 'Lena Fischer', email: 'lena@ferex.com', phone: '+49 176 12345678', department: 'Admissions', role: 'EU Counselor', status: 'Active', joined: 'Oct 2024', students: 22, permissions: [...DEFAULT_PERMS.map(p => ({ ...p, enabled: ['View Students', 'Edit Applications', 'View Reports'].includes(p.label) }))] },
-];
-
 const STATUS_COLORS = {
   'Active': 'bg-emerald-50 text-emerald-700 border-emerald-100',
   'On Leave': 'bg-amber-50 text-amber-700 border-amber-100',
@@ -32,7 +25,30 @@ const STATUS_COLORS = {
 };
 
 export const AdminStaffManagement: React.FC = () => {
-  const [staff, setStaff] = useState(STAFF);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+
+  useEffect(() => {
+    getStaffMembers().then(members => {
+      const mapped = members.map(m => {
+        const parts = (m.department || '').split(':');
+        const dept = parts[0] || 'Admissions';
+        const customRole = parts[1] || (m.role === 'admin' ? 'Admin' : 'Staff');
+        return {
+          id: m.id,
+          name: m.full_name || m.email.split('@')[0],
+          email: m.email,
+          phone: m.phone || '—',
+          department: dept,
+          role: customRole,
+          status: 'Active' as const,
+          joined: new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          students: 0,
+          permissions: m.permissions || DEFAULT_PERMS,
+        };
+      });
+      setStaff(mapped);
+    }).catch(() => {});
+  }, []);
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('All');
   const [editStaff, setEditStaff] = useState<StaffMember | null>(null);
@@ -50,25 +66,60 @@ export const AdminStaffManagement: React.FC = () => {
     (s.name.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase()) || s.role.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editTemp) return;
-    setStaff(prev => prev.map(s => s.id === editTemp.id ? editTemp : s));
-    setEditStaff(null);
-    showToast('Staff record updated.');
+    try {
+      await updateStudent(editTemp.id, {
+        full_name: editTemp.name,
+        role: editTemp.role === 'Admin' ? 'admin' : 'staff',
+        phone: editTemp.phone,
+        department: `${editTemp.department}:${editTemp.role}`,
+        permissions: editTemp.permissions
+      });
+      setStaff(prev => prev.map(s => s.id === editTemp.id ? editTemp : s));
+      setEditStaff(null);
+      showToast('Staff record updated in database.');
+    } catch (e: any) {
+      showToast(`Error: ${e.message}`);
+    }
   };
 
-  const handleDelete = () => {
-    setStaff(prev => prev.filter(s => s.id !== deleteId));
-    setDeleteId(null);
-    showToast('Staff member removed.');
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await deleteStudent(deleteId);
+      setStaff(prev => prev.filter(s => s.id !== deleteId));
+      setDeleteId(null);
+      showToast('Staff member removed from database.');
+    } catch (e: any) {
+      showToast(`Error: ${e.message}`);
+    }
   };
 
-  const togglePerm = (staffId: string, permLabel: string) => {
-    setStaff(prev => prev.map(s => s.id === staffId
-      ? { ...s, permissions: s.permissions.map(p => p.label === permLabel ? { ...p, enabled: !p.enabled } : p) }
-      : s
-    ));
-    showToast('Permission updated.');
+  const togglePerm = async (staffId: string, permLabel: string) => {
+    let updatedStaffMember: StaffMember | undefined;
+    setStaff(prev => prev.map(s => {
+      if (s.id === staffId) {
+        const updated = {
+          ...s,
+          permissions: s.permissions.map(p => p.label === permLabel ? { ...p, enabled: !p.enabled } : p)
+        };
+        updatedStaffMember = updated;
+        return updated;
+      }
+      return s;
+    }));
+
+    if (updatedStaffMember) {
+      try {
+        await updateStudent(staffId, {
+          permissions: updatedStaffMember.permissions
+        });
+        showToast('Permission updated in database.');
+      } catch (e: any) {
+        showToast(`Error: ${e.message}`);
+      }
+    }
   };
 
   return (
@@ -170,20 +221,39 @@ export const AdminStaffManagement: React.FC = () => {
                 <h3 className="text-sm font-extrabold text-slate-900">Edit Staff — {editTemp.id}</h3>
                 <button onClick={() => setEditStaff(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3 text-left">
                 <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { label: 'Full Name', key: 'name' as const },
-                    { label: 'Role', key: 'role' as const },
-                    { label: 'Email', key: 'email' as const },
-                    { label: 'Phone', key: 'phone' as const },
-                  ].map(({ label, key }) => (
-                    <div key={key}>
-                      <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">{label}</label>
-                      <input value={editTemp[key]} onChange={(e) => setEditTemp({ ...editTemp, [key]: e.target.value })}
-                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
-                    </div>
-                  ))}
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Full Name</label>
+                    <input value={editTemp.name} onChange={(e) => setEditTemp({ ...editTemp, name: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Category / Role</label>
+                    <select value={editTemp.role} onChange={(e) => {
+                      const newRole = e.target.value;
+                      let newDept = editTemp.department;
+                      if (newRole === 'Advisor') newDept = 'Admissions';
+                      else if (newRole === 'Cashier') newDept = 'Finance';
+                      else if (newRole === 'Document Manager') newDept = 'Documents';
+                      setEditTemp({ ...editTemp, role: newRole, department: newDept });
+                    }}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
+                      {['Advisor', 'Cashier', 'Document Manager', 'Counselor', 'Staff', 'Admin'].map(r => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Email</label>
+                    <input value={editTemp.email} onChange={(e) => setEditTemp({ ...editTemp, email: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Phone</label>
+                    <input value={editTemp.phone} onChange={(e) => setEditTemp({ ...editTemp, phone: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
+                  </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Department</label>
                     <select value={editTemp.department} onChange={(e) => setEditTemp({ ...editTemp, department: e.target.value })}
@@ -197,6 +267,35 @@ export const AdminStaffManagement: React.FC = () => {
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
                       <option>Active</option><option>On Leave</option><option>Inactive</option>
                     </select>
+                  </div>
+                </div>
+                {/* Permissions Checklist in Edit Modal */}
+                <div className="pt-3.5 border-t border-slate-100">
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
+                    Staff Capabilities / Permissions
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {editTemp.permissions.map((p) => (
+                      <label
+                        key={p.label}
+                        className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200/60 rounded-xl cursor-pointer text-xs hover:bg-slate-100/50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={p.enabled}
+                          onChange={(e) => {
+                            const updatedPerms = editTemp.permissions.map(pm =>
+                              pm.label === p.label ? { ...pm, enabled: e.target.checked } : pm
+                            );
+                            setEditTemp({ ...editTemp, permissions: updatedPerms });
+                          }}
+                          className="w-3.5 h-3.5 rounded text-[#6A1B2E] border-slate-300 focus:ring-[#6A1B2E]"
+                        />
+                        <span className={`font-semibold ${p.enabled ? 'text-slate-900 font-extrabold' : 'text-slate-400'}`}>
+                          {p.label}
+                        </span>
+                      </label>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -223,27 +322,67 @@ export const AdminStaffManagement: React.FC = () => {
                 <h3 className="text-sm font-extrabold text-slate-900">Add New Staff Member</h3>
                 <button onClick={() => setShowAdd(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
               </div>
-              <form onSubmit={(e) => {
+              <form onSubmit={async (e) => {
                 e.preventDefault();
                 const f = e.target as HTMLFormElement;
                 const name = (f.elements.namedItem('name') as HTMLInputElement).value;
                 const email = (f.elements.namedItem('email') as HTMLInputElement).value;
-                const role = (f.elements.namedItem('role') as HTMLInputElement).value;
-                setStaff(prev => [{
-                  id: `ST-${String(staff.length + 1).padStart(3, '0')}`, name, email, role,
-                  phone: '—', department: 'Admissions', status: 'Active', joined: 'Today',
-                  students: 0, permissions: DEFAULT_PERMS.map(p => ({ ...p })),
-                }, ...prev]);
-                setShowAdd(false);
-                showToast(`${name} added to staff.`);
-              }} className="space-y-3">
-                {[{ l: 'Full Name', n: 'name' }, { l: 'Email', n: 'email' }, { l: 'Role', n: 'role' }].map(({ l, n }) => (
-                  <div key={n}>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">{l}</label>
-                    <input required name={n}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
-                  </div>
-                ))}
+                const category = (f.elements.namedItem('category') as HTMLSelectElement).value;
+                const department = (f.elements.namedItem('department') as HTMLSelectElement).value;
+
+                try {
+                  const dbRole = category === 'Admin' ? 'admin' : 'staff';
+                  const created = await createStaffMember({
+                    email,
+                    full_name: name,
+                    role: dbRole
+                  });
+
+                  setStaff(prev => [{
+                    id: created.id,
+                    name: created.full_name || name,
+                    email: created.email,
+                    phone: created.phone || '—',
+                    department,
+                    role: category,
+                    status: 'Active',
+                    joined: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                    students: 0,
+                    permissions: DEFAULT_PERMS.map(p => ({ ...p })),
+                  }, ...prev]);
+
+                  setShowAdd(false);
+                  showToast(`🎉 Staff member ${name} added successfully!`);
+                } catch (err: any) {
+                  showToast(`Error: ${err.message || 'Failed to add'}`);
+                }
+              }} className="space-y-3.5 text-left">
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Full Name</label>
+                  <input required name="name" placeholder="e.g. Riya Shah"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Email Address</label>
+                  <input required name="email" type="email" placeholder="e.g. riya@ferex.com"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Category / Role</label>
+                  <select name="category" defaultValue="Advisor"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
+                    {['Advisor', 'Cashier', 'Document Manager', 'Counselor', 'Staff', 'Admin'].map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Department</label>
+                  <select name="department" defaultValue="Admissions"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
+                    {['Admissions', 'Operations', 'Documents', 'Finance'].map(d => <option key={d}>{d}</option>)}
+                  </select>
+                </div>
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setShowAdd(false)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
                   <button type="submit" className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E]">Add Staff</button>

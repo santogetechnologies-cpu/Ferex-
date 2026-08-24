@@ -1,37 +1,14 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Download, TrendingUp, Users, Globe, FileText } from 'lucide-react';
-
-const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
-const appData = [12, 18, 24, 30, 22, 38, 45, 52];
-const paymentData = [85, 120, 165, 200, 145, 230, 280, 310];
-
-const countryData = [
-  { country: 'India', flag: '🇮🇳', count: 142, pct: 57 },
-  { country: 'UAE', flag: '🇦🇪', count: 38, pct: 15 },
-  { country: 'Qatar', flag: '🇶🇦', count: 24, pct: 10 },
-  { country: 'Oman', flag: '🇴🇲', count: 18, pct: 7 },
-  { country: 'Mexico', flag: '🇲🇽', count: 14, pct: 6 },
-  { country: 'Others', flag: '🌍', count: 11, pct: 4 },
-];
-
-const docStatusData = [
-  { label: 'Verified', count: 312, pct: 65, color: 'bg-emerald-500' },
-  { label: 'Pending', count: 98, pct: 20, color: 'bg-amber-500' },
-  { label: 'Rejected', count: 42, pct: 9, color: 'bg-red-500' },
-  { label: 'Re-upload', count: 28, pct: 6, color: 'bg-blue-500' },
-];
-
-const universityData = [
-  { name: 'University of Warsaw', country: '🇵🇱', applications: 68 },
-  { name: 'TU Berlin', country: '🇩🇪', applications: 54 },
-  { name: 'University of Amsterdam', country: '🇳🇱', applications: 41 },
-  { name: 'Leiden University', country: '🇳🇱', applications: 38 },
-  { name: 'Jagiellonian University', country: '🇵🇱', applications: 33 },
-];
+import { useStudents } from '../../hooks/useStudents';
+import { useApplications } from '../../hooks/useApplications';
+import { useDocuments } from '../../hooks/useDocuments';
+import { usePayments } from '../../hooks/usePayments';
+import { useUniversities } from '../../hooks/useUniversities';
 
 const BarChart: React.FC<{ data: number[]; labels: string[]; color: string; unit?: string }> = ({ data, labels, color, unit = '' }) => {
-  const max = Math.max(...data);
+  const max = Math.max(...data, 1);
   return (
     <div className="flex items-end gap-2 h-28">
       {data.map((val, i) => (
@@ -53,6 +30,37 @@ const BarChart: React.FC<{ data: number[]; labels: string[]; color: string; unit
 export const AdminReports: React.FC = () => {
   const [period, setPeriod] = useState('This Year');
   const [toast, setToast] = useState('');
+
+  const { students } = useStudents();
+  const { applications } = useApplications();
+  const { documents } = useDocuments();
+  const { payments } = usePayments();
+  const { universities } = useUniversities();
+
+  const totalPaidRevenue = payments
+    .filter(p => p.status === 'Paid')
+    .reduce((sum, p) => sum + Number(p.amount), 0);
+
+  // Dynamic doc status count
+  const docTotal = documents.length || 1;
+  const docVerified = documents.filter(d => d.status === 'Approved').length;
+  const docPending = documents.filter(d => d.status === 'Pending Verification').length;
+  const docRejected = documents.filter(d => d.status === 'Rejected').length;
+
+  const docStatusData = [
+    { label: 'Verified', count: docVerified, pct: Math.round((docVerified / docTotal) * 100), color: 'bg-emerald-500' },
+    { label: 'Pending', count: docPending, pct: Math.round((docPending / docTotal) * 100), color: 'bg-amber-500' },
+    { label: 'Rejected', count: docRejected, pct: Math.round((docRejected / docTotal) * 100), color: 'bg-red-500' },
+  ];
+
+  // Dynamic country breakdown
+  const countryData = [
+    { country: 'India', count: students.length, pct: students.length > 0 ? 100 : 0 },
+  ];
+
+  const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+  const appData = [0, 0, 0, 0, 0, 0, 0, applications.length];
+  const paymentData = [0, 0, 0, 0, 0, 0, 0, Math.round(totalPaidRevenue / 1000)];
 
   const handleExport = (type: string) => {
     const a = document.createElement('a');
@@ -94,16 +102,16 @@ export const AdminReports: React.FC = () => {
       {/* KPI strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Total Students', value: '247', change: '+18%', icon: Users, bg: 'bg-blue-50 text-blue-600' },
-          { label: 'Applications', value: '312', change: '+24%', icon: FileText, bg: 'bg-violet-50 text-violet-600' },
-          { label: 'Revenue', value: '₹28.4L', change: '+31%', icon: TrendingUp, bg: 'bg-emerald-50 text-emerald-600' },
-          { label: 'Countries', value: '14', change: '+3 new', icon: Globe, bg: 'bg-amber-50 text-amber-600' },
+          { label: 'Total Students', value: String(students.length), change: 'Live DB', icon: Users, bg: 'bg-blue-50 text-blue-600' },
+          { label: 'Applications', value: String(applications.length), change: 'Live DB', icon: FileText, bg: 'bg-violet-50 text-violet-600' },
+          { label: 'Revenue', value: `₹${totalPaidRevenue.toLocaleString()}`, change: 'Live DB', icon: TrendingUp, bg: 'bg-emerald-50 text-emerald-600' },
+          { label: 'Universities', value: String(universities.length), change: 'Live DB', icon: Globe, bg: 'bg-amber-50 text-amber-600' },
         ].map(({ label, value, change, icon: Icon, bg }) => (
           <div key={label} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${bg} mb-3`}><Icon className="w-4.5 h-4.5" /></div>
             <p className="text-2xl font-extrabold text-slate-900">{value}</p>
             <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{label}</p>
-            <p className="text-[10px] font-bold text-emerald-600 mt-1">↑ {change} vs last period</p>
+            <p className="text-[10px] font-bold text-emerald-600 mt-1">{change}</p>
           </div>
         ))}
       </div>
@@ -134,18 +142,22 @@ export const AdminReports: React.FC = () => {
             </button>
           </div>
           <div className="space-y-3">
-            {docStatusData.map(({ label, count, pct, color }) => (
-              <div key={label}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-slate-700">{label}</span>
-                  <span className="text-xs font-extrabold text-slate-900">{count}</span>
+            {documents.length === 0 ? (
+              <p className="text-xs text-slate-400 font-bold py-6 text-center">No document records found.</p>
+            ) : (
+              docStatusData.map(({ label, count, pct, color }) => (
+                <div key={label}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-slate-700">{label}</span>
+                    <span className="text-xs font-extrabold text-slate-900">{count} ({isNaN(pct) ? 0 : pct}%)</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${isNaN(pct) ? 0 : pct}%` }} transition={{ duration: 0.7, delay: 0.1 }}
+                      className={`h-full rounded-full ${color}`} />
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.7, delay: 0.1 }}
-                    className={`h-full rounded-full ${color}`} />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -161,18 +173,22 @@ export const AdminReports: React.FC = () => {
             </button>
           </div>
           <div className="space-y-3">
-            {countryData.map(({ country, flag, count, pct }) => (
-              <div key={country}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-slate-700">{flag} {country}</span>
-                  <span className="text-xs font-extrabold text-slate-600">{count} <span className="text-[10px] text-slate-400">({pct}%)</span></span>
+            {students.length === 0 ? (
+              <p className="text-xs text-slate-400 font-bold py-6 text-center">No student records found.</p>
+            ) : (
+              countryData.map(({ country, count, pct }) => (
+                <div key={country}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-slate-700">{country}</span>
+                    <span className="text-xs font-extrabold text-slate-600">{count} <span className="text-[10px] text-slate-400">({pct}%)</span></span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6 }}
+                      className="h-full rounded-full bg-[#6A1B2E]/60" />
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6 }}
-                    className="h-full rounded-full bg-[#6A1B2E]/60" />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -185,15 +201,19 @@ export const AdminReports: React.FC = () => {
             </button>
           </div>
           <div className="space-y-3">
-            {universityData.map(({ name, country, applications }, idx) => (
-              <div key={name} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                <span className="text-xs font-extrabold text-slate-400 w-5 shrink-0">#{idx + 1}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-extrabold text-slate-900 truncate">{country} {name}</p>
+            {universities.length === 0 ? (
+              <p className="text-xs text-slate-400 font-bold py-6 text-center">No active universities cataloged.</p>
+            ) : (
+              universities.slice(0, 5).map((u, idx) => (
+                <div key={u.id} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                  <span className="text-xs font-extrabold text-slate-400 w-5 shrink-0">#{idx + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-extrabold text-slate-900 truncate">{u.name}</p>
+                    <p className="text-[10px] font-semibold text-slate-400">{u.country}</p>
+                  </div>
                 </div>
-                <span className="text-xs font-extrabold text-[#6A1B2E] shrink-0">{applications}</span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

@@ -1,0 +1,199 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Building2, Search, Plus, CheckCircle2, X, ShieldCheck } from 'lucide-react';
+import { Card } from '../../components/Card';
+import { Button } from '../../components/Button';
+
+export const TradeLettersOfCredit: React.FC = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLC, setSelectedLC] = useState<any>(null);
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [toast, setToast] = useState('');
+
+  const [lcs, setLcs] = useState([
+    {
+      id: 'LC-2026-8810',
+      bank: 'HSBC London / Warsaw Branch',
+      beneficiary: 'Warsaw Global Logistics Sp. z o.o.',
+      applicant: 'Ferex Global Trade Corp',
+      amount: '₹1,45,000',
+      issueDate: 'Jul 15, 2026',
+      expiryDate: 'Sep 30, 2026',
+      status: 'HSBC Cleared',
+      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    },
+    {
+      id: 'LC-2026-8811',
+      bank: 'State Bank of India (Frankfurt Desk)',
+      beneficiary: 'Berlin Industrial Supplies GmbH',
+      applicant: 'Ferex Global Trade Corp',
+      amount: '₹2,10,000',
+      issueDate: 'Jul 28, 2026',
+      expiryDate: 'Oct 15, 2026',
+      status: 'Under Banking Verification',
+      statusBadge: 'bg-amber-50 text-amber-700 border-amber-200'
+    }
+  ]);
+
+  const [newLC, setNewLC] = useState({
+    bank: 'HSBC London / Warsaw Branch',
+    beneficiary: 'Rotterdam Maritime N.V.',
+    amount: '₹1,80,000',
+    expiryDate: 'Oct 30, 2026'
+  });
+
+  const showToastMsg = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
+
+  const handleIssueLC = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLC.beneficiary) return;
+    const created = {
+      id: `LC-2026-${Math.floor(8820 + Math.random() * 90)}`,
+      ...newLC,
+      applicant: 'Ferex Global Trade Corp',
+      issueDate: 'Just now',
+      status: 'Draft Issued',
+      statusBadge: 'bg-blue-50 text-blue-700 border-blue-200'
+    };
+    setLcs([created, ...lcs]);
+    setShowIssueModal(false);
+    showToastMsg(`Issued Letter of Credit ${created.id}`);
+  };
+
+  const filteredLCs = lcs.filter(l =>
+    l.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.beneficiary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.bank.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6 text-left antialiased">
+      <AnimatePresence>
+        {toast && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-[#6A1B2E]" /> International Letters of Credit (LC Duty)
+          </h1>
+          <p className="text-xs font-semibold text-slate-500 mt-1">
+            Ferex Trade Console • Managing irrevocable documentary credits, banking verifications, and beneficiary guarantees.
+          </p>
+        </div>
+        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowIssueModal(true)}>
+          <Plus className="w-4 h-4 mr-1.5" /> Issue Letter of Credit
+        </Button>
+      </div>
+
+      <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search LC #, Bank, Beneficiary..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+        </div>
+        <span className="text-xs font-bold text-slate-400">{filteredLCs.length} Active LC Lines</span>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {filteredLCs.map((l) => (
+          <Card key={l.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase">{l.id} · Irrevocable LC</span>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${l.statusBadge}`}>{l.status}</span>
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900">{l.amount}</h3>
+                <p className="text-xs font-extrabold text-[#6A1B2E]">{l.beneficiary}</p>
+                <p className="text-[11px] font-semibold text-slate-500 mt-0.5">{l.bank}</p>
+              </div>
+              <div className="text-[10.5px] font-bold text-slate-400 pt-1 flex justify-between">
+                <span>Issued: {l.issueDate}</span>
+                <span>Expiry: {l.expiryDate}</span>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+              <button onClick={() => setSelectedLC(l)} className="text-xs font-bold text-[#6A1B2E] hover:underline">
+                View Full LC Terms
+              </button>
+              <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => showToastMsg(`Requested bank update for ${l.id}`)}>
+                Check Bank Status
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Issue Modal */}
+      <AnimatePresence>
+        {showIssueModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowIssueModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                <h3 className="text-sm font-black text-slate-900">Issue Irrevocable Letter of Credit</h3>
+                <button onClick={() => setShowIssueModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+              </div>
+              <form onSubmit={handleIssueLC} className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Beneficiary Corporate Party</label>
+                  <input type="text" required value={newLC.beneficiary} onChange={(e) => setNewLC({ ...newLC, beneficiary: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Guaranteed LC Amount (₹ INR)</label>
+                  <input type="text" required value={newLC.amount} onChange={(e) => setNewLC({ ...newLC, amount: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                </div>
+                <div className="pt-3 flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowIssueModal(false)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Submit to Issuing Bank</Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Drawer */}
+      <AnimatePresence>
+        {selectedLC && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900 z-40" onClick={() => setSelectedLC(null)} />
+            <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-md bg-white z-50 shadow-2xl p-6 overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+                <h3 className="text-sm font-black text-slate-900">Letter of Credit Document Inspector</h3>
+                <button onClick={() => setSelectedLC(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-4 h-4" /></button>
+              </div>
+
+              <div className="space-y-4 text-left">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
+                  <span className="text-[10px] font-black text-[#6A1B2E] uppercase">{selectedLC.id}</span>
+                  <h4 className="text-base font-black text-slate-900">{selectedLC.amount}</h4>
+                  <p className="text-xs font-semibold text-slate-500">Beneficiary: {selectedLC.beneficiary}</p>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-xl space-y-1">
+                  <span className="text-[10px] font-extrabold uppercase text-slate-400">Issuing Bank</span>
+                  <div className="text-xs font-black text-slate-900">{selectedLC.bank}</div>
+                </div>
+
+                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs font-extrabold text-emerald-800 flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                  Bank Guarantee Cleared under ICC Uniform Customs Rules (UCP 600)
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};

@@ -3,34 +3,48 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
-  CreditCard, Headphones, MessageSquare, BarChart3, UserCog,
-  Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Shield
+  CreditCard, Headphones, BarChart3, UserCog,
+  Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane
 } from 'lucide-react';
+
+import { Logo } from '../components/Logo';
+import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../hooks/useNotifications';
+import { getAllPaymentsAdmin } from '../lib/api/payments';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
-const menuItems = [
-  { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, badge: null },
-  { name: 'Students', path: '/admin/students', icon: Users, badge: '3' },
-  { name: 'Task Management', path: '/admin/tasks', icon: ClipboardList, badge: '8' },
-  { name: 'Applications', path: '/admin/applications', icon: FileCheck, badge: '5' },
-  { name: 'Documents Review', path: '/admin/documents', icon: FolderOpen, badge: '4' },
-  { name: 'Payments', path: '/admin/payments', icon: CreditCard, badge: null },
-  { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: '2' },
-  { name: 'Chat Support', path: '/admin/chat', icon: MessageSquare, badge: 'NEW' },
-  { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3, badge: null },
-  { name: 'Staff Management', path: '/admin/staff', icon: UserCog, badge: null },
-  { name: 'Notifications', path: '/admin/notifications', icon: Bell, badge: '3' },
-  { name: 'Settings', path: '/admin/settings', icon: Settings, badge: null },
+const baseMenuItems = [
+  { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, badge: null, hasUpdate: false },
+  { name: 'Students', path: '/admin/students', icon: Users, badge: null, hasUpdate: false },
+  { name: 'Universities', path: '/admin/universities', icon: Building2, badge: null, hasUpdate: false },
+  { name: 'Status Tracker', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
+  { name: 'Applications', path: '/admin/applications', icon: FileCheck, badge: null, hasUpdate: false },
+  { name: 'Documents Review', path: '/admin/documents', icon: FolderOpen, badge: null, hasUpdate: false },
+  { name: 'NAWA Legalization', path: '/admin/nawa', icon: FileCheck, badge: null, hasUpdate: false },
+  { name: 'Payments', path: '/admin/payments', icon: CreditCard, badge: null, hasUpdate: false },
+  { name: 'VFS Visa Tracker', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },
+  { name: 'Post Travel Management', path: '/admin/pre-departure', icon: Plane, badge: null, hasUpdate: false },
+  { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
+  { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },
+  { name: 'Staff Management', path: '/admin/staff', icon: UserCog, badge: null, hasUpdate: false },
+  { name: 'Meetings & Planner', path: '/admin/meetings', icon: Calendar, badge: null, hasUpdate: false },
+  { name: 'Notifications', path: '/admin/notifications', icon: Bell, badge: null, hasUpdate: false },
+  { name: 'Settings', path: '/admin/settings', icon: Settings, badge: null, hasUpdate: false },
 ];
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, profile, signOut } = useAuth();
+  const { notifications } = useNotifications();
+
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [pendingPaymentsCount, setPendingPaymentsCount] = useState<number>(0);
 
   useEffect(() => {
     const close = () => {
@@ -41,7 +55,64 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     return () => window.removeEventListener('click', close);
   }, []);
 
-  const active = menuItems.find(m => location.pathname === m.path)?.name || 'Dashboard';
+  useEffect(() => {
+    const checkPendingPayments = async () => {
+      try {
+        const allPays = await getAllPaymentsAdmin();
+        const pending = allPays.filter(p => p.status === 'Pending Verification' || p.status === 'Pending');
+        setPendingPaymentsCount(pending.length);
+      } catch (err) { }
+    };
+
+    checkPendingPayments();
+    window.addEventListener('ferex_payment_change', checkPendingPayments);
+    window.addEventListener('ferex_notification_change', checkPendingPayments);
+    return () => {
+      window.removeEventListener('ferex_payment_change', checkPendingPayments);
+      window.removeEventListener('ferex_notification_change', checkPendingPayments);
+    };
+  }, []);
+
+  const hasUnreadCategory = (categoryName: string) => {
+    return notifications.some(
+      (n: any) => !n.is_read && (
+        n.category?.toLowerCase().includes(categoryName.toLowerCase()) ||
+        n.title?.toLowerCase().includes(categoryName.toLowerCase()) ||
+        n.body?.toLowerCase().includes(categoryName.toLowerCase())
+      )
+    );
+  };
+
+  const hasUnreadDocs = hasUnreadCategory('Document') || hasUnreadCategory('Doc') || hasUnreadCategory('Vault');
+  const hasUnreadApps = hasUnreadCategory('Application') || hasUnreadCategory('App') || hasUnreadCategory('Admission');
+  const hasUnreadPayments = hasUnreadCategory('Payment') || hasUnreadCategory('Pay') || hasUnreadCategory('Installment') || hasUnreadCategory('Receipt') || pendingPaymentsCount > 0;
+  const hasUnreadVisa = hasUnreadCategory('Visa') || hasUnreadCategory('VFS') || hasUnreadCategory('Embassy');
+  const hasUnreadNawa = hasUnreadCategory('NAWA') || hasUnreadCategory('Legalization');
+
+  const active = baseMenuItems.find(m => location.pathname === m.path)?.name || 'Dashboard';
+  const adminName = profile?.full_name || 'System Admin';
+  const adminEmail = profile?.email || user?.email || 'admin@ferex.com';
+  const unreadNotifs = notifications.filter(n => !n.is_read);
+  const totalUnreadCount = unreadNotifs.length + pendingPaymentsCount;
+
+  const menuItems = baseMenuItems.map(item => {
+    if (item.path === '/admin/applications') return { ...item, badge: hasUnreadApps ? 'REVIEW' : null, hasUpdate: hasUnreadApps };
+    if (item.path === '/admin/documents') return { ...item, badge: hasUnreadDocs ? 'NEW DOC' : null, hasUpdate: hasUnreadDocs };
+    if (item.path === '/admin/payments') return { ...item, badge: hasUnreadPayments ? (pendingPaymentsCount > 0 ? `VERIFY (${pendingPaymentsCount})` : 'NEW PAYMENT') : null, hasUpdate: hasUnreadPayments };
+    if (item.path === '/admin/nawa') return { ...item, badge: hasUnreadNawa ? 'NAWA' : null, hasUpdate: hasUnreadNawa };
+    if (item.path === '/admin/visa-tracker') return { ...item, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa };
+    if (item.path === '/admin/notifications') return { ...item, badge: totalUnreadCount > 0 ? String(totalUnreadCount) : null, hasUpdate: totalUnreadCount > 0 };
+    return item;
+  });
+
+  const handleSignOut = async () => {
+    await signOut();
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {}
+    window.location.href = '/#/login';
+  };
 
   return (
     <div className="min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#6A1B2E]/10 selection:text-[#6A1B2E]">
@@ -59,20 +130,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       {/* Sidebar Panel */}
       <aside className={`fixed lg:sticky top-0 left-0 h-screen w-64 bg-white border-r border-slate-200/80 z-50 flex flex-col transition-transform duration-300 ease-out shadow-sm
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        
+
         {/* Logo Header */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100 shrink-0">
           <Link to="/admin/dashboard" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#6A1B2E] to-[#4A101E] flex items-center justify-center text-white shadow-md shadow-[#6A1B2E]/15 group-hover:scale-105 transition-transform">
-              <Shield className="w-4.5 h-4.5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <p className="text-xs font-extrabold text-slate-900 leading-none">Ferex Admin</p>
-                <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-[#6A1B2E]/10 text-[#6A1B2E] uppercase tracking-wider">PRO</span>
-              </div>
-              <p className="text-[9.5px] font-bold text-slate-400 mt-0.5">Education Console</p>
-            </div>
+            <Logo variant="compact" size="sm" subtitle="ADMIN" />
           </Link>
           <button onClick={() => setIsMobileOpen(false)} className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
             <X className="w-4 h-4" />
@@ -85,6 +147,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           {menuItems.map((item) => {
             const isActive = item.name === active;
             const Icon = item.icon;
+            const badgeValue = item.name === 'Notifications' && unreadNotifs.length > 0 ? String(unreadNotifs.length) : null;
+
             return (
               <Link
                 key={item.name}
@@ -96,16 +160,24 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
               >
                 <Icon className={`w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-[#6A1B2E]'}`} />
-                <span className="truncate flex-1">{item.name}</span>
-                
-                {item.badge && (
-                  <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-extrabold shrink-0 transition-colors
-                    ${isActive
+                <span className="truncate flex-1 flex items-center justify-between">
+                  <span>{item.name}</span>
+                  {item.hasUpdate && (
+                    <span className="relative flex h-2 w-2 ml-1 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                  )}
+                </span>
+
+                {(badgeValue || item.badge) && (
+                  <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-extrabold shrink-0 transition-colors ${isActive
                       ? 'bg-white/20 text-white'
-                      : item.badge === 'NEW'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-slate-100 text-slate-500'}`}>
-                    {item.badge}
+                      : item.badge === 'VERIFY' || item.badge === 'REVIEW'
+                        ? 'bg-amber-100 text-amber-800 border border-amber-300 font-black'
+                        : 'bg-red-50 text-red-700 border border-red-200'
+                    }`}>
+                    {badgeValue || item.badge}
                   </span>
                 )}
               </Link>
@@ -118,16 +190,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/60 shadow-xs">
             <div className="relative">
               <div className="w-8 h-8 rounded-lg bg-[#6A1B2E] flex items-center justify-center text-white text-xs font-black shadow-xs">
-                AD
+                {adminName[0]?.toUpperCase() || 'A'}
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-extrabold text-slate-900 truncate">System Admin</p>
-              <p className="text-[9.5px] font-semibold text-slate-400 truncate">admin@gmail.com</p>
+              <p className="text-xs font-extrabold text-slate-900 truncate">{adminName}</p>
+              <p className="text-[9.5px] font-semibold text-slate-400 truncate">{adminEmail}</p>
             </div>
             <button
-              onClick={() => navigate('/')}
+              onClick={handleSignOut}
               title="Sign Out"
               className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors shrink-0"
             >
@@ -139,10 +211,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
-        
+
         {/* Sticky Header */}
         <header className="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 flex items-center px-4 sm:px-6 gap-4 sticky top-0 z-30 shadow-xs">
-          
+
           <button onClick={() => setIsMobileOpen(true)} className="lg:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors">
             <Menu className="w-5 h-5" />
           </button>
@@ -157,7 +229,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </div>
 
           <div className="ml-auto flex items-center gap-2.5">
-            
+
             {/* Search Input */}
             <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
@@ -168,9 +240,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 placeholder="Search resources, students..."
                 className="h-9 w-60 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#6A1B2E]/40 focus:ring-4 focus:ring-[#6A1B2E]/5 transition-all"
               />
-              <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[9px] font-extrabold text-slate-400 bg-white border border-slate-200 rounded">
-                ⌘K
-              </kbd>
             </div>
 
             {/* Quick Notification Bell */}
@@ -184,7 +253,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 title="Notifications"
               >
                 <Bell className="w-4.5 h-4.5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white animate-pulse" />
+                {unreadNotifs.length > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white animate-pulse" />
+                )}
               </button>
 
               <AnimatePresence>
@@ -197,25 +268,27 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     className="absolute right-0 mt-2 w-80 bg-white border border-slate-200/80 rounded-2xl shadow-xl p-3 z-50"
                   >
                     <div className="flex items-center justify-between px-2 pb-2.5 border-b border-slate-100">
-                      <span className="text-xs font-extrabold text-slate-900">Notifications</span>
+                      <span className="text-xs font-extrabold text-slate-900">Notifications ({unreadNotifs.length})</span>
                       <button onClick={() => navigate('/admin/notifications')} className="text-[10px] font-bold text-[#6A1B2E] hover:underline">View All</button>
                     </div>
                     <div className="py-2 space-y-2 max-h-64 overflow-y-auto">
-                      {[
-                        { title: 'New Document Uploaded', desc: 'Ashly uploaded Passport', time: '5m ago', color: 'bg-blue-500' },
-                        { title: 'Application Approved', desc: 'TU Berlin accepted Rahul Mehta', time: '22m ago', color: 'bg-emerald-500' },
-                        { title: 'New Support Ticket', desc: 'Ticket #TK-006 from Amir Hassan', time: '1h ago', color: 'bg-red-500' },
-                      ].map((item, idx) => (
-                        <div key={idx} className="flex gap-2.5 p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
-                             onClick={() => navigate('/admin/notifications')}>
-                          <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${item.color}`} />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-slate-800 leading-tight">{item.title}</p>
-                            <p className="text-[10px] font-semibold text-slate-400 mt-0.5 truncate">{item.desc}</p>
-                            <span className="text-[9px] font-bold text-slate-400">{item.time}</span>
+                      {notifications.length === 0 ? (
+                        <p className="text-xs text-slate-400 font-bold py-4 text-center">No notifications available.</p>
+                      ) : (
+                        notifications.slice(0, 5).map((n) => (
+                          <div key={n.id} className="flex gap-2.5 p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+                            onClick={() => navigate('/admin/notifications')}>
+                            <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.is_read ? 'bg-slate-300' : 'bg-red-500'}`} />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-slate-800 leading-tight">{n.title}</p>
+                              <p className="text-[10px] font-semibold text-slate-400 mt-0.5 truncate">{n.body}</p>
+                              <span className="text-[9px] font-bold text-slate-400">
+                                {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -233,13 +306,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               >
                 <div className="relative">
                   <div className="w-6.5 h-6.5 rounded-lg bg-[#6A1B2E] flex items-center justify-center text-white text-[10px] font-black shadow-xs">
-                    AD
+                    {adminName[0]?.toUpperCase() || 'A'}
                   </div>
                   <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 border border-white rounded-full" />
                 </div>
                 <div className="hidden sm:block text-left min-w-0">
-                  <span className="block text-xs font-extrabold text-slate-800 leading-none">Admin</span>
-                  <span className="block text-[9px] font-semibold text-slate-400 mt-0.5">Super Admin</span>
+                  <span className="block text-xs font-extrabold text-slate-800 leading-none">{adminName}</span>
+                  <span className="block text-[9px] font-semibold text-slate-400 mt-0.5">Admin</span>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>
@@ -251,11 +324,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-52 bg-white border border-slate-200/80 rounded-2xl shadow-xl p-2 z-50"
+                    className="absolute right-0 mt-2 w-52 bg-white border border-slate-200/80 rounded-2xl shadow-xl p-2 z-50 text-left"
                   >
                     <div className="px-3 py-2 border-b border-slate-100">
-                      <p className="text-xs font-extrabold text-slate-900">System Admin</p>
-                      <p className="text-[10px] font-semibold text-slate-400 truncate">admin@gmail.com</p>
+                      <p className="text-xs font-extrabold text-slate-900">{adminName}</p>
+                      <p className="text-[10px] font-semibold text-slate-400 truncate">{adminEmail}</p>
                     </div>
                     <div className="py-1">
                       <button
@@ -273,7 +346,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     </div>
                     <div className="border-t border-slate-100 pt-1" />
                     <button
-                      onClick={() => navigate('/')}
+                      onClick={handleSignOut}
                       className="w-full text-left px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-2 transition-colors"
                     >
                       <LogOut className="w-4 h-4" /> Sign Out
@@ -300,4 +373,3 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     </div>
   );
 };
-

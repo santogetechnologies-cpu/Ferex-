@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Edit3, Save, X, CheckCircle2, Camera, Eye, Trash2, Upload, Download,
@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { updateStudent } from '../lib/api/students';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PersonalInfo {
@@ -116,8 +118,8 @@ const SelectGroup: React.FC<{
 const StatusBadge: React.FC<{ status: 'Verified' | 'Pending' | 'Missing' }> = ({ status }) => {
   const map = {
     Verified: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    Pending:  'bg-amber-50 text-amber-700 border-amber-100',
-    Missing:  'bg-red-50 text-red-600 border-red-100',
+    Pending: 'bg-amber-50 text-amber-700 border-amber-100',
+    Missing: 'bg-red-50 text-red-600 border-red-100',
   };
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${map[status]}`}>
@@ -137,58 +139,128 @@ const Toggle: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked,
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const MyProfile: React.FC = () => {
+  const { user, profile } = useAuth();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
-    return localStorage.getItem('ferex_student_profile_photo') || null;
+    const key = user?.id ? `ferex_student_profile_photo_${user.id}` : 'ferex_student_profile_photo';
+    return localStorage.getItem(key) || profile?.avatar_url || null;
   });
   const [toast, setToast] = useState('');
   const [activeTab, setActiveTab] = useState('Personal Information');
-  const [completionPct] = useState(78);
+  const [completionPct] = useState(85);
 
   // Editing states
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [editingEmergency, setEditingEmergency] = useState(false);
 
+  const fullNameParts = (profile?.full_name || '').split(' ');
+  const defaultFirstName = fullNameParts[0] || user?.email?.split('@')[0] || 'Student';
+  const defaultLastName = fullNameParts.slice(1).join(' ') || '';
+
   // Personal Information
   const [personal, setPersonal] = useState<PersonalInfo>({
-    firstName: 'Ashly',
-    lastName: '',
-    gender: 'Female',
-    dob: '2000-06-14',
-    nationality: 'Indian',
-    passportNo: 'PS-890412A',
-    phone: '+91 98765 43210',
-    email: 'student@gmail.com',
-    address: '24 Greenfield Avenue',
-    city: 'Kochi',
-    country: 'India',
-    postalCode: '682001',
+    firstName: defaultFirstName,
+    lastName: defaultLastName,
+    gender: (profile as any)?.gender || 'Not Specified',
+    dob: (profile as any)?.dob || '2000-01-01',
+    nationality: (profile as any)?.nationality || 'Indian',
+    passportNo: (profile as any)?.passport_no || '',
+    phone: (profile as any)?.phone || '',
+    email: user?.email || profile?.email || '',
+    address: (profile as any)?.address || '',
+    city: (profile as any)?.city || '',
+    country: (profile as any)?.country || '',
+    postalCode: (profile as any)?.postal_code || '',
   });
+
+  useEffect(() => {
+    const fetchDbProfile = async () => {
+      let searchId = user?.id || profile?.id;
+      let searchEmail = user?.email || profile?.email;
+
+      if (!searchId && !searchEmail) {
+        try {
+          const raw = localStorage.getItem('ferex_user');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed) {
+              searchId = parsed.id;
+              searchEmail = parsed.email;
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (!searchId && !searchEmail) return;
+
+      try {
+        let query = supabase.from('users').select('*');
+        if (searchId) {
+          query = query.eq('id', searchId);
+        } else if (searchEmail) {
+          query = query.ilike('email', searchEmail);
+        }
+
+        const { data: dbData } = await query.maybeSingle();
+        const activeData = dbData || profile;
+
+        if (activeData) {
+          const parts = (activeData.full_name || '').split(' ');
+          setPersonal({
+            firstName: parts[0] || activeData.email?.split('@')[0] || 'Student',
+            lastName: parts.slice(1).join(' ') || '',
+            email: activeData.email || user?.email || '',
+            phone: activeData.phone || activeData.mobile_number || (profile as any)?.phone || '',
+            passportNo: activeData.passport_no || (profile as any)?.passport_no || '',
+            address: activeData.address || (profile as any)?.address || '',
+            city: activeData.city || (profile as any)?.city || '',
+            country: activeData.country || (profile as any)?.country || '',
+            gender: activeData.gender || 'Not Specified',
+            dob: activeData.dob || '2000-01-01',
+            nationality: activeData.nationality || 'Indian',
+            postalCode: activeData.postal_code || '',
+          });
+        }
+      } catch (e) {}
+
+      const activeUserId = searchId || user?.id;
+      if (activeUserId) {
+        const photoKey = `ferex_student_profile_photo_${activeUserId}`;
+        const savedPhoto = localStorage.getItem(photoKey);
+        if (savedPhoto) setProfilePhoto(savedPhoto);
+      }
+    };
+
+    fetchDbProfile();
+    window.addEventListener('ferex_auth_change', fetchDbProfile);
+    return () => window.removeEventListener('ferex_auth_change', fetchDbProfile);
+  }, [profile, user]);
+
   const [tempPersonal, setTempPersonal] = useState<PersonalInfo>({ ...personal });
 
   // Education Details
   const [education] = useState<EducationInfo>({
-    studyCountry: 'Poland',
-    university: 'University of Warsaw',
-    course: 'M.Sc. in Computer Science',
-    intake: 'February 2026',
-    campus: 'Main Campus, Warsaw',
-    studentNumber: 'UW-CS-2026-1042',
-    applicationStatus: 'Offer Letter Received',
-    visaStatus: 'Visa Processing',
-    counselor: 'Education Team',
+    studyCountry: (profile as any)?.target_country || 'Poland',
+    university: (profile as any)?.target_university || 'University Applied For',
+    course: (profile as any)?.desired_program || 'Higher Studies',
+    intake: 'Feb 2026',
+    campus: 'Main Campus',
+    studentNumber: `STU-${user?.id?.slice(0, 6).toUpperCase() || '1001'}`,
+    applicationStatus: 'Under Review',
+    visaStatus: 'Active',
+    counselor: (profile as any)?.assigned_counselor || '--',
   });
 
   // Emergency Contact
   const [emergency, setEmergency] = useState<EmergencyInfo>({
-    guardianName: 'Jeshma',
-    relationship: 'Mother',
-    phone: '+91 98765 10000',
-    email: 'jeshma@gmail.com',
-    address: '24 Greenfield Avenue, Kochi, India',
+    guardianName: '',
+    relationship: 'Parent / Guardian',
+    phone: '',
+    email: '',
+    address: '',
   });
   const [tempEmergency, setTempEmergency] = useState<EmergencyInfo>({ ...emergency });
 
@@ -256,10 +328,23 @@ export const MyProfile: React.FC = () => {
     showToast('Profile photo removed.');
   };
 
-  const handleSavePersonal = (e: React.FormEvent) => {
+  const handleSavePersonal = async (e: React.FormEvent) => {
     e.preventDefault();
     setPersonal({ ...tempPersonal });
     setEditingPersonal(false);
+
+    if (user?.id) {
+      try {
+        await updateStudent(user.id, {
+          full_name: `${tempPersonal.firstName} ${tempPersonal.lastName}`.trim(),
+          phone: tempPersonal.phone,
+          passport_no: tempPersonal.passportNo,
+          city: tempPersonal.city,
+          country: tempPersonal.country,
+        } as any);
+      } catch (err) { }
+    }
+
     showToast('Personal information saved successfully!');
   };
 
@@ -428,7 +513,6 @@ export const MyProfile: React.FC = () => {
               <h2 className="text-xl font-extrabold text-slate-900">
                 {personal.firstName} {personal.lastName}
               </h2>
-              <span className="text-xl">🇮🇳</span>
             </div>
             <p className="text-sm font-semibold text-slate-500">{education.course} · {education.university}</p>
             <div className="flex items-center gap-2 flex-wrap mt-2">

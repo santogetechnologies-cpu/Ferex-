@@ -3,83 +3,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GraduationCap, Search, Plus, MapPin, Trash2, X, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { useUniversities } from '../../hooks/useUniversities';
 
 export const CentralEducation: React.FC = () => {
+  const { universities, loading, addUniversity, removeUniversity } = useUniversities();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [countryFilter, setCountryFilter] = useState('All');
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
 
-  const [partners, setPartners] = useState([
-    {
-      id: 1,
-      name: 'University of Warsaw',
-      location: 'Warsaw, Poland',
-      country: 'Poland',
-      ranking: 'QS Global Rank: #262',
-      programsCount: 14,
-      enrolledCount: 640,
-      annualFee: '€3,500',
-      status: 'Active Alliance',
-      flag: '🇵🇱'
-    },
-    {
-      id: 2,
-      name: 'Technical University of Berlin (TU Berlin)',
-      location: 'Berlin, Germany',
-      country: 'Germany',
-      ranking: 'QS Global Rank: #154',
-      programsCount: 18,
-      enrolledCount: 480,
-      annualFee: '€0 (Semester Fee €300)',
-      status: 'Active Alliance',
-      flag: '🇩🇪'
-    },
-    {
-      id: 3,
-      name: 'University of Amsterdam',
-      location: 'Amsterdam, Netherlands',
-      country: 'Netherlands',
-      ranking: 'QS Global Rank: #53',
-      programsCount: 12,
-      enrolledCount: 360,
-      annualFee: '€16,500',
-      status: 'Active Alliance',
-      flag: '🇳🇱'
-    },
-    {
-      id: 4,
-      name: 'Leiden University',
-      location: 'Leiden, Netherlands',
-      country: 'Netherlands',
-      ranking: 'QS Global Rank: #126',
-      programsCount: 9,
-      enrolledCount: 190,
-      annualFee: '€19,300',
-      status: 'Reviewing Quotas',
-      flag: '🇳🇱'
-    },
-    {
-      id: 5,
-      name: 'University of Gdansk',
-      location: 'Gdansk, Poland',
-      country: 'Poland',
-      ranking: 'QS Global Rank: #801',
-      programsCount: 8,
-      enrolledCount: 120,
-      annualFee: '€3,000',
-      status: 'Active Alliance',
-      flag: '🇵🇱'
-    }
-  ]);
-
   const [newUni, setNewUni] = useState({
     name: '',
-    location: '',
+    city: '',
     country: 'Poland',
-    ranking: 'QS Global Rank: #300',
-    programsCount: 10,
-    annualFee: '€4,000'
+    ranking: '150',
+    tuition: '€3,500 - €5,000 / yr'
   });
 
   const showToastMsg = (msg: string) => {
@@ -87,30 +26,40 @@ export const CentralEducation: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleAddPartner = (e: React.FormEvent) => {
+  const handleAddPartner = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUni.name || !newUni.location) return;
-    const flagMap: Record<string, string> = { Poland: '🇵🇱', Germany: '🇩🇪', Netherlands: '🇳🇱', UK: '🇬🇧' };
-    const created = {
-      id: Date.now(),
-      ...newUni,
-      enrolledCount: 0,
-      status: 'Active Alliance',
-      flag: flagMap[newUni.country] || '🇪🇺'
-    };
-    setPartners([created, ...partners]);
-    setShowAddModal(false);
-    showToastMsg(`Added ${newUni.name} to university alliances!`);
-    setNewUni({ name: '', location: '', country: 'Poland', ranking: 'QS Global Rank: #300', programsCount: 10, annualFee: '€4,000' });
+    if (!newUni.name.trim()) return;
+    try {
+      await addUniversity({
+        name: newUni.name.trim(),
+        city: newUni.city.trim() || 'Main Campus',
+        country: newUni.country,
+        ranking: parseInt(newUni.ranking) || 100,
+        tuition_range: newUni.tuition.trim() || '€3,500 / yr'
+      });
+      setShowAddModal(false);
+      showToastMsg(`Added ${newUni.name} to university alliances!`);
+      setNewUni({ name: '', city: '', country: 'Poland', ranking: '150', tuition: '€3,500 - €5,000 / yr' });
+    } catch (err: any) {
+      showToastMsg(`Error: ${err.message || 'Failed to add university'}`);
+    }
   };
 
-  const handleDeletePartner = (id: number) => {
-    setPartners(partners.filter(p => p.id !== id));
-    showToastMsg('Partner university removed from catalog');
+  const handleDeletePartner = async (id: string) => {
+    try {
+      await removeUniversity(id);
+      showToastMsg('Partner university removed from catalog');
+    } catch (err: any) {
+      showToastMsg(`Error: ${err.message || 'Failed to remove university'}`);
+    }
   };
 
-  const filteredPartners = partners.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.location.toLowerCase().includes(searchQuery.toLowerCase());
+  const flagMap: Record<string, string> = { Poland: '🇵🇱', Germany: '🇩🇪', Netherlands: '🇳🇱', UK: '🇬🇧', France: '🇫🇷', Italy: '🇮🇹', Spain: '🇪🇸' };
+
+  const filteredPartners = universities.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          p.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          p.country.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCountry = countryFilter === 'All' || p.country === countryFilter;
     return matchesSearch && matchesCountry;
   });
@@ -176,55 +125,65 @@ export const CentralEducation: React.FC = () => {
       </Card>
 
       {/* University Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPartners.map((uni) => (
-          <Card key={uni.id} className="p-5 border border-slate-200/70 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
-            <div>
-              <div className="flex items-start justify-between mb-3">
-                <span className="text-2xl">{uni.flag}</span>
-                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
-                  uni.status === 'Active Alliance' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-                }`}>
-                  {uni.status}
-                </span>
-              </div>
-              <h3 className="text-sm font-black text-slate-900 group-hover:text-[#6A1B2E] transition-colors">{uni.name}</h3>
-              <p className="text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-slate-400" /> {uni.location}
-              </p>
+      {loading ? (
+        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading alliance universities...</div>
+      ) : filteredPartners.length === 0 ? (
+        <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
+          <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-black text-slate-800">No Universities Cataloged</h3>
+          <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto">
+            No partner universities found matching criteria. Click "Add Partner University" to create a record.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredPartners.map((uni) => (
+            <Card key={uni.id} className="p-5 border border-slate-200/70 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
+              <div>
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-2xl">{flagMap[uni.country] || '🇪🇺'}</span>
+                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">
+                    Active Partner
+                  </span>
+                </div>
+                <h3 className="text-sm font-black text-slate-900 group-hover:text-[#6A1B2E] transition-colors">{uni.name}</h3>
+                <p className="text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" /> {uni.city ? `${uni.city}, ${uni.country}` : uni.country}
+                </p>
 
-              <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-left">
-                <div>
-                  <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Ranking</span>
-                  <span className="text-xs font-bold text-slate-800">{uni.ranking}</span>
-                </div>
-                <div>
-                  <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Enrolled</span>
-                  <span className="text-xs font-bold text-slate-800">{uni.enrolledCount} Students</span>
-                </div>
-                <div>
-                  <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Programs</span>
-                  <span className="text-xs font-bold text-slate-800">{uni.programsCount} Courses</span>
-                </div>
-                <div>
-                  <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Tuition</span>
-                  <span className="text-xs font-bold text-slate-800">{uni.annualFee}</span>
+                <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-left">
+                  <div>
+                    <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Global Rank</span>
+                    <span className="text-xs font-bold text-slate-800">#{uni.ranking || 100}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Rating</span>
+                    <span className="text-xs font-bold text-slate-800">⭐ {uni.rating || 4.8} / 5</span>
+                  </div>
+                  <div>
+                    <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Programs</span>
+                    <span className="text-xs font-bold text-slate-800">{uni.programs?.length || 1} Offered</span>
+                  </div>
+                  <div>
+                    <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Tuition</span>
+                    <span className="text-xs font-bold text-slate-800">{uni.tuition_range || '€3,500 / yr'}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-              <button
-                onClick={() => handleDeletePartner(uni.id)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                title="Remove partner"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </Card>
-        ))}
-      </div>
+              <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => handleDeletePartner(uni.id)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  title="Remove partner"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Add Partner Modal */}
       <AnimatePresence>
@@ -238,12 +197,12 @@ export const CentralEducation: React.FC = () => {
               </div>
               <form onSubmit={handleAddPartner} className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">University Name</label>
-                  <input type="text" required value={newUni.name} onChange={(e) => setNewUni({ ...newUni, name: e.target.value })} placeholder="e.g. University of Warsaw" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#6A1B2E]" />
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">University Name *</label>
+                  <input type="text" required value={newUni.name} onChange={(e) => setNewUni({ ...newUni, name: e.target.value })} placeholder="e.g. Technical University" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#6A1B2E]" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Location & City</label>
-                  <input type="text" required value={newUni.location} onChange={(e) => setNewUni({ ...newUni, location: e.target.value })} placeholder="e.g. Warsaw, Poland" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#6A1B2E]" />
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">City / Location</label>
+                  <input type="text" value={newUni.city} onChange={(e) => setNewUni({ ...newUni, city: e.target.value })} placeholder="e.g. Berlin" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#6A1B2E]" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -252,11 +211,15 @@ export const CentralEducation: React.FC = () => {
                       <option value="Poland">Poland</option>
                       <option value="Germany">Germany</option>
                       <option value="Netherlands">Netherlands</option>
+                      <option value="France">France</option>
+                      <option value="Italy">Italy</option>
+                      <option value="Spain">Spain</option>
+                      <option value="United Kingdom">United Kingdom</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Annual Fee</label>
-                    <input type="text" value={newUni.annualFee} onChange={(e) => setNewUni({ ...newUni, annualFee: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Tuition Fee</label>
+                    <input type="text" value={newUni.tuition} onChange={(e) => setNewUni({ ...newUni, tuition: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
                 <div className="pt-3 flex gap-2">
