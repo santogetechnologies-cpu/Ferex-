@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getDocuments, updateDocumentStatus, uploadDocument, reuploadDocumentRecord } from '../lib/api/documents';
+import { getDocumentsForStudent, getDocumentsForAdmin, updateDocumentStatus, uploadDocument, reuploadDocumentRecord } from '../lib/api/documents';
 import type { StudentDocument } from '../lib/types';
 
 export function useDocuments(studentId?: string) {
+  const cacheKey = studentId ? `ferex_student_documents_${studentId}` : 'ferex_student_documents';
+
   const [documents, setDocuments] = useState<StudentDocument[]>(() => {
     try {
-      const saved = localStorage.getItem('ferex_student_documents');
+      const saved = localStorage.getItem(cacheKey);
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
@@ -13,7 +15,7 @@ export function useDocuments(studentId?: string) {
   });
   const [loading, setLoading] = useState(() => {
     try {
-      const saved = localStorage.getItem('ferex_student_documents');
+      const saved = localStorage.getItem(cacheKey);
       return saved ? false : true;
     } catch (e) {
       return true;
@@ -25,22 +27,29 @@ export function useDocuments(studentId?: string) {
     try {
       setLoading(true);
       setError(null);
-      const data = await getDocuments(studentId);
+      
+      let data: StudentDocument[] = [];
+      if (studentId) {
+        data = await getDocumentsForStudent(studentId);
+      } else {
+        data = await getDocumentsForAdmin();
+      }
+
       setDocuments(data || []);
-      localStorage.setItem('ferex_student_documents', JSON.stringify(data || []));
+      try { localStorage.setItem(cacheKey, JSON.stringify(data || [])); } catch {}
     } catch (err: any) {
       setError(err.message || 'Failed to load documents');
     } finally {
       setLoading(false);
     }
-  }, [studentId]);
+  }, [studentId, cacheKey]);
 
   useEffect(() => {
     fetchDocs();
 
     const handleStorageChange = () => {
       try {
-        const saved = localStorage.getItem('ferex_student_documents');
+        const saved = localStorage.getItem(cacheKey);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) setDocuments(parsed);
@@ -54,7 +63,7 @@ export function useDocuments(studentId?: string) {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('ferex_document_change', handleStorageChange);
     };
-  }, [fetchDocs]);
+  }, [fetchDocs, cacheKey]);
 
   const changeStatus = async (
     id: string,

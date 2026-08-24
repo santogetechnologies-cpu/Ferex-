@@ -21,7 +21,7 @@ interface MessageUI {
 }
 
 export const Chat: React.FC = () => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [conversations, setConversations] = useState<ConversationUI[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageUI[]>([]);
@@ -65,6 +65,71 @@ export const Chat: React.FC = () => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const handleStartChat = async () => {
+    if (!user) return;
+    try {
+      const { getStaffMembers } = await import('../lib/api/students');
+      const staffList = await getStaffMembers();
+      const advisor = staffList.find(u => u.role === 'Staff' || u.role === 'Counselor') || staffList[0];
+      if (!advisor) {
+        alert('No counselors found in database to start chat.');
+        return;
+      }
+
+      const { supabase } = await import('../lib/supabase');
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select('*')
+        .contains('participant_ids', [user.id, advisor.id]);
+
+      if (existing && existing.length > 0) {
+        setActiveId(existing[0].id);
+        getConversations(user.id).then(list => {
+          const mapped = list.map(c => ({
+            id: c.id,
+            name: c.name || 'Admissions Counselor',
+            role: 'Education Support Advisor',
+            avatar: c.name?.[0]?.toUpperCase() || 'A',
+            online: true,
+            lastMsg: c.last_message || 'No messages yet',
+            time: new Date(c.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }));
+          setConversations(mapped);
+        });
+        return;
+      }
+
+      const { data: created, error } = await supabase
+        .from('conversations')
+        .insert({
+          participant_ids: [user.id, advisor.id],
+          name: advisor.full_name || 'Academic Counselor',
+          last_message: 'Conversation started',
+          last_message_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const list = await getConversations(user.id);
+      const mapped = list.map(c => ({
+        id: c.id,
+        name: c.name || 'Admissions Counselor',
+        role: 'Education Support Advisor',
+        avatar: c.name?.[0]?.toUpperCase() || 'A',
+        online: true,
+        lastMsg: c.last_message || 'No messages yet',
+        time: new Date(c.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }));
+      setConversations(mapped);
+      setActiveId(created.id);
+
+    } catch (err: any) {
+      alert(`Failed to start chat: ${err.message || 'Error'}`);
+    }
+  };
+
   const active = conversations.find(c => c.id === activeId);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -100,7 +165,18 @@ export const Chat: React.FC = () => {
       {/* Sidebar: Thread List */}
       <div className="w-80 border-r border-slate-100 flex flex-col shrink-0">
         <div className="p-4 border-b border-slate-100">
-          <h2 className="text-sm font-black text-slate-900 mb-3">Support & Advisory Chat</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-black text-slate-900">Support & Advisory Chat</h2>
+            {filtered.length > 0 && (
+              <button
+                onClick={handleStartChat}
+                title="Start a new advisor thread"
+                className="text-[10px] font-black text-[#6A1B2E] hover:text-[#521221]"
+              >
+                + New Chat
+              </button>
+            )}
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
@@ -112,10 +188,18 @@ export const Chat: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 flex flex-col">
           {filtered.length === 0 ? (
-            <div className="p-6 text-center text-xs font-bold text-slate-400">
-              No active chat threads.
+            <div className="text-center p-6 space-y-3.5 flex-1 flex flex-col justify-center items-center">
+              <p className="text-xs font-bold text-slate-400">
+                No active chat threads.
+              </p>
+              <button
+                onClick={handleStartChat}
+                className="px-4 py-2 bg-[#6A1B2E] text-white rounded-xl text-xs font-black hover:bg-[#521221] transition-all shadow-xs"
+              >
+                💬 Start Chat with Advisor
+              </button>
             </div>
           ) : (
             filtered.map(c => (

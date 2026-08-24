@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, CheckCircle2, XCircle, X, RefreshCw, Sparkles, FileText, MessageSquare, AlertCircle } from 'lucide-react';
+import { Search, Eye, CheckCircle2, XCircle, X, RefreshCw, Sparkles, FileText, MessageSquare, AlertCircle, Clock } from 'lucide-react';
 import { useDocuments } from '../../hooks/useDocuments';
+import { createNawaRecord } from '../../lib/api/nawa';
 
-type DocStatus = 'Pending Verification' | 'Approved' | 'Rejected' | 'Re-upload Requested';
+type DocStatus = 'Submitted' | 'Under Review' | 'Approved' | 'Rejected';
 
 interface DocItem {
   id: string;
@@ -19,21 +20,21 @@ interface DocItem {
 }
 
 const STATUS_COLORS: Record<DocStatus, string> = {
-  'Pending Verification': 'bg-amber-50 text-amber-700 border-amber-200',
+  'Submitted': 'bg-blue-50 text-blue-700 border-blue-200 font-bold',
+  'Under Review': 'bg-amber-50 text-amber-700 border-amber-200 font-extrabold animate-pulse',
   'Approved': 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold',
-  'Rejected': 'bg-red-50 text-red-700 border-red-200',
-  'Re-upload Requested': 'bg-blue-50 text-blue-700 border-blue-200 font-bold',
+  'Rejected': 'bg-red-50 text-red-700 border-red-200 font-bold',
 };
 
 const normalizeDocStatus = (rawStatus: string, rawNotes?: string): DocStatus => {
   const s = (rawStatus || '').toLowerCase();
   const n = (rawNotes || '').toLowerCase();
   if (s.includes('verified') || s.includes('approved')) return 'Approved';
-  if (s.includes('re-upload') || s.includes('reupload') || s.includes('request') || n.includes('re-upload') || n.includes('reupload')) {
-    return 'Re-upload Requested';
+  if (s.includes('under review') || s.includes('underreview')) return 'Under Review';
+  if (s.includes('reject') || s.includes('re-upload') || s.includes('reupload') || s.includes('request') || n.includes('re-upload') || n.includes('reupload')) {
+    return 'Rejected';
   }
-  if (s.includes('reject')) return 'Rejected';
-  return 'Pending Verification';
+  return 'Submitted';
 };
 
 export const AdminDocumentReview: React.FC = () => {
@@ -78,8 +79,8 @@ export const AdminDocumentReview: React.FC = () => {
   };
 
   const updateStatus = async (id: string, newStatus: DocStatus, notes?: string) => {
-    // If requesting re-upload, ensure modal note popup is triggered
-    if (newStatus === 'Re-upload Requested' && !notes) {
+    // If rejecting, ensure modal note popup is triggered
+    if (newStatus === 'Rejected' && !notes) {
       const targetDoc = docs.find(d => d.id === id);
       if (targetDoc) {
         triggerReuploadModal(targetDoc);
@@ -93,7 +94,25 @@ export const AdminDocumentReview: React.FC = () => {
       if (viewDoc?.id === id) {
         setViewDoc(prev => prev ? { ...prev, status: newStatus, comment: notes ?? prev.comment } : null);
       }
-      showToast(`Document status updated to "${newStatus}" in Supabase.`);
+
+      // If document is approved, automatically initiate NAWA process & student application in Supabase
+      if (newStatus === 'Approved') {
+        const targetDoc = docs.find(d => d.id === id);
+        if (targetDoc && targetDoc.studentId) {
+          try {
+            await createNawaRecord({
+              student_id: targetDoc.studentId,
+              student_name: targetDoc.studentName,
+              document_type: targetDoc.category || targetDoc.docType,
+              notes: 'Mandatory documents verified. NAWA legalization & admission initiation started.'
+            });
+            showToast(`🎉 Document approved & NAWA legalization + student application initiated!`);
+            return;
+          } catch (e) {}
+        }
+      }
+
+      showToast(`Document status updated to "${newStatus}".`);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to update status'}`);
     }
@@ -110,15 +129,15 @@ export const AdminDocumentReview: React.FC = () => {
     try {
       setIsSubmittingReupload(true);
       const notes = reuploadNotesInput.trim();
-      await changeStatus(reuploadModalDoc.id, 'Re-upload Requested' as any, notes);
-      setDocs(prev => prev.map(d => d.id === reuploadModalDoc.id ? { ...d, status: 'Re-upload Requested', comment: notes } : d));
+      await changeStatus(reuploadModalDoc.id, 'Rejected' as any, notes);
+      setDocs(prev => prev.map(d => d.id === reuploadModalDoc.id ? { ...d, status: 'Rejected', comment: notes } : d));
       if (viewDoc?.id === reuploadModalDoc.id) {
-        setViewDoc(prev => prev ? { ...prev, status: 'Re-upload Requested', comment: notes } : null);
+        setViewDoc(prev => prev ? { ...prev, status: 'Rejected', comment: notes } : null);
       }
       setReuploadModalDoc(null);
-      showToast(`🎉 Re-upload request with notes sent to student!`);
+      showToast(`🎉 Re-upload/rejection request with notes sent to student!`);
     } catch (err: any) {
-      showToast(`Error: ${err.message || 'Failed to send re-upload request'}`);
+      showToast(`Error: ${err.message || 'Failed to send rejection'}`);
     } finally {
       setIsSubmittingReupload(false);
     }
@@ -129,7 +148,7 @@ export const AdminDocumentReview: React.FC = () => {
     (d.studentName.toLowerCase().includes(search.toLowerCase()) || d.docType.toLowerCase().includes(search.toLowerCase()) || d.category.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const statusCounts = ['All', 'Pending Verification', 'Approved', 'Rejected', 'Re-upload Requested'].map(s => ({
+  const statusCounts = ['All', 'Submitted', 'Under Review', 'Approved', 'Rejected'].map(s => ({
     label: s, count: s === 'All' ? docs.length : docs.filter(d => d.status === s).length
   }));
 
@@ -214,7 +233,7 @@ export const AdminDocumentReview: React.FC = () => {
                     value={d.status}
                     onChange={(e) => {
                       const newStatus = e.target.value as DocStatus;
-                      if (newStatus === 'Re-upload Requested') {
+                      if (newStatus === 'Rejected') {
                         triggerReuploadModal(d);
                       } else {
                         updateStatus(d.id, newStatus);
@@ -222,10 +241,10 @@ export const AdminDocumentReview: React.FC = () => {
                     }}
                     className={`h-8 px-2.5 rounded-lg text-[11px] font-bold border focus:outline-none cursor-pointer ${STATUS_COLORS[d.status]}`}
                   >
-                    <option value="Pending Verification">Pending Verification</option>
+                    <option value="Submitted">Submitted</option>
+                    <option value="Under Review">Under Review</option>
                     <option value="Approved">Approved</option>
-                    <option value="Rejected">Rejected</option>
-                    <option value="Re-upload Requested">Re-upload Requested (Add Note)</option>
+                    <option value="Rejected">Rejected (Request Re-upload)</option>
                   </select>
                 </td>
 
@@ -235,9 +254,16 @@ export const AdminDocumentReview: React.FC = () => {
                     <button
                       onClick={() => setViewDoc(d)}
                       title="Preview Document & Notes"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-650 hover:bg-blue-50 transition-all"
                     >
                       <Eye className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => updateStatus(d.id, 'Under Review')}
+                      title="Mark Under Review"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all"
+                    >
+                      <Clock className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => updateStatus(d.id, 'Approved')}
@@ -247,11 +273,11 @@ export const AdminDocumentReview: React.FC = () => {
                       <CheckCircle2 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => triggerReuploadModal(d)}
-                      title="Request Re-upload with Admin Notes"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-all flex items-center gap-1 text-[10px] font-bold text-blue-700"
+                      onClick={() => updateStatus(d.id, 'Rejected')}
+                      title="Reject & Request Re-upload"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
                     >
-                      <RefreshCw className="w-3.5 h-3.5" /> Request Re-upload
+                      <XCircle className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </td>

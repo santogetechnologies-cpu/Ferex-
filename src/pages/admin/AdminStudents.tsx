@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Eye, Edit3, Trash2, X, Save, CheckCircle2, ChevronLeft, ChevronRight, GraduationCap } from 'lucide-react';
+import { Search, Plus, Eye, Edit3, Trash2, X, Save, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
+import { getStaffMembers } from '../../lib/api/students';
+import type { UserProfile } from '../../lib/types';
 
 interface StudentItem {
   id: string;
@@ -24,6 +26,11 @@ export const AdminStudents: React.FC = () => {
   const { students: dbStudents, addStudent, removeStudent, editStudent: updateDbStudent } = useStudents();
   const { applications: dbApps } = useApplications();
   const [students, setStudents] = useState<StudentItem[]>([]);
+  const [staffMembers, setStaffMembers] = useState<UserProfile[]>([]);
+
+  useEffect(() => {
+    getStaffMembers().then(setStaffMembers).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const mapped = dbStudents.map((s) => {
@@ -34,12 +41,12 @@ export const AdminStudents: React.FC = () => {
         email: s.email,
         phone: s.phone || '—',
         country: 'India',
-        university: studentApp?.university_name || 'Partner University',
+        university: (studentApp?.university_name && studentApp.university_name !== 'Pending University Selection') ? studentApp.university_name : (studentApp?.universities?.name || 'University Applied For'),
         course: studentApp?.program_name || studentApp?.course || 'Higher Studies',
         intake: studentApp?.intake || 'Oct 2026',
         status: studentApp?.status || 'Active',
         statusColor: studentApp?.status === 'Offer Issued' ? 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100',
-        counselor: 'Education Team',
+        counselor: s.assigned_counselor || 'Admin',
         joined: new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         appStatus: studentApp?.status || 'Submitted',
       };
@@ -53,6 +60,87 @@ export const AdminStudents: React.FC = () => {
   const [editStudent, setEditStudent] = useState<StudentItem | null>(null);
   const [editTemp, setEditTemp] = useState<StudentItem | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const [studentStages, setStudentStages] = useState<any[]>([]);
+  const [loadingStages, setLoadingStages] = useState(false);
+
+  useEffect(() => {
+    const loadStages = async () => {
+      if (!viewStudent?.id) return;
+      try {
+        setLoadingStages(true);
+        const { supabase } = await import('../../lib/supabase');
+
+        const { data: existing } = await supabase
+          .from('journey_stages')
+          .select('*')
+          .eq('student_id', viewStudent.id)
+          .order('stage_number', { ascending: true });
+
+        const REQUIRED_STAGES = [
+          { stage_number: 1, stage_name: 'Application Submitted', status: 'In Progress', notes: 'Initial submission of visa & university application files.' },
+          { stage_number: 2, stage_name: 'NAWA Process',          status: 'Pending',     notes: 'Verification of eligibility and NAWA apostille/legalization audit.' },
+          { stage_number: 3, stage_name: 'Decision',              status: 'Pending',     notes: 'University admissions and visa officer eligibility decision.' },
+          { stage_number: 4, stage_name: 'Visa Outcome',          status: 'Pending',     notes: 'Passport stamping and visa grant status.' },
+        ];
+
+        const existingNums = new Set((existing || []).map((s: any) => s.stage_number));
+        const missing = REQUIRED_STAGES.filter(r => !existingNums.has(r.stage_number));
+        if (missing.length > 0) {
+          const toInsert = missing.map(m => ({ ...m, student_id: viewStudent.id }));
+          await supabase.from('journey_stages').insert(toInsert);
+        }
+
+        const { data: final } = await supabase
+          .from('journey_stages')
+          .select('*')
+          .eq('student_id', viewStudent.id)
+          .order('stage_number', { ascending: true });
+
+        setStudentStages((final || []) as any[]);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingStages(false);
+      }
+    };
+    loadStages();
+  }, [viewStudent]);
+
+  const handleConfirmStage = async (stage: any) => {
+    if (!viewStudent?.id) return;
+    try {
+      const { updateJourneyStageStatus } = await import('../../lib/api/journey');
+      const { createNotification } = await import('../../lib/api/notifications');
+
+      // 1. Mark current stage as Completed
+      await updateJourneyStageStatus(stage.id, 'Completed');
+
+      // 2. Find and advance the next stage (stage_number = stage.stage_number + 1)
+      const nextStage = studentStages.find(s => s.stage_number === stage.stage_number + 1);
+      if (nextStage) {
+        await updateJourneyStageStatus(nextStage.id, 'In Progress');
+      }
+
+      // 3. Automatically notify the student (writes to Supabase & triggers mock email toast)
+      await createNotification({
+        user_id: viewStudent.id,
+        title: `Stage Completed: ${stage.stage_name}`,
+        body: `Your visa/application stage "${stage.stage_name}" has been successfully reviewed and confirmed completed. Next stage "${nextStage ? nextStage.stage_name : 'Arrival Preparation'}" is now In Progress.`,
+        category: 'Journey'
+      });
+
+      // Refresh local stages
+      const { getJourneyStages } = await import('../../lib/api/journey');
+      const list = await getJourneyStages(viewStudent.id);
+      setStudentStages(list);
+
+      showToast(`🎉 Journey step "${stage.stage_name}" confirmed! Student notified via email.`);
+    } catch (err: any) {
+      showToast(`Error: ${err.message || 'Failed to confirm journey stage'}`);
+    }
+  };
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,6 +153,7 @@ export const AdminStudents: React.FC = () => {
   const [addCountry, setAddCountry] = useState('India');
   const [addUniversity, setAddUniversity] = useState('Warsaw University of Technology');
   const [addCourse, setAddCourse] = useState('B.Sc Computer Science');
+  const [addCounselor, setAddCounselor] = useState('Admin');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const showToast = (msg: string) => {
@@ -82,6 +171,7 @@ export const AdminStudents: React.FC = () => {
         full_name: addName.trim(),
         email: addEmail.trim(),
         phone: addPhone.trim(),
+        assigned_counselor: addCounselor,
       });
 
       // Optimistically add to UI list immediately
@@ -96,7 +186,7 @@ export const AdminStudents: React.FC = () => {
         intake: '2026',
         status: 'Active',
         statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-        counselor: 'Education Team',
+        counselor: addCounselor,
         joined: 'Just now',
         appStatus: 'Active',
       };
@@ -119,7 +209,11 @@ export const AdminStudents: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!editTemp) return;
     try {
-      await updateDbStudent(editTemp.id, { full_name: editTemp.name, phone: editTemp.phone });
+      await updateDbStudent(editTemp.id, {
+        full_name: editTemp.name,
+        phone: editTemp.phone,
+        assigned_counselor: editTemp.counselor,
+      });
       setStudents(prev => prev.map(s => s.id === editTemp.id ? editTemp : s));
       setEditStudent(null);
       setEditTemp(null);
@@ -288,8 +382,64 @@ export const AdminStudents: React.FC = () => {
                 </div>
 
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Assigned Counselor</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Assigned Counselor</span>
+                    <button
+                      onClick={() => {
+                        const sToEdit = viewStudent;
+                        setViewStudent(null);
+                        setEditStudent(sToEdit);
+                        setEditTemp({ ...sToEdit });
+                      }}
+                      className="text-[10px] font-extrabold text-[#6A1B2E] hover:underline"
+                    >
+                      Change Counselor
+                    </button>
+                  </div>
                   <p className="text-slate-900 font-extrabold">{viewStudent.counselor}</p>
+                </div>
+
+                {/* Stepper with Confirm buttons */}
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Official Visa & Application Progress</span>
+                  {loadingStages ? (
+                    <p className="text-xs text-slate-400 font-bold">Syncing stages...</p>
+                  ) : studentStages.length === 0 ? (
+                    <p className="text-xs text-slate-400 font-bold">No stages active. Seeded automatically when student visits Journey Tracker page.</p>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {studentStages.map(stage => {
+                        const isCompleted = stage.status === 'Completed';
+                        const isInProgress = stage.status === 'In Progress';
+                        return (
+                          <div key={stage.id} className="flex items-center justify-between gap-3 p-2.5 bg-white rounded-xl border border-slate-200/60 shadow-3xs">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className="text-[8.5px] font-black text-slate-400">STAGE 0{stage.stage_number}</span>
+                                <span className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase ${
+                                  isCompleted ? 'bg-emerald-50 text-emerald-700 border border-emerald-150' :
+                                  isInProgress ? 'bg-amber-50 text-amber-700 border border-amber-150 animate-pulse' :
+                                  'bg-slate-100 text-slate-500'
+                                }`}>
+                                  {stage.status}
+                                </span>
+                              </div>
+                              <p className="text-[10.5px] font-black text-slate-800 truncate">{stage.stage_name}</p>
+                            </div>
+
+                            {isInProgress && (
+                              <button
+                                onClick={() => handleConfirmStage(stage)}
+                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[9px] font-black shadow-3xs transition-all flex items-center gap-1 shrink-0"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Confirm Step
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -316,6 +466,20 @@ export const AdminStudents: React.FC = () => {
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Phone</label>
                   <input type="text" value={editTemp.phone} onChange={(e) => setEditTemp({ ...editTemp, phone: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Assigned Counselor (From Company Staff List) *</label>
+                  <select
+                    value={editTemp.counselor}
+                    onChange={(e) => setEditTemp({ ...editTemp, counselor: e.target.value })}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
+                  >
+                    {staffMembers.map(s => {
+                      const label = `${s.full_name || s.email} (${s.department?.split(':')[1] || s.role})`;
+                      const val = `${s.full_name || s.email} (${s.department?.split(':')[1] || 'Senior Counselor'})`;
+                      return <option key={s.id} value={val}>{label}</option>;
+                    })}
+                  </select>
                 </div>
               </div>
 
@@ -435,6 +599,22 @@ export const AdminStudents: React.FC = () => {
                     onChange={(e) => setAddCourse(e.target.value)}
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Assigned Counselor *</label>
+                  <select
+                    value={addCounselor}
+                    onChange={(e) => setAddCounselor(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                  >
+                    <option value="Admin">Admin (System Default)</option>
+                    {staffMembers.map(s => {
+                      const nameStr = s.full_name || s.email;
+                      const label = `${nameStr} (${s.role || 'Staff'})`;
+                      return <option key={s.id} value={nameStr}>{label}</option>;
+                    })}
+                  </select>
                 </div>
 
                 <div className="flex gap-3 pt-3">

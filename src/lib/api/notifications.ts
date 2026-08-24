@@ -54,3 +54,29 @@ export async function createNotification(payload: {
   if (error) throw error;
   return data[0] as Notification;
 }
+
+export async function deleteNotification(id: string) {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', id);
+
+    if (error) console.warn('[deleteNotification Notice]:', error.message);
+  } catch (err) {}
+  return true;
+}
+
+export async function clearAllNotifications(userId?: string) {
+  try {
+    let query = supabase.from('notifications').delete();
+    if (userId) {
+      query = query.eq('user_id', userId);
+    } else {
+      query = query.neq('id', '00000000-0000-0000-0000-000000000000');
+    }
+    const { error } = await query;
+    if (error) console.warn('[clearAllNotifications Notice]:', error.message);
+  } catch (err) {}
+  return true;
+}

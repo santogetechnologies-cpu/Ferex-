@@ -1,14 +1,28 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, Search, Upload, Eye, FileText, CheckCircle2, X, MessageSquare } from 'lucide-react';
+import { Folder, Search, Upload, Eye, FileText, X, MessageSquare, AlertCircle } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { useDocuments } from '../hooks/useDocuments';
+import { ensureStudentApplication } from '../lib/api/applications';
 
 export const Documents: React.FC = () => {
   const { user } = useAuth();
-  const { documents: dbDocs, loading, addDoc, replaceDoc } = useDocuments(user?.id);
+
+  const activeStudentId = (() => {
+    if (user?.id) return user.id;
+    try {
+      const raw = localStorage.getItem('ferex_user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.id) return parsed.id;
+      }
+    } catch (e) {}
+    return 'STUDENT_PENDING_AUTH';
+  })();
+
+  const { documents: dbDocs, loading, addDoc, replaceDoc } = useDocuments(activeStudentId);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Map DB docs or fall back to empty list if none
@@ -41,18 +55,16 @@ export const Documents: React.FC = () => {
       doc.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.status.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const isDocVerified = (doc.status as string) === 'Verified' || (doc.status as string) === 'Approved';
-    const isDocPending = (doc.status as string) === 'Pending Verification' || (doc.status as string) === 'Pending';
-    const isDocReupload = (doc.status as string) === 'Re-upload Requested';
-    const isDocRejected = (doc.status as string) === 'Rejected';
+    // Normalize backward compatible statuses
+    const normStatus = 
+      (doc.status as string) === 'Pending Verification' || (doc.status as string) === 'Pending' ? 'Submitted' :
+      (doc.status as string) === 'Re-upload Requested' ? 'Rejected' :
+      (doc.status as string) === 'Verified' ? 'Approved' :
+      doc.status;
 
     const matchesStatus =
       statusFilter === 'All' ||
-      (statusFilter === 'Approved' && isDocVerified) ||
-      (statusFilter === 'Verified' && isDocVerified) ||
-      (statusFilter === 'Pending Verification' && isDocPending) ||
-      (statusFilter === 'Re-upload Requested' && isDocReupload) ||
-      (statusFilter === 'Rejected' && isDocRejected);
+      statusFilter === normStatus;
 
     return matchesSearch && matchesStatus;
   });
@@ -69,11 +81,30 @@ export const Documents: React.FC = () => {
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadName || !user) return;
+    if (!user) return;
+    if (!selectedFile && !reuploadTargetDocId) {
+      showToast('Please click "Choose File" and select a document to upload.');
+      return;
+    }
 
-    const baseName = uploadName.endsWith('.pdf') ? uploadName : `${uploadName}.pdf`;
+    const nameToUse = uploadName.trim() || selectedFile?.name || 'Document.pdf';
+    const baseName = nameToUse.includes('.') ? nameToUse : `${nameToUse}.pdf`;
     const fileSizeStr = selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '1.4 MB';
-    const fileUrlStr = selectedFile ? URL.createObjectURL(selectedFile) : 'https://placeholder.supabase.co/' + baseName;
+
+    // Convert selected file to persistent Data URL so file content is stored and viewable
+    let fileUrlStr = 'https://placeholder.supabase.co/' + baseName;
+    if (selectedFile) {
+      try {
+        fileUrlStr = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(selectedFile);
+        });
+      } catch (e) {
+        fileUrlStr = URL.createObjectURL(selectedFile);
+      }
+    }
 
     try {
       setIsSubmitting(true);
@@ -93,6 +124,9 @@ export const Documents: React.FC = () => {
           file_size: fileSizeStr,
           doc_type: uploadType,
         });
+        // Auto-enroll student into NAWA Review application so admin can track the process
+        const studentName = (user as any)?.user_metadata?.full_name || user.email?.split('@')[0] || 'Student';
+        await ensureStudentApplication(user.id, studentName);
         showToast(`Document "${baseName}" submitted successfully for verification!`);
       }
 
@@ -169,7 +203,7 @@ export const Documents: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
-          {['All', 'Pending Verification', 'Approved', 'Re-upload Requested', 'Rejected'].map(s => (
+          {['All', 'Submitted', 'Under Review', 'Approved', 'Rejected'].map(s => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -205,33 +239,22 @@ export const Documents: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDocs.map((doc) => {
-            const statusStr = String(doc.status || '').toLowerCase().trim();
-            const notesStr = String(doc.reviewerNotes || '').toLowerCase().trim();
+            // Map status directly
+            const displayStatus = 
+              (doc.status as string) === 'Pending Verification' || (doc.status as string) === 'Pending' ? 'Submitted' :
+              (doc.status as string) === 'Re-upload Requested' ? 'Rejected' :
+              (doc.status as string) === 'Verified' ? 'Approved' :
+              (doc.status as string) === 'Under Review' ? 'Under Review' :
+              doc.status || 'Submitted';
 
-            const isReupload = statusStr.includes('re-upload') || statusStr.includes('reupload') || statusStr.includes('request') || notesStr.includes('re-upload') || notesStr.includes('reupload');
-            const isVerified = statusStr === 'verified' || statusStr === 'approved';
-            const isRejected = !isReupload && statusStr.includes('reject');
-            const isPending = !isReupload && !isVerified && !isRejected;
+            const badgeClass = 
+              displayStatus === 'Approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' :
+              displayStatus === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200 font-bold' :
+              displayStatus === 'Under Review' ? 'bg-amber-50 text-amber-700 border-amber-200 font-extrabold animate-pulse' :
+              displayStatus === 'Submitted' ? 'bg-blue-50 text-blue-700 border-blue-200 font-bold' :
+              'bg-slate-50 text-slate-700 border-slate-200';
 
-            const displayStatus = isVerified
-              ? 'Approved'
-              : isReupload
-              ? 'Re-upload Requested'
-              : isPending
-              ? 'Pending Verification'
-              : isRejected
-              ? 'Rejected'
-              : doc.status;
-
-            const badgeClass = isVerified
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-              : isReupload
-              ? 'bg-blue-50 text-blue-700 border-blue-200 font-bold'
-              : isPending
-              ? 'bg-amber-50 text-amber-700 border-amber-200'
-              : isRejected
-              ? 'bg-red-50 text-red-700 border-red-200'
-              : 'bg-slate-50 text-slate-700 border-slate-200';
+            const isReupload = displayStatus === 'Rejected';
 
             return (
               <Card key={doc.id} className="p-5 border border-slate-200/80 hover:border-slate-300 transition-all flex flex-col justify-between bg-white relative">
@@ -255,12 +278,15 @@ export const Documents: React.FC = () => {
                     <div className="flex justify-between"><span>Uploaded:</span><span className="font-bold text-slate-800">{doc.date}</span></div>
                   </div>
 
-                  {doc.reviewerNotes && (
-                    <div className="mt-3 p-3 bg-blue-50/80 border border-blue-200/80 rounded-xl text-left">
-                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-blue-800 flex items-center gap-1 mb-1">
-                        <MessageSquare className="w-3.5 h-3.5 text-blue-700" /> Admin Feedback Notes
+                  {(doc.reviewerNotes || (doc as any).rejection_reason || (doc as any).notes || (doc as any).comment) && (
+                    <div className="mt-3 p-3 bg-red-50/90 border border-red-200/90 rounded-xl text-left shadow-2xs">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-red-800 flex items-center gap-1.5 mb-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                        Rejection Reason / Admin Feedback
                       </p>
-                      <p className="text-xs font-semibold text-blue-950 leading-relaxed">{doc.reviewerNotes}</p>
+                      <p className="text-xs font-bold text-red-950 leading-relaxed">
+                        {doc.reviewerNotes || (doc as any).rejection_reason || (doc as any).notes || (doc as any).comment}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -273,19 +299,19 @@ export const Documents: React.FC = () => {
                     <Eye className="w-3.5 h-3.5" /> Preview
                   </button>
 
-                    {isReupload && (
-                      <button
-                        onClick={() => {
-                          setReuploadTargetDocId(doc.id);
-                          setUploadName(doc.name);
-                          setUploadType(doc.type);
-                          setShowUploadModal(true);
-                        }}
-                        className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
-                      >
-                        <Upload className="w-3.5 h-3.5" /> Re-upload File
-                      </button>
-                    )}
+                  {isReupload && (
+                    <button
+                      onClick={() => {
+                        setReuploadTargetDocId(doc.id);
+                        setUploadName(doc.name);
+                        setUploadType(doc.type);
+                        setShowUploadModal(true);
+                      }}
+                      className="h-8 px-3.5 bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
+                    >
+                      <Upload className="w-3.5 h-3.5" /> Re-upload File
+                    </button>
+                  )}
                 </div>
               </Card>
             );
@@ -300,9 +326,31 @@ export const Documents: React.FC = () => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setShowUploadModal(false)} />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-base font-black text-slate-900">Upload Compliance Document</h3>
+                <h3 className="text-base font-black text-slate-900">
+                  {reuploadTargetDocId ? 'Re-upload Document' : 'Upload Compliance Document'}
+                </h3>
                 <button onClick={() => setShowUploadModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
               </div>
+
+              {/* Display Rejection Reason Banner in Modal if re-uploading */}
+              {(() => {
+                const reuploadTargetDoc = documents.find(d => d.id === reuploadTargetDocId);
+                const targetNotes = reuploadTargetDoc?.reviewerNotes || (reuploadTargetDoc as any)?.rejection_reason || (reuploadTargetDoc as any)?.notes || (reuploadTargetDoc as any)?.comment;
+                if (!targetNotes) return null;
+                return (
+                  <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-left space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-red-800 flex items-center gap-1.5">
+                      <AlertCircle className="w-4 h-4 text-red-600 shrink-0" /> Admin Rejection Reason
+                    </span>
+                    <p className="text-xs font-bold text-red-950 leading-relaxed">
+                      "{targetNotes}"
+                    </p>
+                    <p className="text-[11px] font-semibold text-red-700 pt-0.5">
+                      Please review the admin feedback above and upload an updated file to replace this document.
+                    </p>
+                  </div>
+                );
+              })()}
 
               <form onSubmit={handleUploadSubmit} className="space-y-4">
                 <div>

@@ -4,19 +4,42 @@ import { generateUUID } from '../../utils/uuid';
 
 const isValidUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 
-// ─── Get documents (optionally scoped to a student) ───────────────────────────
-export async function getDocuments(studentId?: string) {
+// ─── Get documents for a specific student (Student View) ───────────────────────
+export async function getDocumentsForStudent(studentId: string): Promise<StudentDocument[]> {
   try {
-    const isUuid = studentId && isValidUuid(studentId);
-    let query = supabase.from('student_documents').select('*');
-    if (isUuid) {
-      query = query.or(`student_id.eq.${studentId},student_id.is.null`);
+    if (!studentId || !isValidUuid(studentId)) {
+      return [];
     }
-    const { data } = await query;
-    return (data ?? []) as StudentDocument[];
+    const { data } = await supabase
+      .from('student_documents')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('uploaded_at', { ascending: false });
+    return (data ?? []) as unknown as StudentDocument[];
   } catch (err) {
     return [];
   }
+}
+
+// ─── Get all documents across the system (Admin View) ──────────────────────────
+export async function getDocumentsForAdmin(): Promise<StudentDocument[]> {
+  try {
+    const { data } = await supabase
+      .from('student_documents')
+      .select('*')
+      .order('uploaded_at', { ascending: false });
+    return (data ?? []) as unknown as StudentDocument[];
+  } catch (err) {
+    return [];
+  }
+}
+
+// Backward compatible alias
+export async function getDocuments(studentId?: string) {
+  if (studentId) {
+    return getDocumentsForStudent(studentId);
+  }
+  return getDocumentsForAdmin();
 }
 
 // ─── Upload a document record ──────────────────────────────────────────────────
@@ -39,7 +62,7 @@ export async function uploadDocument(payload: {
     doc_type: payload.doc_type,
     document_type: payload.doc_type,
     file_size: payload.file_size || '1.2 MB',
-    status: 'Pending Verification',
+    status: 'Submitted',
     uploaded_at: new Date().toISOString()
   };
 
@@ -54,7 +77,7 @@ export async function uploadDocument(payload: {
       file_name: payload.file_name,
       file_url: payload.file_url,
       document_type: payload.doc_type,
-      status: 'Pending Verification'
+      status: 'Submitted'
     };
     res = await supabase.from('student_documents').insert(attempt2).select();
   }
@@ -65,7 +88,7 @@ export async function uploadDocument(payload: {
     const attempt3 = {
       file_name: payload.file_name,
       file_url: payload.file_url,
-      status: 'Pending Verification'
+      status: 'Submitted'
     };
     res = await supabase.from('student_documents').insert(attempt3).select();
   }
@@ -73,6 +96,17 @@ export async function uploadDocument(payload: {
   if (res.error) {
     console.error('[uploadDocument Final Error]: Could not insert into Supabase:', res.error);
     alert(`Supabase Upload Notice: ${res.error.message || 'Table student_documents missing or RLS restricted.'}`);
+  } else {
+    // Notify Admin & Staff of new document submission
+    try {
+      const { createNotification } = await import('./notifications');
+      await createNotification({
+        user_id: payload.student_id || 'admin',
+        title: '📄 New Document Submitted',
+        body: `A new student document (${payload.doc_type || payload.file_name}) was submitted for review & verification.`,
+        category: 'Document'
+      });
+    } catch (err) {}
   }
 
   const createdDoc: StudentDocument = (res.data && res.data[0])
@@ -82,9 +116,13 @@ export async function uploadDocument(payload: {
         student_id: payload.student_id,
         file_name: payload.file_name,
         file_url: payload.file_url,
+        file_size: '0 KB',
         doc_type: payload.doc_type,
-        status: 'Pending Verification',
+        status: 'Submitted',
+        reviewer_id: null,
+        reviewer_notes: '',
         uploaded_at: new Date().toISOString(),
+        reviewed_at: null,
       } as StudentDocument);
 
   return createdDoc;
@@ -104,6 +142,8 @@ export async function updateDocumentStatus(
     .update({
       status,
       reviewer_notes: notesText,
+      reviewer_id: reviewerId || null,
+      reviewed_at: new Date().toISOString(),
     })
     .eq('id', id)
     .select();
@@ -117,17 +157,26 @@ export async function updateDocumentStatus(
       .select();
   }
 
-  if (res.error || !res.data || res.data.length === 0) {
-    console.warn('[updateDocumentStatus Final Notice]:', res.error?.message);
-    await supabase
-      .from('student_documents')
-      .update({ reviewer_notes: 'Re-upload Requested: ' + notesText })
-      .eq('id', id);
+  let docResult = res.data && res.data[0] ? (res.data[0] as StudentDocument) : ({ id, status, reviewer_notes: notesText } as Partial<StudentDocument>);
 
-    return { id, status, reviewer_notes: notesText } as Partial<StudentDocument>;
+  if (docResult && (docResult as StudentDocument).student_id) {
+    try {
+      const { createNotification } = await import('./notifications');
+      const isApproved = status === 'Verified' || status === 'Approved';
+      const isReupload = status === 'Re-upload Requested' || status === 'Rejected';
+
+      await createNotification({
+        user_id: (docResult as StudentDocument).student_id,
+        title: isApproved ? '✅ Document Verified & Approved' : isReupload ? '⚠️ Document Action Required' : '📄 Document Status Updated',
+        body: isApproved
+          ? `Your document "${(docResult as StudentDocument).doc_type || 'Submitted Document'}" has been verified and approved.`
+          : `Status for "${(docResult as StudentDocument).doc_type || 'Document'}": ${status}. ${notesText ? 'Notes: ' + notesText : ''}`,
+        category: 'Document'
+      });
+    } catch (e) {}
   }
 
-  return res.data[0] as StudentDocument;
+  return docResult;
 }
 
 // ─── Re-upload an existing document record ────────────────────────────────────
@@ -148,7 +197,7 @@ export async function reuploadDocumentRecord(
       file_size: payload.file_size || '1.2 MB',
       doc_type: payload.doc_type,
       document_type: payload.doc_type,
-      status: 'Pending Verification',
+      status: 'Submitted',
       uploaded_at: new Date().toISOString(),
       reviewer_notes: '',
     })
@@ -162,7 +211,7 @@ export async function reuploadDocumentRecord(
       .update({
         file_name: payload.file_name,
         file_url: payload.file_url,
-        status: 'Pending Verification',
+        status: 'Submitted',
         uploaded_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -175,7 +224,7 @@ export async function reuploadDocumentRecord(
       file_name: payload.file_name,
       file_url: payload.file_url,
       doc_type: payload.doc_type,
-      status: 'Pending Verification',
+      status: 'Submitted',
       uploaded_at: new Date().toISOString(),
     } as Partial<StudentDocument>;
   }

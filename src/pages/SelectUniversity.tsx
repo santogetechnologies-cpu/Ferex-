@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Search, MapPin, Award, ArrowRight, Sparkles, Heart, X, Star, Lock, CreditCard, FileText, Upload, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUniversities } from '../hooks/useUniversities';
 import { useApplications } from '../hooks/useApplications';
@@ -8,6 +8,7 @@ import { usePayments } from '../hooks/usePayments';
 import { useDocuments } from '../hooks/useDocuments';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/Card';
+import { getNawaRecords } from '../lib/api/nawa';
 
 export const SelectUniversity: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +17,24 @@ export const SelectUniversity: React.FC = () => {
   const { addApp } = useApplications(user?.id);
   const { payments } = usePayments(user?.id);
   const { documents } = useDocuments(user?.id);
+
+  const [nawaApproved, setNawaApproved] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkNawa = () => {
+      getNawaRecords(user?.id).then(recs => {
+        const isApproved = recs.some(r =>
+          (r.student_id === user?.id || (user?.email && r.student_email === user.email) || r.id === user?.id) &&
+          (r.status === 'Approved' || r.current_step === 4)
+        );
+        setNawaApproved(isApproved);
+      }).catch(() => {});
+    };
+
+    checkNawa();
+    window.addEventListener('ferex_nawa_change', checkNawa);
+    return () => window.removeEventListener('ferex_nawa_change', checkNawa);
+  }, [user?.id, user?.email]);
 
   // Check if mandatory documents (Passport & Marksheets/Transcripts) are uploaded
   const hasPassport = documents.some(d =>
@@ -85,6 +104,10 @@ export const SelectUniversity: React.FC = () => {
       navigate('/student/documents');
       return;
     }
+    if (!nawaApproved) {
+      setSuccessToast('🔒 NAWA Process Mandatory: Admin must verify documents & approve NAWA legalization before applying to university.');
+      return;
+    }
     if (!inst1Paid) {
       setSuccessToast('1st Installment Fee payment required to submit university application.');
       return;
@@ -146,29 +169,31 @@ export const SelectUniversity: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* NON-SKIPPABLE MANDATORY DOCUMENT SUBMISSION BANNER */}
-      {!hasMandatoryDocs && (
+      {/* NAWA MANDATORY APPROVAL BANNER */}
+      {!nawaApproved && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-5 bg-amber-500 text-white rounded-2xl shadow-lg border border-amber-600 flex flex-col md:flex-row md:items-center justify-between gap-4"
+          className="p-5 bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white rounded-2xl shadow-lg border border-indigo-700 flex flex-col md:flex-row md:items-center justify-between gap-4"
         >
           <div className="flex items-start gap-3">
-            <ShieldAlert className="w-6 h-6 text-amber-100 shrink-0 mt-0.5 animate-bounce" />
+            <div className="w-9 h-9 rounded-xl bg-indigo-700 text-white flex items-center justify-center font-black shrink-0 text-base">
+              📜
+            </div>
             <div>
               <h3 className="text-sm font-black tracking-tight text-white flex items-center gap-2">
-                🔒 Mandatory Pre-requisite Step Required Before University Selection
+                🔒 NAWA Polish Degree Legalization Required Before University Application
               </h3>
-              <p className="text-xs font-semibold text-amber-100 mt-1 leading-relaxed">
-                You must upload your <span className="font-black underline">Passport</span> and <span className="font-black underline">Academic Marksheets/Transcripts</span> in the Document Vault before you can select or apply to universities.
+              <p className="text-xs font-semibold text-indigo-200 mt-1 leading-relaxed">
+                Step 1: Upload your mandatory documents. Step 2: Admin verifies documents and initiates NAWA process in Supabase. Step 3: Once NAWA is approved, course application unlocks!
               </p>
             </div>
           </div>
           <button
-            onClick={() => navigate('/student/documents')}
-            className="h-10 px-5 bg-white text-amber-950 rounded-xl text-xs font-black hover:bg-amber-100 shadow-md whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0"
+            onClick={() => navigate('/student/journey-tracker')}
+            className="h-10 px-5 bg-white text-indigo-950 rounded-xl text-xs font-black hover:bg-indigo-100 shadow-md whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0"
           >
-            <Upload className="w-4 h-4 text-amber-800" /> Upload Required Documents Now →
+            Track NAWA Status →
           </button>
         </motion.div>
       )}
@@ -430,6 +455,43 @@ export const SelectUniversity: React.FC = () => {
                     ))}
                   </select>
                 </div>
+
+                {/* Rich Course & Fee Details Box */}
+                {selectedCourse && (
+                  <div className="p-3.5 bg-gradient-to-br from-slate-50 to-indigo-50/40 rounded-xl border border-slate-200/80 text-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase text-slate-400">Course Level & Medium</span>
+                      <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                        100% English Taught
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                      <div className="p-2 bg-white rounded-lg border border-slate-100">
+                        <span className="text-[9.5px] font-extrabold text-slate-400 block uppercase">Duration</span>
+                        <span className="font-black text-slate-900">3 Years (6 Semesters)</span>
+                      </div>
+                      <div className="p-2 bg-white rounded-lg border border-slate-100">
+                        <span className="text-[9.5px] font-extrabold text-slate-400 block uppercase">Annual Tuition Fee</span>
+                        <span className="font-black text-slate-900">
+                          {applyUni.university_fee || applyUni.tuition_range || '€3,500 / year (₹3,15,000)'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 bg-[#6A1B2E]/5 border border-[#6A1B2E]/20 rounded-lg text-slate-800">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[10px] font-black text-[#6A1B2E] uppercase">2nd Installment Fee Amount:</span>
+                        <span className="text-xs font-black text-[#6A1B2E]">
+                          {applyUni.university_fee || applyUni.tuition_range || '₹3,15,000'}
+                        </span>
+                      </div>
+                      <p className="text-[10px] font-semibold text-slate-500">
+                        This tuition fee will set your 2nd Installment payment amount in Student Payments once your Offer Letter is released.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Select Target Intake</label>

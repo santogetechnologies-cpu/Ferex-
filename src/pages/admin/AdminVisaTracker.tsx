@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, User, Save, Sparkles, X } from 'lucide-react';
+import { ShieldCheck, Save, Sparkles, X, Plus, RefreshCw } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { useStudents } from '../../hooks/useStudents';
@@ -10,13 +10,17 @@ import { generateUUID } from '../../utils/uuid';
 
 export const AdminVisaTracker: React.FC = () => {
   const { students } = useStudents();
-  const { records, saveVisaUpdate } = useVisa();
+  const { records, refresh, saveVisaUpdate } = useVisa();
 
   // Selected student state
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [toast, setToast] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Initiate VFS Process Modal State
+  const [showInitiateModal, setShowInitiateModal] = useState(false);
+  const [initiateStudentId, setInitiateStudentId] = useState('');
 
   // Form fields for selected student VFS tracker
   const [vfsRefNo, setVfsRefNo] = useState('');
@@ -30,7 +34,23 @@ export const AdminVisaTracker: React.FC = () => {
 
   const [decisionOutcome, setDecisionOutcome] = useState<'Pending' | 'Approved' | 'Rejected'>('Pending');
 
-
+  // Helper to auto-update student application to 'Visa Processing'
+  const autoSetVisaProcessing = async (studentId: string) => {
+    try {
+      const studentApps = await getApplications(studentId);
+      const activeApp = studentApps.find(a =>
+        a.status !== 'Rejected' &&
+        a.status !== 'Withdrawn' &&
+        (a.status as string) !== 'Closed' &&
+        (a.status as string) !== 'Approved'
+      );
+      if (activeApp && activeApp.status !== 'Visa Processing') {
+        await updateApplicationStatus(activeApp.id, 'Visa Processing' as any, 'VFS process initiated! Application status changed to Visa Processing.');
+      }
+    } catch (e) {
+      console.warn('Failed to auto-update application status to Visa Processing:', e);
+    }
+  };
 
   // Load record when selected student changes
   useEffect(() => {
@@ -69,7 +89,7 @@ export const AdminVisaTracker: React.FC = () => {
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 2500);
+    setTimeout(() => setToast(''), 3000);
   };
 
   const handleSaveVfs = async (e: React.FormEvent) => {
@@ -105,7 +125,7 @@ export const AdminVisaTracker: React.FC = () => {
         vfs_center: vfsCenter,
         appointment_date: appointmentDate,
         passport_no: passportNo,
-        courier_tracking_no: courierTrackingNo,
+        courier_tracking_no: currentStage >= 5 ? courierTrackingNo : '',
         current_stage: currentStage,
         status_label: statusLabel,
         decision_outcome: decisionOutcome,
@@ -121,18 +141,64 @@ export const AdminVisaTracker: React.FC = () => {
           const activeApp = studentApps.find(a =>
             a.status !== 'Rejected' &&
             a.status !== 'Withdrawn' &&
-            a.status !== 'Closed' &&
-            a.status !== 'Approved'
+            (a.status as string) !== 'Closed' &&
+            (a.status as string) !== 'Approved'
           );
           if (activeApp) {
-            await updateApplicationStatus(activeApp.id, 'Approved', 'Visa approved! Application auto-promoted to Approved status.');
+            await updateApplicationStatus(activeApp.id, 'Approved' as any, 'Visa approved! Application auto-promoted to Approved status.');
           }
         } catch (e) {
           console.warn('Failed to auto-update student application to Approved:', e);
         }
+      } else {
+        // Auto update application status to 'Visa Processing'
+        await autoSetVisaProcessing(selectedStudentId);
       }
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to save VFS status'}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleInitiateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!initiateStudentId) {
+      showToast('Please select a student.');
+      return;
+    }
+
+    const studentObj = students.find(s => s.id === initiateStudentId);
+    const sName = studentObj?.full_name || studentObj?.email?.split('@')[0] || 'Student';
+    const recId = generateUUID();
+    const defaultRef = `VFS-POL-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    try {
+      setIsSaving(true);
+      await saveVisaUpdate(recId, {
+        student_id: initiateStudentId,
+        student_name: sName,
+        vfs_ref_no: defaultRef,
+        embassy_name: 'Embassy of the Republic of Poland, New Delhi',
+        vfs_center: 'VFS Global Center, Kochi / Mumbai',
+        appointment_date: new Date().toISOString().split('T')[0],
+        passport_no: 'Z-8901240',
+        courier_tracking_no: '',
+        current_stage: 1,
+        status_label: 'VFS Appointment Booked',
+        decision_outcome: 'Pending',
+        notes: 'VFS Process initiated by Admin. Appointment slot allocated.',
+      });
+
+      // Auto update application status in Supabase to 'Visa Processing'
+      await autoSetVisaProcessing(initiateStudentId);
+
+      showToast(`🎉 VFS process initiated for ${sName}! Application status updated to Visa Processing.`);
+      setShowInitiateModal(false);
+      setSelectedStudentId(initiateStudentId);
+      setInitiateStudentId('');
+    } catch (err: any) {
+      showToast(`Error: ${err.message || 'Failed to initiate VFS process'}`);
     } finally {
       setIsSaving(false);
     }
@@ -161,6 +227,8 @@ export const AdminVisaTracker: React.FC = () => {
         decision_outcome: 'Pending',
         notes: newNotes
       });
+
+      await autoSetVisaProcessing(selectedStudentId);
 
       showToast(`🔄 Re-appeal initiated! ${sName} VFS stage reset back to Stage 2.`);
       setSelectedStudentId('');
@@ -200,10 +268,107 @@ export const AdminVisaTracker: React.FC = () => {
             VFS & Embassy Visa Management
           </h1>
           <p className="text-sm font-semibold text-slate-500">
-            Select an enrolled student to update their VFS Global appointment slots, embassy stage, and official visa verdict.
+            Initiate VFS process for students, update appointment slots, embassy stages, and official visa verdict.
           </p>
         </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => refresh()}
+            className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500 transition-colors"
+            title="Refresh Live Data"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <Button
+            onClick={() => setShowInitiateModal(true)}
+            className="bg-[#6A1B2E] text-white hover:bg-[#521221] font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Initiate VFS Process
+          </Button>
+        </div>
       </div>
+
+      {/* Initiate VFS Process Modal */}
+      <AnimatePresence>
+        {showInitiateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
+              onClick={() => setShowInitiateModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-black">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">Initiate Student VFS Process</h3>
+                    <p className="text-[10.5px] text-slate-400 font-semibold">Start VFS Global visa filing for an enrolled student</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowInitiateModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleInitiateSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
+                    Select Enrolled Student *
+                  </label>
+                  <select
+                    required
+                    value={initiateStudentId}
+                    onChange={(e) => setInitiateStudentId(e.target.value)}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                  >
+                    <option value="">-- Choose Student --</option>
+                    {students.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.full_name || s.email} ({s.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1 font-semibold text-slate-600">
+                  <p className="text-[#6A1B2E] font-extrabold">Initial VFS Setup Configuration:</p>
+                  <p>• Initial Stage: <span className="font-bold text-slate-900">Stage 1 — VFS Appointment Booked</span></p>
+                  <p>• Application Status: <span className="font-bold text-indigo-700">Auto-changes to "Visa Processing"</span></p>
+                  <p>• Default Consulate: <span className="font-bold text-slate-900">Embassy of Poland, New Delhi</span></p>
+                </div>
+
+                <div className="flex gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowInitiateModal(false)}
+                    className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-black rounded-xl hover:bg-[#521221] shadow-xs"
+                  >
+                    {isSaving ? 'Processing...' : 'Start VFS Tracking'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Form Drawer for Selected Student */}
       <AnimatePresence>
@@ -395,13 +560,20 @@ export const AdminVisaTracker: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Courier Airway Tracking Number</label>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                        Courier Airway Tracking Number {currentStage < 5 && <span className="text-amber-600 font-bold lowercase ml-1">(unlocks at Stage 5)</span>}
+                      </label>
                       <input
                         type="text"
-                        value={courierTrackingNo}
+                        disabled={currentStage < 5}
+                        value={currentStage >= 5 ? courierTrackingNo : ''}
                         onChange={(e) => setCourierTrackingNo(e.target.value)}
-                        placeholder="e.g. BLUEDART-89041256"
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                        placeholder={currentStage >= 5 ? "e.g. BLUEDART-89041256" : "Unlocks when Stage 5 (Courier Dispatch) is active"}
+                        className={`w-full h-10 px-3 border rounded-xl text-xs font-bold focus:outline-none ${
+                          currentStage < 5
+                            ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                            : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-[#6A1B2E]'
+                        }`}
                       />
                     </div>
                   </div>
@@ -466,6 +638,7 @@ export const AdminVisaTracker: React.FC = () => {
                 <th className="py-3 px-4">Student</th>
                 <th className="py-3 px-4">VFS Reference</th>
                 <th className="py-3 px-4">Consular Embassy</th>
+                <th className="py-3 px-4">Assigned Counselor</th>
                 <th className="py-3 px-4 text-center">Stage</th>
                 <th className="py-3 px-4">Status Label</th>
                 <th className="py-3 px-4">Visa Verdict</th>
@@ -481,8 +654,8 @@ export const AdminVisaTracker: React.FC = () => {
                 rec.status_label?.toLowerCase().includes(searchQuery.toLowerCase())
               ).length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400 font-bold">
-                    No matching VFS Visa records found.
+                  <td colSpan={8} className="py-8 text-center text-slate-400 font-bold">
+                    No matching VFS Visa records found. Click "+ Initiate VFS Process" to start VFS tracking for a student.
                   </td>
                 </tr>
               ) : (
@@ -509,6 +682,9 @@ export const AdminVisaTracker: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-slate-500 max-w-[180px] truncate">
                         {rec.embassy_name}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-700 font-bold max-w-[160px] truncate">
+                        {(rec as any).assigned_counselor || (rec as any).counselor || 'Admin'}
                       </td>
                       <td className="py-3.5 px-4 text-center font-bold text-slate-800">
                         Stage {rec.current_stage || 1} of 6

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Send, Paperclip, Phone, Video } from 'lucide-react';
+import { Search, Send } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getConversations, getChatMessages, sendChatMessage } from '../../lib/api/chat';
 
@@ -19,7 +19,6 @@ export const AdminChatSupport: React.FC = () => {
   const [messages, setMessages] = useState<MessageUI[]>([]);
   const [message, setMessage] = useState('');
   const [search, setSearch] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

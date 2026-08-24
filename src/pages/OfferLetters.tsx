@@ -12,13 +12,14 @@ import { usePayments } from '../hooks/usePayments';
 export function createValidOfferPdfBlob(app: {
   studentName?: string;
   university_name?: string;
+  universities?: { name?: string };
   program_name?: string;
   intake?: string;
   notes?: string;
   isFinal?: boolean;
 }): Blob {
   const student = (app.studentName || 'Student').replace(/[()\\]/g, '');
-  const univ = (app.university_name || 'Partner European University').replace(/[()\\]/g, '');
+  const univ = (app.university_name || app.universities?.name || 'University Applied For').replace(/[()\\]/g, '');
   const prog = (app.program_name || 'Master Degree Program').replace(/[()\\]/g, '');
   const intake = (app.intake || 'October 2026').replace(/[()\\]/g, '');
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -122,7 +123,12 @@ export const OfferLetters: React.FC = () => {
     a.status === 'Offer Issued' ||
     a.status === 'Accepted' ||
     a.status === 'Final Acceptance Issued' ||
-    a.status === 'Rejected'
+    a.status === 'Visa Processing' ||
+    a.status === 'Visa Approved' ||
+    a.status === 'Approved' ||
+    a.status === 'Rejected' ||
+    Boolean(a.offer_letter_url) ||
+    Boolean(a.final_acceptance_url)
   );
 
   const inst2Paid = payments.some(p =>
@@ -335,7 +341,7 @@ export const OfferLetters: React.FC = () => {
                         variant="outline"
                         size="sm"
                         className="w-full justify-center text-xs font-bold"
-                        onClick={() => setPreviewDoc({ app, type: 'offer', url: app.offer_letter_url, name: 'Admission Offer Letter' })}
+                        onClick={() => setPreviewDoc({ app, type: 'offer', url: app.offer_letter_url || '', name: 'Admission Offer Letter' })}
                       >
                         <Eye className="w-3.5 h-3.5 mr-1" /> View Offer
                       </Button>
@@ -381,7 +387,7 @@ export const OfferLetters: React.FC = () => {
                           variant="outline"
                           size="sm"
                           className="w-full justify-center text-xs font-bold border-teal-300 text-teal-900 hover:bg-teal-50"
-                          onClick={() => setPreviewDoc({ app, type: 'final', url: app.final_acceptance_url, name: 'Final Acceptance Letter' })}
+                          onClick={() => setPreviewDoc({ app, type: 'final', url: app.final_acceptance_url || '', name: 'Final Acceptance Letter' })}
                         >
                           <Eye className="w-3.5 h-3.5 mr-1" /> View Final
                         </Button>

@@ -6,7 +6,7 @@ import { generateUUID } from '../../utils/uuid';
 export async function getStudents() {
   const { data, error } = await supabase
     .from('users')
-    .select('*')
+    .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, created_at')
     .eq('role', 'student')
     .order('created_at', { ascending: false });
   if (error) {
@@ -16,18 +16,23 @@ export async function getStudents() {
   return (data ?? []) as UserProfile[];
 }
 
-// ─── Get staff members (users with role = 'staff' or 'admin') ─────────────────
-export async function getStaffMembers() {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .in('role', ['staff', 'admin'])
-    .order('created_at', { ascending: false });
-  if (error) {
-    console.warn('[Supabase API] getStaffMembers notice:', error.message);
+export async function getStaffMembers(): Promise<UserProfile[]> {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, created_at')
+      .in('role', ['staff', 'admin'])
+      .order('created_at', { ascending: false });
+
+    if (error || !data) {
+      console.warn('[getStaffMembers Notice]:', error?.message);
+      return [];
+    }
+    return data as UserProfile[];
+  } catch (err: any) {
+    console.warn('[getStaffMembers Error]:', err?.message);
     return [];
   }
-  return (data ?? []) as UserProfile[];
 }
 
 // ─── Get single student ───────────────────────────────────────────────────────
@@ -46,32 +51,30 @@ export async function createStudent(payload: {
   email: string;
   full_name: string;
   phone?: string;
+  assigned_counselor?: string;
 }) {
   const newId = generateUUID();
+  const insertData = {
+    id: newId,
+    email: payload.email,
+    full_name: payload.full_name,
+    phone: payload.phone || '',
+    role: 'student',
+    assigned_counselor: payload.assigned_counselor || 'Admin',
+    must_change_password: true,
+    created_at: new Date().toISOString(),
+  };
+
   const { data, error } = await supabase
     .from('users')
-    .insert({
-      id: newId,
-      email: payload.email,
-      full_name: payload.full_name,
-      phone: payload.phone || '',
-      role: 'student',
-      must_change_password: true,
-      created_at: new Date().toISOString(),
-    })
+    .insert(insertData)
     .select();
 
   if (error || !data || data.length === 0) {
     console.warn('[Supabase createStudent Notice]:', error?.message || 'Inserting with fallback');
     return {
-      id: newId,
-      email: payload.email,
-      full_name: payload.full_name,
-      phone: payload.phone || '',
-      role: 'student',
+      ...insertData,
       avatar_url: '',
-      must_change_password: true,
-      created_at: new Date().toISOString(),
     } as UserProfile;
   }
 

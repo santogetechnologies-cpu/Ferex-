@@ -5,7 +5,7 @@ import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 
 const notificationsList = [
-  { id: 'NTF-01', title: 'New Task Assigned: Passport Verification', category: 'Tasks', time: '10 mins ago', desc: 'Ananya Sharma assigned you passport scan verification for Priya Sharma (STU-842).', icon: CheckSquare, unread: true },
+  { id: 'NTF-01', title: 'New Task Assigned: Passport Verification', category: 'Tasks', time: '10 mins ago', desc: 'Admissions Desk assigned you passport scan verification for student applicant.', icon: CheckSquare, unread: true },
   { id: 'NTF-02', title: 'Meeting Reminder: Canada Visa SOP Consultation', category: 'Meetings', time: '45 mins ago', desc: 'Upcoming consultation session with Priya Sharma at 02:30 PM IST.', icon: Calendar, unread: true },
   { id: 'NTF-03', title: 'Document Uploaded: IELTS Scorecard', category: 'Documents', time: '2 hours ago', desc: 'Rahul Verma uploaded updated IELTS test report form (TRF).', icon: FileText, unread: false },
   { id: 'NTF-04', title: 'Support Ticket Update', category: 'Tickets', time: '4 hours ago', desc: 'Priya Sharma replied to support ticket TCK-401 regarding CAS scan.', icon: Ticket, unread: false },

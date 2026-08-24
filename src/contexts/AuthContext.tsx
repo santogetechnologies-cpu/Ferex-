@@ -63,31 +63,123 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Restore existing session on mount
     supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
-      setUser(data.session?.user ?? null);
+      let currentUser: User | null = data.session?.user ?? null;
+      let currentProfile: UserProfile | null = null;
 
-      if (data.session?.user) {
-        const prof = await fetchProfile(data.session.user.id);
-        setProfile(prof);
+      if (currentUser) {
+        currentProfile = await fetchProfile(currentUser.id);
+      } else {
+        try {
+          const rawLocalUser = localStorage.getItem('ferex_user');
+          if (rawLocalUser) {
+            const parsed = JSON.parse(rawLocalUser);
+            if (parsed && parsed.id) {
+              currentUser = {
+                id: parsed.id,
+                email: parsed.email || '',
+                user_metadata: { role: parsed.role || 'student' },
+                app_metadata: {},
+                aud: 'authenticated',
+                created_at: new Date().toISOString()
+              } as any;
+              currentProfile = await fetchProfile(parsed.id);
+              if (!currentProfile) {
+                currentProfile = {
+                  id: parsed.id,
+                  email: parsed.email || '',
+                  full_name: parsed.email?.split('@')[0] || 'Student',
+                  role: parsed.role || 'student',
+                  avatar_url: '',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                };
+              }
+            }
+          }
+        } catch (e) {}
       }
 
+      setUser(currentUser);
+      setProfile(currentProfile);
       setLoading(false);
     });
 
     // Listen for auth state changes (login, logout, token refresh)
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession);
-      setUser(newSession?.user ?? null);
-
       if (newSession?.user) {
+        setUser(newSession.user);
         const prof = await fetchProfile(newSession.user.id);
         setProfile(prof);
       } else {
+        // Fall back to ferex_user if active
+        try {
+          const rawLocalUser = localStorage.getItem('ferex_user');
+          if (rawLocalUser) {
+            const parsed = JSON.parse(rawLocalUser);
+            if (parsed && parsed.id) {
+              const u = {
+                id: parsed.id,
+                email: parsed.email || '',
+                user_metadata: { role: parsed.role || 'student' },
+                app_metadata: {},
+                aud: 'authenticated',
+                created_at: new Date().toISOString()
+              } as any;
+              setUser(u);
+              const prof = await fetchProfile(parsed.id);
+              setProfile(prof);
+              return;
+            }
+          }
+        } catch (e) {}
+        setUser(null);
         setProfile(null);
       }
     });
 
+    // Listen for custom ferex_auth_change events (e.g. login without Supabase Auth session)
+    const syncLocalAuth = async () => {
+      try {
+        const rawLocalUser = localStorage.getItem('ferex_user');
+        if (rawLocalUser) {
+          const parsed = JSON.parse(rawLocalUser);
+          if (parsed && parsed.id) {
+            const u = {
+              id: parsed.id,
+              email: parsed.email || '',
+              user_metadata: { role: parsed.role || 'student' },
+              app_metadata: {},
+              aud: 'authenticated',
+              created_at: new Date().toISOString()
+            } as any;
+            setUser(u);
+            const prof = await fetchProfile(parsed.id);
+            if (prof) {
+              setProfile(prof);
+            } else {
+              setProfile({
+                id: parsed.id,
+                email: parsed.email || '',
+                full_name: parsed.full_name || parsed.name || parsed.email?.split('@')[0] || 'Student',
+                role: parsed.role || 'student',
+                avatar_url: '',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
+            }
+          }
+        }
+      } catch (e) {}
+    };
+
+    window.addEventListener('ferex_auth_change', syncLocalAuth);
+    window.addEventListener('storage', syncLocalAuth);
+
     return () => {
       listener.subscription.unsubscribe();
+      window.removeEventListener('ferex_auth_change', syncLocalAuth);
+      window.removeEventListener('storage', syncLocalAuth);
     };
   }, []);
 
@@ -99,9 +191,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return {};
   }, []);
 
+  const clearFerexCache = () => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {}
+  };
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
     setProfile(null);
+    clearFerexCache();
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {

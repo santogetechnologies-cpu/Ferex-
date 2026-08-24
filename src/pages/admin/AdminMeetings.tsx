@@ -29,16 +29,20 @@ export const AdminMeetings: React.FC = () => {
   // Book Meeting from Admin States
   const [showBookModal, setShowBookModal] = useState(false);
   const [studentsList, setStudentsList] = useState<any[]>([]);
-  const [counselorsList, setCounselorsList] = useState<string[]>(['Dr. Evelyn Carter', 'Riya Shah', 'Arjun Pillai']);
+  const [counselorsList, setCounselorsList] = useState<string[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [bookSubject, setBookSubject] = useState('Visa & Embassy Guidance Session');
   const [bookDate, setBookDate] = useState(getLocalDateString());
   const [bookTime, setBookTime] = useState('10:00 AM');
-  const [bookAdvisor, setBookAdvisor] = useState('Dr. Evelyn Carter');
+  const [bookAdvisor, setBookAdvisor] = useState('');
   const [isBooking, setIsBooking] = useState(false);
+  const [bookMode, setBookMode] = useState<'Online' | 'In-Person'>('Online');
+  const [bookLink, setBookLink] = useState('https://meet.google.com/fer-exed-app');
+  const [bookLocation, setBookLocation] = useState('Ferex Head Office - Cabin A');
+  const [bookNotes, setBookNotes] = useState('');
 
   // Video call states
-  const [activeCallSubject, setActiveCallSubject] = useState<string | null>(null);
+  const [activeCallMeeting, setActiveCallMeeting] = useState<any | null>(null);
   const [micMuted, setMicMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
   const [activeTab, setActiveTab] = useState<'control' | 'workload'>('control');
@@ -47,7 +51,7 @@ export const AdminMeetings: React.FC = () => {
     getStudents().then(students => {
       setStudentsList(students);
       if (students.length > 0) setSelectedStudentId(students[0].id);
-    }).catch(() => {});
+    }).catch(() => { });
 
     getStaffMembers().then(staff => {
       if (staff && staff.length > 0) {
@@ -55,7 +59,7 @@ export const AdminMeetings: React.FC = () => {
         setCounselorsList(names);
         if (names.length > 0) setBookAdvisor(names[0]);
       }
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   const showToast = (msg: string) => {
@@ -105,9 +109,12 @@ export const AdminMeetings: React.FC = () => {
         start_time: bookTime,
         end_time: computedEnd,
         advisor_name: bookAdvisor,
+        meeting_link: bookMode === 'Online' ? bookLink.trim() : `In-Person: ${bookLocation.trim()}`,
+        notes: bookNotes.trim(),
       });
       showToast('Advisory meeting scheduled successfully!');
       setShowBookModal(false);
+      setBookNotes('');
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to book meeting'}`);
     } finally {
@@ -240,18 +247,16 @@ export const AdminMeetings: React.FC = () => {
       <div className="flex items-center gap-4 border-b border-slate-200 pb-px">
         <button
           onClick={() => setActiveTab('control')}
-          className={`pb-3.5 text-xs font-bold transition-all relative px-1 flex items-center gap-1.5 ${
-            activeTab === 'control' ? 'text-[#6A1B2E]' : 'text-slate-400 hover:text-slate-600'
-          }`}
+          className={`pb-3.5 text-xs font-bold transition-all relative px-1 flex items-center gap-1.5 ${activeTab === 'control' ? 'text-[#6A1B2E]' : 'text-slate-400 hover:text-slate-600'
+            }`}
         >
           <List className="w-4 h-4" /> Control Room (Detailed Log)
           {activeTab === 'control' && <motion.div layoutId="meetingActiveTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#6A1B2E]" />}
         </button>
         <button
           onClick={() => setActiveTab('workload')}
-          className={`pb-3.5 text-xs font-bold transition-all relative px-1 flex items-center gap-1.5 ${
-            activeTab === 'workload' ? 'text-[#6A1B2E]' : 'text-slate-400 hover:text-slate-600'
-          }`}
+          className={`pb-3.5 text-xs font-bold transition-all relative px-1 flex items-center gap-1.5 ${activeTab === 'workload' ? 'text-[#6A1B2E]' : 'text-slate-400 hover:text-slate-600'
+            }`}
         >
           <BarChart3 className="w-4 h-4" /> Advisor Workloads
           {activeTab === 'workload' && <motion.div layoutId="meetingActiveTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#6A1B2E]" />}
@@ -277,11 +282,10 @@ export const AdminMeetings: React.FC = () => {
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
-                  className={`h-9 px-3.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
-                    statusFilter === status
+                  className={`h-9 px-3.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${statusFilter === status
                       ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-sm'
                       : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   {status}
                 </button>
@@ -372,7 +376,10 @@ export const AdminMeetings: React.FC = () => {
                               )}
                               {['Scheduled', 'Rescheduled'].includes(meet.status) && (
                                 <button
-                                  onClick={() => setActiveCallSubject(meet.subject)}
+                                  onClick={() => {
+                                    window.open(meet.meetingLink, '_blank');
+                                    setActiveCallMeeting(meet);
+                                  }}
                                   className="h-7 px-2.5 bg-[#6A1B2E] hover:bg-[#521221] text-white text-[10px] font-bold rounded-lg shadow-sm transition-all"
                                 >
                                   Join Call
@@ -642,6 +649,68 @@ export const AdminMeetings: React.FC = () => {
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Meeting Mode</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBookMode('Online')}
+                      className={`flex-1 h-9 rounded-xl text-xs font-bold border transition-all ${bookMode === 'Online'
+                          ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]'
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                    >
+                      💻 Online Call
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBookMode('In-Person')}
+                      className={`flex-1 h-9 rounded-xl text-xs font-bold border transition-all ${bookMode === 'In-Person'
+                          ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]'
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                    >
+                      📍 In-Person
+                    </button>
+                  </div>
+                </div>
+
+                {bookMode === 'Online' ? (
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Video Meeting Link / URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={bookLink}
+                      onChange={(e) => setBookLink(e.target.value)}
+                      placeholder="https://meet.google.com/xyz-abc"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Physical Location Details</label>
+                    <input
+                      type="text"
+                      required
+                      value={bookLocation}
+                      onChange={(e) => setBookLocation(e.target.value)}
+                      placeholder="e.g. Warsaw Office - Cabin 402"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Notes (Optional)</label>
+                  <textarea
+                    value={bookNotes}
+                    onChange={(e) => setBookNotes(e.target.value)}
+                    placeholder="e.g. Please bring passport photocopy."
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40 h-16 resize-none"
+                  />
+                </div>
+
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
                   <button
                     type="button"
@@ -666,7 +735,7 @@ export const AdminMeetings: React.FC = () => {
 
       {/* Video Call Modal */}
       <AnimatePresence>
-        {activeCallSubject && (
+        {activeCallMeeting && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -676,7 +745,7 @@ export const AdminMeetings: React.FC = () => {
             >
               <div className="p-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-black text-white">{activeCallSubject}</h3>
+                  <h3 className="text-sm font-black text-white">{activeCallMeeting.subject}</h3>
                   <p className="text-[10px] font-semibold text-slate-400 flex items-center gap-1.5 mt-0.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Video Connection Connected
                   </p>
@@ -686,17 +755,21 @@ export const AdminMeetings: React.FC = () => {
               <div className="flex-1 p-4 grid grid-cols-1 md:grid-cols-2 gap-4 relative bg-slate-950">
                 <div className="bg-slate-900 rounded-2xl flex items-center justify-center relative border border-slate-800">
                   <div className="text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white font-black text-xl flex items-center justify-center mx-auto mb-2 shadow-lg">YOU</div>
-                    <span className="text-xs font-extrabold text-white">Your Video Feed</span>
-                    <span className="text-[10px] font-semibold text-slate-400 block mt-0.5">Administrator / Counselor Host</span>
+                    <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white font-black text-xl flex items-center justify-center mx-auto mb-2 shadow-lg">
+                      AD
+                    </div>
+                    <span className="text-xs font-extrabold text-white">Admin Host</span>
+                    <span className="text-[10px] font-semibold text-slate-400 block mt-0.5">Administrator Host</span>
                   </div>
                 </div>
 
                 <div className="bg-slate-900 rounded-2xl flex items-center justify-center relative border border-slate-800 overflow-hidden">
                   {!videoOff ? (
                     <div className="text-center">
-                      <div className="w-16 h-16 rounded-2xl bg-[#6A1B2E] text-white font-black text-xl flex items-center justify-center mx-auto mb-2 shadow-lg">ST</div>
-                      <span className="text-xs font-extrabold text-white">Student Video Feed</span>
+                      <div className="w-16 h-16 rounded-2xl bg-[#6A1B2E] text-white font-black text-xl flex items-center justify-center mx-auto mb-2 shadow-lg">
+                        {(activeCallMeeting.student_name || 'Student').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                      </div>
+                      <span className="text-xs font-extrabold text-white">{activeCallMeeting.student_name || 'Student Participant'}</span>
                     </div>
                   ) : (
                     <div className="text-slate-500 text-xs font-bold">Camera Turned Off</div>
@@ -718,7 +791,7 @@ export const AdminMeetings: React.FC = () => {
                   {videoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
                 </button>
                 <button
-                  onClick={() => setActiveCallSubject(null)}
+                  onClick={() => setActiveCallMeeting(null)}
                   className="p-3 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold text-xs flex items-center gap-1.5 px-5 shadow-md"
                 >
                   <PhoneOff className="w-5 h-5" /> End Call

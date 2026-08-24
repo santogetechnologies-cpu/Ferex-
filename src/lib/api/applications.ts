@@ -8,26 +8,35 @@ const isValidUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[
 // ─── Get applications (optionally scoped to a student) ───────────────────────
 export async function getApplications(studentId?: string) {
   try {
-    const isUuid = studentId && isValidUuid(studentId);
+    const isStudentCall = studentId !== undefined;
+    if (isStudentCall) {
+      if (!studentId || !isValidUuid(studentId)) {
+        return [];
+      }
+    }
+
+    let appQuery = supabase
+      .from('applications')
+      .select('id, student_id, student_name, university_id, university_name, program_name, course, intake, status, notes, created_at, updated_at, universities:university_id(id, name, country, city)')
+      .order('created_at', { ascending: false });
+
+    let offerQuery = supabase.from('offer_letters').select('id, student_id, application_id, offer_letter_url, file_url, url');
+    let finalQuery = supabase.from('final_acceptance').select('id, student_id, application_id, final_acceptance_url, file_url, url');
+
+    if (isStudentCall && studentId) {
+      appQuery = appQuery.eq('student_id', studentId);
+      offerQuery = offerQuery.eq('student_id', studentId);
+      finalQuery = finalQuery.eq('student_id', studentId);
+    }
 
     // Parallel fetch querying separate tables: applications, offer_letter, and final_acceptance
     const [appRes, offerRes, finalRes] = await Promise.all([
-      isUuid
-        ? supabase.from('applications').select('*, universities:university_id(*)').or(`student_id.eq.${studentId},student_id.is.null`).order('created_at', { ascending: false })
-        : supabase.from('applications').select('*, universities:university_id(*)').order('created_at', { ascending: false }),
-      Promise.resolve(
-        isUuid
-          ? supabase.from('offer_letters').select('*').or(`student_id.eq.${studentId},student_id.is.null`)
-          : supabase.from('offer_letters').select('*')
-      ).catch(() => ({ data: null })),
-      Promise.resolve(
-        isUuid
-          ? supabase.from('final_acceptance').select('*').or(`student_id.eq.${studentId},student_id.is.null`)
-          : supabase.from('final_acceptance').select('*')
-      ).catch(() => ({ data: null }))
+      appQuery,
+      Promise.resolve(offerQuery).catch(() => ({ data: null })),
+      Promise.resolve(finalQuery).catch(() => ({ data: null }))
     ]);
 
-    const rawList = (appRes.data ?? []) as Application[];
+    const rawList = (appRes.data ?? []) as unknown as Application[];
     const offerLetters = offerRes.data;
     const finalAcceptances = finalRes.data;
 
@@ -73,6 +82,42 @@ export async function getApplicationById(id: string) {
   return data as Application;
 }
 
+// ─── Auto-enroll student into NAWA Review on first document upload ────────────
+export async function ensureStudentApplication(studentId: string, studentName: string = 'Enrolled Student') {
+  if (!studentId || !isValidUuid(studentId)) return;
+
+  try {
+    // Check if any application already exists for this student
+    const { data: existing } = await supabase
+      .from('applications')
+      .select('id')
+      .eq('student_id', studentId)
+      .limit(1);
+
+    if (existing && existing.length > 0) return; // Already has an application
+
+    const newId = generateUUID();
+    const placeholderUnivId = generateUUID(); // placeholder — no real university yet
+
+    await supabase.from('applications').insert({
+      id: newId,
+      student_id: studentId,
+      student_name: studentName,
+      university_id: placeholderUnivId,
+      university_name: 'Pending University Selection',
+      program_name: 'Pending Course Selection',
+      course: 'Pending Course Selection',
+      intake: 'TBD',
+      status: 'NAWA Review',
+      notes: 'Auto-enrolled on document submission. Awaiting NAWA apostille & legalization audit.',
+      applied_date: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn('[ensureStudentApplication Notice]:', err);
+  }
+}
+
 // ─── Get checklist items for an application ───────────────────────────────────
 export async function getApplicationChecklist(applicationId: string) {
   const { data, error } = await supabase
@@ -106,8 +151,19 @@ export async function createApplication(payload: {
   const validUnivId = isValidUuid(payload.university_id) ? payload.university_id! : generateUUID();
   const validStudentId = isValidUuid(payload.student_id) ? payload.student_id! : generateUUID();
 
-  const insertPayload: any = {
-    id: newId,
+  // Check if an application already exists for this student & university
+  const { data: existingApp } = await supabase
+    .from('applications')
+    .select('id')
+    .eq('student_id', validStudentId)
+    .eq('university_id', validUnivId)
+    .limit(1);
+
+  const isExisting = Boolean(existingApp && existingApp.length > 0);
+  const targetId = isExisting ? existingApp![0].id : newId;
+
+  const savePayload: any = {
+    id: targetId,
     student_id: validStudentId,
     student_name: studentNameVal,
     university_id: validUnivId,
@@ -116,38 +172,36 @@ export async function createApplication(payload: {
     course: progName,
     intake: intakeVal,
     status: 'Submitted',
-    created_at: new Date().toISOString()
+    updated_at: new Date().toISOString()
   };
   if (feeVal) {
-    insertPayload.tuition_fee = feeVal;
-    insertPayload.course_fee = feeVal;
+    savePayload.tuition_fee = feeVal;
+    savePayload.course_fee = feeVal;
   }
 
-  let { data, error } = await supabase
-    .from('applications')
-    .insert(insertPayload)
-    .select();
+  let { data, error } = isExisting
+    ? await supabase.from('applications').update(savePayload).eq('id', targetId).select()
+    : await supabase.from('applications').insert(savePayload).select();
 
   if (error) {
-    console.warn('[createApplication Fallback Notice]:', error.message);
+    console.warn('[createApplication Notice]:', error.message);
     const minimalPayload: any = {
-      id: newId,
+      id: targetId,
       student_id: validStudentId,
       university_id: validUnivId,
       course: progName,
       status: 'Submitted'
     };
 
-    const fallbackRes = await supabase
-      .from('applications')
-      .insert(minimalPayload)
-      .select();
+    const fallbackRes = isExisting
+      ? await supabase.from('applications').update(minimalPayload).eq('id', targetId).select()
+      : await supabase.from('applications').insert(minimalPayload).select();
 
     data = fallbackRes.data;
   }
 
   const resultObj: Application = {
-    id: newId,
+    id: targetId,
     student_id: payload.student_id || validStudentId,
     university_id: validUnivId,
     course: progName,

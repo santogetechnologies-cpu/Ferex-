@@ -24,7 +24,7 @@ export function useStudents() {
     fetchStudents();
   }, [fetchStudents]);
 
-  const addStudent = async (payload: { email: string; full_name: string; phone?: string }) => {
+  const addStudent = async (payload: { email: string; full_name: string; phone?: string; assigned_counselor?: string }) => {
     const created = await createStudent(payload);
     setStudents(prev => [created, ...prev]);
     return created;

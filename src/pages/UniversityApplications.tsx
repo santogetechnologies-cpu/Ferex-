@@ -9,9 +9,14 @@ import { useApplications } from '../hooks/useApplications';
 
 const getStatusStyle = (status: string) => {
   switch (status) {
+    case 'NAWA Approved':
     case 'Offer Issued':
     case 'Accepted':
       return 'bg-emerald-50 text-emerald-700 border-emerald-100 font-bold';
+    case 'NAWA Submitted':
+      return 'bg-indigo-50 text-indigo-700 border-indigo-100 font-bold';
+    case 'NAWA Review':
+      return 'bg-amber-50 text-amber-800 border-amber-100 font-bold';
     case 'Under Review':
     case 'Submitted':
       return 'bg-blue-50 text-blue-700 border-blue-100 font-bold';
@@ -160,7 +165,7 @@ export const UniversityApplications: React.FC = () => {
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform ml-1" />
                 </Button>
 
-                {app.status !== 'Withdrawn' && app.status !== 'Approved' && app.status !== 'Closed' && (
+                {app.status !== 'Withdrawn' && (app.status as string) !== 'Approved' && (app.status as string) !== 'Closed' && (
                   <button
                     onClick={() => handleWithdraw(app.id, app.university_name || 'University')}
                     disabled={isWithdrawing === app.id}
@@ -310,7 +315,7 @@ export const UniversityApplications: React.FC = () => {
                     <Download className="w-4 h-4" /> Download Official Offer Letter (PDF)
                   </a>
                 )}
-                {activeApp.status !== 'Withdrawn' && activeApp.status !== 'Approved' && activeApp.status !== 'Closed' && (
+                {activeApp.status !== 'Withdrawn' && (activeApp.status as string) !== 'Approved' && (activeApp.status as string) !== 'Closed' && (
                   <button
                     onClick={() => {
                       handleWithdraw(activeApp.id, activeApp.university_name || 'University');

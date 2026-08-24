@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate, useNavigate, useLocation
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthLayout } from './layouts/AuthLayout';
 import { LoginPage } from './pages/LoginPage';
+import { FerexLandingPage } from './pages/FerexLandingPage';
 import { StudentLayout } from './layouts/StudentLayout';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { JourneyTracker } from './pages/JourneyTracker';
@@ -18,6 +19,7 @@ import { SupportTickets } from './pages/SupportTickets';
 import { Notifications } from './pages/Notifications';
 import { MyProfile } from './pages/MyProfile';
 import { VisaTracker } from './pages/VisaTracker';
+import { PreDeparture } from './pages/PreDeparture';
 
 // Admin imports
 import { AdminLayout } from './layouts/AdminLayout';
@@ -25,6 +27,7 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminStudents } from './pages/admin/AdminStudents';
 import { AdminUniversities } from './pages/admin/AdminUniversities';
 import { AdminVisaTracker } from './pages/admin/AdminVisaTracker';
+import { AdminPreDeparture } from './pages/admin/AdminPreDeparture';
 import { AdminTaskManagement } from './pages/admin/AdminTaskManagement';
 import { AdminApplications } from './pages/admin/AdminApplications';
 import { AdminDocumentReview } from './pages/admin/AdminDocumentReview';
@@ -37,6 +40,7 @@ import { AdminNotifications } from './pages/admin/AdminNotifications';
 import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminFeeConfig } from './pages/admin/AdminFeeConfig';
 import { AdminMeetings } from './pages/admin/AdminMeetings';
+import { AdminNawaTracker } from './pages/admin/AdminNawaTracker';
 
 // Central imports
 import { CentralLayout } from './layouts/CentralLayout';
@@ -159,7 +163,12 @@ const AppInitializer: React.FC = () => {
 
 // Guards portal routes — redirects to login if not authenticated
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { session, loading } = useAuth();
+  const { session, user, loading } = useAuth();
+  const hasDemo = typeof window !== 'undefined' && Boolean(
+    localStorage.getItem('ferex_demo_role') ||
+    localStorage.getItem('ferex_demo_user') ||
+    localStorage.getItem('ferex_user')
+  );
 
   if (loading) {
     return (
@@ -172,8 +181,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     );
   }
 
-  if (!session) {
-    return <Navigate to="/" replace />;
+  if (!session && !user && !hasDemo) {
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
@@ -185,12 +194,13 @@ function App() {
       <Router>
         <AppInitializer />
         <Routes>
-          {/* ── Single Unified Central FEREX Auth ── */}
-          <Route path="/" element={<AuthLayout><LoginPage /></AuthLayout>} />
-          <Route path="/admin/login" element={<Navigate to="/" replace />} />
-          <Route path="/trade/login" element={<Navigate to="/" replace />} />
-          <Route path="/rimi/login" element={<Navigate to="/" replace />} />
-          <Route path="/digital/login" element={<Navigate to="/" replace />} />
+          {/* ── Official FEREX Education Website & Login Portal ── */}
+          <Route path="/" element={<FerexLandingPage />} />
+          <Route path="/login" element={<AuthLayout><LoginPage /></AuthLayout>} />
+          <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+          <Route path="/trade/login" element={<Navigate to="/login" replace />} />
+          <Route path="/rimi/login" element={<Navigate to="/login" replace />} />
+          <Route path="/digital/login" element={<Navigate to="/login" replace />} />
 
           {/* ── Student Routes ── */}
           <Route path="/student/dashboard" element={<StudentLayout><StudentDashboard /></StudentLayout>} />
@@ -207,15 +217,18 @@ function App() {
           <Route path="/student/notifications" element={<StudentLayout><Notifications /></StudentLayout>} />
           <Route path="/student/profile" element={<StudentLayout><MyProfile /></StudentLayout>} />
           <Route path="/student/visa-tracker" element={<StudentLayout><VisaTracker /></StudentLayout>} />
+          <Route path="/student/pre-departure" element={<StudentLayout><PreDeparture /></StudentLayout>} />
 
           {/* ── Admin Routes ── */}
           <Route path="/admin/dashboard" element={<ProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/students" element={<ProtectedRoute><AdminLayout><AdminStudents /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/universities" element={<ProtectedRoute><AdminLayout><AdminUniversities /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/visa-tracker" element={<ProtectedRoute><AdminLayout><AdminVisaTracker /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/pre-departure" element={<ProtectedRoute><AdminLayout><AdminPreDeparture /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/tasks" element={<ProtectedRoute><AdminLayout><AdminTaskManagement /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/applications" element={<ProtectedRoute><AdminLayout><AdminApplications /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/documents" element={<ProtectedRoute><AdminLayout><AdminDocumentReview /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/nawa" element={<ProtectedRoute><AdminLayout><AdminNawaTracker /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/payments" element={<ProtectedRoute><AdminLayout><AdminPayments /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/support" element={<ProtectedRoute><AdminLayout><AdminSupportTickets /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/chat" element={<ProtectedRoute><AdminLayout><AdminChatSupport /></AdminLayout></ProtectedRoute>} />

@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, CheckCircle2, X, MessageSquare, Clock, 
-  HelpCircle, Send, AlertCircle, RefreshCw, ChevronRight, Plus, User
+  HelpCircle, Send, RefreshCw, Plus, User
 } from 'lucide-react';
 import { useTickets } from '../hooks/useTickets';
 import { getTicketReplies } from '../lib/api/tickets';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 const QUICK_REPLIES = [
   "Thank you for the update!",
@@ -48,7 +47,7 @@ const PRIORITY_COLORS: Record<TicketPriority, string> = {
 
 export const SupportTickets: React.FC = () => {
   const { user, profile } = useAuth();
-  const { tickets: dbTickets, reply: sendReplyApi, newTicket, changeStatus, loading, refresh } = useTickets(user?.id);
+  const { tickets: dbTickets, reply: sendReplyApi, newTicket, loading, refresh } = useTickets(user?.id);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 

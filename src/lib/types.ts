@@ -11,6 +11,7 @@ export interface UserProfile {
   must_change_password?: boolean;
   department?: string;
   permissions?: { label: string; enabled: boolean }[];
+  assigned_counselor?: string;
 }
 
 export interface PaymentInstallment {
@@ -60,7 +61,7 @@ export interface Application {
   student_id: string;
   university_id: string;
   course: string;
-  status: 'Draft' | 'Submitted' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Rejected' | 'Withdrawn';
+  status: 'Draft' | 'Submitted' | 'NAWA Review' | 'NAWA Submitted' | 'NAWA Approved' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Approved' | 'Enrolled' | 'Closed' | 'Rejected' | 'Withdrawn';
   applied_date: string;
   notes: string;
   offer_letter_url?: string;
@@ -104,7 +105,7 @@ export interface StudentDocument {
   file_url: string;
   file_size: string;
   doc_type: 'Identification' | 'Language Test' | 'Transcripts' | 'Recommendation' | 'Medical Check' | 'Other';
-  status: 'Pending Verification' | 'Approved' | 'Rejected' | 'Re-upload Requested';
+  status: 'Submitted' | 'Under Review' | 'Approved' | 'Rejected' | 'Re-upload Requested' | 'Pending Verification';
   reviewer_id: string | null;
   reviewer_notes: string;
   uploaded_at: string;
@@ -117,19 +118,27 @@ export interface Payment {
   id: string;
   student_id: string;
   student_name?: string;
+  business?: string;                // e.g. 'FEREX EU Admissions'
   ref_no: string;
+  transaction_id?: string;          // gateway/bank transaction reference
   title?: string;
   description: string;
   amount: number;
-  currency: string;
-  payment_type?: string;
-  status: 'Pending' | 'Pending Verification' | 'Paid' | 'Verified' | 'Rejected' | 'Overdue' | 'Cancelled';
+  partial_amount?: number;          // amount paid so far for partial payments
+  currency: string;                 // always INR
+  payment_type?: 'Service Charge' | 'Application Fee' | 'Visa Fee' | 'Counseling Fee' | 'Installment Fee' | 'Registration Fee' | string;
+  payment_method?: 'card' | 'UPI' | 'net_banking' | 'wallet' | 'bank_transfer' | string;
+  status: 'Pending' | 'Pending Verification' | 'Paid' | 'Verified' | 'Rejected' | 'Overdue' | 'Cancelled' | 'Refunded' | 'Partial';
+  milestone_step?: number;          // which journey step (1–12) this payment belongs to
   due_date: string | null;
   paid_at: string | null;
-  payment_method: string;
   utr_number?: string;
   receipt_url?: string;
+  refund_amount?: number;
+  refund_reason?: string;
+  credit_note_no?: string;
   reviewer_notes?: string;
+  reminder_sent_at?: string | null;
   created_at: string;
   // joined
   users?: UserProfile;
@@ -156,7 +165,22 @@ export interface Receipt {
   description: string;
   amount: number;
   currency: string;
+  payment_method?: string;
   issued_at: string;
+  created_at?: string;
+}
+
+export interface CreditNote {
+  id: string;
+  student_id: string;
+  payment_id: string | null;
+  credit_note_no: string;
+  original_amount: number;
+  refund_amount: number;
+  currency: string;
+  reason: string;
+  issued_at: string;
+  created_at?: string;
 }
 
 export interface Meeting {
@@ -230,7 +254,7 @@ export interface Notification {
   body: string;
   category: string;
   is_read: boolean;
-  link: string;
+  link?: string;
   created_at: string;
 }
 

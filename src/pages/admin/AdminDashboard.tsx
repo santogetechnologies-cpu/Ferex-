@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, FileCheck, FolderOpen, CreditCard, Headphones, Clock,
-  Activity, BarChart3, Clock3,
-  ArrowUpRight, ArrowRight, UserPlus, FilePlus, Plus, Sparkles
+  Users, FileCheck, FolderOpen, CreditCard, Headphones,
+  Activity, Clock3,
+  ArrowUpRight, ArrowRight, UserPlus, Plus, Sparkles
 } from 'lucide-react';
 import { getAdminDashboardStats } from '../../lib/api/dashboard';
 import { useStudents } from '../../hooks/useStudents';
@@ -26,27 +26,24 @@ export const AdminDashboard: React.FC = () => {
   ]);
 
   useEffect(() => {
-    getAdminDashboardStats().then(stats => {
-      setStatCards([
-        { label: 'Total Students', value: String(stats.totalStudents), change: 'Live from DB', icon: Users, color: 'bg-blue-50 text-blue-600 border-blue-100', trend: 'up', path: '/admin/students' },
-        { label: 'Active Applications', value: String(stats.activeApplications), change: 'Live from DB', icon: FileCheck, color: 'bg-violet-50 text-violet-600 border-violet-100', trend: 'up', path: '/admin/applications' },
-        { label: 'Pending Applications', value: String(stats.pendingApplications), change: 'Review Needed', icon: Clock3, color: 'bg-amber-50 text-amber-700 border-amber-200', trend: 'down', path: '/admin/applications' },
-        { label: 'Pending Documents', value: String(stats.pendingDocuments), change: 'Vault Verification', icon: FolderOpen, color: 'bg-orange-50 text-orange-600 border-orange-100', trend: 'down', path: '/admin/documents' },
-        { label: 'Pending Payments', value: `₹${stats.pendingPaymentsAmount.toLocaleString()}`, change: 'Fee Verification', icon: CreditCard, color: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20', trend: 'up', path: '/admin/payments' },
-        { label: 'Open Tickets', value: String(stats.openTickets), change: 'Support Queue', icon: Headphones, color: 'bg-red-50 text-red-600 border-red-100', trend: 'down', path: '/admin/support' },
-      ]);
-    }).catch(() => { });
+    const fetchStats = () => {
+      getAdminDashboardStats().then(stats => {
+        setStatCards([
+          { label: 'Total Students', value: String(stats.totalStudents), change: 'Live from DB', icon: Users, color: 'bg-blue-50 text-blue-600 border-blue-100', trend: 'up', path: '/admin/students' },
+          { label: 'Active Applications', value: String(stats.activeApplications), change: 'Live from DB', icon: FileCheck, color: 'bg-violet-50 text-violet-600 border-violet-100', trend: 'up', path: '/admin/applications' },
+          { label: 'Pending Applications', value: String(stats.pendingApplications), change: 'Review Needed', icon: Clock3, color: 'bg-amber-50 text-amber-700 border-amber-200', trend: 'down', path: '/admin/applications' },
+          { label: 'Pending Documents', value: String(stats.pendingDocuments), change: 'Vault Verification', icon: FolderOpen, color: 'bg-orange-50 text-orange-600 border-orange-100', trend: 'down', path: '/admin/documents' },
+          { label: 'Pending Payments', value: `₹${stats.pendingPaymentsAmount.toLocaleString('en-IN')}`, change: `${stats.pendingPaymentsCount} Pending Request${stats.pendingPaymentsCount === 1 ? '' : 's'}`, icon: CreditCard, color: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20', trend: 'up', path: '/admin/payments' },
+          { label: 'Open Tickets', value: String(stats.openTickets), change: 'Support Queue', icon: Headphones, color: 'bg-red-50 text-red-600 border-red-100', trend: 'down', path: '/admin/support' },
+        ]);
+      }).catch(() => { });
+    };
+
+    fetchStats();
+    window.addEventListener('ferex_payment_change', fetchStats);
+    return () => window.removeEventListener('ferex_payment_change', fetchStats);
   }, []);
 
-  // Map enrolled students dynamically from DB
-  const recentStudents = dbStudents.slice(0, 5).map(s => ({
-    id: s.id,
-    name: s.full_name || s.email.split('@')[0],
-    country: 'India',
-    university: 'Target University',
-    status: 'Active',
-    statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-  }));
 
   // Dynamic application pipeline calculation
   const totalApps = dbApps.length || 1;

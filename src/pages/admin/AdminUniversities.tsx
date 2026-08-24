@@ -1,12 +1,42 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, Plus, Building2, MapPin, Star, Award, Trash2, X, CheckCircle2, Edit2,
-  Calendar, DollarSign, Layers, BookOpen, ChevronRight, Eye, GraduationCap
+  Search, Plus, Building2, MapPin, Trash2, X, CheckCircle2, Edit2,
+  Calendar, DollarSign, Layers, ChevronRight, Eye, GraduationCap
 } from 'lucide-react';
 import { useUniversities } from '../../hooks/useUniversities';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../../lib/types';
+
+export function formatFeeEURandINR(feeStr?: string): string {
+  if (!feeStr || feeStr === 'N/A' || feeStr === '—') return '—';
+  if (feeStr.includes('₹') && feeStr.includes('€')) return feeStr;
+
+  const cleanStr = feeStr.replace(/,/g, '');
+  const numMatch = cleanStr.match(/(\d+)/);
+  if (!numMatch) return feeStr;
+
+  const amount = parseInt(numMatch[1], 10);
+  if (isNaN(amount) || amount === 0) return feeStr;
+
+  const hasPerYear = feeStr.includes('/ yr') || feeStr.includes('/yr') || feeStr.includes('year') || feeStr.includes('/ year');
+  const suffix = hasPerYear ? ' / yr' : '';
+
+  if (feeStr.includes('€') || feeStr.toLowerCase().includes('eur') || feeStr.toLowerCase().includes('euro')) {
+    const inrVal = Math.round(amount * 90);
+    return `€${amount.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+  } else if (feeStr.includes('₹') || feeStr.toLowerCase().includes('inr') || feeStr.toLowerCase().includes('rs')) {
+    const eurVal = Math.round(amount / 90);
+    return `₹${amount.toLocaleString('en-IN')}${suffix} (~€${eurVal.toLocaleString('en-US')}${suffix})`;
+  } else if (feeStr.includes('$') || feeStr.toLowerCase().includes('usd')) {
+    const eurVal = Math.round(amount * 0.92);
+    const inrVal = Math.round(amount * 83);
+    return `$${amount.toLocaleString('en-US')} (€${eurVal.toLocaleString('en-US')} / ~₹${inrVal.toLocaleString('en-IN')})`;
+  }
+
+  const inrVal = Math.round(amount * 90);
+  return `€${amount.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+}
 
 export const AdminUniversities: React.FC = () => {
   const { universities, loading, addUniversity, updateUniversity, removeUniversity } = useUniversities();
@@ -93,7 +123,7 @@ export const AdminUniversities: React.FC = () => {
     }));
   };
 
-  const handleOpenAddModal = () => {
+  const resetForm = () => {
     setEditingId(null);
     setName('');
     setCity('');
@@ -101,7 +131,8 @@ export const AdminUniversities: React.FC = () => {
     setRanking('');
     setRating('');
     setTuition('');
-    setSelectedIntakes(config.global_active_intakes || []);
+    setSelectedIntakes([]);
+    setCustomIntakeInput('');
     setUniversityFee('');
     setVfsFee(config.default_vfs_fee || '');
     setAgencyFee(config.default_agency_fee || '');
@@ -109,6 +140,10 @@ export const AdminUniversities: React.FC = () => {
     setInstallmentsList([]);
     setSemestersList([]);
     setActiveFormTab('general');
+  };
+
+  const handleOpenAddModal = () => {
+    resetForm();
     setShowAddModal(true);
   };
 
@@ -281,7 +316,6 @@ export const AdminUniversities: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(u => {
             const displayIntakes = u.intakes || ['Fall 2026', 'Spring 2026'];
-            const uFee = u.university_fee || u.tuition_range || '€4,500';
             const vFee = u.vfs_fee || '$190';
             const aFee = u.agency_fee || '$500';
 
@@ -345,18 +379,24 @@ export const AdminUniversities: React.FC = () => {
                   </div>
 
                   {/* Fee Breakdown Matrix */}
-                  <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-100 space-y-1.5 text-xs font-semibold my-3">
-                    <div className="flex justify-between items-center text-slate-600">
-                      <span className="text-[10.5px]">University Fee:</span>
-                      <span className="font-extrabold text-slate-900">{uFee}</span>
+                  <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/60 space-y-2 text-xs font-semibold my-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 shrink-0">Tuition Range:</span>
+                      <span className="font-black text-slate-900 text-right text-[11px] bg-white px-2.5 py-0.5 rounded-lg border border-slate-200/80 shadow-2xs truncate">
+                        {formatFeeEURandINR(u.tuition_range || u.university_fee || u.course_programs?.[0]?.tuition_fee)}
+                      </span>
                     </div>
-                    <div className="flex justify-between items-center text-slate-600">
-                      <span className="text-[10.5px]">VFS Visa Fee:</span>
-                      <span className="font-extrabold text-slate-900">{vFee}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 shrink-0">VFS Visa Fee:</span>
+                      <span className="font-extrabold text-slate-800 text-right text-[11px] bg-white px-2.5 py-0.5 rounded-lg border border-slate-200/80 shrink-0">
+                        {formatFeeEURandINR(vFee)}
+                      </span>
                     </div>
-                    <div className="flex justify-between items-center text-slate-600">
-                      <span className="text-[10.5px]">Agency Fee:</span>
-                      <span className="font-extrabold text-slate-900">{aFee}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 shrink-0">Agency Fee:</span>
+                      <span className="font-extrabold text-slate-800 text-right text-[11px] bg-white px-2.5 py-0.5 rounded-lg border border-slate-200/80 shrink-0">
+                        {formatFeeEURandINR(aFee)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -432,14 +472,14 @@ export const AdminUniversities: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Course Programs with Tuition Fees */}
+                {/* Course Programs with Specific Tuition Fees */}
                 <div>
                   <h4 className="text-xs font-extrabold uppercase text-slate-400 tracking-wider mb-2 flex items-center gap-1.5">
-                    <GraduationCap className="w-3.5 h-3.5 text-[#6A1B2E]" /> Offered Courses & Specific Tuition Fees
+                    <GraduationCap className="w-3.5 h-3.5 text-[#6A1B2E]" /> Offered Courses & Specific Tuition Fees (EUR & INR)
                   </h4>
                   <div className="space-y-2">
                     {(viewUniversity.course_programs || viewUniversity.programs?.map((p, i) => ({
-                      id: String(i), name: p, degree_level: 'Master', tuition_fee: viewUniversity.university_fee || '€4,500 / yr', duration: '2 Years'
+                      id: String(i), name: p, degree_level: 'Master', tuition_fee: '€4,500 / yr', duration: '2 Years'
                     })) || []).map((course, idx) => (
                       <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex justify-between items-center">
                         <div>
@@ -447,22 +487,26 @@ export const AdminUniversities: React.FC = () => {
                           <p className="text-[10px] font-semibold text-slate-400">{course.degree_level} · {course.duration || '2 Years'}</p>
                         </div>
                         <span className="font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                          {course.tuition_fee}
+                          {formatFeeEURandINR(course.tuition_fee)}
                         </span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Fee Breakdown Table */}
+                {/* Standard Fee Matrix */}
                 <div>
                   <h4 className="text-xs font-extrabold uppercase text-slate-400 tracking-wider mb-2 flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-[#6A1B2E]" /> Standard Fee Matrix (Tuition + VFS + Agency)
+                    <DollarSign className="w-3.5 h-3.5 text-[#6A1B2E]" /> Standard Fee Matrix (VFS Visa & Agency Services)
                   </h4>
-                  <div className="bg-slate-50 rounded-xl border border-slate-200/80 overflow-hidden text-xs">
+                  <div className="bg-slate-50 rounded-xl border border-slate-200/80 overflow-hidden text-xs divide-y divide-slate-100">
                     <div className="flex justify-between p-3">
-                      <span className="font-bold text-slate-600">Base University Fee</span>
-                      <span className="font-extrabold text-slate-900">{viewUniversity.university_fee || viewUniversity.tuition_range || 'N/A'}</span>
+                      <span className="font-bold text-slate-600">VFS Visa Process Fee</span>
+                      <span className="font-extrabold text-slate-900">{formatFeeEURandINR(viewUniversity.vfs_fee || '$190')}</span>
+                    </div>
+                    <div className="flex justify-between p-3">
+                      <span className="font-bold text-slate-600">Agency Counseling & Legalization Fee</span>
+                      <span className="font-extrabold text-slate-900">{formatFeeEURandINR(viewUniversity.agency_fee || '$500')}</span>
                     </div>
                   </div>
                 </div>
@@ -534,8 +578,7 @@ export const AdminUniversities: React.FC = () => {
                 {[
                   { id: 'general', label: '1. General & Intakes' },
                   { id: 'courses', label: '2. Courses & Tuition Fees' },
-                  { id: 'fees', label: '3. Tuition Fee' },
-                  { id: 'semesters', label: '4. Syllabus' },
+                  { id: 'semesters', label: '3. Syllabus' },
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -741,28 +784,7 @@ export const AdminUniversities: React.FC = () => {
                   </div>
                 )}
 
-                {/* TAB 3: Base Tuition Fee */}
-                {activeFormTab === 'fees' && (
-                  <div className="space-y-4">
-                    <p className="text-xs font-semibold text-slate-500">
-                      Define the base university tuition fee for this institution.
-                    </p>
 
-                    <div>
-                      <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                        Base University Tuition Fee *
-                      </label>
-                      <input
-                        required
-                        type="text"
-                        value={universityFee}
-                        onChange={(e) => setUniversityFee(e.target.value)}
-                        placeholder="e.g. ₹3,50,000 / yr"
-                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                      />
-                    </div>
-                  </div>
-                )}
 
                 {/* TAB 5: Semester Details */}
                 {activeFormTab === 'semesters' && (

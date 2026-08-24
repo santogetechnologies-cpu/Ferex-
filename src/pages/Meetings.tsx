@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar as CalendarIcon, Clock, User, Video, Mic, MicOff, VideoOff, PhoneOff, ChevronLeft, ChevronRight, Plus, X, Sparkles, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, User, Video, Mic, MicOff, VideoOff, PhoneOff, ChevronLeft, ChevronRight, Plus, X, Sparkles, Trash2, MapPin } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,7 +50,7 @@ export const Meetings: React.FC = () => {
   };
 
   // Video call states
-  const [activeCallSubject, setActiveCallSubject] = useState<string | null>(null);
+  const [activeCallInfo, setActiveCallInfo] = useState<{ subject: string; advisorName: string } | null>(null);
   const [micMuted, setMicMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
 
@@ -67,19 +67,17 @@ export const Meetings: React.FC = () => {
   const [subject, setSubject] = useState('Visa & Embassy Guidance Session');
   const [scheduledDate, setScheduledDate] = useState(getLocalDateString());
   const [startTime, setStartTime] = useState('10:00 AM');
-  const [counselorsList, setCounselorsList] = useState<string[]>(['Dr. Evelyn Carter', 'Riya Shah', 'Arjun Pillai', 'Meena Iyer']);
-  const [advisorName, setAdvisorName] = useState('Dr. Evelyn Carter');
+  const [counselorsList, setCounselorsList] = useState<string[]>([]);
+  const [advisorName, setAdvisorName] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   React.useEffect(() => {
     getStaffMembers().then(members => {
-      if (members && members.length > 0) {
-        const names = members.map(m => m.full_name || m.email.split('@')[0]);
-        setCounselorsList(names);
-        if (names.length > 0) {
-          setAdvisorName(names[0]);
-        }
+      const names = (members || []).map(m => m.full_name || m.email.split('@')[0]).filter(Boolean);
+      setCounselorsList(names);
+      if (names.length > 0) {
+        setAdvisorName(names[0]);
       }
     }).catch(() => {});
   }, []);
@@ -122,9 +120,10 @@ export const Meetings: React.FC = () => {
     advisor: m.advisor_name || 'Academic Advisor',
     status: m.status || 'Scheduled',
     active: m.status === 'Scheduled' || m.status === 'Rescheduled' || (m.status as string) === 'Confirmed',
+    meetingLink: m.meeting_link || 'https://meet.google.com/fer-exed-app',
+    notes: m.notes || '',
   }));
 
-  const calendarDays = Array.from({ length: 31 }, (_, i) => i + 1);
 
   return (
     <div className="space-y-6 text-left relative min-h-[600px]">
@@ -266,18 +265,43 @@ export const Meetings: React.FC = () => {
                         <User className="w-4 h-4 text-slate-400 shrink-0" />
                         <span className="truncate max-w-[200px]">{meet.advisor}</span>
                       </div>
+                      {meet.meetingLink.startsWith('http') ? (
+                        <div className="flex items-center gap-2 text-blue-600 font-extrabold text-[11px]">
+                          <Video className="w-4 h-4 text-blue-500 shrink-0" />
+                          <span className="truncate max-w-[200px]">Online Video Consultation</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-amber-700 font-extrabold text-[11px]">
+                          <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span className="truncate max-w-[200px]">{meet.meetingLink}</span>
+                        </div>
+                      )}
+                      {meet.notes && (
+                        <p className="text-[10px] text-slate-400 font-semibold italic mt-1 leading-snug">
+                          Note: {meet.notes}
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 mt-4">
                     {meet.active && (
-                      <Button
-                        size="sm"
-                        className="flex-1 text-xs font-bold h-9 flex items-center justify-center gap-1.5 shadow-none"
-                        onClick={() => setActiveCallSubject(meet.subject)}
-                      >
-                        <Video className="w-4 h-4" /> Join Call
-                      </Button>
+                      meet.meetingLink.startsWith('http') ? (
+                        <Button
+                          size="sm"
+                          className="flex-1 text-xs font-bold h-9 flex items-center justify-center gap-1.5 shadow-none"
+                          onClick={() => {
+                            window.open(meet.meetingLink, '_blank');
+                            setActiveCallInfo({ subject: meet.subject, advisorName: meet.advisor });
+                          }}
+                        >
+                          <Video className="w-4 h-4" /> Join Online Call
+                        </Button>
+                      ) : (
+                        <div className="flex-1 text-[11px] font-black text-center text-amber-700 bg-amber-50 border border-amber-200 py-2 rounded-xl">
+                          📍 Attend In-Person
+                        </div>
+                      )
                     )}
                     <button
                       onClick={() => handleDeleteCall(meet.id, meet.subject)}
@@ -373,12 +397,12 @@ export const Meetings: React.FC = () => {
 
       {/* Video Call Modal */}
       <AnimatePresence>
-        {activeCallSubject && (
+        {activeCallInfo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[520px]">
               <div className="p-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-black text-white">{activeCallSubject}</h3>
+                  <h3 className="text-sm font-black text-white">{activeCallInfo.subject}</h3>
                   <p className="text-[10px] font-semibold text-slate-400 flex items-center gap-1.5 mt-0.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Video Connection Connected
                   </p>
@@ -388,9 +412,11 @@ export const Meetings: React.FC = () => {
               <div className="flex-1 p-4 grid grid-cols-1 md:grid-cols-2 gap-4 relative bg-slate-950">
                 <div className="bg-slate-900 rounded-2xl flex items-center justify-center relative border border-slate-800">
                   <div className="text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-[#6A1B2E] text-white font-black text-xl flex items-center justify-center mx-auto mb-2 shadow-lg">EC</div>
-                    <span className="text-xs font-extrabold text-white">Dr. Evelyn Carter</span>
-                    <span className="text-[10px] font-semibold text-slate-400 block mt-0.5">Academic Lead Advisor</span>
+                    <div className="w-16 h-16 rounded-2xl bg-[#6A1B2E] text-white font-black text-xl flex items-center justify-center mx-auto mb-2 shadow-lg">
+                      {activeCallInfo.advisorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'ADV'}
+                    </div>
+                    <span className="text-xs font-extrabold text-white">{activeCallInfo.advisorName || 'Assigned Counselor'}</span>
+                    <span className="text-[10px] font-semibold text-slate-400 block mt-0.5">Admissions Advisor</span>
                   </div>
                 </div>
 
@@ -413,7 +439,7 @@ export const Meetings: React.FC = () => {
                 <button onClick={() => setVideoOff(!videoOff)} className={`p-3 rounded-full ${videoOff ? 'bg-red-500 text-white' : 'bg-slate-800 text-white hover:bg-slate-700'}`}>
                   {videoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
                 </button>
-                <button onClick={() => setActiveCallSubject(null)} className="p-3 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold text-xs flex items-center gap-1.5 px-5 shadow-md">
+                <button onClick={() => setActiveCallInfo(null)} className="p-3 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold text-xs flex items-center gap-1.5 px-5 shadow-md">
                   <PhoneOff className="w-5 h-5" /> End Call
                 </button>
               </div>

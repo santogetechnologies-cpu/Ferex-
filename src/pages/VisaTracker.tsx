@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Calendar, MapPin, Truck, CheckCircle2, FileText, Navigation, Clock, Lock, ArrowRight, Award, RefreshCw, AlertCircle, Sparkles, XCircle } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Clock, Lock, ArrowRight, RefreshCw, Sparkles, XCircle } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,15 +25,19 @@ export const VisaTracker: React.FC = () => {
   // Workflow Gating Checks: Offer Acceptance -> 2nd Installment Payment -> Final Acceptance Letter -> VFS Visa
   const hasOfferAccepted = applications.some(a => (a.status as string) === 'Accepted' || (a.status as string) === 'Final Acceptance Issued');
 
-  const inst2Paid = payments.some(p =>
-    (p.description?.includes('2nd') || p.description?.includes('2') || p.payment_type?.includes('2nd')) &&
-    (p.status === 'Paid' || p.status === 'Verified')
-  );
+  const checkPaymentStage = (p: any, stageNum: number) => {
+    if (p.stage_number !== undefined && p.stage_number !== null) {
+      return Number(p.stage_number) === stageNum;
+    }
+    const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
+    if (stageNum === 1) return text.includes('1st') || text.includes('stage 1') || text.includes('registration fee') || text.includes('audit deposit');
+    if (stageNum === 2) return text.includes('2nd') || text.includes('stage 2') || text.includes('tuition fee');
+    if (stageNum === 3) return text.includes('3rd') || text.includes('stage 3') || text.includes('vfs') || text.includes('visa clearance');
+    return false;
+  };
 
-  const inst3Paid = payments.some(p =>
-    (p.description?.includes('3rd') || p.description?.includes('3') || p.payment_type?.includes('3rd')) &&
-    (p.status === 'Paid' || p.status === 'Verified')
-  );
+  const inst2Paid = payments.some(p => checkPaymentStage(p, 2) && (p.status === 'Paid' || p.status === 'Verified'));
+  const inst3Paid = payments.some(p => checkPaymentStage(p, 3) && (p.status === 'Paid' || p.status === 'Verified'));
 
   // Final Acceptance Letter strictly requires Admin release / upload
   const hasFinalAcceptanceDoc = documents.some(d =>
@@ -50,26 +54,26 @@ export const VisaTracker: React.FC = () => {
 
   const foundRecord = records.find(r =>
     (user?.id && r.student_id === user.id) ||
-    (r.student_name && studentName.toLowerCase().includes(r.student_name.toLowerCase()))
+    (user?.email && r.student_email && r.student_email.toLowerCase() === user.email.toLowerCase())
   );
 
-  const defaultVisaRecord = {
-    id: user?.id || 'vfs-default',
+  const initialPendingRecord = {
+    id: user?.id || 'vfs-pending',
     student_id: user?.id || '',
     student_name: studentName,
-    vfs_ref_no: 'VFS-EUR-2026-89412',
-    embassy_name: 'European Consular Embassy',
+    vfs_ref_no: 'Awaiting Admin Booking',
+    embassy_name: 'Polish Embassy & Consular Department',
     vfs_center: 'VFS Global Application Center',
-    appointment_date: 'Slot Reserved',
-    passport_no: 'Verified in Vault',
-    courier_tracking_no: 'BLUEDART-89041256',
-    current_stage: 6, // At Stage 6 (Passport Received), verdict is unsealed & revealed
-    status_label: 'Passport Received & Verdict Confirmed',
+    appointment_date: 'Not Scheduled Yet',
+    passport_no: 'Pending Vault Verification',
+    courier_tracking_no: 'Not Assigned',
+    current_stage: 1, // Stage 1 (Awaiting Appointment Booking)
+    status_label: 'Awaiting VFS Appointment Initiation by Admin',
     decision_outcome: 'Pending',
-    notes: 'Passport delivered by courier. Consular verdict envelope unsealed.'
+    notes: 'VFS Visa process will be initiated by FEREX Admin after Final Acceptance Letter release.'
   };
 
-  const visaRecord = foundRecord || defaultVisaRecord;
+  const visaRecord = foundRecord || initialPendingRecord;
 
   // Decision outcome strictly controlled by Agency in Admin Panel
   const rawOutcome = (visaRecord as any)?.decision_outcome ||
@@ -408,7 +412,13 @@ export const VisaTracker: React.FC = () => {
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                 <span className="text-slate-400">Courier Parcel:</span>
-                <span className="font-mono text-emerald-700 font-extrabold">{visaRecord.courier_tracking_no || 'BLUEDART-89041256'}</span>
+                {currentStageNum >= 5 && visaRecord.courier_tracking_no ? (
+                  <span className="font-mono text-emerald-700 font-extrabold">{visaRecord.courier_tracking_no}</span>
+                ) : currentStageNum >= 5 ? (
+                  <span className="text-amber-700 font-bold text-[11px]">Dispatched (Tracking Awaited)</span>
+                ) : (
+                  <span className="text-slate-400 font-bold text-[11px]">Available upon dispatch (Stage 5)</span>
+                )}
               </div>
             </div>
           </Card>

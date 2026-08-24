@@ -13,8 +13,8 @@ export async function getAdminDashboardStats() {
       supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student'),
       supabase.from('applications').select('*', { count: 'exact', head: true }),
       supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['Submitted', 'Under Review']),
-      supabase.from('student_documents').select('*'),
-      supabase.from('payments').select('*'),
+      supabase.from('student_documents').select('status'),
+      supabase.from('payments').select('status, amount'),
       supabase.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['Open', 'Pending', 'In Progress'])
     ]);
 
@@ -25,19 +25,19 @@ export async function getAdminDashboardStats() {
 
     // Live Pending Payments count & total pending amount
     const pendingPayments = (paymentsData ?? []).filter((p: any) =>
-      p.status === 'Pending Verification' || p.status === 'Pending' || p.status === 'Submitted'
+      p.status === 'Pending Verification' || p.status === 'Pending' || p.status === 'Submitted' || p.status === 'Overdue'
     );
 
     const pendingPaymentsCount = pendingPayments.length;
-    const pendingPaymentsAmount = pendingPayments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 15000), 0);
+    const pendingPaymentsAmount = pendingPayments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
 
     return {
-      totalStudents: totalStudents ?? (docsData?.length || 0),
+      totalStudents: totalStudents ?? 0,
       activeApplications: activeApplications ?? 0,
       pendingApplications: pendingApplications ?? 0,
-      pendingDocuments: pendingDocsCount > 0 ? pendingDocsCount : (docsData?.length ? Math.min(docsData.length, 3) : 0),
+      pendingDocuments: pendingDocsCount,
       pendingPaymentsCount: pendingPaymentsCount,
-      pendingPaymentsAmount: pendingPaymentsAmount > 0 ? pendingPaymentsAmount : 15000,
+      pendingPaymentsAmount: pendingPaymentsAmount,
       openTickets: openTickets ?? 0,
       todaysMeetings: 2,
     };
@@ -54,3 +54,4 @@ export async function getAdminDashboardStats() {
     };
   }
 }
+

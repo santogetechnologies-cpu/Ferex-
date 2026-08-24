@@ -41,14 +41,23 @@ export function getSystemFeeConfig(): SystemFeeConfig {
 
 export async function fetchSystemFeeConfigAsync(): Promise<SystemFeeConfig> {
   try {
-    const { data } = await supabase.from('system_config').select('value').eq('key', 'fee_config').maybeSingle();
-    if (data?.value) {
-      const merged = { ...DEFAULT_FEE_CONFIG, ...data.value };
+    // Query Supabase system_config table directly
+    const { data: sysRes } = await supabase
+      .from('system_config')
+      .select('value')
+      .eq('key', 'fee_config')
+      .maybeSingle();
+
+    if (sysRes?.value) {
+      const merged = { ...DEFAULT_FEE_CONFIG, ...sysRes.value };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       window.dispatchEvent(new Event('ferex_fee_config_change'));
       return merged;
     }
-  } catch (err) {}
+  } catch (err) {
+    console.warn('[fetchSystemFeeConfigAsync notice]:', err);
+  }
+
   return getSystemFeeConfig();
 }
 
@@ -57,16 +66,18 @@ export function saveSystemFeeConfig(config: SystemFeeConfig): SystemFeeConfig {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
     window.dispatchEvent(new Event('ferex_fee_config_change'));
   } catch (e) {
-    console.error('Error saving fee config:', e);
+    console.error('Error saving fee config local:', e);
   }
 
-  // Persist directly to Supabase system_config table
+  const payload = {
+    key: 'fee_config',
+    value: config,
+    updated_at: new Date().toISOString()
+  };
+
+  // Upsert directly into Supabase system_config table
   try {
-    supabase.from('system_config').upsert({
-      key: 'fee_config',
-      value: config,
-      updated_at: new Date().toISOString()
-    }).then();
+    supabase.from('system_config').upsert(payload, { onConflict: 'key' }).then();
   } catch (e) {}
 
   return config;

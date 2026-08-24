@@ -5,6 +5,8 @@ import {
   Clock, Paperclip, MessageSquare, AlertCircle, CheckSquare
 } from 'lucide-react';
 import { useTasks } from '../../hooks/useTasks';
+import { useAuth } from '../../contexts/AuthContext';
+import { getStaffMembers } from '../../lib/api/students';
 
 type Priority = 'High' | 'Medium' | 'Low';
 type TaskStatus = 'To Do' | 'In Progress' | 'Review' | 'Done';
@@ -47,20 +49,37 @@ const COLUMN_CONFIG: Record<TaskStatus, { color: string; dot: string }> = {
 const COLUMNS: TaskStatus[] = ['To Do', 'In Progress', 'Review', 'Done'];
 
 export const AdminTaskManagement: React.FC = () => {
-  const { tasks: dbTasks, addTask, changeStatus, loading } = useTasks();
+  const { user } = useAuth();
+  const { tasks: dbTasks, addTask, changeStatus, refresh } = useTasks();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [staffUsers, setStaffUsers] = useState<any[]>([]);
+  const [studentUsers, setStudentUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    getStaffMembers().then((list: any[]) => {
+      const staff = list.filter(u => u.role === 'Staff' || u.role === 'Counselor' || u.role === 'Admin');
+      const students = list.filter(u => u.role === 'Student');
+      setStaffUsers(staff);
+      setStudentUsers(students);
+      setNewTask(prev => ({
+        ...prev,
+        assigneeId: staff[0]?.id || '',
+        studentId: students[0]?.id || '',
+      }));
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const mapped = dbTasks.map(t => ({
       id: t.id,
       title: t.title,
       description: t.description || '',
-      assignee: t.assignee?.full_name || 'Unassigned',
+      assignee: t.assignee?.full_name || t.assignee?.email?.split('@')[0] || 'Unassigned',
       priority: (t.priority === 'Critical' ? 'High' : t.priority) as Priority,
       status: (t.status === 'Completed' ? 'Done' : t.status === 'Cancelled' ? 'To Do' : t.status) as TaskStatus,
       due: t.due_date || 'Ongoing',
       category: 'General',
-      studentName: t.student?.full_name || 'General Task',
+      studentName: t.student?.full_name || t.student?.email?.split('@')[0] || 'General Task',
       university: 'Education Portal',
       progress: t.status === 'Completed' ? 100 : t.status === 'In Progress' ? 50 : 0,
       subtasksCompleted: 0,
@@ -81,12 +100,11 @@ export const AdminTaskManagement: React.FC = () => {
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
-    assignee: STAFF[0],
+    assigneeId: '',
+    studentId: '',
     priority: 'Medium' as Priority,
     due: '',
     category: 'Documents',
-    studentName: 'Ashly',
-    university: 'University of Warsaw',
   });
 
   const [toast, setToast] = useState('');
@@ -96,52 +114,54 @@ export const AdminTaskManagement: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleStatusChange = (taskId: string, newStatus: TaskStatus) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id === taskId) {
-        const updatedProgress = newStatus === 'Done' ? 100 : t.progress === 100 ? 50 : t.progress;
-        return { ...t, status: newStatus, progress: updatedProgress };
-      }
-      return t;
-    }));
-    showToast(`Task ${taskId} moved to ${newStatus}`);
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      const dbStatus = newStatus === 'Done' ? 'Completed' : newStatus === 'In Progress' ? 'In Progress' : 'To Do';
+      await changeStatus(taskId, dbStatus as any);
+      setTasks(prev => prev.map(t => {
+        if (t.id === taskId) {
+          const updatedProgress = newStatus === 'Done' ? 100 : t.progress === 100 ? 50 : t.progress;
+          return { ...t, status: newStatus, progress: updatedProgress };
+        }
+        return t;
+      }));
+      showToast(`Task moved to ${newStatus}`);
+    } catch (err: any) {
+      showToast(`Error: ${err.message || 'Failed to update task status'}`);
+    }
   };
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTask.title.trim()) return;
 
-    const created: Task = {
-      id: `TK-${(tasks.length + 1).toString().padStart(3, '0')}`,
-      title: newTask.title.trim(),
-      description: newTask.description.trim(),
-      assignee: newTask.assignee,
-      priority: newTask.priority,
-      status: 'To Do',
-      due: newTask.due || 'Aug 15, 2026',
-      category: newTask.category,
-      studentName: newTask.studentName,
-      university: newTask.university,
-      progress: 0,
-      subtasksCompleted: 0,
-      subtasksTotal: 3,
-      attachmentsCount: 0,
-      commentsCount: 0,
-    };
+    try {
+      await addTask({
+        created_by: user?.id || 'demo-admin-id',
+        assigned_to: newTask.assigneeId || undefined,
+        student_id: newTask.studentId || undefined,
+        title: newTask.title.trim(),
+        description: newTask.description.trim(),
+        priority: (newTask.priority === 'High' ? 'High' : newTask.priority === 'Low' ? 'Low' : 'Medium') as any,
+        due_date: newTask.due || undefined,
+      });
 
-    setTasks([created, ...tasks]);
-    setShowCreate(false);
-    setNewTask({
-      title: '',
-      description: '',
-      assignee: STAFF[0],
-      priority: 'Medium',
-      due: '',
-      category: 'Documents',
-      studentName: 'Ashly',
-      university: 'University of Warsaw',
-    });
-    showToast(`Task ${created.id} created successfully`);
+      refresh();
+      setShowCreate(false);
+
+      setNewTask({
+        title: '',
+        description: '',
+        assigneeId: staffUsers[0]?.id || '',
+        studentId: studentUsers[0]?.id || '',
+        priority: 'Medium',
+        due: '',
+        category: 'Documents',
+      });
+      showToast(`🎉 Operational task created and synced to Supabase successfully!`);
+    } catch (err: any) {
+      showToast(`Error creating task: ${err.message || 'Failed'}`);
+    }
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -511,24 +531,39 @@ export const AdminTaskManagement: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Assignee</label>
-                    <select value={newTask.assignee} onChange={e => setNewTask({ ...newTask, assignee: e.target.value })} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900">
-                      {STAFF.map(s => <option key={s}>{s}</option>)}
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Assignee (Staff)</label>
+                    <select value={newTask.assigneeId} onChange={e => setNewTask({ ...newTask, assigneeId: e.target.value })} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold">
+                      {staffUsers.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.full_name || s.email.split('@')[0]}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Associated Student</label>
+                    <select value={newTask.studentId} onChange={e => setNewTask({ ...newTask, studentId: e.target.value })} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold">
+                      <option value="">General Task (No Student)</option>
+                      {studentUsers.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.full_name || s.email.split('@')[0]} ({s.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Priority</label>
-                    <select value={newTask.priority} onChange={e => setNewTask({ ...newTask, priority: e.target.value as Priority })} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900">
+                    <select value={newTask.priority} onChange={e => setNewTask({ ...newTask, priority: e.target.value as Priority })} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold">
                       <option>High</option>
                       <option>Medium</option>
                       <option>Low</option>
                     </select>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Category</label>
-                    <select value={newTask.category} onChange={e => setNewTask({ ...newTask, category: e.target.value })} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900">
+                    <select value={newTask.category} onChange={e => setNewTask({ ...newTask, category: e.target.value })} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold">
                       <option>Documents</option>
                       <option>Applications</option>
                       <option>Visa</option>
@@ -538,7 +573,7 @@ export const AdminTaskManagement: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Due Date</label>
-                    <input type="text" value={newTask.due} onChange={e => setNewTask({ ...newTask, due: e.target.value })} placeholder="e.g. Aug 15, 2026" className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900" />
+                    <input type="text" value={newTask.due} onChange={e => setNewTask({ ...newTask, due: e.target.value })} placeholder="e.g. Aug 15, 2026" className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold" />
                   </div>
                 </div>
 

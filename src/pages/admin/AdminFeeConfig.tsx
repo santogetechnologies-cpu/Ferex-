@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DollarSign, Calendar, Percent, Layers, Save, CheckCircle2, Plus, Trash2, Sparkles, Building2, ShieldCheck, X } from 'lucide-react';
+import { DollarSign, Calendar, Percent, Save, Plus, Sparkles, X } from 'lucide-react';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
 
 export const AdminFeeConfig: React.FC = () => {

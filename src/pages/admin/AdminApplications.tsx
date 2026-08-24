@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, CheckCircle2, XCircle, X, ChevronDown, Sparkles, Upload, FileText, Download, Check, AlertCircle, Award } from 'lucide-react';
+import { Search, Eye, CheckCircle2, X, Sparkles, Upload, FileText, Download, Award, RefreshCw } from 'lucide-react';
 import { useApplications } from '../../hooks/useApplications';
 import { uploadOfferPdfToSupabase } from '../../lib/api/applications';
-import type { Application as ApiApplication } from '../../lib/types';
 
-type AppStatus = 'Submitted' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Visa Rejected' | 'Approved' | 'Closed' | 'Rejected' | 'Withdrawn';
+type AppStatus = 'Submitted' | 'NAWA Review' | 'NAWA Submitted' | 'NAWA Approved' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Visa Rejected' | 'Approved' | 'Closed' | 'Rejected' | 'Withdrawn';
 
 interface ApplicationItem {
   id: string;
@@ -25,6 +24,9 @@ interface ApplicationItem {
 
 const STATUS_COLORS: Record<AppStatus, string> = {
   'Submitted': 'bg-slate-50 text-slate-700 border-slate-200',
+  'NAWA Review': 'bg-amber-50 text-amber-800 border-amber-200 font-bold',
+  'NAWA Submitted': 'bg-indigo-50 text-indigo-800 border-indigo-200 font-black',
+  'NAWA Approved': 'bg-emerald-50 text-emerald-800 border-emerald-200 font-black',
   'Under Review': 'bg-blue-50 text-blue-700 border-blue-200',
   'Offer Issued': 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20 font-black',
   'Accepted': 'bg-emerald-50 text-emerald-800 border-emerald-200 font-black',
@@ -39,30 +41,26 @@ const STATUS_COLORS: Record<AppStatus, string> = {
 };
 
 export const AdminApplications: React.FC = () => {
-  const { applications: dbApps, changeStatus } = useApplications();
+  const { applications: dbApps, changeStatus, refresh } = useApplications();
   const [apps, setApps] = useState<ApplicationItem[]>([]);
 
   useEffect(() => {
-    if (dbApps.length > 0) {
-      const mapped = dbApps.map(a => ({
-        id: a.id,
-        studentId: a.student_id || 'STU-1001',
-        studentName: a.student_name || a.users?.full_name || a.users?.email?.split('@')[0] || 'Student',
-        university: a.university_name || a.universities?.name || 'Partner University',
-        country: a.universities?.country || 'Europe',
-        course: a.program_name || a.course || 'Higher Studies',
-        intake: a.intake || 'October 2026',
-        status: (a.status as AppStatus) || 'Submitted',
-        date: new Date(a.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        counselor: 'Education Team',
-        offerLetterUrl: a.offer_letter_url,
-        finalAcceptanceUrl: a.final_acceptance_url,
-        notes: a.notes,
-      }));
-      setApps(mapped);
-    } else {
-      setApps([]);
-    }
+    const mapped = (dbApps || []).map(a => ({
+      id: a.id,
+      studentId: a.student_id || 'STU-1001',
+      studentName: a.student_name || a.users?.full_name || a.users?.email?.split('@')[0] || 'Student',
+      university: (a.university_name && a.university_name !== 'Pending University Selection') ? a.university_name : (a.universities?.name || 'University Applied For'),
+      country: a.universities?.country || 'Europe',
+      course: a.program_name || a.course || 'Higher Studies',
+      intake: a.intake || 'October 2026',
+      status: (a.status as AppStatus) || 'Submitted',
+      date: new Date(a.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      counselor: 'Education Team',
+      offerLetterUrl: a.offer_letter_url,
+      finalAcceptanceUrl: a.final_acceptance_url,
+      notes: a.notes,
+    }));
+    setApps(mapped);
   }, [dbApps]);
 
   const [search, setSearch] = useState('');
@@ -142,7 +140,7 @@ export const AdminApplications: React.FC = () => {
 
       if (!finalPdfUrl) {
         const student = (offerModalApp.studentName || 'Student').replace(/[()\\]/g, '');
-        const univ = (offerModalApp.university || 'Partner European University').replace(/[()\\]/g, '');
+        const univ = (offerModalApp.university || 'University Applied For').replace(/[()\\]/g, '');
         const prog = (offerModalApp.course || 'Master Degree Program').replace(/[()\\]/g, '');
         const intake = (offerModalApp.intake || 'October 2026').replace(/[()\\]/g, '');
         const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -259,7 +257,7 @@ startxref
 
       if (!finalPdfUrl) {
         const student = (finalModalApp.studentName || 'Student').replace(/[()\\]/g, '');
-        const univ = (finalModalApp.university || 'Partner European University').replace(/[()\\]/g, '');
+        const univ = (finalModalApp.university || 'University Applied For').replace(/[()\\]/g, '');
         const prog = (finalModalApp.course || 'Master Degree Program').replace(/[()\\]/g, '');
         const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -359,7 +357,7 @@ startxref
     (a.studentName.toLowerCase().includes(search.toLowerCase()) || a.university.toLowerCase().includes(search.toLowerCase()) || a.id.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const statusCounts = ['All', 'Submitted', 'Under Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Approved', 'Closed', 'Rejected'].map(s => ({
+  const statusCounts = ['All', 'Submitted', 'NAWA Review', 'NAWA Submitted', 'NAWA Approved', 'Under Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Approved', 'Closed', 'Rejected'].map(s => ({
     label: s, count: s === 'All' ? apps.length : apps.filter(a => a.status === s).length
   }));
 
@@ -379,9 +377,17 @@ startxref
         )}
       </AnimatePresence>
 
-      <div>
-        <h1 className="text-xl font-extrabold text-slate-900">University Applications Control</h1>
-        <p className="text-xs font-semibold text-slate-400 mt-0.5">Manage, review, and issue official offer letters & final acceptance letters for all student applications</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-extrabold text-slate-900">University Applications Control</h1>
+          <p className="text-xs font-semibold text-slate-400 mt-0.5">Manage, review, and issue official offer letters & final acceptance letters for all student applications</p>
+        </div>
+        <button
+          onClick={() => refresh()}
+          className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all shadow-xs self-start sm:self-auto"
+        >
+          <RefreshCw className="w-3.5 h-3.5" /> Refresh Live Data
+        </button>
       </div>
 
       {/* Status filter pills */}
@@ -419,6 +425,7 @@ startxref
             <tr>
               <th className="px-5 py-3.5">Student</th>
               <th className="px-5 py-3.5">University & Program</th>
+              <th className="px-5 py-3.5">Assigned Counselor</th>
               <th className="px-5 py-3.5">Intake</th>
               <th className="px-5 py-3.5">Status</th>
               <th className="px-5 py-3.5">Upload Documents</th>
@@ -436,6 +443,9 @@ startxref
                   <span className="font-bold text-slate-900 block">{a.university}</span>
                   <span className="text-[11px] text-[#6A1B2E] font-extrabold">{a.course}</span>
                 </td>
+                <td className="px-5 py-4 text-slate-700 font-bold max-w-[150px] truncate">
+                  {a.counselor || 'Admin'}
+                </td>
                 <td className="px-5 py-4 text-slate-600 font-bold">{a.intake}</td>
 
                 {/* Dynamic Status Selector Dropdown */}
@@ -447,6 +457,9 @@ startxref
                     className={`h-8 px-2.5 rounded-lg text-[11px] font-bold border focus:outline-none cursor-pointer ${STATUS_COLORS[a.status]}`}
                   >
                     <option value="Submitted">Submitted</option>
+                    <option value="NAWA Review">NAWA Review</option>
+                    <option value="NAWA Submitted">NAWA Submitted</option>
+                    <option value="NAWA Approved">NAWA Approved</option>
                     <option value="Under Review">Under Review</option>
                     <option value="Offer Issued">Offer Issued (Attach Offer PDF)</option>
                     <option value="Accepted">Accepted</option>
@@ -713,6 +726,9 @@ startxref
                     className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                   >
                     <option value="Submitted">Submitted</option>
+                    <option value="NAWA Review">NAWA Review</option>
+                    <option value="NAWA Submitted">NAWA Submitted</option>
+                    <option value="NAWA Approved">NAWA Approved</option>
                     <option value="Under Review">Under Review</option>
                     <option value="Offer Issued">Offer Issued (Attach Offer PDF)</option>
                     <option value="Accepted">Accepted</option>

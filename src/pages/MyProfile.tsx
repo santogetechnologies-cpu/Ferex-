@@ -118,8 +118,8 @@ const SelectGroup: React.FC<{
 const StatusBadge: React.FC<{ status: 'Verified' | 'Pending' | 'Missing' }> = ({ status }) => {
   const map = {
     Verified: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    Pending:  'bg-amber-50 text-amber-700 border-amber-100',
-    Missing:  'bg-red-50 text-red-600 border-red-100',
+    Pending: 'bg-amber-50 text-amber-700 border-amber-100',
+    Missing: 'bg-red-50 text-red-600 border-red-100',
   };
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${map[status]}`}>
@@ -145,7 +145,8 @@ export const MyProfile: React.FC = () => {
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
-    return localStorage.getItem('ferex_student_profile_photo') || null;
+    const key = user?.id ? `ferex_student_profile_photo_${user.id}` : 'ferex_student_profile_photo';
+    return localStorage.getItem(key) || profile?.avatar_url || null;
   });
   const [toast, setToast] = useState('');
   const [activeTab, setActiveTab] = useState('Personal Information');
@@ -163,12 +164,12 @@ export const MyProfile: React.FC = () => {
   const [personal, setPersonal] = useState<PersonalInfo>({
     firstName: defaultFirstName,
     lastName: defaultLastName,
-    gender: 'Not Specified',
-    dob: '2000-01-01',
-    nationality: 'Indian',
+    gender: (profile as any)?.gender || 'Not Specified',
+    dob: (profile as any)?.dob || '2000-01-01',
+    nationality: (profile as any)?.nationality || 'Indian',
     passportNo: (profile as any)?.passport_no || '',
     phone: (profile as any)?.phone || '',
-    email: user?.email || '',
+    email: user?.email || profile?.email || '',
     address: (profile as any)?.address || '',
     city: (profile as any)?.city || '',
     country: (profile as any)?.country || '',
@@ -176,20 +177,66 @@ export const MyProfile: React.FC = () => {
   });
 
   useEffect(() => {
-    if (profile || user) {
-      const parts = (profile?.full_name || '').split(' ');
-      setPersonal(prev => ({
-        ...prev,
-        firstName: parts[0] || user?.email?.split('@')[0] || 'Student',
-        lastName: parts.slice(1).join(' ') || '',
-        email: user?.email || prev.email,
-        phone: (profile as any)?.phone || prev.phone,
-        passportNo: (profile as any)?.passport_no || prev.passportNo,
-        address: (profile as any)?.address || prev.address,
-        city: (profile as any)?.city || prev.city,
-        country: (profile as any)?.country || prev.country,
-      }));
-    }
+    const fetchDbProfile = async () => {
+      let searchId = user?.id || profile?.id;
+      let searchEmail = user?.email || profile?.email;
+
+      if (!searchId && !searchEmail) {
+        try {
+          const raw = localStorage.getItem('ferex_user');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed) {
+              searchId = parsed.id;
+              searchEmail = parsed.email;
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (!searchId && !searchEmail) return;
+
+      try {
+        let query = supabase.from('users').select('*');
+        if (searchId) {
+          query = query.eq('id', searchId);
+        } else if (searchEmail) {
+          query = query.ilike('email', searchEmail);
+        }
+
+        const { data: dbData } = await query.maybeSingle();
+        const activeData = dbData || profile;
+
+        if (activeData) {
+          const parts = (activeData.full_name || '').split(' ');
+          setPersonal({
+            firstName: parts[0] || activeData.email?.split('@')[0] || 'Student',
+            lastName: parts.slice(1).join(' ') || '',
+            email: activeData.email || user?.email || '',
+            phone: activeData.phone || activeData.mobile_number || (profile as any)?.phone || '',
+            passportNo: activeData.passport_no || (profile as any)?.passport_no || '',
+            address: activeData.address || (profile as any)?.address || '',
+            city: activeData.city || (profile as any)?.city || '',
+            country: activeData.country || (profile as any)?.country || '',
+            gender: activeData.gender || 'Not Specified',
+            dob: activeData.dob || '2000-01-01',
+            nationality: activeData.nationality || 'Indian',
+            postalCode: activeData.postal_code || '',
+          });
+        }
+      } catch (e) {}
+
+      const activeUserId = searchId || user?.id;
+      if (activeUserId) {
+        const photoKey = `ferex_student_profile_photo_${activeUserId}`;
+        const savedPhoto = localStorage.getItem(photoKey);
+        if (savedPhoto) setProfilePhoto(savedPhoto);
+      }
+    };
+
+    fetchDbProfile();
+    window.addEventListener('ferex_auth_change', fetchDbProfile);
+    return () => window.removeEventListener('ferex_auth_change', fetchDbProfile);
   }, [profile, user]);
 
   const [tempPersonal, setTempPersonal] = useState<PersonalInfo>({ ...personal });
@@ -197,14 +244,14 @@ export const MyProfile: React.FC = () => {
   // Education Details
   const [education] = useState<EducationInfo>({
     studyCountry: (profile as any)?.target_country || 'Poland',
-    university: (profile as any)?.target_university || 'Partner University',
+    university: (profile as any)?.target_university || 'University Applied For',
     course: (profile as any)?.desired_program || 'Higher Studies',
     intake: 'Feb 2026',
     campus: 'Main Campus',
     studentNumber: `STU-${user?.id?.slice(0, 6).toUpperCase() || '1001'}`,
     applicationStatus: 'Under Review',
     visaStatus: 'Active',
-    counselor: 'Education Team',
+    counselor: (profile as any)?.assigned_counselor || '--',
   });
 
   // Emergency Contact
@@ -295,7 +342,7 @@ export const MyProfile: React.FC = () => {
           city: tempPersonal.city,
           country: tempPersonal.country,
         } as any);
-      } catch (err) {}
+      } catch (err) { }
     }
 
     showToast('Personal information saved successfully!');

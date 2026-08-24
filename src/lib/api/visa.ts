@@ -18,17 +18,85 @@ export interface VisaTrackingRecord {
   updated_at?: string;
 }
 
-export async function getVisaRecords(studentId?: string) {
+const LOCAL_STORAGE_KEY = 'ferex_visa_tracking_records_cache_v2';
+
+function getLocalVisaCache(): Record<string, VisaTrackingRecord> {
   try {
-    let query = supabase.from('visa_tracking').select('*');
-    if (studentId) {
-      query = query.or(`student_id.eq.${studentId},student_id.is.null`);
-    }
-    const { data } = await query;
-    return (data ?? []) as VisaTrackingRecord[];
-  } catch (err) {
-    return [];
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
   }
+}
+
+function saveLocalVisaCache(record: VisaTrackingRecord) {
+  try {
+    const current = getLocalVisaCache();
+    current[record.id] = record;
+    if (record.student_id) current[record.student_id] = record;
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
+  } catch {}
+}
+
+export async function getVisaRecords(studentId?: string): Promise<VisaTrackingRecord[]> {
+  const localCache = getLocalVisaCache();
+
+  try {
+    let query = supabase.from('visa_tracking').select('*').order('updated_at', { ascending: false });
+    if (studentId) {
+      query = query.eq('student_id', studentId);
+    }
+
+    const { data, error } = await query;
+
+    if (!error && data) {
+      if (data.length === 0 && studentId) {
+        return [];
+      }
+      const records = data.map((r: any) => {
+        const statusLower = String(r.status_label || r.status || '').toLowerCase();
+        const outcome = r.decision_outcome ||
+          (statusLower.includes('approv') ? 'Approved' :
+           statusLower.includes('reject') || statusLower.includes('refus') ? 'Rejected' : 'Pending');
+
+        const rec: VisaTrackingRecord = {
+          id: r.id,
+          student_id: r.student_id || r.id,
+          student_name: r.student_name || 'Student',
+          vfs_ref_no: r.vfs_ref_no || 'VFS-POL-2026',
+          embassy_name: r.embassy_name || 'Polish Embassy',
+          vfs_center: r.vfs_center || 'VFS Global Center',
+          appointment_date: r.appointment_date || 'Scheduled',
+          passport_no: r.passport_no || 'Verified',
+          courier_tracking_no: r.courier_tracking_no || 'Assigned',
+          current_stage: Number(r.current_stage) || 1,
+          status_label: r.status_label || 'VFS Processing',
+          decision_outcome: outcome as 'Pending' | 'Approved' | 'Rejected',
+          notes: r.notes || 'VFS tracking updated.',
+          updated_at: r.updated_at || new Date().toISOString()
+        };
+        saveLocalVisaCache(rec);
+        return rec;
+      });
+
+      return records;
+    }
+  } catch (err) {
+    console.warn('[getVisaRecords notice]:', err);
+  }
+
+  // Cache fallback
+  const allCached = Object.values(localCache);
+  if (studentId) {
+    return allCached.filter(r => r.student_id === studentId || r.id === studentId);
+  }
+
+  const seen = new Set<string>();
+  return allCached.filter(r => {
+    if (!r.id || seen.has(r.id)) return false;
+    seen.add(r.id);
+    return true;
+  });
 }
 
 function isValidUuid(id?: string): boolean {
@@ -43,8 +111,7 @@ function cleanDate(d?: string): string | null {
   return new Date().toISOString().split('T')[0];
 }
 
-export async function updateVisaRecord(id: string, updates: Partial<VisaTrackingRecord>) {
-  // Construct clean payload with strictly valid DB columns
+export async function updateVisaRecord(id: string, updates: Partial<VisaTrackingRecord>): Promise<VisaTrackingRecord> {
   const cleanPayload: any = {
     updated_at: new Date().toISOString(),
   };
@@ -72,28 +139,38 @@ export async function updateVisaRecord(id: string, updates: Partial<VisaTracking
 
   // 1. Try update existing row by ID
   if (id && isValidUuid(id)) {
-    const { data, error } = await supabase
-      .from('visa_tracking')
-      .update(cleanPayload)
-      .eq('id', id)
-      .select();
+    try {
+      const { data, error } = await supabase
+        .from('visa_tracking')
+        .update(cleanPayload)
+        .eq('id', id)
+        .select('*');
 
-    if (!error && data && data.length > 0) {
-      return { ...data[0], decision_outcome: updates.decision_outcome } as VisaTrackingRecord;
-    }
+      if (!error && data && data.length > 0) {
+        const updated = { ...data[0], decision_outcome: updates.decision_outcome } as VisaTrackingRecord;
+        saveLocalVisaCache(updated);
+        window.dispatchEvent(new Event('ferex_visa_change'));
+        return updated;
+      }
+    } catch (e) {}
   }
 
   // 2. Try update existing row by student_id
   if (cleanPayload.student_id) {
-    const { data, error } = await supabase
-      .from('visa_tracking')
-      .update(cleanPayload)
-      .eq('student_id', cleanPayload.student_id)
-      .select();
+    try {
+      const { data, error } = await supabase
+        .from('visa_tracking')
+        .update(cleanPayload)
+        .eq('student_id', cleanPayload.student_id)
+        .select('*');
 
-    if (!error && data && data.length > 0) {
-      return { ...data[0], decision_outcome: updates.decision_outcome } as VisaTrackingRecord;
-    }
+      if (!error && data && data.length > 0) {
+        const updated = { ...data[0], decision_outcome: updates.decision_outcome } as VisaTrackingRecord;
+        saveLocalVisaCache(updated);
+        window.dispatchEvent(new Event('ferex_visa_change'));
+        return updated;
+      }
+    } catch (e) {}
   }
 
   // 3. Fallback upsert new row
@@ -102,7 +179,7 @@ export async function updateVisaRecord(id: string, updates: Partial<VisaTracking
     id: validId,
     student_id: (updates.student_id && isValidUuid(updates.student_id)) ? updates.student_id : null,
     student_name: updates.student_name || 'Student',
-    vfs_ref_no: updates.vfs_ref_no || 'VFS-POL-2026-90412',
+    vfs_ref_no: updates.vfs_ref_no || 'VFS-POL-2026',
     embassy_name: updates.embassy_name || 'Embassy of Poland',
     vfs_center: updates.vfs_center || 'VFS Center',
     appointment_date: cleanDate(updates.appointment_date) || new Date().toISOString().split('T')[0],
@@ -115,11 +192,38 @@ export async function updateVisaRecord(id: string, updates: Partial<VisaTracking
   };
 
   try {
-    const { data: upsData, error: upsErr } = await supabase.from('visa_tracking').upsert(upsertPayload).select();
+    const { data: upsData, error: upsErr } = await supabase.from('visa_tracking').upsert(upsertPayload).select('*');
     if (!upsErr && upsData && upsData.length > 0) {
-      return { ...upsData[0], decision_outcome: updates.decision_outcome } as VisaTrackingRecord;
+      const updated = { ...upsData[0], decision_outcome: updates.decision_outcome } as VisaTrackingRecord;
+      saveLocalVisaCache(updated);
+      window.dispatchEvent(new Event('ferex_visa_change'));
+      return updated;
     }
   } catch (e) {}
 
-  return { ...upsertPayload, decision_outcome: updates.decision_outcome } as VisaTrackingRecord;
+  const finalResult = { ...upsertPayload, decision_outcome: updates.decision_outcome } as VisaTrackingRecord;
+  saveLocalVisaCache(finalResult);
+
+  if (finalResult.student_id) {
+    try {
+      const { createNotification } = await import('./notifications');
+      const isApproved = updates.decision_outcome === 'Approved' || String(finalResult.status_label).toLowerCase().includes('approved');
+      const isRejected = updates.decision_outcome === 'Rejected' || String(finalResult.status_label).toLowerCase().includes('refus');
+
+      await createNotification({
+        user_id: finalResult.student_id,
+        title: isApproved ? '🎉 Visa Approved & Stamped!' : isRejected ? '⚠️ Visa Decision Update' : '🛡️ VFS Visa Tracking Updated',
+        body: isApproved
+          ? 'Your Poland National Student D-Visa has been officially approved & stamped by the Embassy!'
+          : isRejected
+          ? 'Your visa application verdict has been updated to Refused by Embassy.'
+          : `Your VFS Visa status: ${finalResult.status_label || 'Processing'} (Stage ${finalResult.current_stage || 1}).`,
+        category: 'VFS Visa'
+      });
+    } catch (e) {}
+  }
+
+  window.dispatchEvent(new Event('ferex_visa_change'));
+  window.dispatchEvent(new Event('ferex_notification_change'));
+  return finalResult;
 }

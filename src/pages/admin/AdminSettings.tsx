@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
-import { Save, CheckCircle2, Shield, Bell, Palette, Mail, Lock, Building2, Plus } from 'lucide-react';
+import { Save, CheckCircle2, Shield, Bell, Palette, Mail, Lock, Building2, Plus, DollarSign } from 'lucide-react';
+import { AdminFeeConfig } from './AdminFeeConfig';
 
-const TABS = ['Organization', 'Email Templates', 'Notifications', 'Roles & Permissions', 'Security', 'Appearance'];
+const TABS = ['Organization', 'Fee & Intake Config', 'Email Templates', 'Notifications', 'Roles & Permissions', 'Security', 'Appearance'];
+
+const TAB_ICONS: Record<string, any> = {
+  Organization: <Building2 className="w-4 h-4" />,
+  'Fee & Intake Config': <DollarSign className="w-4 h-4 text-emerald-600" />,
+  'Email Templates': <Mail className="w-4 h-4" />,
+  Notifications: <Bell className="w-4 h-4" />,
+  'Roles & Permissions': <Shield className="w-4 h-4" />,
+  Security: <Lock className="w-4 h-4" />,
+  Appearance: <Palette className="w-4 h-4" />,
+};
 
 const INITIAL_ORG = { name: 'Ferex Education', tagline: 'Your Gateway to European Education', email: 'admin@ferex.com', phone: '+91 80001 22334', website: 'www.ferex.com', address: 'Bangalore, Karnataka, India', timezone: 'IST (UTC+5:30)', language: 'English' };
 
@@ -203,6 +214,7 @@ export const AdminSettings: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'Organization': return renderOrg();
+      case 'Fee & Intake Config': return <AdminFeeConfig />;
       case 'Email Templates': return renderEmailTemplates();
       case 'Notifications': return renderNotifications();
       case 'Roles & Permissions': return renderRoles();
@@ -210,15 +222,6 @@ export const AdminSettings: React.FC = () => {
       case 'Appearance': return renderAppearance();
       default: return null;
     }
-  };
-
-  const TAB_ICONS: Record<string, React.ReactNode> = {
-    'Organization': <Building2 className="w-4 h-4" />,
-    'Email Templates': <Mail className="w-4 h-4" />,
-    'Notifications': <Bell className="w-4 h-4" />,
-    'Roles & Permissions': <Shield className="w-4 h-4" />,
-    'Security': <Lock className="w-4 h-4" />,
-    'Appearance': <Palette className="w-4 h-4" />,
   };
 
   return (

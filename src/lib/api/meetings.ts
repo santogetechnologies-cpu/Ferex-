@@ -27,16 +27,21 @@ export function computeEndTime(startTime: string): string {
 
 export async function getMeetings(studentId?: string) {
   try {
-    let query = supabase.from('meetings').select('*, users:student_id(full_name, email)');
-    if (studentId) query = query.or(`student_id.eq.${studentId},student_id.is.null`);
+    if (!studentId) return [];
 
-    const { data, error } = await query;
+    const { data, error } = await supabase
+      .from('meetings')
+      .select('*, users:student_id(full_name, email)')
+      .eq('student_id', studentId);
+
     if (error || !data) return [];
     return data as Meeting[];
   } catch (err) {
     return [];
   }
 }
+
+import { createNotification } from './notifications';
 
 export async function createMeeting(payload: {
   student_id?: string;
@@ -73,6 +78,30 @@ export async function createMeeting(payload: {
       .insert(insertData)
       .select();
 
+    // Trigger notification for Student
+    if (payload.student_id) {
+      try {
+        await createNotification({
+          user_id: payload.student_id,
+          title: '📅 Counseling Session Scheduled',
+          body: `Your session "${payload.subject}" with ${insertData.advisor_name} is set for ${payload.scheduled_date} at ${payload.start_time}.`,
+          category: 'Counselor Session'
+        });
+      } catch (e) {}
+    }
+
+    // Trigger notification for Admin
+    try {
+      await createNotification({
+        user_id: 'admin',
+        title: '📅 New Meeting Session Booked',
+        body: `Meeting "${payload.subject}" scheduled with ${insertData.advisor_name} on ${payload.scheduled_date} at ${payload.start_time}.`,
+        category: 'Counselor Session'
+      });
+    } catch (e) {}
+
+    window.dispatchEvent(new Event('ferex_notification_change'));
+
     if (error || !data || data.length === 0) {
       return insertData as unknown as Meeting;
     }
@@ -95,10 +124,21 @@ export async function updateMeetingStatus(
       .eq('id', id)
       .select();
 
-    if (error || !data || data.length === 0) {
-      return { id, ...updateObj } as unknown as Meeting;
+    const result = (!error && data && data.length > 0) ? (data[0] as Meeting) : ({ id, ...updateObj } as unknown as Meeting);
+
+    if (result.student_id) {
+      try {
+        await createNotification({
+          user_id: result.student_id,
+          title: status === 'Completed' ? '✅ Counseling Session Completed' : status === 'Cancelled' ? '❌ Session Cancelled' : '📅 Session Rescheduled',
+          body: `Your counseling session "${result.subject || 'Session'}" status has been updated to "${status}".`,
+          category: 'Counselor Session'
+        });
+      } catch (e) {}
     }
-    return data[0] as Meeting;
+
+    window.dispatchEvent(new Event('ferex_notification_change'));
+    return result;
   } catch (err) {
     return { id, status } as unknown as Meeting;
   }

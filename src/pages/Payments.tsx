@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, CheckCircle2, Lock, Sparkles, X, Upload, ShieldCheck, Clock, AlertCircle, FileText } from 'lucide-react';
+import { CreditCard, CheckCircle2, Lock, Sparkles, X, Upload, Clock, AlertCircle, FileText, Eye } from 'lucide-react';
 import { Card } from '../components/Card';
 import { useAuth } from '../contexts/AuthContext';
 import { usePayments } from '../hooks/usePayments';
 import { useApplications } from '../hooks/useApplications';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { createValidInvoicePdfBlob } from '../lib/api/payments';
+import { InvoiceModal, type InvoiceData } from '../components/InvoiceModal';
 
 interface Installment {
   id: number;
@@ -24,48 +25,96 @@ interface Installment {
 
 export const Payments: React.FC = () => {
   const { user, profile } = useAuth();
-  const { payments: dbPayments, submitProof } = usePayments(user?.id);
+  const { payments: dbPayments, submitProof, processPayment } = usePayments(user?.id);
   const { applications } = useApplications(user?.id);
   const { config } = useFeeConfig();
 
+  const [viewInvoice, setViewInvoice] = useState<InvoiceData | null>(null);
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
 
   // Dynamic Course Fee Lookup from Selected Application
-  const activeApp = applications.length > 0 ? applications[0] : null;
+  const activeApp = applications.find(a =>
+    a.course &&
+    a.course !== 'Higher Studies' &&
+    a.course !== 'Academic Recognition & Admission Initiation' &&
+    a.university_name !== 'Pending NAWA Selection' &&
+    a.university_name !== 'Warsaw University of Technology (NAWA Partner)'
+  ) || applications[0] || null;
+
   const hasCourseSelected = Boolean(activeApp && (activeApp.course || activeApp.program_name));
   const selectedCourse = activeApp?.course || activeApp?.program_name || 'Selected European Program';
-  const selectedUniversity = activeApp?.university_name || 'Partner University';
+  const selectedUniversity = (activeApp?.university_name && activeApp.university_name !== 'Pending University Selection') ? activeApp.university_name : (activeApp?.universities?.name || 'University Applied For');
 
-  // Robust Course Tuition Fee Parser (handles "₹7,50,000", "7.5 Lakhs", "7.5L", "750000", "€7,500")
-  const parseCourseFee = (val?: any): number => {
-    if (!val) return 0;
-    const str = String(val).toLowerCase().trim();
+  // Robust Course Tuition Fee Parser (handles "€3,500", "₹3,15,000", "3.15 Lakhs", "315000", "3500")
+  const parseCourseFee = (val?: any): { inr: number; formatted: string } => {
+    if (!val) return { inr: 315000, formatted: '₹3,15,000 (€3,500/yr)' };
 
-    // 1. If expressed in Lakhs (e.g. "7.5 Lakhs", "7.5L", "7.5 lac")
-    if (str.includes('lakh') || str.includes('l') || str.includes('lac')) {
+    const str = String(val).trim();
+    const lower = str.toLowerCase();
+
+    // 1. If expressed in Euros (€3,500 or 3500 EUR)
+    if (str.includes('€') || lower.includes('eur') || lower.includes('euro')) {
+      const cleaned = str.replace(/[^0-9.]/g, '');
+      const num = parseFloat(cleaned);
+      if (!isNaN(num) && num > 0) {
+        const inrAmount = Math.round(num * 90);
+        return {
+          inr: inrAmount,
+          formatted: `₹${inrAmount.toLocaleString('en-IN')} (€${num.toLocaleString()}/yr)`
+        };
+      }
+    }
+
+    // 2. If expressed in Lakhs (e.g. "3.15 Lakhs", "3.15L", "7.5 Lakhs")
+    if (lower.includes('lakh') || lower.includes('l') || lower.includes('lac')) {
       const match = str.match(/([0-9.]+)/);
       if (match) {
         const num = parseFloat(match[1]);
         if (!isNaN(num) && num > 0) {
-          return num < 100 ? Math.round(num * 100000) : Math.round(num);
+          const inrAmount = num < 100 ? Math.round(num * 100000) : Math.round(num);
+          const euroApprox = Math.round(inrAmount / 90);
+          return {
+            inr: inrAmount,
+            formatted: `₹${inrAmount.toLocaleString('en-IN')} (€${euroApprox.toLocaleString()}/yr)`
+          };
         }
       }
     }
 
-    // 2. Clean currency symbols and commas (e.g. "₹7,50,000" -> "750000")
+    // 3. Raw numbers (e.g. "315000", "₹3,15,000", "3500")
     const cleaned = str.replace(/[^0-9.]/g, '');
-    const parsed = parseFloat(cleaned);
-    if (!isNaN(parsed) && parsed > 0) {
-      // If decimal is small like 7.5, convert to Lakhs (750000)
-      return parsed < 100 ? Math.round(parsed * 100000) : Math.round(parsed);
+    const num = parseFloat(cleaned);
+    if (!isNaN(num) && num > 0) {
+      // If number is small like 3500 (Euros), convert with x90
+      if (num < 20000) {
+        const inrAmount = Math.round(num * 90);
+        return {
+          inr: inrAmount,
+          formatted: `₹${inrAmount.toLocaleString('en-IN')} (€${num.toLocaleString()}/yr)`
+        };
+      }
+      // If number is small like 3.15 (Lakhs), convert with x100000
+      if (num < 100) {
+        const inrAmount = Math.round(num * 100000);
+        const euroApprox = Math.round(inrAmount / 90);
+        return {
+          inr: inrAmount,
+          formatted: `₹${inrAmount.toLocaleString('en-IN')} (€${euroApprox.toLocaleString()}/yr)`
+        };
+      }
+      // Direct INR amount (e.g. 315000)
+      const euroApprox = Math.round(num / 90);
+      return {
+        inr: Math.round(num),
+        formatted: `₹${Math.round(num).toLocaleString('en-IN')} (€${euroApprox.toLocaleString()}/yr)`
+      };
     }
 
-    return 0;
+    return { inr: 315000, formatted: '₹3,15,000 (€3,500/yr)' };
   };
 
   const rawFee = (activeApp as any)?.tuition_fee || (activeApp as any)?.course_fee || (activeApp as any)?.fee;
-  const parsedFee = parseCourseFee(rawFee);
-  const courseTuitionFee = parsedFee > 0 ? parsedFee : 750000;
+  const { inr: courseTuitionFee, formatted: formattedTuitionFee } = parseCourseFee(rawFee);
 
   // Extract Admin Fee & Intake Config values (Agency Fee & VFS Fee)
   const parseFeeNum = (strVal?: string, fallback: number = 0) => {
@@ -84,13 +133,25 @@ export const Payments: React.FC = () => {
   // 3rd Installment: Agency Service & VFS Visa Clearance Fee (Configured in Admin Fee & Intake Config)
   const inst1Amount = 15000;
   const inst2Amount = courseTuitionFee;
-  const inst3Amount = configuredAgencyFee;
+  const inst3Amount = configuredAgencyFee + configuredVfsFee;
 
   // Helper to find DB record for stage
   const getStagePayment = (stageNum: number) => {
-    return dbPayments.find(p =>
-      (p.payment_type?.includes(`${stageNum}`) || p.title?.includes(`${stageNum}`) || p.description?.includes(`${stageNum}`))
-    );
+    return dbPayments.find(p => {
+      // 1. Direct stage_number property matching if present
+      if ((p as any).stage_number !== undefined && (p as any).stage_number !== null) {
+        return Number((p as any).stage_number) === stageNum;
+      }
+      if ((p as any).installment_stage !== undefined && (p as any).installment_stage !== null) {
+        return Number((p as any).installment_stage) === stageNum;
+      }
+      // 2. Strict ordinal word matching (1st, 2nd, 3rd)
+      const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
+      if (stageNum === 1) return text.includes('1st') || text.includes('stage 1') || text.includes('registration fee') || text.includes('audit deposit');
+      if (stageNum === 2) return text.includes('2nd') || text.includes('stage 2') || text.includes('tuition fee');
+      if (stageNum === 3) return text.includes('3rd') || text.includes('stage 3') || text.includes('vfs') || text.includes('visa clearance');
+      return false;
+    });
   };
 
   const p1 = getStagePayment(1);
@@ -124,12 +185,12 @@ export const Payments: React.FC = () => {
     {
       id: 2,
       stageNum: 2,
-      title: '2nd Installment — Full University Tuition Fee',
+      title: `2nd Installment — Course Tuition Fee (${formattedTuitionFee})`,
       stageName: 'After Course Selection & Offer Letter',
-      amount: hasCourseSelected ? inst2Amount : 0,
+      amount: hasCourseSelected ? inst2Amount : courseTuitionFee,
       description: hasCourseSelected
-        ? `Full University Tuition Fee for ${selectedCourse} at ${selectedUniversity}. Required for Official Final Acceptance Letter.`
-        : 'University tuition fee will be displayed here after you clear Stage 1 and select your university & course.',
+        ? `Selected Course Tuition Fee (${formattedTuitionFee}) for ${selectedCourse} at ${selectedUniversity}. Required for Official Final Acceptance Letter.`
+        : `Selected Course Tuition Fee (${formattedTuitionFee}). Required for Official Final Acceptance Letter after university application.`,
       dueDateStr: 'Due After Offer Letter Released',
       status: p2Paid
         ? 'Paid'
@@ -179,6 +240,14 @@ export const Payments: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
+  // Payment Gateway simulation states
+  const [paymentMode, setPaymentMode] = useState<'gateway' | 'manual'>('gateway');
+  const [gatewayType, setGatewayType] = useState<'card' | 'upi' | 'netbanking'>('card');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [upiId, setUpiId] = useState('');
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3500);
@@ -189,6 +258,63 @@ export const Payments: React.FC = () => {
     if (file) {
       setReceiptUrl(URL.createObjectURL(file));
       showToast(`Receipt screenshot "${file.name}" attached successfully!`);
+    }
+  };
+
+  const handleGatewaySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedInst) return;
+
+    try {
+      setIsSubmitting(true);
+
+      // Simulate Processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const studentIdVal = user?.id || 'demo-student-id';
+      const studentNameVal = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+      const methodLabel = gatewayType === 'card' ? 'Debit/Credit Card' : gatewayType === 'upi' ? `UPI (${upiId || 'GPay'})` : 'NetBanking';
+
+      const completedPayment = await processPayment({
+        student_id: studentIdVal,
+        student_name: studentNameVal,
+        title: selectedInst.title,
+        amount: selectedInst.amount,
+        payment_type: `${selectedInst.stageNum}st Installment`,
+        payment_method: `Gateway: ${methodLabel}`,
+      });
+
+      setIsSubmitting(false);
+      setSelectedInst(null);
+
+      showToast(`⌛ Payment of ₹${selectedInst.amount.toLocaleString()} Submitted! Sent to Admin for Verification & Clearance.`);
+
+      // Trigger automatic branded PDF download immediately
+      const generatedInvoiceNo = `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+      const pdfBlob = createValidInvoicePdfBlob({
+        invoice_no: generatedInvoiceNo,
+        student_name: studentNameVal,
+        amount: selectedInst.amount,
+        currency: 'INR',
+        title: selectedInst.title,
+        payment_method: `Gateway: ${methodLabel}`,
+        utr_number: completedPayment?.utr_number || `FEREX-GATEWAY-${Date.now()}`,
+        paid_at: new Date().toISOString()
+      });
+      const url = URL.createObjectURL(pdfBlob);
+      const element = document.createElement('a');
+      element.href = url;
+      element.download = `Invoice_${selectedInst.stageNum}.pdf`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+
+      // Notify other parts of the app
+      window.dispatchEvent(new Event('ferex_payment_change'));
+
+    } catch (err: any) {
+      setIsSubmitting(false);
+      showToast(`Error: ${err.message || 'Payment failed'}`);
     }
   };
 
@@ -441,13 +567,33 @@ export const Payments: React.FC = () => {
                       <div className="w-full h-10 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs">
                         <CheckCircle2 className="w-4 h-4 text-emerald-200" /> Payment Verified & Approved
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadInvoice(inst)}
-                        className="w-full h-9 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
-                      >
-                        <FileText className="w-3.5 h-3.5 text-[#6A1B2E]" /> Download Official Tax Invoice PDF
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setViewInvoice({
+                            invoice_no: `FE/2026-27/${Math.floor(1000 + Math.random() * 9000)}`,
+                            student_name: studentName,
+                            amount: inst.amount,
+                            currency: 'INR',
+                            description: inst.title,
+                            date: new Date().toISOString(),
+                            payment_method: 'Bank Transfer / UPI',
+                            utr_number: inst.utr || 'VERIFIED-BANK-UTR-84920',
+                            sac_code: '9992',
+                            place_of_supply: 'Kerala'
+                          })}
+                          className="flex-1 h-9 bg-[#50001D] hover:bg-[#6b0027] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> View Invoice
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadInvoice(inst)}
+                          className="flex-1 h-9 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-[#6A1B2E]" /> Download PDF
+                        </button>
+                      </div>
                     </div>
                   ) : isPendingVerification ? (
                     <div className="w-full h-10 bg-amber-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2">
@@ -492,99 +638,282 @@ export const Payments: React.FC = () => {
               exit={{ opacity: 0, scale: 0.95 }}
               className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                 <div>
-                  <h3 className="text-base font-black text-slate-900">Submit Payment Proof</h3>
-                  <p className="text-xs font-semibold text-slate-400">{selectedInst.title}</p>
+                  <h3 className="text-base font-black text-slate-900">Make Milestone Payment</h3>
+                  <p className="text-xs font-semibold text-slate-400 truncate max-w-[280px]">{selectedInst.title}</p>
                 </div>
                 <button onClick={() => setSelectedInst(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleProofSubmit} className="space-y-4">
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-600">Amount Due:</span>
-                  <span className="text-base font-black text-[#6A1B2E]">₹{selectedInst.amount.toLocaleString()}</span>
-                </div>
+              {/* Tab Selector */}
+              <div className="flex gap-2 mb-4 p-1 bg-slate-100 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMode('gateway')}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center ${
+                    paymentMode === 'gateway' ? 'bg-[#6A1B2E] text-white shadow-xs' : 'text-slate-600 hover:text-slate-950'
+                  }`}
+                >
+                  💳 Secure Gateway
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMode('manual')}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center ${
+                    paymentMode === 'manual' ? 'bg-[#6A1B2E] text-white shadow-xs' : 'text-slate-600 hover:text-slate-950'
+                  }`}
+                >
+                  📄 Bank Transfer
+                </button>
+              </div>
 
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
-                    Payment Method Used *
-                  </label>
-                  <select
-                    value={payMethod}
-                    onChange={(e) => setPayMethod(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                  >
-                    <option value="UPI / GPay / PhonePe">UPI / GPay / PhonePe / Paytm</option>
-                    <option value="Bank Wire Transfer (NEFT / IMPS / RTGS)">Bank Wire Transfer (NEFT / IMPS / RTGS)</option>
-                    <option value="Debit / Credit Card">Debit / Credit Card</option>
-                    <option value="NetBanking">Online NetBanking</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
-                    Transaction UTR / Reference Number *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={utrNumber}
-                    onChange={(e) => setUtrNumber(e.target.value)}
-                    placeholder="e.g. UTR128491048201 or Ref ID"
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
-                    Upload Receipt / Screenshot Proof
-                  </label>
-                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-[#6A1B2E]/40 transition-colors bg-slate-50">
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      id="receipt-file-input"
-                    />
-                    <label htmlFor="receipt-file-input" className="cursor-pointer flex flex-col items-center gap-1.5">
-                      <FileText className="w-6 h-6 text-[#6A1B2E]" />
-                      <span className="text-xs font-bold text-slate-700">Click to upload payment screenshot</span>
-                      <span className="text-[10px] font-semibold text-slate-400">PNG, JPG, PDF up to 10MB</span>
-                    </label>
+              {paymentMode === 'gateway' ? (
+                <form onSubmit={handleGatewaySubmit} className="space-y-4">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-600">Amount Due:</span>
+                    <span className="text-base font-black text-[#6A1B2E]">₹{selectedInst.amount.toLocaleString()}</span>
                   </div>
-                  {receiptUrl && (
-                    <p className="text-[10.5px] font-extrabold text-emerald-600 mt-1 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Screenshot attached
-                    </p>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Payment Method</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['card', 'upi', 'netbanking'].map(type => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setGatewayType(type as any)}
+                          className={`h-9 rounded-xl text-xs font-bold border transition-all text-center uppercase tracking-wide ${
+                            gatewayType === type
+                              ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                              : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {gatewayType === 'card' && (
+                    <div className="space-y-3 p-4 bg-slate-50/70 border border-slate-200/50 rounded-2xl">
+                      <div>
+                        <label className="block text-[9px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Cardholder Name</label>
+                        <input
+                          required
+                          type="text"
+                          placeholder="e.g. Rahul Sharma"
+                          className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Card Number</label>
+                        <input
+                          required
+                          type="text"
+                          maxLength={19}
+                          value={cardNumber}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\s?/g, '').replace(/(\d{4})/g, '$1 ').trim();
+                            setCardNumber(val);
+                          }}
+                          placeholder="4111 2222 3333 4444"
+                          className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[9px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Expiry Date</label>
+                          <input
+                            required
+                            type="text"
+                            maxLength={5}
+                            value={cardExpiry}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\s?/g, '');
+                              if (val.length === 2 && !val.includes('/')) {
+                                setCardExpiry(val + '/');
+                              } else {
+                                setCardExpiry(val);
+                              }
+                            }}
+                            placeholder="MM/YY"
+                            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none text-center"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">CVV</label>
+                          <input
+                            required
+                            type="password"
+                            maxLength={3}
+                            value={cardCvv}
+                            onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ''))}
+                            placeholder="***"
+                            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none text-center"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   )}
-                </div>
 
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedInst(null)}
-                    className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
-                  >
-                    Cancel
-                  </button>
+                  {gatewayType === 'upi' && (
+                    <div className="p-4 bg-slate-50/75 border border-slate-200/50 rounded-2xl flex flex-col items-center space-y-3">
+                      <div className="w-32 h-32 bg-white p-2 rounded-xl border border-slate-150 flex items-center justify-center shadow-3xs">
+                        <div className="w-full h-full border border-slate-100 flex flex-col items-center justify-center bg-slate-50 rounded-lg relative overflow-hidden select-none">
+                          <span className="text-[10px] font-black text-[#6A1B2E]">FEREX SECURE</span>
+                          <span className="text-[8px] font-bold text-slate-400 mt-1">Scan QR Code</span>
+                          <div className="w-16 h-16 border-2 border-slate-800 rounded-lg mt-1 bg-white flex items-center justify-center">
+                            <div className="w-10 h-10 border border-slate-400 border-dashed rounded bg-slate-50 flex items-center justify-center animate-pulse">
+                              <span className="text-[8px] font-bold text-slate-400">QR</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="w-full">
+                        <label className="block text-[9px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Or Enter UPI ID</label>
+                        <input
+                          required
+                          type="text"
+                          value={upiId}
+                          onChange={(e) => setUpiId(e.target.value)}
+                          placeholder="rahul@okaxis"
+                          className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
 
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="h-9 px-5 bg-[#6A1B2E] text-white rounded-xl text-xs font-bold hover:bg-[#521221] shadow-xs flex items-center gap-1.5"
-                  >
-                    {isSubmitting ? 'Submitting Proof...' : 'Submit Payment for Verification'}
-                  </button>
-                </div>
-              </form>
+                  {gatewayType === 'netbanking' && (
+                    <div className="p-4 bg-slate-50/75 border border-[#6A1B2E]/10 rounded-2xl">
+                      <label className="block text-[9px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Select Bank</label>
+                      <select className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-950 focus:outline-none">
+                        <option value="sbi">State Bank of India</option>
+                        <option value="hdfc">HDFC Bank</option>
+                        <option value="icici">ICICI Bank</option>
+                        <option value="axis">Axis Bank</option>
+                        <option value="kotak">Kotak Mahindra Bank</option>
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedInst(null)}
+                      className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="h-9.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Clock className="w-3.5 h-3.5 animate-spin" /> Gateway Processing...
+                        </>
+                      ) : (
+                        `Pay Instantly (₹${selectedInst.amount.toLocaleString()})`
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleProofSubmit} className="space-y-4">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-600">Amount Due:</span>
+                    <span className="text-base font-black text-[#6A1B2E]">₹{selectedInst.amount.toLocaleString()}</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
+                      Payment Method Used *
+                    </label>
+                    <select
+                      value={payMethod}
+                      onChange={(e) => setPayMethod(e.target.value)}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                    >
+                      <option value="UPI / GPay / PhonePe">UPI / GPay / PhonePe / Paytm</option>
+                      <option value="Bank Wire Transfer (NEFT / IMPS / RTGS)">Bank Wire Transfer (NEFT / IMPS / RTGS)</option>
+                      <option value="Debit / Credit Card">Debit / Credit Card</option>
+                      <option value="NetBanking">Online NetBanking</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
+                      Transaction UTR / Reference Number *
+                    </label>
+                    <input
+                      required
+                      type="text"
+                      value={utrNumber}
+                      onChange={(e) => setUtrNumber(e.target.value)}
+                      placeholder="e.g. UTR128491048201 or Ref ID"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
+                      Upload Receipt / Screenshot Proof
+                    </label>
+                    <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-[#6A1B2E]/40 transition-colors bg-slate-50">
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        id="receipt-file-input"
+                      />
+                      <label htmlFor="receipt-file-input" className="cursor-pointer flex flex-col items-center gap-1.5">
+                        <FileText className="w-6 h-6 text-[#6A1B2E]" />
+                        <span className="text-xs font-bold text-slate-700">Click to upload payment screenshot</span>
+                        <span className="text-[10px] font-semibold text-slate-400">PNG, JPG, PDF up to 10MB</span>
+                      </label>
+                    </div>
+                    {receiptUrl && (
+                      <p className="text-[10.5px] font-extrabold text-emerald-600 mt-1 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Screenshot attached
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedInst(null)}
+                      className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="h-9 px-5 bg-[#6A1B2E] text-white rounded-xl text-xs font-bold hover:bg-[#521221] shadow-xs flex items-center gap-1.5"
+                    >
+                      {isSubmitting ? 'Submitting Proof...' : 'Submit Payment for Verification'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* Official Tax Invoice Modal */}
+      <InvoiceModal
+        isOpen={Boolean(viewInvoice)}
+        onClose={() => setViewInvoice(null)}
+        invoice={viewInvoice}
+      />
     </div>
   );
 };

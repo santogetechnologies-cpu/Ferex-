@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search, Bell, CheckCheck, Archive, Clock,
   FileText, GraduationCap, Headphones, CreditCard, ClipboardCheck,
-  UserCog, Calendar, Users, Plus, X
+  UserCog, Calendar, Users, Plus, X, Trash2
 } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
 import { getStudents } from '../../lib/api/students';
@@ -27,7 +27,7 @@ const CATEGORY_MAP: Record<string, { icon: React.FC<{ className?: string }>; rou
 
 export const AdminNotifications: React.FC = () => {
   const navigate = useNavigate();
-  const { notifications: dbNotifs, markRead: apiMarkRead, markAllRead: apiMarkAllRead, loading, sendNotification } = useNotifications();
+  const { notifications: dbNotifs, markRead: apiMarkRead, markAllRead: apiMarkAllRead, deleteNotif, clearAllNotifs, sendNotification } = useNotifications();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   // Compose Notification States
@@ -110,6 +110,19 @@ export const AdminNotifications: React.FC = () => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
+  const handleDeleteOne = (id: string) => {
+    deleteNotif(id);
+    setNotifications(prev => prev.filter(n => n.id !== id));
+    showToast('Notification deleted.');
+  };
+
+  const handleClearAll = () => {
+    if (!window.confirm('Clear all notifications?')) return;
+    clearAllNotifs();
+    setNotifications([]);
+    showToast('All notifications cleared.');
+  };
+
   const archiveOne = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, archived: true } : n));
     showToast('Notification archived.');
@@ -161,6 +174,11 @@ export const AdminNotifications: React.FC = () => {
           <button onClick={markAllRead} className="flex items-center gap-1.5 h-8 px-3 bg-white border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 transition-all">
             <CheckCheck className="w-3.5 h-3.5" /> Mark all read
           </button>
+          {notifications.length > 0 && (
+            <button onClick={handleClearAll} className="flex items-center gap-1.5 h-8 px-3 bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 rounded-xl hover:bg-rose-100 transition-all">
+              <Trash2 className="w-3.5 h-3.5" /> Clear All
+            </button>
+          )}
         </div>
       </div>
 
@@ -245,6 +263,12 @@ export const AdminNotifications: React.FC = () => {
                             <Archive className="w-3 h-3" /> Archive
                           </button>
                         )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteOne(n.id); }}
+                          className="text-[10px] font-bold text-slate-400 hover:text-rose-600 flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-rose-50 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" /> Delete
+                        </button>
                       </div>
                     </div>
                   </div>
