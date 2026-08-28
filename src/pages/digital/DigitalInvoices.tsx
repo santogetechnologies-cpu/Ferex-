@@ -1,16 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Search, Plus, Eye, Download, X, CheckCircle2, Send } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-
-const initialInvoices = [
-  { id: 'INV-2026-88', client: 'Reliance Digital', service: 'Web Development', amount: '₹4,50,000', issued: '2026-07-01', due: '2026-07-31', status: 'Paid' },
-  { id: 'INV-2026-89', client: 'Tata Motors Digital', service: 'UI/UX Design', amount: '₹2,80,000', issued: '2026-07-10', due: '2026-08-10', status: 'Pending' },
-  { id: 'INV-2026-90', client: 'Mahindra Fintech', service: 'Mobile App - Advance', amount: '₹6,00,000', issued: '2026-07-15', due: '2026-08-15', status: 'Pending' },
-  { id: 'INV-2026-91', client: 'BigBasket Growth', service: 'SEO Retainer - July', amount: '₹85,000', issued: '2026-08-01', due: '2026-08-15', status: 'Overdue' },
-  { id: 'INV-2026-92', client: 'HDFC Life Insurance', service: 'Branding Project Final', amount: '₹4,50,000', issued: '2026-07-31', due: '2026-08-30', status: 'Draft' },
-];
+import { getDigitalInvoices, createDigitalInvoice } from '../../lib/api/digital';
 
 const statusClr: Record<string, string> = {
   'Paid': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -20,7 +13,8 @@ const statusClr: Record<string, string> = {
 };
 
 export const DigitalInvoices: React.FC = () => {
-  const [invoices, setInvoices] = useState(initialInvoices);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
@@ -28,15 +22,32 @@ export const DigitalInvoices: React.FC = () => {
   const [toast, setToast] = useState('');
   const [newInv, setNewInv] = useState({ client: '', service: '', amount: '', due: '', status: 'Draft' });
 
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getDigitalInvoices();
+    setInvoices(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    const inv = { id: `INV-2026-${Math.floor(Math.random() * 50 + 93)}`, issued: new Date().toISOString().slice(0, 10), ...newInv };
-    setInvoices([inv, ...invoices]);
+    const amtNum = Number(newInv.amount.replace(/[^0-9]/g, '')) || 250000;
+    await createDigitalInvoice({
+      client_name: newInv.client,
+      project_title: newInv.service || 'Digital Services',
+      amount: amtNum,
+      due_date: newInv.due || undefined,
+    });
     setShowAddModal(false);
-    showToast(`Invoice ${inv.id} created!`);
+    showToast(`Invoice created for ${newInv.client}!`);
     setNewInv({ client: '', service: '', amount: '', due: '', status: 'Draft' });
+    await loadData();
   };
 
   const markPaid = (id: string) => {
@@ -95,44 +106,57 @@ export const DigitalInvoices: React.FC = () => {
         </div>
       </Card>
 
-      <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-4">Invoice ID</th>
-                <th className="py-3 px-4">Client</th>
-                <th className="py-3 px-4">Service</th>
-                <th className="py-3 px-4">Amount</th>
-                <th className="py-3 px-4">Due Date</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-              {filtered.map(inv => (
-                <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-3.5 px-4 font-black text-[#6A1B2E]">{inv.id}</td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800">{inv.client}</td>
-                  <td className="py-3.5 px-4 font-semibold text-slate-600">{inv.service}</td>
-                  <td className="py-3.5 px-4 font-black text-slate-900">{inv.amount}</td>
-                  <td className="py-3.5 px-4 font-semibold text-slate-600">{inv.due}</td>
-                  <td className="py-3.5 px-4"><span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${statusClr[inv.status]}`}>{inv.status}</span></td>
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => setSelectedInvoice(inv)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><Eye className="w-4 h-4" /></button>
-                      <button onClick={() => showToast(`Invoice ${inv.id} downloaded!`)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50"><Download className="w-4 h-4" /></button>
-                      {inv.status !== 'Paid' && (
-                        <button onClick={() => showToast(`Invoice ${inv.id} sent to client!`)} className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"><Send className="w-4 h-4" /></button>
-                      )}
-                    </div>
-                  </td>
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading digital invoices...</div>
+      ) : (
+        <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  <th className="py-3 px-4">Invoice ID</th>
+                  <th className="py-3 px-4">Client</th>
+                  <th className="py-3 px-4">Service</th>
+                  <th className="py-3 px-4">Amount</th>
+                  <th className="py-3 px-4">Due Date</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+                {filtered.map(inv => {
+                  const invNo = inv.invoice_no || inv.id;
+                  const client = inv.client_name || inv.client || 'Client Corp';
+                  const service = inv.project_title || inv.service || 'Digital Services';
+                  const amt = inv.total_amount ? `₹${Number(inv.total_amount).toLocaleString('en-IN')}` : (inv.amount ? `₹${Number(inv.amount).toLocaleString('en-IN')}` : '₹2,50,000');
+                  const due = inv.due_date || inv.due || '2026-08-30';
+                  const status = inv.status || 'Pending';
+
+                  return (
+                    <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-black text-[#6A1B2E]">{invNo}</td>
+                      <td className="py-3.5 px-4 font-bold text-slate-800">{client}</td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-600">{service}</td>
+                      <td className="py-3.5 px-4 font-black text-slate-900">{amt}</td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-600">{due}</td>
+                      <td className="py-3.5 px-4"><span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${statusClr[status] || statusClr['Pending']}`}>{status}</span></td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => setSelectedInvoice(inv)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><Eye className="w-4 h-4" /></button>
+                          <button onClick={() => showToast(`Invoice ${invNo} downloaded!`)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50"><Download className="w-4 h-4" /></button>
+                          {status !== 'Paid' && (
+                            <button onClick={() => showToast(`Invoice ${invNo} sent to client!`)} className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"><Send className="w-4 h-4" /></button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Add Modal */}
       <AnimatePresence>

@@ -1,19 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckSquare, Search, Plus, X, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getDigitalTasks, createDigitalTask, updateDigitalTaskStatus, deleteDigitalTask } from '../../lib/api/digital';
 
 type Priority = 'High' | 'Medium' | 'Low';
 type Status = 'Todo' | 'In Progress' | 'Done';
-
-const initialTasks = [
-  { id: 'TSK-001', title: 'Design Reliance Digital Homepage Wireframes', project: 'Reliance Digital E-Commerce', assignee: 'Sneha Roy', priority: 'High' as Priority, status: 'In Progress' as Status, due: '2026-08-10' },
-  { id: 'TSK-002', title: 'Develop Mahindra Fintech API Integration Docs', project: 'Mahindra Fintech Mobile App', assignee: 'Vivek Sharma', priority: 'Medium' as Priority, status: 'Todo' as Status, due: '2026-08-15' },
-  { id: 'TSK-003', title: 'Write BigBasket SEO Content Batch #3', project: 'BigBasket SEO + Content', assignee: 'Riya Thomas', priority: 'Medium' as Priority, status: 'In Progress' as Status, due: '2026-08-12' },
-  { id: 'TSK-004', title: 'Deploy Tata Motors UI to Staging', project: 'Tata Motors UI Redesign', assignee: 'Arun Patel', priority: 'High' as Priority, status: 'Todo' as Status, due: '2026-08-18' },
-  { id: 'TSK-005', title: 'HDFC Life Final Brand Handoff Package', project: 'HDFC Life Brand Identity', assignee: 'Sneha Roy', priority: 'Low' as Priority, status: 'Done' as Status, due: '2026-07-31' },
-];
 
 const PRIORITIES: Priority[] = ['High', 'Medium', 'Low'];
 const STATUSES: Status[] = ['Todo', 'In Progress', 'Done'];
@@ -30,33 +23,71 @@ const statusClr: Record<Status, string> = {
 };
 
 export const DigitalTasks: React.FC = () => {
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<'All' | Status>('All');
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
   const [newTask, setNewTask] = useState({ title: '', project: '', assignee: '', priority: 'Medium' as Priority, due: '' });
 
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getDigitalTasks();
+    const formatted = data.map((d: any) => {
+      let st: Status = 'Todo';
+      if (d.status === 'In Progress') st = 'In Progress';
+      else if (d.status === 'Done' || d.status === 'Completed') st = 'Done';
+      return {
+        id: d.id,
+        title: d.title,
+        project: d.project_name || 'General Operations',
+        assignee: d.assigned_to || 'Team Member',
+        priority: (d.priority || 'Medium') as Priority,
+        status: st,
+        due: d.due_date || '2026-08-30',
+      };
+    });
+    setTasks(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTasks([{ id: `TSK-${Math.floor(Math.random() * 900 + 100)}`, status: 'Todo' as Status, ...newTask }, ...tasks]);
+    await createDigitalTask({
+      title: newTask.title,
+      project_name: newTask.project,
+      assigned_to: newTask.assignee,
+      priority: newTask.priority,
+      due_date: newTask.due,
+    });
     setShowAddModal(false);
     showToast('Task created!');
     setNewTask({ title: '', project: '', assignee: '', priority: 'Medium', due: '' });
+    await loadData();
   };
 
-  const advance = (id: string) => {
-    setTasks(tasks.map(t => {
-      if (t.id !== id) return t;
-      const idx = STATUSES.indexOf(t.status);
-      return { ...t, status: STATUSES[Math.min(idx + 1, STATUSES.length - 1)] };
-    }));
+  const advance = async (id: string) => {
+    const target = tasks.find(t => t.id === id);
+    if (!target) return;
+    const idx = STATUSES.indexOf(target.status);
+    const nextStatus = STATUSES[Math.min(idx + 1, STATUSES.length - 1)];
+    await updateDigitalTaskStatus(id, nextStatus);
     showToast('Task status updated!');
+    await loadData();
   };
 
-  const remove = (id: string) => { setTasks(tasks.filter(t => t.id !== id)); showToast('Task removed'); };
+  const remove = async (id: string) => {
+    await deleteDigitalTask(id);
+    showToast('Task removed');
+    await loadData();
+  };
 
   const filtered = tasks.filter(t => {
     const matchS = t.title.toLowerCase().includes(search.toLowerCase()) || t.project.toLowerCase().includes(search.toLowerCase());
@@ -90,6 +121,10 @@ export const DigitalTasks: React.FC = () => {
         </Button>
       </div>
 
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading agency tasks...</div>
+      ) : null}
+
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -119,7 +154,7 @@ export const DigitalTasks: React.FC = () => {
                   </div>
                   <p className="text-[10.5px] font-semibold text-slate-500">{t.project}</p>
                   <div className="flex items-center justify-between">
-                    <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold border ${priorityClr[t.priority]}`}>{t.priority}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold border ${priorityClr[t.priority as Priority] || priorityClr['Medium']}`}>{t.priority}</span>
                     <span className="text-[10px] font-bold text-slate-400">{t.assignee}</span>
                   </div>
                   <div className="flex items-center justify-between border-t border-slate-100 pt-2">

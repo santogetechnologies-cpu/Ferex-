@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Search, Plus, Eye, Edit3, Trash2, X, CheckCircle2, Thermometer } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getRimiProducts, createRimiProduct } from '../../lib/api/rimi';
 
 export const RimiProducts: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -11,39 +12,29 @@ export const RimiProducts: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [products, setProducts] = useState([
-    {
-      id: 'SKU-FZN-101',
-      name: 'Gourmet Crispy Chicken Nuggets (1kg)',
-      category: 'Frozen Poultry',
-      price: '₹340 / Pack',
-      stock: '450 Packs',
-      temp: '-18°C',
-      status: 'In Stock',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 'SKU-FZN-102',
-      name: 'Premium Norwegian Salmon Fillets (500g)',
-      category: 'Seafood',
-      price: '₹950 / Pack',
-      stock: '180 Packs',
-      temp: '-22°C',
-      status: 'In Stock',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 'SKU-FZN-103',
-      name: 'Artisanal French Vanilla Ice Cream Tub (2L)',
-      category: 'Ice Cream',
-      price: '₹480 / Tub',
-      stock: '85 Tubs',
-      temp: '-18°C',
-      status: 'Low Stock Alert',
-      statusBadge: 'bg-amber-50 text-amber-700 border-amber-200'
-    }
-  ]);
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getRimiProducts();
+    const formatted = data.map((d: any) => ({
+      id: d.sku || d.id,
+      name: d.name,
+      category: d.category,
+      price: `₹${d.unit_price} / Unit`,
+      stock: `${d.current_stock_units || 100} Units`,
+      temp: `${d.storage_temp_celsius || -18}°C`,
+      status: (d.current_stock_units || 100) > 50 ? 'In Stock' : 'Low Stock Alert',
+      statusBadge: (d.current_stock_units || 100) > 50 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
+    }));
+    setProducts(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const [newProd, setNewProd] = useState({
     name: '',
@@ -58,19 +49,21 @@ export const RimiProducts: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleAddProduct = (e: React.FormEvent) => {
+  const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProd.name) return;
-    const created = {
-      id: `SKU-FZN-${Math.floor(104 + Math.random() * 90)}`,
-      ...newProd,
-      status: 'In Stock',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    };
-    setProducts([created, ...products]);
+    await createRimiProduct({
+      sku: `SKU-FZN-${Math.floor(104 + Math.random() * 900)}`,
+      name: newProd.name,
+      category: newProd.category,
+      unit_price: parseFloat(newProd.price.replace(/[^0-9.]/g, '')) || 350,
+      current_stock_units: parseInt(newProd.stock.replace(/[^0-9]/g, '')) || 200,
+      storage_temp_celsius: parseFloat(newProd.temp.replace(/[^0-9.-]/g, '')) || -18,
+    });
     setShowAddModal(false);
     showToastMsg(`Added frozen SKU ${newProd.name}`);
     setNewProd({ name: '', category: 'Frozen Poultry', price: '₹350 / Pack', stock: '200 Packs', temp: '-18°C' });
+    await loadData();
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -131,6 +124,10 @@ export const RimiProducts: React.FC = () => {
           ))}
         </div>
       </Card>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading products...</div>
+      ) : null}
 
       <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
         <div className="overflow-x-auto">

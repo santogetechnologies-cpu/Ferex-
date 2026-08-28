@@ -312,7 +312,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 </div>
                 <div className="hidden sm:block text-left min-w-0">
                   <span className="block text-xs font-extrabold text-slate-800 leading-none">{adminName}</span>
-                  <span className="block text-[9px] font-semibold text-slate-400 mt-0.5">Admin</span>
+                  <span className="block text-[9px] font-semibold text-slate-400 mt-0.5">Administrator</span>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>

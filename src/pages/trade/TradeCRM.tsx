@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Search, Plus, Eye, Edit3, Trash2, X, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getTradeCRMContacts, createTradeCRMContact } from '../../lib/api/trade';
 
 export const TradeCRM: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -11,59 +12,43 @@ export const TradeCRM: React.FC = () => {
   const [editingCompany, setEditingCompany] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [companies, setCompanies] = useState([
-    {
-      id: 'CRM-101',
-      name: 'Warsaw Global Logistics Sp. z o.o.',
-      country: 'Poland',
-      flag: '🇵🇱',
-      contact: 'Jan Kowalski',
-      email: 'jan@warsawlogistics.pl',
-      phone: '+48 22 890 1234',
-      industry: 'Freight Forwarding & Customs',
-      category: 'Logistics Partner',
-      status: 'Active',
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getTradeCRMContacts();
+    const formatted = data.map((d: any) => ({
+      id: d.id ? `CRM-${d.id.slice(0, 4).toUpperCase()}` : 'CRM-101',
+      name: d.company_name,
+      country: d.country,
+      flag: d.country === 'Poland' ? '🇵🇱' : d.country === 'Germany' ? '🇩🇪' : d.country === 'Netherlands' ? '🇳🇱' : '🌐',
+      contact: d.contact_person,
+      email: d.email,
+      phone: d.phone || '+48 22 890 1234',
+      industry: 'Global Import & Export Logistics',
+      category: d.category || 'Buyer',
+      status: d.status || 'Active',
       statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      volume: '₹1.85 Cr / yr'
-    },
-    {
-      id: 'CRM-102',
-      name: 'Berlin Industrial Supplies GmbH',
-      country: 'Germany',
-      flag: '🇩🇪',
-      contact: 'Hans Weber',
-      email: 'h.weber@berlin-supplies.de',
-      phone: '+49 30 554 9912',
-      industry: 'Heavy Machinery & Parts',
-      category: 'Active Buyer',
-      status: 'Active',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      volume: '₹2.40 Cr / yr'
-    },
-    {
-      id: 'CRM-103',
-      name: 'Rotterdam Maritime Trading N.V.',
-      country: 'Netherlands',
-      flag: '🇳🇱',
-      contact: 'Anouk de Jong',
-      email: 'anouk@rotterdamtrade.nl',
-      phone: '+31 10 400 3388',
-      industry: 'Agri-Tech & Commodity Export',
-      category: 'Supplier',
-      status: 'Pending Contract',
-      statusBadge: 'bg-amber-50 text-amber-700 border-amber-200',
-      volume: '₹85 Lakhs / yr'
-    }
-  ]);
+      volume: '₹2.00 Cr / yr',
+    }));
+    setCompanies(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const [newCompany, setNewCompany] = useState({
     name: '',
     country: 'Poland',
+    flag: '🇵🇱',
     contact: '',
     email: '',
+    phone: '',
     industry: 'Freight Forwarding',
-    category: 'Active Buyer'
+    category: 'Logistics Partner'
   });
 
   const showToastMsg = (msg: string) => {
@@ -71,22 +56,21 @@ export const TradeCRM: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleAddCompany = (e: React.FormEvent) => {
+  const handleAddCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCompany.name) return;
-    const created = {
-      id: `CRM-${Math.floor(100 + Math.random() * 900)}`,
-      ...newCompany,
-      flag: newCompany.country === 'Poland' ? '🇵🇱' : newCompany.country === 'Germany' ? '🇩🇪' : '🇳🇱',
-      phone: '+91 98765 43210',
-      status: 'Active',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      volume: '₹50 Lakhs / yr'
-    };
-    setCompanies([created, ...companies]);
+    await createTradeCRMContact({
+      company_name: newCompany.name,
+      country: newCompany.country,
+      contact_person: newCompany.contact,
+      email: newCompany.email,
+      phone: newCompany.phone,
+      category: newCompany.category,
+    });
     setShowAddModal(false);
     showToastMsg(`Added partner company ${newCompany.name}`);
-    setNewCompany({ name: '', country: 'Poland', contact: '', email: '', industry: 'Freight Forwarding', category: 'Active Buyer' });
+    setNewCompany({ name: '', country: 'Poland', flag: '🇵🇱', contact: '', email: '', phone: '', industry: 'Freight Forwarding', category: 'Logistics Partner' });
+    await loadData();
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -132,6 +116,10 @@ export const TradeCRM: React.FC = () => {
           <Plus className="w-4 h-4 mr-1.5" /> Add Partner Company
         </Button>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading trade directory...</div>
+      ) : null}
 
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
         <div className="relative w-full sm:w-80">

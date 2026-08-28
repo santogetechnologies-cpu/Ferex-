@@ -1,52 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Search, Download, Eye, Plus, X, CheckCircle2, Truck } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { supabase } from '../../lib/supabase';
+import { getRimiSalesOrders, createRimiSalesOrder } from '../../lib/api/rimi';
 
 export const RimiSalesOrders: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [orders, setOrders] = useState<any[]>([]);
 
-  const [orders, setOrders] = useState([
-    {
-      id: 'SO-2026-901',
-      buyer: 'Reliance Fresh Cold Hub',
-      items: '240 Packs Frozen Chicken Nuggets, 120 Packs Fish Fillets',
-      amount: '₹1,45,000',
-      date: 'Aug 06, 2026',
-      status: 'Dispatched',
-      statusBadge: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20',
-      truck: 'Reefer Truck #MH-12-AZ-8901'
-    },
-    {
-      id: 'SO-2026-902',
-      buyer: 'Taj Hotels Procurement',
-      items: '50 Box Gourmet Vanilla Ice Cream, 80 Box Butter Patties',
-      amount: '₹2,10,000',
-      date: 'Aug 05, 2026',
-      status: 'Delivered & Paid',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      truck: 'Reefer Truck #KA-01-F-4412'
-    },
-    {
-      id: 'SO-2026-903',
-      buyer: 'Dominos Pizza Network',
-      items: '300 Box Frozen Mozzarella Blocks',
-      amount: '₹3,85,000',
-      date: 'Aug 06, 2026',
-      status: 'In Packing',
-      statusBadge: 'bg-amber-50 text-amber-700 border-amber-200',
-      truck: 'Reefer Truck #DL-03-CB-9920'
+  const loadOrders = React.useCallback(async () => {
+    const data = await getRimiSalesOrders();
+    if (data && data.length > 0) {
+      setOrders(data.map(d => ({
+        id: d.order_no || d.id,
+        buyer: d.customer_name,
+        date: new Date(d.created_at || Date.now()).toLocaleDateString(),
+        items: d.items_summary,
+        amount: `₹${Number(d.total_amount || 0).toLocaleString('en-IN')}`,
+        status: d.status,
+        statusBadge: d.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200',
+        truck: d.assigned_reefer_truck || 'Assigned Cold Transport'
+      })));
+    } else {
+      setOrders([]);
     }
-  ]);
+  }, []);
+
+  useEffect(() => {
+    loadOrders();
+
+    const channel = supabase
+      .channel('realtime_rimi_sales_orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_sales_orders' }, () => {
+        loadOrders();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadOrders]);
 
   const [newOrder, setNewOrder] = useState({
     buyer: 'Reliance Fresh Cold Hub',
     items: '100 Packs Frozen Vegetable Mix',
-    amount: '₹85,000'
+    amount: '85000'
   });
 
   const showToastMsg = (msg: string) => {
@@ -54,27 +57,33 @@ export const RimiSalesOrders: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleCreateOrder = (e: React.FormEvent) => {
+  const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newOrder.buyer) return;
-    const created = {
-      id: `SO-2026-${Math.floor(904 + Math.random() * 90)}`,
-      buyer: newOrder.buyer,
-      items: newOrder.items,
-      amount: newOrder.amount,
-      date: 'Just now',
-      status: 'Dispatched',
-      statusBadge: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20',
-      truck: 'Reefer Express Unit #MH-14'
-    };
-    setOrders([created, ...orders]);
+    const cleanAmount = Number(newOrder.amount.replace(/[^0-9.]/g, '')) || 50000;
+    const created = await createRimiSalesOrder({
+      customer_name: newOrder.buyer,
+      items_summary: newOrder.items,
+      total_amount: cleanAmount,
+    });
+    setOrders(prev => [{
+      id: created.order_no || created.id,
+      buyer: created.customer_name,
+      items: created.items_summary,
+      amount: `₹${Number(created.total_amount || 0).toLocaleString('en-IN')}`,
+      date: created.order_date,
+      status: created.status,
+      statusBadge: 'bg-amber-50 text-amber-700 border-amber-200',
+      truck: created.assigned_reefer_truck
+    }, ...prev]);
     setShowCreateModal(false);
-    showToastMsg(`Dispatched sales order ${created.id}`);
+    showToastMsg(`Created Cold Chain B2B Order for ${newOrder.buyer}`);
+    setNewOrder({ buyer: 'Reliance Fresh Cold Hub', items: '100 Packs Frozen Vegetable Mix', amount: '85000' });
   };
 
   const filteredOrders = orders.filter(o =>
-    o.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    o.buyer.toLowerCase().includes(searchQuery.toLowerCase())
+    (o.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (o.buyer || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (

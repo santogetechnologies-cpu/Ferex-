@@ -1,16 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Activity, Search } from 'lucide-react';
 import { Card } from '../../components/Card';
+import { getActivityLogs } from '../../lib/api/activity';
 
 export const CentralActivity: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [logs] = useState([
-    { id: 'LOG-4801', user: 'Super Admin', action: 'BATCH_PAYOUT_AUTHORIZED', target: 'University of Warsaw Account', ip: '192.168.1.42', time: '2m ago', severity: 'Info' },
-    { id: 'LOG-4802', user: 'Rahul Mehta', action: 'STUDENT_STAGE_UPDATED', target: 'Ashly (FX-2026-001) -> Stage 4', ip: '192.168.1.88', time: '18m ago', severity: 'Info' },
-    { id: 'LOG-4803', user: 'System Enforcement', action: 'GLOBAL_2FA_POLICY_TOGGLED', target: 'Staff Authentication Module', ip: '127.0.0.1', time: '1h ago', severity: 'Warning' },
-    { id: 'LOG-4804', user: 'Anita Roy', action: 'DOCUMENT_VERIFIED', target: 'Ashly_Passport_Scan.pdf', ip: '192.168.1.92', time: '2h ago', severity: 'Info' }
-  ]);
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const data = await getActivityLogs(50);
+      const mapped = data.map((l: any) => ({
+        id: l.id ? `LOG-${l.id.slice(0, 6).toUpperCase()}` : 'LOG-EVENT',
+        user: l.user_id ? `User (${l.user_id.slice(0, 8)})` : 'System Enforcement',
+        action: l.action,
+        target: l.entity_type ? `${l.entity_type}${l.entity_id ? ` (#${l.entity_id.slice(0, 6)})` : ''}` : 'Global Resource',
+        ip: l.ip_address || '127.0.0.1',
+        time: l.created_at ? new Date(l.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
+        severity: 'Info'
+      }));
+      setLogs(mapped);
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const filteredLogs = logs.filter(l =>
     l.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -30,6 +45,10 @@ export const CentralActivity: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading audit logs...</div>
+      ) : null}
 
       <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-80">

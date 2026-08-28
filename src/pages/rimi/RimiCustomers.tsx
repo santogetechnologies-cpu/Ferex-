@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Search, Plus, Eye, Edit3, Trash2, X, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getRimiCustomers, createRimiCustomer } from '../../lib/api/rimi';
 
 export const RimiCustomers: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -11,12 +12,29 @@ export const RimiCustomers: React.FC = () => {
   const [editingCust, setEditingCust] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [customers, setCustomers] = useState([
-    { id: 'CUST-101', name: 'Reliance Fresh Supermarkets', type: 'Supermarket Chain', contact: 'Vikram Sharma', email: 'v.sharma@reliancefresh.in', city: 'Mumbai', status: 'Active', volume: '₹14.50 Lakhs / mo' },
-    { id: 'CUST-102', name: 'Taj Hotels & Resorts Network', type: 'Hotel Chain', contact: 'Chef Rajesh Nair', email: 'procurement@tajhotels.com', city: 'Bengaluru', status: 'Active', volume: '₹22.80 Lakhs / mo' },
-    { id: 'CUST-103', name: 'Dominos & Pizza Outlets', type: 'QSR Network', contact: 'Anil Kapoor', email: 'supplychain@dominos.in', city: 'Delhi NCR', status: 'Credit Approved', volume: '₹18.90 Lakhs / mo' },
-  ]);
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getRimiCustomers();
+    const formatted = data.map((d: any) => ({
+      id: d.code || d.id,
+      name: d.business_name,
+      type: d.customer_type || 'Supermarket Chain',
+      contact: d.contact_person || 'Procurement Head',
+      email: d.email || 'procurement@client.com',
+      city: d.city || 'Mumbai',
+      status: d.status || 'Active',
+      volume: d.credit_limit ? `₹${(d.credit_limit / 100000).toFixed(2)} Lakhs / mo` : '₹10.00 Lakhs / mo',
+    }));
+    setCustomers(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const [newCust, setNewCust] = useState({
     name: '',
@@ -31,19 +49,20 @@ export const RimiCustomers: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleAddCust = (e: React.FormEvent) => {
+  const handleAddCust = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCust.name) return;
-    const created = {
-      id: `CUST-${Math.floor(100 + Math.random() * 900)}`,
-      ...newCust,
-      status: 'Active',
-      volume: '₹5.00 Lakhs / mo'
-    };
-    setCustomers([created, ...customers]);
+    await createRimiCustomer({
+      business_name: newCust.name,
+      customer_type: newCust.type,
+      contact_person: newCust.contact,
+      email: newCust.email,
+      city: newCust.city,
+    });
     setShowAddModal(false);
     showToastMsg(`Added B2B Customer ${newCust.name}`);
     setNewCust({ name: '', type: 'Supermarket Chain', contact: '', email: '', city: 'Mumbai' });
+    await loadData();
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -89,6 +108,10 @@ export const RimiCustomers: React.FC = () => {
           <Plus className="w-4 h-4 mr-1.5" /> Add B2B Customer Account
         </Button>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading B2B customers...</div>
+      ) : null}
 
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
         <div className="relative w-full sm:w-80">

@@ -159,7 +159,7 @@ export const AdminPreDeparture: React.FC = () => {
   const filtered = records.filter(r =>
     r.student_name.toLowerCase().includes(search.toLowerCase()) ||
     (r.student_email && r.student_email.toLowerCase().includes(search.toLowerCase())) ||
-    r.university_name.toLowerCase().includes(search.toLowerCase())
+    (r.university_name && r.university_name.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (

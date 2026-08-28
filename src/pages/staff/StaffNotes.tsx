@@ -1,30 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { StickyNote, CheckCircle2, Plus, Search, Trash2, X, Pin } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-
-const initialNotes = [
-  { id: 'N-01', title: 'Manchester UK CAS Checklist', category: 'Student Applications', pinned: true, content: 'Ensure tuition deposit receipt (£2,000) and ATAS certificate are attached before CAS issuance request.', date: '2026-08-05' },
-  { id: 'N-02', title: 'Canada Study Visa SOP Guidelines', category: 'SOP Guidelines', pinned: true, content: 'Statement of Purpose must clearly state home ties, career progression in India, and course alignment.', date: '2026-08-04' },
-  { id: 'N-03', title: 'Weekly Staff Team Sync Notes', category: 'Meeting Summary', pinned: false, content: 'Focus on clearing 14 pending IELTS verification requests before Friday.', date: '2026-08-02' },
-];
+import { useAuth } from '../../contexts/AuthContext';
 
 export const StaffNotes: React.FC = () => {
+  const { user } = useAuth();
+  const storageKey = user?.id ? `ferex_staff_notes_${user.id}` : 'ferex_staff_notes';
+
   const [toast, setToast] = useState('');
-  const [notes, setNotes] = useState(initialNotes);
+  const [notes, setNotes] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('Student Applications');
   const [newContent, setNewContent] = useState('');
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(notes));
+    } catch (e) {}
+  }, [notes, storageKey]);
+
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
   const handleAddNote = () => {
     if (!newTitle || !newContent) return;
     const newNoteObj = {
-      id: `N-0${notes.length + 1}`,
+      id: `N-${Date.now()}`,
       title: newTitle,
       category: newCategory,
       pinned: false,

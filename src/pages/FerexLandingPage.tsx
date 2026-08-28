@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-  GraduationCap, Building2, Globe, ShieldCheck, CheckCircle2, ArrowRight,
-  ChevronRight, Star, Compass, FileCheck, CreditCard, Plane, Users, Headphones,
-  Sparkles, Lock, HelpCircle, LogIn, ChevronDown, Mail, Phone, MapPin, Award
+  GraduationCap, Building2, ShieldCheck, ArrowRight,
+  FileCheck, Plane, HelpCircle, LogIn, ChevronDown, Mail, Phone, MapPin,
+  User, Users, Clock
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+
+import ferexLogoImg from '../assets/ferex-logo.png';
 
 export const FerexLandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -119,125 +121,193 @@ export const FerexLandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#50001D] text-white font-sans selection:bg-white selection:text-[#50001D] relative overflow-x-hidden">
-
-      {/* Decorative Glow Backgrounds matching Official Brand Tone */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-rose-500/10 rounded-full blur-[160px] pointer-events-none" />
-      <div className="absolute top-[800px] right-0 w-[500px] h-[500px] bg-amber-500/5 rounded-full blur-[180px] pointer-events-none" />
+    <div className="min-h-screen bg-[#24020B] text-white font-sans selection:bg-[#EAD5B5] selection:text-[#24020B] relative overflow-x-hidden">
 
       {/* ── NAVBAR ──────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-[#3D0016]/90 backdrop-blur-xl border-b border-white/10 shadow-lg">
+      <header className="sticky top-0 z-50 bg-[#2D030D] border-b border-[#52101F]/80 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Logo variant="compact" color="white" size="md" subtitle="EDUCATION" />
-            
-            <nav className="hidden md:flex items-center gap-6 text-xs font-bold text-rose-100/80">
-              <a href="#destinations" className="hover:text-white transition-colors">Destinations</a>
-              <a href="#universities" className="hover:text-white transition-colors">Partner Universities</a>
-              <a href="#process" className="hover:text-white transition-colors">10-Step Roadmap</a>
-              <a href="#nawa" className="hover:text-white transition-colors">NAWA & Visa</a>
-              <a href="#faq" className="hover:text-white transition-colors">FAQs</a>
+          <div className="flex items-center gap-10">
+            {/* Exact FEREX Logo Asset */}
+            <div className="select-none cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              <img
+                src={ferexLogoImg}
+                alt="FEREX EDUCATION"
+                className="h-12 w-auto object-contain rounded-md"
+              />
+            </div>
+
+            {/* Navigation Links */}
+            <nav className="hidden lg:flex items-center gap-7 text-xs font-semibold text-[#E5D2D5]">
+              <a href="#destinations" className="flex items-center gap-1 hover:text-[#EAD5B5] transition-colors">
+                Destinations <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+              </a>
+              <a href="#universities" className="hover:text-[#EAD5B5] transition-colors">Partner Universities</a>
+              <a href="#process" className="hover:text-[#EAD5B5] transition-colors">10-Step Roadmap</a>
+              <a href="#nawa" className="hover:text-[#EAD5B5] transition-colors">NAWA & Visa</a>
+              <a href="#faq" className="hover:text-[#EAD5B5] transition-colors">FAQs</a>
+              <a href="#about" className="flex items-center gap-1 hover:text-[#EAD5B5] transition-colors">
+                About Us <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+              </a>
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3.5">
             <button
               onClick={goToLogin}
-              className="flex items-center gap-2 h-10 px-4 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all border border-white/15 shadow-xs"
+              className="flex items-center gap-2 h-10 px-5 bg-[#3E0916] hover:bg-[#52101F] text-[#EAD5B5] rounded-xl text-xs font-bold transition-all border border-[#8C2C42] shadow-xs cursor-pointer"
             >
-              <LogIn className="w-3.5 h-3.5 text-amber-300" /> Sign In
-            </button>
-
-            <button
-              onClick={goToLogin}
-              className="flex items-center gap-2 h-10 px-5 bg-white text-[#50001D] hover:bg-rose-50 rounded-xl text-xs font-black transition-all shadow-xl active:scale-98"
-            >
-              <GraduationCap className="w-4 h-4 text-[#50001D]" /> Student Portal
+              <User className="w-3.5 h-3.5 text-[#E6CA9E]" /> Sign In
             </button>
           </div>
         </div>
       </header>
 
       {/* ── HERO SECTION ────────────────────────────────────────────────────── */}
-      <section className="relative pt-14 pb-20 lg:pt-22 lg:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto space-y-6">
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-amber-300 text-xs font-extrabold shadow-sm"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Official Overseas Higher Education Partner • Study in Poland & Europe</span>
-          </motion.div>
+      <section className="relative min-h-[640px] lg:min-h-[720px] bg-[#24020B] overflow-hidden pt-10 pb-16 lg:pt-16 lg:pb-24">
+        {/* Background Image on Right Side */}
+        <div
+          className="absolute inset-0 z-0 bg-no-repeat bg-cover bg-center lg:bg-right-top"
+          style={{
+            backgroundImage: `url('/hero-students.jpg')`,
+            backgroundPosition: 'right 30% center',
+          }}
+        />
 
-          <motion.h1
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.15]"
-          >
-            Your Gateway to Premier <br className="hidden sm:inline" />
-            <span className="text-amber-300">
-              European Higher Education
-            </span>
-          </motion.h1>
+        {/* High-Precision Vignette & Dark Maroon Gradient Overlays */}
+        <div
+          className="absolute inset-0 z-0 pointer-events-none"
+          style={{
+            background: `
+              linear-gradient(to right, #24020B 0%, #24020B 38%, rgba(36,2,11,0.92) 52%, rgba(36,2,11,0.55) 75%, rgba(36,2,11,0.2) 100%),
+              linear-gradient(to top, #24020B 0%, rgba(36,2,11,0.85) 15%, transparent 35%),
+              linear-gradient(to bottom, #24020B 0%, rgba(36,2,11,0.7) 10%, transparent 25%)
+            `,
+          }}
+        />
 
-          <motion.p
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-sm sm:text-base font-semibold text-rose-100/90 leading-relaxed max-w-2xl mx-auto"
-          >
-            Direct university admissions, NAWA qualification legalization, VFS visa processing, and guaranteed post-arrival support across 45+ top European institutions.
-          </motion.p>
-
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-3"
-          >
-            <button
-              onClick={goToLogin}
-              className="w-full sm:w-auto h-12 px-8 bg-white hover:bg-rose-50 text-[#50001D] rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all shadow-2xl active:scale-98 group"
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="max-w-2xl space-y-6 text-left pt-2 lg:pt-4">
+            
+            {/* Top Pill Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="inline-flex items-center gap-3.5 px-4 py-2 rounded-2xl border border-[#C5A880]/50 bg-[#350512]/90 backdrop-blur-md shadow-lg"
             >
-              <span>Access Ferex Student Portal</span>
-              <ArrowRight className="w-4 h-4 text-[#50001D] group-hover:translate-x-1 transition-transform" />
-            </button>
+              <div className="w-8 h-8 rounded-xl border border-[#C5A880]/40 bg-[#24020B] flex items-center justify-center text-[#EAD5B5] shrink-0">
+                <Building2 className="w-4 h-4 text-[#E6CA9E]" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-[#EAD5B5] leading-tight">Official Overseas Higher Education Partner</div>
+                <div className="text-[10.5px] font-medium text-[#D8C5C8] leading-tight mt-0.5">Study in Poland & Europe</div>
+              </div>
+            </motion.div>
 
-            <a
-              href="#universities"
-              className="w-full sm:w-auto h-12 px-6 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-xs"
+            {/* Headline */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="space-y-3"
             >
-              <span>Explore Universities</span>
-              <ChevronDown className="w-4 h-4 text-rose-200" />
-            </a>
-          </motion.div>
+              <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-serif font-bold text-[#FBF7F0] tracking-tight leading-[1.12]">
+                Your Gateway to<br />
+                <span className="text-[#E6CA9E]">Premier European</span><br />
+                <span className="text-[#E6CA9E]">Higher Education</span>
+              </h1>
+              {/* Distinctive accent line */}
+              <div className="w-12 h-[2px] bg-[#C5A880]/80"></div>
+            </motion.div>
 
-          {/* Stat Cards Strip */}
+            {/* Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="text-sm sm:text-base text-[#EAD8DB] font-normal leading-relaxed max-w-xl"
+            >
+              Direct university admissions, NAWA qualification legalization, VFS visa processing, and guaranteed post-arrival support across 45+ top European institutions.
+            </motion.p>
+
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2"
+            >
+              <button
+                onClick={goToLogin}
+                className="h-12 px-7 bg-white hover:bg-[#FAF4E8] text-[#24020B] rounded-xl font-bold text-sm flex items-center justify-center gap-2.5 transition-all shadow-xl active:scale-98 cursor-pointer"
+              >
+                <span>Access Student Portal</span>
+                <ArrowRight className="w-4 h-4 text-[#24020B]" />
+              </button>
+
+              <a
+                href="#universities"
+                className="h-12 px-6 bg-transparent hover:bg-white/5 text-white border border-white/25 hover:border-white/40 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-xs"
+              >
+                <span>Explore Universities</span>
+                <ChevronDown className="w-4 h-4 text-[#D8C5C8]" />
+              </a>
+            </motion.div>
+          </div>
+
+          {/* Floating Bottom Stats Bar */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-10 text-left"
+            className="mt-14 lg:mt-20 rounded-3xl border border-[#7A1D33]/60 bg-[#1D0108]/90 backdrop-blur-xl p-6 sm:p-7 shadow-2xl grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8"
           >
-            <div className="bg-[#3E0017]/80 border border-white/12 rounded-2xl p-5 shadow-lg backdrop-blur-md">
-              <div className="text-2xl sm:text-3xl font-black text-amber-300">1,250+</div>
-              <div className="text-xs font-bold text-rose-100/80 mt-1">Students Enrolled</div>
+            {/* Stat 1 */}
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full border border-[#C5A880]/50 bg-[#2D030D] flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5 text-[#E6CA9E]" />
+              </div>
+              <div className="text-left">
+                <div className="text-2xl sm:text-3xl lg:text-[34px] font-serif font-bold text-[#EAD5B5] leading-none">1,250+</div>
+                <div className="text-xs text-[#D8C5C8] font-medium mt-1">Students Enrolled</div>
+                <div className="w-10 h-[2px] bg-[#C5A880]/60 mt-1.5" />
+              </div>
             </div>
-            <div className="bg-[#3E0017]/80 border border-white/12 rounded-2xl p-5 shadow-lg backdrop-blur-md">
-              <div className="text-2xl sm:text-3xl font-black text-emerald-300">99.4%</div>
-              <div className="text-xs font-bold text-rose-100/80 mt-1">Visa Clearance Rate</div>
+
+            {/* Stat 2 */}
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full border border-[#C5A880]/50 bg-[#2D030D] flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5 text-[#E6CA9E]" />
+              </div>
+              <div className="text-left">
+                <div className="text-2xl sm:text-3xl lg:text-[34px] font-serif font-bold text-[#EAD5B5] leading-none">99.4%</div>
+                <div className="text-xs text-[#D8C5C8] font-medium mt-1">Visa Clearance Rate</div>
+                <div className="w-10 h-[2px] bg-[#C5A880]/60 mt-1.5" />
+              </div>
             </div>
-            <div className="bg-[#3E0017]/80 border border-white/12 rounded-2xl p-5 shadow-lg backdrop-blur-md">
-              <div className="text-2xl sm:text-3xl font-black text-rose-200">45+</div>
-              <div className="text-xs font-bold text-rose-100/80 mt-1">Partner Universities</div>
+
+            {/* Stat 3 */}
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full border border-[#C5A880]/50 bg-[#2D030D] flex items-center justify-center shrink-0">
+                <Building2 className="w-5 h-5 text-[#E6CA9E]" />
+              </div>
+              <div className="text-left">
+                <div className="text-2xl sm:text-3xl lg:text-[34px] font-serif font-bold text-[#EAD5B5] leading-none">45+</div>
+                <div className="text-xs text-[#D8C5C8] font-medium mt-1">Partner Universities</div>
+                <div className="w-10 h-[2px] bg-[#C5A880]/60 mt-1.5" />
+              </div>
             </div>
-            <div className="bg-[#3E0017]/80 border border-white/12 rounded-2xl p-5 shadow-lg backdrop-blur-md">
-              <div className="text-2xl sm:text-3xl font-black text-amber-300">24/7</div>
-              <div className="text-xs font-bold text-rose-100/80 mt-1">Live Portal Tracking</div>
+
+            {/* Stat 4 */}
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full border border-[#C5A880]/50 bg-[#2D030D] flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 text-[#E6CA9E]" />
+              </div>
+              <div className="text-left">
+                <div className="text-2xl sm:text-3xl lg:text-[34px] font-serif font-bold text-[#EAD5B5] leading-none">24/7</div>
+                <div className="text-xs text-[#D8C5C8] font-medium mt-1">Live Portal Tracking</div>
+                <div className="w-10 h-[2px] bg-[#C5A880]/60 mt-1.5" />
+              </div>
             </div>
           </motion.div>
         </div>

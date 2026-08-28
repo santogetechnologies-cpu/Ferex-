@@ -1,40 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileCheck2, Search, Download, Eye, X, CheckCircle2, Anchor } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getTradeBillsOfLading } from '../../lib/api/trade';
 
 export const TradeBillsOfLading: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBL, setSelectedBL] = useState<any>(null);
   const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [bills, setBills] = useState<any[]>([]);
 
-  const [bills] = useState([
-    {
-      id: 'BL-992014',
-      vessel: 'MSC Oscar (V.8821)',
-      carrier: 'MSC Mediterranean Shipping Co.',
-      pol: 'Port of Gdansk 🇵🇱',
-      pod: 'Port of Rotterdam 🇳🇱',
-      shipper: 'Ferex Global Trade Corp',
-      consignee: 'Warsaw Global Logistics Sp. z o.o.',
-      issueDate: 'Jul 28, 2026',
-      status: 'Clean On-Board Signed',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 'BL-992015',
-      vessel: 'Maersk Mc-Kinney (V.4410)',
-      carrier: 'Maersk Line',
-      pol: 'Port of Hamburg 🇩🇪',
-      pod: 'Port of Singapore 🇸🇬',
-      shipper: 'Berlin Industrial Supplies GmbH',
-      consignee: 'Singapore Marine Hub Pte',
-      issueDate: 'Aug 02, 2026',
-      status: 'Original Issued',
-      statusBadge: 'bg-blue-50 text-blue-700 border-blue-200'
-    }
-  ]);
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      const data = await getTradeBillsOfLading();
+      setBills(data);
+      setLoading(false);
+    };
+    loadData();
+  }, []);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -42,9 +28,9 @@ export const TradeBillsOfLading: React.FC = () => {
   };
 
   const filteredBills = bills.filter(b =>
-    b.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.vessel.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.carrier.toLowerCase().includes(searchQuery.toLowerCase())
+    (b.bl_number || b.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (b.vessel_name || b.vessel || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (b.carrier || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -77,52 +63,66 @@ export const TradeBillsOfLading: React.FC = () => {
         <span className="text-xs font-bold text-slate-400">{filteredBills.length} Bills Registered</span>
       </Card>
 
-      <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
-                <th className="py-3 px-4">B/L Number & Vessel</th>
-                <th className="py-3 px-4">Carrier Line</th>
-                <th className="py-3 px-4">Port of Loading (POL)</th>
-                <th className="py-3 px-4">Port of Discharge (POD)</th>
-                <th className="py-3 px-4">Issue Date</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-              {filteredBills.map((b) => (
-                <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                    <div className="flex items-center gap-1.5"><Anchor className="w-3.5 h-3.5 text-[#6A1B2E]" /> {b.id}</div>
-                    <span className="text-[10px] font-bold text-slate-400">{b.vessel}</span>
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800">{b.carrier}</td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800">{b.pol}</td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800">{b.pod}</td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800">{b.issueDate}</td>
-                  <td className="py-3.5 px-4">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${b.statusBadge}`}>
-                      {b.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => setSelectedBL(b)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Inspect B/L Document">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => showToastMsg(`Downloading B/L PDF for ${b.id}...`)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100" title="Download B/L PDF">
-                        <Download className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading bills of lading...</div>
+      ) : (
+        <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
+                  <th className="py-3 px-4">B/L Number & Vessel</th>
+                  <th className="py-3 px-4">Carrier Line</th>
+                  <th className="py-3 px-4">Port of Loading (POL)</th>
+                  <th className="py-3 px-4">Port of Discharge (POD)</th>
+                  <th className="py-3 px-4">Issue Date</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+                {filteredBills.map((b) => {
+                  const blId = b.bl_number || b.id;
+                  const vessel = b.vessel_name || b.vessel || 'Ocean Vessel';
+                  const carrier = b.carrier || 'MSC Mediterranean Shipping';
+                  const pol = b.port_of_loading || b.pol || 'Port of Gdansk 🇵🇱';
+                  const pod = b.port_of_discharge || b.pod || 'Port of Rotterdam 🇳🇱';
+                  const issueDate = b.issue_date || b.issueDate || 'Jul 28, 2026';
+                  const status = b.status || 'Clean On-Board Signed';
+
+                  return (
+                    <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                        <div className="flex items-center gap-1.5"><Anchor className="w-3.5 h-3.5 text-[#6A1B2E]" /> {blId}</div>
+                        <span className="text-[10px] font-bold text-slate-400">{vessel}</span>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-800">{carrier}</td>
+                      <td className="py-3.5 px-4 font-bold text-slate-800">{pol}</td>
+                      <td className="py-3.5 px-4 font-bold text-slate-800">{pod}</td>
+                      <td className="py-3.5 px-4 font-bold text-slate-800">{issueDate}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-200">
+                          {status}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => setSelectedBL(b)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Inspect B/L Document">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => showToastMsg(`Downloading B/L PDF for ${blId}...`)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100" title="Download B/L PDF">
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Drawer */}
       <AnimatePresence>
@@ -137,9 +137,9 @@ export const TradeBillsOfLading: React.FC = () => {
 
               <div className="space-y-4 text-left">
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-black text-[#6A1B2E] uppercase">{selectedBL.id}</span>
+                  <span className="text-[10px] font-black text-[#6A1B2E] uppercase">{selectedBL.bl_number || selectedBL.id}</span>
                   <h4 className="text-base font-black text-slate-900">{selectedBL.carrier}</h4>
-                  <p className="text-xs font-semibold text-slate-500">{selectedBL.vessel}</p>
+                  <p className="text-xs font-semibold text-slate-500">{selectedBL.vessel_name || selectedBL.vessel}</p>
                 </div>
 
                 <div className="p-4 bg-slate-50 rounded-xl space-y-1">

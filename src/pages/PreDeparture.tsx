@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plane, Home, ShieldCheck, MapPin, PhoneCall, CheckCircle2,
-  Sparkles, Clock, Calendar, ExternalLink, UserCheck, AlertCircle,
-  Building, Navigation, Compass, FileCheck
+  Sparkles, Clock, Calendar, ExternalLink,
+  Building, Navigation, FileCheck
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { useAuth } from '../contexts/AuthContext';

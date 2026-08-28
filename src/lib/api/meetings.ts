@@ -27,7 +27,7 @@ export function computeEndTime(startTime: string): string {
 
 export async function getMeetings(studentId?: string) {
   try {
-    if (!studentId) return [];
+    if (!studentId) return getAllMeetings();
 
     const { data, error } = await supabase
       .from('meetings')
@@ -37,6 +37,20 @@ export async function getMeetings(studentId?: string) {
     if (error || !data) return [];
     return data as Meeting[];
   } catch (err) {
+    return [];
+  }
+}
+
+export async function getAllMeetings(): Promise<Meeting[]> {
+  try {
+    const { data, error } = await supabase
+      .from('meetings')
+      .select('*, users:student_id(full_name, email)')
+      .order('scheduled_date', { ascending: true });
+
+    if (error || !data) return [];
+    return data as Meeting[];
+  } catch {
     return [];
   }
 }

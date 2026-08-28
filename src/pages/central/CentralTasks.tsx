@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckSquare, Plus, Search, Clock, CheckCircle2, User, X } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getTasks, createTask, updateTaskStatus } from '../../lib/api/tasks';
 
 export const CentralTasks: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -10,43 +11,36 @@ export const CentralTasks: React.FC = () => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [tasks, setTasks] = useState([
-    {
-      id: 'TSK-101',
-      title: 'Review Ashly Embassy Visa Files',
-      student: 'Ashly',
-      assignee: 'Rahul Mehta',
-      priority: 'High',
-      dueDate: 'Aug 10, 2026',
-      status: 'In Progress'
-    },
-    {
-      id: 'TSK-102',
-      title: 'Authorize Warsaw Batch Tuition Payout',
-      student: 'System',
-      assignee: 'Super Admin',
-      priority: 'Urgent',
-      dueDate: 'Aug 08, 2026',
-      status: 'Pending'
-    },
-    {
-      id: 'TSK-103',
-      title: 'Verify Rahul Mehta IELTS Transcript',
-      student: 'Rahul Mehta',
-      assignee: 'Anita Roy',
-      priority: 'Medium',
-      dueDate: 'Aug 15, 2026',
-      status: 'Completed'
-    }
-  ]);
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getTasks();
+    const formatted = data.map((d: any) => ({
+      id: d.id ? `TSK-${d.id.slice(0, 4).toUpperCase()}` : 'TSK-101',
+      rawId: d.id,
+      title: d.title,
+      student: d.student_name || 'Ashly',
+      assignee: d.assigned_to || 'Super Admin',
+      priority: d.priority || 'Medium',
+      dueDate: d.due_date || '2026-08-15',
+      status: d.status || 'Pending',
+    }));
+    setTasks(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const [newTask, setNewTask] = useState({
     title: '',
     student: 'Ashly',
     assignee: 'Super Admin',
     priority: 'High',
-    dueDate: 'Aug 14, 2026'
+    dueDate: '2026-08-14'
   });
 
   const showToastMsg = (msg: string) => {
@@ -54,29 +48,31 @@ export const CentralTasks: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTask.title) return;
-    const created = {
-      id: `TSK-${Math.floor(100 + Math.random() * 900)}`,
-      ...newTask,
-      status: 'Pending'
-    };
-    setTasks([created, ...tasks]);
+    await createTask({
+      title: newTask.title,
+      assigned_to: newTask.assignee,
+      student_name: newTask.student,
+      priority: newTask.priority as any,
+      due_date: newTask.dueDate,
+    });
     setShowAddModal(false);
     showToastMsg('New central task dispatched!');
-    setNewTask({ title: '', student: 'Ashly', assignee: 'Super Admin', priority: 'High', dueDate: 'Aug 14, 2026' });
+    setNewTask({ title: '', student: 'Ashly', assignee: 'Super Admin', priority: 'High', dueDate: '2026-08-14' });
+    await loadData();
   };
 
-  const toggleTaskStatus = (id: string) => {
-    setTasks(tasks.map(t => {
-      if (t.id === id) {
-        const nextStatus = t.status === 'Completed' ? 'In Progress' : 'Completed';
-        return { ...t, status: nextStatus };
-      }
-      return t;
-    }));
+  const toggleTaskStatus = async (id: string) => {
+    const target = tasks.find(t => t.id === id || t.rawId === id);
+    if (!target) return;
+    const nextStatus = target.status === 'Completed' ? 'In Progress' : 'Completed';
+    if (target.rawId) {
+      await updateTaskStatus(target.rawId, nextStatus);
+    }
     showToastMsg('Task status updated');
+    await loadData();
   };
 
   const filteredTasks = tasks.filter(t => {
@@ -109,6 +105,10 @@ export const CentralTasks: React.FC = () => {
           <Plus className="w-4 h-4 mr-1.5" /> Dispatch New Task
         </Button>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading central tasks...</div>
+      ) : null}
 
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
         <div className="relative w-full sm:w-80">

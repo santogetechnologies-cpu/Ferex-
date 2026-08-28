@@ -1,45 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, Search, Download, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getAllPaymentsForAdmin } from '../../lib/api/payments';
 
 export const CentralPayments: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState('');
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [transactions] = useState([
-    {
-      id: 'TXN-9021',
-      student: 'Ashly',
-      amount: '₹15,000',
-      type: 'Admissions & Portal Fee',
-      method: 'UPI / Credit Card',
-      date: 'Aug 04, 2026',
-      status: 'Completed',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 'TXN-9022',
-      student: 'Rahul Mehta',
-      amount: '₹4,80,000',
-      type: 'University Tuition Batch Payout',
-      method: 'Bank Wire (Swift)',
-      date: 'Aug 02, 2026',
-      status: 'Completed',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 'TXN-9023',
-      student: 'Priya Sharma',
-      amount: '₹12,500',
-      type: 'NAWA Evaluation Filing Fee',
-      method: 'NetBanking',
-      date: 'Jul 28, 2026',
-      status: 'Pending Verification',
-      statusBadge: 'bg-amber-50 text-amber-700 border-amber-200'
-    }
-  ]);
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getAllPaymentsForAdmin();
+    const formatted = data.map((d: any) => ({
+      id: d.ref_no || (d.id ? `TXN-${d.id.slice(0, 4).toUpperCase()}` : 'TXN-9021'),
+      student: d.student_name || 'Student',
+      amount: `₹${Number(d.amount).toLocaleString('en-IN')}`,
+      type: d.payment_type || d.title || 'Admissions & Portal Fee',
+      method: d.payment_method || 'UPI / Card',
+      date: d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Recent',
+      status: d.status || 'Pending Verification',
+      statusBadge: d.status === 'Paid' || d.status === 'Completed' || d.status === 'Verified' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
+    }));
+    setTransactions(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -80,6 +71,10 @@ export const CentralPayments: React.FC = () => {
           <Download className="w-4 h-4 mr-1.5" /> Export Ledger CSV
         </Button>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading central payment records...</div>
+      ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="p-5 border border-slate-200/70 shadow-xs">

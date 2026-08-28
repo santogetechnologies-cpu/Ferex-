@@ -1,46 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Folder, Search, CheckCircle2, FileText, Eye, ShieldCheck, X } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getDocumentsForAdmin } from '../../lib/api/documents';
 
 export const CentralDocuments: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
   const [toast, setToast] = useState('');
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [documents, setDocuments] = useState([
-    {
-      id: 1,
-      name: 'Ashly_Passport_Scan.pdf',
-      student: 'Ashly',
-      type: 'Identity Verification',
-      verifiedBy: 'Senior Counselor',
-      date: 'Aug 04, 2026',
-      status: 'Verified',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 2,
-      name: 'Ashly_IELTS_Scorecard.pdf',
-      student: 'Ashly',
-      type: 'Language Certificate',
-      verifiedBy: 'Anita Roy',
-      date: 'Jul 28, 2026',
-      status: 'Verified',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 3,
-      name: 'Rahul_Mehta_BTech_Transcript.pdf',
-      student: 'Rahul Mehta',
-      type: 'Academic Record',
-      verifiedBy: 'Pending Staff Review',
-      date: 'Aug 05, 2026',
-      status: 'Pending Audit',
-      statusBadge: 'bg-amber-50 text-amber-700 border-amber-200'
-    }
-  ]);
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getDocumentsForAdmin();
+    const formatted = data.map((d: any, idx: number) => ({
+      id: d.id || idx + 1,
+      name: d.file_name,
+      student: d.users?.full_name || 'Student',
+      type: d.doc_type || 'Identity Verification',
+      verifiedBy: d.status === 'Verified' ? 'Verification Officer' : 'Pending Staff Review',
+      date: d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString() : 'Recent',
+      status: d.status || 'Pending Audit',
+      statusBadge: d.status === 'Verified' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
+    }));
+    setDocuments(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -88,6 +79,10 @@ export const CentralDocuments: React.FC = () => {
         </div>
         <span className="text-xs font-bold text-slate-400">{filteredDocs.length} Vault Files</span>
       </Card>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading student documents...</div>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {filteredDocs.map((doc) => (

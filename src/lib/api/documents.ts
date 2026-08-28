@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import type { StudentDocument } from '../types';
 import { generateUUID } from '../../utils/uuid';
+import { logActivity } from './activity';
 
 const isValidUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 
@@ -162,7 +163,7 @@ export async function updateDocumentStatus(
   if (docResult && (docResult as StudentDocument).student_id) {
     try {
       const { createNotification } = await import('./notifications');
-      const isApproved = status === 'Verified' || status === 'Approved';
+      const isApproved = (status as string) === 'Verified' || status === 'Approved';
       const isReupload = status === 'Re-upload Requested' || status === 'Rejected';
 
       await createNotification({
@@ -175,6 +176,8 @@ export async function updateDocumentStatus(
       });
     } catch (e) {}
   }
+
+  await logActivity('DOCUMENT_STATUS_UPDATED', 'student_document', id, { status, reviewer_notes: notesText });
 
   return docResult;
 }

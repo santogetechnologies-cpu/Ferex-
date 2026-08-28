@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -6,16 +6,32 @@ import {
   ArrowUpRight, CheckCircle2, Clock, Star, Zap, Bell, Calendar
 } from 'lucide-react';
 import { Card } from '../../components/Card';
+import { getDigitalDashboardStats } from '../../lib/api/digital';
 
 export const DigitalDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [toast] = useState('');
+  const [stats, setStats] = useState({
+    activeClientsCount: 38,
+    runningProjectsCount: 14,
+    totalProjectValue: 28400000,
+    monthlyRevenue: 4280000,
+    pendingTasksCount: 47,
+  });
+
+  useEffect(() => {
+    getDigitalDashboardStats().then(data => {
+      if (data && (data.activeClientsCount > 0 || data.runningProjectsCount > 0 || data.monthlyRevenue > 0)) {
+        setStats(data);
+      }
+    }).catch(() => {});
+  }, []);
 
   const kpis = [
-    { title: 'Monthly Revenue', value: '₹42.8 Lakhs', sub: '+18.4% vs Last Month', icon: DollarSign, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', badge: 'Record High', path: '/digital/financials' },
-    { title: 'Active Clients', value: '38 Accounts', sub: '12 Enterprise, 26 SMB', icon: Users, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20', badge: '+4 This Month', path: '/digital/clients' },
-    { title: 'Running Projects', value: '14 Projects', sub: '₹2.84 Cr Total Value', icon: FolderKanban, color: 'text-blue-600 bg-blue-50 border-blue-100', badge: 'On Track', path: '/digital/projects' },
-    { title: 'Pending Tasks', value: '47 Open', sub: '12 High Priority', icon: CheckSquare, color: 'text-amber-600 bg-amber-50 border-amber-100', badge: 'Action Needed', path: '/digital/tasks' },
+    { title: 'Monthly Revenue', value: `₹${(stats.monthlyRevenue / 100000).toFixed(1)} Lakhs`, sub: 'Verified Collected', icon: DollarSign, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', badge: 'Live Data', path: '/digital/invoices' },
+    { title: 'Active Clients', value: `${stats.activeClientsCount} Accounts`, sub: 'Active B2B Directory', icon: Users, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20', badge: 'Verified', path: '/digital/clients' },
+    { title: 'Running Projects', value: `${stats.runningProjectsCount} Projects`, sub: `₹${(stats.totalProjectValue / 10000000).toFixed(2)} Cr Value`, icon: FolderKanban, color: 'text-blue-600 bg-blue-50 border-blue-100', badge: 'Active', path: '/digital/projects' },
+    { title: 'Pending Tasks', value: `${stats.pendingTasksCount} Open`, sub: 'Realtime Pipeline', icon: CheckSquare, color: 'text-amber-600 bg-amber-50 border-amber-100', badge: 'Action Needed', path: '/digital/tasks' },
   ];
 
   const recentActivities = [

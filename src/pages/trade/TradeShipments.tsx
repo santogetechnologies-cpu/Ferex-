@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Truck, Search, Plus, Eye, Trash2, X, CheckCircle2, Anchor, Navigation } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { supabase } from '../../lib/supabase';
+import { getTradeShipments, createTradeShipment } from '../../lib/api/trade';
 
 export const TradeShipments: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -10,48 +12,43 @@ export const TradeShipments: React.FC = () => {
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [shipments, setShipments] = useState<any[]>([]);
 
-  const [shipments, setShipments] = useState([
-    {
-      id: 'SHP-9021',
-      container: 'MSKU-9821045',
-      carrier: 'Maersk Line',
-      origin: 'Gdansk (Poland)',
-      destination: 'Rotterdam (Netherlands)',
-      cargo: 'Automotive & Industrial Parts',
-      weight: '24,500 kg',
-      eta: 'Aug 14, 2026',
-      mode: 'Maritime',
-      status: 'In Transit',
-      statusBadge: 'bg-blue-50 text-blue-700 border-blue-200'
-    },
-    {
-      id: 'SHP-9022',
-      container: 'HLCU-4410982',
-      carrier: 'Hapag-Lloyd',
-      origin: 'Hamburg (Germany)',
-      destination: 'Singapore Port',
-      cargo: 'Precision Electrical Machinery',
-      weight: '18,200 kg',
-      eta: 'Aug 18, 2026',
-      mode: 'Maritime',
-      status: 'Customs Cleared',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 'SHP-9023',
-      container: 'AWB-7789012',
-      carrier: 'Lufthansa Cargo',
-      origin: 'Frankfurt (Germany)',
-      destination: 'New Delhi (India)',
-      cargo: 'Pharma & Biotech Reagents',
-      weight: '4,100 kg',
-      eta: 'Aug 10, 2026',
-      mode: 'Air Cargo',
-      status: 'In Flight',
-      statusBadge: 'bg-indigo-50 text-indigo-700 border-indigo-200'
+  const loadShipments = React.useCallback(async () => {
+    const data = await getTradeShipments();
+    if (data && data.length > 0) {
+      setShipments(data.map(d => ({
+        id: d.shipment_no || d.id,
+        container: d.container_no,
+        carrier: d.carrier,
+        origin: d.origin_port,
+        destination: d.destination_port,
+        cargo: d.cargo_description,
+        weight: `${Number(d.cargo_weight_kg || 20000).toLocaleString()} kg`,
+        eta: d.eta,
+        mode: d.transport_mode,
+        status: d.status,
+        statusBadge: d.status === 'In Transit' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      })));
+    } else {
+      setShipments([]);
     }
-  ]);
+  }, []);
+
+  useEffect(() => {
+    loadShipments();
+
+    const channel = supabase
+      .channel('realtime_trade_shipments')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_shipments' }, () => {
+        loadShipments();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadShipments]);
 
   const [newShipment, setNewShipment] = useState({
     container: '',
@@ -68,19 +65,33 @@ export const TradeShipments: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleAddShipment = (e: React.FormEvent) => {
+  const handleAddShipment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newShipment.container) return;
-    const created = {
-      id: `SHP-${Math.floor(9000 + Math.random() * 999)}`,
-      ...newShipment,
-      mode: 'Maritime',
-      status: 'Dispatched',
+    const created = await createTradeShipment({
+      container_no: newShipment.container,
+      carrier: newShipment.carrier,
+      origin_port: newShipment.origin,
+      destination_port: newShipment.destination,
+      cargo_description: newShipment.cargo,
+      cargo_weight_kg: 20000,
+      eta: newShipment.eta,
+    });
+    setShipments(prev => [{
+      id: created.shipment_no || created.id,
+      container: created.container_no,
+      carrier: created.carrier,
+      origin: created.origin_port,
+      destination: created.destination_port,
+      cargo: created.cargo_description,
+      weight: `${Number(created.cargo_weight_kg || 20000).toLocaleString()} kg`,
+      eta: created.eta,
+      mode: created.transport_mode,
+      status: created.status,
       statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    };
-    setShipments([created, ...shipments]);
+    }, ...prev]);
     setShowAddModal(false);
-    showToastMsg(`Dispatched container ${newShipment.container}`);
+    showToastMsg(`Dispatched container ${newShipment.container} and saved to database!`);
     setNewShipment({ container: '', carrier: 'Maersk Line', origin: 'Gdansk Port, Poland', destination: 'Rotterdam, Netherlands', cargo: 'Industrial Equipment', weight: '20,000 kg', eta: 'Aug 20, 2026' });
   };
 

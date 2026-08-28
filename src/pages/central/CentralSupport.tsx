@@ -1,44 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LifeBuoy, Search, MessageSquare, CheckCircle2, X, Send } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getTickets } from '../../lib/api/tickets';
 
 export const CentralSupport: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [replyText, setReplyText] = useState('');
   const [toast, setToast] = useState('');
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [tickets, setTickets] = useState([
-    {
-      id: 'TCK-801',
-      student: 'Ashly',
-      subject: 'Embassy Visa Briefing Slot Confirmation',
-      category: 'Visa Support',
-      priority: 'High',
-      date: 'Aug 04, 2026',
-      status: 'Open',
-      statusBadge: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20',
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getTickets();
+    const formatted = data.map((d: any) => ({
+      id: d.ticket_no || (d.id ? `TCK-${d.id.slice(0, 4).toUpperCase()}` : 'TCK-801'),
+      rawId: d.id,
+      student: d.users?.full_name || 'Student',
+      subject: d.subject,
+      category: d.category || 'General Query',
+      priority: d.priority || 'Medium',
+      date: d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Recent',
+      status: d.status || 'Open',
+      statusBadge: d.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20',
       messages: [
-        { sender: 'Ashly', text: 'Hi, I need help confirming my visa document checklist for August 12.', time: '10:14 AM' }
+        { sender: d.users?.full_name || 'Student', text: d.description, time: 'Initial Ticket' }
       ]
-    },
-    {
-      id: 'TCK-802',
-      student: 'Rahul Mehta',
-      subject: 'Uni-Assist Fee Receipt Validation',
-      category: 'Payments',
-      priority: 'Medium',
-      date: 'Aug 01, 2026',
-      status: 'Resolved',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      messages: [
-        { sender: 'Rahul Mehta', text: 'Where can I download the Uni-Assist payment receipt?', time: '02:30 PM' },
-        { sender: 'Staff Response', text: 'Your receipt is now available in your Receipts tab!', time: '03:15 PM' }
-      ]
-    }
-  ]);
+    }));
+    setTickets(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -90,6 +88,10 @@ export const CentralSupport: React.FC = () => {
         </div>
         <span className="text-xs font-bold text-slate-400">{filteredTickets.length} Support Tickets</span>
       </Card>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading support tickets...</div>
+      ) : null}
 
       <div className="space-y-3">
         {filteredTickets.map((ticket) => (

@@ -9,6 +9,8 @@ import {
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
+import { supabase } from '../lib/supabase';
+import { normalizeRole, getDashboardRoute } from '../lib/roleRouter';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -19,6 +21,17 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   const location = useLocation();
   const { user, profile, signOut } = useAuth();
   const { notifications, markRead } = useNotifications(user?.id);
+
+  // Authoritative role guard: if non-student is here, redirect immediately to their dashboard
+  useEffect(() => {
+    const rawRole = profile?.role || user?.user_metadata?.role;
+    if (rawRole) {
+      const normalized = normalizeRole(rawRole);
+      if (normalized !== 'student') {
+        navigate(getDashboardRoute(normalized), { replace: true });
+      }
+    }
+  }, [profile?.role, user?.user_metadata?.role, navigate]);
 
   // Responsive states
   const [isCollapsed, setIsCollapsed] = useState(false);

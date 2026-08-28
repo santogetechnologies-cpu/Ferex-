@@ -40,7 +40,7 @@ export const Payments: React.FC = () => {
     a.course !== 'Academic Recognition & Admission Initiation' &&
     a.university_name !== 'Pending NAWA Selection' &&
     a.university_name !== 'Pending University Selection' &&
-    !a.university_name.includes('NAWA Partner')
+    !a.university_name?.includes('NAWA Partner')
   ) || null;
 
   const hasCourseSelected = Boolean(
@@ -264,11 +264,13 @@ export const Payments: React.FC = () => {
     setTimeout(() => setToastMessage(''), 3500);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setReceiptUrl(URL.createObjectURL(file));
-      showToast(`Receipt screenshot "${file.name}" attached successfully!`);
+      const { uploadFileToBucket } = await import('../lib/storage');
+      const res = await uploadFileToBucket('receipts', file, 'payment_receipt');
+      setReceiptUrl(res.url || URL.createObjectURL(file));
+      showToast(`Receipt screenshot "${file.name}" uploaded successfully!`);
     }
   };
 
@@ -279,10 +281,7 @@ export const Payments: React.FC = () => {
     try {
       setIsSubmitting(true);
 
-      // Simulate Processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const studentIdVal = user?.id || 'demo-student-id';
+      const studentIdVal = user?.id;
       const studentNameVal = profile?.full_name || user?.email?.split('@')[0] || 'Student';
       const methodLabel = gatewayType === 'card' ? 'Debit/Credit Card' : gatewayType === 'upi' ? `UPI (${upiId || 'GPay'})` : 'NetBanking';
 
@@ -292,7 +291,7 @@ export const Payments: React.FC = () => {
         title: selectedInst.title,
         amount: selectedInst.amount,
         payment_type: `${selectedInst.stageNum}st Installment`,
-        payment_method: `Gateway: ${methodLabel}`,
+        payment_method: `Direct: ${methodLabel}`,
       });
 
       setIsSubmitting(false);

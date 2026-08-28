@@ -2,6 +2,7 @@ import { supabase } from '../supabase';
 import type { Payment, Invoice, Receipt, CreditNote } from '../types';
 import { generateUUID } from '../../utils/uuid';
 import { createNotification } from './notifications';
+import { logActivity } from './activity';
 
 // ─── PAYMENTS ─────────────────────────────────────────────────────────────────
 
@@ -28,6 +29,23 @@ export async function getPayments(studentId?: string) {
     }
     return (data ?? []) as unknown as Payment[];
   } catch (err) {
+    return [];
+  }
+}
+
+export async function getAllPaymentsForAdmin(): Promise<Payment[]> {
+  try {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('id, student_id, student_name, amount, payment_type, status, title, description, created_at, receipt_url, payment_method, ref_no')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('[getAllPaymentsForAdmin Notice]:', error.message);
+      return [];
+    }
+    return (data ?? []) as unknown as Payment[];
+  } catch {
     return [];
   }
 }
@@ -188,6 +206,7 @@ export async function submitPaymentProof(payload: {
     const { error: fullError } = await supabase.from('payments').insert(fullPayload);
     if (!fullError) {
       console.log('[submitPaymentProof]: Full insert succeeded into Supabase!');
+      await logActivity('PAYMENT_SUBMITTED', 'payment', newId, { amount: payload.amount, title: payload.title });
       return resultPayment;
     }
 

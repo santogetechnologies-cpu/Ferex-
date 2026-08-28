@@ -1,18 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Receipt, Search, Plus, X, CheckCircle2, Eye } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getDigitalExpenses, createDigitalExpense } from '../../lib/api/digital';
 
-const initialExpenses = [
-  { id: 'EXP-001', description: 'AWS Cloud Infrastructure', category: 'Tech Infrastructure', amount: '₹42,000', date: '2026-08-01', submittedBy: 'Vivek Sharma', status: 'Approved' },
-  { id: 'EXP-002', description: 'Adobe Creative Cloud Licenses (10 seats)', category: 'Software', amount: '₹28,500', date: '2026-08-01', submittedBy: 'Sneha Roy', status: 'Approved' },
-  { id: 'EXP-003', description: 'Reliance Digital Client Site Visit', category: 'Travel', amount: '₹8,200', date: '2026-08-02', submittedBy: 'Arun Patel', status: 'Pending' },
-  { id: 'EXP-004', description: 'Team Building Dinner — Q3 Kickoff', category: 'Team', amount: '₹18,400', date: '2026-08-03', submittedBy: 'Riya Thomas', status: 'Pending' },
-  { id: 'EXP-005', description: 'Google Workspace Business Plan', category: 'Software', amount: '₹14,000', date: '2026-08-04', submittedBy: 'Arun Patel', status: 'Approved' },
-];
-
-const CATEGORIES = ['Tech Infrastructure', 'Software', 'Travel', 'Team', 'Marketing', 'Office', 'Other'];
+const CATEGORIES = ['Cloud Infrastructure', 'Software Licenses', 'Freelancer Payroll', 'Office & Utilities', 'Marketing & Ads', 'Hardware'];
 
 const statusClr: Record<string, string> = {
   'Approved': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -21,21 +14,50 @@ const statusClr: Record<string, string> = {
 };
 
 export const DigitalExpenses: React.FC = () => {
-  const [expenses, setExpenses] = useState(initialExpenses);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<any>(null);
   const [toast, setToast] = useState('');
-  const [newExp, setNewExp] = useState({ description: '', category: 'Tech Infrastructure', amount: '', submittedBy: '', date: '' });
+  const [newExp, setNewExp] = useState({ description: '', category: 'Cloud Infrastructure', amount: '', submittedBy: '', date: '' });
+
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getDigitalExpenses();
+    const formatted = data.map((d: any) => ({
+      id: d.id,
+      description: d.title,
+      category: d.category,
+      amount: `₹${Number(d.amount).toLocaleString()}`,
+      date: d.date_incurred,
+      submittedBy: d.approved_by || 'Digital Director',
+      status: 'Approved',
+    }));
+    setExpenses(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    setExpenses([{ id: `EXP-${Math.floor(Math.random() * 900 + 6)}`, status: 'Pending', ...newExp }, ...expenses]);
+    await createDigitalExpense({
+      title: newExp.description,
+      category: newExp.category,
+      amount: parseFloat(newExp.amount.replace(/[^0-9.]/g, '')) || 0,
+      vendor: newExp.submittedBy || 'Vendor',
+      date_incurred: newExp.date || new Date().toISOString().split('T')[0],
+      approved_by: newExp.submittedBy || 'Digital Director',
+    });
     setShowAddModal(false);
     showToast('Expense submitted for approval!');
-    setNewExp({ description: '', category: 'Tech Infrastructure', amount: '', submittedBy: '', date: '' });
+    setNewExp({ description: '', category: 'Cloud Infrastructure', amount: '', submittedBy: '', date: '' });
+    await loadData();
   };
 
   const filtered = expenses.filter(e => e.description.toLowerCase().includes(search.toLowerCase()) || e.category.toLowerCase().includes(search.toLowerCase()));
@@ -59,6 +81,10 @@ export const DigitalExpenses: React.FC = () => {
           <Plus className="w-4 h-4 mr-1.5" /> Submit Expense
         </Button>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading expenses...</div>
+      ) : null}
 
       <div className="grid grid-cols-3 gap-3">
         {[['Total Expenses', `₹${(42000 + 28500 + 8200 + 18400 + 14000).toLocaleString('en-IN')}`, 'text-slate-900'],

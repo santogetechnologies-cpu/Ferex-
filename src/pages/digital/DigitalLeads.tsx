@@ -1,16 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Search, Plus, Eye, X, CheckCircle2, ChevronRight, Target } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-
-const initialLeads = [
-  { id: 'LED-001', company: 'HDFC Life Insurance', contact: 'Nisha Agarwal', email: 'nisha@hdfclife.com', phone: '+91 98200 44321', service: 'Web Development', value: '₹18,00,000', stage: 'Proposal Sent', priority: 'High', created: '2026-07-28' },
-  { id: 'LED-002', company: 'Swiggy Tech', contact: 'Arjun Rao', email: 'arjun@swiggy.com', phone: '+91 95001 88765', service: 'Mobile App', value: '₹24,50,000', stage: 'Qualified', priority: 'High', created: '2026-07-30' },
-  { id: 'LED-003', company: 'PhonePe Branding', contact: 'Kavya Menon', email: 'kavya@phonepe.com', phone: '+91 80012 33456', service: 'Branding + SEO', value: '₹9,80,000', stage: 'Discovery', priority: 'Medium', created: '2026-08-01' },
-  { id: 'LED-004', company: 'Zomato Digital Growth', contact: 'Prateek Joshi', email: 'prateek@zomato.com', phone: '+91 91234 12345', service: 'Digital Marketing', value: '₹6,00,000', stage: 'New', priority: 'Low', created: '2026-08-04' },
-  { id: 'LED-005', company: 'Paytm Merchant UX', contact: 'Sana Sheikh', email: 'sana@paytm.com', phone: '+91 99811 44567', service: 'UI/UX Design', value: '₹11,20,000', stage: 'Negotiation', priority: 'High', created: '2026-08-05' },
-];
+import { getDigitalLeads, createDigitalLead, updateDigitalLeadStage } from '../../lib/api/digital';
 
 const STAGES = ['New', 'Discovery', 'Qualified', 'Proposal Sent', 'Negotiation', 'Won', 'Lost'];
 
@@ -30,7 +23,8 @@ const stageBadge = (s: string) => {
 const priorityBadge = (p: string) => p === 'High' ? 'bg-red-50 text-red-700 border-red-200' : p === 'Medium' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200';
 
 export const DigitalLeads: React.FC = () => {
-  const [leads, setLeads] = useState(initialLeads);
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStage, setFilterStage] = useState('All');
   const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -38,23 +32,46 @@ export const DigitalLeads: React.FC = () => {
   const [toast, setToast] = useState('');
   const [newLead, setNewLead] = useState({ company: '', contact: '', email: '', service: 'Web Development', value: '', stage: 'New', priority: 'Medium' });
 
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getDigitalLeads();
+    setLeads(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLeads([{ id: `LED-${Math.floor(Math.random() * 900 + 100)}`, phone: '+91 00000 00000', created: new Date().toISOString().slice(0, 10), ...newLead }, ...leads]);
+    const valNum = Number(newLead.value.replace(/[^0-9]/g, '')) || 1000000;
+    await createDigitalLead({
+      company_name: newLead.company,
+      contact_person: newLead.contact,
+      email: newLead.email || `${newLead.contact.toLowerCase().replace(/\s+/g, '')}@example.com`,
+      service_interest: newLead.service,
+      estimated_value: valNum,
+      stage: newLead.stage,
+      priority: newLead.priority,
+    });
     setShowAddModal(false);
     showToast(`Lead "${newLead.company}" added!`);
     setNewLead({ company: '', contact: '', email: '', service: 'Web Development', value: '', stage: 'New', priority: 'Medium' });
+    await loadData();
   };
 
-  const handleAdvanceStage = (id: string) => {
-    setLeads(leads.map(l => {
-      if (l.id !== id) return l;
-      const idx = STAGES.indexOf(l.stage);
-      return { ...l, stage: STAGES[Math.min(idx + 1, STAGES.length - 1)] };
-    }));
+  const handleAdvanceStage = async (id: string) => {
+    const lead = leads.find(l => l.id === id);
+    if (!lead) return;
+    const currentStage = lead.stage || 'New';
+    const idx = STAGES.indexOf(currentStage);
+    const nextStage = STAGES[Math.min(idx + 1, STAGES.length - 1)];
+    await updateDigitalLeadStage(id, nextStage);
     showToast('Stage advanced!');
+    await loadData();
   };
 
   const handleDelete = (id: string) => { setLeads(leads.filter(l => l.id !== id)); showToast('Lead removed'); };
@@ -110,44 +127,57 @@ export const DigitalLeads: React.FC = () => {
         </div>
       </Card>
 
-      <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-4">Lead & Company</th>
-                <th className="py-3 px-4">Service</th>
-                <th className="py-3 px-4">Deal Value</th>
-                <th className="py-3 px-4">Stage</th>
-                <th className="py-3 px-4">Priority</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-              {filtered.map(l => (
-                <tr key={l.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                    <div>{l.company}</div>
-                    <div className="text-[10px] font-bold text-slate-400">{l.contact} · {l.id}</div>
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800">{l.service}</td>
-                  <td className="py-3.5 px-4 font-black text-slate-900">{l.value}</td>
-                  <td className="py-3.5 px-4"><span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${stageBadge(l.stage)}`}>{l.stage}</span></td>
-                  <td className="py-3.5 px-4"><span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${priorityBadge(l.priority)}`}>{l.priority}</span></td>
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => setSelectedLead(l)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><Eye className="w-4 h-4" /></button>
-                      <button onClick={() => handleAdvanceStage(l.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50" title="Advance Stage"><ChevronRight className="w-4 h-4" /></button>
-                      <button onClick={() => { handleAdvanceStage(l.id); showToast(`${l.company} promoted to next stage!`); }} className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-extrabold hover:bg-emerald-100 border border-emerald-200">Advance</button>
-                      <button onClick={() => handleDelete(l.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"><X className="w-4 h-4" /></button>
-                    </div>
-                  </td>
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading leads pipeline...</div>
+      ) : (
+        <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  <th className="py-3 px-4">Lead & Company</th>
+                  <th className="py-3 px-4">Service</th>
+                  <th className="py-3 px-4">Deal Value</th>
+                  <th className="py-3 px-4">Stage</th>
+                  <th className="py-3 px-4">Priority</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+                {filtered.map(l => {
+                  const company = l.company_name || l.company || 'Enterprise Client';
+                  const contact = l.contact_person || l.contact || 'Lead Contact';
+                  const service = l.service_interest || l.service || 'Web Development';
+                  const val = l.estimated_value ? `₹${Number(l.estimated_value).toLocaleString('en-IN')}` : (l.value || '₹10,00,000');
+                  const stage = l.stage || 'New';
+                  const priority = l.priority || 'Medium';
+
+                  return (
+                    <tr key={l.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                        <div>{company}</div>
+                        <div className="text-[10px] font-bold text-slate-400">{contact} · {l.id}</div>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-800">{service}</td>
+                      <td className="py-3.5 px-4 font-black text-slate-900">{val}</td>
+                      <td className="py-3.5 px-4"><span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${stageBadge(stage)}`}>{stage}</span></td>
+                      <td className="py-3.5 px-4"><span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${priorityBadge(priority)}`}>{priority}</span></td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => setSelectedLead(l)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><Eye className="w-4 h-4" /></button>
+                          <button onClick={() => handleAdvanceStage(l.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50" title="Advance Stage"><ChevronRight className="w-4 h-4" /></button>
+                          <button onClick={() => { handleAdvanceStage(l.id); showToast(`${company} promoted to next stage!`); }} className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-extrabold hover:bg-emerald-100 border border-emerald-200">Advance</button>
+                          <button onClick={() => handleDelete(l.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"><X className="w-4 h-4" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Add Modal */}
       <AnimatePresence>

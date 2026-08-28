@@ -4,41 +4,14 @@ import {
   createAndCompletePayment, submitPaymentProof as apiSubmitProof,
   verifyPayment as apiVerify, rejectPayment as apiReject
 } from '../lib/api/payments';
+import { supabase } from '../lib/supabase';
 import type { Payment, Invoice, Receipt } from '../lib/types';
 
 export function usePayments(studentId?: string) {
-  const [payments, setPayments] = useState<Payment[]>(() => {
-    try {
-      const saved = localStorage.getItem('ferex_student_payments');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-  const [invoices, setInvoices] = useState<Invoice[]>(() => {
-    try {
-      const saved = localStorage.getItem('ferex_student_invoices');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-  const [receipts, setReceipts] = useState<Receipt[]>(() => {
-    try {
-      const saved = localStorage.getItem('ferex_student_receipts');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-  const [loading, setLoading] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ferex_student_payments');
-      return saved ? false : true;
-    } catch (e) {
-      return true;
-    }
-  });
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
@@ -52,11 +25,8 @@ export function usePayments(studentId?: string) {
       ]);
 
       setPayments(p || []);
-      localStorage.setItem('ferex_student_payments', JSON.stringify(p || []));
       setInvoices(inv || []);
-      localStorage.setItem('ferex_student_invoices', JSON.stringify(inv || []));
       setReceipts(rec || []);
-      localStorage.setItem('ferex_student_receipts', JSON.stringify(rec || []));
     } catch (err: any) {
       setError(err.message || 'Failed to load financial records');
     } finally {
@@ -67,23 +37,34 @@ export function usePayments(studentId?: string) {
   useEffect(() => {
     fetchAll();
 
-    const handleStorageChange = () => {
-      try {
-        const saved = localStorage.getItem('ferex_student_payments');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) setPayments(parsed);
-        }
-      } catch (e) {}
-    };
+    // Supabase Realtime Subscription on payments
+    const channelName = studentId ? `realtime_payments_student_${studentId}` : 'realtime_payments_admin';
+    const filterStr = studentId ? `student_id=eq.${studentId}` : undefined;
 
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('ferex_payment_change', handleStorageChange);
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payments',
+          filter: filterStr,
+        },
+        () => {
+          fetchAll();
+        }
+      )
+      .subscribe();
+
+    const handleLocalEvent = () => fetchAll();
+    window.addEventListener('ferex_payment_change', handleLocalEvent);
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('ferex_payment_change', handleStorageChange);
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_payment_change', handleLocalEvent);
     };
-  }, [fetchAll]);
+  }, [fetchAll, studentId]);
 
   const submitProof = async (payload: {
     student_id?: string;
@@ -96,45 +77,35 @@ export function usePayments(studentId?: string) {
     receipt_url?: string;
   }) => {
     const created = await apiSubmitProof(payload);
-    setPayments(prev => {
-      const nextList = [created, ...prev.filter(p => p.id !== created.id)];
-      localStorage.setItem('ferex_student_payments', JSON.stringify(nextList));
-      window.dispatchEvent(new Event('ferex_payment_change'));
-      return nextList;
-    });
+    setPayments(prev => [created, ...prev.filter(p => p.id !== created.id)]);
+    window.dispatchEvent(new Event('ferex_payment_change'));
     return created;
   };
 
   const verify = async (id: string, reviewerNotes?: string) => {
     const updated = await apiVerify(id, reviewerNotes);
-    setPayments(prev => {
-      const nextList = prev.map(p => p.id === id ? { ...p, ...updated, status: 'Paid' } as Payment : p);
-      localStorage.setItem('ferex_student_payments', JSON.stringify(nextList));
-      window.dispatchEvent(new Event('ferex_payment_change'));
-      return nextList;
-    });
+    setPayments(prev =>
+      prev.map(p => (p.id === id ? ({ ...p, ...updated, status: 'Paid' } as Payment) : p))
+    );
+    window.dispatchEvent(new Event('ferex_payment_change'));
     return updated;
   };
 
   const reject = async (id: string, reviewerNotes: string) => {
     const updated = await apiReject(id, reviewerNotes);
-    setPayments(prev => {
-      const nextList = prev.map(p => p.id === id ? { ...p, ...updated, status: 'Rejected' } as Payment : p);
-      localStorage.setItem('ferex_student_payments', JSON.stringify(nextList));
-      window.dispatchEvent(new Event('ferex_payment_change'));
-      return nextList;
-    });
+    setPayments(prev =>
+      prev.map(p => (p.id === id ? ({ ...p, ...updated, status: 'Rejected' } as Payment) : p))
+    );
+    window.dispatchEvent(new Event('ferex_payment_change'));
     return updated;
   };
 
   const pay = async (id: string, method?: string) => {
     const updated = await markPaymentPaid(id, method);
-    setPayments(prev => {
-      const nextList = prev.map(p => p.id === id ? { ...p, ...updated, status: 'Paid' } as Payment : p);
-      localStorage.setItem('ferex_student_payments', JSON.stringify(nextList));
-      window.dispatchEvent(new Event('ferex_payment_change'));
-      return nextList;
-    });
+    setPayments(prev =>
+      prev.map(p => (p.id === id ? ({ ...p, ...updated, status: 'Paid' } as Payment) : p))
+    );
+    window.dispatchEvent(new Event('ferex_payment_change'));
     return updated;
   };
 
@@ -147,17 +118,22 @@ export function usePayments(studentId?: string) {
     payment_method?: string;
   }) => {
     const created = await createAndCompletePayment(payload);
-    setPayments(prev => {
-      const nextList = [created, ...prev.filter(p => p.id !== created.id)];
-      localStorage.setItem('ferex_student_payments', JSON.stringify(nextList));
-      window.dispatchEvent(new Event('ferex_payment_change'));
-      return nextList;
-    });
+    setPayments(prev => [created, ...prev.filter(p => p.id !== created.id)]);
+    window.dispatchEvent(new Event('ferex_payment_change'));
     return created;
   };
 
   return {
-    payments, invoices, receipts, loading, error,
-    refresh: fetchAll, pay, processPayment, submitProof, verify, reject
+    payments,
+    invoices,
+    receipts,
+    loading,
+    error,
+    refresh: fetchAll,
+    pay,
+    processPayment,
+    submitProof,
+    verify,
+    reject,
   };
 }

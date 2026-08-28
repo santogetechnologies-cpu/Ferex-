@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getVisaRecords, updateVisaRecord, type VisaTrackingRecord } from '../lib/api/visa';
+import { supabase } from '../lib/supabase';
 
 export function useVisa(studentId?: string) {
   const [records, setRecords] = useState<VisaTrackingRecord[]>([]);
@@ -19,12 +20,45 @@ export function useVisa(studentId?: string) {
 
   useEffect(() => {
     fetchRecords();
-  }, [fetchRecords]);
+
+    // Supabase Realtime Subscription on visa_tracking
+    const channelName = studentId ? `realtime_visa_student_${studentId}` : 'realtime_visa_admin';
+    const filterStr = studentId ? `student_id=eq.${studentId}` : undefined;
+
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'visa_tracking',
+          filter: filterStr,
+        },
+        () => {
+          fetchRecords();
+        }
+      )
+      .subscribe();
+
+    const handleLocalEvent = () => fetchRecords();
+    window.addEventListener('ferex_visa_change', handleLocalEvent);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_visa_change', handleLocalEvent);
+    };
+  }, [fetchRecords, studentId]);
 
   const saveVisaUpdate = async (id: string, updates: Partial<VisaTrackingRecord>) => {
     let updatedObj: VisaTrackingRecord;
     try {
-      updatedObj = await updateVisaRecord(id, updates);
+      const res = await updateVisaRecord(id, updates);
+      if (res) {
+        updatedObj = res;
+      } else {
+        throw new Error('No record returned');
+      }
     } catch (err) {
       updatedObj = {
         id,
@@ -38,12 +72,13 @@ export function useVisa(studentId?: string) {
         courier_tracking_no: updates.courier_tracking_no || '',
         current_stage: updates.current_stage || 1,
         status_label: updates.status_label || 'VFS Processing',
-        notes: updates.notes || '',
+        decision_outcome: updates.decision_outcome || 'Pending',
+        notes: updates.notes || 'Status updated.',
         updated_at: new Date().toISOString(),
       };
     }
 
-    // Immediately fetch fresh records from Supabase
+    window.dispatchEvent(new Event('ferex_visa_change'));
     await fetchRecords();
     return updatedObj;
   };

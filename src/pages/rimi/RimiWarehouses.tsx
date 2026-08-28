@@ -1,15 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Warehouse, Search, Thermometer, MapPin } from 'lucide-react';
 import { Card } from '../../components/Card';
+import { getRimiWarehouses } from '../../lib/api/rimi';
 
 export const RimiWarehouses: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [facilities, setFacilities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [facilities] = useState([
-    { id: 'WH-01', name: 'Mumbai Central Cold Hub', city: 'Mumbai (Bhiwandi)', temp: '-22.4°C', capacity: '12,000 Pallets (88% Used)', manager: 'Rajesh Kulkarni', status: 'Active Frozen' },
-    { id: 'WH-02', name: 'Delhi NCR Logistics Facility', city: 'Gurugram (Haryana)', temp: '-20.1°C', capacity: '8,500 Pallets (74% Used)', manager: 'Vikram Choudhary', status: 'Active Frozen' },
-    { id: 'WH-03', name: 'Bengaluru Cold Logistics Depot', city: 'Bengaluru (Hosur Road)', temp: '-19.8°C', capacity: '6,000 Pallets (62% Used)', manager: 'Natarajan S.', status: 'Active Frozen' }
-  ]);
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const data = await getRimiWarehouses();
+      const mapped = data.map((d: any) => {
+        const utilPct = d.total_capacity_pallets > 0 ? Math.round((d.utilized_pallets / d.total_capacity_pallets) * 100) : 75;
+        return {
+          id: d.code || d.id,
+          name: d.name,
+          city: d.city,
+          temp: `${d.cold_room_temp_celsius || -22.0}°C`,
+          capacity: `${Number(d.total_capacity_pallets || 1000).toLocaleString()} Pallets (${utilPct}% Used)`,
+          manager: d.manager_name || 'Hub Manager',
+          status: 'Active Frozen'
+        };
+      });
+      setFacilities(mapped);
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const filteredFacilities = facilities.filter(f =>
     f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -26,6 +45,10 @@ export const RimiWarehouses: React.FC = () => {
           Rimi Cold Chain Console • Live telemetry monitoring, deep freeze storage, and regional hub capacity.
         </p>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading cold facilities...</div>
+      ) : null}
 
       <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-80">

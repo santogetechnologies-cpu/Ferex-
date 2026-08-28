@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Search, Eye, Edit3, Trash2, X, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getStudents, createStudent } from '../../lib/api/students';
 
 export const CentralStudents: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -10,45 +11,31 @@ export const CentralStudents: React.FC = () => {
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [students, setStudents] = useState([
-    {
-      id: 'FX-2026-001',
-      name: 'Ashly',
-      email: 'student@gmail.com',
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getStudents();
+    const formatted = data.map((d: any) => ({
+      id: d.id ? `FX-${d.id.slice(0, 4).toUpperCase()}` : 'FX-STUDENT',
+      name: d.full_name || 'Student',
+      email: d.email,
       country: 'India',
       targetUni: 'University of Warsaw',
       course: 'M.Sc. in Computer Science',
-      stage: 'Offer Letter Received (Stage 4/7)',
+      stage: 'Enrolled & Verified',
       stageBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      counselor: 'Education Team',
-      joined: 'Jun 15, 2026'
-    },
-    {
-      id: 'FX-2026-002',
-      name: 'Rahul Mehta',
-      email: 'rahul.mehta@gmail.com',
-      country: 'India',
-      targetUni: 'TU Berlin',
-      course: 'M.Sc. in Data Engineering',
-      stage: 'Application Submitted (Stage 2/7)',
-      stageBadge: 'bg-blue-50 text-blue-700 border-blue-200',
-      counselor: 'Rahul Mehta',
-      joined: 'Jun 20, 2026'
-    },
-    {
-      id: 'FX-2026-003',
-      name: 'Priya Sharma',
-      email: 'priya.sharma@gmail.com',
-      country: 'India',
-      targetUni: 'University of Amsterdam',
-      course: 'M.A. in Business Analytics',
-      stage: 'Documents Verified (Stage 3/7)',
-      stageBadge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-      counselor: 'Anita Roy',
-      joined: 'Jul 02, 2026'
-    }
-  ]);
+      counselor: d.assigned_counselor || 'Education Team',
+      joined: d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Active',
+    }));
+    setStudents(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const [newStudent, setNewStudent] = useState({
     name: '',
@@ -63,21 +50,18 @@ export const CentralStudents: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleAddStudent = (e: React.FormEvent) => {
+  const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStudent.name || !newStudent.email) return;
-    const created = {
-      id: `FX-2026-00${students.length + 1}`,
-      ...newStudent,
-      country: 'India',
-      stage: 'Profile Registered (Stage 1/7)',
-      stageBadge: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20',
-      joined: 'Just now'
-    };
-    setStudents([created, ...students]);
+    await createStudent({
+      full_name: newStudent.name,
+      email: newStudent.email,
+      assigned_counselor: newStudent.counselor,
+    });
     setShowAddModal(false);
     showToastMsg(`Enrolled student ${newStudent.name}`);
     setNewStudent({ name: '', email: '', targetUni: 'University of Warsaw', course: 'M.Sc. Computer Science', counselor: 'Rahul Mehta' });
+    await loadData();
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -131,6 +115,10 @@ export const CentralStudents: React.FC = () => {
           Add New Student
         </button>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading students directory...</div>
+      ) : null}
 
       {/* Search Bar */}
       <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">

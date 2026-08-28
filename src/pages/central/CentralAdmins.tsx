@@ -1,56 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Plus, Search, Mail, Trash2, X, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getStaffMembers } from '../../lib/api/students';
 
 export const CentralAdmins: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [staffList, setStaffList] = useState([
-    {
-      id: 1,
-      name: 'Super Admin',
-      email: 'admin@gmail.com',
-      role: 'Global Platform Admin',
-      assignedStudents: 1480,
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getStaffMembers();
+    const formatted = data.map((d: any, idx: number) => ({
+      id: d.id || idx + 1,
+      name: d.full_name || 'Staff Member',
+      email: d.email,
+      role: d.role === 'admin' ? 'Global Platform Admin' : 'Admissions Counselor',
+      assignedStudents: 120,
       rating: '5.0 ★★★★★',
       status: 'Active',
-      initials: 'SA'
-    },
-    {
-      id: 2,
-      name: 'Rahul Mehta',
-      email: 'rahul.admin@ferex.com',
-      role: 'Senior Admissions Officer',
-      assignedStudents: 120,
-      rating: '4.9 ★★★★★',
-      status: 'Active',
-      initials: 'RM'
-    },
-    {
-      id: 3,
-      name: 'Anita Roy',
-      email: 'anita.roy@ferex.com',
-      role: 'Visa & Document Specialist',
-      assignedStudents: 95,
-      rating: '4.8 ★★★★★',
-      status: 'Active',
-      initials: 'AR'
-    },
-    {
-      id: 4,
-      name: 'Adam Kowalski',
-      email: 'adam.kowalski@ferex.pl',
-      role: 'Regional Representative (Warsaw)',
-      assignedStudents: 210,
-      rating: '4.9 ★★★★★',
-      status: 'Active',
-      initials: 'AK'
-    }
-  ]);
+      initials: (d.full_name || 'Staff').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
+    }));
+    setStaffList(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const [newStaff, setNewStaff] = useState({
     name: '',
@@ -120,6 +101,10 @@ export const CentralAdmins: React.FC = () => {
           <Plus className="w-4 h-4 mr-1.5" /> Add Staff Member
         </Button>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading staff directory...</div>
+      ) : null}
 
       <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
         <div className="relative w-full md:w-96">

@@ -67,10 +67,10 @@ export const JourneyTracker: React.FC = () => {
 
         // Provide default stages in memory without client-side unauthorized POST requests
         const DEFAULT_STAGES: JourneyStage[] = [
-          { id: `stage-1-${user.id}`, student_id: user.id, stage_number: 1, stage_name: 'Application Submitted', status: 'In Progress', notes: 'Initial submission of visa & university application files.' },
-          { id: `stage-2-${user.id}`, student_id: user.id, stage_number: 2, stage_name: 'NAWA Process', status: 'Pending', notes: 'Verification of eligibility and NAWA apostille/legalization audit.' },
-          { id: `stage-3-${user.id}`, student_id: user.id, stage_number: 3, stage_name: 'Decision', status: 'Pending', notes: 'University admissions and visa officer eligibility decision.' },
-          { id: `stage-4-${user.id}`, student_id: user.id, stage_number: 4, stage_name: 'Visa Outcome', status: 'Pending', notes: 'Passport stamping and visa grant status.' },
+          { id: `stage-1-${user.id}`, student_id: user.id, stage_number: 1, stage_name: 'Application Submitted', status: 'In Progress', notes: 'Initial submission of visa & university application files.', completed_at: null },
+          { id: `stage-2-${user.id}`, student_id: user.id, stage_number: 2, stage_name: 'NAWA Process', status: 'Pending', notes: 'Verification of eligibility and NAWA apostille/legalization audit.', completed_at: null },
+          { id: `stage-3-${user.id}`, student_id: user.id, stage_number: 3, stage_name: 'Decision', status: 'Pending', notes: 'University admissions and visa officer eligibility decision.', completed_at: null },
+          { id: `stage-4-${user.id}`, student_id: user.id, stage_number: 4, stage_name: 'Visa Outcome', status: 'Pending', notes: 'Passport stamping and visa grant status.', completed_at: null },
         ];
         setStages(DEFAULT_STAGES);
       } catch (err) {

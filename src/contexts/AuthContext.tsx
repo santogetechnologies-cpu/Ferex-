@@ -9,9 +9,17 @@ export interface UserProfile {
   email: string;
   full_name: string;
   role: string;
-  avatar_url: string;
-  created_at: string;
-  updated_at: string;
+  avatar_url?: string;
+  phone?: string;
+  passport_no?: string;
+  city?: string;
+  country?: string;
+  department?: string;
+  assigned_counselor?: string;
+  emergency_contact?: Record<string, any>;
+  must_change_password?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface AuthContextValue {
@@ -23,12 +31,18 @@ interface AuthContextValue {
   profile: UserProfile | null;
   /** True while the initial session or profile is being loaded */
   loading: boolean;
-  /** Sign in with email + password. Returns an error message string on failure. */
+  /** Sign in with email + password */
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  /** Sign up new user with email + password + metadata */
+  signUp: (email: string, password: string, fullName: string, role?: string) => Promise<{ error?: string; user?: User | null }>;
   /** Sign out the current user */
   signOut: () => Promise<void>;
   /** Send a password reset email */
   resetPassword: (email: string) => Promise<{ error?: string }>;
+  /** Update user password */
+  updatePassword: (newPassword: string) => Promise<{ error?: string }>;
+  /** Refresh user profile from database */
+  refreshProfile: () => Promise<void>;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -37,18 +51,69 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-async function fetchProfile(userId: string): Promise<UserProfile | null> {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', userId)
-    .single();
+async function fetchProfile(userId: string, email?: string | null): Promise<UserProfile | null> {
+  try {
+    // 1. Check by Auth User ID in public.users
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
 
-  if (error) {
-    console.warn('[AuthContext] Could not fetch user profile:', error.message);
+    if (!error && data) {
+      return data as UserProfile;
+    }
+
+    // 2. Fallback: Check by email in public.users to link existing profile
+    if (email) {
+      const { data: emailUser, error: emailErr } = await supabase
+        .from('users')
+        .select('*')
+        .ilike('email', email.trim())
+        .maybeSingle();
+
+      if (!emailErr && emailUser) {
+        // Link ID if mismatched
+        if (emailUser.id !== userId) {
+          try {
+            await supabase.from('users').update({ id: userId }).eq('id', emailUser.id);
+          } catch {}
+        }
+        return { ...emailUser, id: userId } as UserProfile;
+      }
+    }
+
+    return null;
+  } catch (err) {
     return null;
   }
-  return data as UserProfile;
+}
+
+async function ensureProfile(user: User): Promise<UserProfile> {
+  const existing = await fetchProfile(user.id, user.email);
+  if (existing) return existing;
+
+  const role = user.user_metadata?.role || 'student';
+  const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User';
+
+  const newProfile: UserProfile = {
+    id: user.id,
+    email: user.email || '',
+    full_name: fullName,
+    role: role,
+    avatar_url: user.user_metadata?.avatar_url || '',
+    phone: user.user_metadata?.phone || '',
+    must_change_password: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  try {
+    const { data, error } = await supabase.from('users').upsert(newProfile).select().maybeSingle();
+    if (!error && data) return data as UserProfile;
+  } catch (e) {}
+
+  return newProfile;
 }
 
 // ─── Provider ────────────────────────────────────────────────────────────────
@@ -59,165 +124,125 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const loadUserData = useCallback(async (currentSession: Session | null) => {
+    setSession(currentSession);
+    const currentUser = currentSession?.user ?? null;
+    setUser(currentUser);
+
+    if (currentUser) {
+      const prof = await ensureProfile(currentUser);
+      setProfile(prof);
+    } else {
+      setProfile(null);
+    }
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
-    // Restore existing session on mount
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session);
-      let currentUser: User | null = data.session?.user ?? null;
-      let currentProfile: UserProfile | null = null;
-
-      if (currentUser) {
-        currentProfile = await fetchProfile(currentUser.id);
-      } else {
-        try {
-          const rawLocalUser = localStorage.getItem('ferex_user');
-          if (rawLocalUser) {
-            const parsed = JSON.parse(rawLocalUser);
-            if (parsed && parsed.id) {
-              currentUser = {
-                id: parsed.id,
-                email: parsed.email || '',
-                user_metadata: { role: parsed.role || 'student' },
-                app_metadata: {},
-                aud: 'authenticated',
-                created_at: new Date().toISOString()
-              } as any;
-              currentProfile = await fetchProfile(parsed.id);
-              if (!currentProfile) {
-                currentProfile = {
-                  id: parsed.id,
-                  email: parsed.email || '',
-                  full_name: parsed.email?.split('@')[0] || 'Student',
-                  role: parsed.role || 'student',
-                  avatar_url: '',
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString()
-                };
-              }
-            }
-          }
-        } catch (e) {}
-      }
-
-      setUser(currentUser);
-      setProfile(currentProfile);
+    // 1. Initial Session Load
+    supabase.auth.getSession().then(({ data }) => {
+      loadUserData(data.session);
+    }).catch(() => {
       setLoading(false);
     });
 
-    // Listen for auth state changes (login, logout, token refresh)
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      setSession(newSession);
-      if (newSession?.user) {
-        setUser(newSession.user);
-        const prof = await fetchProfile(newSession.user.id);
-        setProfile(prof);
-      } else {
-        // Fall back to ferex_user if active
-        try {
-          const rawLocalUser = localStorage.getItem('ferex_user');
-          if (rawLocalUser) {
-            const parsed = JSON.parse(rawLocalUser);
-            if (parsed && parsed.id) {
-              const u = {
-                id: parsed.id,
-                email: parsed.email || '',
-                user_metadata: { role: parsed.role || 'student' },
-                app_metadata: {},
-                aud: 'authenticated',
-                created_at: new Date().toISOString()
-              } as any;
-              setUser(u);
-              const prof = await fetchProfile(parsed.id);
-              setProfile(prof);
-              return;
-            }
-          }
-        } catch (e) {}
-        setUser(null);
-        setProfile(null);
-      }
+    // 2. Realtime Auth State Listener
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      loadUserData(newSession);
     });
 
-    // Listen for custom ferex_auth_change events (e.g. login without Supabase Auth session)
-    const syncLocalAuth = async () => {
-      try {
-        const rawLocalUser = localStorage.getItem('ferex_user');
-        if (rawLocalUser) {
-          const parsed = JSON.parse(rawLocalUser);
-          if (parsed && parsed.id) {
-            const u = {
-              id: parsed.id,
-              email: parsed.email || '',
-              user_metadata: { role: parsed.role || 'student' },
-              app_metadata: {},
-              aud: 'authenticated',
-              created_at: new Date().toISOString()
-            } as any;
-            setUser(u);
-            const prof = await fetchProfile(parsed.id);
-            if (prof) {
-              setProfile(prof);
-            } else {
-              setProfile({
-                id: parsed.id,
-                email: parsed.email || '',
-                full_name: parsed.full_name || parsed.name || parsed.email?.split('@')[0] || 'Student',
-                role: parsed.role || 'student',
-                avatar_url: '',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              });
-            }
-          }
-        }
-      } catch (e) {}
-    };
-
-    window.addEventListener('ferex_auth_change', syncLocalAuth);
-    window.addEventListener('storage', syncLocalAuth);
-
     return () => {
-      listener.subscription.unsubscribe();
-      window.removeEventListener('ferex_auth_change', syncLocalAuth);
-      window.removeEventListener('storage', syncLocalAuth);
+      authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [loadUserData]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      return { error: error.message };
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) {
+        return { error: error.message };
+      }
+
+      if (data.session) {
+        await loadUserData(data.session);
+      }
+      return {};
+    } catch (err: any) {
+      return { error: err?.message || 'Authentication error' };
     }
-    return {};
+  }, [loadUserData]);
+
+  const signUp = useCallback(async (email: string, password: string, fullName: string, role: string = 'student') => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role,
+          },
+        },
+      });
+
+      if (error) return { error: error.message };
+
+      if (data.user) {
+        await ensureProfile(data.user);
+      }
+      return { user: data.user };
+    } catch (err: any) {
+      return { error: err?.message || 'Sign up error' };
+    }
   }, []);
 
-  const clearFerexCache = () => {
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-    } catch (e) {}
-  };
-
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
+    try {
+      const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('ferex_'));
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch {}
     setUser(null);
     setSession(null);
     setProfile(null);
-    clearFerexCache();
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/#/reset-password`,
     });
-    if (error) {
-      return { error: error.message };
-    }
+    if (error) return { error: error.message };
     return {};
   }, []);
 
+  const updatePassword = useCallback(async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { error: error.message };
+    return {};
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (user?.id) {
+      const prof = await fetchProfile(user.id);
+      if (prof) setProfile(prof);
+    }
+  }, [user?.id]);
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signIn, signOut, resetPassword }}>
+    <AuthContext.Provider value={{
+      user,
+      session,
+      profile,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      resetPassword,
+      updatePassword,
+      refreshProfile,
+    }}>
       {children}
     </AuthContext.Provider>
   );

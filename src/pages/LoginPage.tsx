@@ -4,9 +4,8 @@ import { ShieldCheck, AlertCircle, KeyRound, ArrowLeft, LogIn, Lock } from 'luci
 import { useNavigate } from 'react-router-dom';
 import { Input } from '../components/Input';
 import { Checkbox } from '../components/Checkbox';
-import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
-import { getDashboardRoute, getPortalLabel, isValidRole } from '../lib/roleRouter';
+import { getDashboardRoute, getPortalLabel } from '../lib/roleRouter';
 import { supabase } from '../lib/supabase';
 
 export const LoginPage: React.FC = () => {
@@ -36,7 +35,6 @@ export const LoginPage: React.FC = () => {
   const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [pendingRole, setPendingRole] = useState('');
   const [changePassError, setChangePassError] = useState('');
   const [isChangingPass, setIsChangingPass] = useState(false);
 
@@ -70,82 +68,58 @@ export const LoginPage: React.FC = () => {
 
     setIsLoading(true);
 
-    // Purge cached items from previous sessions to prevent data bleed between accounts
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-    } catch (err) {}
-
     const cleanEmail = email.trim();
-    const isDefaultPassword =
-      password === 'Student123' || password === 'student123' ||
-      password === 'Admin123' || password === 'admin123';
 
-    // 1. Check if email exists in database (users table)
-    const { data: dbProfile } = await supabase
-      .from('users')
-      .select('*')
-      .ilike('email', cleanEmail)
-      .maybeSingle();
-
-    // 2. If user exists in public.users database table
-    if (dbProfile) {
-      const role: string = dbProfile.role || 'student';
-      if (!isValidRole(role)) {
-        setIsLoading(false);
-        setErrorMsg('Your account does not have an assigned portal role. Please contact your administrator.');
-        return;
-      }
-
-      const mustChange = isDefaultPassword || dbProfile.must_change_password !== false;
-
-      // First-time login with default password or must_change_password set
-      if (mustChange) {
-        setIsLoading(false);
-        setPendingRole(role);
-        setShowFirstTimeModal(true);
-        return;
-      }
-
-      // Regular login for database user
-      try {
-        localStorage.setItem('ferex_user', JSON.stringify({
-          id: dbProfile.id,
-          email: dbProfile.email,
-          full_name: dbProfile.full_name,
-          role: role
-        }));
-      } catch (e) {}
-
-      window.dispatchEvent(new Event('ferex_auth_change'));
-
-      const portalLabel = getPortalLabel(role);
-      setSuccessMsg(`Authorization successful. Loading ${portalLabel}...`);
-      setIsLoading(false);
-
-      setTimeout(() => {
-        navigate(getDashboardRoute(role));
-      }, 800);
-      return;
-    }
-
-    // 3. Fallback for Supabase Auth users not in public.users table
+    // 1. Perform Real Supabase Auth
     const { error } = await signIn(cleanEmail, password);
     if (error) {
       setIsLoading(false);
-      setErrorMsg('Invalid email or password. Please try again.');
+      setErrorMsg(error || 'Invalid email or password. Please try again.');
       return;
     }
 
+    // 2. Fetch authenticated user profile to resolve authoritative role from public.users
     const { data: { user } } = await supabase.auth.getUser();
-    const role = user?.user_metadata?.role || 'student';
+    if (!user?.id) {
+      setIsLoading(false);
+      setErrorMsg('Authentication error: Unable to retrieve authenticated user session.');
+      return;
+    }
+
+    let role: string | null = null;
+    const { data: dbProfile } = await supabase
+      .from('users')
+      .select('role, must_change_password')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (dbProfile?.role) {
+      role = dbProfile.role;
+    } else if (cleanEmail) {
+      const { data: dbProfileByEmail } = await supabase
+        .from('users')
+        .select('role, must_change_password')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
+      if (dbProfileByEmail?.role) {
+        role = dbProfileByEmail.role;
+      }
+    }
+
+    if (!role) {
+      setIsLoading(false);
+      setErrorMsg('Profile authorization error: No role configured in public.users for this account. Please contact your system administrator.');
+      return;
+    }
+
     const portalLabel = getPortalLabel(role);
+    const targetRoute = getDashboardRoute(role);
     setSuccessMsg(`Authorization successful. Loading ${portalLabel}...`);
     setIsLoading(false);
 
     setTimeout(() => {
-      navigate(getDashboardRoute(role));
-    }, 800);
+      navigate(targetRoute, { replace: true });
+    }, 400);
   };
 
   // Handle first time login password update
@@ -209,7 +183,7 @@ export const LoginPage: React.FC = () => {
     setIsLoading(false);
 
     if (error) {
-      setForgotError(error.message || 'Failed to send reset email.');
+      setForgotError(typeof error === 'string' ? error : 'Failed to send reset email.');
       return;
     }
 
@@ -375,7 +349,7 @@ export const LoginPage: React.FC = () => {
                 <Checkbox
                   label="Remember me for 30 days"
                   checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
+                  onChange={(checked) => setRememberMe(checked)}
                   disabled={isLoading}
                 />
 

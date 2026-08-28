@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-  Bell, CheckSquare, Sparkles, CheckCheck, FileText,
+  Bell, Sparkles, CheckCheck, FileText,
   GraduationCap, CreditCard, ShieldCheck, Calendar,
-  ArrowRight, Filter, Trash2, AlertCircle, CheckCircle2,
+  ArrowRight, Filter, Trash2, CheckCircle2,
   Clock, Inbox
 } from 'lucide-react';
 import { Card } from '../components/Card';
@@ -41,45 +41,6 @@ export const Notifications: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [localReadState, setLocalReadState] = useState<Record<string, boolean>>({});
   const [localDeletedState, setLocalDeletedState] = useState<Set<string>>(new Set());
-
-  const defaultNotifs: Notification[] = useMemo(() => [
-    {
-      id: 'sys-notif-1',
-      user_id: user?.id || 'default',
-      title: '📜 NAWA Degree Legalization Approved',
-      body: 'Your academic degree documents have been verified and approved by NAWA Polish Agency Warsaw.',
-      category: 'Application',
-      is_read: false,
-      created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'sys-notif-2',
-      user_id: user?.id || 'default',
-      title: '🎓 Official Offer Letter Released',
-      body: 'Your admission offer letter from Warsaw University of Technology has been uploaded to your portal.',
-      category: 'Offer Letter',
-      is_read: false,
-      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'sys-notif-3',
-      user_id: user?.id || 'default',
-      title: '💳 Payment Receipt & Tax Invoice Verified',
-      body: 'Your tuition fee deposit receipt is verified and ready for download in your Payments vault.',
-      category: 'Payment',
-      is_read: false,
-      created_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'sys-notif-4',
-      user_id: user?.id || 'default',
-      title: '🛡️ VFS Embassy Visa Appointment Booked',
-      body: 'Your VFS Global appointment slot has been scheduled. Track live status on VFS Visa Tracker.',
-      category: 'VFS Visa',
-      is_read: true,
-      created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ], [user?.id]);
 
   const activeNotifs = useMemo(() => {
     return dbNotifications

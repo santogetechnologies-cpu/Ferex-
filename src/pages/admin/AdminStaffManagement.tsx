@@ -24,15 +24,41 @@ const STATUS_COLORS = {
   'Inactive': 'bg-slate-50 text-slate-600 border-slate-200',
 };
 
+const ROLE_DISPLAY_MAP: Record<string, string> = {
+  'admin': 'Admin',
+  'central': 'Central',
+  'super_admin': 'Super Admin',
+  'staff': 'Staff',
+  'counselor': 'Counselor',
+};
+
+const ALLOWED_ROLES = ['Admin', 'Central', 'Super Admin', 'Staff', 'Counselor'] as const;
+
+const getDbRole = (displayRole: string): string => {
+  const lower = displayRole.toLowerCase().trim();
+  if (lower === 'super admin' || lower === 'super_admin') return 'super_admin';
+  if (lower === 'central') return 'central';
+  if (lower === 'admin') return 'admin';
+  if (lower === 'counselor') return 'counselor';
+  return 'staff';
+};
+
 export const AdminStaffManagement: React.FC = () => {
   const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [roleFilter, setRoleFilter] = useState('All');
+  const [search, setSearch] = useState('');
+  const [editStaff, setEditStaff] = useState<StaffMember | null>(null);
+  const [editTemp, setEditTemp] = useState<StaffMember | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [toast, setToast] = useState('');
 
-  useEffect(() => {
+  const loadData = () => {
     getStaffMembers().then(members => {
       const mapped = members.map(m => {
         const parts = (m.department || '').split(':');
         const dept = parts[0] || 'Admissions';
-        const customRole = parts[1] || (m.role === 'admin' ? 'Admin' : 'Staff');
+        const customRole = parts[1] || ROLE_DISPLAY_MAP[m.role] || (m.role === 'admin' ? 'Admin' : 'Staff');
         return {
           id: m.id,
           name: m.full_name || m.email.split('@')[0],
@@ -48,37 +74,35 @@ export const AdminStaffManagement: React.FC = () => {
       });
       setStaff(mapped);
     }).catch(() => {});
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
-  const [search, setSearch] = useState('');
-  const [deptFilter, setDeptFilter] = useState('All');
-  const [editStaff, setEditStaff] = useState<StaffMember | null>(null);
-  const [editTemp, setEditTemp] = useState<StaffMember | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [showAdd, setShowAdd] = useState(false);
-  const [toast, setToast] = useState('');
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
-  const depts = ['All', ...Array.from(new Set(staff.map(s => s.department)))];
+  const roles = ['All', 'Admin', 'Central', 'Super Admin', 'Staff', 'Counselor'];
 
   const filtered = staff.filter(s =>
-    (deptFilter === 'All' || s.department === deptFilter) &&
-    (s.name.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase()) || s.role.toLowerCase().includes(search.toLowerCase()))
+    (roleFilter === 'All' || s.role.toLowerCase() === roleFilter.toLowerCase()) &&
+    (s.name.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase()) || s.role.toLowerCase().includes(search.toLowerCase()) || s.department.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleSaveEdit = async () => {
     if (!editTemp) return;
     try {
+      const dbRole = getDbRole(editTemp.role);
       await updateStudent(editTemp.id, {
         full_name: editTemp.name,
-        role: editTemp.role === 'Admin' ? 'admin' : 'staff',
+        role: dbRole,
         phone: editTemp.phone,
         department: `${editTemp.department}:${editTemp.role}`,
         permissions: editTemp.permissions
       });
       setStaff(prev => prev.map(s => s.id === editTemp.id ? editTemp : s));
       setEditStaff(null);
-      showToast('Staff record updated in database.');
+      showToast('Administrative user record updated successfully.');
     } catch (e: any) {
       showToast(`Error: ${e.message}`);
     }
@@ -90,7 +114,7 @@ export const AdminStaffManagement: React.FC = () => {
       await deleteStudent(deleteId);
       setStaff(prev => prev.filter(s => s.id !== deleteId));
       setDeleteId(null);
-      showToast('Staff member removed from database.');
+      showToast('Administrative user removed from system.');
     } catch (e: any) {
       showToast(`Error: ${e.message}`);
     }
@@ -123,7 +147,7 @@ export const AdminStaffManagement: React.FC = () => {
   };
 
   return (
-    <div className="space-y-5 relative">
+    <div className="space-y-5 relative text-left">
       {toast && (
         <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl text-sm font-bold flex items-center gap-3">
           <CheckCircle2 className="w-5 h-5 text-emerald-400" /> {toast}
@@ -132,27 +156,27 @@ export const AdminStaffManagement: React.FC = () => {
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Staff Management</h1>
-          <p className="text-xs font-semibold text-slate-400 mt-0.5">{staff.length} team members</p>
+          <h1 className="text-xl font-extrabold text-slate-900">Admin User Management</h1>
+          <p className="text-xs font-semibold text-slate-400 mt-0.5">{staff.length} Administrative & Operational Users</p>
         </div>
         <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 h-9 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all shadow-sm">
-          <Plus className="w-3.5 h-3.5" /> Add Staff
+          className="flex items-center gap-1.5 h-9 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all shadow-sm cursor-pointer">
+          <Plus className="w-3.5 h-3.5" /> Add Admin User
         </button>
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        {depts.map(d => (
-          <button key={d} onClick={() => setDeptFilter(d)}
-            className={`h-8 px-3 rounded-xl text-[10px] font-extrabold border transition-all
-              ${deptFilter === d ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
-            {d}
+        {roles.map(r => (
+          <button key={r} onClick={() => setRoleFilter(r)}
+            className={`h-8 px-3 rounded-xl text-[10px] font-extrabold border transition-all cursor-pointer
+              ${roleFilter === r ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
+            {r}
           </button>
         ))}
         <div className="ml-auto relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search staff..."
-            className="h-9 pl-8 pr-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold placeholder-slate-300 focus:outline-none focus:border-[#6A1B2E]/40 w-48" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search admin users..."
+            className="h-9 pl-8 pr-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold placeholder-slate-300 focus:outline-none focus:border-[#6A1B2E]/40 w-52" />
         </div>
       </div>
 
@@ -197,12 +221,12 @@ export const AdminStaffManagement: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between border-t border-slate-50 pt-3">
-              <span className="text-[10px] font-semibold text-slate-400">{s.students} students · Since {s.joined}</span>
+              <span className="text-[10px] font-semibold text-slate-400">Since {s.joined}</span>
               <div className="flex gap-1.5">
                 <button onClick={() => { setEditStaff(s); setEditTemp({ ...s, permissions: s.permissions.map(p => ({ ...p })) }); }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all"><Edit3 className="w-3.5 h-3.5" /></button>
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all cursor-pointer"><Edit3 className="w-3.5 h-3.5" /></button>
                 <button onClick={() => setDeleteId(s.id)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             </div>
           </motion.div>
@@ -218,7 +242,7 @@ export const AdminStaffManagement: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
               className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-sm font-extrabold text-slate-900">Edit Staff — {editTemp.id}</h3>
+                <h3 className="text-sm font-extrabold text-slate-900">Edit Administrative User</h3>
                 <button onClick={() => setEditStaff(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
               </div>
               <div className="space-y-3 text-left">
@@ -229,17 +253,18 @@ export const AdminStaffManagement: React.FC = () => {
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Category / Role</label>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Administrative Role</label>
                     <select value={editTemp.role} onChange={(e) => {
                       const newRole = e.target.value;
                       let newDept = editTemp.department;
-                      if (newRole === 'Advisor') newDept = 'Admissions';
-                      else if (newRole === 'Cashier') newDept = 'Finance';
-                      else if (newRole === 'Document Manager') newDept = 'Documents';
+                      if (newRole === 'Counselor') newDept = 'Admissions';
+                      else if (newRole === 'Central') newDept = 'Central Office';
+                      else if (newRole === 'Super Admin') newDept = 'Executive';
+                      else if (newRole === 'Admin') newDept = 'Administration';
                       setEditTemp({ ...editTemp, role: newRole, department: newDept });
                     }}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
-                      {['Advisor', 'Cashier', 'Document Manager', 'Counselor', 'Staff', 'Admin'].map(r => (
+                      {ALLOWED_ROLES.map(r => (
                         <option key={r} value={r}>{r}</option>
                       ))}
                     </select>
@@ -258,7 +283,7 @@ export const AdminStaffManagement: React.FC = () => {
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Department</label>
                     <select value={editTemp.department} onChange={(e) => setEditTemp({ ...editTemp, department: e.target.value })}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
-                      {['Admissions', 'Operations', 'Documents', 'Finance'].map(d => <option key={d}>{d}</option>)}
+                      {['Administration', 'Central Office', 'Executive', 'Admissions', 'Operations', 'Documents', 'Finance'].map(d => <option key={d}>{d}</option>)}
                     </select>
                   </div>
                   <div>
@@ -272,7 +297,7 @@ export const AdminStaffManagement: React.FC = () => {
                 {/* Permissions Checklist in Edit Modal */}
                 <div className="pt-3.5 border-t border-slate-100">
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
-                    Staff Capabilities / Permissions
+                    Administrative Capabilities / Permissions
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {editTemp.permissions.map((p) => (
@@ -300,8 +325,8 @@ export const AdminStaffManagement: React.FC = () => {
                 </div>
               </div>
               <div className="flex gap-3 mt-5">
-                <button onClick={() => setEditStaff(null)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
-                <button onClick={handleSaveEdit} className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] flex items-center justify-center gap-1.5">
+                <button onClick={() => setEditStaff(null)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
+                <button onClick={handleSaveEdit} className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] flex items-center justify-center gap-1.5 cursor-pointer">
                   <Save className="w-3.5 h-3.5" /> Save
                 </button>
               </div>
@@ -319,8 +344,8 @@ export const AdminStaffManagement: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
               className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-sm font-extrabold text-slate-900">Add New Staff Member</h3>
-                <button onClick={() => setShowAdd(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
+                <h3 className="text-sm font-extrabold text-slate-900">Add Administrative User</h3>
+                <button onClick={() => setShowAdd(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
               <form onSubmit={async (e) => {
                 e.preventDefault();
@@ -331,11 +356,12 @@ export const AdminStaffManagement: React.FC = () => {
                 const department = (f.elements.namedItem('department') as HTMLSelectElement).value;
 
                 try {
-                  const dbRole = category === 'Admin' ? 'admin' : 'staff';
+                  const dbRole = getDbRole(category);
                   const created = await createStaffMember({
                     email,
                     full_name: name,
-                    role: dbRole
+                    role: dbRole,
+                    department: `${department}:${category}`,
                   });
 
                   setStaff(prev => [{
@@ -352,40 +378,40 @@ export const AdminStaffManagement: React.FC = () => {
                   }, ...prev]);
 
                   setShowAdd(false);
-                  showToast(`🎉 Staff member ${name} added successfully!`);
+                  showToast(`🎉 Administrative user ${name} added successfully!`);
                 } catch (err: any) {
                   showToast(`Error: ${err.message || 'Failed to add'}`);
                 }
               }} className="space-y-3.5 text-left">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Full Name</label>
-                  <input required name="name" placeholder="e.g. Riya Shah"
+                  <input required name="name" placeholder="e.g. Elena Rostova"
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Email Address</label>
-                  <input required name="email" type="email" placeholder="e.g. riya@ferex.com"
+                  <input required name="email" type="email" placeholder="e.g. elena@ferex.com"
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Category / Role</label>
-                  <select name="category" defaultValue="Advisor"
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Administrative Role</label>
+                  <select name="category" defaultValue="Admin"
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
-                    {['Advisor', 'Cashier', 'Document Manager', 'Counselor', 'Staff', 'Admin'].map(r => (
+                    {ALLOWED_ROLES.map(r => (
                       <option key={r} value={r}>{r}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Department</label>
-                  <select name="department" defaultValue="Admissions"
+                  <select name="department" defaultValue="Administration"
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
-                    {['Admissions', 'Operations', 'Documents', 'Finance'].map(d => <option key={d}>{d}</option>)}
+                    {['Administration', 'Central Office', 'Executive', 'Admissions', 'Operations', 'Documents', 'Finance'].map(d => <option key={d}>{d}</option>)}
                   </select>
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowAdd(false)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
-                  <button type="submit" className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E]">Add Staff</button>
+                  <button type="button" onClick={() => setShowAdd(false)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
+                  <button type="submit" className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] cursor-pointer">Add User</button>
                 </div>
               </form>
             </motion.div>
@@ -403,12 +429,12 @@ export const AdminStaffManagement: React.FC = () => {
               className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center"><Trash2 className="w-5 h-5 text-red-500" /></div>
-                <h3 className="text-sm font-extrabold text-slate-900">Remove Staff Member?</h3>
+                <h3 className="text-sm font-extrabold text-slate-900">Remove Admin User?</h3>
               </div>
-              <p className="text-xs font-semibold text-slate-500 mb-5">This staff member will be permanently removed from the team.</p>
+              <p className="text-xs font-semibold text-slate-500 mb-5">This administrative user will be removed from the system.</p>
               <div className="flex gap-3">
-                <button onClick={() => setDeleteId(null)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
-                <button onClick={handleDelete} className="flex-1 h-9 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700">Remove</button>
+                <button onClick={() => setDeleteId(null)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
+                <button onClick={handleDelete} className="flex-1 h-9 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 cursor-pointer">Remove</button>
               </div>
             </motion.div>
           </>

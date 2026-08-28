@@ -7,48 +7,37 @@ export interface PreDepartureRecord {
   student_id: string;
   student_name: string;
   student_email?: string;
-  university_name: string;
-  flight_no: string;
-  airline: string;
-  departure_date: string;
+  university_name?: string;
+  flight_booked: boolean;
+  airline?: string;
+  flight_no?: string;
+  departure_date?: string;
   arrival_date?: string;
-  arrival_city: string;
-  dorm_name: string;
-  dorm_address: string;
-  room_no: string;
-  pickup_driver: string;
-  pickup_contact: string;
+  arrival_city?: string;
+  flight_details?: string;
+  airport_pickup_opted: boolean;
+  pickup_driver?: string;
+  pickup_contact?: string;
   pickup_details?: string;
-  orientation_date: string;
-  clearance_status: 'Pending Verification' | 'Clearance Granted' | 'Departed';
-  notes: string;
+  dorm_assigned: boolean;
+  dorm_name?: string;
+  room_no?: string;
+  dorm_address?: string;
+  dorm_details?: string;
+  insurance_purchased: boolean;
+  forex_card_ready: boolean;
+  sim_card_ready: boolean;
+  luggage_packed: boolean;
+  emergency_contacts_saved: boolean;
+  briefing_attended: boolean;
+  overall_progress: number;
+  clearance_status?: 'Pending' | 'In Progress' | 'Cleared' | 'Clearance Granted' | 'Departed' | 'Documents Incomplete';
+  notes?: string;
   created_at: string;
   updated_at?: string;
 }
 
-const LOCAL_STORAGE_KEY = 'ferex_pre_departure_db_cache_v1';
-
-function getLocalPreDepartureCache(): Record<string, PreDepartureRecord> {
-  try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveLocalPreDepartureCache(record: PreDepartureRecord) {
-  try {
-    const current = getLocalPreDepartureCache();
-    if (record.id) current[record.id] = record;
-    if (record.student_id) current[record.student_id] = record;
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
-  } catch {}
-}
-
 export async function getPreDepartureRecords(studentId?: string): Promise<PreDepartureRecord[]> {
-  const localCache = getLocalPreDepartureCache();
-
   try {
     let query = supabase
       .from('pre_departure')
@@ -61,123 +50,111 @@ export async function getPreDepartureRecords(studentId?: string): Promise<PreDep
 
     const { data, error } = await query;
 
-    if (!error && data) {
-      if (data.length === 0 && studentId) {
-        return [];
-      }
-      const records = data as PreDepartureRecord[];
-      records.forEach(r => saveLocalPreDepartureCache(r));
-      return records;
+    if (error) {
+      console.warn('[getPreDepartureRecords Notice]:', error.message);
+      return [];
     }
+
+    return (data ?? []) as PreDepartureRecord[];
   } catch (err) {
-    console.warn('[getPreDepartureRecords Supabase notice]:', err);
+    console.error('[getPreDepartureRecords Error]:', err);
+    return [];
   }
-
-  // Local storage cache fallback
-  const allCached = Object.values(localCache);
-  const seen = new Set<string>();
-  const uniqueCached = allCached.filter(r => {
-    if (!r.id || seen.has(r.id)) return false;
-    seen.add(r.id);
-    return true;
-  });
-
-  if (studentId) {
-    return uniqueCached.filter(r => r.student_id === studentId || r.id === studentId);
-  }
-
-  return uniqueCached;
 }
 
 export async function savePreDepartureRecord(payload: Partial<PreDepartureRecord> & { student_id: string; student_name: string }): Promise<PreDepartureRecord> {
-  const cleanId = payload.id || payload.student_id || generateUUID();
   const now = new Date().toISOString();
+  const newId = payload.id || generateUUID();
 
-  const record: PreDepartureRecord = {
-    id: cleanId,
+  // Compute progress percentage
+  const checklistItems = [
+    payload.flight_booked,
+    payload.airport_pickup_opted,
+    payload.dorm_assigned,
+    payload.insurance_purchased,
+    payload.forex_card_ready,
+    payload.sim_card_ready,
+    payload.luggage_packed,
+    payload.emergency_contacts_saved,
+    payload.briefing_attended
+  ];
+  const completedCount = checklistItems.filter(Boolean).length;
+  const progressPercent = Math.round((completedCount / checklistItems.length) * 100);
+
+  const fullRecord: PreDepartureRecord = {
+    id: newId,
     student_id: payload.student_id,
     student_name: payload.student_name,
     student_email: payload.student_email || '',
-    university_name: payload.university_name || 'European Partner University',
-    flight_no: payload.flight_no || 'Awaiting Flight Ticket Booking',
-    airline: payload.airline || 'Awaiting Airline Confirmation',
-    departure_date: payload.departure_date || 'To Be Scheduled',
-    arrival_date: payload.arrival_date || 'To Be Scheduled',
-    arrival_city: payload.arrival_city || 'European Chopin Airport',
-    dorm_name: payload.dorm_name || 'Pending Dorm Allotment',
-    dorm_address: payload.dorm_address || 'University On-Campus Housing',
-    room_no: payload.room_no || 'Pending Assignment',
-    pickup_driver: payload.pickup_driver || 'FEREX Student Concierge Lead',
-    pickup_contact: payload.pickup_contact || '+48 22 552 0999',
-    pickup_details: payload.pickup_details || 'Driver will await student at Airport Arrivals Exit holding name sign.',
-    orientation_date: payload.orientation_date || 'To Be Scheduled',
-    clearance_status: payload.clearance_status || 'Clearance Granted',
-    notes: payload.notes || 'Pre-departure flight, dorm housing & concierge packet.',
+    university_name: payload.university_name || '',
+    flight_booked: payload.flight_booked ?? false,
+    airline: payload.airline || '',
+    flight_no: payload.flight_no || '',
+    departure_date: payload.departure_date || '',
+    arrival_date: payload.arrival_date || '',
+    arrival_city: payload.arrival_city || '',
+    flight_details: payload.flight_details || '',
+    airport_pickup_opted: payload.airport_pickup_opted ?? false,
+    pickup_driver: payload.pickup_driver || '',
+    pickup_contact: payload.pickup_contact || '',
+    pickup_details: payload.pickup_details || '',
+    dorm_assigned: payload.dorm_assigned ?? false,
+    dorm_name: payload.dorm_name || '',
+    room_no: payload.room_no || '',
+    dorm_address: payload.dorm_address || '',
+    dorm_details: payload.dorm_details || '',
+    insurance_purchased: payload.insurance_purchased ?? false,
+    forex_card_ready: payload.forex_card_ready ?? false,
+    sim_card_ready: payload.sim_card_ready ?? false,
+    luggage_packed: payload.luggage_packed ?? false,
+    emergency_contacts_saved: payload.emergency_contacts_saved ?? false,
+    briefing_attended: payload.briefing_attended ?? false,
+    overall_progress: progressPercent,
+    clearance_status: payload.clearance_status || (progressPercent >= 80 ? 'Cleared' : 'In Progress'),
+    notes: payload.notes || 'Pre-departure status updated.',
     created_at: payload.created_at || now,
     updated_at: now
   };
 
-  saveLocalPreDepartureCache(record);
-
-  // Direct upsert into Supabase pre_departure table
   try {
-    const dbPayload: any = {
-      id: record.id,
-      student_id: record.student_id,
-      student_name: record.student_name,
-      student_email: record.student_email,
-      university_name: record.university_name,
-      flight_no: record.flight_no,
-      airline: record.airline,
-      departure_date: record.departure_date,
-      arrival_date: record.arrival_date,
-      arrival_city: record.arrival_city,
-      dorm_name: record.dorm_name,
-      dorm_address: record.dorm_address,
-      room_no: record.room_no,
-      pickup_driver: record.pickup_driver,
-      pickup_contact: record.pickup_contact,
-      pickup_details: record.pickup_details,
-      orientation_date: record.orientation_date,
-      clearance_status: record.clearance_status,
-      notes: record.notes,
-      updated_at: now
-    };
-
-    const { data, error } = await supabase.from('pre_departure').upsert(dbPayload).select();
-
-    if (error) {
-      console.warn('[savePreDepartureRecord DB Notice]:', error.message || error);
-      // Fallback: If arrival_date or pickup_details column is missing in Supabase schema, retry without them
-      if (error.message?.includes('column') || error.code === 'PGRST204' || String(error.details || '').includes('column')) {
-        delete dbPayload.arrival_date;
-        delete dbPayload.pickup_details;
-        const { data: retryData, error: retryError } = await supabase.from('pre_departure').upsert(dbPayload).select();
-        if (!retryError && retryData && retryData.length > 0) {
-          const inserted = retryData[0] as PreDepartureRecord;
-          saveLocalPreDepartureCache(inserted);
-        } else if (retryError) {
-          console.error('[savePreDepartureRecord Retry DB Error]:', retryError);
-        }
-      }
-    } else if (data && data.length > 0) {
-      const inserted = data[0] as PreDepartureRecord;
-      saveLocalPreDepartureCache(inserted);
-    }
+    await supabase.from('pre_departure').upsert(fullRecord);
   } catch (e) {
-    console.warn('[savePreDepartureRecord DB Notice]:', e);
+    console.warn('[savePreDepartureRecord DB notice]:', e);
   }
 
-  // Send student notification
-  try {
-    await createNotification({
-      user_id: payload.student_id,
-      title: '✈️ Pre-Departure Packet Issued',
-      body: `Your Stage 12 Pre-Departure Flight & Housing packet for ${record.university_name} has been updated by Admin. Status: ${record.clearance_status}.`,
-      category: 'Application'
-    });
-  } catch (e) {}
+  window.dispatchEvent(new Event('ferex_predeparture_change'));
+  return fullRecord;
+}
 
-  window.dispatchEvent(new Event('ferex_pre_departure_change'));
-  return record;
+export async function updatePreDepartureField(
+  studentId: string,
+  field: keyof PreDepartureRecord,
+  value: any,
+  studentName?: string
+): Promise<PreDepartureRecord | null> {
+  const existing = await getPreDepartureRecords(studentId);
+  const current = existing.length > 0 ? existing[0] : {
+    student_id: studentId,
+    student_name: studentName || 'Student',
+  };
+
+  const updated = {
+    ...current,
+    [field]: value
+  };
+
+  const saved = await savePreDepartureRecord(updated as any);
+
+  if (field === 'briefing_attended' && value === true) {
+    try {
+      await createNotification({
+        user_id: studentId,
+        title: '✈️ Pre-Departure Briefing Completed',
+        body: 'Your mandatory pre-departure orientation briefing has been verified by the FEREX compliance team. Have a safe journey!',
+        category: 'Support'
+      });
+    } catch (e) {}
+  }
+
+  return saved;
 }

@@ -1,19 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Truck, Search, Plus, CheckCircle2, Thermometer, MapPin, X } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getRimiVehicles, createRimiVehicle } from '../../lib/api/rimi';
 
 export const RimiVehicles: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [vehicles, setVehicles] = useState([
-    { id: 'TRK-101', regNo: 'MH-12-AZ-8901', model: 'Tata Ultra Cold Reefer 14-Ton', temp: '-20.4°C', driver: 'Sanjay Kumar', route: 'Mumbai Central -> Navi Mumbai', status: 'En Route (-20°C)' },
-    { id: 'TRK-102', regNo: 'KA-01-F-4412', model: 'Eicher Pro Cold King 10-Ton', temp: '-18.5°C', driver: 'M. Sunderam', route: 'Bengaluru Depot -> Electronic City', status: 'En Route (-18°C)' },
-    { id: 'TRK-103', regNo: 'DL-03-CB-9920', model: 'BharatBenz Cold Express 16-Ton', temp: '-22.0°C', driver: 'Harpreet Singh', route: 'Delhi Hub -> Gurgaon Supermarkets', status: 'Stationed (-22°C)' }
-  ]);
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getRimiVehicles();
+    const formatted = data.map((d: any) => ({
+      id: d.id ? `TRK-${d.id.slice(0, 4).toUpperCase()}` : 'TRK-101',
+      regNo: d.vehicle_number,
+      model: `${d.capacity_tonnes || 14}-Ton Ultra Cold Reefer`,
+      temp: `${d.current_temp_celsius || -20.0}°C`,
+      driver: d.driver_name,
+      route: d.status === 'On Route' ? 'Active Delivery Route' : 'Stationed Cold Logistics Depot',
+      status: `${d.status || 'Stationed'} (${d.current_temp_celsius || -20.0}°C)`,
+    }));
+    setVehicles(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const [newVehicle, setNewVehicle] = useState({ regNo: '', model: 'Tata Ultra Cold Reefer', driver: 'Rajesh Kumar' });
 
@@ -22,21 +39,19 @@ export const RimiVehicles: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleAddVehicle = (e: React.FormEvent) => {
+  const handleAddVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newVehicle.regNo) return;
-    const created = {
-      id: `TRK-${Math.floor(104 + Math.random() * 90)}`,
-      regNo: newVehicle.regNo,
-      model: newVehicle.model,
-      temp: '-20.0°C',
-      driver: newVehicle.driver,
-      route: 'Mumbai Central Logistics Depot',
-      status: 'Stationed (-20°C)'
-    };
-    setVehicles([created, ...vehicles]);
+    await createRimiVehicle({
+      vehicle_number: newVehicle.regNo,
+      driver_name: newVehicle.driver,
+      capacity_tonnes: 14,
+      current_temp_celsius: -20.0,
+    });
     setShowAddModal(false);
     showToastMsg(`Registered reefer vehicle ${newVehicle.regNo}`);
+    setNewVehicle({ regNo: '', model: 'Tata Ultra Cold Reefer', driver: 'Rajesh Kumar' });
+    await loadData();
   };
 
   const filteredVehicles = vehicles.filter(v =>
@@ -69,6 +84,10 @@ export const RimiVehicles: React.FC = () => {
           <Plus className="w-4 h-4 mr-1.5" /> Register Reefer Truck
         </Button>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading reefer fleet...</div>
+      ) : null}
 
       <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-80">

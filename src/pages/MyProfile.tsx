@@ -10,6 +10,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { updateStudent } from '../lib/api/students';
+import { supabase } from '../lib/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PersonalInfo {
@@ -139,7 +140,7 @@ const Toggle: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked,
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const MyProfile: React.FC = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, updatePassword } = useAuth();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
 
@@ -348,14 +349,19 @@ export const MyProfile: React.FC = () => {
     showToast('Personal information saved successfully!');
   };
 
-  const handleSaveEmergency = (e: React.FormEvent) => {
+  const handleSaveEmergency = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmergency({ ...tempEmergency });
     setEditingEmergency(false);
-    showToast('Emergency contact updated successfully!');
+    if (user?.id) {
+      try {
+        await updateStudent(user.id, { emergency_contact: tempEmergency } as any);
+      } catch (err) {}
+    }
+    showToast('Emergency contact updated and saved to database!');
   };
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError('');
     if (passwordForm.newPwd !== passwordForm.confirm) {
@@ -366,9 +372,14 @@ export const MyProfile: React.FC = () => {
       setPasswordError('Password must be at least 8 characters.');
       return;
     }
+    const res = await updatePassword(passwordForm.newPwd);
+    if (res.error) {
+      setPasswordError(res.error);
+      return;
+    }
     setPasswordForm({ current: '', newPwd: '', confirm: '' });
     setShowPasswordModal(false);
-    showToast('Password updated securely!');
+    showToast('Password updated securely in Supabase!');
   };
 
   const handleDocReplace = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -254,11 +254,11 @@ export const Invoices: React.FC = () => {
                   <button
                     onClick={() => setViewInvoice({
                       invoice_no: inv.invoice_no || inv.id,
-                      student_name: inv.student_name || studentName,
+                      student_name: (inv as any).student_name || studentName,
                       amount: Number(inv.amount) || 0,
                       currency: inv.currency || 'INR',
                       description: inv.description || 'Registration Fee – Overseas Education Consultancy Services (Study in Poland)',
-                      date: inv.issued_at || inv.created_at,
+                      date: inv.issued_at || (inv as any).created_at || new Date().toISOString(),
                       payment_method: extInv.payment_method || 'Bank Transfer / UPI',
                       utr_number: extInv.utr_number,
                       sac_code: '9992',

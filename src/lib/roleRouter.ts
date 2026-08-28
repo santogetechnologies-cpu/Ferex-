@@ -1,50 +1,58 @@
-/**
- * Maps a user's role (stored in Supabase user_metadata.role) to the correct
- * portal dashboard route within FEREX.
- *
- * To set a user's role, update their metadata in the Supabase dashboard:
- *   Authentication → Users → [user] → Edit → Raw user_metadata
- *   e.g. { "role": "student" }
- *
- * Valid roles: student | admin | superadmin | trade | rimi | digital | staff
- */
 export type FerexRole =
   | 'student'
   | 'admin'
+  | 'super_admin'
   | 'superadmin'
-  | 'trade'
-  | 'rimi'
+  | 'central'
+  | 'staff'
+  | 'counselor'
   | 'digital'
-  | 'staff';
+  | 'trade'
+  | 'rimi';
 
-const ROLE_ROUTES: Record<FerexRole, string> = {
+const ROLE_ROUTES: Record<string, string> = {
   student: '/student/dashboard',
   admin: '/admin/dashboard',
-  superadmin: '/central/dashboard',
+  super_admin: '/admin/dashboard',
+  superadmin: '/admin/dashboard',
+  central: '/central/dashboard',
+  staff: '/staff/dashboard',
+  counselor: '/staff/dashboard',
+  digital: '/digital/dashboard',
   trade: '/trade/dashboard',
   rimi: '/rimi/dashboard',
-  digital: '/digital/dashboard',
-  staff: '/staff/dashboard',
 };
 
-const ROLE_LABELS: Record<FerexRole, string> = {
+const ROLE_LABELS: Record<string, string> = {
   student: 'Student Portal',
-  admin: 'Education Admin Console',
-  superadmin: 'Central Super Admin Console',
-  trade: 'Global Trade Portal',
-  rimi: 'Rimi Frozen Distribution Portal',
-  digital: 'Ferex Digital Portal',
+  admin: 'Admin Portal',
+  super_admin: 'Super Admin Portal',
+  superadmin: 'Super Admin Portal',
+  central: 'Central Enterprise Portal',
   staff: 'Staff Portal',
+  counselor: 'Counselor Portal',
+  digital: 'Digital Portal',
+  trade: 'Global Trade Portal',
+  rimi: 'Rimi Distribution Portal',
 };
 
-export function getDashboardRoute(role: string): string {
-  return ROLE_ROUTES[role as FerexRole] ?? '/';
+export function normalizeRole(role?: string | null): string {
+  if (!role) return 'student';
+  const clean = role.toLowerCase().trim().replace(/[\s-]+/g, '_');
+  return clean;
 }
 
-export function getPortalLabel(role: string): string {
-  return ROLE_LABELS[role as FerexRole] ?? 'Dashboard';
+export function getDashboardRoute(role?: string | null): string {
+  const normalized = normalizeRole(role);
+  return ROLE_ROUTES[normalized] || '/student/dashboard';
 }
 
-export function isValidRole(role: string): role is FerexRole {
-  return role in ROLE_ROUTES;
+export function getPortalLabel(role?: string | null): string {
+  const normalized = normalizeRole(role);
+  return ROLE_LABELS[normalized] || 'Dashboard';
+}
+
+export function isValidRole(role: string): boolean {
+  const normalized = normalizeRole(role);
+  return normalized in ROLE_ROUTES;
 }

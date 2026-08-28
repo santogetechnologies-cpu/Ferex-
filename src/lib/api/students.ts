@@ -16,12 +16,14 @@ export async function getStudents() {
   return (data ?? []) as UserProfile[];
 }
 
+export const ADMINISTRATIVE_ROLES = ['admin', 'central', 'super_admin', 'staff', 'counselor'] as const;
+
 export async function getStaffMembers(): Promise<UserProfile[]> {
   try {
     const { data, error } = await supabase
       .from('users')
       .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, created_at')
-      .in('role', ['staff', 'admin'])
+      .in('role', ['admin', 'central', 'super_admin', 'staff', 'counselor'])
       .order('created_at', { ascending: false });
 
     if (error || !data) {
@@ -32,6 +34,23 @@ export async function getStaffMembers(): Promise<UserProfile[]> {
   } catch (err: any) {
     console.warn('[getStaffMembers Error]:', err?.message);
     return [];
+  }
+}
+
+export async function getAdminUsers(): Promise<UserProfile[]> {
+  return getStaffMembers();
+}
+
+export async function getAdminUsersCount(): Promise<number> {
+  try {
+    const { count, error } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .in('role', ['admin', 'central', 'super_admin', 'staff', 'counselor']);
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
   }
 }
 

@@ -48,18 +48,54 @@ export const Chat: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    if (activeId) {
-      getChatMessages(activeId).then(msgs => {
-        const mapped = msgs.map(m => ({
-          id: m.id,
-          text: m.content,
-          self: m.sender_id === user?.id,
-          time: new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        }));
-        setMessages(mapped);
-      }).catch(() => {});
-    }
-  }, [activeId, user]);
+    if (!activeId) return;
+
+    // 1. Initial Load
+    getChatMessages(activeId).then(msgs => {
+      const mapped = msgs.map(m => ({
+        id: m.id,
+        text: m.content,
+        self: m.sender_id === user?.id,
+        time: new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }));
+      setMessages(mapped);
+    }).catch(() => {});
+
+    // 2. Realtime WebSocket Subscription
+    let channel: any = null;
+    import('../lib/supabase').then(({ supabase }) => {
+      channel = supabase
+        .channel(`chat_thread_${activeId}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `conversation_id=eq.${activeId}`,
+        }, (payload: any) => {
+          const newMsg = payload.new;
+          if (newMsg && newMsg.sender_id !== user?.id) {
+            setMessages(prev => {
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              return [...prev, {
+                id: newMsg.id,
+                text: newMsg.content,
+                self: false,
+                time: new Date(newMsg.sent_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              }];
+            });
+          }
+        })
+        .subscribe();
+    });
+
+    return () => {
+      if (channel) {
+        import('../lib/supabase').then(({ supabase }) => {
+          supabase.removeChannel(channel);
+        });
+      }
+    };
+  }, [activeId, user?.id]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });

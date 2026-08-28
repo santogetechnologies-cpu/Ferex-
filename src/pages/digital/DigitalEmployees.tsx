@@ -1,27 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Search, Plus, Eye, X, CheckCircle2, Mail, Phone, Award } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-
-const initialEmployees = [
-  { id: 'EMP-001', name: 'Arun Patel', role: 'Senior Web Developer', department: 'Web Development', email: 'arun@ferex.com', phone: '+91 98200 11001', joined: '2023-06-15', status: 'Active', salary: '₹1,20,000/mo', projects: 3 },
-  { id: 'EMP-002', name: 'Sneha Roy', role: 'UI/UX Designer', department: 'Design Studio', email: 'sneha@ferex.com', phone: '+91 99100 22002', joined: '2023-09-01', status: 'Active', salary: '₹95,000/mo', projects: 2 },
-  { id: 'EMP-003', name: 'Vivek Sharma', role: 'Mobile App Developer', department: 'Mobile Development', email: 'vivek@ferex.com', phone: '+91 91234 33003', joined: '2024-01-10', status: 'Active', salary: '₹1,10,000/mo', projects: 2 },
-  { id: 'EMP-004', name: 'Riya Thomas', role: 'SEO & Content Lead', department: 'Digital Marketing', email: 'riya@ferex.com', phone: '+91 80012 44004', joined: '2024-03-01', status: 'Active', salary: '₹85,000/mo', projects: 3 },
-  { id: 'EMP-005', name: 'Karthik Menon', role: 'Digital Marketing Analyst', department: 'Digital Marketing', email: 'karthik@ferex.com', phone: '+91 91111 55005', joined: '2024-07-15', status: 'Active', salary: '₹72,000/mo', projects: 2 },
-  { id: 'EMP-006', name: 'Anjali Nair', role: 'Brand Designer', department: 'Design Studio', email: 'anjali@ferex.com', phone: '+91 98765 66006', joined: '2024-08-01', status: 'On Leave', salary: '₹78,000/mo', projects: 1 },
-];
+import { getDigitalEmployees, createDigitalEmployee } from '../../lib/api/digital';
 
 const deptColor: Record<string, string> = {
   'Web Development': 'bg-blue-50 text-blue-700 border-blue-200',
   'Design Studio': 'bg-purple-50 text-purple-700 border-purple-200',
   'Mobile Development': 'bg-indigo-50 text-indigo-700 border-indigo-200',
   'Digital Marketing': 'bg-green-50 text-green-700 border-green-200',
+  'Engineering': 'bg-blue-50 text-blue-700 border-blue-200',
+  'Design': 'bg-purple-50 text-purple-700 border-purple-200',
 };
 
 export const DigitalEmployees: React.FC = () => {
-  const [employees, setEmployees] = useState(initialEmployees);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterDept, setFilterDept] = useState('All');
   const [selectedEmp, setSelectedEmp] = useState<any>(null);
@@ -29,15 +24,45 @@ export const DigitalEmployees: React.FC = () => {
   const [toast, setToast] = useState('');
   const [newEmp, setNewEmp] = useState({ name: '', role: '', department: 'Web Development', email: '', phone: '', salary: '' });
 
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getDigitalEmployees();
+    const formatted = data.map((d: any) => ({
+      id: d.emp_code || d.id,
+      name: d.full_name,
+      role: d.role_title,
+      department: d.department,
+      email: d.email,
+      phone: d.phone,
+      joined: d.joined_date || d.created_at?.split('T')[0],
+      status: d.status || 'Active',
+      salary: d.salary ? `₹${d.salary.toLocaleString()}/mo` : '₹75,000/mo',
+      projects: d.active_tasks_count || 0
+    }));
+    setEmployees(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    const emp = { id: `EMP-${Math.floor(Math.random() * 900 + 7)}`, joined: new Date().toISOString().slice(0, 10), status: 'Active', projects: 0, ...newEmp };
-    setEmployees([emp, ...employees]);
+    await createDigitalEmployee({
+      full_name: newEmp.name,
+      role_title: newEmp.role,
+      department: newEmp.department,
+      email: newEmp.email,
+      phone: newEmp.phone,
+      salary: parseFloat(newEmp.salary.replace(/[^0-9.]/g, '')) || 75000,
+    });
     setShowAddModal(false);
     showToast(`${newEmp.name} added to team!`);
     setNewEmp({ name: '', role: '', department: 'Web Development', email: '', phone: '', salary: '' });
+    await loadData();
   };
 
   const depts = ['All', 'Web Development', 'Design Studio', 'Mobile Development', 'Digital Marketing'];
@@ -60,13 +85,17 @@ export const DigitalEmployees: React.FC = () => {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 flex items-center gap-2"><Users className="w-5 h-5 text-[#6A1B2E]" /> Team Directory & HR Management</h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">Manage agency employees, departments, roles, salaries, and project assignments.</p>
+          <h1 className="text-xl font-black text-slate-900 flex items-center gap-2"><Users className="w-5 h-5 text-[#6A1B2E]" /> Team Members & Talent Pool</h1>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Manage in-house developers, UI/UX designers, marketing leads, and performance scores.</p>
         </div>
         <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
-          <Plus className="w-4 h-4 mr-1.5" /> Add Team Member
+          <Plus className="w-4 h-4 mr-1.5" /> Add Member
         </Button>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading team members...</div>
+      ) : null}
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">

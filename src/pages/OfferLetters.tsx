@@ -151,27 +151,20 @@ export const OfferLetters: React.FC = () => {
     showToast('Offer decision updated to declined.');
   };
 
-  const handleDownloadFile = (app: any, docType: 'offer' | 'final') => {
+  const handleDownloadFile = async (app: any, docType: 'offer' | 'final') => {
     const isFinal = docType === 'final';
     const targetUrl = isFinal ? app.final_acceptance_url : app.offer_letter_url;
     const docLabel = isFinal ? 'Official_Final_Acceptance' : 'Official_Admission_Offer';
     const filename = `${docLabel}_${(app.university_name || 'University').replace(/\s+/g, '_')}.pdf`;
 
     if (targetUrl) {
-      if (targetUrl.startsWith('http')) {
-        window.open(targetUrl, '_blank');
-        showToast(`Opening admin-uploaded ${isFinal ? 'Final Acceptance' : 'Offer'} PDF document...`);
+      const { getSignedFileUrl } = await import('../lib/storage');
+      const secureUrl = await getSignedFileUrl('offer-letters', targetUrl);
+      if (secureUrl) {
+        window.open(secureUrl, '_blank');
+        showToast(`Opening ${isFinal ? 'Final Acceptance' : 'Offer Letter'} document...`);
         return;
       }
-
-      const link = document.createElement('a');
-      link.href = targetUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      showToast(`Downloaded admin-uploaded ${isFinal ? 'Final Acceptance' : 'Offer'} document for ${app.university_name}`);
-      return;
     }
 
     // Fallback generated PDF blob

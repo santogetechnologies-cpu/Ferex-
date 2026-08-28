@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Printer, Download, Phone, Mail, MapPin, Check } from 'lucide-react';
+import { X, Printer, Phone, Mail, MapPin, Check } from 'lucide-react';
 import ferexLogoImg from '../assets/ferex-logo.png';
 
 export interface InvoiceData {

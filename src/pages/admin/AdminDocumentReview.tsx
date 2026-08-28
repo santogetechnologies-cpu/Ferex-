@@ -381,8 +381,20 @@ export const AdminDocumentReview: React.FC = () => {
               </div>
               <div className="flex-1 overflow-y-auto p-6 space-y-5">
                 <div className="w-full h-44 bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-xl flex flex-col items-center justify-center gap-3">
-                  <FileText className="w-14 h-14 text-[#6A1B2E]/25" />
-                  <p className="text-xs font-bold text-slate-400">Document Preview — {viewDoc.docType}</p>
+                  <FileText className="w-12 h-12 text-[#6A1B2E]/30" />
+                  <p className="text-xs font-bold text-slate-500">Document Preview — {viewDoc.docType}</p>
+                  {viewDoc.fileUrl && (
+                    <button
+                      onClick={async () => {
+                        const { getSignedFileUrl } = await import('../../lib/storage');
+                        const signed = await getSignedFileUrl('student-documents', viewDoc.fileUrl || '');
+                        if (signed) window.open(signed, '_blank');
+                      }}
+                      className="px-3.5 py-1.5 bg-[#6A1B2E] text-white text-xs font-bold rounded-lg hover:bg-[#521221] transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Open Secure Vault File
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-2">

@@ -4,16 +4,10 @@ import { Users, Search, Plus, Eye, Edit3, Trash2, X, CheckCircle2, Mail, Phone, 
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 
-const initialClients = [
-  { id: 'CLT-001', name: 'Reliance Digital', contact: 'Ananya Sharma', email: 'ananya@reliancedigital.in', phone: '+91 98200 11234', city: 'Mumbai', type: 'Enterprise', projects: 3, status: 'Active', spent: '₹48,50,000' },
-  { id: 'CLT-002', name: 'Tata Motors Digital', contact: 'Rohit Mehta', email: 'rohit@tatamotors.com', phone: '+91 98300 55678', city: 'Pune', type: 'Enterprise', projects: 2, status: 'Active', spent: '₹32,80,000' },
-  { id: 'CLT-003', name: 'Mahindra Fintech', contact: 'Priya Nair', email: 'priya@mahindrafintech.com', phone: '+91 91234 78901', city: 'Mumbai', type: 'Enterprise', projects: 1, status: 'Active', spent: '₹12,00,000' },
-  { id: 'CLT-004', name: 'BigBasket Growth', contact: 'Suresh Kumar', email: 'suresh@bigbasket.com', phone: '+91 80001 23456', city: 'Bengaluru', type: 'SMB', projects: 2, status: 'Active', spent: '₹8,50,000' },
-  { id: 'CLT-005', name: 'OYO Rooms Marketing', contact: 'Neha Singh', email: 'neha@oyorooms.com', phone: '+91 99100 22345', city: 'Gurugram', type: 'SMB', projects: 1, status: 'On Hold', spent: '₹5,20,000' },
-];
+import { getDigitalClients, createDigitalClient, updateDigitalClient, deleteDigitalClient } from '../../lib/api/digital';
 
 export const DigitalClients: React.FC = () => {
-  const [clients, setClients] = useState(initialClients);
+  const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('All');
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -24,29 +18,81 @@ export const DigitalClients: React.FC = () => {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const handleAdd = (e: React.FormEvent) => {
+  const loadClients = React.useCallback(async () => {
+    const data = await getDigitalClients();
+    if (data && data.length > 0) {
+      setClients(data.map(d => ({
+        id: d.id,
+        name: d.name,
+        contact: d.contact_person,
+        email: d.email,
+        phone: d.phone,
+        city: d.city,
+        type: d.client_type,
+        projects: 2,
+        status: d.status,
+        spent: `₹${Number(d.total_spent || 0).toLocaleString('en-IN')}`,
+      })));
+    } else {
+      setClients([]);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadClients();
+  }, [loadClients]);
+
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    const c = { id: `CLT-${Math.floor(Math.random() * 900 + 100)}`, ...newClient, projects: 0, status: 'Active', spent: '₹0' };
-    setClients([c, ...clients]);
+    const created = await createDigitalClient({
+      name: newClient.name,
+      contact_person: newClient.contact,
+      email: newClient.email,
+      phone: newClient.phone,
+      city: newClient.city,
+      client_type: newClient.type,
+    });
+    setClients(prev => [{
+      id: created.id,
+      name: created.name,
+      contact: created.contact_person,
+      email: created.email,
+      phone: created.phone,
+      city: created.city,
+      type: created.client_type,
+      projects: 0,
+      status: created.status,
+      spent: '₹0',
+    }, ...prev]);
     setShowAddModal(false);
-    showToast(`Added client ${newClient.name}`);
+    showToast(`Added client ${newClient.name} to database`);
     setNewClient({ name: '', contact: '', email: '', phone: '', city: 'Mumbai', type: 'Enterprise' });
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingClient) return;
+    await updateDigitalClient(editingClient.id, {
+      name: editingClient.name,
+      contact_person: editingClient.contact,
+      email: editingClient.email,
+      phone: editingClient.phone,
+      city: editingClient.city,
+      client_type: editingClient.type,
+    });
     setClients(clients.map(c => c.id === editingClient.id ? editingClient : c));
     setEditingClient(null);
-    showToast('Client updated successfully!');
+    showToast('Client updated successfully in database!');
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    await deleteDigitalClient(id);
     setClients(clients.filter(c => c.id !== id));
-    showToast('Client removed');
+    showToast('Client removed from database');
   };
 
   const filtered = clients.filter(c => {
-    const matchSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.contact.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchSearch = (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (c.contact || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchType = filterType === 'All' || c.type === filterType;
     return matchSearch && matchType;
   });

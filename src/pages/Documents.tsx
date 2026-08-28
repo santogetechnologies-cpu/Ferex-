@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, Search, Upload, Eye, FileText, X, MessageSquare, AlertCircle } from 'lucide-react';
+import { Folder, Search, Upload, Eye, FileText, X, AlertCircle } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -91,19 +91,17 @@ export const Documents: React.FC = () => {
     const baseName = nameToUse.includes('.') ? nameToUse : `${nameToUse}.pdf`;
     const fileSizeStr = selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '1.4 MB';
 
-    // Convert selected file to persistent Data URL so file content is stored and viewable
-    let fileUrlStr = 'https://placeholder.supabase.co/' + baseName;
+    // Upload directly to Supabase Storage bucket
+    let fileUrlStr = '';
     if (selectedFile) {
-      try {
-        fileUrlStr = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(selectedFile);
-        });
-      } catch (e) {
-        fileUrlStr = URL.createObjectURL(selectedFile);
-      }
+      const { uploadFileToBucket } = await import('../lib/storage');
+      const uploadRes = await uploadFileToBucket('student-documents', selectedFile, nameToUse.replace(/\.[^/.]+$/, ''));
+      fileUrlStr = uploadRes.url;
+    }
+
+    if (!fileUrlStr && !reuploadTargetDocId) {
+      showToast('Upload failed: could not upload file to storage.');
+      return;
     }
 
     try {
@@ -427,11 +425,25 @@ export const Documents: React.FC = () => {
               </div>
 
               <div className="p-8 bg-slate-50 border border-slate-200/70 rounded-2xl text-center space-y-3">
-                <FileText className="w-16 h-16 text-[#6A1B2E] mx-auto opacity-90" />
+                <FileText className="w-14 h-14 text-[#6A1B2E] mx-auto opacity-90" />
                 <p className="text-xs font-bold text-slate-700">Official Document Record Verified</p>
                 <div className="inline-block px-3 py-1 bg-white rounded-lg border text-xs font-extrabold text-slate-800 shadow-2xs">
                   Status: {previewDoc.status}
                 </div>
+                {previewDoc.url && (
+                  <div className="pt-2">
+                    <button
+                      onClick={async () => {
+                        const { getSignedFileUrl } = await import('../lib/storage');
+                        const signed = await getSignedFileUrl('student-documents', previewDoc.url || '');
+                        if (signed) window.open(signed, '_blank');
+                      }}
+                      className="px-4 py-2 bg-[#6A1B2E] text-white text-xs font-extrabold rounded-xl hover:bg-[#521221] transition-all inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Open / Download File
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-end">

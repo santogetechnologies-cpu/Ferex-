@@ -2,20 +2,23 @@ import { supabase } from '../supabase';
 
 export async function getAdminDashboardStats() {
   try {
+    const todayDateStr = new Date().toISOString().split('T')[0];
     const [
       { count: totalStudents },
       { count: activeApplications },
       { count: pendingApplications },
       { data: docsData },
       { data: paymentsData },
-      { count: openTickets }
+      { count: openTickets },
+      { count: todaysMeetingsCount }
     ] = await Promise.all([
       supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student'),
       supabase.from('applications').select('*', { count: 'exact', head: true }),
       supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['Submitted', 'Under Review']),
       supabase.from('student_documents').select('status'),
       supabase.from('payments').select('status, amount'),
-      supabase.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['Open', 'Pending', 'In Progress'])
+      supabase.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['Open', 'Pending', 'In Progress']),
+      supabase.from('meetings').select('*', { count: 'exact', head: true }).eq('scheduled_date', todayDateStr)
     ]);
 
     // Live Pending Documents count
@@ -39,7 +42,7 @@ export async function getAdminDashboardStats() {
       pendingPaymentsCount: pendingPaymentsCount,
       pendingPaymentsAmount: pendingPaymentsAmount,
       openTickets: openTickets ?? 0,
-      todaysMeetings: 2,
+      todaysMeetings: todaysMeetingsCount ?? 0,
     };
   } catch (err) {
     return {

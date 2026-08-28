@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getApplications, updateApplicationStatus, createApplication } from '../lib/api/applications';
+import { supabase } from '../lib/supabase';
 import type { Application } from '../lib/types';
 
 export function useApplications(studentId?: string) {
@@ -22,11 +23,40 @@ export function useApplications(studentId?: string) {
 
   useEffect(() => {
     fetchApps();
-  }, [fetchApps]);
+
+    // Supabase Realtime Subscription on applications
+    const channelName = studentId ? `realtime_apps_student_${studentId}` : 'realtime_apps_admin';
+    const filterStr = studentId ? `student_id=eq.${studentId}` : undefined;
+
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'applications',
+          filter: filterStr,
+        },
+        () => {
+          fetchApps();
+        }
+      )
+      .subscribe();
+
+    const handleLocalEvent = () => fetchApps();
+    window.addEventListener('ferex_application_change', handleLocalEvent);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_application_change', handleLocalEvent);
+    };
+  }, [fetchApps, studentId]);
 
   const changeStatus = async (id: string, status: Application['status'], notes?: string, offerLetterUrl?: string, finalAcceptanceUrl?: string) => {
     const updated = await updateApplicationStatus(id, status, notes, offerLetterUrl, finalAcceptanceUrl);
     setApplications(prev => prev.map(a => a.id === id ? { ...a, ...updated, status: (updated.status || status) as Application['status'] } : a));
+    window.dispatchEvent(new Event('ferex_application_change'));
     await fetchApps();
     return updated;
   };
@@ -44,6 +74,7 @@ export function useApplications(studentId?: string) {
     course_fee?: string | number;
   }) => {
     const created = await createApplication(payload);
+    window.dispatchEvent(new Event('ferex_application_change'));
     await fetchApps();
     return created;
   };

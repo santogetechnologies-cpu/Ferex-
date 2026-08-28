@@ -1,20 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, CheckCircle2, Video, Plus, X } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-
-const meetingsList = [
-  { id: 'MTG-001', title: 'Canada Study Visa SOP & Financial Audit Consultation', student: 'Priya Sharma (STU-842)', date: 'Today', time: '02:30 PM - 03:00 PM IST', platform: 'Google Meet', link: 'https://meet.google.com/abc-defg-hij', notes: 'Verify bank solvency certificate & SOP draft v2.' },
-  { id: 'MTG-002', title: 'UK CAS Letter & Deposit Document Authentication', student: 'Rahul Verma (STU-889)', date: 'Today', time: '04:15 PM - 04:45 PM IST', platform: 'Zoom Video', link: 'https://zoom.us/j/987654321', notes: 'Review Manchester deposit receipt.' },
-  { id: 'MTG-003', title: 'Ireland Visa Biometrics Appointment Orientation', student: 'Ananya Roy (STU-912)', date: 'Tomorrow', time: '11:00 AM - 11:30 AM IST', platform: 'Google Meet', link: 'https://meet.google.com/xyz-1234- Ireland', notes: 'Prepare VFS Dublin appointment slip.' },
-];
+import { getAllMeetings, createMeeting } from '../../lib/api/meetings';
 
 export const StaffMeetings: React.FC = () => {
   const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [meetings, setMeetings] = useState<any[]>([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getAllMeetings();
+    setMeetings(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+
+  const handleSchedule = async () => {
+    if (!newTitle.trim()) return;
+    await createMeeting({
+      subject: newTitle,
+      advisor_name: 'Admissions Counselor',
+      scheduled_date: new Date().toISOString().split('T')[0],
+      start_time: '02:30 PM',
+      meeting_link: 'https://meet.google.com/abc-defg-hij',
+      notes: 'Visa consultation and document verification.',
+    });
+    showToast('Consultation meeting scheduled!');
+    setShowScheduleModal(false);
+    setNewTitle('');
+    await loadData();
+  };
 
   return (
     <div className="space-y-6 text-left antialiased select-none">
@@ -41,31 +66,46 @@ export const StaffMeetings: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Columns: Agenda Cards */}
         <div className="lg:col-span-2 space-y-4">
-          {meetingsList.map(m => (
-            <Card key={m.id} className="p-5 border border-slate-200/80 shadow-xs hover:shadow-lg transition-all space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                <div>
-                  <span className="text-[10px] font-black uppercase text-[#6A1B2E]">{m.id} • {m.date}</span>
-                  <h3 className="text-base font-black text-slate-900">{m.title}</h3>
-                  <p className="text-xs font-semibold text-slate-500 mt-0.5">Student: {m.student}</p>
-                </div>
-                <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shrink-0" onClick={() => showToast(`Launching ${m.platform} call for ${m.title}...`)}>
-                  <Video className="w-3.5 h-3.5 mr-1.5" /> Join {m.platform}
-                </Button>
-              </div>
+          {loading ? (
+            <div className="p-8 text-center text-xs font-bold text-slate-400">Loading consultation meetings...</div>
+          ) : meetings.length === 0 ? (
+            <div className="p-8 text-center text-xs font-bold text-slate-400">No scheduled consultations found.</div>
+          ) : (
+            meetings.map(m => {
+              const meetingId = m.id?.slice(0, 8) || 'MTG-001';
+              const title = m.subject || m.title || 'Consultation Session';
+              const studentName = m.users?.full_name || m.student || 'Assigned Student';
+              const time = `${m.start_time || '02:30 PM'} - ${m.end_time || '03:15 PM'}`;
+              const platform = m.meeting_link?.includes('zoom') ? 'Zoom Video' : 'Google Meet';
+              const notes = m.notes || 'Admissions & document verification review.';
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-semibold text-slate-600">
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                  <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Time Slot</span>
-                  <span className="font-black text-slate-900">{m.time}</span>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                  <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Consultation Agenda</span>
-                  <span className="font-bold text-slate-800">{m.notes}</span>
-                </div>
-              </div>
-            </Card>
-          ))}
+              return (
+                <Card key={m.id} className="p-5 border border-slate-200/80 shadow-xs hover:shadow-lg transition-all space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-[#6A1B2E]">{meetingId} • {m.scheduled_date || 'Today'}</span>
+                      <h3 className="text-base font-black text-slate-900">{title}</h3>
+                      <p className="text-xs font-semibold text-slate-500 mt-0.5">Student: {studentName}</p>
+                    </div>
+                    <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shrink-0" onClick={() => showToast(`Launching ${platform} call for ${title}...`)}>
+                      <Video className="w-3.5 h-3.5 mr-1.5" /> Join {platform}
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-semibold text-slate-600">
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                      <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Time Slot</span>
+                      <span className="font-black text-slate-900">{time}</span>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                      <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Consultation Agenda</span>
+                      <span className="font-bold text-slate-800">{notes}</span>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })
+          )}
         </div>
 
         {/* Right Column: Mini August 2026 Interactive Calendar */}
@@ -98,16 +138,8 @@ export const StaffMeetings: React.FC = () => {
 
               <div className="space-y-3 text-xs font-semibold">
                 <div>
-                  <label className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">Student</label>
-                  <select className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900">
-                    <option>Priya Sharma (STU-842)</option>
-                    <option>Rahul Verma (STU-889)</option>
-                    <option>Ananya Roy (STU-912)</option>
-                  </select>
-                </div>
-                <div>
                   <label className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">Meeting Title</label>
-                  <input type="text" placeholder="e.g. Visa SOP Final Audit" className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900" />
+                  <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Visa SOP Final Audit" className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900" />
                 </div>
                 <div>
                   <label className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">Platform</label>
@@ -118,7 +150,7 @@ export const StaffMeetings: React.FC = () => {
                 </div>
               </div>
 
-              <Button size="sm" className="w-full bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { showToast('Consultation meeting scheduled!'); setShowScheduleModal(false); }}>
+              <Button size="sm" className="w-full bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={handleSchedule}>
                 Confirm Consultation Session
               </Button>
             </motion.div>

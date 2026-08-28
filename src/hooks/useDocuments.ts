@@ -1,26 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getDocumentsForStudent, getDocumentsForAdmin, updateDocumentStatus, uploadDocument, reuploadDocumentRecord } from '../lib/api/documents';
+import { supabase } from '../lib/supabase';
 import type { StudentDocument } from '../lib/types';
 
 export function useDocuments(studentId?: string) {
-  const cacheKey = studentId ? `ferex_student_documents_${studentId}` : 'ferex_student_documents';
-
-  const [documents, setDocuments] = useState<StudentDocument[]>(() => {
-    try {
-      const saved = localStorage.getItem(cacheKey);
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-  const [loading, setLoading] = useState(() => {
-    try {
-      const saved = localStorage.getItem(cacheKey);
-      return saved ? false : true;
-    } catch (e) {
-      return true;
-    }
-  });
+  const [documents, setDocuments] = useState<StudentDocument[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDocs = useCallback(async () => {
@@ -36,34 +21,44 @@ export function useDocuments(studentId?: string) {
       }
 
       setDocuments(data || []);
-      try { localStorage.setItem(cacheKey, JSON.stringify(data || [])); } catch {}
     } catch (err: any) {
       setError(err.message || 'Failed to load documents');
     } finally {
       setLoading(false);
     }
-  }, [studentId, cacheKey]);
+  }, [studentId]);
 
   useEffect(() => {
     fetchDocs();
 
-    const handleStorageChange = () => {
-      try {
-        const saved = localStorage.getItem(cacheKey);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) setDocuments(parsed);
-        }
-      } catch (e) {}
-    };
+    // Setup Supabase Realtime Subscription on student_documents
+    const channelName = studentId ? `realtime_docs_student_${studentId}` : 'realtime_docs_admin';
+    const filterStr = studentId ? `student_id=eq.${studentId}` : undefined;
 
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('ferex_document_change', handleStorageChange);
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'student_documents',
+          filter: filterStr,
+        },
+        () => {
+          fetchDocs();
+        }
+      )
+      .subscribe();
+
+    const handleLocalEvent = () => fetchDocs();
+    window.addEventListener('ferex_document_change', handleLocalEvent);
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('ferex_document_change', handleStorageChange);
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_document_change', handleLocalEvent);
     };
-  }, [fetchDocs, cacheKey]);
+  }, [fetchDocs, studentId]);
 
   const changeStatus = async (
     id: string,
@@ -72,12 +67,10 @@ export function useDocuments(studentId?: string) {
     reviewerId?: string
   ) => {
     const updated = await updateDocumentStatus(id, status, reviewerId, notes);
-    setDocuments(prev => {
-      const nextList = prev.map(d => d.id === id ? { ...d, ...updated, status, reviewer_notes: notes || d.reviewer_notes } as StudentDocument : d);
-      localStorage.setItem('ferex_student_documents', JSON.stringify(nextList));
-      window.dispatchEvent(new Event('ferex_document_change'));
-      return nextList;
-    });
+    setDocuments(prev =>
+      prev.map(d => (d.id === id ? { ...d, ...updated, status, reviewer_notes: notes || d.reviewer_notes } as StudentDocument : d))
+    );
+    window.dispatchEvent(new Event('ferex_document_change'));
     return updated;
   };
 
@@ -89,12 +82,8 @@ export function useDocuments(studentId?: string) {
     doc_type: StudentDocument['doc_type'];
   }) => {
     const created = await uploadDocument(payload);
-    setDocuments(prev => {
-      const nextList = [created, ...prev.filter(d => d.id !== created.id)];
-      localStorage.setItem('ferex_student_documents', JSON.stringify(nextList));
-      window.dispatchEvent(new Event('ferex_document_change'));
-      return nextList;
-    });
+    setDocuments(prev => [created, ...prev.filter(d => d.id !== created.id)]);
+    window.dispatchEvent(new Event('ferex_document_change'));
     return created;
   };
 
@@ -108,12 +97,10 @@ export function useDocuments(studentId?: string) {
     }
   ) => {
     const updated = await reuploadDocumentRecord(docId, payload);
-    setDocuments(prev => {
-      const nextList = prev.map(d => d.id === docId ? { ...d, ...updated, status: 'Pending Verification' } as StudentDocument : d);
-      localStorage.setItem('ferex_student_documents', JSON.stringify(nextList));
-      window.dispatchEvent(new Event('ferex_document_change'));
-      return nextList;
-    });
+    setDocuments(prev =>
+      prev.map(d => (d.id === docId ? { ...d, ...updated, status: 'Pending Verification' } as StudentDocument : d))
+    );
+    window.dispatchEvent(new Event('ferex_document_change'));
     return updated;
   };
 

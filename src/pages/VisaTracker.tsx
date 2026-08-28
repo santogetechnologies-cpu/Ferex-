@@ -54,7 +54,7 @@ export const VisaTracker: React.FC = () => {
 
   const foundRecord = records.find(r =>
     (user?.id && r.student_id === user.id) ||
-    (user?.email && r.student_email && r.student_email.toLowerCase() === user.email.toLowerCase())
+    (user?.email && (r as any).student_email && (r as any).student_email.toLowerCase() === user.email.toLowerCase())
   );
 
   const initialPendingRecord = {

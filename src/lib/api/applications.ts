@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import type { Application, ChecklistItem } from '../types';
 import { generateUUID } from '../../utils/uuid';
+import { logActivity } from './activity';
 
 // Helper regex to validate UUID strings
 const isValidUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
@@ -223,15 +224,11 @@ export async function createApplication(payload: {
   return resultObj;
 }
 
-// ─── Upload Offer Letter PDF file/blob to Supabase ────────────────────────────
+// ─── Upload Offer Letter PDF file/blob to Supabase Storage ────────────────────
 export async function uploadOfferPdfToSupabase(fileOrBlob: File | Blob, _originalFilename?: string): Promise<string> {
-  // Always convert file to clean Data URL to bypass bucket missing errors & HTTP 400 Bad Request
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(fileOrBlob);
-  });
+  const { uploadFileToBucket } = await import('../storage');
+  const res = await uploadFileToBucket('offer-letters', fileOrBlob, 'offer_letter');
+  return res.url || '';
 }
 
 // ─── Update application status (admin action) ─────────────────────────────────
@@ -292,6 +289,7 @@ export async function updateApplicationStatus(
     if (data && data.length > 0) {
       finalResult = data[0];
       console.log('✅ [updateApplicationStatus]: Successfully updated applications in Supabase:', finalResult);
+      await logActivity('APPLICATION_STATUS_UPDATED', 'application', id, { status, notes });
     }
   } catch (e) {
     console.warn('[updateApplicationStatus catch]:', e);

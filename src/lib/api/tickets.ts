@@ -95,6 +95,19 @@ export async function addTicketReply(payload: {
   return data[0] as TicketReply;
 }
 
+export async function replyToTicket(ticketId: string, message: string, isStaff: boolean = true) {
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData?.user?.id || '00000000-0000-0000-0000-000000000000';
+  const userName = authData?.user?.user_metadata?.full_name || 'Admissions Staff';
+  return addTicketReply({
+    ticket_id: ticketId,
+    sender_id: userId,
+    sender_name: userName,
+    message,
+    is_staff: isStaff,
+  });
+}
+
 export async function updateTicketStatus(id: string, status: SupportTicket['status']) {
   const { data, error } = await supabase
     .from('support_tickets')

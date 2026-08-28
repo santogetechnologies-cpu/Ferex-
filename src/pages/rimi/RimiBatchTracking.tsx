@@ -1,14 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QrCode, Search } from 'lucide-react';
 import { Card } from '../../components/Card';
+import { getRimiBatches } from '../../lib/api/rimi';
 
 export const RimiBatchTracking: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [batches, setBatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [batches] = useState([
-    { id: 'LOT-FZN-8812', product: 'Frozen Pork Ribs & Cutlets', mfgDate: 'Jun 15, 2026', expDate: 'Aug 24, 2026', units: '450 Packs', supplier: 'Venky’s Cold Processing', status: 'Near Expiry (18 Days)' },
-    { id: 'LOT-FZN-8813', product: 'Gourmet Crispy Chicken Nuggets', mfgDate: 'Jul 01, 2026', expDate: 'Dec 31, 2026', units: '1,200 Packs', supplier: 'Godrej Real Good Foods', status: 'Optimal Shelf Life' }
-  ]);
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const data = await getRimiBatches();
+      const mapped = data.map((b: any) => ({
+        id: b.batch_number,
+        product: b.product_name,
+        mfgDate: b.production_date,
+        expDate: b.expiry_date,
+        units: `${b.quantity_units} Units`,
+        supplier: b.warehouse_name || 'Central Cold Hub',
+        status: b.status || 'Active'
+      }));
+      setBatches(mapped);
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const filteredBatches = batches.filter(b =>
     b.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -25,6 +42,10 @@ export const RimiBatchTracking: React.FC = () => {
           Rimi Cold Chain Console • Full origin traceability, supplier lot numbers, and manufacturing batch logs.
         </p>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading batch records...</div>
+      ) : null}
 
       <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-80">

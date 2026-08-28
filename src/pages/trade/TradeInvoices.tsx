@@ -1,44 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileSpreadsheet, Search, Download, Eye, Plus, X, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getTradeInvoices, createTradeInvoice } from '../../lib/api/trade';
 
 export const TradeInvoices: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInv, setSelectedInv] = useState<any>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [invoices, setInvoices] = useState([
-    {
-      id: 'INV-TRD-401',
-      buyer: 'Berlin Industrial Supplies GmbH',
-      country: 'Germany 🇩🇪',
-      amount: '₹42,50,000',
-      dueDate: 'Aug 25, 2026',
-      status: 'Paid',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 'INV-TRD-402',
-      buyer: 'Warsaw Global Logistics Sp. z o.o.',
-      country: 'Poland 🇵🇱',
-      amount: '₹18,20,000',
-      dueDate: 'Aug 30, 2026',
-      status: 'Pending Payment',
-      statusBadge: 'bg-amber-50 text-amber-700 border-amber-200'
-    },
-    {
-      id: 'INV-TRD-403',
-      buyer: 'Rotterdam Maritime Trading N.V.',
-      country: 'Netherlands 🇳🇱',
-      amount: '₹85,00,000',
-      dueDate: 'Sep 15, 2026',
-      status: 'Draft Verified',
-      statusBadge: 'bg-blue-50 text-blue-700 border-blue-200'
-    }
-  ]);
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getTradeInvoices();
+    const formatted = data.map((d: any) => ({
+      id: d.invoice_no || d.id,
+      buyer: d.buyer_name,
+      country: 'Global Partner 🌐',
+      amount: `₹${Number(d.amount).toLocaleString('en-IN')}`,
+      dueDate: d.due_date || 'Sep 15, 2026',
+      status: d.status || 'Issued',
+      statusBadge: d.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
+    }));
+    setInvoices(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const [newInv, setNewInv] = useState({
     buyer: 'Berlin Industrial Supplies GmbH',
@@ -51,21 +44,18 @@ export const TradeInvoices: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleCreateInvoice = (e: React.FormEvent) => {
+  const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newInv.buyer) return;
-    const created = {
-      id: `INV-TRD-${Math.floor(400 + Math.random() * 90)}`,
-      buyer: newInv.buyer,
-      country: 'Germany 🇩🇪',
-      amount: newInv.amount,
-      dueDate: newInv.dueDate,
-      status: 'Issued & Unpaid',
-      statusBadge: 'bg-amber-50 text-amber-700 border-amber-200'
-    };
-    setInvoices([created, ...invoices]);
+    await createTradeInvoice({
+      buyer_name: newInv.buyer,
+      amount: parseFloat(newInv.amount.replace(/[^0-9.]/g, '')) || 2500000,
+      currency: 'INR',
+    });
     setShowCreateModal(false);
-    showToastMsg(`Generated commercial invoice ${created.id}`);
+    showToastMsg(`Created Trade Invoice for ${newInv.buyer}`);
+    setNewInv({ buyer: 'Berlin Industrial Supplies GmbH', amount: '₹25,00,000', dueDate: 'Sep 20, 2026' });
+    await loadData();
   };
 
   const filteredInvoices = invoices.filter(i =>
@@ -97,6 +87,10 @@ export const TradeInvoices: React.FC = () => {
           <Plus className="w-4 h-4 mr-1.5" /> Create Commercial Invoice
         </Button>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading commercial invoices...</div>
+      ) : null}
 
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
         <div className="relative w-full sm:w-80">

@@ -1,16 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getRimiBatches } from '../../lib/api/rimi';
 
 export const RimiExpiryTracking: React.FC = () => {
   const [toast, setToast] = useState('');
+  const [expiringStock, setExpiringStock] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [expiringStock] = useState([
-    { id: 'EXP-101', product: 'Frozen Pork Ribs & Cutlets', batch: 'LOT-FZN-8812', units: '450 Packs', location: 'Mumbai Central Hub', daysLeft: 18, risk: 'High Risk (18 Days)', price: '₹420 / Pack' },
-    { id: 'EXP-102', product: 'Gourmet French Vanilla Ice Cream', batch: 'LOT-FZN-7719', units: '85 Tubs', location: 'Bengaluru Hub', daysLeft: 42, risk: 'Medium Risk (42 Days)', price: '₹480 / Tub' }
-  ]);
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const data = await getRimiBatches();
+      const mapped = data.map((b: any, idx: number) => {
+        const exp = new Date(b.expiry_date);
+        const today = new Date();
+        const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 3600 * 24));
+        const riskLabel = diffDays <= 30 ? `High Risk (${diffDays} Days)` : `Medium Risk (${diffDays} Days)`;
+        return {
+          id: b.id || `EXP-${100 + idx}`,
+          product: b.product_name,
+          batch: b.batch_number,
+          units: `${b.quantity_units} Units`,
+          location: b.warehouse_name || 'Central Cold Hub',
+          daysLeft: diffDays,
+          risk: riskLabel,
+          price: 'Standard Price'
+        };
+      });
+      setExpiringStock(mapped);
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -45,6 +69,10 @@ export const RimiExpiryTracking: React.FC = () => {
           Trigger Auto Clearance Markdown
         </Button>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading expiry records...</div>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {expiringStock.map((item) => (

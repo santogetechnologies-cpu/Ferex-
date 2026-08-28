@@ -1,19 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Search, CheckCircle2, X, Plus } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getDigitalAttendance, recordDigitalAttendance } from '../../lib/api/digital';
 
 const EMPLOYEES = ['Arun Patel', 'Sneha Roy', 'Vivek Sharma', 'Riya Thomas', 'Karthik Menon', 'Anjali Nair'];
-const DATES = ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06'];
-
-const initialAttendance = EMPLOYEES.flatMap(emp => DATES.map(date => ({
-  emp,
-  date,
-  status: Math.random() > 0.1 ? (Math.random() > 0.15 ? 'Present' : 'Late') : 'Absent',
-  checkIn: Math.random() > 0.1 ? (Math.random() > 0.15 ? '09:00 AM' : '09:45 AM') : '',
-  checkOut: Math.random() > 0.1 ? '06:30 PM' : '',
-})));
 
 const statusClr: Record<string, string> = {
   'Present': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -22,24 +14,58 @@ const statusClr: Record<string, string> = {
 };
 
 export const DigitalAttendance: React.FC = () => {
-  const [records] = useState(initialAttendance);
+  const [records, setRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterEmp, setFilterEmp] = useState('All');
   const [toast, setToast] = useState('');
   const [showMarkModal, setShowMarkModal] = useState(false);
-  const [markData, setMarkData] = useState({ emp: EMPLOYEES[0], date: '2026-08-06', status: 'Present', checkIn: '09:00 AM' });
+  const [markData, setMarkData] = useState({ emp: EMPLOYEES[0], date: new Date().toISOString().split('T')[0], status: 'Present', checkIn: '09:00 AM' });
+
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getDigitalAttendance();
+    const formatted = data.map((d: any) => ({
+      id: d.id,
+      emp: d.employee_name,
+      date: d.date,
+      status: d.status,
+      checkIn: d.check_in_time || '09:00 AM',
+      checkOut: d.check_out_time || '06:00 PM',
+    }));
+    setRecords(formatted);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const filtered = records.filter(r => {
+  const handleMark = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await recordDigitalAttendance({
+      employee_name: markData.emp,
+      date: markData.date,
+      status: markData.status,
+      check_in_time: markData.checkIn,
+    });
+    setShowMarkModal(false);
+    showToast(`Attendance marked for ${markData.emp}`);
+    await loadData();
+  };
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const filtered = records.filter((r: any) => {
     const matchS = r.emp.toLowerCase().includes(search.toLowerCase());
     const matchF = filterEmp === 'All' || r.emp === filterEmp;
     return matchS && matchF;
-  }).slice(0, 36);
+  });
 
-  const presentToday = records.filter(r => r.date === '2026-08-06' && r.status === 'Present').length;
-  const lateToday = records.filter(r => r.date === '2026-08-06' && r.status === 'Late').length;
-  const absentToday = records.filter(r => r.date === '2026-08-06' && r.status === 'Absent').length;
+  const presentToday = records.filter(r => (r.date === todayStr || r.date === '2026-08-06') && r.status === 'Present').length;
+  const lateToday = records.filter(r => (r.date === todayStr || r.date === '2026-08-06') && r.status === 'Late').length;
+  const absentToday = records.filter(r => (r.date === todayStr || r.date === '2026-08-06') && r.status === 'Absent').length;
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -60,6 +86,10 @@ export const DigitalAttendance: React.FC = () => {
           <Plus className="w-4 h-4 mr-1.5" /> Mark Attendance
         </Button>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading attendance records...</div>
+      ) : null}
 
       <div className="grid grid-cols-3 gap-3">
         {[['Present Today', presentToday, 'text-emerald-700'], ['Late Today', lateToday, 'text-amber-700'], ['Absent Today', absentToday, 'text-red-700']].map(([l, c, clr], idx) => (
@@ -132,7 +162,7 @@ export const DigitalAttendance: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowMarkModal(false)}>Cancel</Button>
-                  <Button size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => { setShowMarkModal(false); showToast(`Attendance marked for ${markData.emp}!`); }}>Save Attendance</Button>
+                  <Button size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={handleMark}>Save Attendance</Button>
                 </div>
               </div>
             </motion.div>
