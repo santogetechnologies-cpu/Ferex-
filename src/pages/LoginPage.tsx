@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, AlertCircle, KeyRound, ArrowLeft, LogIn, UserPlus, Lock } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '../components/Input';
+import { Checkbox } from '../components/Checkbox';
 import { useAuth } from '../contexts/AuthContext';
 import { getDashboardRoute, getPortalLabel } from '../lib/roleRouter';
 import { supabase } from '../lib/supabase';
