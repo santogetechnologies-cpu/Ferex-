@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate, useNavigate, useLocation
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthLayout } from './layouts/AuthLayout';
 import { LoginPage } from './pages/LoginPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { FerexLandingPage } from './pages/FerexLandingPage';
 import { StudentLayout } from './layouts/StudentLayout';
 import { StudentDashboard } from './pages/StudentDashboard';
@@ -222,6 +223,7 @@ function App() {
           {/* ── Official FEREX Education Website & Login Portal ── */}
           <Route path="/" element={<FerexLandingPage />} />
           <Route path="/login" element={<AuthLayout><LoginPage /></AuthLayout>} />
+          <Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
           <Route path="/admin/login" element={<Navigate to="/login" replace />} />
           <Route path="/trade/login" element={<Navigate to="/login" replace />} />
           <Route path="/rimi/login" element={<Navigate to="/login" replace />} />

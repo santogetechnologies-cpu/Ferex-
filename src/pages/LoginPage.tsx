@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, AlertCircle, KeyRound, ArrowLeft, LogIn, UserPlus, Lock } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '../components/Input';
-import { Checkbox } from '../components/Checkbox';
 import { useAuth } from '../contexts/AuthContext';
 import { getDashboardRoute, getPortalLabel } from '../lib/roleRouter';
 import { supabase } from '../lib/supabase';
@@ -255,11 +254,11 @@ export const LoginPage: React.FC = () => {
         console.warn('[FirstTimePassUpdate] DB notice:', dbErr.message);
       }
 
-      await supabase.auth.updateUser({ password: newPassword }).catch(() => {});
+      await supabase.auth.updateUser({ password: newPassword }).catch(() => { });
 
       setIsChangingPass(false);
       setShowFirstTimeModal(false);
-      
+
       setNewPassword('');
       setConfirmPassword('');
       setSignInPassword('');
@@ -294,7 +293,7 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="relative overflow-hidden w-full text-left">
-      
+
       {/* Top Header Link */}
       <div className="mb-6 flex items-center justify-between">
         <button
@@ -336,33 +335,25 @@ export const LoginPage: React.FC = () => {
             )}
 
             <form onSubmit={handleFirstTimePassSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
-                  New Permanent Password
-                </label>
-                <input
-                  required
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password (min 6 chars)"
-                  className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#50001D] focus:ring-4 focus:ring-[#50001D]/10"
-                />
-              </div>
+              <Input
+                label="New Permanent Password"
+                type="password"
+                showPasswordToggle={true}
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password (min 6 chars)"
+              />
 
-              <div>
-                <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
-                  Confirm New Password
-                </label>
-                <input
-                  required
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
-                  className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#50001D] focus:ring-4 focus:ring-[#50001D]/10"
-                />
-              </div>
+              <Input
+                label="Confirm New Password"
+                type="password"
+                showPasswordToggle={true}
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
 
               <button
                 type="submit"
@@ -389,22 +380,20 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={switchToSignIn}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      authMode === 'signin'
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${authMode === 'signin'
                         ? 'bg-[#50001D] text-white shadow-sm'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                    }`}
+                      }`}
                   >
                     <LogIn className="w-3.5 h-3.5" /> Sign In
                   </button>
                   <button
                     type="button"
                     onClick={switchToSignUp}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      authMode === 'signup'
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${authMode === 'signup'
                         ? 'bg-[#50001D] text-white shadow-sm'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                    }`}
+                      }`}
                   >
                     <UserPlus className="w-3.5 h-3.5" /> Sign Up
                   </button>
