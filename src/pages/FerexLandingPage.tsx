@@ -3,20 +3,37 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   GraduationCap, Building2, ShieldCheck, ArrowRight,
-  FileCheck, Plane, HelpCircle, LogIn, ChevronDown, Mail, Phone, MapPin,
+  FileCheck, Plane, HelpCircle, LogIn, LogOut, ChevronDown, Mail, Phone, MapPin,
   User, Users, Clock
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+import { useAuth } from '../contexts/AuthContext';
+import { getDashboardRoute, getPortalLabel } from '../lib/roleRouter';
 
 import ferexLogoImg from '../assets/ferex-logo.png';
 
 export const FerexLandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user, session, profile, signOut } = useAuth();
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [activeCategory, setActiveCategory] = useState<string>('All');
 
   const goToLogin = () => {
     navigate('/login');
+  };
+
+  const handleAuthAction = () => {
+    if (session && user) {
+      const role = profile?.role || 'student';
+      navigate(getDashboardRoute(role));
+    } else {
+      navigate('/login');
+    }
+  };
+
+  const handleSignOut = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await signOut();
   };
 
   const universities = [
@@ -151,13 +168,33 @@ export const FerexLandingPage: React.FC = () => {
             </nav>
           </div>
 
-          <div className="flex items-center gap-3.5">
-            <button
-              onClick={goToLogin}
-              className="flex items-center gap-2 h-10 px-5 bg-[#3E0916] hover:bg-[#52101F] text-[#EAD5B5] rounded-xl text-xs font-bold transition-all border border-[#8C2C42] shadow-xs cursor-pointer"
-            >
-              <User className="w-3.5 h-3.5 text-[#E6CA9E]" /> Sign In
-            </button>
+          <div className="flex items-center gap-3">
+            {session && user ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleAuthAction}
+                  className="flex items-center gap-2 h-10 px-4 sm:px-5 bg-[#3E0916] hover:bg-[#52101F] text-[#EAD5B5] rounded-xl text-xs font-bold transition-all border border-[#8C2C42] shadow-xs cursor-pointer"
+                >
+                  <User className="w-3.5 h-3.5 text-[#E6CA9E]" />
+                  <span>{getPortalLabel(profile?.role)}</span>
+                </button>
+                <button
+                  onClick={handleSignOut}
+                  title="Sign Out"
+                  className="flex items-center justify-center w-10 h-10 bg-[#3E0916]/80 hover:bg-[#52101F] text-[#EAD5B5] hover:text-red-300 rounded-xl transition-all border border-[#8C2C42] shadow-xs cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={goToLogin}
+                className="flex items-center gap-2 h-10 px-5 bg-[#3E0916] hover:bg-[#52101F] text-[#EAD5B5] rounded-xl text-xs font-bold transition-all border border-[#8C2C42] shadow-xs cursor-pointer"
+              >
+                <User className="w-3.5 h-3.5 text-[#E6CA9E]" />
+                <span>Sign In / Sign Up</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -238,10 +275,10 @@ export const FerexLandingPage: React.FC = () => {
               className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2"
             >
               <button
-                onClick={goToLogin}
+                onClick={handleAuthAction}
                 className="h-12 px-7 bg-white hover:bg-[#FAF4E8] text-[#24020B] rounded-xl font-bold text-sm flex items-center justify-center gap-2.5 transition-all shadow-xl active:scale-98 cursor-pointer"
               >
-                <span>Access Student Portal</span>
+                <span>{session && user ? 'Go to Portal Dashboard' : 'Access Student Portal'}</span>
                 <ArrowRight className="w-4 h-4 text-[#24020B]" />
               </button>
 
