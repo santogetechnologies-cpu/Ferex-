@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, AlertCircle, KeyRound, ArrowLeft, LogIn, Lock } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ShieldCheck, AlertCircle, KeyRound, ArrowLeft, LogIn, UserPlus, Lock } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '../components/Input';
 import { Checkbox } from '../components/Checkbox';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,15 +10,35 @@ import { supabase } from '../lib/supabase';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { signIn, resetPassword } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { signIn, signUp, resetPassword } = useAuth();
 
-  // Input fields
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Tab mode: 'signin' | 'signup'
+  const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>(initialMode);
+
+  // Sign In Specific Fields
+  const [signInEmail, setSignInEmail] = useState('');
+  const [signInPassword, setSignInPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
 
+  // Sign Up Specific Fields (Completely isolated and initialized empty)
+  const [signUpFullName, setSignUpFullName] = useState('');
+  const [signUpEmail, setSignUpEmail] = useState('');
+  const [signUpPassword, setSignUpPassword] = useState('');
+  const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(true);
+
   // Validation errors
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{
+    signInEmail?: string;
+    signInPassword?: string;
+    signUpFullName?: string;
+    signUpEmail?: string;
+    signUpPassword?: string;
+    signUpConfirmPassword?: string;
+    terms?: string;
+  }>({});
 
   // Auth statuses
   const [isLoading, setIsLoading] = useState(false);
@@ -38,28 +58,84 @@ export const LoginPage: React.FC = () => {
   const [changePassError, setChangePassError] = useState('');
   const [isChangingPass, setIsChangingPass] = useState(false);
 
+  // Switch to sign up and reset sign up fields cleanly
+  const switchToSignUp = () => {
+    setAuthMode('signup');
+    setSignUpFullName('');
+    setSignUpEmail('');
+    setSignUpPassword('');
+    setSignUpConfirmPassword('');
+    setErrorMsg('');
+    setSuccessMsg('');
+    setErrors({});
+  };
+
+  const switchToSignIn = () => {
+    setAuthMode('signin');
+    setErrorMsg('');
+    setSuccessMsg('');
+    setErrors({});
+  };
+
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    if (mode === 'signup') {
+      switchToSignUp();
+    } else if (mode === 'signin') {
+      switchToSignIn();
+    }
+  }, [searchParams]);
+
   // Front-end Validation
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: typeof errors = {};
 
-    if (!email) {
-      newErrors.email = 'Email address is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
+    if (authMode === 'signin') {
+      if (!signInEmail.trim()) {
+        newErrors.signInEmail = 'Email address is required';
+      } else if (!/\S+@\S+\.\S+/.test(signInEmail)) {
+        newErrors.signInEmail = 'Please enter a valid email address';
+      }
 
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      if (!signInPassword) {
+        newErrors.signInPassword = 'Password is required';
+      } else if (signInPassword.length < 6) {
+        newErrors.signInPassword = 'Password must be at least 6 characters';
+      }
+    } else {
+      if (!signUpFullName.trim()) {
+        newErrors.signUpFullName = 'Full name is required';
+      }
+
+      if (!signUpEmail.trim()) {
+        newErrors.signUpEmail = 'Email address is required';
+      } else if (!/\S+@\S+\.\S+/.test(signUpEmail)) {
+        newErrors.signUpEmail = 'Please enter a valid email address';
+      }
+
+      if (!signUpPassword) {
+        newErrors.signUpPassword = 'Password is required';
+      } else if (signUpPassword.length < 6) {
+        newErrors.signUpPassword = 'Password must be at least 6 characters';
+      }
+
+      if (!signUpConfirmPassword) {
+        newErrors.signUpConfirmPassword = 'Confirm your password';
+      } else if (signUpPassword !== signUpConfirmPassword) {
+        newErrors.signUpConfirmPassword = 'Passwords do not match';
+      }
+
+      if (!agreeTerms) {
+        newErrors.terms = 'Please accept the terms of enrollment';
+      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Supabase sign-in submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Sign In Handler
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -67,11 +143,10 @@ export const LoginPage: React.FC = () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
-
-    const cleanEmail = email.trim();
+    const cleanEmail = signInEmail.trim();
 
     // 1. Perform Real Supabase Auth
-    const { error } = await signIn(cleanEmail, password);
+    const { error } = await signIn(cleanEmail, signInPassword);
     if (error) {
       setIsLoading(false);
       setErrorMsg(error || 'Invalid email or password. Please try again.');
@@ -122,6 +197,36 @@ export const LoginPage: React.FC = () => {
     }, 400);
   };
 
+  // Sign Up Handler
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    const cleanEmail = signUpEmail.trim();
+    const cleanName = signUpFullName.trim();
+
+    // Perform Real Supabase Auth SignUp (strictly role = 'student')
+    const { error } = await signUp(cleanEmail, signUpPassword, cleanName, 'student');
+
+    if (error) {
+      setIsLoading(false);
+      setErrorMsg(error || 'Sign up failed. Please try again or use another email.');
+      return;
+    }
+
+    // Account creation successful
+    setSuccessMsg('🎉 Account created successfully! Preparing your Student Portal...');
+    setIsLoading(false);
+
+    setTimeout(() => {
+      navigate('/student/dashboard', { replace: true });
+    }, 600);
+  };
+
   // Handle first time login password update
   const handleFirstTimePassSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,8 +245,7 @@ export const LoginPage: React.FC = () => {
     setIsChangingPass(true);
 
     try {
-      // 1. Update user password status in database
-      const cleanEmail = email.trim();
+      const cleanEmail = signInEmail.trim();
       const { error: dbErr } = await supabase
         .from('users')
         .update({ must_change_password: false })
@@ -151,16 +255,14 @@ export const LoginPage: React.FC = () => {
         console.warn('[FirstTimePassUpdate] DB notice:', dbErr.message);
       }
 
-      // 2. Also update in auth session if logged in
-      await supabase.auth.updateUser({ password: newPassword }).catch(() => {});
+      await supabase.auth.updateUser({ password: newPassword }).catch(() => { });
 
       setIsChangingPass(false);
       setShowFirstTimeModal(false);
-      
-      // Clear form and display green success guidance
+
       setNewPassword('');
       setConfirmPassword('');
-      setPassword('');
+      setSignInPassword('');
       setSuccessMsg('🎉 Password updated successfully! Please enter your new password to log in.');
     } catch (err: any) {
       setIsChangingPass(false);
@@ -192,12 +294,12 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="relative overflow-hidden w-full text-left">
-      
+
       {/* Top Header Link */}
       <div className="mb-6 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#50001D] transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#50001D] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Ferex Education
         </button>
@@ -234,59 +336,78 @@ export const LoginPage: React.FC = () => {
             )}
 
             <form onSubmit={handleFirstTimePassSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
-                  New Permanent Password
-                </label>
-                <input
-                  required
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password (min 6 chars)"
-                  className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#50001D] focus:ring-4 focus:ring-[#50001D]/10"
-                />
-              </div>
+              <Input
+                label="New Permanent Password"
+                type="password"
+                showPasswordToggle={true}
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password (min 6 chars)"
+              />
 
-              <div>
-                <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
-                  Confirm New Password
-                </label>
-                <input
-                  required
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
-                  className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#50001D] focus:ring-4 focus:ring-[#50001D]/10"
-                />
-              </div>
+              <Input
+                label="Confirm New Password"
+                type="password"
+                showPasswordToggle={true}
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
 
               <button
                 type="submit"
                 disabled={isChangingPass}
-                className="w-full h-11 bg-[#50001D] text-white rounded-xl text-xs font-black hover:bg-[#3D0016] transition-colors shadow-md disabled:opacity-50 mt-2"
+                className="w-full h-11 bg-[#50001D] text-white rounded-xl text-xs font-black hover:bg-[#3D0016] transition-colors shadow-md disabled:opacity-50 mt-2 cursor-pointer"
               >
                 {isChangingPass ? 'Updating Password...' : 'Save New Password & Return to Login'}
               </button>
             </form>
           </motion.div>
         ) : !showForgotOverlay ? (
-          /* LOGIN INTERFACE */
+          /* AUTHENTICATION INTERFACE (SIGN IN / SIGN UP) */
           <motion.div
-            key="login-form"
+            key="auth-form-card"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
           >
-            {/* Header */}
+            {/* Header with Tab Switcher */}
             <div className="text-center sm:text-left mb-6">
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div className="p-1 bg-slate-100/90 rounded-2xl flex items-center gap-1 border border-slate-200/80 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={switchToSignIn}
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${authMode === 'signin'
+                        ? 'bg-[#50001D] text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                      }`}
+                  >
+                    <LogIn className="w-3.5 h-3.5" /> Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={switchToSignUp}
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${authMode === 'signup'
+                        ? 'bg-[#50001D] text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                      }`}
+                  >
+                    <UserPlus className="w-3.5 h-3.5" /> Sign Up
+                  </button>
+                </div>
+              </div>
+
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-1.5">
-                Sign in to your portal
+                {authMode === 'signin' ? 'Sign in to your portal' : 'Create your student account'}
               </h2>
               <p className="text-xs sm:text-sm font-semibold text-slate-500">
-                Access your university applications, NAWA legalizations, and VFS visa updates.
+                {authMode === 'signin'
+                  ? 'Access your university applications, NAWA legalizations, and VFS visa updates.'
+                  : 'Start your European higher education journey with Ferex Education.'}
               </p>
             </div>
 
@@ -320,68 +441,149 @@ export const LoginPage: React.FC = () => {
               )}
             </AnimatePresence>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <Input
-                label="Email address"
-                type="email"
-                placeholder="student@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                error={errors.email}
-                autoComplete="email"
-                disabled={isLoading}
-              />
-
-              <Input
-                label="Password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                error={errors.password}
-                autoComplete="current-password"
-                disabled={isLoading}
-              />
-
-              {/* Options Row */}
-              <div className="flex items-center justify-between pt-1">
-                <Checkbox
-                  label="Remember me for 30 days"
-                  checked={rememberMe}
-                  onChange={(checked) => setRememberMe(checked)}
+            {/* Forms */}
+            {authMode === 'signin' ? (
+              /* SIGN IN FORM */
+              <form onSubmit={handleSignIn} className="space-y-4" autoComplete="on">
+                <Input
+                  label="Email address"
+                  type="email"
+                  placeholder="student@example.com"
+                  value={signInEmail}
+                  onChange={(e) => setSignInEmail(e.target.value)}
+                  error={errors.signInEmail}
+                  autoComplete="email"
                   disabled={isLoading}
                 />
 
-                <button
-                  type="button"
-                  onClick={() => setShowForgotOverlay(true)}
-                  className="text-xs font-bold text-[#50001D] hover:underline focus:outline-none"
-                  tabIndex={0}
-                >
-                  Forgot password?
-                </button>
-              </div>
+                <Input
+                  label="Password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={signInPassword}
+                  onChange={(e) => setSignInPassword(e.target.value)}
+                  error={errors.signInPassword}
+                  autoComplete="current-password"
+                  disabled={isLoading}
+                />
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-12 bg-gradient-to-r from-[#50001D] via-[#6A1B2E] to-[#50001D] hover:from-[#3D0016] hover:to-[#50001D] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#50001D]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2"
-              >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Authenticating Credentials...
-                  </span>
-                ) : (
-                  <>
-                    <LogIn className="w-4 h-4 text-amber-300" />
-                    <span>Sign In to Portal</span>
-                  </>
-                )}
-              </button>
-            </form>
+                {/* Options Row */}
+                <div className="flex items-center justify-between pt-1">
+                  <Checkbox
+                    label="Remember me for 30 days"
+                    checked={rememberMe}
+                    onChange={(checked) => setRememberMe(checked)}
+                    disabled={isLoading}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotOverlay(true)}
+                    className="text-xs font-bold text-[#50001D] hover:underline focus:outline-none cursor-pointer"
+                    tabIndex={0}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-12 bg-gradient-to-r from-[#50001D] via-[#6A1B2E] to-[#50001D] hover:from-[#3D0016] hover:to-[#50001D] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#50001D]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2 cursor-pointer"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Authenticating Credentials...
+                    </span>
+                  ) : (
+                    <>
+                      <LogIn className="w-4 h-4 text-amber-300" />
+                      <span>Sign In to Portal</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              /* SIGN UP FORM — ALWAYS OPENS WITH EMPTY FIELDS */
+              <form onSubmit={handleSignUp} className="space-y-4" autoComplete="off">
+                <Input
+                  label="Full Name"
+                  type="text"
+                  placeholder="e.g. Alexander Bennett"
+                  value={signUpFullName}
+                  onChange={(e) => setSignUpFullName(e.target.value)}
+                  error={errors.signUpFullName}
+                  autoComplete="off"
+                  disabled={isLoading}
+                />
+
+                <Input
+                  label="Email Address"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={signUpEmail}
+                  onChange={(e) => setSignUpEmail(e.target.value)}
+                  error={errors.signUpEmail}
+                  autoComplete="off"
+                  disabled={isLoading}
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    label="Password"
+                    type="password"
+                    placeholder="Create a password"
+                    value={signUpPassword}
+                    onChange={(e) => setSignUpPassword(e.target.value)}
+                    error={errors.signUpPassword}
+                    autoComplete="new-password"
+                    disabled={isLoading}
+                  />
+
+                  <Input
+                    label="Confirm Password"
+                    type="password"
+                    placeholder="Repeat password"
+                    value={signUpConfirmPassword}
+                    onChange={(e) => setSignUpConfirmPassword(e.target.value)}
+                    error={errors.signUpConfirmPassword}
+                    autoComplete="new-password"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="pt-1">
+                  <Checkbox
+                    label="I agree to the Terms of Service and Privacy Policy"
+                    checked={agreeTerms}
+                    onChange={(checked) => setAgreeTerms(checked)}
+                    disabled={isLoading}
+                  />
+                  {errors.terms && <p className="text-[11px] font-bold text-red-600 mt-1">{errors.terms}</p>}
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-12 bg-gradient-to-r from-[#50001D] via-[#6A1B2E] to-[#50001D] hover:from-[#3D0016] hover:to-[#50001D] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#50001D]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2 cursor-pointer"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Creating Account...
+                    </span>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4 text-amber-300" />
+                      <span>Create Student Account</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
 
             {/* Portal Note */}
             <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-semibold">
@@ -421,7 +623,7 @@ export const LoginPage: React.FC = () => {
                     setShowForgotOverlay(false);
                     setForgotSent(false);
                   }}
-                  className="mt-2 text-xs font-bold text-[#50001D] hover:underline block mx-auto"
+                  className="mt-2 text-xs font-bold text-[#50001D] hover:underline block mx-auto cursor-pointer"
                 >
                   Return to Sign In
                 </button>
@@ -447,7 +649,7 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowForgotOverlay(false)}
-                    className="text-xs font-bold text-slate-500 hover:text-slate-700"
+                    className="text-xs font-bold text-slate-500 hover:text-slate-700 cursor-pointer"
                   >
                     ← Back to Sign In
                   </button>
@@ -455,7 +657,7 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="h-10 px-5 bg-[#50001D] text-white text-xs font-bold rounded-xl hover:bg-[#3D0016] transition-colors shadow-sm disabled:opacity-50"
+                    className="h-10 px-5 bg-[#50001D] text-white text-xs font-bold rounded-xl hover:bg-[#3D0016] transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
                   >
                     Send Reset Link
                   </button>
@@ -468,3 +670,5 @@ export const LoginPage: React.FC = () => {
     </div>
   );
 };
+
+

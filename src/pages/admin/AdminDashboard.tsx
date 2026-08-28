@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Users, FileCheck, FolderOpen, CreditCard, Headphones,
   Activity, Clock3,
-  ArrowUpRight, ArrowRight, UserPlus, Plus, Sparkles
+  ArrowUpRight, ArrowRight, Plus, Sparkles
 } from 'lucide-react';
 import { getAdminDashboardStats } from '../../lib/api/dashboard';
 import { useStudents } from '../../hooks/useStudents';
@@ -75,10 +75,6 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="flex gap-2 shrink-0">
-          <button onClick={() => navigate('/admin/students')}
-            className="flex items-center gap-2 h-9 px-3.5 bg-white border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-98 transition-all shadow-xs">
-            <UserPlus className="w-3.5 h-3.5 text-slate-500" /> Add Student
-          </button>
           <button onClick={() => navigate('/admin/tasks')}
             className="flex items-center gap-2 h-9 px-3.5 bg-[#6A1B2E] rounded-xl text-xs font-bold text-white hover:bg-[#521221] active:scale-98 transition-all shadow-md shadow-[#6A1B2E]/20">
             <Plus className="w-3.5 h-3.5" /> New Task

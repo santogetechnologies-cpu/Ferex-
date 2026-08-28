@@ -172,15 +172,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [loadUserData]);
 
-  const signUp = useCallback(async (email: string, password: string, fullName: string, role: string = 'student') => {
+  const signUp = useCallback(async (email: string, password: string, fullName: string, _role: string = 'student') => {
     try {
+      const cleanEmail = email.trim();
+      const safeRole = 'student'; // Public signups are strictly restricted to student role
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: cleanEmail,
         password,
         options: {
           data: {
             full_name: fullName,
-            role,
+            role: safeRole,
           },
         },
       });
@@ -189,12 +191,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data.user) {
         await ensureProfile(data.user);
+        if (data.session) {
+          await loadUserData(data.session);
+        }
       }
-      return { user: data.user };
+      return { user: data.user, session: data.session };
     } catch (err: any) {
       return { error: err?.message || 'Sign up error' };
     }
-  }, []);
+  }, [loadUserData]);
 
   const signOut = useCallback(async () => {
     try {

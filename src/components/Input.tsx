@@ -9,9 +9,10 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, showPasswordToggle = false, type = 'text', className, disabled, id, ...props }, ref) => {
+  ({ label, error, showPasswordToggle = true, type = 'text', className, disabled, id, ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const isPassword = type === 'password';
+    const hasToggle = isPassword && showPasswordToggle;
     const inputType = isPassword && showPasswordToggle && showPassword ? 'text' : type;
 
     return (
@@ -33,6 +34,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             disabled={disabled}
             className={cn(
               'w-full h-11 px-3.5 rounded-lg border text-base text-slate-900 bg-white placeholder-slate-400 focus:outline-none transition-all duration-200 focus:ring-2 focus:ring-offset-0 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed hover:border-slate-300',
+              hasToggle && 'pr-10',
               error
                 ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
                 : 'border-slate-200 focus:border-[#6A1B2E] focus:ring-[#6A1B2E]/10'

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Eye, Edit3, Trash2, X, Save, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
 import { getStaffMembers } from '../../lib/api/students';
@@ -23,7 +23,7 @@ interface StudentItem {
 }
 
 export const AdminStudents: React.FC = () => {
-  const { students: dbStudents, addStudent, removeStudent, editStudent: updateDbStudent } = useStudents();
+  const { students: dbStudents, removeStudent, editStudent: updateDbStudent } = useStudents();
   const { applications: dbApps } = useApplications();
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [staffMembers, setStaffMembers] = useState<UserProfile[]>([]);
@@ -141,69 +141,13 @@ export const AdminStudents: React.FC = () => {
     }
   };
 
-  const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const PER_PAGE = 6;
 
-  // Add Student Controlled Inputs
-  const [addName, setAddName] = useState('');
-  const [addEmail, setAddEmail] = useState('');
-  const [addPhone, setAddPhone] = useState('');
-  const [addCountry, setAddCountry] = useState('India');
-  const [addUniversity, setAddUniversity] = useState('Warsaw University of Technology');
-  const [addCourse, setAddCourse] = useState('B.Sc Computer Science');
-  const [addCounselor, setAddCounselor] = useState('Admin');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 2500);
-  };
-
-  const handleAddStudentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!addName.trim() || !addEmail.trim()) return;
-
-    try {
-      setIsSubmitting(true);
-      const created = await addStudent({
-        full_name: addName.trim(),
-        email: addEmail.trim(),
-        phone: addPhone.trim(),
-        assigned_counselor: addCounselor,
-      });
-
-      // Optimistically add to UI list immediately
-      const newStudentItem: StudentItem = {
-        id: created.id,
-        name: created.full_name || addName.trim(),
-        email: created.email || addEmail.trim(),
-        phone: addPhone.trim() || '—',
-        country: addCountry,
-        university: addUniversity,
-        course: addCourse,
-        intake: '2026',
-        status: 'Active',
-        statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-        counselor: addCounselor,
-        joined: 'Just now',
-        appStatus: 'Active',
-      };
-
-      setStudents(prev => [newStudentItem, ...prev]);
-
-      // Reset form
-      setAddName('');
-      setAddEmail('');
-      setAddPhone('');
-      setShowAddModal(false);
-      showToast(`Student ${addName} saved successfully!`);
-    } catch (err: any) {
-      showToast(`Error: ${err.message || 'Could not save student'}`);
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const handleSaveEdit = async () => {
@@ -257,12 +201,6 @@ export const AdminStudents: React.FC = () => {
           <h1 className="text-xl font-extrabold text-slate-900">Students</h1>
           <p className="text-xs font-semibold text-slate-400 mt-0.5">{students.length} total students enrolled</p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 h-9 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] active:scale-98 transition-all shadow-sm"
-        >
-          <Plus className="w-3.5 h-3.5" /> Add Student
-        </button>
       </div>
 
       {/* Search + Filter Header */}
@@ -514,120 +452,7 @@ export const AdminStudents: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Add Modal */}
-      <AnimatePresence>
-        {showAddModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-900">Add New Student</h3>
-                  <p className="text-[10.5px] font-semibold text-slate-400 mt-0.5">Enroll a student into the education portal database</p>
-                </div>
-                <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
-              </div>
 
-              <form onSubmit={handleAddStudentSubmit} className="space-y-3.5">
-                <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-xs font-semibold text-amber-800 flex items-center justify-between">
-                  <span>Default initial password:</span>
-                  <code className="bg-amber-100 text-[#6A1B2E] font-black px-2 py-0.5 rounded border border-amber-300">Student123</code>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Full Name *</label>
-                  <input
-                    required
-                    type="text"
-                    value={addName}
-                    onChange={(e) => setAddName(e.target.value)}
-                    placeholder="e.g. Rahul Sharma"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Email Address *</label>
-                  <input
-                    required
-                    type="email"
-                    value={addEmail}
-                    onChange={(e) => setAddEmail(e.target.value)}
-                    placeholder="rahul.sharma@gmail.com"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Phone Number</label>
-                    <input
-                      type="text"
-                      value={addPhone}
-                      onChange={(e) => setAddPhone(e.target.value)}
-                      placeholder="+91 98765 43210"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Country</label>
-                    <input
-                      type="text"
-                      value={addCountry}
-                      onChange={(e) => setAddCountry(e.target.value)}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Target University</label>
-                  <input
-                    type="text"
-                    value={addUniversity}
-                    onChange={(e) => setAddUniversity(e.target.value)}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Target Course</label>
-                  <input
-                    type="text"
-                    value={addCourse}
-                    onChange={(e) => setAddCourse(e.target.value)}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Assigned Counselor *</label>
-                  <select
-                    value={addCounselor}
-                    onChange={(e) => setAddCounselor(e.target.value)}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                  >
-                    <option value="Admin">Admin (System Default)</option>
-                    {staffMembers.map(s => {
-                      const nameStr = s.full_name || s.email;
-                      const label = `${nameStr} (${s.role || 'Staff'})`;
-                      return <option key={s.id} value={nameStr}>{label}</option>;
-                    })}
-                  </select>
-                </div>
-
-                <div className="flex gap-3 pt-3">
-                  <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 h-9.5 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
-                  <button type="submit" disabled={isSubmitting} className="flex-1 h-9.5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-colors shadow-sm disabled:opacity-50">
-                    {isSubmitting ? 'Saving...' : 'Save Student'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
