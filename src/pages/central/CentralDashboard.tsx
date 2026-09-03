@@ -15,24 +15,27 @@ export const CentralDashboard: React.FC = () => {
   const [lastSyncTime, setLastSyncTime] = useState('Just now (15:03)');
   const [activeTab, setActiveTab] = useState<'approvals' | 'alerts' | 'payments' | 'docs' | 'meetings'>('approvals');
   const [metrics, setMetrics] = useState<CentralEnterpriseStats>({
-    educationStudents: 1480,
-    educationApplications: 2450,
-    educationRevenueInr: 48200000,
-    digitalClients: 38,
-    digitalProjects: 14,
-    digitalRevenueInr: 4280000,
-    tradeShipments: 12,
-    tradeRevenueEur: 1240000,
-    rimiOrders: 85,
-    rimiRevenueInr: 8900000,
-    staffCount: 24,
+    educationStudents: 0,
+    educationApplications: 0,
+    educationRevenueInr: 0,
+    digitalClients: 0,
+    digitalProjects: 0,
+    digitalRevenueInr: 0,
+    tradeShipments: 0,
+    tradeRevenueEur: 0,
+    rimiOrders: 0,
+    rimiRevenueInr: 0,
+    staffCount: 0,
   });
 
   const loadMetrics = React.useCallback(async () => {
-    const data = await getCentralEnterpriseMetrics();
-    if (data && (data.educationStudents > 0 || data.educationRevenueInr > 0)) {
-      setMetrics(data);
-    }
+    try {
+      const data = await getCentralEnterpriseMetrics();
+      if (data) {
+        setMetrics(data);
+        setLastSyncTime(`Just now (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`);
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck, Plus, Search, Mail, Trash2, X, CheckCircle2,
@@ -8,7 +8,7 @@ import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { useAuth } from '../../contexts/AuthContext';
-import { getStaffMembers } from '../../lib/api/students';
+import { supabase } from '../../lib/supabase';
 
 interface AdminAccount {
   id: string;
@@ -26,12 +26,36 @@ interface AdminAccount {
 
 const DIVISION_CONFIG: Record<string, { label: string; route: string; icon: any; badgeColor: string }> = {
   admin: {
+    label: 'Central Super Admin',
+    route: '/central/dashboard',
+    icon: Crown,
+    badgeColor: 'text-amber-800 bg-amber-50 border-amber-300',
+  },
+  superadmin: {
+    label: 'Central Super Admin',
+    route: '/central/dashboard',
+    icon: Crown,
+    badgeColor: 'text-amber-800 bg-amber-50 border-amber-300',
+  },
+  super_admin: {
+    label: 'Central Super Admin',
+    route: '/central/dashboard',
+    icon: Crown,
+    badgeColor: 'text-amber-800 bg-amber-50 border-amber-300',
+  },
+  central: {
+    label: 'Central Super Admin',
+    route: '/central/dashboard',
+    icon: Crown,
+    badgeColor: 'text-amber-800 bg-amber-50 border-amber-300',
+  },
+  education_admin: {
     label: 'Ferex Education Admin',
     route: '/admin/dashboard',
     icon: GraduationCap,
     badgeColor: 'text-rose-700 bg-rose-50 border-rose-200',
   },
-  education_admin: {
+  education: {
     label: 'Ferex Education Admin',
     route: '/admin/dashboard',
     icon: GraduationCap,
@@ -73,12 +97,6 @@ const DIVISION_CONFIG: Record<string, { label: string; route: string; icon: any;
     icon: Monitor,
     badgeColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
   },
-  superadmin: {
-    label: 'Central Super Admin',
-    route: '/central/dashboard',
-    icon: Crown,
-    badgeColor: 'text-amber-800 bg-amber-50 border-amber-300',
-  },
 };
 
 export const CentralAdmins: React.FC = () => {
@@ -95,7 +113,7 @@ export const CentralAdmins: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'trade' | 'rimi' | 'digital' | 'superadmin'>('admin');
+  const [selectedRole, setSelectedRole] = useState<'education_admin' | 'trade_admin' | 'rimi_admin' | 'digital_admin' | 'superadmin'>('education_admin');
   const [formError, setFormError] = useState('');
 
   const showToastMsg = (msg: string) => {
@@ -103,100 +121,106 @@ export const CentralAdmins: React.FC = () => {
     setTimeout(() => setToast(''), 3500);
   };
 
-  const loadAdmins = async () => {
+  // 100% Realtime Live Query from Supabase Database
+  const loadAdmins = useCallback(async () => {
     setLoading(true);
-    const list: AdminAccount[] = [];
-
-    // 1. Load from locally provisioned credentials
-    const localKeys = Object.keys(localStorage).filter(k => k.startsWith('ferex_admin_cred_'));
-    localKeys.forEach(k => {
-      try {
-        const item = JSON.parse(localStorage.getItem(k) || '{}');
-        if (item.email) {
-          const cfg = DIVISION_CONFIG[item.role] || DIVISION_CONFIG.admin;
-          list.push({
-            id: `loc_${item.email}`,
-            name: item.fullName || item.email.split('@')[0],
-            email: item.email,
-            role: item.role,
-            division: item.role,
-            divisionLabel: cfg.label,
-            targetRoute: cfg.route,
-            status: 'Active',
-            password: item.password,
-            created_at: item.created_at || new Date().toISOString(),
-            initials: (item.fullName || item.email).slice(0, 2).toUpperCase(),
-          });
-        }
-      } catch {}
-    });
-
-    // 2. Load from DB staff/users if available
     try {
-      const dbStaff = await getStaffMembers();
-      dbStaff.forEach((s: any) => {
-        if (!list.some(l => l.email.toLowerCase() === (s.email || '').toLowerCase())) {
-          const cfg = DIVISION_CONFIG[s.role] || DIVISION_CONFIG.admin;
-          list.push({
-            id: s.id || `db_${s.email}`,
-            name: s.full_name || s.email.split('@')[0],
-            email: s.email,
-            role: s.role || 'admin',
-            division: s.role || 'admin',
-            divisionLabel: cfg.label,
-            targetRoute: cfg.route,
-            status: 'Active',
-            created_at: s.created_at || new Date().toISOString(),
-            initials: (s.full_name || s.email || 'AD').slice(0, 2).toUpperCase(),
-          });
-        }
-      });
-    } catch {}
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .neq('role', 'student')
+        .order('created_at', { ascending: false });
 
-    // 3. Seed default division admins if empty
-    if (list.length === 0) {
-      const defaults = [
-        { name: 'Education Director', email: 'education.admin@ferex.com', pass: 'Admin@123', role: 'admin' },
-        { name: 'Global Trade Head', email: 'trade.admin@ferex.com', pass: 'Trade@123', role: 'trade' },
-        { name: 'Rimi Distribution Lead', email: 'rimi.admin@ferex.com', pass: 'Rimi@123', role: 'rimi' },
-        { name: 'Digital Agency PM', email: 'digital.admin@ferex.com', pass: 'Digital@123', role: 'digital' },
-      ];
-      defaults.forEach(d => {
-        const cfg = DIVISION_CONFIG[d.role];
-        const item = {
-          id: `def_${d.email}`,
-          name: d.name,
-          email: d.email,
-          role: d.role,
-          division: d.role,
+      if (error) {
+        console.error('Error loading administrators from Supabase:', error);
+      }
+
+      const list: AdminAccount[] = [];
+
+      (data || []).forEach((u: any) => {
+        const cleanRole = (u.role || 'superadmin').toLowerCase().trim();
+        const cfg = DIVISION_CONFIG[cleanRole] || DIVISION_CONFIG.superadmin;
+
+        // Check if there are cached credentials saved locally by Super Admin for password quick copy
+        let savedPass: string | undefined = undefined;
+        try {
+          const localCred = localStorage.getItem(`ferex_admin_cred_${u.email.toLowerCase()}`);
+          if (localCred) {
+            savedPass = JSON.parse(localCred).password;
+          }
+        } catch {}
+
+        list.push({
+          id: u.id,
+          name: u.full_name || u.email.split('@')[0],
+          email: u.email,
+          role: cleanRole,
+          division: cleanRole,
           divisionLabel: cfg.label,
           targetRoute: cfg.route,
-          status: 'Active' as const,
-          password: d.pass,
-          created_at: new Date().toISOString(),
-          initials: d.name.slice(0, 2).toUpperCase(),
-        };
-        list.push(item);
-        localStorage.setItem(`ferex_admin_cred_${d.email.toLowerCase()}`, JSON.stringify({
-          email: d.email,
-          password: d.pass,
-          fullName: d.name,
-          role: d.role,
-          created_at: item.created_at,
-        }));
+          status: 'Active',
+          password: savedPass,
+          created_at: u.created_at || new Date().toISOString(),
+          initials: (u.full_name || u.email || 'AD').slice(0, 2).toUpperCase(),
+        });
       });
+
+      // Also append any locally provisioned admin credentials if not yet synced in DB
+      const localKeys = Object.keys(localStorage).filter(k => k.startsWith('ferex_admin_cred_'));
+      localKeys.forEach(k => {
+        try {
+          const item = JSON.parse(localStorage.getItem(k) || '{}');
+          if (item.email && !list.some(l => l.email.toLowerCase() === item.email.toLowerCase())) {
+            const cleanRole = (item.role || 'education_admin').toLowerCase().trim();
+            const cfg = DIVISION_CONFIG[cleanRole] || DIVISION_CONFIG.education_admin;
+            list.push({
+              id: `loc_${item.email}`,
+              name: item.fullName || item.email.split('@')[0],
+              email: item.email,
+              role: cleanRole,
+              division: cleanRole,
+              divisionLabel: cfg.label,
+              targetRoute: cfg.route,
+              status: 'Active',
+              password: item.password,
+              created_at: item.created_at || new Date().toISOString(),
+              initials: (item.fullName || item.email).slice(0, 2).toUpperCase(),
+            });
+          }
+        } catch {}
+      });
+
+      setAdminList(list);
+    } catch (err) {
+      console.error('Failed to load realtime admins:', err);
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    setAdminList(list);
-    setLoading(false);
-  };
-
+  // Supabase Realtime Live Changes Subscription
   useEffect(() => {
     loadAdmins();
+
+    const channel = supabase
+      .channel('central-realtime-admins')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'users' },
+        () => {
+          loadAdmins();
+        }
+      )
+      .subscribe();
+
     const handleCreated = () => loadAdmins();
     window.addEventListener('ferex_admin_created', handleCreated);
-    return () => window.removeEventListener('ferex_admin_created', handleCreated);
-  }, []);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_admin_created', handleCreated);
+    };
+  }, [loadAdmins]);
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,19 +248,31 @@ export const CentralAdmins: React.FC = () => {
       return;
     }
 
-    showToastMsg(`✅ Provisioned ${fullName.trim()} as ${DIVISION_CONFIG[selectedRole].label}! Credentials active.`);
+    showToastMsg(`✅ Provisioned ${fullName.trim()} as ${DIVISION_CONFIG[selectedRole]?.label || selectedRole}! Credentials active.`);
     setShowAddModal(false);
     setFullName('');
     setEmail('');
     setPassword('');
-    setSelectedRole('admin');
+    setSelectedRole('education_admin');
     loadAdmins();
   };
 
-  const handleDelete = (id: string, emailToDelete: string) => {
-    setAdminList(prev => prev.filter(a => a.id !== id));
-    localStorage.removeItem(`ferex_admin_cred_${emailToDelete.toLowerCase()}`);
-    showToastMsg('Admin account removed.');
+  const handleDelete = async (id: string, emailToDelete: string) => {
+    if (!window.confirm(`Are you sure you want to remove administrator ${emailToDelete}?`)) {
+      return;
+    }
+
+    try {
+      if (!id.startsWith('loc_')) {
+        await supabase.from('users').delete().eq('id', id);
+      }
+      localStorage.removeItem(`ferex_admin_cred_${emailToDelete.toLowerCase()}`);
+      setAdminList(prev => prev.filter(a => a.id !== id && a.email.toLowerCase() !== emailToDelete.toLowerCase()));
+      showToastMsg(`Admin ${emailToDelete} removed.`);
+      loadAdmins();
+    } catch (err: any) {
+      showToastMsg(`Failed to delete: ${err.message || 'Error'}`);
+    }
   };
 
   const copyCredentials = (adm: AdminAccount) => {
@@ -248,11 +284,11 @@ export const CentralAdmins: React.FC = () => {
   const filteredAdmins = adminList.filter(a => {
     const matchesFilter =
       divisionFilter === 'All' ||
-      (divisionFilter === 'Education' && (a.role === 'admin' || a.role === 'education_admin')) ||
+      (divisionFilter === 'Education' && (a.role === 'education_admin' || a.role === 'education')) ||
       (divisionFilter === 'Trade' && (a.role === 'trade' || a.role === 'trade_admin')) ||
       (divisionFilter === 'Rimi' && (a.role === 'rimi' || a.role === 'rimi_admin')) ||
       (divisionFilter === 'Digital' && (a.role === 'digital' || a.role === 'digital_admin')) ||
-      (divisionFilter === 'SuperAdmin' && (a.role === 'superadmin' || a.role === 'central' || a.role === 'super_admin'));
+      (divisionFilter === 'SuperAdmin' && (a.role === 'superadmin' || a.role === 'central' || a.role === 'super_admin' || a.role === 'admin'));
 
     const matchesSearch =
       a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -286,7 +322,7 @@ export const CentralAdmins: React.FC = () => {
             <ShieldCheck className="w-6 h-6 text-[#6A1B2E]" /> Universal Division Admin Governance
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Super Admin Console • Create and manage email & password logins for all 4 Enterprise Division Portals.
+            Super Admin Console • Real-time live creation and governance of email & password logins for all 4 Enterprise Division Portals.
           </p>
         </div>
 
@@ -296,7 +332,7 @@ export const CentralAdmins: React.FC = () => {
             onClick={loadAdmins}
             className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 flex items-center gap-1.5"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh Realtime
           </Button>
 
           <Button
@@ -309,10 +345,10 @@ export const CentralAdmins: React.FC = () => {
         </div>
       </div>
 
-      {/* Division KPI Overview Cards */}
+      {/* Division KPI Overview Cards - Live Realtime Counts */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Education Admins', count: adminList.filter(a => a.role === 'admin' || a.role === 'education_admin').length, icon: GraduationCap, color: 'text-rose-600 bg-rose-50' },
+          { label: 'Education Admins', count: adminList.filter(a => a.role === 'education_admin' || a.role === 'education').length, icon: GraduationCap, color: 'text-rose-600 bg-rose-50' },
           { label: 'Global Trade Admins', count: adminList.filter(a => a.role === 'trade' || a.role === 'trade_admin').length, icon: Globe, color: 'text-indigo-600 bg-indigo-50' },
           { label: 'Rimi Frozen Admins', count: adminList.filter(a => a.role === 'rimi' || a.role === 'rimi_admin').length, icon: Snowflake, color: 'text-cyan-600 bg-cyan-50' },
           { label: 'Digital Agency Admins', count: adminList.filter(a => a.role === 'digital' || a.role === 'digital_admin').length, icon: Monitor, color: 'text-emerald-600 bg-emerald-50' },
@@ -377,18 +413,25 @@ export const CentralAdmins: React.FC = () => {
               {loading ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-slate-400 font-bold">
-                    Loading division administrators...
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-[#6A1B2E] border-t-transparent rounded-full animate-spin" />
+                      Loading live administrators from database...
+                    </div>
                   </td>
                 </tr>
               ) : filteredAdmins.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-400 font-bold">
-                    No division administrators match your criteria.
+                  <td colSpan={5} className="py-12 text-center text-slate-400 font-bold">
+                    <ShieldCheck className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <p className="text-slate-700 font-black text-sm">No Division Administrators Provisioned Yet</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto font-normal">
+                      Click <strong className="text-[#6A1B2E]">"+ Provision Division Admin"</strong> above to create email & password logins for Education, Global Trade, Rimi, or Digital Admins.
+                    </p>
                   </td>
                 </tr>
               ) : (
                 filteredAdmins.map((adm) => {
-                  const cfg = DIVISION_CONFIG[adm.role] || DIVISION_CONFIG.admin;
+                  const cfg = DIVISION_CONFIG[adm.role] || DIVISION_CONFIG.superadmin;
                   const Icon = cfg.icon;
 
                   return (
@@ -424,7 +467,7 @@ export const CentralAdmins: React.FC = () => {
                             <button
                               onClick={() => copyCredentials(adm)}
                               title="Copy Login Credentials"
-                              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+                              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors cursor-pointer"
                             >
                               <Copy className="w-3.5 h-3.5" />
                             </button>
@@ -534,10 +577,10 @@ export const CentralAdmins: React.FC = () => {
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { role: 'admin' as const, label: 'Ferex Education', desc: 'Education Admin', icon: GraduationCap, color: 'border-rose-300 text-rose-800 bg-rose-50/50' },
-                      { role: 'trade' as const, label: 'Global Trade', desc: 'Trade CRM & Shipping', icon: Globe, color: 'border-indigo-300 text-indigo-800 bg-indigo-50/50' },
-                      { role: 'rimi' as const, label: 'Rimi Frozen', desc: 'Distribution & Warehouse', icon: Snowflake, color: 'border-cyan-300 text-cyan-800 bg-cyan-50/50' },
-                      { role: 'digital' as const, label: 'Ferex Digital', desc: 'Agency & Projects', icon: Monitor, color: 'border-emerald-300 text-emerald-800 bg-emerald-50/50' },
+                      { role: 'education_admin' as const, label: 'Ferex Education', desc: 'Education Admin', icon: GraduationCap, color: 'border-rose-300 text-rose-800 bg-rose-50/50' },
+                      { role: 'trade_admin' as const, label: 'Global Trade', desc: 'Trade CRM & Shipping', icon: Globe, color: 'border-indigo-300 text-indigo-800 bg-indigo-50/50' },
+                      { role: 'rimi_admin' as const, label: 'Rimi Frozen', desc: 'Distribution & Warehouse', icon: Snowflake, color: 'border-cyan-300 text-cyan-800 bg-cyan-50/50' },
+                      { role: 'digital_admin' as const, label: 'Ferex Digital', desc: 'Agency & Projects', icon: Monitor, color: 'border-emerald-300 text-emerald-800 bg-emerald-50/50' },
                       { role: 'superadmin' as const, label: 'Central Super Admin', desc: 'Full 4-App Access', icon: Crown, color: 'border-amber-300 text-amber-900 bg-amber-50/50' },
                     ].map((opt) => (
                       <button
