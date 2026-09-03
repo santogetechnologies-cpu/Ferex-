@@ -230,6 +230,7 @@ export async function createRimiSalesOrder(order: {
   customer_name?: string;
   order_no?: string;
   total_amount: number;
+  items_summary?: string;
   order_status?: string;
   status?: string;
   delivery_date?: string;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { DollarSign, TrendingUp, BarChart3 } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 import { Card } from '../../components/Card';
-import { getRimiDashboardStats, getRimiSalesOrders, getRimiCollections } from '../../lib/api/rimi';
+import { getRimiDashboardStats, getRimiSalesOrders } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
 export const RimiRevenueAnalytics: React.FC = () => {

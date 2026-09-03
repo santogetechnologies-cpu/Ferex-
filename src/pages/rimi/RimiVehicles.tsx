@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Truck, Search, Plus, CheckCircle2, Thermometer, MapPin, X, Trash2 } from 'lucide-react';
+import { Truck, Search, Plus, CheckCircle2, Thermometer, X, Trash2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getRimiVehicles, createRimiVehicle, updateRimiVehicleStatus, deleteRimiVehicle } from '../../lib/api/rimi';

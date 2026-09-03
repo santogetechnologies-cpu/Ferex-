@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Search, Download, Eye, Plus, X, CheckCircle2, Truck, Trash2, Printer } from 'lucide-react';
+import { ShoppingCart, Search, Eye, Plus, X, CheckCircle2, Trash2, Printer } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { supabase } from '../../lib/supabase';

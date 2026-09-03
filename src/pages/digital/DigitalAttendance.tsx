@@ -27,11 +27,11 @@ export const DigitalAttendance: React.FC = () => {
     const data = await getDigitalAttendance();
     const formatted = data.map((d: any) => ({
       id: d.id,
-      emp: d.employee_name,
+      emp: d.employee_name || d.employee || 'Arun Patel',
       date: d.date,
       status: d.status,
-      checkIn: d.check_in_time || '09:00 AM',
-      checkOut: d.check_out_time || '06:00 PM',
+      checkIn: d.check_in_time || d.checkIn || '09:00 AM',
+      checkOut: d.check_out_time || d.checkOut || '06:00 PM',
     }));
     setRecords(formatted);
     setLoading(false);

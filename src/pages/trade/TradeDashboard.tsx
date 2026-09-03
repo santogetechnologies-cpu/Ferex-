@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Globe, Truck, FileSpreadsheet, Building2, CreditCard, ArrowUpRight,
-  ShieldCheck, Anchor, FileCheck2, Plus, Clock
+  ShieldCheck, Anchor, FileCheck2, Plus, Clock, CheckCircle2
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';

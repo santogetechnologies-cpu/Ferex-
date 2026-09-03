@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Search, CheckCircle2, Check, Archive, AlertTriangle } from 'lucide-react';
+import { Bell, Search, CheckCircle2, Check } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getRimiNotifications, markRimiNotificationRead } from '../../lib/api/rimi';

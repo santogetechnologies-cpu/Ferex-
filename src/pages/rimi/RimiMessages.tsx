@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MessageSquare, Send, Search, User, Clock, CheckCircle2 } from 'lucide-react';
+import { MessageSquare, Send, Search } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getRimiMessages, sendRimiMessage } from '../../lib/api/rimi';

@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, Boxes, Thermometer, ShieldCheck } from 'lucide-react';
+import { TrendingUp, Boxes, ShieldCheck } from 'lucide-react';
 import { Card } from '../../components/Card';
-import { getRimiProducts, getRimiInventory, getRimiWarehouses } from '../../lib/api/rimi';
+import { getRimiProducts, getRimiWarehouses } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
 export const RimiInventoryAnalytics: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
-    setLoading(true);
     try {
       const [pData, whData] = await Promise.all([
         getRimiProducts(),
@@ -18,9 +16,7 @@ export const RimiInventoryAnalytics: React.FC = () => {
       ]);
       setProducts(pData);
       setWarehouses(whData);
-    } finally {
-      setLoading(false);
-    }
+    } finally {}
   }, []);
 
   useEffect(() => {
