@@ -1,7 +1,14 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) || 'https://eimexyahdrbloccyrfap.supabase.co';
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || 'sb_publishable_gf595ABqrnwT6_Et33-B8g_X5mlLnOK';
+const supabaseUrl =
+  (import.meta.env.VITE_SUPABASE_URL as string) ||
+  (import.meta.env.NEXT_PUBLIC_SUPABASE_URL as string) ||
+  'https://ouvezsfvdkecpugzuhuk.supabase.co';
+
+const supabaseAnonKey =
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string) ||
+  (import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY as string) ||
+  'sb_publishable_RRovpYtxecq8Dx931wbq3Q_sQBFiArL';
 
 declare global {
   interface Window {

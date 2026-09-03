@@ -154,6 +154,24 @@ export const AdminStaffManagement: React.FC = () => {
         </div>
       )}
 
+      {/* Central Super Admin User Governance Banner */}
+      <div className="p-4 bg-gradient-to-r from-[#6A1B2E]/10 via-[#6A1B2E]/5 to-transparent border border-[#6A1B2E]/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-[#6A1B2E] flex items-center gap-1.5">
+            👑 Universal User & Admin Management
+          </p>
+          <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+            Creating and provisioning logins for all 4 enterprise divisions (Education, Trade, Rimi Frozen, Digital) is managed centrally in Super Admin.
+          </p>
+        </div>
+        <a
+          href="/#/central/admins"
+          className="px-3 py-1.5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] transition-all shrink-0 shadow-xs"
+        >
+          Open Super Admin Console →
+        </a>
+      </div>
+
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900">Admin User Management</h1>

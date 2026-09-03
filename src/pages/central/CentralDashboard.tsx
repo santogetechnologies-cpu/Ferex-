@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Users, GraduationCap, CreditCard, ShieldCheck, TrendingUp, ArrowUpRight,
   ChevronRight, DollarSign, CheckCircle2, RefreshCw, Shield,
-  AlertTriangle, FileText, Activity, Clock
+  AlertTriangle, FileText, Activity, Clock, Globe, Snowflake, Monitor
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { getCentralEnterpriseMetrics, type CentralEnterpriseStats } from '../../lib/api/central';
@@ -244,7 +244,137 @@ export const CentralDashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* 3. Multi-Widget Analytics Grid (2 Columns on lg) */}
+      {/* 2.5 4-APP ENTERPRISE DIVISION COMMAND & LAUNCH DECK */}
+      <motion.div variants={itemVariants} className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-[#6A1B2E]" /> 4 Enterprise Division Applications
+            </h2>
+            <p className="text-xs font-semibold text-slate-400">
+              Super Admin direct control & delegation across all subsidiary apps.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/central/admins')}
+            className="text-xs font-black text-[#6A1B2E] hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            Manage Division Admins <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            {
+              title: 'GLOBAL TRADE',
+              roleLabel: 'Trade Admin',
+              badge: 'Freight ERP',
+              badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+              route: '/trade/dashboard',
+              icon: Globe,
+              accentColor: 'text-indigo-600 bg-indigo-50 border-indigo-100',
+              desc: 'International shipping, LC settlements & multi-currency trade documents.',
+              modules: [
+                'Shipment Tracking', 'Trade CRM', 'Commercial Invoice', 'Packing List',
+                'Bill of Lading', 'Certificates', 'Trade Documents', 'Document Approval',
+                'Workflow', 'Payments', 'Letters of Credit', 'Multi Currency', 'Shipping Timeline', 'Email Automation'
+              ]
+            },
+            {
+              title: 'RIMI FROZEN',
+              roleLabel: 'Rimi Admin',
+              badge: 'FMCG Logistics',
+              badgeColor: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+              route: '/rimi/dashboard',
+              icon: Snowflake,
+              accentColor: 'text-cyan-600 bg-cyan-50 border-cyan-100',
+              desc: 'Cold chain supply, distributor network, batch lifecycle & cash collections.',
+              modules: [
+                'CRM', 'Distributors', 'Retailers', 'Wholesalers',
+                'Inventory', 'Products', 'Warehouse', 'Expiry',
+                'Batch', 'Sales', 'Orders', 'Delivery', 'Collections', 'Analytics', 'Regional Dashboard'
+              ]
+            },
+            {
+              title: 'FEREX DIGITAL',
+              roleLabel: 'Digital Admin',
+              badge: 'Agency & Tech',
+              badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+              route: '/digital/dashboard',
+              icon: Monitor,
+              accentColor: 'text-emerald-600 bg-emerald-50 border-emerald-100',
+              desc: 'Software development, client deliverables, project sprints & milestone invoices.',
+              modules: [
+                'Projects', 'Clients', 'Tasks', 'Deliverables',
+                'Invoices', 'Milestones', 'Payments', 'Files',
+                'Comments', 'Timeline', 'Review', 'Revision', 'Delivered', 'Closed'
+              ]
+            },
+            {
+              title: 'FEREX EDUCATION',
+              roleLabel: 'Education Admin',
+              badge: 'Core Academy',
+              badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+              route: '/admin/dashboard',
+              icon: GraduationCap,
+              accentColor: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20',
+              desc: 'European university alliances, NAWA document legalization & visa processing.',
+              modules: [
+                'Students', 'Universities', 'Status Tracker', 'Applications',
+                'Documents Review', 'NAWA Legalization', 'Payments', 'VFS Visa Tracker',
+                'Post Travel', 'Support Tickets', 'Reports & Planner'
+              ]
+            }
+          ].map((divApp, idx) => (
+            <Card
+              key={idx}
+              className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg transition-all flex flex-col justify-between group"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${divApp.accentColor} group-hover:scale-105 transition-transform`}>
+                    <divApp.icon className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${divApp.badgeColor}`}>
+                    {divApp.badge}
+                  </span>
+                </div>
+
+                <h3 className="text-base font-black text-slate-900 leading-snug">{divApp.title}</h3>
+                <p className="text-[11px] font-extrabold text-slate-400 mb-2">{divApp.roleLabel}</p>
+                <p className="text-xs text-slate-600 font-medium mb-3 line-clamp-2 leading-relaxed">
+                  {divApp.desc}
+                </p>
+
+                <div className="space-y-1.5 pt-3 border-t border-slate-100">
+                  <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider block">Key Features ({divApp.modules.length}):</span>
+                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto scrollbar-none py-0.5">
+                    {divApp.modules.slice(0, 6).map((m, mIdx) => (
+                      <span key={mIdx} className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200/60">
+                        {m}
+                      </span>
+                    ))}
+                    {divApp.modules.length > 6 && (
+                      <span className="text-[10px] font-black text-[#6A1B2E] px-1.5 py-0.5">
+                        +{divApp.modules.length - 6} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-100">
+                <button
+                  onClick={() => navigate(divApp.route)}
+                  className="w-full h-9 rounded-xl bg-slate-900 hover:bg-[#6A1B2E] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  Launch {divApp.title} <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </motion.div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Left 2 Columns: Multi-Widget Enterprise Analytics */}

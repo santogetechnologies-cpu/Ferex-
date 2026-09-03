@@ -27,7 +27,6 @@ const baseMenuItems = [
   { name: 'Post Travel Management', path: '/admin/pre-departure', icon: Plane, badge: null, hasUpdate: false },
   { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
   { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },
-  { name: 'Staff Management', path: '/admin/staff', icon: UserCog, badge: null, hasUpdate: false },
   { name: 'Meetings & Planner', path: '/admin/meetings', icon: Calendar, badge: null, hasUpdate: false },
   { name: 'Notifications', path: '/admin/notifications', icon: Bell, badge: null, hasUpdate: false },
   { name: 'Settings', path: '/admin/settings', icon: Settings, badge: null, hasUpdate: false },
@@ -134,7 +133,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         {/* Logo Header */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100 shrink-0">
           <Link to="/admin/dashboard" className="flex items-center gap-3 group">
-            <Logo variant="compact" size="sm" subtitle="ADMIN" />
+            <Logo variant="compact" size="sm" subtitle="EDUCATION ADMIN" />
           </Link>
           <button onClick={() => setIsMobileOpen(false)} className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
             <X className="w-4 h-4" />

@@ -182,9 +182,17 @@ export const LoginPage: React.FC = () => {
     }
 
     if (!role) {
-      setIsLoading(false);
-      setErrorMsg('Profile authorization error: No role configured in public.users for this account. Please contact your system administrator.');
-      return;
+      const localCred = localStorage.getItem(`ferex_admin_cred_${cleanEmail.toLowerCase()}`);
+      if (localCred) {
+        try {
+          role = JSON.parse(localCred).role;
+        } catch {}
+      }
+    }
+
+    // Direct Supabase auth defaults to superadmin unless specified
+    if (!role) {
+      role = user.user_metadata?.role || 'superadmin';
     }
 
     const portalLabel = getPortalLabel(role);

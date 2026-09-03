@@ -202,7 +202,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
   // Check role authorization if specified
   if (allowedRoles && allowedRoles.length > 0) {
     const normalizedAllowed = allowedRoles.map(r => normalizeRole(r));
-    const isAllowed = normalizedAllowed.includes(currentRole);
+    const isSuper = currentRole === 'superadmin' || currentRole === 'super_admin' || currentRole === 'central';
+    // Superadmin has universal access to all admin/division/staff portals (except student portal which is student-only)
+    const isAllowed = normalizedAllowed.includes(currentRole) || (isSuper && !normalizedAllowed.includes('student'));
 
     if (!isAllowed) {
       // Unauthorized for this specific portal -> Redirect to user's authoritative dashboard
