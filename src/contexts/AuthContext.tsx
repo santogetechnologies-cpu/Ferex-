@@ -63,9 +63,10 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
       .maybeSingle();
 
     if (!error && data) {
+      const resolvedRole = (data.role === 'admin' || !data.role) ? 'superadmin' : data.role;
       return {
         ...data,
-        role: data.role || 'superadmin',
+        role: resolvedRole,
       } as UserProfile;
     }
 
@@ -84,10 +85,11 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
             await supabase.from('users').update({ id: userId }).eq('id', emailUser.id);
           } catch {}
         }
+        const resolvedRole = (emailUser.role === 'admin' || !emailUser.role) ? 'superadmin' : emailUser.role;
         return {
           ...emailUser,
           id: userId,
-          role: emailUser.role || 'superadmin',
+          role: resolvedRole,
         } as UserProfile;
       }
     }

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Users, FileCheck, FolderOpen, CreditCard, Headphones,
   Activity, Clock3,
-  ArrowUpRight, ArrowRight, Plus, Sparkles
+  ArrowUpRight, ArrowRight, Plus, Sparkles, GraduationCap, Crown
 } from 'lucide-react';
 import { getAdminDashboardStats } from '../../lib/api/dashboard';
 import { useStudents } from '../../hooks/useStudents';
@@ -62,21 +62,33 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-6 relative text-left">
 
-      {/* Page Header */}
+      {/* Page Header & Division Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">Admin Dashboard</h1>
-            <span className="flex items-center gap-1 text-[10px] font-extrabold bg-[#6A1B2E]/10 text-[#6A1B2E] px-2 py-0.5 rounded-full border border-[#6A1B2E]/20">
-              <Sparkles className="w-3 h-3" /> Live Overview
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <GraduationCap className="w-6 h-6 text-[#6A1B2E]" /> Ferex Education Admin Dashboard
+            </h1>
+            <span className="flex items-center gap-1 text-[10px] font-extrabold bg-rose-50 text-rose-700 px-2.5 py-0.5 rounded-full border border-rose-200">
+              <Sparkles className="w-3 h-3" /> Education Division
             </span>
           </div>
-          <p className="text-xs font-semibold text-slate-400 mt-1">Welcome back, Admin. Real-time platform metrics, pending reviews, and tasks.</p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">
+            Global Education Operations • Admissions, Universities, NAWA Legalization, Tuition Ledgers & VFS Tracker. (Governed by Central Super Admin)
+          </p>
         </div>
 
-        <div className="flex gap-2 shrink-0">
-          <button onClick={() => navigate('/admin/tasks')}
-            className="flex items-center gap-2 h-9 px-3.5 bg-[#6A1B2E] rounded-xl text-xs font-bold text-white hover:bg-[#521221] active:scale-98 transition-all shadow-md shadow-[#6A1B2E]/20">
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => navigate('/central/dashboard')}
+            className="flex items-center gap-1.5 h-9 px-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs font-black text-amber-900 hover:bg-amber-100 transition-all shadow-2xs cursor-pointer"
+          >
+            <Crown className="w-3.5 h-3.5 text-amber-700" /> Super Admin Console
+          </button>
+          <button
+            onClick={() => navigate('/admin/tasks')}
+            className="flex items-center gap-2 h-9 px-3.5 bg-[#6A1B2E] rounded-xl text-xs font-bold text-white hover:bg-[#521221] active:scale-98 transition-all shadow-md shadow-[#6A1B2E]/20"
+          >
             <Plus className="w-3.5 h-3.5" /> New Task
           </button>
         </div>

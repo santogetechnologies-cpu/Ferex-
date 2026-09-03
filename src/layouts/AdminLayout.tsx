@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
-  CreditCard, Headphones, BarChart3,
+  CreditCard, Headphones, BarChart3, Crown, GraduationCap,
   Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane
 } from 'lucide-react';
 
@@ -218,16 +218,29 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Breadcrumb */}
+          {/* Breadcrumb & Division Identity */}
           <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-            <Link to="/admin/dashboard" className="hover:text-slate-700 transition-colors flex items-center gap-1 text-slate-500 font-semibold">
-              <span>Admin Console</span>
+            <Link to="/admin/dashboard" className="hover:text-slate-700 transition-colors flex items-center gap-1.5 text-slate-700 font-bold">
+              <GraduationCap className="w-4 h-4 text-[#6A1B2E]" />
+              <span>Education Admin Portal</span>
             </Link>
+            <span className="text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md hidden sm:inline-block">
+              Division
+            </span>
             <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
             <span className="text-slate-900 font-extrabold bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60">{active}</span>
           </div>
 
           <div className="ml-auto flex items-center gap-2.5">
+            {/* Quick Switch to Central Super Admin Command Center */}
+            <button
+              onClick={() => navigate('/central/dashboard')}
+              title="Return to Central Super Admin HQ"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black transition-all shadow-2xs cursor-pointer"
+            >
+              <Crown className="w-3.5 h-3.5 text-amber-700" />
+              <span className="hidden sm:inline">Super Admin HQ</span>
+            </button>
 
             {/* Search Input */}
             <div className="relative hidden md:block">
