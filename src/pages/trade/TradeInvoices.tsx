@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileSpreadsheet, Search, Download, Eye, Plus, X, CheckCircle2, Trash2, Check, Clock } from 'lucide-react';
+import { FileSpreadsheet, Search, Download, Eye, Plus, X, CheckCircle2, Trash2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getTradeInvoices, createTradeInvoice, updateTradeInvoiceStatus, deleteTradeInvoice } from '../../lib/api/trade';

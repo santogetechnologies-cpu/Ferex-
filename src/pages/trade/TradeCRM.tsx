@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Search, Plus, Eye, Edit3, Trash2, X, CheckCircle2, Globe, Mail, Phone } from 'lucide-react';
+import { Building2, Search, Plus, Eye, Edit3, Trash2, X, CheckCircle2, Mail, Phone } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getTradeCRMContacts, createTradeCRMContact, updateTradeCRMContact, deleteTradeCRMContact } from '../../lib/api/trade';

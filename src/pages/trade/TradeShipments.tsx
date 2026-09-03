@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Truck, Search, Plus, Eye, Trash2, X, CheckCircle2, Anchor, Navigation, Edit2 } from 'lucide-react';
+import { Truck, Search, Plus, Eye, Trash2, X, CheckCircle2, Anchor, Navigation } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { supabase } from '../../lib/supabase';
@@ -85,7 +85,7 @@ export const TradeShipments: React.FC = () => {
   const handleAddShipment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newShipment.container) return;
-    const created = await createTradeShipment({
+    await createTradeShipment({
       container_no: newShipment.container,
       carrier: newShipment.carrier,
       origin_port: newShipment.origin,

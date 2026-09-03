@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, Building2, CreditCard, ArrowUpRight } from 'lucide-react';
+import { DollarSign, Building2, CreditCard } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { getTradeInvoices, getTradePayments, getTradeLettersOfCredit } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';

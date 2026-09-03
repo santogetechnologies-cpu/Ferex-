@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FolderArchive, Search, Upload, Eye, Trash2, X, CheckCircle2, FileText, Folder, Plus } from 'lucide-react';
+import { FolderArchive, Search, Upload, Eye, Trash2, X, CheckCircle2, FileText } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getTradeDocuments, uploadTradeDocumentRecord, deleteTradeDocumentRecord } from '../../lib/api/trade';
@@ -70,7 +70,7 @@ export const TradeDocuments: React.FC = () => {
     e.preventDefault();
     if (!newFileName) return;
     const cleanName = newFileName.endsWith('.pdf') ? newFileName : `${newFileName}.pdf`;
-    const created = await uploadTradeDocumentRecord({
+    await uploadTradeDocumentRecord({
       document_name: cleanName,
       folder: newFileFolder,
       file_size: '1.5 MB',

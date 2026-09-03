@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart3, Download, CheckCircle2, FileText, Printer, Check, Eye } from 'lucide-react';
+import { BarChart3, CheckCircle2, FileText, Printer } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getTradeShipments, getTradeInvoices, getTradeLettersOfCredit, getTradePayments, getTradeCertificates } from '../../lib/api/trade';
 
 export const TradeReports: React.FC = () => {
   const [toast, setToast] = useState('');
-  const [selectedReport, setSelectedReport] = useState<any>(null);
   const [metrics, setMetrics] = useState({
     shipmentCount: 0,
     invoiceTotal: 0,

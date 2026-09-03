@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MessageSquare, Send, Search, Building2, User, Clock } from 'lucide-react';
+import { MessageSquare, Send, Search } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getTradeMessages, sendTradeMessage, getTradeCRMContacts } from '../../lib/api/trade';

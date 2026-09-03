@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Truck, Anchor, Globe, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, Anchor, Globe } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { getTradeShipments } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';

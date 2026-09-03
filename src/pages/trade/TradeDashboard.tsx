@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Globe, Truck, FileSpreadsheet, Building2, CreditCard, ArrowUpRight,
-  CheckCircle2, ShieldCheck, Anchor, FileCheck2, Plus, Clock, ExternalLink
+  ShieldCheck, Anchor, FileCheck2, Plus, Clock
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -12,8 +11,6 @@ import { getTradeDashboardLiveStats, getTradeShipments, getTradeInvoices } from 
 
 export const TradeDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [toast, setToast] = useState('');
-  const [loading, setLoading] = useState(true);
   const [shipments, setShipments] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [stats, setStats] = useState({
@@ -36,8 +33,6 @@ export const TradeDashboard: React.FC = () => {
       setShipments(allShipments);
       setInvoices(allInvoices);
     } catch (e) {
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -67,11 +62,6 @@ export const TradeDashboard: React.FC = () => {
     };
   }, [loadData]);
 
-  const showToastMsg = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
-  };
-
   // Group shipments by origin port for real port tracker
   const portSummary = React.useMemo(() => {
     const portsMap: Record<string, number> = {};
@@ -84,19 +74,6 @@ export const TradeDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left antialiased">
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-6 md:p-8 shadow-xl border border-[#6A1B2E]/30">

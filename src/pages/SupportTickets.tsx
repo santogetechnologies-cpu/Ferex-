@@ -69,7 +69,7 @@ export const SupportTickets: React.FC = () => {
     if (dbTickets.length > 0) {
       const mapped = dbTickets.map(t => {
         const studentDisplayName = t.users?.full_name || (t.users?.email ? t.users.email.split('@')[0] : (t as any).user_name || profile?.full_name || 'Student');
-        const prio = (t.priority === 'Normal' ? 'Medium' : t.priority === 'Urgent' ? 'High' : t.priority || 'Medium') as TicketPriority;
+        const prio = ((t.priority as string) === 'Normal' ? 'Medium' : (t.priority as string) === 'Urgent' ? 'High' : (t.priority || 'Medium')) as TicketPriority;
         const stat = (t.status || 'Open') as TicketStatus;
 
         return {
