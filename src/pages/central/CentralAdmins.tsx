@@ -25,12 +25,6 @@ interface AdminAccount {
 }
 
 const DIVISION_CONFIG: Record<string, { label: string; route: string; icon: any; badgeColor: string }> = {
-  admin: {
-    label: 'Central Super Admin',
-    route: '/central/dashboard',
-    icon: Crown,
-    badgeColor: 'text-amber-800 bg-amber-50 border-amber-300',
-  },
   superadmin: {
     label: 'Central Super Admin',
     route: '/central/dashboard',
@@ -48,6 +42,12 @@ const DIVISION_CONFIG: Record<string, { label: string; route: string; icon: any;
     route: '/central/dashboard',
     icon: Crown,
     badgeColor: 'text-amber-800 bg-amber-50 border-amber-300',
+  },
+  admin: {
+    label: 'Ferex Education Admin',
+    route: '/admin/dashboard',
+    icon: GraduationCap,
+    badgeColor: 'text-rose-700 bg-rose-50 border-rose-200',
   },
   education_admin: {
     label: 'Ferex Education Admin',

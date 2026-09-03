@@ -20,12 +20,12 @@ export type FerexRole =
 
 const ROLE_ROUTES: Record<string, string> = {
   student: '/student/dashboard',
-  admin: '/central/dashboard',
+  admin: '/admin/dashboard',
+  education_admin: '/admin/dashboard',
+  education: '/admin/dashboard',
   super_admin: '/central/dashboard',
   superadmin: '/central/dashboard',
   central: '/central/dashboard',
-  education_admin: '/admin/dashboard',
-  education: '/admin/dashboard',
   staff: '/staff/dashboard',
   counselor: '/staff/dashboard',
   digital: '/digital/dashboard',
@@ -41,12 +41,12 @@ const ROLE_ROUTES: Record<string, string> = {
 
 const ROLE_LABELS: Record<string, string> = {
   student: 'Student Portal',
-  admin: 'Central Super Admin Command Center',
+  admin: 'Ferex Education Admin Portal',
+  education_admin: 'Ferex Education Admin Portal',
+  education: 'Ferex Education Admin Portal',
   super_admin: 'Central Super Admin Command Center',
   superadmin: 'Central Super Admin Command Center',
   central: 'Central Super Admin Command Center',
-  education_admin: 'Ferex Education Admin Portal',
-  education: 'Ferex Education Admin Portal',
   staff: 'Staff & Counselor Portal',
   counselor: 'Counselor Portal',
   digital: 'Ferex Digital Portal',

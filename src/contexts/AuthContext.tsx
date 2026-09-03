@@ -63,10 +63,9 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
       .maybeSingle();
 
     if (!error && data) {
-      const resolvedRole = (data.role === 'admin' || !data.role) ? 'superadmin' : data.role;
       return {
         ...data,
-        role: resolvedRole,
+        role: data.role || 'superadmin',
       } as UserProfile;
     }
 
@@ -85,11 +84,10 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
             await supabase.from('users').update({ id: userId }).eq('id', emailUser.id);
           } catch {}
         }
-        const resolvedRole = (emailUser.role === 'admin' || !emailUser.role) ? 'superadmin' : emailUser.role;
         return {
           ...emailUser,
           id: userId,
-          role: resolvedRole,
+          role: emailUser.role || 'superadmin',
         } as UserProfile;
       }
     }
@@ -242,7 +240,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const provisionDivisionAdmin = useCallback(async (email: string, password: string, fullName: string, role: string) => {
     try {
       const cleanEmail = email.trim();
-      // Store in local persisted registry so credentials work immediately
       const credRecord = {
         email: cleanEmail,
         password: password,
@@ -252,7 +249,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       localStorage.setItem(`ferex_admin_cred_${cleanEmail.toLowerCase()}`, JSON.stringify(credRecord));
 
-      // Attempt to register in Supabase
+      // 1. Attempt to register in Supabase Auth
       try {
         await supabase.auth.signUp({
           email: cleanEmail,
@@ -266,19 +263,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } catch {}
 
-      // Upsert into public.users table
+      // 2. Authoritatively Update / Insert in public.users table
       try {
-        await supabase.from('users').upsert({
-          id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-          email: cleanEmail,
-          full_name: fullName,
-          role: role,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'email' });
-      } catch {}
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
 
-      // Trigger custom event so admin lists refresh
+        if (existingUser?.id) {
+          await supabase
+            .from('users')
+            .update({
+              role: role,
+              full_name: fullName,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingUser.id);
+        } else {
+          const newUuid = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : 'a0000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0');
+
+          await supabase
+            .from('users')
+            .insert({
+              id: newUuid,
+              email: cleanEmail,
+              full_name: fullName,
+              role: role,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+        }
+      } catch (dbErr) {
+        console.error('Database update error in provisionDivisionAdmin:', dbErr);
+      }
+
+      // Trigger event for immediate live UI refresh
       window.dispatchEvent(new CustomEvent('ferex_admin_created', { detail: credRecord }));
 
       return { user: credRecord };

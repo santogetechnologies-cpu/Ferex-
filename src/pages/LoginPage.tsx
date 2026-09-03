@@ -169,7 +169,7 @@ export const LoginPage: React.FC = () => {
       .maybeSingle();
 
     if (dbProfile?.role) {
-      role = (dbProfile.role === 'admin' || dbProfile.role === 'superadmin' || dbProfile.role === 'central') ? 'superadmin' : dbProfile.role;
+      role = dbProfile.role;
     } else if (cleanEmail) {
       const { data: dbProfileByEmail } = await supabase
         .from('users')
@@ -177,7 +177,7 @@ export const LoginPage: React.FC = () => {
         .ilike('email', cleanEmail)
         .maybeSingle();
       if (dbProfileByEmail?.role) {
-        role = (dbProfileByEmail.role === 'admin' || dbProfileByEmail.role === 'superadmin' || dbProfileByEmail.role === 'central') ? 'superadmin' : dbProfileByEmail.role;
+        role = dbProfileByEmail.role;
       }
     }
 
@@ -190,12 +190,9 @@ export const LoginPage: React.FC = () => {
       }
     }
 
-    // Direct Supabase auth defaults to superadmin unless specified
+    // Direct unassigned Supabase auth defaults to superadmin
     if (!role) {
       role = user.user_metadata?.role || 'superadmin';
-    }
-    if (role === 'admin') {
-      role = 'superadmin';
     }
 
     const portalLabel = getPortalLabel(role);
