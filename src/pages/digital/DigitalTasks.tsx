@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckSquare, Search, Plus, X, CheckCircle2, Trash2, Calendar, User } from 'lucide-react';
+import { CheckSquare, Search, Plus, X, CheckCircle2, Trash2, Calendar } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getDigitalTasks, createDigitalTask, updateDigitalTaskStatus, deleteDigitalTask, getDigitalProjects } from '../../lib/api/digital';
@@ -11,7 +11,6 @@ export const DigitalTasks: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('All');
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -98,10 +97,8 @@ export const DigitalTasks: React.FC = () => {
   };
 
   const filtered = tasks.filter(t => {
-    const matchSearch = (t.title || '').toLowerCase().includes(search.toLowerCase()) ||
+    return (t.title || '').toLowerCase().includes(search.toLowerCase()) ||
       (t.project?.title || '').toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === 'All' || t.status === filterStatus;
-    return matchSearch && matchStatus;
   });
 
   return (

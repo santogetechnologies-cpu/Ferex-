@@ -323,7 +323,7 @@ export async function getDigitalExpenses() {
     } catch {}
   }
   return [
-    { id: 'EXP-101', title: 'AWS Cloud Infrastructure Cluster', category: 'Cloud & Hosting', amount: 84500, date: '2026-09-01', vendor: 'Amazon Web Services', status: 'Settled' },
+    { id: 'EXP-101', title: 'AWS Cloud Infrastructure Cluster', category: 'Cloud Infrastructure', amount: 84500, date: '2026-09-01', vendor: 'Amazon Web Services', status: 'Settled' },
     { id: 'EXP-102', title: 'Figma Organization & Adobe Suite Licenses', category: 'Software Tools', amount: 42000, date: '2026-08-28', vendor: 'Adobe Systems', status: 'Settled' },
     { id: 'EXP-103', title: 'Google Ads & Meta Campaign Spend', category: 'Ad Spend', amount: 165000, date: '2026-08-25', vendor: 'Google Ads', status: 'Settled' },
   ];
@@ -406,6 +406,34 @@ export async function deleteDigitalEmployee(id: string) {
   return true;
 }
 
+// ─── Digital Attendance & HR ────────────────────────────────────────────────
+export async function getDigitalAttendance() {
+  const saved = localStorage.getItem('ferex_digital_attendance');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  return [
+    { id: 'ATT-01', employee: 'Kavita Iyer', date: '2026-09-03', status: 'Present', checkIn: '09:15 AM', checkOut: '06:30 PM' },
+    { id: 'ATT-02', employee: 'Sameer Sen', date: '2026-09-03', status: 'Present', checkIn: '09:30 AM', checkOut: '06:00 PM' },
+    { id: 'ATT-03', employee: 'Pooja Hegde', date: '2026-09-03', status: 'Present', checkIn: '09:00 AM', checkOut: '05:45 PM' },
+  ];
+}
+
+export async function recordDigitalAttendance(record: any) {
+  const current = await getDigitalAttendance();
+  const created = {
+    id: `ATT-${Date.now().toString().slice(-4)}`,
+    ...record,
+    date: record.date || new Date().toISOString().split('T')[0]
+  };
+  const updated = [created, ...current];
+  localStorage.setItem('ferex_digital_attendance', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_attendance_change');
+  return created;
+}
+
 // ─── Digital Meetings ───────────────────────────────────────────────────────
 export async function getDigitalMeetings() {
   const saved = localStorage.getItem('ferex_digital_meetings');
@@ -416,7 +444,7 @@ export async function getDigitalMeetings() {
   }
   return [
     { id: 'MTG-01', title: 'Nexus FinTech Sprint Architecture Review', client: 'Nexus FinTech Global', time: 'Today, 03:00 PM', link: 'https://meet.google.com/fer-dig-arch', status: 'Scheduled' },
-    { id: 'MTG-02', title: 'Starlight Brands UI/UX Design Approval', client: 'Starlight E-Commerce', time: 'Tomorrow, 11:30 AM', link: 'https://meet.google.com/fer-dig-uiux', status: 'Scheduled' },
+    { id: 'MTG-02', title: 'Starlight Brands UI/UX Design Approval', client: 'Starlight E-Commerce Brands', time: 'Tomorrow, 11:30 AM', link: 'https://meet.google.com/fer-dig-uiux', status: 'Scheduled' },
   ];
 }
 

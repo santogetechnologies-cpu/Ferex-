@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Search, Plus, Eye, Download, X, CheckCircle2, Send, Trash2, Printer } from 'lucide-react';
+import { FileText, Search, Plus, Eye, X, CheckCircle2, Trash2, Printer } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getDigitalInvoices, createDigitalInvoice, updateDigitalInvoiceStatus, deleteDigitalInvoice, getDigitalClients } from '../../lib/api/digital';
@@ -11,7 +11,6 @@ export const DigitalInvoices: React.FC = () => {
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All');
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
@@ -101,10 +100,8 @@ export const DigitalInvoices: React.FC = () => {
   };
 
   const filtered = invoices.filter(i => {
-    const matchSearch = (i.invoice_no || '').toLowerCase().includes(search.toLowerCase()) ||
+    return (i.invoice_no || '').toLowerCase().includes(search.toLowerCase()) ||
       (i.client?.company_name || '').toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === 'All' || i.status === filterStatus;
-    return matchSearch && matchStatus;
   });
 
   return (

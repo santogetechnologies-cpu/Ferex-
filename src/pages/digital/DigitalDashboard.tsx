@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, FolderKanban, CheckSquare, TrendingUp, DollarSign,
-  ArrowUpRight, Clock, Star, Zap, Bell, Calendar
+  Users, FolderKanban, CheckSquare, DollarSign,
+  ArrowUpRight
 } from 'lucide-react';
 import { Card } from '../../components/Card';
-import { getDigitalDashboardStats, getDigitalProjects, getDigitalTasks, getDigitalInvoices } from '../../lib/api/digital';
+import { getDigitalDashboardStats, getDigitalProjects, getDigitalTasks } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 
 export const DigitalDashboard: React.FC = () => {

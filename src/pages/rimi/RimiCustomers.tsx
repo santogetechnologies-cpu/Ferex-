@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Search, Plus, Eye, Edit3, Trash2, X, CheckCircle2, Building2, Phone, Mail } from 'lucide-react';
+import { Users, Search, Plus, Eye, Edit3, Trash2, X, CheckCircle2, Phone, Mail } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getRimiDistributors, createRimiDistributor, updateRimiDistributor, deleteRimiDistributor } from '../../lib/api/rimi';

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Boxes, Search, Plus, Eye, Trash2, X, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Boxes, Search, Plus, Trash2, X, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getRimiInventory, getRimiProducts, createRimiInventoryItem, updateRimiInventoryStock, deleteRimiInventoryItem } from '../../lib/api/rimi';
+import { getRimiInventory, getRimiProducts, createRimiInventoryItem, deleteRimiInventoryItem } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
 export const RimiInventory: React.FC = () => {

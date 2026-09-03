@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Search, Plus, Eye, Edit3, Trash2, X, CheckCircle2, Mail, Phone, Building2 } from 'lucide-react';
+import { Users, Search, Plus, Edit3, Trash2, X, CheckCircle2, Mail, Phone } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getDigitalClients, createDigitalClient, updateDigitalClient, deleteDigitalClient } from '../../lib/api/digital';
@@ -9,8 +9,6 @@ import { supabase } from '../../lib/supabase';
 export const DigitalClients: React.FC = () => {
   const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('All');
-  const [selectedClient, setSelectedClient] = useState<any>(null);
   const [editingClient, setEditingClient] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
@@ -115,11 +113,9 @@ export const DigitalClients: React.FC = () => {
   };
 
   const filteredClients = clients.filter(c => {
-    const matchSearch = (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    return (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.contact || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.email || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchType = filterType === 'All' || c.type === filterType;
-    return matchSearch && matchType;
   });
 
   return (

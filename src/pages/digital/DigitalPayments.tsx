@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, Search, Plus, X, CheckCircle2, Eye, Download, Trash2 } from 'lucide-react';
+import { CreditCard, Search, Plus, CheckCircle2, Download, Trash2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getDigitalInvoices, createDigitalInvoice, updateDigitalInvoiceStatus, deleteDigitalInvoice } from '../../lib/api/digital';
@@ -10,7 +10,6 @@ export const DigitalPayments: React.FC = () => {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All');
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -99,10 +98,8 @@ export const DigitalPayments: React.FC = () => {
   };
 
   const filtered = payments.filter(p => {
-    const matchS = (p.client || '').toLowerCase().includes(search.toLowerCase()) ||
+    return (p.client || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.invoice || '').toLowerCase().includes(search.toLowerCase());
-    const matchF = filterStatus === 'All' || p.status === filterStatus;
-    return matchS && matchF;
   });
 
   return (

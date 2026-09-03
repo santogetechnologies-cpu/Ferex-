@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DollarSign, Download, TrendingUp, CheckCircle2, Calendar } from 'lucide-react';
+import { DollarSign, Download, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getDigitalDashboardStats, getDigitalInvoices } from '../../lib/api/digital';

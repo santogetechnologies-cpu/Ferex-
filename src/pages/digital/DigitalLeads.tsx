@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Search, Plus, Eye, X, CheckCircle2, Target, Trash2 } from 'lucide-react';
+import { Search, Plus, X, CheckCircle2, Target, Trash2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getDigitalLeads, createDigitalLead, updateDigitalClient, deleteDigitalClient, createDigitalProject } from '../../lib/api/digital';

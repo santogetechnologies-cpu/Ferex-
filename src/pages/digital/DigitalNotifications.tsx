@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, CheckCircle2, Check, Search, ShieldCheck } from 'lucide-react';
+import { Bell, CheckCircle2, Check, Search } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getDigitalNotifications, markDigitalNotificationRead } from '../../lib/api/digital';

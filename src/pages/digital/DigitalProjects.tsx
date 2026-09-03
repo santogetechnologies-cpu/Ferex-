@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FolderKanban, Search, Plus, Eye, X, CheckCircle2, Trash2, Edit3, DollarSign, Calendar } from 'lucide-react';
+import { FolderKanban, Search, Plus, X, CheckCircle2, Trash2, Edit3 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { supabase } from '../../lib/supabase';
@@ -11,7 +11,6 @@ export const DigitalProjects: React.FC = () => {
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
   const [toast, setToast] = useState('');
@@ -116,11 +115,9 @@ export const DigitalProjects: React.FC = () => {
   };
 
   const filtered = projects.filter(p => {
-    const matchSearch = (p.title || '').toLowerCase().includes(search.toLowerCase()) ||
+    return (p.title || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.client?.company_name || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.service_category || '').toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === 'All' || p.status === filterStatus;
-    return matchSearch && matchStatus;
   });
 
   return (
@@ -195,7 +192,7 @@ export const DigitalProjects: React.FC = () => {
                     <span className="text-slate-900">₹{Number(p.budget || 0).toLocaleString('en-IN')}</span>
                   </div>
                   <div className="flex justify-between text-[11px] text-slate-500 font-semibold">
-                    <span>Lead Tech:</span>
+                    <span>Tech Lead:</span>
                     <span>{p.lead_developer || 'Unassigned'}</span>
                   </div>
                   <div className="flex justify-between text-[11px] text-slate-500 font-semibold">
