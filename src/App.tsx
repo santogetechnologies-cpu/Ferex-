@@ -133,6 +133,7 @@ import { DigitalProjectAnalytics } from './pages/digital/DigitalProjectAnalytics
 import { DigitalNotifications } from './pages/digital/DigitalNotifications';
 import { DigitalProfile } from './pages/digital/DigitalProfile';
 import { DigitalSettings } from './pages/digital/DigitalSettings';
+import { DigitalLoginPage } from './pages/digital/DigitalLoginPage';
 
 // Staff Panel Imports
 import { StaffLayout } from './components/layout/StaffLayout';
@@ -230,7 +231,7 @@ function App() {
           <Route path="/admin/login" element={<Navigate to="/login" replace />} />
           <Route path="/trade/login" element={<Navigate to="/login" replace />} />
           <Route path="/rimi/login" element={<RimiLoginPage />} />
-          <Route path="/digital/login" element={<Navigate to="/login" replace />} />
+          <Route path="/digital/login" element={<DigitalLoginPage />} />
 
           {/* ── Student Routes (STRICTLY role = 'student' ONLY) ── */}
           <Route path="/student/dashboard" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><StudentDashboard /></StudentLayout></ProtectedRoute>} />
@@ -329,56 +330,56 @@ function App() {
           <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiSettings /></RimiLayout></ProtectedRoute>} />
 
           {/* ── Ferex Digital Routes ── */}
-          <Route path="/digital/dashboard" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalDashboard /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/clients" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalClients /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/leads" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalLeads /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/projects" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProjects /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/tasks" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalTasks /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/meetings" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMeetings /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/dashboard" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalDashboard /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/clients" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalClients /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/leads" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalLeads /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/projects" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProjects /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/tasks" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalTasks /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/meetings" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMeetings /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Services */}
-          <Route path="/digital/services" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalServicesHub /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/web-development" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalWebDevelopment /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/web-development" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalWebDevelopment /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/mobile-apps" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMobileApps /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/mobile-apps" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMobileApps /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/ui-ux-design" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalUIUX /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/ui-ux-design" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalUIUX /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/digital-marketing" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMarketing /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/digital-marketing" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMarketing /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/seo" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalSEO /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/seo" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalSEO /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/branding" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalBranding /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/branding" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalBranding /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalServicesHub /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services/web-development" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalWebDevelopment /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/web-development" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalWebDevelopment /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services/mobile-apps" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMobileApps /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/mobile-apps" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMobileApps /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services/ui-ux-design" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalUIUX /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/ui-ux-design" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalUIUX /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services/digital-marketing" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMarketing /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/digital-marketing" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMarketing /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services/seo" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalSEO /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/seo" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalSEO /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services/branding" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalBranding /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/branding" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalBranding /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Finance */}
-          <Route path="/digital/invoices" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalInvoices /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/finance/invoices" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalInvoices /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/payments" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalPayments /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/finance/payments" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalPayments /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/expenses" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/finance/expenses" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/invoices" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalInvoices /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/finance/invoices" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalInvoices /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/payments" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalPayments /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/finance/payments" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalPayments /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/expenses" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/finance/expenses" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Team */}
-          <Route path="/digital/employees" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalEmployees /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/team/employees" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalEmployees /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/attendance" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/team/attendance" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/performance" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalPerformance /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/team/performance" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalPerformance /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/employees" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalEmployees /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/team/employees" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalEmployees /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/attendance" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/team/attendance" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/performance" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalPerformance /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/team/performance" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalPerformance /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Analytics */}
-          <Route path="/digital/reports" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalReports /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/analytics/reports" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalReports /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/revenue-analytics" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalRevenueAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/analytics/revenue" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalRevenueAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/project-analytics" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProjectAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/analytics/project" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProjectAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/reports" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalReports /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics/reports" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalReports /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/revenue-analytics" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalRevenueAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics/revenue" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalRevenueAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/project-analytics" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProjectAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics/project" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProjectAnalytics /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital System */}
-          <Route path="/digital/notifications" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalNotifications /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/profile" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProfile /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/settings" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalSettings /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/notifications" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalNotifications /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/profile" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProfile /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/settings" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalSettings /></DigitalLayout></ProtectedRoute>} />
 
           {/* ── Ferex Staff Panel Routes ── */}
           <Route path="/staff" element={<Navigate to="/staff/dashboard" replace />} />

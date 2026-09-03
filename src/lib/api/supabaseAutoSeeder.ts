@@ -361,4 +361,86 @@ export async function autoSeedAllDataToSupabase() {
       ]);
     }
   } catch (e) {}
+
+  // Ensure Ferex Digital Admin User exists in public.users
+  try {
+    await supabase.from('users').upsert({
+      email: 'digital@ferex.com',
+      role: 'digital_admin',
+      full_name: 'Ferex Digital Director',
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'email' });
+  } catch (e) {}
+
+  // Ensure initial Digital Clients exist in Supabase DB
+  try {
+    const { count } = await supabase.from('digital_clients').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('digital_clients').insert([
+        {
+          company_name: 'Nexus FinTech Global',
+          contact_person: 'Ananya Deshmukh',
+          email: 'ananya@nexusfintech.io',
+          phone: '+91 98190 33445',
+          industry: 'Fintech & Banking',
+          status: 'Active',
+          total_revenue: 1450000.00
+        },
+        {
+          company_name: 'Starlight E-Commerce Brands',
+          contact_person: 'Rahul Varma',
+          email: 'rahul@starlightbrands.com',
+          phone: '+91 98200 66778',
+          industry: 'Retail & E-Commerce',
+          status: 'Active',
+          total_revenue: 820000.00
+        },
+        {
+          company_name: 'AeroCloud SaaS Platforms',
+          contact_person: 'David Miller',
+          email: 'dmiller@aerocloud.net',
+          phone: '+1 415 890 1200',
+          industry: 'Cloud Software',
+          status: 'Active',
+          total_revenue: 2100000.00
+        }
+      ]);
+    }
+  } catch (e) {}
+
+  // Ensure initial Digital Projects exist in Supabase DB
+  try {
+    const { count } = await supabase.from('digital_projects').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('digital_projects').insert([
+        {
+          title: 'Nexus NeoBanking Web & Mobile Platform',
+          service_category: 'Web & App Development',
+          status: 'In Progress',
+          budget: 1450000.00,
+          progress: 68,
+          deadline: '2026-10-15',
+          lead_developer: 'Kavita Iyer'
+        },
+        {
+          title: 'Starlight Multi-Brand Design System & UI/UX',
+          service_category: 'UI/UX Design',
+          status: 'In Progress',
+          budget: 820000.00,
+          progress: 45,
+          deadline: '2026-09-30',
+          lead_developer: 'Sameer Sen'
+        },
+        {
+          title: 'AeroCloud Global SEO & Growth Marketing',
+          service_category: 'SEO & Performance',
+          status: 'In Progress',
+          budget: 650000.00,
+          progress: 80,
+          deadline: '2026-11-01',
+          lead_developer: 'Pooja Hegde'
+        }
+      ]);
+    }
+  } catch (e) {}
 }

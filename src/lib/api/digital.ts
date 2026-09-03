@@ -1,6 +1,12 @@
 import { supabase } from '../supabase';
 import { generateUUID } from '../../utils/uuid';
 
+function triggerLocalSync(eventName: string) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(eventName));
+  }
+}
+
 // ─── Digital Clients ────────────────────────────────────────────────────────
 export async function getDigitalClients() {
   try {
@@ -9,10 +15,7 @@ export async function getDigitalClients() {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.warn('[getDigitalClients Notice]:', error.message);
-      return [];
-    }
+    if (error) return [];
     return data ?? [];
   } catch {
     return [];
@@ -20,192 +23,59 @@ export async function getDigitalClients() {
 }
 
 export async function createDigitalClient(client: {
-  name: string;
+  company_name?: string;
+  name?: string;
   contact_person: string;
   email: string;
   phone?: string;
+  industry?: string;
   city?: string;
   client_type?: string;
+  status?: string;
 }) {
-  const newId = generateUUID();
-  const clientCode = `CLT-${Math.floor(randomCode(100, 999))}`;
   const payload = {
-    id: newId,
-    client_code: clientCode,
-    name: client.name,
+    id: generateUUID(),
+    company_name: client.company_name || client.name || 'Enterprise Client',
     contact_person: client.contact_person,
     email: client.email,
-    phone: client.phone || '',
-    city: client.city || 'Mumbai',
-    client_type: client.client_type || 'Enterprise',
-    status: 'Active',
-    total_spent: 0,
+    phone: client.phone || '+91 98190 33445',
+    industry: client.industry || client.client_type || 'Technology & Fintech',
+    status: client.status || 'Active',
+    total_revenue: 0.00,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
   const { data, error } = await supabase.from('digital_clients').insert(payload).select();
-  if (error || !data || data.length === 0) {
-    return payload;
-  }
+  triggerLocalSync('ferex_digital_clients_change');
+  if (error || !data || data.length === 0) return payload;
   return data[0];
 }
 
 export async function updateDigitalClient(id: string, updates: any) {
-  const { data, error } = await supabase.from('digital_clients').update(updates).eq('id', id).select();
+  const { data, error } = await supabase
+    .from('digital_clients')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select();
+  triggerLocalSync('ferex_digital_clients_change');
   if (error || !data || data.length === 0) return { id, ...updates };
   return data[0];
 }
 
 export async function deleteDigitalClient(id: string) {
   await supabase.from('digital_clients').delete().eq('id', id);
+  triggerLocalSync('ferex_digital_clients_change');
   return true;
-}
-
-// ─── Digital Projects ───────────────────────────────────────────────────────
-export async function getDigitalProjects() {
-  try {
-    const { data, error } = await supabase
-      .from('digital_projects')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) return [];
-    return data ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function createDigitalProject(project: {
-  title: string;
-  client_name: string;
-  service_category?: string;
-  budget?: number;
-  progress?: number;
-  deadline?: string;
-}) {
-  const payload = {
-    id: generateUUID(),
-    project_code: `PRJ-${Math.floor(randomCode(1000, 9999))}`,
-    title: project.title,
-    client_name: project.client_name,
-    service_category: project.service_category || 'Web Development',
-    budget: project.budget || 250000,
-    progress: project.progress || 0,
-    deadline: project.deadline || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    status: 'In Progress',
-    created_at: new Date().toISOString(),
-  };
-
-  const { data, error } = await supabase.from('digital_projects').insert(payload).select();
-  if (error || !data || data.length === 0) return payload;
-  return data[0];
-}
-
-export async function updateDigitalProject(id: string, updates: any) {
-  const { data, error } = await supabase.from('digital_projects').update(updates).eq('id', id).select();
-  if (error || !data || data.length === 0) return { id, ...updates };
-  return data[0];
-}
-
-export async function deleteDigitalProject(id: string) {
-  await supabase.from('digital_projects').delete().eq('id', id);
-  return true;
-}
-
-// ─── Digital Tasks ──────────────────────────────────────────────────────────
-export async function getDigitalTasks() {
-  try {
-    const { data, error } = await supabase
-      .from('digital_tasks')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) return [];
-    return data ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function createDigitalTask(task: {
-  title: string;
-  project_name?: string;
-  assigned_to?: string;
-  priority?: string;
-  due_date?: string;
-}) {
-  const payload = {
-    id: generateUUID(),
-    title: task.title,
-    project_name: task.project_name || 'General Operations',
-    assigned_to: task.assigned_to || 'Lead Developer',
-    priority: task.priority || 'Medium',
-    status: 'Pending',
-    due_date: task.due_date || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    created_at: new Date().toISOString(),
-  };
-
-  const { data, error } = await supabase.from('digital_tasks').insert(payload).select();
-  if (error || !data || data.length === 0) return payload;
-  return data[0];
-}
-
-export async function updateDigitalTaskStatus(id: string, status: string) {
-  const { data, error } = await supabase.from('digital_tasks').update({ status }).eq('id', id).select();
-  if (error || !data || data.length === 0) return { id, status };
-  return data[0];
-}
-
-export async function deleteDigitalTask(id: string) {
-  await supabase.from('digital_tasks').delete().eq('id', id);
-  return true;
-}
-
-// ─── Digital Invoices ───────────────────────────────────────────────────────
-export async function getDigitalInvoices() {
-  try {
-    const { data, error } = await supabase
-      .from('digital_invoices')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) return [];
-    return data ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function createDigitalInvoice(inv: {
-  client_name: string;
-  project_title?: string;
-  amount: number;
-  due_date?: string;
-}) {
-  const tax = inv.amount * 0.18;
-  const payload = {
-    id: generateUUID(),
-    invoice_no: `INV-DIG-${Math.floor(randomCode(10000, 99990))}`,
-    client_name: inv.client_name,
-    project_title: inv.project_title || 'Digital Services',
-    amount: inv.amount,
-    tax_amount: tax,
-    total_amount: inv.amount + tax,
-    status: 'Pending',
-    issued_date: new Date().toISOString().split('T')[0],
-    due_date: inv.due_date || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    created_at: new Date().toISOString(),
-  };
-
-  const { data, error } = await supabase.from('digital_invoices').insert(payload).select();
-  if (error || !data || data.length === 0) return payload;
-  return data[0];
 }
 
 // ─── Digital Leads ──────────────────────────────────────────────────────────
 export async function getDigitalLeads() {
   try {
     const { data, error } = await supabase
-      .from('digital_leads')
+      .from('digital_clients')
       .select('*')
+      .eq('status', 'Lead')
       .order('created_at', { ascending: false });
     if (error) return [];
     return data ?? [];
@@ -219,41 +89,23 @@ export async function createDigitalLead(lead: {
   contact_person: string;
   email: string;
   phone?: string;
-  service_interest?: string;
-  estimated_value?: number;
-  stage?: string;
-  priority?: string;
+  industry?: string;
+  estimated_budget?: number;
 }) {
-  const payload = {
-    id: generateUUID(),
-    company_name: lead.company_name,
-    contact_person: lead.contact_person,
-    email: lead.email,
-    phone: lead.phone || '',
-    service_interest: lead.service_interest || 'Web Development',
-    estimated_value: lead.estimated_value || 1000000,
-    stage: lead.stage || 'New',
-    priority: lead.priority || 'Medium',
-    created_at: new Date().toISOString(),
-  };
-  const { data, error } = await supabase.from('digital_leads').insert(payload).select();
-  if (error || !data || data.length === 0) return payload;
-  return data[0];
+  return createDigitalClient({
+    ...lead,
+    status: 'Lead'
+  });
 }
 
-export async function updateDigitalLeadStage(id: string, stage: string) {
-  const { data, error } = await supabase.from('digital_leads').update({ stage }).eq('id', id).select();
-  if (error || !data || data.length === 0) return { id, stage };
-  return data[0];
-}
-
-// ─── Digital SEO Projects ───────────────────────────────────────────────────
-export async function getDigitalSEOProjects() {
+// ─── Digital Projects ───────────────────────────────────────────────────────
+export async function getDigitalProjects(category?: string) {
   try {
-    const { data, error } = await supabase
-      .from('digital_seo_projects')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let query = supabase.from('digital_projects').select('*, client:digital_clients(*)').order('created_at', { ascending: false });
+    if (category && category !== 'All') {
+      query = query.eq('service_category', category);
+    }
+    const { data, error } = await query;
     if (error) return [];
     return data ?? [];
   } catch {
@@ -261,117 +113,77 @@ export async function getDigitalSEOProjects() {
   }
 }
 
-export async function createDigitalSEOProject(seo: {
-  client_name: string;
-  domain_url: string;
-  target_keywords?: string;
-  organic_traffic_monthly?: number;
+export async function createDigitalProject(project: {
+  client_id?: string;
+  client_name?: string;
+  title: string;
+  service_category?: string;
+  budget?: number;
+  progress?: number;
+  deadline?: string;
+  lead_developer?: string;
   status?: string;
 }) {
+  let clientId = project.client_id;
+  if (!clientId) {
+    const clients = await getDigitalClients();
+    if (clients.length > 0) clientId = clients[0].id;
+    else {
+      const created = await createDigitalClient({
+        company_name: project.client_name || 'Nexus FinTech Global',
+        contact_person: 'Ananya Deshmukh',
+        email: 'ananya@nexusfintech.io'
+      });
+      clientId = created.id;
+    }
+  }
+
   const payload = {
     id: generateUUID(),
-    client_name: seo.client_name,
-    domain_url: seo.domain_url,
-    target_keywords: seo.target_keywords || 'Study in Europe, Poland Admissions, Overseas Visa',
-    organic_traffic_monthly: seo.organic_traffic_monthly || 45000,
-    status: seo.status || 'Active Campaign',
+    client_id: clientId,
+    title: project.title,
+    service_category: project.service_category || 'Web & App Development',
+    status: project.status || 'In Progress',
+    budget: Number(project.budget) || 250000,
+    progress: Number(project.progress) || 0,
+    deadline: project.deadline || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+    lead_developer: project.lead_developer || 'Kavita Iyer',
+    notes: '',
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
-  const { data, error } = await supabase.from('digital_seo_projects').insert(payload).select();
+
+  const { data, error } = await supabase.from('digital_projects').insert(payload).select();
+  triggerLocalSync('ferex_digital_projects_change');
   if (error || !data || data.length === 0) return payload;
   return data[0];
 }
 
-// ─── Digital Dashboard Aggregation ──────────────────────────────────────────
-export async function getDigitalDashboardStats() {
-  try {
-    const [clientsRes, projectsRes, invoicesRes, tasksRes] = await Promise.all([
-      supabase.from('digital_clients').select('*', { count: 'exact', head: true }).eq('status', 'Active'),
-      supabase.from('digital_projects').select('budget, status'),
-      supabase.from('digital_invoices').select('total_amount, status'),
-      supabase.from('digital_tasks').select('*', { count: 'exact', head: true }).neq('status', 'Completed'),
-    ]);
-
-    const activeClientsCount = clientsRes.count ?? 0;
-    const runningProjects = (projectsRes.data ?? []).filter((p: any) => p.status === 'In Progress');
-    const totalProjectValue = (projectsRes.data ?? []).reduce((s: number, p: any) => s + (Number(p.budget) || 0), 0);
-    const paidRevenue = (invoicesRes.data ?? []).filter((i: any) => i.status === 'Paid').reduce((s: number, i: any) => s + (Number(i.total_amount) || 0), 0);
-    const pendingTasks = tasksRes.count ?? 0;
-
-    return {
-      activeClientsCount,
-      runningProjectsCount: runningProjects.length,
-      totalProjectValue,
-      monthlyRevenue: paidRevenue,
-      pendingTasksCount: pendingTasks,
-    };
-  } catch {
-    return {
-      activeClientsCount: 0,
-      runningProjectsCount: 0,
-      totalProjectValue: 0,
-      monthlyRevenue: 0,
-      pendingTasksCount: 0,
-    };
-  }
-}
-
-// ─── Digital Employees ──────────────────────────────────────────────────────
-export async function getDigitalEmployees() {
-  try {
-    const { data, error } = await supabase
-      .from('digital_employees')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) return [];
-    return data ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function createDigitalEmployee(emp: {
-  full_name: string;
-  role_title: string;
-  department?: string;
-  email: string;
-  phone?: string;
-  salary?: number;
-}) {
-  const payload = {
-    id: generateUUID(),
-    emp_code: `EMP-${Math.floor(randomCode(100, 999))}`,
-    full_name: emp.full_name,
-    role_title: emp.role_title,
-    department: emp.department || 'Engineering',
-    email: emp.email,
-    phone: emp.phone || '',
-    salary: emp.salary || 75000,
-    performance_score: 4.8,
-    active_tasks_count: 0,
-    status: 'Active',
-    joined_date: new Date().toISOString().split('T')[0],
-    created_at: new Date().toISOString(),
-  };
-
-  const { data, error } = await supabase.from('digital_employees').insert(payload).select();
-  if (error || !data || data.length === 0) return payload;
-  return data[0];
-}
-
-export async function updateDigitalEmployee(id: string, updates: any) {
-  const { data, error } = await supabase.from('digital_employees').update(updates).eq('id', id).select();
+export async function updateDigitalProject(id: string, updates: any) {
+  const { data, error } = await supabase
+    .from('digital_projects')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select();
+  triggerLocalSync('ferex_digital_projects_change');
   if (error || !data || data.length === 0) return { id, ...updates };
   return data[0];
 }
 
-// ─── Digital Expenses ───────────────────────────────────────────────────────
-export async function getDigitalExpenses() {
+export async function deleteDigitalProject(id: string) {
+  await supabase.from('digital_projects').delete().eq('id', id);
+  triggerLocalSync('ferex_digital_projects_change');
+  return true;
+}
+
+// ─── Digital Tasks ──────────────────────────────────────────────────────────
+export async function getDigitalTasks(projectId?: string) {
   try {
-    const { data, error } = await supabase
-      .from('digital_expenses')
-      .select('*')
-      .order('date_incurred', { ascending: false });
+    let query = supabase.from('digital_tasks').select('*, project:digital_projects(*)').order('created_at', { ascending: false });
+    if (projectId) {
+      query = query.eq('project_id', projectId);
+    }
+    const { data, error } = await query;
     if (error) return [];
     return data ?? [];
   } catch {
@@ -379,39 +191,272 @@ export async function getDigitalExpenses() {
   }
 }
 
-export async function createDigitalExpense(exp: {
-  category: string;
+export async function createDigitalTask(task: {
+  project_id?: string;
   title: string;
-  amount: number;
-  vendor: string;
-  date_incurred?: string;
-  payment_method?: string;
-  approved_by?: string;
+  priority?: string;
+  status?: string;
+  due_date?: string;
+  assigned_to_name?: string;
 }) {
+  let projId = task.project_id;
+  if (!projId) {
+    const projects = await getDigitalProjects();
+    if (projects.length > 0) projId = projects[0].id;
+    else {
+      const created = await createDigitalProject({ title: 'Nexus Web Platform' });
+      projId = created.id;
+    }
+  }
+
   const payload = {
     id: generateUUID(),
-    category: exp.category,
-    title: exp.title,
-    amount: exp.amount,
-    vendor: exp.vendor,
-    date_incurred: exp.date_incurred || new Date().toISOString().split('T')[0],
-    payment_method: exp.payment_method || 'Corporate Credit Card',
-    approved_by: exp.approved_by || 'Digital Director',
+    project_id: projId,
+    title: task.title,
+    priority: task.priority || 'Medium',
+    status: task.status || 'To Do',
+    due_date: task.due_date || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase.from('digital_tasks').insert(payload).select();
+  triggerLocalSync('ferex_digital_tasks_change');
+  if (error || !data || data.length === 0) return payload;
+  return data[0];
+}
+
+export async function updateDigitalTaskStatus(id: string, status: string) {
+  const { data, error } = await supabase
+    .from('digital_tasks')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select();
+  triggerLocalSync('ferex_digital_tasks_change');
+  if (error || !data || data.length === 0) return { id, status };
+  return data[0];
+}
+
+export async function deleteDigitalTask(id: string) {
+  await supabase.from('digital_tasks').delete().eq('id', id);
+  triggerLocalSync('ferex_digital_tasks_change');
+  return true;
+}
+
+// ─── Digital Invoices & Payments ────────────────────────────────────────────
+export async function getDigitalInvoices() {
+  try {
+    const { data, error } = await supabase
+      .from('digital_invoices')
+      .select('*, client:digital_clients(*), project:digital_projects(*)')
+      .order('issued_at', { ascending: false });
+    if (error) return [];
+    return data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function createDigitalInvoice(inv: {
+  client_id?: string;
+  project_id?: string;
+  client_name?: string;
+  invoice_no?: string;
+  amount: number;
+  tax_amount?: number;
+  due_date?: string;
+  status?: string;
+}) {
+  let clientId = inv.client_id;
+  if (!clientId) {
+    const clients = await getDigitalClients();
+    if (clients.length > 0) clientId = clients[0].id;
+  }
+
+  const payload = {
+    id: generateUUID(),
+    client_id: clientId,
+    project_id: inv.project_id || null,
+    invoice_no: inv.invoice_no || `INV-DIG-${Math.floor(1000 + Math.random() * 9000)}`,
+    amount: Number(inv.amount) || 150000,
+    tax_amount: Number(inv.tax_amount) || Math.round((Number(inv.amount) || 150000) * 0.18),
+    currency: 'INR',
+    status: inv.status || 'Sent',
+    due_date: inv.due_date || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+    issued_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase.from('digital_expenses').insert(payload).select();
+  const { data, error } = await supabase.from('digital_invoices').insert(payload).select();
+  triggerLocalSync('ferex_digital_invoices_change');
   if (error || !data || data.length === 0) return payload;
   return data[0];
 }
 
-// ─── Digital Attendance ─────────────────────────────────────────────────────
-export async function getDigitalAttendance() {
+export async function updateDigitalInvoiceStatus(id: string, status: string) {
+  const { data, error } = await supabase
+    .from('digital_invoices')
+    .update({ status, paid_at: status === 'Paid' ? new Date().toISOString() : null })
+    .eq('id', id)
+    .select();
+  triggerLocalSync('ferex_digital_invoices_change');
+  if (error || !data || data.length === 0) return { id, status };
+  return data[0];
+}
+
+export async function deleteDigitalInvoice(id: string) {
+  await supabase.from('digital_invoices').delete().eq('id', id);
+  triggerLocalSync('ferex_digital_invoices_change');
+  return true;
+}
+
+export async function getDigitalPayments() {
+  return getDigitalInvoices();
+}
+
+// ─── Digital Expenses ───────────────────────────────────────────────────────
+export async function getDigitalExpenses() {
+  const saved = localStorage.getItem('ferex_digital_expenses');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  return [
+    { id: 'EXP-101', title: 'AWS Cloud Infrastructure Cluster', category: 'Cloud & Hosting', amount: 84500, date: '2026-09-01', vendor: 'Amazon Web Services', status: 'Settled' },
+    { id: 'EXP-102', title: 'Figma Organization & Adobe Suite Licenses', category: 'Software Tools', amount: 42000, date: '2026-08-28', vendor: 'Adobe Systems', status: 'Settled' },
+    { id: 'EXP-103', title: 'Google Ads & Meta Campaign Spend', category: 'Ad Spend', amount: 165000, date: '2026-08-25', vendor: 'Google Ads', status: 'Settled' },
+  ];
+}
+
+export async function createDigitalExpense(expense: {
+  title: string;
+  category: string;
+  amount: number;
+  vendor?: string;
+  date?: string;
+}) {
+  const current = await getDigitalExpenses();
+  const created = {
+    id: `EXP-${Math.floor(104 + Math.random() * 900)}`,
+    title: expense.title,
+    category: expense.category,
+    amount: Number(expense.amount),
+    vendor: expense.vendor || 'Agency Vendor',
+    date: expense.date || new Date().toISOString().split('T')[0],
+    status: 'Settled'
+  };
+  const updated = [created, ...current];
+  localStorage.setItem('ferex_digital_expenses', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_expenses_change');
+  return created;
+}
+
+export async function deleteDigitalExpense(id: string) {
+  const current = await getDigitalExpenses();
+  const updated = current.filter((e: any) => e.id !== id);
+  localStorage.setItem('ferex_digital_expenses', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_expenses_change');
+  return true;
+}
+
+// ─── Digital Employees ──────────────────────────────────────────────────────
+export async function getDigitalEmployees() {
+  const saved = localStorage.getItem('ferex_digital_employees');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  return [
+    { id: 'EMP-01', name: 'Kavita Iyer', role: 'Principal Fullstack Architect', department: 'Engineering', email: 'k.iyer@ferex.digital', status: 'Active', projectsCount: 4 },
+    { id: 'EMP-02', name: 'Sameer Sen', role: 'Lead Product Designer (UI/UX)', department: 'Design', email: 'sameer@ferex.digital', status: 'Active', projectsCount: 3 },
+    { id: 'EMP-03', name: 'Pooja Hegde', role: 'Senior SEO & Growth Strategist', department: 'Marketing', email: 'pooja.h@ferex.digital', status: 'Active', projectsCount: 5 },
+    { id: 'EMP-04', name: 'Rohan Joshi', role: 'Mobile Flutter Engineer', department: 'Engineering', email: 'r.joshi@ferex.digital', status: 'Active', projectsCount: 2 },
+  ];
+}
+
+export async function createDigitalEmployee(emp: {
+  name: string;
+  role: string;
+  department: string;
+  email: string;
+}) {
+  const current = await getDigitalEmployees();
+  const created = {
+    id: `EMP-${Math.floor(10 + Math.random() * 90)}`,
+    name: emp.name,
+    role: emp.role,
+    department: emp.department,
+    email: emp.email,
+    status: 'Active',
+    projectsCount: 1
+  };
+  const updated = [created, ...current];
+  localStorage.setItem('ferex_digital_employees', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_employees_change');
+  return created;
+}
+
+export async function deleteDigitalEmployee(id: string) {
+  const current = await getDigitalEmployees();
+  const updated = current.filter((e: any) => e.id !== id);
+  localStorage.setItem('ferex_digital_employees', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_employees_change');
+  return true;
+}
+
+// ─── Digital Meetings ───────────────────────────────────────────────────────
+export async function getDigitalMeetings() {
+  const saved = localStorage.getItem('ferex_digital_meetings');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  return [
+    { id: 'MTG-01', title: 'Nexus FinTech Sprint Architecture Review', client: 'Nexus FinTech Global', time: 'Today, 03:00 PM', link: 'https://meet.google.com/fer-dig-arch', status: 'Scheduled' },
+    { id: 'MTG-02', title: 'Starlight Brands UI/UX Design Approval', client: 'Starlight E-Commerce', time: 'Tomorrow, 11:30 AM', link: 'https://meet.google.com/fer-dig-uiux', status: 'Scheduled' },
+  ];
+}
+
+export async function createDigitalMeeting(mtg: {
+  title: string;
+  client: string;
+  time: string;
+  link?: string;
+}) {
+  const current = await getDigitalMeetings();
+  const created = {
+    id: `MTG-${Math.floor(10 + Math.random() * 90)}`,
+    title: mtg.title,
+    client: mtg.client,
+    time: mtg.time,
+    link: mtg.link || 'https://meet.google.com/fer-dig-conf',
+    status: 'Scheduled'
+  };
+  const updated = [created, ...current];
+  localStorage.setItem('ferex_digital_meetings', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_meetings_change');
+  return created;
+}
+
+export async function deleteDigitalMeeting(id: string) {
+  const current = await getDigitalMeetings();
+  const updated = current.filter((m: any) => m.id !== id);
+  localStorage.setItem('ferex_digital_meetings', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_meetings_change');
+  return true;
+}
+
+// ─── Digital Messages & Notifications ───────────────────────────────────────
+export async function getDigitalMessages(conversationId: string = '1') {
   try {
     const { data, error } = await supabase
-      .from('digital_attendance')
+      .from('trade_messages')
       .select('*')
-      .order('date', { ascending: false });
+      .eq('conversation_id', `digital_${conversationId}`)
+      .order('created_at', { ascending: true });
     if (error) return [];
     return data ?? [];
   } catch {
@@ -419,31 +464,117 @@ export async function getDigitalAttendance() {
   }
 }
 
-export async function recordDigitalAttendance(record: {
-  employee_id?: string;
-  employee_name: string;
-  date: string;
-  status: string;
-  check_in_time?: string;
-  check_out_time?: string;
-  hours_worked?: number;
+export async function sendDigitalMessage(msg: {
+  conversation_id: string;
+  contact_name: string;
+  contact_role: string;
+  sender_name: string;
+  message: string;
+  is_self?: boolean;
 }) {
   const payload = {
     id: generateUUID(),
-    employee_id: record.employee_id || generateUUID(),
-    employee_name: record.employee_name,
-    date: record.date,
-    status: record.status,
-    check_in_time: record.check_in_time || '09:00 AM',
-    check_out_time: record.check_out_time || '06:00 PM',
-    hours_worked: record.hours_worked || 8.5,
+    conversation_id: `digital_${msg.conversation_id}`,
+    contact_name: msg.contact_name,
+    contact_role: msg.contact_role,
+    sender_name: msg.sender_name,
+    message: msg.message,
+    is_self: msg.is_self ?? true,
+    created_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase.from('digital_attendance').upsert(payload).select();
-  if (error || !data || data.length === 0) return payload;
-  return data[0];
+  const { data } = await supabase.from('trade_messages').insert(payload).select();
+  triggerLocalSync('ferex_digital_messages_change');
+  return data?.[0] || payload;
 }
 
-function randomCode(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+export async function getDigitalNotifications() {
+  try {
+    const { data, error } = await supabase
+      .from('trade_notifications')
+      .select('*')
+      .ilike('category', '%Digital%')
+      .order('created_at', { ascending: false });
+    if (error || !data || data.length === 0) {
+      const { data: allNotifs } = await supabase.from('trade_notifications').select('*').limit(10);
+      return allNotifs ?? [];
+    }
+    return data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function createDigitalNotification(notif: {
+  title: string;
+  description: string;
+  category?: string;
+}) {
+  const payload = {
+    id: generateUUID(),
+    title: notif.title,
+    description: notif.description,
+    category: notif.category || 'Digital',
+    is_read: false,
+    is_archived: false,
+    created_at: new Date().toISOString(),
+  };
+
+  const { data } = await supabase.from('trade_notifications').insert(payload).select();
+  triggerLocalSync('ferex_digital_notifications_change');
+  return data?.[0] || payload;
+}
+
+export async function markDigitalNotificationRead(id: string) {
+  await supabase.from('trade_notifications').update({ is_read: true }).eq('id', id);
+  triggerLocalSync('ferex_digital_notifications_change');
+  return true;
+}
+
+// ─── Digital Dashboard Stats Aggregator ─────────────────────────────────────
+export async function getDigitalDashboardStats() {
+  try {
+    const [clientsRes, projectsRes, invoicesRes, tasksRes] = await Promise.all([
+      supabase.from('digital_clients').select('id, status'),
+      supabase.from('digital_projects').select('id, budget, progress, status'),
+      supabase.from('digital_invoices').select('amount, status'),
+      supabase.from('digital_tasks').select('id, status'),
+    ]);
+
+    const clients = clientsRes.data ?? [];
+    const projects = projectsRes.data ?? [];
+    const invoices = invoicesRes.data ?? [];
+    const tasks = tasksRes.data ?? [];
+
+    const activeProjects = projects.filter((p: any) => p.status !== 'Completed' && p.status !== 'Archived');
+    const totalPipelineBudget = projects.reduce((sum: number, p: any) => sum + (Number(p.budget) || 0), 0);
+    const paidInvoices = invoices.filter((i: any) => i.status === 'Paid');
+    const totalCollected = paidInvoices.reduce((sum: number, i: any) => sum + (Number(i.amount) || 0), 0);
+    const pendingTasks = tasks.filter((t: any) => t.status !== 'Done');
+
+    const formatInr = (amt: number) => {
+      if (!amt || amt === 0) return '₹0';
+      if (amt >= 10000000) return `₹${(amt / 10000000).toFixed(2)} Cr`;
+      if (amt >= 100000) return `₹${(amt / 100000).toFixed(2)} Lakhs`;
+      return `₹${amt.toLocaleString('en-IN')}`;
+    };
+
+    return {
+      activeClientsCount: clients.length,
+      activeProjectsCount: activeProjects.length,
+      totalProjectsCount: projects.length,
+      totalPipelineValueStr: formatInr(totalPipelineBudget),
+      totalCollectedStr: formatInr(totalCollected),
+      pendingTasksCount: pendingTasks.length,
+    };
+  } catch {
+    return {
+      activeClientsCount: 0,
+      activeProjectsCount: 0,
+      totalProjectsCount: 0,
+      totalPipelineValueStr: '₹0',
+      totalCollectedStr: '₹0',
+      pendingTasksCount: 0,
+    };
+  }
 }

@@ -1,44 +1,79 @@
-import React, { useState } from 'react';
-import { MessageSquare, Send, Search } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { MessageSquare, Send, Search, User, Clock, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getRimiMessages, sendRimiMessage } from '../../lib/api/rimi';
+import { supabase } from '../../lib/supabase';
 
 export const RimiMessages: React.FC = () => {
   const [activeConv, setActiveConv] = useState(1);
   const [inputText, setInputText] = useState('');
+  const [messages, setMessages] = useState<any[]>([]);
 
-  const [conversations] = useState([
-    { id: 1, name: 'Rajesh Kulkarni (Mumbai Cold Hub)', role: 'Warehouse Manager', lastMsg: 'Temperature steady at -22.4°C.', time: '11:10 AM', unread: 1 },
-    { id: 2, name: 'Sanjay Kumar (Reefer Driver)', role: 'Logistics Fleet', lastMsg: 'Approaching Reliance Fresh Bhiwandi.', time: 'Yesterday', unread: 0 }
-  ]);
+  const conversations = [
+    { id: 1, name: 'Rajesh Kulkarni (Mumbai Cold Hub)', role: 'Warehouse Manager', time: '11:10 AM' },
+    { id: 2, name: 'Sanjay Kumar (Reefer Driver)', role: 'Logistics Fleet', time: 'Yesterday' },
+    { id: 3, name: 'HyperCity Procurement Head', role: 'Retailer Account', time: 'Aug 29' },
+  ];
 
-  const [chatHistory, setChatHistory] = useState<Record<number, Array<{ sender: string; text: string; time: string; self: boolean }>>>({
-    1: [
-      { sender: 'Rajesh Kulkarni', text: 'Good morning. Checking cold room #2 telemetry.', time: '11:00 AM', self: false },
-      { sender: 'Rimi Manager', text: 'Confirmed. Keep temperature locked at -22°C.', time: '11:05 AM', self: true },
-      { sender: 'Rajesh Kulkarni', text: 'Temperature steady at -22.4°C.', time: '11:10 AM', self: false }
-    ],
-    2: [
-      { sender: 'Sanjay Kumar', text: 'Approaching Reliance Fresh Bhiwandi.', time: 'Yesterday', self: false }
-    ]
-  });
+  const loadMessages = useCallback(async () => {
+    const data = await getRimiMessages(String(activeConv));
+    if (data && data.length > 0) {
+      setMessages(data);
+    } else {
+      // Default initial message
+      if (activeConv === 1) {
+        setMessages([
+          { id: '1', sender_name: 'Rajesh Kulkarni', message: 'Good morning. Checking cold room #2 telemetry.', created_at: new Date(Date.now() - 3600000).toISOString(), is_self: false },
+          { id: '2', sender_name: 'Rimi Cold Chain Lead', message: 'Confirmed. Keep temperature locked at -22°C.', created_at: new Date(Date.now() - 1800000).toISOString(), is_self: true },
+          { id: '3', sender_name: 'Rajesh Kulkarni', message: 'Temperature steady at -22.4°C across all sensors.', created_at: new Date().toISOString(), is_self: false }
+        ]);
+      } else if (activeConv === 2) {
+        setMessages([
+          { id: '1', sender_name: 'Sanjay Kumar', message: 'Approaching Reliance Fresh Bhiwandi drop site. Reefer temp -19°C.', created_at: new Date().toISOString(), is_self: false }
+        ]);
+      } else {
+        setMessages([
+          { id: '1', sender_name: 'HyperCity Procurement', message: 'Please dispatch 50 packs King Prawns with tomorrow morning delivery schedule.', created_at: new Date().toISOString(), is_self: false }
+        ]);
+      }
+    }
+  }, [activeConv]);
 
-  const handleSend = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadMessages();
+
+    const channel = supabase
+      .channel('realtime_rimi_messages')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_messages' }, () => {
+        loadMessages();
+      })
+      .subscribe();
+
+    const handleLocalChange = () => loadMessages();
+    window.addEventListener('ferex_rimi_messages_change', handleLocalChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_rimi_messages_change', handleLocalChange);
+    };
+  }, [loadMessages]);
+
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
-    const newMsg = {
-      sender: 'Rimi Manager',
-      text: inputText,
-      time: 'Just now',
-      self: true
-    };
+    const currConv = conversations.find(c => c.id === activeConv);
+    const sent = await sendRimiMessage({
+      conversation_id: String(activeConv),
+      contact_name: currConv?.name || 'Contact',
+      contact_role: currConv?.role || 'Staff',
+      sender_name: 'Rimi Cold Chain Lead',
+      message: inputText.trim(),
+      is_self: true
+    });
 
-    setChatHistory(prev => ({
-      ...prev,
-      [activeConv]: [...(prev[activeConv] || []), newMsg]
-    }));
-
+    setMessages(prev => [...prev, sent]);
     setInputText('');
   };
 
@@ -62,57 +97,55 @@ export const RimiMessages: React.FC = () => {
             <input type="text" placeholder="Search contacts..." className="w-full h-8 pl-8 pr-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold" />
           </div>
 
-          <div className="space-y-1 flex-1 overflow-y-auto">
+          <div className="space-y-1 overflow-y-auto flex-1">
             {conversations.map((c) => (
-              <div
+              <button
                 key={c.id}
                 onClick={() => setActiveConv(c.id)}
-                className={`p-3 rounded-xl cursor-pointer transition-all ${
-                  activeConv === c.id ? 'bg-[#6A1B2E] text-white shadow-xs' : 'hover:bg-white text-slate-700'
-                }`}
+                className={`w-full p-3 rounded-xl text-left transition-all ${activeConv === c.id ? 'bg-white shadow-xs border border-slate-200/80' : 'hover:bg-slate-100/70'}`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black truncate">{c.name}</span>
-                  <span className={`text-[9px] font-bold ${activeConv === c.id ? 'text-white/70' : 'text-slate-400'}`}>{c.time}</span>
+                <div className="flex justify-between items-start mb-1">
+                  <span className="font-extrabold text-xs text-slate-900 truncate">{c.name}</span>
+                  <span className="text-[9px] font-bold text-slate-400">{c.time}</span>
                 </div>
-                <p className={`text-[11px] truncate mt-0.5 font-semibold ${activeConv === c.id ? 'text-white/90' : 'text-slate-500'}`}>{c.lastMsg}</p>
-              </div>
+                <div className="text-[11px] text-slate-500 font-semibold truncate">{c.role}</div>
+              </button>
             ))}
           </div>
         </div>
 
-        <div className="md:col-span-2 flex flex-col justify-between p-4 bg-white">
-          <div className="border-b border-slate-100 pb-3 mb-3 flex items-center justify-between">
+        <div className="col-span-2 flex flex-col h-full bg-white">
+          <div className="p-3.5 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
             <div>
-              <h3 className="text-sm font-black text-slate-900">{currConv?.name}</h3>
-              <span className="text-[10px] font-semibold text-slate-400">{currConv?.role} · Active Now</span>
+              <h3 className="font-black text-xs text-slate-900">{currConv?.name}</h3>
+              <p className="text-[10px] font-bold text-slate-400">{currConv?.role} • Active Cold Channel</p>
             </div>
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-3 p-2">
-            {(chatHistory[activeConv] || []).map((msg, idx) => (
-              <div key={idx} className={`flex flex-col ${msg.self ? 'items-end' : 'items-start'}`}>
-                <div className={`max-w-[75%] p-3 rounded-2xl text-xs font-semibold ${
-                  msg.self ? 'bg-[#6A1B2E] text-white rounded-br-none' : 'bg-slate-100 text-slate-900 rounded-bl-none'
-                }`}>
-                  {msg.text}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3">
+            {messages.map((m, idx) => (
+              <div key={idx} className={`flex ${m.is_self ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[75%] p-3 rounded-2xl text-xs font-semibold shadow-xs ${m.is_self ? 'bg-[#6A1B2E] text-white rounded-br-xs' : 'bg-slate-100 text-slate-900 rounded-bl-xs'}`}>
+                  <div className="text-[10px] font-extrabold opacity-75 mb-0.5">{m.sender_name}</div>
+                  <p className="leading-relaxed">{m.message || m.text}</p>
+                  <div className="text-[9px] opacity-60 text-right mt-1">
+                    {m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
+                  </div>
                 </div>
-                <span className="text-[9px] font-bold text-slate-400 mt-1 px-1">{msg.time}</span>
               </div>
             ))}
           </div>
 
-          <form onSubmit={handleSend} className="pt-3 border-t border-slate-100 flex items-center gap-2">
+          <form onSubmit={handleSend} className="p-3 border-t border-slate-100 flex gap-2">
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Type message to warehouse officer..."
-              className="flex-1 h-9 px-3 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+              placeholder="Type your message or cold chain instruction..."
+              className="flex-1 h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:bg-white focus:border-[#6A1B2E]"
             />
-            <Button type="submit" size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold h-9">
-              <Send className="w-3.5 h-3.5 mr-1" /> Send
+            <Button type="submit" size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold px-4">
+              <Send className="w-3.5 h-3.5" />
             </Button>
           </form>
         </div>
