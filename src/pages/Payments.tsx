@@ -175,10 +175,10 @@ export const Payments: React.FC = () => {
     {
       id: 1,
       stageNum: 1,
-      title: '1st Installment — Process Initiation & Audit Deposit',
+      title: '1st Installment — Registration Fee & Legalization Audit Deposit (₹15,000)',
       stageName: 'Initial Registration & Audit',
       amount: inst1Amount,
-      description: 'University choice allocation, portal registration, and document legalization audit. Unlocks university selection.',
+      description: 'Registration fee, university choice allocation, portal onboarding, and document legalization audit. Unlocks university selection.',
       dueDateStr: 'Due Before University Application',
       status: p1Paid
         ? 'Paid'

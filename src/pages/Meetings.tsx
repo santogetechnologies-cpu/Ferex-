@@ -74,12 +74,17 @@ export const Meetings: React.FC = () => {
 
   React.useEffect(() => {
     getStaffMembers().then(members => {
-      const names = (members || []).map(m => m.full_name || m.email.split('@')[0]).filter(Boolean);
-      setCounselorsList(names);
+      const names = (members || []).map(m => m.full_name || (m.email ? m.email.split('@')[0] : 'Advisor')).filter(Boolean);
+      setCounselorsList(names.length > 0 ? names : ['Academic Advisor', 'Admissions Counselor']);
       if (names.length > 0) {
         setAdvisorName(names[0]);
+      } else {
+        setAdvisorName('Academic Advisor');
       }
-    }).catch(() => {});
+    }).catch(() => {
+      setCounselorsList(['Academic Advisor', 'Admissions Counselor']);
+      setAdvisorName('Academic Advisor');
+    });
   }, []);
 
   const showToast = (msg: string) => {
@@ -100,7 +105,7 @@ export const Meetings: React.FC = () => {
         scheduled_date: scheduledDate,
         start_time: startTime,
         end_time: computedEnd,
-        advisor_name: advisorName,
+        advisor_name: advisorName || 'Academic Advisor',
       });
 
       setShowBookModal(false);
@@ -114,14 +119,14 @@ export const Meetings: React.FC = () => {
 
   const meetings = dbMeetings.map(m => ({
     id: m.id,
-    subject: m.subject,
-    date: new Date(m.scheduled_date || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+    subject: m.subject || (m as any).title || 'Advisory Session',
+    date: new Date(m.scheduled_date || (m as any).created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
     time: `${m.start_time || '10:00 AM'} - ${m.end_time || computeEndTime(m.start_time || '10:00 AM')}`,
     advisor: m.advisor_name || 'Academic Advisor',
     status: m.status || 'Scheduled',
     active: m.status === 'Scheduled' || m.status === 'Rescheduled' || (m.status as string) === 'Confirmed',
-    meetingLink: m.meeting_link || 'https://meet.google.com/fer-exed-app',
-    notes: m.notes || '',
+    meetingLink: m.meeting_link || (m as any).meet_link || 'https://meet.google.com/fer-exed-app',
+    notes: m.notes || (m as any).description || '',
   }));
 
 

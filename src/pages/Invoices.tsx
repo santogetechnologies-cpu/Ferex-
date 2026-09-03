@@ -55,7 +55,7 @@ export const Invoices: React.FC = () => {
         student_id: p.student_id,
         payment_id: p.id,
         invoice_no: p.ref_no || `INV-${p.id.slice(0, 6)}`,
-        description: p.title || p.description || 'Installment Payment Clearance',
+        description: p.title || p.description || (p.payment_type ? `${p.payment_type} Clearance` : 'Registration Fee & Legalization Audit Deposit'),
         amount: Number(p.amount),
         currency: p.currency || 'INR',
         status: 'Paid' as const,

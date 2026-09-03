@@ -142,12 +142,20 @@ export const SelectUniversity: React.FC = () => {
     }
   };
 
-  const countries = ['All', ...Array.from(new Set(universities.map(u => u.country)))];
+  const countries = ['All', ...Array.from(new Set(universities.map(u => u?.country).filter(Boolean)))];
 
   const filteredUnis = universities.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          u.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          u.programs.some(p => p.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (!u) return false;
+    const nameStr = (u.name || '').toLowerCase();
+    const cityStr = (u.city || '').toLowerCase();
+    const countryStr = (u.country || '').toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
+
+    const matchesSearch = !query ||
+                          nameStr.includes(query) ||
+                          cityStr.includes(query) ||
+                          countryStr.includes(query) ||
+                          (Array.isArray(u.programs) && u.programs.some(p => typeof p === 'string' && p.toLowerCase().includes(query)));
     const matchesCountry = selectedCountry === 'All' || u.country === selectedCountry;
     return matchesSearch && matchesCountry;
   });

@@ -17,6 +17,8 @@ DROP VIEW IF EXISTS public.central_enterprise_overview CASCADE;
 DROP FUNCTION IF EXISTS public.get_central_dashboard_metrics() CASCADE;
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 DROP FUNCTION IF EXISTS public.create_division_admin(TEXT, TEXT, TEXT, TEXT) CASCADE;
+DROP FUNCTION IF EXISTS public.is_super_admin() CASCADE;
+DROP FUNCTION IF EXISTS public.get_auth_user_role() CASCADE;
 
 DROP TABLE IF EXISTS public.central_audit_logs CASCADE;
 DROP TABLE IF EXISTS public.rimi_payments CASCADE;
@@ -39,10 +41,13 @@ DROP TABLE IF EXISTS public.chat_messages CASCADE;
 DROP TABLE IF EXISTS public.chat_conversations CASCADE;
 DROP TABLE IF EXISTS public.meetings CASCADE;
 DROP TABLE IF EXISTS public.notifications CASCADE;
+DROP TABLE IF EXISTS public.ticket_replies CASCADE;
 DROP TABLE IF EXISTS public.ticket_messages CASCADE;
 DROP TABLE IF EXISTS public.support_tickets CASCADE;
 DROP TABLE IF EXISTS public.pre_departure_checklists CASCADE;
 DROP TABLE IF EXISTS public.visa_applications CASCADE;
+DROP TABLE IF EXISTS public.credit_notes CASCADE;
+DROP TABLE IF EXISTS public.receipts CASCADE;
 DROP TABLE IF EXISTS public.invoices CASCADE;
 DROP TABLE IF EXISTS public.payments CASCADE;
 DROP TABLE IF EXISTS public.student_documents CASCADE;
@@ -50,6 +55,7 @@ DROP TABLE IF EXISTS public.final_acceptance CASCADE;
 DROP TABLE IF EXISTS public.offer_letters CASCADE;
 DROP TABLE IF EXISTS public.applications CASCADE;
 DROP TABLE IF EXISTS public.universities CASCADE;
+DROP TABLE IF EXISTS public.system_config CASCADE;
 DROP TABLE IF EXISTS public.users CASCADE;
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -57,7 +63,7 @@ DROP TABLE IF EXISTS public.users CASCADE;
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE public.users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   full_name TEXT NOT NULL DEFAULT '',
   role TEXT NOT NULL DEFAULT 'superadmin' CHECK (
@@ -87,61 +93,67 @@ CREATE TABLE public.users (
 CREATE INDEX idx_users_email ON public.users(email);
 CREATE INDEX idx_users_role ON public.users(role);
 
--- Helper function to check if current user is Super Admin
+-- Helper function: SECURITY DEFINER to avoid RLS infinite recursion
+CREATE OR REPLACE FUNCTION public.get_auth_user_role()
+RETURNS TEXT AS $$
+DECLARE
+  v_role TEXT;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN 'anon';
+  END IF;
+  SELECT role INTO v_role FROM public.users WHERE id = auth.uid() LIMIT 1;
+  RETURN COALESCE(v_role, 'anon');
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
 CREATE OR REPLACE FUNCTION public.is_super_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
-  RETURN EXISTS (
-    SELECT 1 FROM public.users
-    WHERE id = auth.uid()
-      AND role IN ('superadmin', 'super_admin', 'central')
-  );
+  RETURN public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central');
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
--- Automatic trigger on auth.users creation
--- Direct Supabase auth defaults to superadmin; if metadata role provided, assigns that role.
+-- Auto-sync auth.users trigger
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
   v_role TEXT;
   v_full_name TEXT;
+  v_phone TEXT;
 BEGIN
-  -- Extract role from metadata or default to 'superadmin' for direct auth
-  v_role := COALESCE(NEW.raw_user_meta_data->>'role', 'superadmin');
+  v_role := COALESCE(
+    NEW.raw_user_meta_data->>'role',
+    'superadmin'
+  );
+
   v_full_name := COALESCE(
     NEW.raw_user_meta_data->>'full_name',
     NEW.raw_user_meta_data->>'name',
-    SPLIT_PART(NEW.email, '@', 1),
-    'User'
+    SPLIT_PART(NEW.email, '@', 1)
   );
 
-  INSERT INTO public.users (
-    id,
-    email,
-    full_name,
-    role,
-    avatar_url,
-    phone,
-    created_at,
-    updated_at
-  )
+  v_phone := COALESCE(
+    NEW.raw_user_meta_data->>'phone',
+    ''
+  );
+
+  INSERT INTO public.users (id, email, full_name, role, phone, avatar_url, created_at, updated_at)
   VALUES (
     NEW.id,
     NEW.email,
     v_full_name,
     v_role,
-    COALESCE(NEW.raw_user_meta_data->>'avatar_url', ''),
-    COALESCE(NEW.raw_user_meta_data->>'phone', ''),
+    v_phone,
+    '',
     NOW(),
     NOW()
   )
   ON CONFLICT (id) DO UPDATE
-  SET
-    email = EXCLUDED.email,
-    full_name = CASE WHEN public.users.full_name = '' THEN EXCLUDED.full_name ELSE public.users.full_name END,
-    role = CASE WHEN public.users.role = 'superadmin' THEN public.users.role ELSE EXCLUDED.role END,
-    updated_at = NOW();
+    SET email = EXCLUDED.email,
+        full_name = CASE WHEN public.users.full_name = '' THEN EXCLUDED.full_name ELSE public.users.full_name END,
+        role = CASE WHEN public.users.role IS NULL OR public.users.role = '' THEN EXCLUDED.role ELSE public.users.role END,
+        updated_at = NOW();
 
   RETURN NEW;
 END;
@@ -151,6 +163,15 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- System configuration table (for fee config, etc.)
+CREATE TABLE public.system_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT NOT NULL UNIQUE,
+  value JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- STEP 3: 1. FEREX EDUCATION CORE MODULES
@@ -183,21 +204,24 @@ CREATE TABLE public.universities (
 CREATE TABLE public.applications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  student_name TEXT NOT NULL DEFAULT 'Student',
   university_id UUID REFERENCES public.universities(id) ON DELETE SET NULL,
-  university_name TEXT NOT NULL,
-  program_name TEXT NOT NULL,
-  course TEXT NOT NULL,
-  intake TEXT NOT NULL DEFAULT 'October 2026',
-  tuition_fee TEXT DEFAULT '',
-  course_fee TEXT DEFAULT '',
+  university_name TEXT DEFAULT 'Pending University Selection',
+  program_name TEXT DEFAULT 'Selected European Program',
+  course TEXT NOT NULL DEFAULT 'Higher Studies',
+  intake TEXT DEFAULT 'October 2026',
+  tuition_fee TEXT DEFAULT '€3,500',
+  course_fee TEXT DEFAULT '€3,500',
   status TEXT NOT NULL DEFAULT 'Submitted' CHECK (
-    status IN ('Submitted', 'Under Review', 'NAWA Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Enrolled', 'Rejected')
+    status IN (
+      'Draft', 'Submitted', 'NAWA Review', 'NAWA Submitted', 'NAWA Approved',
+      'Under Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued',
+      'Visa Processing', 'Visa Approved', 'Approved', 'Enrolled', 'Closed', 'Rejected', 'Withdrawn'
+    )
   ),
+  applied_date DATE NOT NULL DEFAULT CURRENT_DATE,
   notes TEXT DEFAULT '',
   offer_letter_url TEXT DEFAULT '',
   final_acceptance_url TEXT DEFAULT '',
-  applied_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -205,37 +229,37 @@ CREATE TABLE public.applications (
 -- Offer Letters
 CREATE TABLE public.offer_letters (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  application_id UUID REFERENCES public.applications(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  application_id UUID NOT NULL REFERENCES public.applications(id) ON DELETE CASCADE,
-  offer_letter_url TEXT NOT NULL,
-  file_url TEXT DEFAULT '',
-  status TEXT NOT NULL DEFAULT 'Issued',
+  university_name TEXT NOT NULL,
+  program_name TEXT NOT NULL,
+  letter_url TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Issued' CHECK (status IN ('Issued', 'Accepted', 'Declined')),
   issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  response_at TIMESTAMPTZ
 );
 
 -- Final Acceptance Letters
 CREATE TABLE public.final_acceptance (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  application_id UUID REFERENCES public.applications(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  application_id UUID NOT NULL REFERENCES public.applications(id) ON DELETE CASCADE,
-  final_acceptance_url TEXT NOT NULL,
-  file_url TEXT DEFAULT '',
-  issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  university_name TEXT NOT NULL,
+  document_url TEXT NOT NULL,
+  issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Student Documents (NAWA, Apostille, Transcripts, Passports)
 CREATE TABLE public.student_documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  student_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   file_name TEXT NOT NULL,
   file_url TEXT NOT NULL,
   file_size TEXT DEFAULT '1.2 MB',
   doc_type TEXT NOT NULL DEFAULT 'Transcripts',
   document_type TEXT DEFAULT 'Transcripts',
   status TEXT NOT NULL DEFAULT 'Submitted' CHECK (
-    status IN ('Submitted', 'Pending Verification', 'Verified', 'Approved', 'Rejected', 'Re-upload Requested')
+    status IN ('Submitted', 'Pending Verification', 'Pending', 'Verified', 'Approved', 'Rejected', 'Re-upload Requested', 'Under Review')
   ),
   reviewer_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
   reviewer_notes TEXT DEFAULT '',
@@ -248,26 +272,29 @@ CREATE TABLE public.payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
   student_name TEXT NOT NULL DEFAULT 'Student',
+  business TEXT NOT NULL DEFAULT 'FEREX EU Admissions',
   ref_no TEXT NOT NULL UNIQUE,
-  title TEXT NOT NULL,
-  description TEXT DEFAULT '',
-  amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  transaction_id TEXT DEFAULT '',
+  title TEXT DEFAULT '',
+  description TEXT NOT NULL,
+  amount NUMERIC(12, 2) NOT NULL,
+  partial_amount NUMERIC(12, 2) DEFAULT 0.00,
   currency TEXT NOT NULL DEFAULT 'INR',
-  payment_type TEXT NOT NULL DEFAULT 'Installment Fee',
+  payment_type TEXT NOT NULL DEFAULT 'Registration Fee',
+  payment_method TEXT NOT NULL DEFAULT 'UPI',
   status TEXT NOT NULL DEFAULT 'Pending' CHECK (
-    status IN ('Pending', 'Pending Verification', 'Paid', 'Verified', 'Partial', 'Rejected', 'Refunded', 'Cancelled', 'Overdue')
+    status IN ('Pending', 'Pending Verification', 'Paid', 'Verified', 'Rejected', 'Overdue', 'Cancelled', 'Refunded', 'Partial')
   ),
-  payment_method TEXT DEFAULT 'UPI / Bank Transfer',
+  milestone_step INTEGER DEFAULT 1,
+  due_date DATE,
+  paid_at TIMESTAMPTZ,
   utr_number TEXT DEFAULT '',
   receipt_url TEXT DEFAULT '',
-  due_date TIMESTAMPTZ,
-  paid_at TIMESTAMPTZ,
-  reviewer_notes TEXT DEFAULT '',
-  reminder_sent_at TIMESTAMPTZ,
-  refund_amount NUMERIC(12, 2) DEFAULT 0,
+  refund_amount NUMERIC(12, 2) DEFAULT 0.00,
   refund_reason TEXT DEFAULT '',
   credit_note_no TEXT DEFAULT '',
-  partial_amount NUMERIC(12, 2) DEFAULT 0,
+  reviewer_notes TEXT DEFAULT '',
+  reminder_sent_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -275,47 +302,71 @@ CREATE TABLE public.payments (
 -- Invoices
 CREATE TABLE public.invoices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  payment_id UUID REFERENCES public.payments(id) ON DELETE SET NULL,
   student_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  payment_id UUID REFERENCES public.payments(id) ON DELETE SET NULL,
   invoice_no TEXT NOT NULL UNIQUE,
   description TEXT NOT NULL,
-  amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  amount NUMERIC(12, 2) NOT NULL,
   currency TEXT NOT NULL DEFAULT 'INR',
-  status TEXT NOT NULL DEFAULT 'Paid',
-  file_url TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'Paid' CHECK (status IN ('Unpaid', 'Paid', 'Overdue', 'Cancelled')),
+  due_date DATE,
   issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  due_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  paid_at TIMESTAMPTZ,
-  invoice_items JSONB DEFAULT '[]'::jsonb,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- VFS Visa Applications
+-- Receipts
+CREATE TABLE public.receipts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  payment_id UUID REFERENCES public.payments(id) ON DELETE SET NULL,
+  receipt_no TEXT NOT NULL UNIQUE,
+  description TEXT NOT NULL,
+  amount NUMERIC(12, 2) NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'INR',
+  payment_method TEXT DEFAULT 'UPI',
+  issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Credit Notes
+CREATE TABLE public.credit_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  payment_id UUID REFERENCES public.payments(id) ON DELETE SET NULL,
+  credit_note_no TEXT NOT NULL UNIQUE,
+  original_amount NUMERIC(12, 2) NOT NULL,
+  refund_amount NUMERIC(12, 2) NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'INR',
+  reason TEXT NOT NULL DEFAULT 'Refund processed',
+  issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Visa Applications (VFS Tracker)
 CREATE TABLE public.visa_applications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  vfs_reference_no TEXT NOT NULL,
+  country TEXT NOT NULL DEFAULT 'Poland',
+  vfs_center TEXT DEFAULT 'VFS New Delhi',
   appointment_date DATE,
-  biometric_status TEXT DEFAULT 'Pending' CHECK (biometric_status IN ('Pending', 'Completed', 'Exempted')),
-  embassy_location TEXT DEFAULT 'VFS New Delhi',
-  tracking_status TEXT DEFAULT 'Under Review' CHECK (
-    tracking_status IN ('Appointment Booked', 'Documents Submitted', 'Under Review', 'Embassy Verification', 'Approved & Stamped', 'Rejected')
+  submission_date DATE,
+  reference_no TEXT DEFAULT '',
+  tracking_id TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'Documents Prepared' CHECK (
+    status IN ('Documents Prepared', 'Appointment Booked', 'Submitted at VFS', 'Under Embassy Review', 'Visa Approved', 'Visa Refused')
   ),
-  passport_status TEXT DEFAULT 'With Embassy',
-  visa_issued_date DATE,
-  visa_expiry_date DATE,
   notes TEXT DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Pre-Departure & Post-Travel Checklists
+-- Pre-Departure & Post-Travel Checklist (Stage 12)
 CREATE TABLE public.pre_departure_checklists (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  category TEXT NOT NULL DEFAULT 'Travel Documents',
-  item_title TEXT NOT NULL,
+  item_key TEXT NOT NULL,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Pre-Departure',
   is_completed BOOLEAN NOT NULL DEFAULT false,
   completed_at TIMESTAMPTZ,
   notes TEXT DEFAULT '',
@@ -325,23 +376,38 @@ CREATE TABLE public.pre_departure_checklists (
 -- Support Tickets
 CREATE TABLE public.support_tickets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  user_name TEXT NOT NULL,
-  user_email TEXT NOT NULL,
+  student_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  ticket_no TEXT NOT NULL DEFAULT '',
+  user_name TEXT NOT NULL DEFAULT 'Student',
+  user_email TEXT NOT NULL DEFAULT '',
   subject TEXT NOT NULL,
-  category TEXT NOT NULL DEFAULT 'Admissions',
-  priority TEXT NOT NULL DEFAULT 'Normal' CHECK (priority IN ('Low', 'Normal', 'High', 'Urgent')),
+  description TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT 'General Query',
+  priority TEXT NOT NULL DEFAULT 'Medium' CHECK (priority IN ('Low', 'Normal', 'Medium', 'High', 'Urgent')),
   status TEXT NOT NULL DEFAULT 'Open' CHECK (status IN ('Open', 'In Progress', 'Resolved', 'Closed')),
   assigned_to UUID REFERENCES public.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Ticket Replies (Used by API)
+CREATE TABLE public.ticket_replies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id UUID NOT NULL REFERENCES public.support_tickets(id) ON DELETE CASCADE,
+  sender_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  sender_name TEXT NOT NULL DEFAULT 'Admin',
+  message TEXT NOT NULL,
+  is_staff BOOLEAN NOT NULL DEFAULT false,
+  sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Ticket Messages (Alias / Realtime table)
 CREATE TABLE public.ticket_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ticket_id UUID NOT NULL REFERENCES public.support_tickets(id) ON DELETE CASCADE,
   sender_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  sender_name TEXT NOT NULL,
+  sender_name TEXT NOT NULL DEFAULT 'Student',
   sender_role TEXT NOT NULL DEFAULT 'student',
   message TEXT NOT NULL,
   attachment_url TEXT DEFAULT '',
@@ -351,11 +417,15 @@ CREATE TABLE public.ticket_messages (
 -- Notifications
 CREATE TABLE public.notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
-  message TEXT NOT NULL,
-  type TEXT NOT NULL DEFAULT 'info' CHECK (type IN ('info', 'success', 'warning', 'urgent')),
+  body TEXT DEFAULT '',
+  message TEXT DEFAULT '',
+  category TEXT DEFAULT 'Support',
+  type TEXT DEFAULT 'info',
+  is_read BOOLEAN NOT NULL DEFAULT false,
   read BOOLEAN NOT NULL DEFAULT false,
+  link TEXT DEFAULT '',
   action_url TEXT DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -363,14 +433,21 @@ CREATE TABLE public.notifications (
 -- Meetings & Consultations
 CREATE TABLE public.meetings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  host_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  advisor_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  host_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   participant_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  title TEXT NOT NULL,
+  subject TEXT NOT NULL DEFAULT 'Advisory Session',
+  title TEXT NOT NULL DEFAULT 'Advisory Session',
+  advisor_name TEXT NOT NULL DEFAULT 'Academic Counselor',
+  scheduled_date TEXT NOT NULL DEFAULT '',
+  start_time TEXT NOT NULL DEFAULT '10:00 AM',
+  end_time TEXT NOT NULL DEFAULT '10:45 AM',
+  meeting_link TEXT DEFAULT 'https://meet.google.com/fer-exed-app',
+  meet_link TEXT DEFAULT 'https://meet.google.com/fer-exed-app',
+  notes TEXT DEFAULT '',
   description TEXT DEFAULT '',
-  start_time TIMESTAMPTZ NOT NULL,
-  end_time TIMESTAMPTZ NOT NULL,
-  meet_link TEXT DEFAULT 'https://meet.google.com/fer-ex-edu',
-  status TEXT NOT NULL DEFAULT 'Scheduled' CHECK (status IN ('Scheduled', 'Completed', 'Cancelled')),
+  status TEXT NOT NULL DEFAULT 'Scheduled' CHECK (status IN ('Scheduled', 'Completed', 'Cancelled', 'Rescheduled', 'Confirmed')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -408,10 +485,9 @@ CREATE TABLE public.digital_clients (
   contact_person TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT DEFAULT '',
-  industry TEXT DEFAULT 'Software & AI',
-  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Lead', 'Archived', 'On Hold')),
-  website TEXT DEFAULT '',
-  address TEXT DEFAULT '',
+  industry TEXT DEFAULT 'Technology',
+  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Lead', 'Active', 'On Hold', 'Completed', 'Archived')),
+  total_revenue NUMERIC(12, 2) DEFAULT 0.00,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -419,54 +495,46 @@ CREATE TABLE public.digital_clients (
 CREATE TABLE public.digital_projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id UUID REFERENCES public.digital_clients(id) ON DELETE SET NULL,
-  name TEXT NOT NULL,
-  description TEXT DEFAULT '',
-  service_type TEXT NOT NULL DEFAULT 'Web Application' CHECK (
-    service_type IN ('Web Application', 'Mobile App', 'AI & Cloud Infrastructure', 'Brand Identity', 'SEO & Growth')
+  title TEXT NOT NULL,
+  service_category TEXT NOT NULL CHECK (
+    service_category IN ('Web & App Development', 'UI/UX Design', 'Digital Marketing', 'SEO & Performance', 'Branding & Identity', 'Cloud Infrastructure')
   ),
-  status TEXT NOT NULL DEFAULT 'In Progress' CHECK (
-    status IN ('Planning', 'In Progress', 'Testing & Review', 'Completed', 'On Hold')
-  ),
-  progress INTEGER NOT NULL DEFAULT 0 CHECK (progress BETWEEN 0 AND 100),
-  start_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  due_date DATE,
-  budget NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  currency TEXT NOT NULL DEFAULT 'INR',
-  pm_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  deliverables JSONB DEFAULT '[]'::jsonb,
+  status TEXT NOT NULL DEFAULT 'Planning' CHECK (status IN ('Lead', 'Planning', 'In Progress', 'In Review', 'Completed', 'Archived')),
+  budget NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  progress INTEGER NOT NULL DEFAULT 0,
+  start_date DATE,
+  deadline DATE,
+  lead_developer TEXT DEFAULT '',
+  notes TEXT DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE public.digital_tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID NOT NULL REFERENCES public.digital_projects(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT DEFAULT '',
+  project_id UUID REFERENCES public.digital_projects(id) ON DELETE CASCADE,
   assigned_to UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  status TEXT NOT NULL DEFAULT 'Todo' CHECK (status IN ('Todo', 'In Progress', 'In Review', 'Done')),
-  priority TEXT NOT NULL DEFAULT 'Medium' CHECK (priority IN ('Low', 'Medium', 'High', 'Urgent')),
+  title TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'Medium' CHECK (priority IN ('Low', 'Medium', 'High', 'Critical')),
+  status TEXT NOT NULL DEFAULT 'To Do' CHECK (status IN ('To Do', 'In Progress', 'In Review', 'Done')),
   due_date DATE,
-  estimated_hours NUMERIC(5, 2) DEFAULT 8.0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE public.digital_invoices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID REFERENCES public.digital_projects(id) ON DELETE SET NULL,
   client_id UUID REFERENCES public.digital_clients(id) ON DELETE SET NULL,
+  project_id UUID REFERENCES public.digital_projects(id) ON DELETE SET NULL,
   invoice_no TEXT NOT NULL UNIQUE,
-  description TEXT NOT NULL,
-  total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  amount NUMERIC(12, 2) NOT NULL,
+  tax_amount NUMERIC(12, 2) DEFAULT 0.00,
   currency TEXT NOT NULL DEFAULT 'INR',
   status TEXT NOT NULL DEFAULT 'Draft' CHECK (status IN ('Draft', 'Sent', 'Paid', 'Overdue', 'Cancelled')),
-  due_date DATE NOT NULL DEFAULT (CURRENT_DATE + INTERVAL '14 days'),
+  due_date DATE,
+  issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   paid_at TIMESTAMPTZ,
-  line_items JSONB DEFAULT '[]'::jsonb,
-  pdf_url TEXT DEFAULT '',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE public.digital_deliverables (
@@ -475,10 +543,8 @@ CREATE TABLE public.digital_deliverables (
   title TEXT NOT NULL,
   file_url TEXT NOT NULL,
   version TEXT DEFAULT 'v1.0',
-  status TEXT NOT NULL DEFAULT 'Under Review' CHECK (status IN ('Draft', 'Under Review', 'Approved', 'Rejected')),
-  reviewer_notes TEXT DEFAULT '',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  approved_by_client BOOLEAN DEFAULT false,
+  uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -493,8 +559,8 @@ CREATE TABLE public.trade_clients (
   phone TEXT DEFAULT '',
   country TEXT NOT NULL,
   city TEXT DEFAULT '',
-  tax_id TEXT DEFAULT '',
   payment_terms TEXT DEFAULT 'LC 60 Days',
+  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Prospect', 'Active', 'Suspended', 'Archived')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -502,18 +568,21 @@ CREATE TABLE public.trade_clients (
 CREATE TABLE public.trade_shipments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id UUID REFERENCES public.trade_clients(id) ON DELETE SET NULL,
-  tracking_no TEXT NOT NULL UNIQUE,
+  shipment_no TEXT NOT NULL UNIQUE,
+  commodity TEXT NOT NULL,
   origin_port TEXT NOT NULL,
   destination_port TEXT NOT NULL,
-  vessel_name TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'Draft' CHECK (
-    status IN ('Draft', 'Customs Clearance', 'Loaded on Board', 'In Transit', 'Customs Destination', 'Delivered', 'On Hold')
+  carrier_vessel TEXT DEFAULT '',
+  container_count INTEGER DEFAULT 1,
+  bill_of_lading_no TEXT DEFAULT '',
+  incoterm TEXT NOT NULL DEFAULT 'FOB' CHECK (incoterm IN ('FOB', 'CIF', 'CFR', 'EXW', 'DDP', 'FCA')),
+  shipment_status TEXT NOT NULL DEFAULT 'Booked' CHECK (
+    shipment_status IN ('Booked', 'Customs Clearance Origin', 'Loaded On Vessel', 'In Transit', 'Arrived Port', 'Customs Destination', 'Delivered', 'Held')
   ),
-  etd DATE NOT NULL DEFAULT CURRENT_DATE,
-  eta DATE NOT NULL DEFAULT (CURRENT_DATE + INTERVAL '30 days'),
-  cargo_description TEXT NOT NULL,
-  total_weight_kg NUMERIC(10, 2) DEFAULT 0,
-  incoterms TEXT NOT NULL DEFAULT 'CIF' CHECK (incoterms IN ('CIF', 'FOB', 'EXW', 'DDP', 'CFR')),
+  etd DATE,
+  eta DATE,
+  cargo_value NUMERIC(14, 2) NOT NULL DEFAULT 0.00,
+  currency TEXT NOT NULL DEFAULT 'USD',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -522,14 +591,12 @@ CREATE TABLE public.trade_documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   shipment_id UUID NOT NULL REFERENCES public.trade_shipments(id) ON DELETE CASCADE,
   doc_type TEXT NOT NULL CHECK (
-    doc_type IN ('Bill of Lading', 'Commercial Invoice', 'Packing List', 'Certificate of Origin', 'Phytosanitary Cert', 'Customs Clearance')
+    doc_type IN ('Bill of Lading', 'Commercial Invoice', 'Packing List', 'Certificate of Origin', 'Phytosanitary Cert', 'Letter of Credit', 'Customs Declaration', 'Insurance')
   ),
-  document_no TEXT NOT NULL,
-  file_url TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'Draft' CHECK (status IN ('Draft', 'Approved', 'Submitted to Customs', 'Rejected')),
-  issued_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  document_name TEXT NOT NULL,
+  document_url TEXT NOT NULL,
+  is_verified BOOLEAN DEFAULT false,
+  uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE public.trade_invoices (
@@ -537,31 +604,30 @@ CREATE TABLE public.trade_invoices (
   shipment_id UUID REFERENCES public.trade_shipments(id) ON DELETE SET NULL,
   client_id UUID REFERENCES public.trade_clients(id) ON DELETE SET NULL,
   invoice_no TEXT NOT NULL UNIQUE,
-  amount NUMERIC(14, 2) NOT NULL DEFAULT 0,
-  currency TEXT NOT NULL DEFAULT 'EUR' CHECK (currency IN ('EUR', 'USD', 'INR', 'GBP')),
-  payment_status TEXT NOT NULL DEFAULT 'Pending' CHECK (payment_status IN ('Pending', 'LC Confirmed', 'Paid', 'Overdue')),
-  due_date DATE NOT NULL DEFAULT (CURRENT_DATE + INTERVAL '30 days'),
-  payment_method TEXT DEFAULT 'Letter of Credit (LC)',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  amount NUMERIC(14, 2) NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  payment_status TEXT NOT NULL DEFAULT 'Pending' CHECK (payment_status IN ('Pending', 'LC Verified', 'Paid', 'Overdue', 'Disputed')),
+  due_date DATE,
+  issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  paid_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- STEP 6: 4. RIMI FOODS & DISTRIBUTION ERP
+-- STEP 6: 4. RIMI FROZEN FOODS DISTRIBUTION ERP
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE public.rimi_distributors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  type TEXT NOT NULL DEFAULT 'Distributor' CHECK (type IN ('Distributor', 'Wholesaler', 'Retail Chain', 'Supermarket')),
+  business_name TEXT NOT NULL,
   contact_person TEXT NOT NULL,
-  phone TEXT NOT NULL,
-  email TEXT NOT NULL,
+  tier TEXT NOT NULL DEFAULT 'Retailer' CHECK (tier IN ('Distributor', 'Wholesaler', 'Retailer', 'HORECA Partner')),
   territory TEXT NOT NULL,
-  address TEXT DEFAULT '',
-  credit_limit NUMERIC(12, 2) DEFAULT 500000,
-  current_balance NUMERIC(12, 2) DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Suspended', 'Credit Block')),
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  credit_limit NUMERIC(12, 2) DEFAULT 100000.00,
+  outstanding_balance NUMERIC(12, 2) DEFAULT 0.00,
+  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'On Hold', 'Inactive')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -570,11 +636,11 @@ CREATE TABLE public.rimi_products (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sku TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('Frozen Seafood', 'Frozen Meat & Poultry', 'Frozen Vegetables', 'Processed Food', 'Dairy')),
-  unit TEXT NOT NULL DEFAULT 'KG' CHECK (unit IN ('KG', 'Box', 'Pallet', 'Pack', 'Tonne')),
-  unit_price NUMERIC(10, 2) NOT NULL DEFAULT 0,
-  storage_temp TEXT DEFAULT '-18°C',
-  min_stock_alert INTEGER DEFAULT 100,
+  category TEXT NOT NULL CHECK (category IN ('Frozen Seafood', 'Frozen Meat & Poultry', 'Frozen Vegetables', 'Processed Food', 'Ice Cream & Dairy')),
+  unit TEXT NOT NULL DEFAULT 'KG' CHECK (unit IN ('KG', 'Box', 'Pack', 'Case', 'Ton')),
+  unit_price NUMERIC(10, 2) NOT NULL,
+  storage_temp TEXT NOT NULL DEFAULT '-18°C',
+  min_stock_alert INTEGER DEFAULT 50,
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -584,13 +650,10 @@ CREATE TABLE public.rimi_inventory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id UUID NOT NULL REFERENCES public.rimi_products(id) ON DELETE CASCADE,
   batch_number TEXT NOT NULL,
-  quantity NUMERIC(10, 2) NOT NULL DEFAULT 0,
-  mfg_date DATE NOT NULL DEFAULT (CURRENT_DATE - INTERVAL '10 days'),
-  expiry_date DATE NOT NULL DEFAULT (CURRENT_DATE + INTERVAL '180 days'),
-  warehouse_location TEXT NOT NULL DEFAULT 'Central Cold Storage #1',
-  cold_room_no TEXT DEFAULT 'Room-A (-20°C)',
-  status TEXT NOT NULL DEFAULT 'Good' CHECK (status IN ('Good', 'Near Expiry', 'Expired', 'Quarantined')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  warehouse_location TEXT NOT NULL DEFAULT 'Cold Storage 1 (Chennai)',
+  quantity_on_hand NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+  production_date DATE,
+  expiry_date DATE NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -598,13 +661,12 @@ CREATE TABLE public.rimi_sales_orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   distributor_id UUID NOT NULL REFERENCES public.rimi_distributors(id) ON DELETE CASCADE,
   order_no TEXT NOT NULL UNIQUE,
-  order_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  delivery_date DATE,
-  total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'Pending' CHECK (
-    status IN ('Pending', 'Processing', 'Dispatched', 'Delivered & Paid', 'Cancelled')
+  total_amount NUMERIC(12, 2) NOT NULL,
+  order_status TEXT NOT NULL DEFAULT 'Received' CHECK (
+    order_status IN ('Received', 'Confirmed', 'Cold Storage Picking', 'Dispatched', 'Delivered', 'Cancelled')
   ),
-  payment_status TEXT NOT NULL DEFAULT 'Unpaid' CHECK (payment_status IN ('Unpaid', 'Partial', 'Paid', 'Credit')),
+  delivery_date DATE,
+  payment_status TEXT NOT NULL DEFAULT 'Unpaid' CHECK (payment_status IN ('Unpaid', 'Partial', 'Paid')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -615,9 +677,7 @@ CREATE TABLE public.rimi_order_items (
   product_id UUID NOT NULL REFERENCES public.rimi_products(id) ON DELETE RESTRICT,
   quantity NUMERIC(10, 2) NOT NULL,
   unit_price NUMERIC(10, 2) NOT NULL,
-  total_price NUMERIC(12, 2) NOT NULL,
-  batch_id UUID REFERENCES public.rimi_inventory(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  total_line_amount NUMERIC(12, 2) NOT NULL
 );
 
 CREATE TABLE public.rimi_deliveries (
@@ -626,12 +686,10 @@ CREATE TABLE public.rimi_deliveries (
   vehicle_no TEXT NOT NULL,
   driver_name TEXT NOT NULL,
   driver_phone TEXT DEFAULT '',
-  route_name TEXT NOT NULL,
-  dispatch_time TIMESTAMPTZ DEFAULT NOW(),
-  delivery_time TIMESTAMPTZ,
-  status TEXT NOT NULL DEFAULT 'In Transit' CHECK (status IN ('Dispatched', 'In Transit', 'Delivered', 'Returned')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  departure_temp TEXT DEFAULT '-18.5°C',
+  delivery_status TEXT NOT NULL DEFAULT 'Assigned' CHECK (delivery_status IN ('Assigned', 'In Transit', 'Delivered', 'Returned')),
+  delivered_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE public.rimi_payments (
@@ -639,53 +697,28 @@ CREATE TABLE public.rimi_payments (
   distributor_id UUID NOT NULL REFERENCES public.rimi_distributors(id) ON DELETE CASCADE,
   order_id UUID REFERENCES public.rimi_sales_orders(id) ON DELETE SET NULL,
   amount NUMERIC(12, 2) NOT NULL,
-  payment_method TEXT NOT NULL DEFAULT 'Bank Transfer' CHECK (payment_method IN ('Bank Transfer', 'Cheque', 'Cash', 'UPI')),
-  ref_no TEXT DEFAULT '',
-  collected_by TEXT DEFAULT 'Accounts',
-  status TEXT NOT NULL DEFAULT 'Received' CHECK (status IN ('Pending Clearance', 'Received', 'Bounced')),
+  payment_method TEXT NOT NULL DEFAULT 'Bank Transfer',
+  reference_no TEXT DEFAULT '',
+  payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- STEP 7: CENTRAL SUPER ADMIN AUDIT LOGS & ENTERPRISE OVERVIEW
+-- STEP 7: 5. CENTRAL SUPER ADMIN AUDIT & DASHBOARD
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE public.central_audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  user_email TEXT NOT NULL,
+  actor_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  actor_name TEXT NOT NULL DEFAULT 'Super Admin',
+  actor_role TEXT NOT NULL DEFAULT 'superadmin',
   action TEXT NOT NULL,
-  entity_type TEXT NOT NULL,
-  entity_id TEXT DEFAULT '',
-  details JSONB DEFAULT '{}'::jsonb,
+  target_entity TEXT NOT NULL,
+  target_id TEXT,
+  payload JSONB DEFAULT '{}'::jsonb,
   ip_address TEXT DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Central Overview Analytics View
-CREATE OR REPLACE VIEW public.central_enterprise_overview AS
-SELECT
-  (SELECT COUNT(*) FROM public.users WHERE role = 'student') AS education_students_total,
-  (SELECT COUNT(*) FROM public.applications) AS education_applications_total,
-  (SELECT COALESCE(SUM(amount), 0) FROM public.payments WHERE status IN ('Paid', 'Verified')) AS education_revenue_inr,
-  (SELECT COUNT(*) FROM public.digital_clients WHERE status = 'Active') AS digital_active_clients,
-  (SELECT COUNT(*) FROM public.digital_projects WHERE status = 'In Progress') AS digital_running_projects,
-  (SELECT COALESCE(SUM(total_amount), 0) FROM public.digital_invoices WHERE status = 'Paid') AS digital_revenue_inr,
-  (SELECT COUNT(*) FROM public.trade_shipments WHERE status = 'In Transit') AS trade_active_shipments,
-  (SELECT COALESCE(SUM(amount), 0) FROM public.trade_invoices WHERE payment_status = 'Paid') AS trade_revenue_eur,
-  (SELECT COUNT(*) FROM public.rimi_sales_orders WHERE status != 'Cancelled') AS rimi_total_orders,
-  (SELECT COALESCE(SUM(total_amount), 0) FROM public.rimi_sales_orders WHERE status = 'Delivered & Paid') AS rimi_revenue_inr,
-  (SELECT COUNT(*) FROM public.users WHERE role NOT IN ('student')) AS staff_count_total;
-
-CREATE OR REPLACE FUNCTION public.get_central_dashboard_metrics()
-RETURNS JSONB AS $$
-DECLARE
-  result JSONB;
-BEGIN
-  SELECT row_to_json(ceo)::jsonb INTO result FROM public.central_enterprise_overview ceo;
-  RETURN result;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- STEP 8: ROW LEVEL SECURITY (RLS) POLICIES
@@ -693,6 +726,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Enable RLS across all tables
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.universities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.offer_letters ENABLE ROW LEVEL SECURITY;
@@ -700,9 +734,12 @@ ALTER TABLE public.final_acceptance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.receipts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.credit_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.visa_applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pre_departure_checklists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ticket_replies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ticket_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.meetings ENABLE ROW LEVEL SECURITY;
@@ -726,15 +763,13 @@ ALTER TABLE public.rimi_deliveries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rimi_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.central_audit_logs ENABLE ROW LEVEL SECURITY;
 
--- 1. Users policies:
-CREATE POLICY "superadmin_all_users" ON public.users FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin'))
-) WITH CHECK (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin'))
-);
+-- 1. Users policies (NO RECURSION using SECURITY DEFINER public.get_auth_user_role)
+CREATE POLICY "users_read_all" ON public.users FOR SELECT TO authenticated, anon USING (true);
 
-CREATE POLICY "users_own_profile" ON public.users FOR SELECT TO authenticated USING (
-  id = auth.uid()
+CREATE POLICY "superadmin_manage_users" ON public.users FOR ALL TO authenticated USING (
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin')
+) WITH CHECK (
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin')
 );
 
 CREATE POLICY "users_update_own_profile" ON public.users FOR UPDATE TO authenticated USING (
@@ -743,152 +778,176 @@ CREATE POLICY "users_update_own_profile" ON public.users FOR UPDATE TO authentic
   id = auth.uid()
 );
 
-CREATE POLICY "users_insert_service_or_self" ON public.users FOR INSERT TO authenticated WITH CHECK (
-  id = auth.uid() OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central'))
+CREATE POLICY "users_insert_service_or_self" ON public.users FOR INSERT TO authenticated, anon WITH CHECK (
+  true
 );
 
--- 2. Universities: Read by all authenticated / anon; Managed by Super Admin & Education Admin
+-- System config
+CREATE POLICY "system_config_read" ON public.system_config FOR SELECT TO authenticated, anon USING (true);
+CREATE POLICY "system_config_manage" ON public.system_config FOR ALL TO authenticated USING (
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin')
+);
+
+-- 2. Universities
 CREATE POLICY "universities_read_all" ON public.universities FOR SELECT TO authenticated, anon USING (true);
 CREATE POLICY "universities_manage_admin" ON public.universities FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin')
 );
 
--- 3. Applications: Student manages own; Super Admin & Education Admin manage all
+-- 3. Applications
 CREATE POLICY "applications_admin_all" ON public.applications FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff', 'counselor'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff', 'counselor')
 );
 CREATE POLICY "applications_student_select" ON public.applications FOR SELECT TO authenticated USING (student_id = auth.uid());
 CREATE POLICY "applications_student_insert" ON public.applications FOR INSERT TO authenticated WITH CHECK (student_id = auth.uid());
+CREATE POLICY "applications_student_update" ON public.applications FOR UPDATE TO authenticated USING (student_id = auth.uid());
 
--- 4. Offer & Acceptance Letters:
+-- 4. Letters
 CREATE POLICY "letters_admin_all" ON public.offer_letters FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff')
 );
 CREATE POLICY "letters_student_select" ON public.offer_letters FOR SELECT TO authenticated USING (student_id = auth.uid());
 
 CREATE POLICY "final_acceptance_admin_all" ON public.final_acceptance FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff')
 );
 CREATE POLICY "final_acceptance_student_select" ON public.final_acceptance FOR SELECT TO authenticated USING (student_id = auth.uid());
 
--- 5. Student Documents:
+-- 5. Student Documents
 CREATE POLICY "documents_admin_all" ON public.student_documents FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff')
 );
-CREATE POLICY "documents_student_access" ON public.student_documents FOR ALL TO authenticated USING (student_id = auth.uid()) WITH CHECK (student_id = auth.uid());
+CREATE POLICY "documents_student_access" ON public.student_documents FOR ALL TO authenticated USING (
+  student_id = auth.uid() OR student_id IS NULL
+) WITH CHECK (
+  student_id = auth.uid() OR student_id IS NULL
+);
 
--- 6. Payments & Invoices:
+-- 6. Payments, Invoices, Receipts, Credit Notes
 CREATE POLICY "payments_admin_all" ON public.payments FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin')
 );
-CREATE POLICY "payments_student_access" ON public.payments FOR SELECT TO authenticated USING (student_id = auth.uid());
+CREATE POLICY "payments_student_access" ON public.payments FOR ALL TO authenticated USING (student_id = auth.uid());
 
 CREATE POLICY "invoices_admin_all" ON public.invoices FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin')
 );
 CREATE POLICY "invoices_student_access" ON public.invoices FOR SELECT TO authenticated USING (student_id = auth.uid());
 
--- 7. Visa Applications & Checklists:
+CREATE POLICY "receipts_admin_all" ON public.receipts FOR ALL TO authenticated USING (
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin')
+);
+CREATE POLICY "receipts_student_access" ON public.receipts FOR SELECT TO authenticated USING (student_id = auth.uid());
+
+CREATE POLICY "credit_notes_admin_all" ON public.credit_notes FOR ALL TO authenticated USING (
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin')
+);
+CREATE POLICY "credit_notes_student_access" ON public.credit_notes FOR SELECT TO authenticated USING (student_id = auth.uid());
+
+-- 7. Visa & Checklists
 CREATE POLICY "visa_admin_all" ON public.visa_applications FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff')
 );
 CREATE POLICY "visa_student_access" ON public.visa_applications FOR SELECT TO authenticated USING (student_id = auth.uid());
 
 CREATE POLICY "checklists_admin_all" ON public.pre_departure_checklists FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff')
 );
 CREATE POLICY "checklists_student_access" ON public.pre_departure_checklists FOR ALL TO authenticated USING (student_id = auth.uid()) WITH CHECK (student_id = auth.uid());
 
--- 8. Support Tickets & Messages:
+-- 8. Support Tickets & Replies
 CREATE POLICY "tickets_admin_all" ON public.support_tickets FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff')
 );
-CREATE POLICY "tickets_student_access" ON public.support_tickets FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "ticket_msgs_all" ON public.ticket_messages FOR ALL TO authenticated USING (
-  EXISTS (
-    SELECT 1 FROM public.support_tickets t
-    WHERE t.id = ticket_messages.ticket_id
-      AND (t.user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff')))
-  )
+CREATE POLICY "tickets_student_access" ON public.support_tickets FOR ALL TO authenticated USING (
+  student_id = auth.uid() OR user_id = auth.uid() OR student_id IS NULL OR user_id IS NULL
+) WITH CHECK (
+  student_id = auth.uid() OR user_id = auth.uid() OR student_id IS NULL OR user_id IS NULL
 );
 
--- 9. Notifications, Meetings, Chats:
-CREATE POLICY "notifications_user_own" ON public.notifications FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+CREATE POLICY "ticket_replies_all" ON public.ticket_replies FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "ticket_msgs_all" ON public.ticket_messages FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-CREATE POLICY "meetings_user_own" ON public.meetings FOR ALL TO authenticated USING (
-  host_id = auth.uid() OR participant_id = auth.uid() OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central'))
+-- 9. Notifications, Meetings, Chats
+CREATE POLICY "notifications_all" ON public.notifications FOR ALL TO authenticated USING (
+  user_id = auth.uid() OR user_id IS NULL OR public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff')
+) WITH CHECK (
+  true
+);
+
+CREATE POLICY "meetings_all" ON public.meetings FOR ALL TO authenticated USING (
+  student_id = auth.uid() OR host_id = auth.uid() OR participant_id = auth.uid() OR student_id IS NULL OR public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff')
+) WITH CHECK (
+  true
 );
 
 CREATE POLICY "chat_conv_access" ON public.chat_conversations FOR ALL TO authenticated USING (
-  student_id = auth.uid() OR counselor_id = auth.uid() OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'staff'))
+  student_id = auth.uid() OR counselor_id = auth.uid() OR public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'staff')
 );
 
 CREATE POLICY "chat_msg_access" ON public.chat_messages FOR ALL TO authenticated USING (
-  EXISTS (
-    SELECT 1 FROM public.chat_conversations c
-    WHERE c.id = chat_messages.conversation_id
-      AND (c.student_id = auth.uid() OR c.counselor_id = auth.uid() OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'admin', 'staff')))
-  )
+  true
+) WITH CHECK (
+  true
 );
 
--- 10. DIGITAL SOLUTIONS AGENCY POLICIES:
+-- 10. DIGITAL SOLUTIONS AGENCY POLICIES
 CREATE POLICY "digital_clients_all" ON public.digital_clients FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'digital', 'digital_admin', 'ferex_digital'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'digital', 'digital_admin', 'ferex_digital')
 );
 CREATE POLICY "digital_projects_all" ON public.digital_projects FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'digital', 'digital_admin', 'ferex_digital'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'digital', 'digital_admin', 'ferex_digital')
 );
 CREATE POLICY "digital_tasks_all" ON public.digital_tasks FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'digital', 'digital_admin', 'ferex_digital'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'digital', 'digital_admin', 'ferex_digital')
 );
 CREATE POLICY "digital_invoices_all" ON public.digital_invoices FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'digital', 'digital_admin', 'ferex_digital'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'digital', 'digital_admin', 'ferex_digital')
 );
 CREATE POLICY "digital_deliverables_all" ON public.digital_deliverables FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'digital', 'digital_admin', 'ferex_digital'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'digital', 'digital_admin', 'ferex_digital')
 );
 
--- 11. GLOBAL TRADE ERP POLICIES:
+-- 11. GLOBAL TRADE ERP POLICIES
 CREATE POLICY "trade_clients_all" ON public.trade_clients FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'trade', 'trade_admin', 'global_trade'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'trade', 'trade_admin', 'global_trade')
 );
 CREATE POLICY "trade_shipments_all" ON public.trade_shipments FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'trade', 'trade_admin', 'global_trade'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'trade', 'trade_admin', 'global_trade')
 );
 CREATE POLICY "trade_documents_all" ON public.trade_documents FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'trade', 'trade_admin', 'global_trade'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'trade', 'trade_admin', 'global_trade')
 );
 CREATE POLICY "trade_invoices_all" ON public.trade_invoices FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'trade', 'trade_admin', 'global_trade'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'trade', 'trade_admin', 'global_trade')
 );
 
--- 12. RIMI DISTRIBUTION ERP POLICIES:
+-- 12. RIMI DISTRIBUTION ERP POLICIES
 CREATE POLICY "rimi_distributors_all" ON public.rimi_distributors FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen')
 );
 CREATE POLICY "rimi_products_all" ON public.rimi_products FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen')
 );
 CREATE POLICY "rimi_inventory_all" ON public.rimi_inventory FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen')
 );
 CREATE POLICY "rimi_orders_all" ON public.rimi_sales_orders FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen')
 );
 CREATE POLICY "rimi_order_items_all" ON public.rimi_order_items FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen')
 );
 CREATE POLICY "rimi_deliveries_all" ON public.rimi_deliveries FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen')
 );
 CREATE POLICY "rimi_payments_all" ON public.rimi_payments FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen')
 );
 
--- 13. AUDIT LOGS:
+-- 13. AUDIT LOGS
 CREATE POLICY "audit_logs_superadmin" ON public.central_audit_logs FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('superadmin', 'super_admin', 'central'))
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central')
 );
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -896,14 +955,14 @@ CREATE POLICY "audit_logs_superadmin" ON public.central_audit_logs FOR ALL TO au
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Seed Universities
-INSERT INTO public.universities (name, country, city, ranking, rating, programs, tuition_range) VALUES
-('University of Warsaw', 'Poland', 'Warsaw', 1, 4.9, ARRAY['Computer Science', 'Data Science', 'International Business', 'Medicine'], '€3,500 - €5,200 / yr'),
-('Warsaw University of Technology', 'Poland', 'Warsaw', 2, 4.8, ARRAY['Robotics', 'Civil Engineering', 'Software Systems', 'Architecture'], '€3,200 - €4,800 / yr'),
-('Jagiellonian University', 'Poland', 'Krakow', 3, 4.9, ARRAY['Biotechnology', 'Law & Governance', 'European Studies'], '€3,800 - €5,500 / yr'),
-('Wroclaw University of Science and Technology', 'Poland', 'Wroclaw', 4, 4.7, ARRAY['AI & Automation', 'Mechanical Engineering', 'Cybersecurity'], '€3,000 - €4,500 / yr'),
-('Poznan University of Economics and Business', 'Poland', 'Poznan', 5, 4.6, ARRAY['Finance & Accounting', 'Global Supply Chain', 'Digital Marketing'], '€2,800 - €4,200 / yr'),
-('Technical University of Munich (TUM)', 'Germany', 'Munich', 10, 4.9, ARRAY['Informatics', 'Aerospace Engineering', 'Management'], '€0 - €1,500 / semester'),
-('University of Amsterdam', 'Netherlands', 'Amsterdam', 18, 4.8, ARRAY['Economics', 'Artificial Intelligence', 'Media Studies'], '€9,000 - €14,000 / yr')
+INSERT INTO public.universities (name, country, city, ranking, rating, programs, tuition_range, university_fee, vfs_fee, agency_fee) VALUES
+('University of Warsaw', 'Poland', 'Warsaw', 1, 4.9, ARRAY['Computer Science', 'Data Science', 'International Business', 'Medicine'], '€3,500 - €5,200 / yr', '€3,500', '₹15,000', '₹25,000'),
+('Warsaw University of Technology', 'Poland', 'Warsaw', 2, 4.8, ARRAY['Robotics', 'Civil Engineering', 'Software Systems', 'Architecture'], '€3,200 - €4,800 / yr', '€3,200', '₹15,000', '₹25,000'),
+('Jagiellonian University', 'Poland', 'Krakow', 3, 4.9, ARRAY['Biotechnology', 'Law & Governance', 'European Studies'], '€3,800 - €5,500 / yr', '€3,800', '₹15,000', '₹25,000'),
+('Wroclaw University of Science and Technology', 'Poland', 'Wroclaw', 4, 4.7, ARRAY['AI & Automation', 'Mechanical Engineering', 'Cybersecurity'], '€3,000 - €4,500 / yr', '€3,000', '₹15,000', '₹25,000'),
+('Poznan University of Economics and Business', 'Poland', 'Poznan', 5, 4.6, ARRAY['Finance & Accounting', 'Global Supply Chain', 'Digital Marketing'], '€2,800 - €4,200 / yr', '€2,800', '₹15,000', '₹25,000'),
+('Technical University of Munich (TUM)', 'Germany', 'Munich', 10, 4.9, ARRAY['Informatics', 'Aerospace Engineering', 'Management'], '€0 - €1,500 / semester', '€1,500', '₹15,000', '₹25,000'),
+('University of Amsterdam', 'Netherlands', 'Amsterdam', 18, 4.8, ARRAY['Economics', 'Artificial Intelligence', 'Media Studies'], '€9,000 - €14,000 / yr', '€9,000', '₹15,000', '₹25,000')
 ON CONFLICT DO NOTHING;
 
 -- Seed Rimi Products
@@ -916,7 +975,7 @@ INSERT INTO public.rimi_products (sku, name, category, unit, unit_price, storage
 ('RIMI-PRC-301', 'Crispy Frozen French Fries 2.5kg', 'Processed Food', 'Pack', 450.00, '-18°C', 300)
 ON CONFLICT DO NOTHING;
 
--- Seed Digital Sample Clients & Projects
+-- Seed Digital Sample Clients
 INSERT INTO public.digital_clients (company_name, contact_person, email, phone, industry, status) VALUES
 ('Nexis Cloud Corp', 'Robert Vance', 'robert@nexiscloud.io', '+1 415 892 0122', 'Software & AI', 'Active'),
 ('OmniRetail Global', 'Elena Rostova', 'elena@omniretail.de', '+49 30 9182 3901', 'E-Commerce', 'Active'),
@@ -936,13 +995,17 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO storage.buckets (id, name, public)
 VALUES 
-  ('avatars', 'avatars', true),
+  ('student-documents', 'student-documents', true),
   ('documents', 'documents', true),
-  ('invoices', 'invoices', true),
+  ('offer-letters', 'offer-letters', true),
   ('receipts', 'receipts', true),
+  ('trade-documents', 'trade-documents', true),
   ('trade_docs', 'trade_docs', true),
+  ('digital-assets', 'digital-assets', true),
   ('digital_assets', 'digital_assets', true),
-  ('rimi_docs', 'rimi_docs', true)
+  ('rimi_docs', 'rimi_docs', true),
+  ('avatars', 'avatars', true),
+  ('invoices', 'invoices', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
 -- Storage object policies allowing authenticated uploads and public reads
@@ -950,10 +1013,10 @@ DROP POLICY IF EXISTS "Public Storage Access" ON storage.objects;
 CREATE POLICY "Public Storage Access" ON storage.objects FOR SELECT TO public USING (true);
 
 DROP POLICY IF EXISTS "Authenticated Uploads" ON storage.objects;
-CREATE POLICY "Authenticated Uploads" ON storage.objects FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Authenticated Uploads" ON storage.objects FOR INSERT TO public WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Authenticated Updates" ON storage.objects;
-CREATE POLICY "Authenticated Updates" ON storage.objects FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "Authenticated Updates" ON storage.objects FOR UPDATE TO public USING (true);
 
 DROP POLICY IF EXISTS "Authenticated Deletes" ON storage.objects;
-CREATE POLICY "Authenticated Deletes" ON storage.objects FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Authenticated Deletes" ON storage.objects FOR DELETE TO public USING (true);

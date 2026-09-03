@@ -45,12 +45,26 @@ export async function uploadFileToBucket(
       }
     }
 
-    const { error: uploadError } = await supabase.storage
+    let { error: uploadError } = await supabase.storage
       .from(bucket)
       .upload(filePath, fileOrBlob, {
         cacheControl: '3600',
         upsert: true,
       });
+
+    // If bucket not found, try fallback alternative bucket name
+    if (uploadError && (uploadError.message?.toLowerCase().includes('bucket') || uploadError.message?.toLowerCase().includes('not found'))) {
+      const fallbackBucket = bucket === 'student-documents' ? 'documents' :
+                             bucket === 'trade-documents' ? 'trade_docs' :
+                             bucket === 'digital-assets' ? 'digital_assets' : 'documents';
+      const retryRes = await supabase.storage
+        .from(fallbackBucket)
+        .upload(filePath, fileOrBlob, { cacheControl: '3600', upsert: true });
+      if (!retryRes.error) {
+        uploadError = null;
+        bucket = fallbackBucket as StorageBucketName;
+      }
+    }
 
     if (uploadError) {
       console.warn(`[Storage Upload Notice - ${bucket}]:`, uploadError.message);

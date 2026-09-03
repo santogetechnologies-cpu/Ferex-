@@ -242,14 +242,18 @@ export const AdminUniversities: React.FC = () => {
 
   // Filter logic
   const filtered = universities.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
-                          u.city.toLowerCase().includes(search.toLowerCase()) ||
-                          u.country.toLowerCase().includes(search.toLowerCase());
+    if (!u) return false;
+    const nameStr = (u.name || '').toLowerCase();
+    const cityStr = (u.city || '').toLowerCase();
+    const countryStr = (u.country || '').toLowerCase();
+    const q = search.toLowerCase().trim();
+
+    const matchesSearch = !q || nameStr.includes(q) || cityStr.includes(q) || countryStr.includes(q);
     const matchesCountry = countryFilter === 'All' || u.country === countryFilter;
     return matchesSearch && matchesCountry;
   });
 
-  const countriesList = Array.from(new Set(universities.map(u => u.country)));
+  const countriesList = Array.from(new Set(universities.map(u => u?.country).filter(Boolean)));
 
   return (
     <div className="space-y-6 relative text-left">

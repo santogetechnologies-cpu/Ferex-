@@ -93,11 +93,18 @@ export const Notifications: React.FC = () => {
     window.dispatchEvent(new Event('ferex_notification_change'));
   };
 
+  const getCatConfig = (cat?: string) => {
+    if (!cat) return CATEGORY_CONFIG['System'];
+    if (CATEGORY_CONFIG[cat]) return CATEGORY_CONFIG[cat];
+    const key = Object.keys(CATEGORY_CONFIG).find(k => k.toLowerCase() === cat.toLowerCase() || cat.toLowerCase().includes(k.toLowerCase()));
+    return key ? CATEGORY_CONFIG[key] : CATEGORY_CONFIG['System'];
+  };
+
   const handleNotificationClick = (n: Notification) => {
     if (!n.is_read) {
       handleMarkAsRead(n.id);
     }
-    const catConfig = CATEGORY_CONFIG[n.category || 'System'] || CATEGORY_CONFIG['System'];
+    const catConfig = getCatConfig(n.category);
     navigate(catConfig.route);
   };
 
@@ -106,8 +113,10 @@ export const Notifications: React.FC = () => {
     if (filter === 'Read' && !n.is_read) return false;
     if (categoryFilter !== 'All' && n.category !== categoryFilter) return false;
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q);
+      const q = searchQuery.toLowerCase().trim();
+      const titleStr = (n.title || '').toLowerCase();
+      const bodyStr = (n.body || (n as any).message || '').toLowerCase();
+      return titleStr.includes(q) || bodyStr.includes(q);
     }
     return true;
   });

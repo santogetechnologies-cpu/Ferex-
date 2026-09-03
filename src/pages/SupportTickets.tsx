@@ -68,26 +68,30 @@ export const SupportTickets: React.FC = () => {
   useEffect(() => {
     if (dbTickets.length > 0) {
       const mapped = dbTickets.map(t => {
+        const studentDisplayName = t.users?.full_name || (t.users?.email ? t.users.email.split('@')[0] : (t as any).user_name || profile?.full_name || 'Student');
+        const prio = (t.priority === 'Normal' ? 'Medium' : t.priority === 'Urgent' ? 'High' : t.priority || 'Medium') as TicketPriority;
+        const stat = (t.status || 'Open') as TicketStatus;
+
         return {
           id: t.id,
-          ticketNo: t.ticket_no,
-          studentId: t.student_id,
-          studentName: t.users?.full_name || t.users?.email?.split('@')[0] || 'Student',
-          subject: t.subject,
-          category: t.category,
-          priority: t.priority as TicketPriority,
-          status: t.status as TicketStatus,
-          assignee: t.assigned_to || 'Unassigned',
-          created: new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          ticketNo: t.ticket_no || `TC-${t.id.slice(0, 6).toUpperCase()}`,
+          studentId: t.student_id || (t as any).user_id || '',
+          studentName: studentDisplayName,
+          subject: t.subject || 'General Inquiry',
+          category: t.category || 'General Query',
+          priority: prio,
+          status: stat,
+          assignee: t.assigned_to || 'Admissions Counselor',
+          created: new Date(t.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           lastUpdate: 'Recently',
-          messages: [{ sender: t.users?.full_name || 'Student', text: t.description, time: 'Initial Request', self: false }],
+          messages: [{ sender: studentDisplayName, text: t.description || 'Initial Request Details', time: 'Initial Request', self: false }],
         };
       });
       setTickets(mapped);
     } else {
       setTickets([]);
     }
-  }, [dbTickets]);
+  }, [dbTickets, profile?.full_name]);
 
   // Sync replies when active ticket changes
   const activeTicket = tickets.find(t => t.id === selectedTicketId);

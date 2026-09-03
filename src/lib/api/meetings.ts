@@ -25,7 +25,7 @@ export function computeEndTime(startTime: string): string {
   return `${formattedHours}:${formattedMins} ${period.toUpperCase()}`;
 }
 
-export async function getMeetings(studentId?: string) {
+export async function getMeetings(studentId?: string): Promise<Meeting[]> {
   try {
     if (!studentId) return getAllMeetings();
 
@@ -34,9 +34,29 @@ export async function getMeetings(studentId?: string) {
       .select('*, users:student_id(full_name, email)')
       .eq('student_id', studentId);
 
-    if (error || !data) return [];
-    return data as Meeting[];
+    if (!error && data && data.length > 0) {
+      try {
+        localStorage.setItem(`ferex_meetings_${studentId}`, JSON.stringify(data));
+      } catch (e) {}
+      return data as Meeting[];
+    }
+
+    const local = localStorage.getItem(`ferex_meetings_${studentId}`);
+    if (local) {
+      try {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return [];
   } catch (err) {
+    const local = localStorage.getItem(`ferex_meetings_${studentId}`);
+    if (local) {
+      try {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
     return [];
   }
 }
@@ -46,10 +66,20 @@ export async function getAllMeetings(): Promise<Meeting[]> {
     const { data, error } = await supabase
       .from('meetings')
       .select('*, users:student_id(full_name, email)')
-      .order('scheduled_date', { ascending: true });
+      .order('created_at', { ascending: false });
 
-    if (error || !data) return [];
-    return data as Meeting[];
+    if (!error && data && data.length > 0) {
+      return data as Meeting[];
+    }
+
+    const local = localStorage.getItem('ferex_all_admin_meetings');
+    if (local) {
+      try {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return [];
   } catch {
     return [];
   }
