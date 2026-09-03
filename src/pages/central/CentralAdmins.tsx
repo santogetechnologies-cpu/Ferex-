@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ShieldCheck, Plus, Search, Mail, Trash2, X, CheckCircle2, Lock,
+  ShieldCheck, Plus, Search, Mail, Trash2, X, CheckCircle2,
   Key, GraduationCap, Globe, Snowflake, Monitor, Crown, Copy, ExternalLink, RefreshCw
 } from 'lucide-react';
 import { Card } from '../../components/Card';
@@ -374,7 +374,13 @@ export const CentralAdmins: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-              {filteredAdmins.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-slate-400 font-bold">
+                    Loading division administrators...
+                  </td>
+                </tr>
+              ) : filteredAdmins.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-slate-400 font-bold">
                     No division administrators match your criteria.

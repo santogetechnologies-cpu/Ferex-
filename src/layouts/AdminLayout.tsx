@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
-  CreditCard, Headphones, BarChart3, UserCog,
+  CreditCard, Headphones, BarChart3,
   Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane
 } from 'lucide-react';
 
