@@ -1,50 +1,80 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Award, Search, Download, Eye, ShieldCheck, CheckCircle2, X } from 'lucide-react';
+import { Award, Search, Download, Eye, ShieldCheck, CheckCircle2, X, Plus } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getTradeCertificates, createTradeCertificate } from '../../lib/api/trade';
+import { supabase } from '../../lib/supabase';
 
 export const TradeCertificates: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCert, setSelectedCert] = useState<any>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [certs, setCerts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [certs] = useState([
-    {
-      id: 'CRT-2026-901',
-      title: 'EU Certificate of Origin (Form A)',
-      authority: 'Chamber of Commerce Warsaw',
-      country: 'Poland 🇵🇱',
-      issueDate: 'Jul 10, 2026',
-      expiryDate: 'Jul 10, 2027',
-      status: 'Verified & Active',
+  const [newCert, setNewCert] = useState({
+    title: 'EU Certificate of Origin (Form A)',
+    authority: 'Chamber of Commerce Warsaw',
+    country: 'Poland 🇵🇱',
+    validity_months: 12
+  });
+
+  const loadData = React.useCallback(async () => {
+    setLoading(true);
+    const data = await getTradeCertificates();
+    const formatted = data.map((d: any) => ({
+      id: d.certificate_no || d.id,
+      rawId: d.id,
+      title: d.title,
+      authority: d.authority,
+      country: d.country || 'Poland 🇵🇱',
+      issueDate: d.issue_date || '2026-07-10',
+      expiryDate: d.expiry_date || '2027-07-10',
+      status: d.status || 'Verified & Active',
       statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 'CRT-2026-902',
-      title: 'Phytosanitary Export Inspection Certificate',
-      authority: 'Federal Ministry of Agriculture Berlin',
-      country: 'Germany 🇩🇪',
-      issueDate: 'Jul 22, 2026',
-      expiryDate: 'Jan 22, 2027',
-      status: 'Verified & Active',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 'CRT-2026-903',
-      title: 'ISO 9001:2025 International Quality Certificate',
-      authority: 'TÜV Rheinland International',
-      country: 'Germany 🇩🇪',
-      issueDate: 'Jan 15, 2026',
-      expiryDate: 'Jan 15, 2029',
-      status: 'Audit Passed',
-      statusBadge: 'bg-blue-50 text-blue-700 border-blue-200'
-    }
-  ]);
+    }));
+    setCerts(formatted);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+
+    const channel = supabase
+      .channel('realtime_trade_certs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_certificates' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    const handleLocalChange = () => loadData();
+    window.addEventListener('ferex_trade_certs_change', handleLocalChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_trade_certs_change', handleLocalChange);
+    };
+  }, [loadData]);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
+  };
+
+  const handleAddCert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const expiry = new Date(Date.now() + (newCert.validity_months * 30 * 86400000)).toISOString().split('T')[0];
+    const created = await createTradeCertificate({
+      title: newCert.title,
+      authority: newCert.authority,
+      country: newCert.country,
+      expiry_date: expiry,
+    });
+    await loadData();
+    setShowAddModal(false);
+    showToastMsg(`Registered Trade Certificate ${created.certificate_no || created.id}`);
   };
 
   const filteredCerts = certs.filter(c =>
@@ -73,6 +103,9 @@ export const TradeCertificates: React.FC = () => {
             Official Certificates of Origin, EUR.1 movement forms, Phytosanitary clearances, and ISO certifications.
           </p>
         </div>
+        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+          <Plus className="w-4 h-4 mr-1.5" /> Register Certificate
+        </Button>
       </div>
 
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
@@ -139,6 +172,42 @@ export const TradeCertificates: React.FC = () => {
                   Official Digital Stamp Verified by EU Trade Customs
                 </div>
               </div>
+            </motion.div>
+          </>
+        )}
+
+        {/* Register Certificate Modal */}
+        {showAddModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                <h3 className="text-sm font-black text-slate-900">Register Trade Certificate</h3>
+                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+              </div>
+              <form onSubmit={handleAddCert} className="space-y-3 text-left">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-500">Certificate Title</label>
+                  <input type="text" value={newCert.title} onChange={e => setNewCert({ ...newCert, title: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-500">Issuing Authority</label>
+                  <input type="text" value={newCert.authority} onChange={e => setNewCert({ ...newCert, authority: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-500">Country / Region</label>
+                    <input type="text" value={newCert.country} onChange={e => setNewCert({ ...newCert, country: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-500">Validity (Months)</label>
+                    <input type="number" value={newCert.validity_months} onChange={e => setNewCert({ ...newCert, validity_months: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                  </div>
+                </div>
+                <Button type="submit" size="sm" className="w-full bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold mt-2">
+                  Verify & Register to Vault
+                </Button>
+              </form>
             </motion.div>
           </>
         )}

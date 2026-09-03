@@ -1,32 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Search, CheckCircle2, Archive, Check } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getTradeNotifications, markTradeNotificationRead, archiveTradeNotification } from '../../lib/api/trade';
+import { supabase } from '../../lib/supabase';
 
 export const TradeNotifications: React.FC = () => {
   const [filterTab, setFilterTab] = useState<'all' | 'unread' | 'archived'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState('');
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [notifications, setNotifications] = useState([
-    { id: 'NTF-101', title: 'Container MSKU-9821 Arrived at Port', desc: 'Customs gate-out clearance confirmed at Port of Hamburg.', time: '5m ago', read: false, archived: false, category: 'Logistics' },
-    { id: 'NTF-102', title: 'LC-2026-8810 Approved by HSBC Bank', desc: 'Irrevocable LC valued at ₹1.45 Cr authorized.', time: '1h ago', read: false, archived: false, category: 'Banking' },
-    { id: 'NTF-103', title: 'Commercial Invoice INV-401 Paid', desc: 'Settlement of ₹42,50,000 received from Berlin Supplies.', time: 'Yesterday', read: true, archived: false, category: 'Payments' },
-    { id: 'NTF-104', title: 'EU Phytosanitary Certificate Issued', desc: 'Batch #8812 clearance stamp added to vault.', time: '3 days ago', read: true, archived: true, category: 'Customs' }
-  ]);
+  const loadData = React.useCallback(async () => {
+    setLoading(true);
+    const data = await getTradeNotifications();
+    const formatted = data.map((d: any) => ({
+      id: d.id,
+      title: d.title,
+      desc: d.description || d.desc,
+      category: d.category || 'Logistics',
+      read: d.is_read || d.read || false,
+      archived: d.is_archived || d.archived || false,
+      time: d.created_at ? new Date(d.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'
+    }));
+    setNotifications(formatted);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+
+    const channel = supabase
+      .channel('realtime_trade_notifs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_notifications' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    const handleLocalChange = () => loadData();
+    window.addEventListener('ferex_trade_notifs_change', handleLocalChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_trade_notifs_change', handleLocalChange);
+    };
+  }, [loadData]);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleMarkRead = (id: string) => {
+  const handleMarkRead = async (id: string) => {
+    await markTradeNotificationRead(id);
     setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
     showToastMsg('Notification marked as read');
   };
 
-  const handleArchive = (id: string) => {
+  const handleArchive = async (id: string) => {
+    await archiveTradeNotification(id);
     setNotifications(notifications.map(n => n.id === id ? { ...n, archived: true } : n));
     showToastMsg('Notification moved to archive');
   };
@@ -59,6 +93,7 @@ export const TradeNotifications: React.FC = () => {
           </p>
         </div>
         <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => {
+          notifications.forEach(n => markTradeNotificationRead(n.id));
           setNotifications(notifications.map(n => ({ ...n, read: true })));
           showToastMsg('Marked all notifications as read');
         }}>

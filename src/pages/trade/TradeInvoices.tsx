@@ -4,6 +4,7 @@ import { FileSpreadsheet, Search, Download, Eye, Plus, X, CheckCircle2 } from 'l
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getTradeInvoices, createTradeInvoice } from '../../lib/api/trade';
+import { supabase } from '../../lib/supabase';
 
 export const TradeInvoices: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -13,7 +14,7 @@ export const TradeInvoices: React.FC = () => {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     setLoading(true);
     const data = await getTradeInvoices();
     const formatted = data.map((d: any) => ({
@@ -21,17 +22,32 @@ export const TradeInvoices: React.FC = () => {
       buyer: d.buyer_name,
       country: 'Global Partner 🌐',
       amount: `₹${Number(d.amount).toLocaleString('en-IN')}`,
-      dueDate: d.due_date || 'Sep 15, 2026',
-      status: d.status || 'Issued',
-      statusBadge: d.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
+      dueDate: d.due_date || '2026-09-28',
+      status: d.status || d.payment_status || 'Issued',
+      statusBadge: (d.status === 'Paid' || d.payment_status === 'Paid') ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
     }));
     setInvoices(formatted);
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+
+    const channel = supabase
+      .channel('realtime_trade_invoices')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_invoices' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    const handleLocalChange = () => loadData();
+    window.addEventListener('ferex_trade_invoices_change', handleLocalChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_trade_invoices_change', handleLocalChange);
+    };
+  }, [loadData]);
 
   const [newInv, setNewInv] = useState({
     buyer: 'Berlin Industrial Supplies GmbH',

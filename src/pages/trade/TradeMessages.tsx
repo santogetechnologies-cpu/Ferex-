@@ -1,52 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MessageSquare, Send, Search } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getTradeMessages, sendTradeMessage } from '../../lib/api/trade';
+import { supabase } from '../../lib/supabase';
 
 export const TradeMessages: React.FC = () => {
-  const [activeConv, setActiveConv] = useState(1);
+  const [activeConv, setActiveConv] = useState('1');
   const [inputText, setInputText] = useState('');
+  const [messages, setMessages] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const [conversations] = useState([
-    { id: 1, name: 'Jan Kowalski (Warsaw Logistics)', role: 'Customs Officer', lastMsg: 'Container MSKU-9821 is gate-out cleared.', time: '10:42 AM', unread: 2 },
-    { id: 2, name: 'Hans Weber (Berlin Supplies)', role: 'Import Manager', lastMsg: 'LC copy approved by Deutsche Bank.', time: 'Yesterday', unread: 0 },
-    { id: 3, name: 'Anouk de Jong (Rotterdam Trade)', role: 'Export Director', lastMsg: 'Sending Phytosanitary cert PDF.', time: 'Aug 04', unread: 0 },
-  ]);
+  const conversations = [
+    { id: '1', name: 'Jan Kowalski (Warsaw Logistics)', role: 'Customs Officer', lastMsg: 'Container MSKU-9821 is gate-out cleared.', time: '10:42 AM' },
+    { id: '2', name: 'Hans Weber (Berlin Supplies)', role: 'Import Manager', lastMsg: 'LC copy approved by Deutsche Bank.', time: 'Yesterday' },
+    { id: '3', name: 'Anouk de Jong (Rotterdam Trade)', role: 'Export Director', lastMsg: 'Sending Phytosanitary cert PDF.', time: 'Aug 04' },
+  ];
 
-  const [chatHistory, setChatHistory] = useState<Record<number, Array<{ sender: string; text: string; time: string; self: boolean }>>>({
-    1: [
-      { sender: 'Jan Kowalski', text: 'Good morning. Checking status on container MSKU-9821045.', time: '10:30 AM', self: false },
-      { sender: 'Trade Director', text: 'Bills of Lading BL-992014 signed. Customs clearance submitted.', time: '10:35 AM', self: true },
-      { sender: 'Jan Kowalski', text: 'Container MSKU-9821 is gate-out cleared.', time: '10:42 AM', self: false }
-    ],
-    2: [
-      { sender: 'Hans Weber', text: 'LC copy approved by Deutsche Bank.', time: 'Yesterday', self: false }
-    ],
-    3: [
-      { sender: 'Anouk de Jong', text: 'Sending Phytosanitary cert PDF.', time: 'Aug 04', self: false }
-    ]
-  });
+  const loadMessages = useCallback(async (convId: string) => {
+    const data = await getTradeMessages(convId);
+    setMessages(data);
+  }, []);
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
+  useEffect(() => {
+    loadMessages(activeConv);
 
-    const newMsg = {
-      sender: 'Trade Director',
-      text: inputText,
-      time: 'Just now',
-      self: true
+    const channel = supabase
+      .channel('realtime_trade_messages')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_messages' }, () => {
+        loadMessages(activeConv);
+      })
+      .subscribe();
+
+    const handleLocalChange = () => loadMessages(activeConv);
+    window.addEventListener('ferex_trade_msgs_change', handleLocalChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_trade_msgs_change', handleLocalChange);
     };
-
-    setChatHistory(prev => ({
-      ...prev,
-      [activeConv]: [...(prev[activeConv] || []), newMsg]
-    }));
-
-    setInputText('');
-  };
+  }, [activeConv, loadMessages]);
 
   const currConv = conversations.find(c => c.id === activeConv);
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputText.trim() || !currConv) return;
+
+    const textToSend = inputText;
+    setInputText('');
+
+    await sendTradeMessage({
+      conversation_id: activeConv,
+      contact_name: currConv.name,
+      contact_role: currConv.role,
+      sender_name: 'Trade Director',
+      message: textToSend,
+      is_self: true
+    });
+
+    await loadMessages(activeConv);
+  };
+
+  const filteredConversations = conversations.filter(c =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.role.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -64,11 +83,17 @@ export const TradeMessages: React.FC = () => {
         <div className="border-r border-slate-200/80 p-3 space-y-2 flex flex-col bg-slate-50/50">
           <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input type="text" placeholder="Search contacts..." className="w-full h-8 pl-8 pr-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search contacts..."
+              className="w-full h-8 pl-8 pr-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+            />
           </div>
 
           <div className="space-y-1 flex-1 overflow-y-auto">
-            {conversations.map((c) => (
+            {filteredConversations.map((c) => (
               <div
                 key={c.id}
                 onClick={() => setActiveConv(c.id)}
@@ -97,14 +122,16 @@ export const TradeMessages: React.FC = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3 p-2">
-            {(chatHistory[activeConv] || []).map((msg, idx) => (
-              <div key={idx} className={`flex flex-col ${msg.self ? 'items-end' : 'items-start'}`}>
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`flex flex-col ${msg.is_self ? 'items-end' : 'items-start'}`}>
                 <div className={`max-w-[75%] p-3 rounded-2xl text-xs font-semibold ${
-                  msg.self ? 'bg-[#6A1B2E] text-white rounded-br-none' : 'bg-slate-100 text-slate-900 rounded-bl-none'
+                  msg.is_self ? 'bg-[#6A1B2E] text-white rounded-br-none' : 'bg-slate-100 text-slate-900 rounded-bl-none'
                 }`}>
-                  {msg.text}
+                  {msg.message}
                 </div>
-                <span className="text-[9px] font-bold text-slate-400 mt-1 px-1">{msg.time}</span>
+                <span className="text-[9px] font-bold text-slate-400 mt-1 px-1">
+                  {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                </span>
               </div>
             ))}
           </div>

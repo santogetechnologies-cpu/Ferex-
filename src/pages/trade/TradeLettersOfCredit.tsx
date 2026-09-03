@@ -1,45 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Search, Plus, CheckCircle2, X, ShieldCheck } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getTradeLettersOfCredit, createTradeLetterOfCredit } from '../../lib/api/trade';
+import { supabase } from '../../lib/supabase';
 
 export const TradeLettersOfCredit: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLC, setSelectedLC] = useState<any>(null);
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [lcs, setLcs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [lcs, setLcs] = useState([
-    {
-      id: 'LC-2026-8810',
-      bank: 'HSBC London / Warsaw Branch',
-      beneficiary: 'Warsaw Global Logistics Sp. z o.o.',
-      applicant: 'Ferex Global Trade Corp',
-      amount: '₹1,45,000',
-      issueDate: 'Jul 15, 2026',
-      expiryDate: 'Sep 30, 2026',
-      status: 'HSBC Cleared',
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    },
-    {
-      id: 'LC-2026-8811',
-      bank: 'State Bank of India (Frankfurt Desk)',
-      beneficiary: 'Berlin Industrial Supplies GmbH',
-      applicant: 'Ferex Global Trade Corp',
-      amount: '₹2,10,000',
-      issueDate: 'Jul 28, 2026',
-      expiryDate: 'Oct 15, 2026',
-      status: 'Under Banking Verification',
-      statusBadge: 'bg-amber-50 text-amber-700 border-amber-200'
-    }
-  ]);
+  const loadData = React.useCallback(async () => {
+    setLoading(true);
+    const data = await getTradeLettersOfCredit();
+    const formatted = data.map((d: any) => ({
+      id: d.lc_number || d.id,
+      rawId: d.id,
+      bank: d.issuing_bank,
+      beneficiary: d.beneficiary,
+      applicant: d.applicant || 'Ferex Global Trade Corp',
+      amount: `₹${Number(d.amount).toLocaleString('en-IN')}`,
+      issueDate: d.issue_date || '2026-08-15',
+      expiryDate: d.expiry_date || '2026-10-30',
+      status: d.status || 'Active & Confirmed',
+      statusBadge: d.status === 'HSBC Cleared' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+    }));
+    setLcs(formatted);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+
+    const channel = supabase
+      .channel('realtime_trade_lcs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_letters_of_credit' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    const handleLocalChange = () => loadData();
+    window.addEventListener('ferex_trade_lcs_change', handleLocalChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_trade_lcs_change', handleLocalChange);
+    };
+  }, [loadData]);
 
   const [newLC, setNewLC] = useState({
     bank: 'HSBC London / Warsaw Branch',
     beneficiary: 'Rotterdam Maritime N.V.',
-    amount: '₹1,80,000',
-    expiryDate: 'Oct 30, 2026'
+    amount: '₹1,80,00,000',
+    expiryDate: '2026-10-30'
   });
 
   const showToastMsg = (msg: string) => {
@@ -47,20 +64,21 @@ export const TradeLettersOfCredit: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleIssueLC = (e: React.FormEvent) => {
+  const handleIssueLC = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLC.beneficiary) return;
-    const created = {
-      id: `LC-2026-${Math.floor(8820 + Math.random() * 90)}`,
-      ...newLC,
-      applicant: 'Ferex Global Trade Corp',
-      issueDate: 'Just now',
-      status: 'Draft Issued',
-      statusBadge: 'bg-blue-50 text-blue-700 border-blue-200'
-    };
-    setLcs([created, ...lcs]);
+    const numAmount = parseFloat(newLC.amount.replace(/[^0-9.]/g, '')) || 18000000;
+    const created = await createTradeLetterOfCredit({
+      issuing_bank: newLC.bank,
+      beneficiary: newLC.beneficiary,
+      amount: numAmount,
+      currency: 'INR',
+      expiry_date: newLC.expiryDate,
+      status: 'Active & Confirmed'
+    });
+    await loadData();
     setShowIssueModal(false);
-    showToastMsg(`Issued Letter of Credit ${created.id}`);
+    showToastMsg(`Issued Letter of Credit ${created.lc_number || created.id}`);
   };
 
   const filteredLCs = lcs.filter(l =>

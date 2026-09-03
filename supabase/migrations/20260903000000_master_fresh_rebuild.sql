@@ -559,8 +559,9 @@ CREATE TABLE public.trade_clients (
   phone TEXT DEFAULT '',
   country TEXT NOT NULL,
   city TEXT DEFAULT '',
+  category TEXT DEFAULT 'Buyer',
   payment_terms TEXT DEFAULT 'LC 60 Days',
-  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Prospect', 'Active', 'Suspended', 'Archived')),
+  status TEXT NOT NULL DEFAULT 'Active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -568,34 +569,38 @@ CREATE TABLE public.trade_clients (
 CREATE TABLE public.trade_shipments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id UUID REFERENCES public.trade_clients(id) ON DELETE SET NULL,
-  shipment_no TEXT NOT NULL UNIQUE,
-  commodity TEXT NOT NULL,
-  origin_port TEXT NOT NULL,
-  destination_port TEXT NOT NULL,
+  shipment_no TEXT NOT NULL,
+  container_no TEXT DEFAULT '',
+  carrier TEXT DEFAULT 'Maersk Line',
   carrier_vessel TEXT DEFAULT '',
+  origin_port TEXT NOT NULL DEFAULT 'Port of Gdansk, Poland',
+  destination_port TEXT NOT NULL DEFAULT 'Port of Rotterdam, Netherlands',
+  cargo_description TEXT NOT NULL DEFAULT 'Industrial Machinery',
+  commodity TEXT DEFAULT 'Industrial Equipment',
+  cargo_weight_kg NUMERIC(14, 2) NOT NULL DEFAULT 20000.00,
   container_count INTEGER DEFAULT 1,
+  transport_mode TEXT DEFAULT 'Maritime',
   bill_of_lading_no TEXT DEFAULT '',
-  incoterm TEXT NOT NULL DEFAULT 'FOB' CHECK (incoterm IN ('FOB', 'CIF', 'CFR', 'EXW', 'DDP', 'FCA')),
-  shipment_status TEXT NOT NULL DEFAULT 'Booked' CHECK (
-    shipment_status IN ('Booked', 'Customs Clearance Origin', 'Loaded On Vessel', 'In Transit', 'Arrived Port', 'Customs Destination', 'Delivered', 'Held')
-  ),
+  incoterm TEXT NOT NULL DEFAULT 'FOB',
+  shipment_status TEXT NOT NULL DEFAULT 'In Transit',
+  status TEXT NOT NULL DEFAULT 'In Transit',
   etd DATE,
   eta DATE,
   cargo_value NUMERIC(14, 2) NOT NULL DEFAULT 0.00,
-  currency TEXT NOT NULL DEFAULT 'USD',
+  currency TEXT NOT NULL DEFAULT 'INR',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE public.trade_documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  shipment_id UUID NOT NULL REFERENCES public.trade_shipments(id) ON DELETE CASCADE,
-  doc_type TEXT NOT NULL CHECK (
-    doc_type IN ('Bill of Lading', 'Commercial Invoice', 'Packing List', 'Certificate of Origin', 'Phytosanitary Cert', 'Letter of Credit', 'Customs Declaration', 'Insurance')
-  ),
+  shipment_id UUID REFERENCES public.trade_shipments(id) ON DELETE CASCADE,
+  doc_type TEXT NOT NULL DEFAULT 'Bill of Lading',
   document_name TEXT NOT NULL,
-  document_url TEXT NOT NULL,
-  is_verified BOOLEAN DEFAULT false,
+  folder TEXT DEFAULT 'Shipment Contracts',
+  file_size TEXT DEFAULT '1.5 MB',
+  document_url TEXT NOT NULL DEFAULT '',
+  is_verified BOOLEAN DEFAULT true,
   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -603,13 +608,105 @@ CREATE TABLE public.trade_invoices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   shipment_id UUID REFERENCES public.trade_shipments(id) ON DELETE SET NULL,
   client_id UUID REFERENCES public.trade_clients(id) ON DELETE SET NULL,
-  invoice_no TEXT NOT NULL UNIQUE,
+  invoice_no TEXT NOT NULL,
+  buyer_name TEXT NOT NULL,
+  incoterms TEXT DEFAULT 'FOB',
   amount NUMERIC(14, 2) NOT NULL,
-  currency TEXT NOT NULL DEFAULT 'USD',
-  payment_status TEXT NOT NULL DEFAULT 'Pending' CHECK (payment_status IN ('Pending', 'LC Verified', 'Paid', 'Overdue', 'Disputed')),
+  currency TEXT NOT NULL DEFAULT 'INR',
+  payment_terms TEXT DEFAULT 'Letter of Credit (LC) at Sight',
+  payment_status TEXT NOT NULL DEFAULT 'Issued',
+  status TEXT NOT NULL DEFAULT 'Issued',
   due_date DATE,
+  issue_date DATE DEFAULT CURRENT_DATE,
   issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   paid_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.trade_letters_of_credit (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lc_number TEXT NOT NULL,
+  issuing_bank TEXT NOT NULL,
+  beneficiary TEXT NOT NULL,
+  applicant TEXT DEFAULT 'Ferex Global Trade Corp',
+  amount NUMERIC(14, 2) NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'INR',
+  issue_date DATE DEFAULT CURRENT_DATE,
+  expiry_date DATE,
+  status TEXT NOT NULL DEFAULT 'Active & Confirmed',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.trade_bills_of_lading (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bl_number TEXT NOT NULL,
+  vessel_name TEXT NOT NULL DEFAULT 'MSC Oscar (V.8821)',
+  carrier TEXT NOT NULL DEFAULT 'MSC Mediterranean Shipping Co.',
+  port_of_loading TEXT NOT NULL DEFAULT 'Port of Gdansk 🇵🇱',
+  port_of_discharge TEXT NOT NULL DEFAULT 'Port of Rotterdam 🇳🇱',
+  shipper TEXT NOT NULL DEFAULT 'Ferex Global Trade Corp',
+  consignee TEXT NOT NULL DEFAULT 'Warsaw Global Logistics Sp. z o.o.',
+  issue_date DATE DEFAULT CURRENT_DATE,
+  status TEXT NOT NULL DEFAULT 'Clean On-Board Signed',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.trade_packing_lists (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pl_number TEXT NOT NULL,
+  shipment_no TEXT NOT NULL,
+  buyer_name TEXT NOT NULL,
+  cargo_description TEXT NOT NULL,
+  total_packages INTEGER NOT NULL DEFAULT 48,
+  gross_weight_kg NUMERIC(14, 2) NOT NULL DEFAULT 24500.00,
+  net_weight_kg NUMERIC(14, 2) NOT NULL DEFAULT 22800.00,
+  container_status TEXT DEFAULT 'Loaded & Sealed (Customs Inspected)',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.trade_certificates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  certificate_no TEXT NOT NULL,
+  title TEXT NOT NULL,
+  authority TEXT NOT NULL,
+  country TEXT NOT NULL DEFAULT 'Poland 🇵🇱',
+  issue_date DATE DEFAULT CURRENT_DATE,
+  expiry_date DATE,
+  status TEXT NOT NULL DEFAULT 'Verified & Active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.trade_payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  transaction_ref TEXT NOT NULL,
+  partner_entity TEXT NOT NULL,
+  description TEXT NOT NULL,
+  amount NUMERIC(14, 2) NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'INR',
+  payment_type TEXT DEFAULT 'SWIFT Wire Transfer',
+  status TEXT NOT NULL DEFAULT 'Completed',
+  settlement_date DATE DEFAULT CURRENT_DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.trade_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id TEXT NOT NULL DEFAULT '1',
+  contact_name TEXT NOT NULL,
+  contact_role TEXT DEFAULT 'Customs Officer',
+  sender_name TEXT NOT NULL,
+  message TEXT NOT NULL,
+  is_self BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.trade_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Logistics',
+  is_read BOOLEAN NOT NULL DEFAULT false,
+  is_archived BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -754,6 +851,13 @@ ALTER TABLE public.trade_clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trade_shipments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trade_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trade_invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trade_letters_of_credit ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trade_bills_of_lading ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trade_packing_lists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trade_certificates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trade_payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trade_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trade_notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rimi_distributors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rimi_products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rimi_inventory ENABLE ROW LEVEL SECURITY;
@@ -909,18 +1013,18 @@ CREATE POLICY "digital_deliverables_all" ON public.digital_deliverables FOR ALL 
 );
 
 -- 11. GLOBAL TRADE ERP POLICIES
-CREATE POLICY "trade_clients_all" ON public.trade_clients FOR ALL TO authenticated USING (
-  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'trade', 'trade_admin', 'global_trade')
-);
-CREATE POLICY "trade_shipments_all" ON public.trade_shipments FOR ALL TO authenticated USING (
-  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'trade', 'trade_admin', 'global_trade')
-);
-CREATE POLICY "trade_documents_all" ON public.trade_documents FOR ALL TO authenticated USING (
-  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'trade', 'trade_admin', 'global_trade')
-);
-CREATE POLICY "trade_invoices_all" ON public.trade_invoices FOR ALL TO authenticated USING (
-  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'trade', 'trade_admin', 'global_trade')
-);
+CREATE POLICY "trade_clients_all" ON public.trade_clients FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "trade_shipments_all" ON public.trade_shipments FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "trade_documents_all" ON public.trade_documents FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "trade_invoices_all" ON public.trade_invoices FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "trade_lc_all" ON public.trade_letters_of_credit FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "trade_bl_all" ON public.trade_bills_of_lading FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "trade_pl_all" ON public.trade_packing_lists FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "trade_cert_all" ON public.trade_certificates FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "trade_pay_all" ON public.trade_payments FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "trade_msg_all" ON public.trade_messages FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "trade_notif_all" ON public.trade_notifications FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
 
 -- 12. RIMI DISTRIBUTION ERP POLICIES
 CREATE POLICY "rimi_distributors_all" ON public.rimi_distributors FOR ALL TO authenticated USING (

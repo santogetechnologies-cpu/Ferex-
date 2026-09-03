@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FolderArchive, Search, Upload, Eye, Trash2, X, CheckCircle2, FileText, Folder } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { getTradeDocuments, uploadTradeDocumentRecord, deleteTradeDocumentRecord } from '../../lib/api/trade';
+import { supabase } from '../../lib/supabase';
 
 export const TradeDocuments: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -10,40 +12,72 @@ export const TradeDocuments: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [toast, setToast] = useState('');
-
-  const [files, setFiles] = useState([
-    { id: 'DOC-101', name: 'Maersk_Bill_Of_Lading_BL9920.pdf', folder: 'Shipment Contracts', size: '2.4 MB', updated: 'Jul 28, 2026', type: 'PDF' },
-    { id: 'DOC-102', name: 'Commercial_Invoice_INV401_Germany.pdf', folder: 'Export Invoices', size: '1.1 MB', updated: 'Aug 01, 2026', type: 'PDF' },
-    { id: 'DOC-103', name: 'Phytosanitary_EU_Certificate_2026.pdf', folder: 'Customs Clearance', size: '3.8 MB', updated: 'Aug 04, 2026', type: 'PDF' },
-    { id: 'DOC-104', name: 'HSBC_Letter_Of_Credit_LC8810.pdf', folder: 'Letters of Credit', size: '1.9 MB', updated: 'Aug 05, 2026', type: 'PDF' }
-  ]);
+  const [files, setFiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [newFileName, setNewFileName] = useState('');
+  const [newFileFolder, setNewFileFolder] = useState('Customs Clearance');
+
+  const loadData = React.useCallback(async () => {
+    setLoading(true);
+    const data = await getTradeDocuments();
+    const formatted = data.map((d: any) => ({
+      id: d.id ? `DOC-${d.id.slice(0, 4).toUpperCase()}` : 'DOC-101',
+      rawId: d.id,
+      name: d.document_name || d.name,
+      folder: d.folder || 'Customs Clearance',
+      size: d.file_size || '1.8 MB',
+      updated: d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recently',
+      url: d.document_url || '',
+      type: 'PDF'
+    }));
+    setFiles(formatted);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+
+    const channel = supabase
+      .channel('realtime_trade_docs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_documents' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    const handleLocalChange = () => loadData();
+    window.addEventListener('ferex_trade_docs_change', handleLocalChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_trade_docs_change', handleLocalChange);
+    };
+  }, [loadData]);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleUpload = (e: React.FormEvent) => {
+  const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFileName) return;
-    const created = {
-      id: `DOC-${Math.floor(100 + Math.random() * 900)}`,
-      name: newFileName.endsWith('.pdf') ? newFileName : `${newFileName}.pdf`,
-      folder: 'Customs Clearance',
-      size: '1.5 MB',
-      updated: 'Just now',
-      type: 'PDF'
-    };
-    setFiles([created, ...files]);
+    const cleanName = newFileName.endsWith('.pdf') ? newFileName : `${newFileName}.pdf`;
+    const created = await uploadTradeDocumentRecord({
+      document_name: cleanName,
+      folder: newFileFolder,
+      file_size: '1.5 MB',
+      doc_type: 'Customs Declaration'
+    });
+    await loadData();
     setShowUploadModal(false);
-    showToastMsg(`Uploaded ${created.name} to vault!`);
+    showToastMsg(`Uploaded ${cleanName} to vault!`);
     setNewFileName('');
   };
 
-  const handleDeleteFile = (id: string) => {
-    setFiles(files.filter(f => f.id !== id));
+  const handleDeleteFile = async (id: string, rawId?: string) => {
+    await deleteTradeDocumentRecord(rawId || id);
+    setFiles(prev => prev.filter(f => f.id !== id && f.rawId !== rawId));
     showToastMsg(`Deleted document ${id}`);
   };
 
@@ -133,7 +167,7 @@ export const TradeDocuments: React.FC = () => {
                       <button onClick={() => setSelectedFile(file)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Inspect Document">
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDeleteFile(file.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete File">
+                      <button onClick={() => handleDeleteFile(file.id, file.rawId)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete File">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -159,6 +193,15 @@ export const TradeDocuments: React.FC = () => {
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Document File Name</label>
                   <input type="text" required value={newFileName} onChange={(e) => setNewFileName(e.target.value)} placeholder="e.g. Phytosanitary_Clearance_Batch8.pdf" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Target Folder</label>
+                  <select value={newFileFolder} onChange={e => setNewFileFolder(e.target.value)} className="w-full h-9 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                    <option value="Shipment Contracts">Shipment Contracts</option>
+                    <option value="Export Invoices">Export Invoices</option>
+                    <option value="Customs Clearance">Customs Clearance</option>
+                    <option value="Letters of Credit">Letters of Credit</option>
+                  </select>
                 </div>
                 <div className="p-4 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-center">
                   <Upload className="w-6 h-6 text-slate-400 mx-auto mb-1" />

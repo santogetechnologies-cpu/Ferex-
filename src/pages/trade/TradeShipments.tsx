@@ -4,7 +4,7 @@ import { Truck, Search, Plus, Eye, Trash2, X, CheckCircle2, Anchor, Navigation }
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { supabase } from '../../lib/supabase';
-import { getTradeShipments, createTradeShipment } from '../../lib/api/trade';
+import { getTradeShipments, createTradeShipment, deleteTradeShipment, updateTradeShipmentStatus } from '../../lib/api/trade';
 
 export const TradeShipments: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,6 +19,7 @@ export const TradeShipments: React.FC = () => {
     if (data && data.length > 0) {
       setShipments(data.map(d => ({
         id: d.shipment_no || d.id,
+        rawId: d.id,
         container: d.container_no,
         carrier: d.carrier,
         origin: d.origin_port,
@@ -27,8 +28,8 @@ export const TradeShipments: React.FC = () => {
         weight: `${Number(d.cargo_weight_kg || 20000).toLocaleString()} kg`,
         eta: d.eta,
         mode: d.transport_mode,
-        status: d.status,
-        statusBadge: d.status === 'In Transit' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+        status: d.status || d.shipment_status,
+        statusBadge: (d.status === 'In Transit' || d.shipment_status === 'In Transit') ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
       })));
     } else {
       setShipments([]);
@@ -45,8 +46,12 @@ export const TradeShipments: React.FC = () => {
       })
       .subscribe();
 
+    const handleLocalChange = () => loadShipments();
+    window.addEventListener('ferex_trade_shipments_change', handleLocalChange);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('ferex_trade_shipments_change', handleLocalChange);
     };
   }, [loadShipments]);
 
@@ -57,7 +62,7 @@ export const TradeShipments: React.FC = () => {
     destination: 'Rotterdam, Netherlands',
     cargo: 'Industrial Equipment',
     weight: '20,000 kg',
-    eta: 'Aug 20, 2026'
+    eta: '2026-09-20'
   });
 
   const showToastMsg = (msg: string) => {
@@ -74,29 +79,18 @@ export const TradeShipments: React.FC = () => {
       origin_port: newShipment.origin,
       destination_port: newShipment.destination,
       cargo_description: newShipment.cargo,
-      cargo_weight_kg: 20000,
+      cargo_weight_kg: parseFloat(newShipment.weight.replace(/[^0-9.]/g, '')) || 20000,
       eta: newShipment.eta,
     });
-    setShipments(prev => [{
-      id: created.shipment_no || created.id,
-      container: created.container_no,
-      carrier: created.carrier,
-      origin: created.origin_port,
-      destination: created.destination_port,
-      cargo: created.cargo_description,
-      weight: `${Number(created.cargo_weight_kg || 20000).toLocaleString()} kg`,
-      eta: created.eta,
-      mode: created.transport_mode,
-      status: created.status,
-      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    }, ...prev]);
+    await loadShipments();
     setShowAddModal(false);
     showToastMsg(`Dispatched container ${newShipment.container} and saved to database!`);
-    setNewShipment({ container: '', carrier: 'Maersk Line', origin: 'Gdansk Port, Poland', destination: 'Rotterdam, Netherlands', cargo: 'Industrial Equipment', weight: '20,000 kg', eta: 'Aug 20, 2026' });
+    setNewShipment({ container: '', carrier: 'Maersk Line', origin: 'Gdansk Port, Poland', destination: 'Rotterdam, Netherlands', cargo: 'Industrial Equipment', weight: '20,000 kg', eta: '2026-09-20' });
   };
 
-  const handleDeleteShipment = (id: string) => {
-    setShipments(shipments.filter(s => s.id !== id));
+  const handleDeleteShipment = async (id: string, rawId?: string) => {
+    await deleteTradeShipment(rawId || id);
+    setShipments(prev => prev.filter(s => s.id !== id && s.rawId !== rawId));
     showToastMsg(`Removed shipment record ${id}`);
   };
 
@@ -186,7 +180,7 @@ export const TradeShipments: React.FC = () => {
                       <button onClick={() => setSelectedShipment(s)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Track Live Route">
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDeleteShipment(s.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete Record">
+                      <button onClick={() => handleDeleteShipment(s.id, s.rawId)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete Record">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>

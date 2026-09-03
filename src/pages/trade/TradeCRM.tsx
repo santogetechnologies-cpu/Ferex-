@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Search, Plus, Eye, Edit3, Trash2, X, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getTradeCRMContacts, createTradeCRMContact } from '../../lib/api/trade';
+import { getTradeCRMContacts, createTradeCRMContact, deleteTradeCRMContact } from '../../lib/api/trade';
+import { supabase } from '../../lib/supabase';
 
 export const TradeCRM: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,11 +16,12 @@ export const TradeCRM: React.FC = () => {
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     setLoading(true);
     const data = await getTradeCRMContacts();
     const formatted = data.map((d: any) => ({
       id: d.id ? `CRM-${d.id.slice(0, 4).toUpperCase()}` : 'CRM-101',
+      rawId: d.id,
       name: d.company_name,
       country: d.country,
       flag: d.country === 'Poland' ? '🇵🇱' : d.country === 'Germany' ? '🇩🇪' : d.country === 'Netherlands' ? '🇳🇱' : '🌐',
@@ -34,11 +36,26 @@ export const TradeCRM: React.FC = () => {
     }));
     setCompanies(formatted);
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+
+    const channel = supabase
+      .channel('realtime_trade_crm')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_clients' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    const handleLocalChange = () => loadData();
+    window.addEventListener('ferex_trade_crm_change', handleLocalChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_trade_crm_change', handleLocalChange);
+    };
+  }, [loadData]);
 
   const [newCompany, setNewCompany] = useState({
     name: '',
@@ -81,8 +98,9 @@ export const TradeCRM: React.FC = () => {
     showToastMsg('Partner company updated successfully!');
   };
 
-  const handleDeleteCompany = (id: string) => {
-    setCompanies(companies.filter(c => c.id !== id));
+  const handleDeleteCompany = async (id: string, rawId?: string) => {
+    await deleteTradeCRMContact(rawId || id);
+    setCompanies(prev => prev.filter(c => c.id !== id && c.rawId !== rawId));
     showToastMsg(`Removed partner record ${id}`);
   };
 
@@ -189,7 +207,7 @@ export const TradeCRM: React.FC = () => {
                       <button onClick={() => setEditingCompany(c)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50" title="Edit Company">
                         <Edit3 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDeleteCompany(c.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete Record">
+                      <button onClick={() => handleDeleteCompany(c.id, c.rawId)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete Record">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
