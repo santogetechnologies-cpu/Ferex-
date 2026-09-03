@@ -1,33 +1,77 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ShoppingCart, Package, Warehouse, Truck, DollarSign,
-  AlertTriangle, ArrowUpRight, CheckCircle2, Clock, Thermometer,
+  ShoppingCart, Package, Truck, DollarSign,
+  ArrowUpRight, Thermometer,
   Boxes
 } from 'lucide-react';
 import { Card } from '../../components/Card';
+import { getRimiDashboardStats, getRimiSalesOrders, getRimiWarehouses, getRimiVehicles } from '../../lib/api/rimi';
+import { supabase } from '../../lib/supabase';
 
 export const RimiDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [toast] = useState('');
+  const [stats, setStats] = useState({
+    activeOrdersCount: 0,
+    totalOrdersCount: 0,
+    totalRevenueAmount: 0,
+    totalRevenueStr: '₹0',
+    totalCollectedAmount: 0,
+    totalCollectedStr: '₹0',
+    totalOutstandingStr: '₹0',
+    totalProductsCount: 0,
+  });
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [dashStats, ordersData, whData, vData] = await Promise.all([
+        getRimiDashboardStats(),
+        getRimiSalesOrders(),
+        getRimiWarehouses(),
+        getRimiVehicles(),
+      ]);
+      setStats(dashStats);
+      setRecentOrders(ordersData.slice(0, 5));
+      setWarehouses(whData);
+      setVehicles(vData);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+
+    const channel = supabase
+      .channel('realtime_rimi_dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_sales_orders' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_products' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_distributors' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_payments' }, () => loadData())
+      .subscribe();
+
+    const handleLocalChange = () => loadData();
+    window.addEventListener('ferex_rimi_sales_orders_change', handleLocalChange);
+    window.addEventListener('ferex_rimi_products_change', handleLocalChange);
+    window.addEventListener('ferex_rimi_distributors_change', handleLocalChange);
+    window.addEventListener('ferex_rimi_collections_change', handleLocalChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_rimi_sales_orders_change', handleLocalChange);
+      window.removeEventListener('ferex_rimi_products_change', handleLocalChange);
+      window.removeEventListener('ferex_rimi_distributors_change', handleLocalChange);
+      window.removeEventListener('ferex_rimi_collections_change', handleLocalChange);
+    };
+  }, [loadData]);
 
   return (
     <div className="space-y-6 text-left antialiased">
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* FMCG Cold Chain Hero Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-6 md:p-8 shadow-xl border border-[#6A1B2E]/30">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -37,7 +81,7 @@ export const RimiDashboard: React.FC = () => {
                 FMCG Executive ERP Console
               </span>
               <span className="text-[10px] font-extrabold text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-400/30 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Cold Storage Monitoring Active (-22°C)
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Supabase Realtime Active
               </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
@@ -68,10 +112,10 @@ export const RimiDashboard: React.FC = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'Today Sales Revenue', value: '₹2,84,500', sub: '142 Orders Dispatched Today', icon: DollarSign, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', badge: '+12.4% vs Target', path: '/rimi/orders' },
-          { title: 'Monthly Revenue', value: '₹84,20,000', sub: 'Q3 Forecast Target ₹92 Lakhs', icon: ShoppingCart, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20', badge: 'Active Growth', path: '/rimi/reports' },
-          { title: 'Cold Storage Stock', value: '18,450 Units', sub: '3 Temperature Warehouses', icon: Boxes, color: 'text-blue-600 bg-blue-50 border-blue-100', badge: '-22°C Locked', path: '/rimi/inventory' },
-          { title: 'Reefer Fleet Status', value: '14 Trucks Active', sub: '0 Temperature Alerts Logged', icon: Truck, color: 'text-indigo-600 bg-indigo-50 border-indigo-100', badge: '100% On-Time', path: '/rimi/fleet' },
+          { title: 'Total Sales Revenue', value: stats.totalRevenueStr, sub: `${stats.totalOrdersCount} Total Orders Dispatched`, icon: DollarSign, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', badge: 'Live Ledger', path: '/rimi/sales-orders' },
+          { title: 'Total Collected', value: stats.totalCollectedStr, sub: `Outstanding: ${stats.totalOutstandingStr}`, icon: ShoppingCart, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20', badge: 'Settled', path: '/rimi/collections' },
+          { title: 'Catalog SKUs', value: `${stats.totalProductsCount} Products`, sub: 'Frozen Seafood, Meats, Dairy', icon: Boxes, color: 'text-blue-600 bg-blue-50 border-blue-100', badge: 'Master Catalog', path: '/rimi/products' },
+          { title: 'Reefer Fleet', value: `${vehicles.length} Trucks`, sub: `${warehouses.length} Active Cold Warehouses`, icon: Truck, color: 'text-indigo-600 bg-indigo-50 border-indigo-100', badge: 'GPS Active', path: '/rimi/vehicles' },
         ].map((stat, idx) => (
           <Card key={idx} onClick={() => navigate(stat.path)} className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group flex flex-col justify-between h-full">
             <div>
@@ -96,146 +140,75 @@ export const RimiDashboard: React.FC = () => {
       {/* Main Workspace Layout Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left 2 Cols: Sales Revenue Chart & Cold Storage Telemetry */}
+        {/* Left 2 Cols: Recent Orders Feed */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Sales Revenue Trend Chart */}
           <Card className="p-6 text-left border border-slate-200/70 shadow-xs">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
               <div>
-                <h3 className="text-sm font-black text-slate-900">Daily Sales Turnover & Reefer Volume (₹)</h3>
-                <p className="text-xs text-slate-400 font-semibold mt-0.5">Frozen Food revenue trend across Supermarkets & Distributors</p>
+                <h3 className="text-sm font-black text-slate-900">Recent Cold Chain Sales Orders</h3>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">Live distributor dispatches and delivery statuses</p>
               </div>
-              <span className="text-[10px] font-extrabold text-[#6A1B2E] bg-[#6A1B2E]/10 px-3 py-1 rounded-full uppercase border border-[#6A1B2E]/20">
-                Avg Daily: ₹2.85 Lakhs
-              </span>
-            </div>
-
-            {/* SVG Area Chart */}
-            <div className="h-[210px] w-full relative">
-              <svg className="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="rimi-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6A1B2E" stopOpacity="0.22" />
-                    <stop offset="100%" stopColor="#6A1B2E" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <line x1="0" y1="40" x2="500" y2="40" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="0" y1="90" x2="500" y2="90" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="0" y1="140" x2="500" y2="140" stroke="#f1f5f9" strokeWidth="1" />
-                
-                <path d="M 0 160 Q 100 120, 200 130 T 400 60 T 500 35 L 500 200 L 0 200 Z" fill="url(#rimi-grad)" />
-                <path d="M 0 160 Q 100 120, 200 130 T 400 60 T 500 35" fill="none" stroke="#6A1B2E" strokeWidth="3.5" strokeLinecap="round" />
-                <circle cx="200" cy="130" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
-                <circle cx="400" cy="60" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
-              </svg>
-              <div className="absolute top-[40px] left-[340px] bg-slate-900 text-white text-[9px] font-bold px-2.5 py-1 rounded shadow-md pointer-events-none select-none">
-                Peak Sales: ₹3.40 Lakhs
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mt-2 px-1 select-none">
-              <span>Mon</span>
-              <span>Tue</span>
-              <span>Wed</span>
-              <span>Thu</span>
-              <span>Fri</span>
-              <span>Sat (Today)</span>
-            </div>
-          </Card>
-
-          {/* Cold Storage Warehouse Telemetry */}
-          <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <Thermometer className="w-4 h-4 text-[#6A1B2E]" /> Temperature Controlled Warehouses
-              </h3>
-              <button onClick={() => navigate('/rimi/warehouses')} className="text-xs font-bold text-[#6A1B2E] hover:underline">
-                View All Cold Hubs
+              <button onClick={() => navigate('/rimi/sales-orders')} className="text-xs font-bold text-[#6A1B2E] hover:underline flex items-center gap-1 cursor-pointer">
+                View All <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                { name: 'Mumbai Central Hub', temp: '-22.4°C', capacity: '88% Full', status: 'Optimal Frozen' },
-                { name: 'Delhi NCR Cold Logistics', temp: '-20.1°C', capacity: '74% Full', status: 'Optimal Frozen' },
-                { name: 'Bengaluru Reefer Depot', temp: '-19.8°C', capacity: '62% Full', status: 'Optimal Frozen' },
-              ].map((w, idx) => (
-                <div key={idx} className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
-                  <div className="text-[10px] font-black uppercase text-slate-400">{w.name}</div>
-                  <div className="text-base font-black text-slate-900 flex items-center gap-1.5">
-                    <Thermometer className="w-4 h-4 text-blue-600" /> {w.temp}
+            {loading ? (
+              <div className="py-8 text-center text-xs font-semibold text-slate-400">Loading live sales orders...</div>
+            ) : recentOrders.length === 0 ? (
+              <div className="py-8 text-center text-xs font-semibold text-slate-400">
+                <Package className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                No sales orders recorded yet. Create an order via the Sales Orders module.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {recentOrders.map((order) => (
+                  <div key={order.id} className="py-3 flex items-center justify-between">
+                    <div>
+                      <div className="font-extrabold text-xs text-slate-900">{order.distributor?.business_name || order.order_no}</div>
+                      <span className="text-[10px] font-semibold text-slate-400">Order: {order.order_no} · Delivery: {order.delivery_date}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-black text-slate-900">₹{Number(order.total_amount).toLocaleString('en-IN')}</div>
+                      <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        {order.order_status || 'Received'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{w.status}</span>
-                    <span className="text-[10px] font-bold text-slate-500">{w.capacity}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </Card>
         </div>
 
-        {/* Right Col: Quick Actions, Low Stock Alerts, Expiry Warnings */}
-        <div className="space-y-6 text-left">
-          
-          {/* Quick Action Cards */}
-          <Card className="p-5 border border-slate-200/70 shadow-xs">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3">
-              Distribution Quick Actions
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        {/* Right Col: Cold Storage Warehouses Telemetry */}
+        <div className="space-y-6">
+          <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <Thermometer className="w-4 h-4 text-[#6A1B2E]" /> Cold Storage Facilities
+              </h3>
+            </div>
+
+            <div className="space-y-3">
               {[
-                { title: 'Sales Orders', path: '/rimi/sales-orders', icon: ShoppingCart },
-                { title: 'Product Catalog', path: '/rimi/products', icon: Package },
-                { title: 'Cold Warehouses', path: '/rimi/warehouses', icon: Warehouse },
-                { title: 'Reefer Deliveries', path: '/rimi/deliveries', icon: Truck },
-                { title: 'Expiry Tracking', path: '/rimi/expiry-tracking', icon: Clock },
-                { title: 'Collections', path: '/rimi/collections', icon: DollarSign },
-              ].map((act, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => navigate(act.path)}
-                  className="p-3 rounded-xl border border-slate-200/80 hover:border-[#6A1B2E]/40 hover:bg-slate-50 transition-all cursor-pointer group text-left flex items-center gap-2.5"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-[#6A1B2E]/10 text-[#6A1B2E] group-hover:bg-[#6A1B2E] group-hover:text-white flex items-center justify-center transition-colors shrink-0">
-                    <act.icon className="w-3.5 h-3.5" />
+                { name: 'Mumbai Central Deep Freeze', temp: '-22.4°C', capacity: '88% Used', status: 'Optimal' },
+                { name: 'Delhi NCR Reefer Hub', temp: '-20.1°C', capacity: '64% Used', status: 'Optimal' },
+                { name: 'Bengaluru Cold Transit Depot', temp: '-18.8°C', capacity: '72% Used', status: 'Optimal' }
+              ].map((wh, idx) => (
+                <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-black text-slate-900">{wh.name}</div>
+                    <span className="text-[10px] font-semibold text-slate-500">{wh.capacity}</span>
                   </div>
-                  <span className="text-xs font-bold text-slate-900 group-hover:text-[#6A1B2E] truncate">{act.title}</span>
-                </button>
+                  <div className="text-right">
+                    <span className="text-xs font-black text-[#6A1B2E]">{wh.temp}</span>
+                    <span className="block text-[9px] font-extrabold text-emerald-600">{wh.status}</span>
+                  </div>
+                </div>
               ))}
             </div>
           </Card>
-
-          {/* Expiry Risk & Low Stock Feed */}
-          <Card className="p-5 border-l-4 border-l-amber-500 border-slate-200/70 shadow-xs space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-amber-500" /> Stock & Expiry Telemetry
-              </h3>
-              <button onClick={() => navigate('/rimi/expiry-tracking')} className="text-[10px] font-bold text-[#6A1B2E] hover:underline">
-                View All
-              </button>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-100 flex items-start gap-2.5">
-                <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-extrabold text-amber-950 block">Batch #FZN-8812 Expiring in 18 Days</span>
-                  <span className="text-[10.5px] font-semibold text-amber-700">Frozen Pork Ribs (450 Units in Mumbai Hub)</span>
-                </div>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5">
-                <Package className="w-4 h-4 text-[#6A1B2E] shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-extrabold text-slate-900 block">Low Stock Alert: Gourmet Vanilla Ice Cream</span>
-                  <span className="text-[10.5px] font-semibold text-slate-500">Stock level at 85 Packs (Reorder threshold: 100)</span>
-                </div>
-              </div>
-            </div>
-          </Card>
-
         </div>
 
       </div>

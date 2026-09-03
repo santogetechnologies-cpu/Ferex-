@@ -104,6 +104,7 @@ import { RimiMessages } from './pages/rimi/RimiMessages';
 import { RimiNotifications } from './pages/rimi/RimiNotifications';
 import { RimiProfile } from './pages/rimi/RimiProfile';
 import { RimiSettings } from './pages/rimi/RimiSettings';
+import { RimiLoginPage } from './pages/rimi/RimiLoginPage';
 
 // Digital imports
 import { DigitalLayout } from './layouts/DigitalLayout';
@@ -228,7 +229,7 @@ function App() {
           <Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
           <Route path="/admin/login" element={<Navigate to="/login" replace />} />
           <Route path="/trade/login" element={<Navigate to="/login" replace />} />
-          <Route path="/rimi/login" element={<Navigate to="/login" replace />} />
+          <Route path="/rimi/login" element={<RimiLoginPage />} />
           <Route path="/digital/login" element={<Navigate to="/login" replace />} />
 
           {/* ── Student Routes (STRICTLY role = 'student' ONLY) ── */}
@@ -304,28 +305,28 @@ function App() {
           <Route path="/trade/settings" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeSettings /></TradeLayout></ProtectedRoute>} />
 
           {/* ── Rimi Frozen Distribution Routes ── */}
-          <Route path="/rimi/dashboard" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDashboard /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/customers" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiCustomers /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/distributors" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDistributors /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/retailers" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiRetailers /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/wholesalers" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiWholesalers /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/sales-orders" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiSalesOrders /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/products" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiProducts /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/inventory" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiInventory /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/warehouses" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiWarehouses /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/batch-tracking" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiBatchTracking /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/expiry-tracking" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiExpiryTracking /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/deliveries" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDeliveries /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/collections" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiCollections /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/vehicles" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiVehicles /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/delivery-routes" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDeliveryRoutes /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/sales-reports" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiSalesReports /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/inventory-analytics" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiInventoryAnalytics /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/revenue-analytics" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiRevenueAnalytics /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/messages" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiMessages /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={['rimi', 'admin', 'central', 'super_admin']}><RimiLayout><RimiSettings /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/dashboard" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDashboard /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/customers" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiCustomers /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/distributors" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDistributors /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/retailers" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiRetailers /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/wholesalers" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiWholesalers /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/sales-orders" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiSalesOrders /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/products" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiProducts /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/inventory" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiInventory /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/warehouses" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiWarehouses /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/batch-tracking" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiBatchTracking /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/expiry-tracking" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiExpiryTracking /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/deliveries" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDeliveries /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/collections" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiCollections /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/vehicles" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiVehicles /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/delivery-routes" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDeliveryRoutes /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/sales-reports" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiSalesReports /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/inventory-analytics" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiInventoryAnalytics /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/revenue-analytics" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiRevenueAnalytics /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/messages" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiMessages /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiSettings /></RimiLayout></ProtectedRoute>} />
 
           {/* ── Ferex Digital Routes ── */}
           <Route path="/digital/dashboard" element={<ProtectedRoute allowedRoles={['digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalDashboard /></DigitalLayout></ProtectedRoute>} />

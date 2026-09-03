@@ -260,4 +260,105 @@ export async function autoSeedAllDataToSupabase() {
       ]);
     }
   } catch (e) {}
+
+  // Ensure Rimi Admin User exists in public.users
+  try {
+    await supabase.from('users').upsert({
+      email: 'rimi@ferex.com',
+      role: 'rimi_admin',
+      full_name: 'Rimi Cold Chain Manager',
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'email' });
+  } catch (e) {}
+
+  // Ensure initial Rimi Distributors / Retailers exist in Supabase DB
+  try {
+    const { count } = await supabase.from('rimi_distributors').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('rimi_distributors').insert([
+        {
+          business_name: 'HyperCity Supermarkets Mumbai Hub',
+          contact_person: 'Rajesh Sharma',
+          tier: 'Retailer',
+          territory: 'Mumbai Central / Western',
+          email: 'procurement@hypercity-retail.in',
+          phone: '+91 98200 11223',
+          credit_limit: 1500000.00,
+          outstanding_balance: 245000.00,
+          status: 'Active'
+        },
+        {
+          business_name: 'Royal Ocean HORECA Wholesale Ltd',
+          contact_person: 'Vikram Mehta',
+          tier: 'Wholesaler',
+          territory: 'South Maharashtra / APMC Navi Mumbai',
+          email: 'v.mehta@royaloceanhoreca.com',
+          phone: '+91 98190 44556',
+          credit_limit: 3500000.00,
+          outstanding_balance: 620000.00,
+          status: 'Active'
+        },
+        {
+          business_name: 'Gourmet Freeze Express Distributors',
+          contact_person: 'Pooja Nair',
+          tier: 'Distributor',
+          territory: 'Pune & Konkan Coastal Route',
+          email: 'pooja.nair@gourmetfreeze.com',
+          phone: '+91 98230 77889',
+          credit_limit: 5000000.00,
+          outstanding_balance: 1250000.00,
+          status: 'Active'
+        }
+      ]);
+    }
+  } catch (e) {}
+
+  // Ensure initial Rimi Products exist in Supabase DB
+  try {
+    const { count } = await supabase.from('rimi_products').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('rimi_products').insert([
+        {
+          sku: 'RIMI-SF-001',
+          name: 'Premium King Prawns (500g IQF)',
+          category: 'Frozen Seafood',
+          unit: 'KG',
+          unit_price: 680.00,
+          storage_temp: '-18°C',
+          min_stock_alert: 50,
+          is_active: true
+        },
+        {
+          sku: 'RIMI-MT-002',
+          name: 'Gourmet Chicken Nuggets (1kg Family Pack)',
+          category: 'Processed Food',
+          unit: 'Pack',
+          unit_price: 340.00,
+          storage_temp: '-18°C',
+          min_stock_alert: 100,
+          is_active: true
+        },
+        {
+          sku: 'RIMI-VG-003',
+          name: 'Sweet Corn & Green Peas IQF (1kg)',
+          category: 'Frozen Vegetables',
+          unit: 'KG',
+          unit_price: 180.00,
+          storage_temp: '-18°C',
+          min_stock_alert: 80,
+          is_active: true
+        },
+        {
+          sku: 'RIMI-DY-004',
+          name: 'Belgian Dark Chocolate Ice Cream Tub (2L)',
+          category: 'Ice Cream & Dairy',
+          unit: 'Box',
+          unit_price: 520.00,
+          storage_temp: '-22°C',
+          min_stock_alert: 40,
+          is_active: true
+        }
+      ]);
+    }
+  } catch (e) {}
 }
