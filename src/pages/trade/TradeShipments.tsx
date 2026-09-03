@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Truck, Search, Plus, Eye, Trash2, X, CheckCircle2, Anchor, Navigation } from 'lucide-react';
+import { Truck, Search, Plus, Eye, Trash2, X, CheckCircle2, Anchor, Navigation, Edit2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { supabase } from '../../lib/supabase';
@@ -13,26 +13,36 @@ export const TradeShipments: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
   const [shipments, setShipments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const loadShipments = React.useCallback(async () => {
-    const data = await getTradeShipments();
-    if (data && data.length > 0) {
-      setShipments(data.map(d => ({
-        id: d.shipment_no || d.id,
-        rawId: d.id,
-        container: d.container_no,
-        carrier: d.carrier,
-        origin: d.origin_port,
-        destination: d.destination_port,
-        cargo: d.cargo_description,
-        weight: `${Number(d.cargo_weight_kg || 20000).toLocaleString()} kg`,
-        eta: d.eta,
-        mode: d.transport_mode,
-        status: d.status || d.shipment_status,
-        statusBadge: (d.status === 'In Transit' || d.shipment_status === 'In Transit') ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      })));
-    } else {
-      setShipments([]);
+    setLoading(true);
+    try {
+      const data = await getTradeShipments();
+      if (Array.isArray(data)) {
+        setShipments(data.map(d => ({
+          id: d.shipment_no || d.id,
+          rawId: d.id,
+          container: d.container_no,
+          carrier: d.carrier,
+          origin: d.origin_port,
+          destination: d.destination_port,
+          cargo: d.cargo_description,
+          weight: `${Number(d.cargo_weight_kg || 20000).toLocaleString()} kg`,
+          eta: d.eta,
+          mode: d.transport_mode || 'Maritime',
+          status: d.status || d.shipment_status || 'In Transit',
+          statusBadge: (d.status === 'In Transit' || d.shipment_status === 'In Transit')
+            ? 'bg-blue-50 text-blue-700 border-blue-200'
+            : (d.status === 'Delivered' || d.status === 'Customs Cleared')
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-amber-50 text-amber-700 border-amber-200'
+        })));
+      } else {
+        setShipments([]);
+      }
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -58,11 +68,13 @@ export const TradeShipments: React.FC = () => {
   const [newShipment, setNewShipment] = useState({
     container: '',
     carrier: 'Maersk Line',
-    origin: 'Gdansk Port, Poland',
-    destination: 'Rotterdam, Netherlands',
-    cargo: 'Industrial Equipment',
-    weight: '20,000 kg',
-    eta: '2026-09-20'
+    origin: 'Port of Gdansk, Poland',
+    destination: 'Port of Rotterdam, Netherlands',
+    cargo: 'Industrial Bearing Assemblies',
+    weight: '24,500 kg',
+    eta: '2026-09-20',
+    mode: 'Maritime',
+    status: 'In Transit'
   });
 
   const showToastMsg = (msg: string) => {
@@ -80,12 +92,30 @@ export const TradeShipments: React.FC = () => {
       destination_port: newShipment.destination,
       cargo_description: newShipment.cargo,
       cargo_weight_kg: parseFloat(newShipment.weight.replace(/[^0-9.]/g, '')) || 20000,
+      transport_mode: newShipment.mode,
+      status: newShipment.status,
       eta: newShipment.eta,
     });
     await loadShipments();
     setShowAddModal(false);
     showToastMsg(`Dispatched container ${newShipment.container} and saved to database!`);
-    setNewShipment({ container: '', carrier: 'Maersk Line', origin: 'Gdansk Port, Poland', destination: 'Rotterdam, Netherlands', cargo: 'Industrial Equipment', weight: '20,000 kg', eta: '2026-09-20' });
+    setNewShipment({
+      container: '',
+      carrier: 'Maersk Line',
+      origin: 'Port of Gdansk, Poland',
+      destination: 'Port of Rotterdam, Netherlands',
+      cargo: 'Industrial Bearing Assemblies',
+      weight: '24,500 kg',
+      eta: '2026-09-20',
+      mode: 'Maritime',
+      status: 'In Transit'
+    });
+  };
+
+  const handleStatusChange = async (id: string, rawId: string, newStatus: string) => {
+    await updateTradeShipmentStatus(rawId || id, newStatus);
+    showToastMsg(`Updated shipment status to ${newStatus}`);
+    await loadShipments();
   };
 
   const handleDeleteShipment = async (id: string, rawId?: string) => {
@@ -95,7 +125,10 @@ export const TradeShipments: React.FC = () => {
   };
 
   const filteredShipments = shipments.filter(s => {
-    const matchesSearch = s.container.toLowerCase().includes(searchQuery.toLowerCase()) || s.carrier.toLowerCase().includes(searchQuery.toLowerCase()) || s.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      (s.container || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.carrier || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.id || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesMode = filterMode === 'All' || s.mode === filterMode;
     return matchesSearch && matchesMode;
   });
@@ -140,57 +173,79 @@ export const TradeShipments: React.FC = () => {
         </div>
       </Card>
 
-      <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
-                <th className="py-3 px-4">Container ID & Carrier</th>
-                <th className="py-3 px-4">Origin Port</th>
-                <th className="py-3 px-4">Destination Port</th>
-                <th className="py-3 px-4">Cargo & Weight</th>
-                <th className="py-3 px-4">ETA Date</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-              {filteredShipments.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-3.5 px-4">
-                    <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                      <Anchor className="w-3.5 h-3.5 text-[#6A1B2E]" /> {s.container}
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400">{s.id} · {s.carrier}</span>
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800">{s.origin}</td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800">{s.destination}</td>
-                  <td className="py-3.5 px-4">
-                    <div className="font-bold text-slate-800">{s.cargo}</div>
-                    <div className="text-[10px] font-semibold text-slate-400">{s.weight}</div>
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-900">{s.eta}</td>
-                  <td className="py-3.5 px-4">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${s.statusBadge}`}>
-                      {s.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => setSelectedShipment(s)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Track Live Route">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDeleteShipment(s.id, s.rawId)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete Record">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading live shipments from Supabase...</div>
+      ) : filteredShipments.length === 0 ? (
+        <Card className="p-12 text-center border border-dashed border-slate-200">
+          <Truck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-black text-slate-800">No shipments found</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+            {searchQuery ? 'No shipments match your search filter.' : 'Your global container ledger is currently empty. Book a new shipment to start tracking.'}
+          </p>
+          <Button size="sm" className="mt-4 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1" /> Book Container Shipment
+          </Button>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
+                  <th className="py-3 px-4">Container ID & Carrier</th>
+                  <th className="py-3 px-4">Origin Port</th>
+                  <th className="py-3 px-4">Destination Port</th>
+                  <th className="py-3 px-4">Cargo & Weight</th>
+                  <th className="py-3 px-4">ETA Date</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+                {filteredShipments.map((s) => (
+                  <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3.5 px-4">
+                      <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                        <Anchor className="w-3.5 h-3.5 text-[#6A1B2E]" /> {s.container}
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400">{s.id} · {s.carrier}</span>
+                    </td>
+                    <td className="py-3.5 px-4 font-bold text-slate-800">{s.origin}</td>
+                    <td className="py-3.5 px-4 font-bold text-slate-800">{s.destination}</td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-bold text-slate-800">{s.cargo}</div>
+                      <div className="text-[10px] font-semibold text-slate-400">{s.weight}</div>
+                    </td>
+                    <td className="py-3.5 px-4 font-bold text-slate-900">{s.eta}</td>
+                    <td className="py-3.5 px-4">
+                      <select
+                        value={s.status}
+                        onChange={(e) => handleStatusChange(s.id, s.rawId, e.target.value)}
+                        className={`text-[10px] font-extrabold rounded-full px-2.5 py-1 border cursor-pointer ${s.statusBadge}`}
+                      >
+                        <option value="In Transit">In Transit</option>
+                        <option value="Loaded on Vessel">Loaded on Vessel</option>
+                        <option value="Customs Cleared">Customs Cleared</option>
+                        <option value="Delivered">Delivered</option>
+                      </select>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => setSelectedShipment(s)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Track Live Route">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDeleteShipment(s.id, s.rawId)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete Record">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Book Shipment Modal */}
       <AnimatePresence>
@@ -207,18 +262,33 @@ export const TradeShipments: React.FC = () => {
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Container Serial Number</label>
                   <input type="text" required value={newShipment.container} onChange={(e) => setNewShipment({ ...newShipment, container: e.target.value })} placeholder="e.g. MSKU-9988112" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Cargo Description</label>
+                  <input type="text" required value={newShipment.cargo} onChange={(e) => setNewShipment({ ...newShipment, cargo: e.target.value })} placeholder="e.g. Industrial Bearing Assemblies" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Origin Port</label>
+                    <input type="text" required value={newShipment.origin} onChange={(e) => setNewShipment({ ...newShipment, origin: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Destination Port</label>
+                    <input type="text" required value={newShipment.destination} onChange={(e) => setNewShipment({ ...newShipment, destination: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Carrier Line</label>
                     <select value={newShipment.carrier} onChange={(e) => setNewShipment({ ...newShipment, carrier: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
                       <option value="Maersk Line">Maersk Line</option>
+                      <option value="CMA CGM Logistics">CMA CGM Logistics</option>
                       <option value="Hapag-Lloyd">Hapag-Lloyd</option>
                       <option value="MSC Line">MSC Line</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Estimated ETA</label>
-                    <input type="text" required value={newShipment.eta} onChange={(e) => setNewShipment({ ...newShipment, eta: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="date" required value={newShipment.eta} onChange={(e) => setNewShipment({ ...newShipment, eta: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
                 <div className="pt-3 flex gap-2">
@@ -261,15 +331,21 @@ export const TradeShipments: React.FC = () => {
                     </div>
                     <div className="relative">
                       <span className="absolute -left-[21px] top-0.5 w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping" />
-                      <div className="text-xs font-black text-[#6A1B2E]">Maritime Transit In Progress</div>
-                      <div className="text-[10px] font-semibold text-slate-400">Vessel en route</div>
+                      <div className="text-xs font-black text-[#6A1B2E]">Current Status: {selectedShipment.status}</div>
+                      <div className="text-[10px] font-semibold text-slate-400">Carrier line updated in real time</div>
                     </div>
-                    <div className="relative opacity-60">
+                    <div className="relative">
                       <span className="absolute -left-[21px] top-0.5 w-2.5 h-2.5 rounded-full bg-slate-300" />
                       <div className="text-xs font-black text-slate-700">Destination Port: {selectedShipment.destination}</div>
                       <div className="text-[10px] font-semibold text-slate-400">Estimated Arrival: {selectedShipment.eta}</div>
                     </div>
                   </div>
+                </div>
+
+                <div className="pt-4">
+                  <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => setSelectedShipment(null)}>
+                    Close Inspector
+                  </Button>
                 </div>
               </div>
             </motion.div>

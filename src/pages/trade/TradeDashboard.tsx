@@ -3,30 +3,38 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Globe, Truck, FileSpreadsheet, Building2, CreditCard, ArrowUpRight,
-  CheckCircle2, ShieldCheck, Anchor, FileCheck2
+  CheckCircle2, ShieldCheck, Anchor, FileCheck2, Plus, Clock, ExternalLink
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { supabase } from '../../lib/supabase';
-import { getTradeDashboardLiveStats } from '../../lib/api/trade';
+import { getTradeDashboardLiveStats, getTradeShipments, getTradeInvoices } from '../../lib/api/trade';
 
 export const TradeDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+  const [shipments, setShipments] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [stats, setStats] = useState({
-    activeContainersCount: 3,
-    totalVolumeStr: '₹4.82 Cr',
-    openLCsStr: '₹3.55 Cr',
-    clearedPaymentsStr: '₹3.92 Cr',
+    activeContainersCount: 0,
+    totalVolumeStr: '₹0',
+    openLCsStr: '₹0',
+    clearedPaymentsStr: '₹0',
     activeShipments: [] as any[],
     recentInvoices: [] as any[],
   });
 
   const loadData = useCallback(async () => {
     try {
-      const data = await getTradeDashboardLiveStats();
-      setStats(data);
+      const [liveStats, allShipments, allInvoices] = await Promise.all([
+        getTradeDashboardLiveStats(),
+        getTradeShipments(),
+        getTradeInvoices(),
+      ]);
+      setStats(liveStats);
+      setShipments(allShipments);
+      setInvoices(allInvoices);
     } catch (e) {
     } finally {
       setLoading(false);
@@ -63,6 +71,16 @@ export const TradeDashboard: React.FC = () => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
+
+  // Group shipments by origin port for real port tracker
+  const portSummary = React.useMemo(() => {
+    const portsMap: Record<string, number> = {};
+    shipments.forEach((s) => {
+      const p = s.origin_port || 'Port of Gdansk, Poland';
+      portsMap[p] = (portsMap[p] || 0) + 1;
+    });
+    return Object.entries(portsMap).slice(0, 3);
+  }, [shipments]);
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -120,9 +138,9 @@ export const TradeDashboard: React.FC = () => {
       {/* Dynamic KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'Containers in Transit', value: `${stats.activeContainersCount} Units`, sub: 'Active Maritime Port Freights', icon: Truck, color: 'text-indigo-600 bg-indigo-50 border-indigo-100', badge: 'Live Ports', path: '/trade/shipments' },
-          { title: 'Total Trade Volume', value: stats.totalVolumeStr, sub: 'Export Cargo Invoices Ledger', icon: Globe, color: 'text-blue-600 bg-blue-50 border-blue-100', badge: 'Active Ledger', path: '/trade/invoices' },
-          { title: 'Open Letters of Credit', value: stats.openLCsStr, sub: 'Verified Banking Lines', icon: Building2, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', badge: 'Banking Lines', path: '/trade/letters-of-credit' },
+          { title: 'Containers in Transit', value: `${stats.activeContainersCount} Units`, sub: `${shipments.length} Total Shipments in DB`, icon: Truck, color: 'text-indigo-600 bg-indigo-50 border-indigo-100', badge: 'Live Ports', path: '/trade/shipments' },
+          { title: 'Total Trade Volume', value: stats.totalVolumeStr, sub: `${invoices.length} Commercial Invoices`, icon: Globe, color: 'text-blue-600 bg-blue-50 border-blue-100', badge: 'Active Ledger', path: '/trade/invoices' },
+          { title: 'Open Letters of Credit', value: stats.openLCsStr, sub: 'Verified Banking Guarantees', icon: Building2, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', badge: 'Banking Lines', path: '/trade/letters-of-credit' },
           { title: 'Cleared Payments', value: stats.clearedPaymentsStr, sub: 'Settled SWIFT Transactions', icon: CreditCard, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20', badge: '100% Cleared', path: '/trade/payments' },
         ].map((stat, idx) => (
           <Card key={idx} onClick={() => navigate(stat.path)} className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group flex flex-col justify-between h-full">
@@ -148,49 +166,64 @@ export const TradeDashboard: React.FC = () => {
       {/* Main Workspace Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left 2 Cols: Trade Chart & Live Port Operations */}
+        {/* Left 2 Cols: Live Shipments & Active Maritime Port Hubs */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Trade Performance Chart */}
-          <Card className="p-6 text-left border border-slate-200/70 shadow-xs">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+          
+          {/* Live Recent Shipments Feed */}
+          <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-sm font-black text-slate-900">Trade Volume & Freight Movement (₹)</h3>
-                <p className="text-xs text-slate-400 font-semibold mt-0.5">Live cargo valuation and European export trend</p>
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-[#6A1B2E]" /> Active Maritime Shipments Ledger
+                </h3>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">Real-time container movements and customs clearance updates</p>
               </div>
-              <span className="text-[10px] font-extrabold text-[#6A1B2E] bg-[#6A1B2E]/10 px-3 py-1 rounded-full uppercase border border-[#6A1B2E]/20">
-                Active Ledger: {stats.totalVolumeStr}
-              </span>
+              <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => navigate('/trade/shipments')}>
+                View All ({shipments.length})
+              </Button>
             </div>
 
-            {/* SVG Chart */}
-            <div className="h-[210px] w-full relative">
-              <svg className="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="trade-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6A1B2E" stopOpacity="0.22" />
-                    <stop offset="100%" stopColor="#6A1B2E" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <line x1="0" y1="40" x2="500" y2="40" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="0" y1="90" x2="500" y2="90" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="0" y1="140" x2="500" y2="140" stroke="#f1f5f9" strokeWidth="1" />
-                
-                <path d="M 0 150 Q 100 110, 200 120 T 400 50 T 500 30 L 500 200 L 0 200 Z" fill="url(#trade-grad)" />
-                <path d="M 0 150 Q 100 110, 200 120 T 400 50 T 500 30" fill="none" stroke="#6A1B2E" strokeWidth="3.5" strokeLinecap="round" />
-                <circle cx="200" cy="120" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
-                <circle cx="400" cy="50" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
-              </svg>
-              <div className="absolute top-[30px] left-[340px] bg-slate-900 text-white text-[9px] font-bold px-2.5 py-1 rounded shadow-md pointer-events-none select-none">
-                Volume: {stats.totalVolumeStr}
+            {shipments.length === 0 ? (
+              <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <Truck className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs font-bold text-slate-600">No active shipments in the database</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Book a new container shipment to start tracking freight.</p>
+                <Button size="sm" className="mt-3 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => navigate('/trade/shipments')}>
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Book Container Shipment
+                </Button>
               </div>
-            </div>
-
-            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mt-2 px-1 select-none">
-              <span>May 2026</span>
-              <span>Jun 2026</span>
-              <span>Jul 2026</span>
-              <span>Aug - Sep 2026 (Realtime)</span>
-            </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {shipments.slice(0, 4).map((s) => (
+                  <div key={s.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/80 px-2 rounded-xl transition-colors">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-xs text-slate-900">{s.container_no || s.shipment_no || s.id}</span>
+                        <span className="text-[10px] font-bold text-slate-400">· {s.carrier || 'Maersk Line'}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border ${
+                          (s.status === 'In Transit' || s.shipment_status === 'In Transit')
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        }`}>
+                          {s.status || s.shipment_status || 'In Transit'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-semibold text-slate-500">
+                        {s.origin_port} → {s.destination_port}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xs font-black text-slate-900">
+                        {Number(s.cargo_weight_kg || 20000).toLocaleString()} kg
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 justify-end">
+                        <Clock className="w-3 h-3" /> ETA: {s.eta || 'Scheduled'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
 
           {/* Active Maritime Port Tracker */}
@@ -200,30 +233,43 @@ export const TradeDashboard: React.FC = () => {
                 <Anchor className="w-4 h-4 text-[#6A1B2E]" /> Global Port Hubs Status
               </h3>
               <button onClick={() => navigate('/trade/shipments')} className="text-xs font-bold text-[#6A1B2E] hover:underline">
-                View All Shipments
+                Explore Ports
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                { port: 'Port of Gdansk', country: '🇵🇱 Poland', status: 'Customs Clear', count: `${stats.activeContainersCount} Dispatches` },
-                { port: 'Port of Hamburg', country: '🇩🇪 Germany', status: 'In Transit', count: 'Active Line' },
-                { port: 'Port of Rotterdam', country: '🇳🇱 Netherlands', status: 'Docking Cleared', count: 'Destination Port' },
-              ].map((p, idx) => (
-                <div key={idx} className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
-                  <div className="text-[10px] font-black uppercase text-slate-400">{p.country}</div>
-                  <div className="text-xs font-black text-slate-900">{p.port}</div>
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{p.status}</span>
-                    <span className="text-[10px] font-bold text-slate-500">{p.count}</span>
+              {portSummary.length > 0 ? (
+                portSummary.map(([portName, count], idx) => (
+                  <div key={idx} className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+                    <div className="text-[10px] font-black uppercase text-slate-400">Maritime Hub</div>
+                    <div className="text-xs font-black text-slate-900 truncate">{portName}</div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Active Port</span>
+                      <span className="text-[10px] font-bold text-slate-500">{count} Shipments</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                [
+                  { port: 'Port of Gdansk', country: '🇵🇱 Poland', status: 'Customs Clear' },
+                  { port: 'Port of Hamburg', country: '🇩🇪 Germany', status: 'In Transit' },
+                  { port: 'Port of Rotterdam', country: '🇳🇱 Netherlands', status: 'Docking Cleared' },
+                ].map((p, idx) => (
+                  <div key={idx} className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+                    <div className="text-[10px] font-black uppercase text-slate-400">{p.country}</div>
+                    <div className="text-xs font-black text-slate-900">{p.port}</div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{p.status}</span>
+                      <span className="text-[10px] font-bold text-slate-500">Live Hub</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
         </div>
 
-        {/* Right Col: Quick Actions, Trade Alerts, Pending LC */}
+        {/* Right Col: Quick Actions, Recent Invoices & Compliance Status */}
         <div className="space-y-6 text-left">
           
           {/* Quick Action Cards */}
@@ -261,13 +307,13 @@ export const TradeDashboard: React.FC = () => {
                 <Building2 className="w-4 h-4" /> Letter of Credit Active
               </h3>
               <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                Banking Lines: {stats.openLCsStr}
+                {stats.openLCsStr}
               </span>
             </div>
 
             <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1 mb-3">
               <div className="text-xs font-black text-slate-900">Total LC Credit Facilities</div>
-              <div className="text-[11px] font-semibold text-slate-500">Beneficiaries: Warsaw, Rotterdam & Berlin Desks</div>
+              <div className="text-[11px] font-semibold text-slate-500">Beneficiary Guarantees Linked to Export Shipments</div>
               <div className="text-[10px] font-bold text-slate-400 pt-1 flex items-center justify-between">
                 <span>Issuing Banks: HSBC, Deutsche Bank</span>
                 <span className="text-emerald-600 font-extrabold">{stats.openLCsStr}</span>
@@ -288,8 +334,8 @@ export const TradeDashboard: React.FC = () => {
               <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-extrabold text-slate-900 block">EU Phytosanitary Clearances</span>
-                  <span className="text-[10.5px] font-semibold text-slate-500">Export inspections approved by Chamber of Commerce.</span>
+                  <span className="font-extrabold text-slate-900 block">EU Phytosanitary & Customs Clearances</span>
+                  <span className="text-[10.5px] font-semibold text-slate-500">Export inspections verified under ICC Uniform Customs Rules.</span>
                 </div>
               </div>
               <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5">

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileCheck2, Search, Download, Eye, X, CheckCircle2, Anchor } from 'lucide-react';
+import { FileCheck2, Search, Download, Eye, X, CheckCircle2, Anchor, Trash2, Plus } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getTradeBillsOfLading, createTradeBillOfLading } from '../../lib/api/trade';
+import { getTradeBillsOfLading, createTradeBillOfLading, updateTradeBillOfLadingStatus, deleteTradeBillOfLading } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
-import { Plus } from 'lucide-react';
 
 export const TradeBillsOfLading: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,14 +19,22 @@ export const TradeBillsOfLading: React.FC = () => {
     carrier: 'MSC Mediterranean Shipping Co.',
     pol: 'Port of Gdansk 🇵🇱',
     pod: 'Port of Rotterdam 🇳🇱',
-    consignee: 'Warsaw Global Logistics Sp. z o.o.'
+    consignee: 'Warsaw Global Logistics Sp. z o.o.',
+    shipper: 'Ferex Global Trade Corp'
   });
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
-    const data = await getTradeBillsOfLading();
-    setBills(data);
-    setLoading(false);
+    try {
+      const data = await getTradeBillsOfLading();
+      if (Array.isArray(data)) {
+        setBills(data);
+      } else {
+        setBills([]);
+      }
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -62,10 +69,23 @@ export const TradeBillsOfLading: React.FC = () => {
       port_of_loading: newBL.pol,
       port_of_discharge: newBL.pod,
       consignee: newBL.consignee,
+      shipper: newBL.shipper,
     });
     await loadData();
     setShowCreateModal(false);
     showToastMsg(`Registered Bill of Lading ${created.bl_number || created.id}`);
+  };
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    await updateTradeBillOfLadingStatus(id, newStatus);
+    showToastMsg(`B/L status updated to ${newStatus}`);
+    await loadData();
+  };
+
+  const handleDeleteBL = async (id: string) => {
+    await deleteTradeBillOfLading(id);
+    setBills(prev => prev.filter(b => b.id !== id && b.bl_number !== id));
+    showToastMsg(`Removed Bill of Lading ${id}`);
   };
 
   const filteredBills = bills.filter(b =>
@@ -109,6 +129,17 @@ export const TradeBillsOfLading: React.FC = () => {
 
       {loading ? (
         <div className="p-8 text-center text-xs font-bold text-slate-400">Loading bills of lading...</div>
+      ) : filteredBills.length === 0 ? (
+        <Card className="p-12 text-center border border-dashed border-slate-200">
+          <FileCheck2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-black text-slate-800">No Bills of Lading found</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+            {searchQuery ? 'No records match your query.' : 'There are no active B/L documents. Issue a new ocean B/L below.'}
+          </p>
+          <Button size="sm" className="mt-4 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1" /> Issue Ocean B/L
+          </Button>
+        </Card>
       ) : (
         <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
           <div className="overflow-x-auto">
@@ -119,7 +150,6 @@ export const TradeBillsOfLading: React.FC = () => {
                   <th className="py-3 px-4">Carrier Line</th>
                   <th className="py-3 px-4">Port of Loading (POL)</th>
                   <th className="py-3 px-4">Port of Discharge (POD)</th>
-                  <th className="py-3 px-4">Issue Date</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
@@ -127,11 +157,10 @@ export const TradeBillsOfLading: React.FC = () => {
               <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                 {filteredBills.map((b) => {
                   const blId = b.bl_number || b.id;
-                  const vessel = b.vessel_name || b.vessel || 'Ocean Vessel';
-                  const carrier = b.carrier || 'MSC Mediterranean Shipping';
+                  const vessel = b.vessel_name || b.vessel || 'MSC Oscar (V.8821)';
+                  const carrier = b.carrier || 'MSC Mediterranean Shipping Co.';
                   const pol = b.port_of_loading || b.pol || 'Port of Gdansk 🇵🇱';
                   const pod = b.port_of_discharge || b.pod || 'Port of Rotterdam 🇳🇱';
-                  const issueDate = b.issue_date || b.issueDate || 'Jul 28, 2026';
                   const status = b.status || 'Clean On-Board Signed';
 
                   return (
@@ -143,11 +172,16 @@ export const TradeBillsOfLading: React.FC = () => {
                       <td className="py-3.5 px-4 font-bold text-slate-800">{carrier}</td>
                       <td className="py-3.5 px-4 font-bold text-slate-800">{pol}</td>
                       <td className="py-3.5 px-4 font-bold text-slate-800">{pod}</td>
-                      <td className="py-3.5 px-4 font-bold text-slate-800">{issueDate}</td>
                       <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-200">
-                          {status}
-                        </span>
+                        <select
+                          value={status}
+                          onChange={(e) => handleStatusChange(b.id, e.target.value)}
+                          className="text-[10px] font-extrabold rounded-full px-2.5 py-1 border bg-emerald-50 text-emerald-700 border-emerald-200 cursor-pointer"
+                        >
+                          <option value="Clean On-Board Signed">Clean On-Board Signed</option>
+                          <option value="Issued & Stamped">Issued & Stamped</option>
+                          <option value="Customs Submitted">Customs Submitted</option>
+                        </select>
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -156,6 +190,9 @@ export const TradeBillsOfLading: React.FC = () => {
                           </button>
                           <button onClick={() => showToastMsg(`Downloading B/L PDF for ${blId}...`)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100" title="Download B/L PDF">
                             <Download className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDeleteBL(b.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete B/L">
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -188,18 +225,18 @@ export const TradeBillsOfLading: React.FC = () => {
 
                 <div className="p-4 bg-slate-50 rounded-xl space-y-1">
                   <span className="text-[10px] font-extrabold uppercase text-slate-400">Shipper & Consignee</span>
-                  <div className="text-xs font-black text-slate-900">Shipper: {selectedBL.shipper}</div>
-                  <div className="text-xs font-semibold text-slate-500">Consignee: {selectedBL.consignee}</div>
+                  <div className="text-xs font-black text-slate-900">Shipper: {selectedBL.shipper || 'Ferex Global Trade Corp'}</div>
+                  <div className="text-xs font-semibold text-slate-500">Consignee: {selectedBL.consignee || 'Warsaw Global Logistics Sp. z o.o.'}</div>
                 </div>
 
                 <div className="p-4 bg-slate-50 rounded-xl space-y-1">
                   <span className="text-[10px] font-extrabold uppercase text-slate-400">Routing Details</span>
-                  <div className="text-xs font-black text-slate-900">POL: {selectedBL.pol}</div>
-                  <div className="text-xs font-black text-slate-900">POD: {selectedBL.pod}</div>
+                  <div className="text-xs font-black text-slate-900">POL: {selectedBL.port_of_loading || selectedBL.pol}</div>
+                  <div className="text-xs font-black text-slate-900">POD: {selectedBL.port_of_discharge || selectedBL.pod}</div>
                 </div>
 
                 <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => {
-                  showToastMsg(`Official B/L Copy exported for ${selectedBL.id}`);
+                  showToastMsg(`Official B/L Copy exported for ${selectedBL.bl_number || selectedBL.id}`);
                 }}>
                   Export Signed B/L Copy
                 </Button>

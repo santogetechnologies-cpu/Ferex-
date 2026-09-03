@@ -60,11 +60,11 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
     {
       title: 'TRADE OPERATIONS',
       items: [
-        { name: 'Trade CRM', path: '/trade/crm', icon: Users, badge: '142 Co.' },
-        { name: 'Shipments', path: '/trade/shipments', icon: Truck, badge: '28 Active' },
+        { name: 'Trade CRM', path: '/trade/crm', icon: Users, badge: null },
+        { name: 'Shipments', path: '/trade/shipments', icon: Truck, badge: 'Active' },
         { name: 'Commercial Invoices', path: '/trade/invoices', icon: FileSpreadsheet, badge: null },
         { name: 'Packing Lists', path: '/trade/packing-lists', icon: PackageCheck, badge: null },
-        { name: 'Bills of Lading', path: '/trade/bills-of-lading', icon: FileCheck2, badge: 'Verified' },
+        { name: 'Bills of Lading', path: '/trade/bills-of-lading', icon: FileCheck2, badge: 'Ocean' },
         { name: 'Certificates', path: '/trade/certificates', icon: Award, badge: null },
         { name: 'Trade Documents', path: '/trade/documents', icon: FolderArchive, badge: 'Vault' },
         { name: 'Letters of Credit', path: '/trade/letters-of-credit', icon: Building2, badge: 'LC Duty' },
@@ -75,15 +75,15 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
       title: 'ANALYTICS',
       items: [
         { name: 'Reports', path: '/trade/reports', icon: BarChart3, badge: null },
-        { name: 'Shipment Analytics', path: '/trade/shipment-analytics', icon: TrendingUp, badge: 'AI' },
-        { name: 'Financial Analytics', path: '/trade/financial-analytics', icon: DollarSign, badge: '₹ Vol' },
+        { name: 'Shipment Analytics', path: '/trade/shipment-analytics', icon: TrendingUp, badge: 'Realtime' },
+        { name: 'Financial Analytics', path: '/trade/financial-analytics', icon: DollarSign, badge: 'Ledger' },
       ]
     },
     {
       title: 'COMMUNICATION',
       items: [
-        { name: 'Messages', path: '/trade/messages', icon: MessageSquare, badge: '4 New' },
-        { name: 'Notifications', path: '/trade/notifications', icon: Bell, badge: '6' },
+        { name: 'Messages', path: '/trade/messages', icon: MessageSquare, badge: 'Chat' },
+        { name: 'Notifications', path: '/trade/notifications', icon: Bell, badge: null },
       ]
     },
     {
