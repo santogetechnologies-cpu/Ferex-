@@ -1,45 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, CheckCircle2, Trash2, Clock, Check } from 'lucide-react';
+import { Bell, CheckCircle2, Check, Search, ShieldCheck } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-
-const initialNotifications = [
-  { id: 'NTF-001', title: 'Invoice Paid', desc: 'Reliance Digital paid Invoice #INV-2026-88 (₹4,50,000 via NEFT).', time: '2 hours ago', unread: true, category: 'Finance' },
-  { id: 'NTF-002', title: 'New Lead Added', desc: 'HDFC Life Insurance submitted a website redesign inquiry (₹18,00,000 deal value).', time: '4 hours ago', unread: true, category: 'Leads' },
-  { id: 'NTF-003', title: 'Meeting Reminder', desc: 'Tata Motors Project Review meeting starting today at 3:00 PM on Google Meet.', time: '5 hours ago', unread: true, category: 'Meetings' },
-  { id: 'NTF-004', title: 'Expense Claim Pending', desc: 'Arun Patel submitted a travel expense claim for ₹8,200.', time: 'Yesterday', unread: true, category: 'Finance' },
-  { id: 'NTF-005', title: 'Task Completed', desc: 'Sneha Roy completed task "HDFC Life Final Brand Handoff Package".', time: 'Yesterday', unread: false, category: 'Tasks' },
-];
+import { getDigitalNotifications, markDigitalNotificationRead } from '../../lib/api/digital';
+import { supabase } from '../../lib/supabase';
 
 export const DigitalNotifications: React.FC = () => {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
-  const [filter, setFilter] = useState('All');
+  const [filterTab, setFilterTab] = useState<'all' | 'unread'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getDigitalNotifications();
+      if (Array.isArray(data) && data.length > 0) {
+        setNotifications(data.map((n: any) => ({
+          id: n.id,
+          title: n.title,
+          desc: n.description,
+          time: n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent',
+          unread: !n.is_read,
+          category: n.category || 'Engineering',
+        })));
+      } else {
+        setNotifications([
+          { id: 'NTF-001', title: 'Invoice Paid', desc: 'Nexus FinTech Global settled Tax Invoice #INV-DIG-8810 (₹4,50,000 via RTGS).', time: '2 hours ago', unread: true, category: 'Finance' },
+          { id: 'NTF-002', title: 'Sprint Milestone Completed', desc: 'Starlight E-Commerce Design System approved for production build.', time: '4 hours ago', unread: true, category: 'Projects' },
+          { id: 'NTF-003', title: 'AWS Cloud Alert', desc: 'Production cluster utilization steady at 38%. Zero downtime.', time: 'Yesterday', unread: false, category: 'DevOps' },
+        ]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+
+    const channel = supabase
+      .channel('realtime_digital_notifs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_notifications' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    const handleLocalChange = () => loadData();
+    window.addEventListener('ferex_digital_notifications_change', handleLocalChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_digital_notifications_change', handleLocalChange);
+    };
+  }, [loadData]);
 
   const markAllRead = () => {
     setNotifications(notifications.map(n => ({ ...n, unread: false })));
     showToast('All notifications marked as read');
   };
 
-  const deleteNotif = (id: string) => {
-    setNotifications(notifications.filter(n => n.id !== id));
-    showToast('Notification cleared');
-  };
-
-  const markSingleRead = (id: string) => {
+  const handleMarkRead = async (id: string) => {
+    await markDigitalNotificationRead(id);
     setNotifications(notifications.map(n => n.id === id ? { ...n, unread: false } : n));
+    showToast('Notification marked as read');
   };
 
   const filtered = notifications.filter(n => {
-    if (filter === 'Unread') return n.unread;
-    if (filter !== 'All') return n.category === filter;
-    return true;
+    const matchSearch = (n.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (n.desc || '').toLowerCase().includes(searchQuery.toLowerCase());
+    if (filterTab === 'unread') return matchSearch && n.unread;
+    return matchSearch;
   });
-
-  const unreadCount = notifications.filter(n => n.unread).length;
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -53,51 +92,78 @@ export const DigitalNotifications: React.FC = () => {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <Bell className="w-5 h-5 text-[#6A1B2E]" /> Notifications Center
+          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Bell className="w-5 h-5 text-[#6A1B2E]" /> Agency Operations Notification Center
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">Real-time alerts for payments, lead arrivals, project milestones, and approvals.</p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">
+            Ferex Digital ERP • Real-time alerts for retainer invoice payments, sprint milestones, and client meetings.
+          </p>
         </div>
-        {unreadCount > 0 && (
-          <Button size="sm" variant="outline" className="text-xs font-bold" onClick={markAllRead}>
-            <Check className="w-4 h-4 mr-1.5" /> Mark All as Read
-          </Button>
-        )}
+        <Button size="sm" variant="outline" className="text-xs font-bold" onClick={markAllRead}>
+          <Check className="w-4 h-4 mr-1.5" /> Mark All as Read
+        </Button>
       </div>
 
-      <div className="flex gap-2 border-b border-slate-200/70 pb-3">
-        {['All', 'Unread', 'Finance', 'Leads', 'Meetings', 'Tasks'].map(f => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${filter === f ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-            {f} {f === 'Unread' && unreadCount > 0 ? `(${unreadCount})` : ''}
-          </button>
-        ))}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div className="flex items-center gap-2">
+          {(['all', 'unread'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setFilterTab(tab)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize transition-all cursor-pointer ${filterTab === tab ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search alerts..."
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+          />
+        </div>
       </div>
 
-      <div className="space-y-3">
-        {filtered.map(n => (
-          <Card key={n.id} className={`p-4 border transition-all ${n.unread ? 'border-[#6A1B2E]/30 bg-slate-50/50 shadow-xs' : 'border-slate-200/70 opacity-80'}`}>
-            <div className="flex items-start justify-between gap-4">
+      {loading ? (
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading alerts...</div>
+      ) : filtered.length === 0 ? (
+        <Card className="p-12 text-center border border-dashed border-slate-200">
+          <Bell className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-black text-slate-800">No alerts found</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">There are no operational alerts in this view.</p>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((n) => (
+            <Card key={n.id} className={`p-4 border transition-all flex items-start justify-between gap-4 ${!n.unread ? 'bg-white border-slate-200/70' : 'bg-[#6A1B2E]/5 border-[#6A1B2E]/20'}`}>
               <div className="flex items-start gap-3">
-                <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${n.unread ? 'bg-[#6A1B2E] animate-pulse' : 'bg-slate-300'}`} />
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${!n.unread ? 'bg-slate-100 text-slate-500' : 'bg-[#6A1B2E] text-white'}`}>
+                  <Bell className="w-4 h-4" />
+                </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-extrabold text-slate-900">{n.title}</h3>
-                    <span className="text-[9.5px] font-black uppercase text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded-md border border-[#6A1B2E]/20">{n.category}</span>
+                    <h4 className="text-xs font-black text-slate-900">{n.title}</h4>
+                    <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">{n.category}</span>
                   </div>
-                  <p className="text-xs font-semibold text-slate-600">{n.desc}</p>
-                  <p className="text-[10px] font-semibold text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3" />{n.time}</p>
+                  <p className="text-xs font-semibold text-slate-600 leading-relaxed">{n.desc}</p>
+                  <span className="text-[10px] font-bold text-slate-400 block">{n.time}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                {n.unread && (
-                  <button onClick={() => markSingleRead(n.id)} className="p-1.5 text-xs font-bold text-slate-400 hover:text-[#6A1B2E] rounded-lg">Mark Read</button>
-                )}
-                <button onClick={() => deleteNotif(n.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+
+              {n.unread && (
+                <button onClick={() => handleMarkRead(n.id)} className="p-1.5 text-[#6A1B2E] hover:bg-[#6A1B2E]/10 rounded-lg shrink-0 cursor-pointer" title="Mark Read">
+                  <Check className="w-4 h-4" />
+                </button>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
