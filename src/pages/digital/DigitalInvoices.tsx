@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, Search, Plus, Eye, X, CheckCircle2, Trash2, Printer,
-  Layers, FolderKanban, AlertCircle, Building2, CheckCircle, Clock
+  FolderKanban, Building2, CheckCircle, Clock
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -14,7 +14,7 @@ import {
   getDigitalProjects,
   createDigitalMultiProjectInvoice,
   getDigitalInvoiceItems,
-  MultiProjectInvoiceItem
+  type MultiProjectInvoiceItem
 } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 

@@ -12,7 +12,7 @@ import {
   getRimiCustomerCredentials,
   getRimiSalesOrders,
   getRimiPayments,
-  ProvisionedRimiCredential
+  type ProvisionedRimiCredential
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 

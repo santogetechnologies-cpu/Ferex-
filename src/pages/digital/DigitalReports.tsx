@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Download, Printer, Filter, Calendar, CheckCircle2, Search, Clock, FileSpreadsheet, Send, TrendingUp, DollarSign, Users, FolderKanban } from 'lucide-react';
+import { FileText, Download, Printer, Filter, Calendar, CheckCircle2, Search, FileSpreadsheet } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getDigitalInvoices, getDigitalProjects, getDigitalClients, getDigitalEmployees, getDigitalAssets } from '../../lib/api/digital';
@@ -10,7 +10,6 @@ export const DigitalReports: React.FC = () => {
   const [search, setSearch] = useState('');
   const [dateRange, setDateRange] = useState('This Month');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [loading, setLoading] = useState(true);
 
   const [invoices, setInvoices] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);

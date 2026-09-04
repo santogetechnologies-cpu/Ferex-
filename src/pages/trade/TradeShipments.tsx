@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Truck, Search, Plus, Eye, Trash2, X, CheckCircle2, Anchor, Navigation,
-  Warehouse, AlertTriangle, ShieldAlert, Layers, ArrowRight,
-  TrendingDown, FileText, CheckCircle
+  Warehouse, AlertTriangle, ShieldAlert, Layers,
+  TrendingDown, CheckCircle
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -21,8 +21,8 @@ import {
   createTradeCargoLoss,
   deleteTradeCargoLoss,
   getTradeCargoLossSummary,
-  BondedCargoItem,
-  CargoLossRecord
+  type BondedCargoItem,
+  type CargoLossRecord
 } from '../../lib/api/trade';
 
 export const TradeShipments: React.FC = () => {

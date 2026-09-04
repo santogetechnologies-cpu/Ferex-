@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Receipt, Search, Plus, X, CheckCircle2, Trash2, Server,
-  Shield, Key, Cpu, Calendar, CreditCard, CheckCircle, AlertTriangle
+  CreditCard, AlertTriangle
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -15,7 +15,7 @@ import {
   updateDigitalAsset,
   deleteDigitalAsset,
   getDigitalAssetCostSummary,
-  DigitalAsset
+  type DigitalAsset
 } from '../../lib/api/digital';
 
 export const DigitalExpenses: React.FC = () => {

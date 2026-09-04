@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, TrendingUp, Download, Eye, FileText, X, BarChart2, Plus, Star, Award, MessageSquare } from 'lucide-react';
+import { CheckCircle2, TrendingUp, Eye, FileText, X, BarChart2, Plus, Star, Award } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getDigitalEmployees, createDigitalEmployee, getDigitalProjects } from '../../lib/api/digital';
+import { getDigitalEmployees, createDigitalEmployee } from '../../lib/api/digital';
 
 export const DigitalPerformance: React.FC = () => {
   const [employees, setEmployees] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmp, setSelectedEmp] = useState<any>(null);
   const [showAddReviewModal, setShowAddReviewModal] = useState(false);
@@ -30,11 +29,7 @@ export const DigitalPerformance: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [empData, projData] = await Promise.all([
-        getDigitalEmployees(),
-        getDigitalProjects()
-      ]);
-      setProjects(projData || []);
+      const empData = await getDigitalEmployees();
 
       const defaultPerformance = [
         { id: '1', name: 'Kavita Iyer', role: 'Principal Fullstack Architect', rating: 9.6, projects: 4, tasks: 28, kpi: 98, feedback: 'Architected high-throughput microservices and Next.js frontend with zero downtime.' },

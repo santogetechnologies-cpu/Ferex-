@@ -13,7 +13,7 @@ import {
   getTradeShipments,
   getTradeLettersOfCredit,
   getTradeInvoices,
-  ProvisionedTradeCredential
+  type ProvisionedTradeCredential
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
 

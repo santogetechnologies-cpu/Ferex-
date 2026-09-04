@@ -13,7 +13,7 @@ import {
   getDigitalProjects,
   getDigitalTasks,
   getDigitalInvoices,
-  ProvisionedClientCredential
+  type ProvisionedClientCredential
 } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 

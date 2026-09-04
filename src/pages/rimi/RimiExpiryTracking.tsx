@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, CheckCircle2, Zap, AlertTriangle, ShieldCheck, Trash2, Plus, X } from 'lucide-react';
+import { Clock, CheckCircle2, Zap, AlertTriangle, Trash2, Plus, X } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getRimiBatches, updateRimiBatchStatus, createRimiBatch, deleteRimiBatch, getRimiProducts } from '../../lib/api/rimi';

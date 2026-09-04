@@ -13,8 +13,8 @@ import {
   deleteRimiFrostLoss,
   getRimiStockAdjustments,
   recordRimiStockAdjustment,
-  RimiFrostLoss,
-  RimiStockAdjustment
+  type RimiFrostLoss,
+  type RimiStockAdjustment
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
