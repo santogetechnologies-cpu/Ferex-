@@ -232,15 +232,19 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </div>
 
           <div className="ml-auto flex items-center gap-2.5">
-            {/* Quick Switch to Central Super Admin Command Center */}
-            <button
-              onClick={() => navigate('/central/dashboard')}
-              title="Return to Central Super Admin HQ"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black transition-all shadow-2xs cursor-pointer"
-            >
-              <Crown className="w-3.5 h-3.5 text-amber-700" />
-              <span className="hidden sm:inline">Super Admin HQ</span>
-            </button>
+            {/* Quick Switch to Central Super Admin Command Center (STRICTLY FOR SUPER ADMINS ONLY) */}
+            {((profile?.role || user?.role || user?.user_metadata?.role || '').toLowerCase().trim() === 'superadmin' ||
+              (profile?.role || user?.role || user?.user_metadata?.role || '').toLowerCase().trim() === 'super_admin' ||
+              (profile?.role || user?.role || user?.user_metadata?.role || '').toLowerCase().trim() === 'central') && (
+              <button
+                onClick={() => navigate('/central/dashboard')}
+                title="Return to Central Super Admin HQ"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black transition-all shadow-2xs cursor-pointer"
+              >
+                <Crown className="w-3.5 h-3.5 text-amber-700" />
+                <span className="hidden sm:inline">Super Admin HQ</span>
+              </button>
+            )}
 
             {/* Search Input */}
             <div className="relative hidden md:block">

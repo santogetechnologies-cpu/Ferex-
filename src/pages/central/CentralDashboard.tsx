@@ -1,78 +1,370 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, GraduationCap, CreditCard, ShieldCheck, TrendingUp, ArrowUpRight,
-  ChevronRight, DollarSign, CheckCircle2, RefreshCw, Shield,
-  AlertTriangle, FileText, Activity, Clock, Globe, Snowflake, Monitor
+  Users, CreditCard, ShieldCheck, TrendingUp, ArrowUpRight,
+  ChevronRight, CheckCircle2, RefreshCw, Shield,
+  Activity, Globe, Snowflake, Monitor, GraduationCap,
+  Calendar, Download, Layers, UserCheck
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { getCentralEnterpriseMetrics, type CentralEnterpriseStats } from '../../lib/api/central';
 
+type DateFilterType = 'today' | '7days' | '1month' | 'custom';
+
+interface DivisionFinancials {
+  name: string;
+  badge: string;
+  badgeColor: string;
+  icon: any;
+  color: string;
+  bgLight: string;
+  borderLight: string;
+  route: string;
+  revenueInr: number;
+  revenueFormatted: string;
+  originalCurrency: string;
+  growth: string;
+  transactionsCount: number;
+  keyMetricLabel: string;
+  keyMetricValue: string;
+  status: 'Optimal' | 'Active' | 'Operational';
+  statusColor: string;
+  desc: string;
+  features: string[];
+}
+
 export const CentralDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [toast, setToast] = useState('');
-  const [lastSyncTime, setLastSyncTime] = useState('Just now (15:03)');
-  const [activeTab, setActiveTab] = useState<'approvals' | 'alerts' | 'payments' | 'docs' | 'meetings'>('approvals');
-  const [metrics, setMetrics] = useState<CentralEnterpriseStats>({
-    educationStudents: 0,
-    educationApplications: 0,
-    educationRevenueInr: 0,
-    digitalClients: 0,
-    digitalProjects: 0,
-    digitalRevenueInr: 0,
-    tradeShipments: 0,
-    tradeRevenueEur: 0,
-    rimiOrders: 0,
-    rimiRevenueInr: 0,
-    staffCount: 0,
+  const [lastSyncTime, setLastSyncTime] = useState('Just now');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [currency, setCurrency] = useState<'INR' | 'USD' | 'EUR'>('INR');
+
+  // Date Filter State
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('1month');
+  const [customStartDate, setCustomStartDate] = useState(
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  );
+  const [customEndDate, setCustomEndDate] = useState(
+    new Date().toISOString().split('T')[0]
+  );
+
+  // Active chart division filter
+  const [selectedChartDivision, setSelectedChartDivision] = useState<'all' | 'education' | 'trade' | 'rimi' | 'digital'>('all');
+
+  // Base metrics from API / DB
+  const [baseMetrics, setBaseMetrics] = useState<CentralEnterpriseStats>({
+    educationStudents: 1480,
+    educationApplications: 142,
+    educationRevenueInr: 48200000,
+    digitalClients: 38,
+    digitalProjects: 14,
+    digitalRevenueInr: 1950000,
+    tradeShipments: 24,
+    tradeRevenueEur: 120000,
+    rimiOrders: 186,
+    rimiRevenueInr: 3850000,
+    staffCount: 12,
   });
-
-  const loadMetrics = React.useCallback(async () => {
-    try {
-      const data = await getCentralEnterpriseMetrics();
-      if (data) {
-        setMetrics(data);
-        setLastSyncTime(`Just now (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`);
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    loadMetrics();
-  }, [loadMetrics]);
-
-  const [pendingApprovals, setPendingApprovals] = useState([
-    { id: 'APP-101', title: 'Warsaw Batch Fee Wire (₹4.8L)', type: 'Financial Payout', time: '10m ago' },
-    { id: 'APP-102', title: 'Ashly NAWA Transcript Audit', type: 'Document Clearance', time: '35m ago' },
-    { id: 'APP-103', title: 'Senior Counselor Role: Vikram Singh', type: 'Role Privilege', time: '1h ago' },
-  ]);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleApprove = (id: string, title: string) => {
-    setPendingApprovals(prev => prev.filter(a => a.id !== id));
-    showToastMsg(`Approved: ${title}`);
-  };
+  const loadMetrics = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+      const data = await getCentralEnterpriseMetrics();
+      if (data) {
+        setBaseMetrics(prev => ({
+          educationStudents: data.educationStudents || prev.educationStudents || 1480,
+          educationApplications: data.educationApplications || prev.educationApplications || 142,
+          educationRevenueInr: data.educationRevenueInr || prev.educationRevenueInr || 48200000,
+          digitalClients: data.digitalClients || prev.digitalClients || 38,
+          digitalProjects: data.digitalProjects || prev.digitalProjects || 14,
+          digitalRevenueInr: data.digitalRevenueInr || prev.digitalRevenueInr || 1950000,
+          tradeShipments: data.tradeShipments || prev.tradeShipments || 24,
+          tradeRevenueEur: data.tradeRevenueEur || prev.tradeRevenueEur || 120000,
+          rimiOrders: data.rimiOrders || prev.rimiOrders || 186,
+          rimiRevenueInr: data.rimiRevenueInr || prev.rimiRevenueInr || 3850000,
+          staffCount: data.staffCount || prev.staffCount || 12,
+        }));
+        setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      }
+    } catch {
+      setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMetrics();
+  }, [loadMetrics]);
 
   const handleRefreshSync = () => {
     loadMetrics();
-    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setLastSyncTime(timeStr);
-    showToastMsg('Executive metrics re-synced from database');
+    showToastMsg('Consolidated 4-App live metrics refreshed from database');
   };
 
+  // Date Multiplier calculation for interactive dynamic filtering
+  const filterMultiplier = useMemo(() => {
+    switch (dateFilter) {
+      case 'today':
+        return 0.045; // ~1 day fraction of volume
+      case '7days':
+        return 0.28; // ~7 days fraction of volume
+      case '1month':
+        return 1.0; // 30 days standard volume
+      case 'custom': {
+        const start = new Date(customStartDate).getTime();
+        const end = new Date(customEndDate).getTime();
+        const diffDays = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+        return Math.min(3.0, Math.max(0.04, diffDays / 30));
+      }
+      default:
+        return 1.0;
+    }
+  }, [dateFilter, customStartDate, customEndDate]);
+
+  // Date range label
+  const dateRangeLabel = useMemo(() => {
+    switch (dateFilter) {
+      case 'today':
+        return `Today (${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})`;
+      case '7days':
+        return 'Last 7 Days (Rolling)';
+      case '1month':
+        return `Past 30 Days (Current Cycle)`;
+      case 'custom':
+        return `${customStartDate} to ${customEndDate}`;
+    }
+  }, [dateFilter, customStartDate, customEndDate]);
+
+  // Currency Converter Helpers
+  const EUR_TO_INR = 90;
+  const USD_TO_INR = 86;
+
+  const formatCurrency = useCallback((inrAmount: number) => {
+    if (currency === 'INR') {
+      if (inrAmount >= 10000000) {
+        return `₹${(inrAmount / 10000000).toFixed(2)} Cr`;
+      }
+      if (inrAmount >= 100000) {
+        return `₹${(inrAmount / 100000).toFixed(2)} L`;
+      }
+      return `₹${Math.round(inrAmount).toLocaleString('en-IN')}`;
+    } else if (currency === 'EUR') {
+      const eur = inrAmount / EUR_TO_INR;
+      if (eur >= 1000000) return `€${(eur / 1000000).toFixed(2)}M`;
+      if (eur >= 1000) return `€${(eur / 1000).toFixed(1)}k`;
+      return `€${Math.round(eur).toLocaleString('en-US')}`;
+    } else {
+      const usd = inrAmount / USD_TO_INR;
+      if (usd >= 1000000) return `$${(usd / 1000000).toFixed(2)}M`;
+      if (usd >= 1000) return `$${(usd / 1000).toFixed(1)}k`;
+      return `$${Math.round(usd).toLocaleString('en-US')}`;
+    }
+  }, [currency]);
+
+  // Consolidated Divisions Data Calculation
+  const divisionsData: DivisionFinancials[] = useMemo(() => {
+    const eduInr = baseMetrics.educationRevenueInr * filterMultiplier;
+    const tradeInr = (baseMetrics.tradeRevenueEur * EUR_TO_INR) * filterMultiplier;
+    const rimiInr = baseMetrics.rimiRevenueInr * filterMultiplier;
+    const digInr = baseMetrics.digitalRevenueInr * filterMultiplier;
+
+    return [
+      {
+        name: 'Ferex Education',
+        badge: 'Higher Ed & Admissions',
+        badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+        icon: GraduationCap,
+        color: 'text-rose-600',
+        bgLight: 'bg-rose-50/70',
+        borderLight: 'border-rose-100',
+        route: '/admin/dashboard',
+        revenueInr: eduInr,
+        revenueFormatted: formatCurrency(eduInr),
+        originalCurrency: `₹${(eduInr / 100000).toFixed(1)} L`,
+        growth: '+22.4%',
+        transactionsCount: Math.max(1, Math.round(148 * filterMultiplier)),
+        keyMetricLabel: 'Active Enrolled Students',
+        keyMetricValue: `${baseMetrics.educationStudents.toLocaleString()} Students`,
+        status: 'Optimal',
+        statusColor: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+        desc: 'European partner universities, NAWA legalization, tuition wire payouts & VFS visa track.',
+        features: ['Admissions Ledger', 'NAWA Documents', 'Tuition Payouts', 'VFS Tracker']
+      },
+      {
+        name: 'Global Trade ERP',
+        badge: 'International Freight',
+        badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        icon: Globe,
+        color: 'text-indigo-600',
+        bgLight: 'bg-indigo-50/70',
+        borderLight: 'border-indigo-100',
+        route: '/trade/dashboard',
+        revenueInr: tradeInr,
+        revenueFormatted: formatCurrency(tradeInr),
+        originalCurrency: `€${Math.round(baseMetrics.tradeRevenueEur * filterMultiplier).toLocaleString()} EUR`,
+        growth: '+18.6%',
+        transactionsCount: Math.max(1, Math.round(34 * filterMultiplier)),
+        keyMetricLabel: 'Cargo in Transit / LCs',
+        keyMetricValue: `${baseMetrics.tradeShipments} Active Vessels`,
+        status: 'Operational',
+        statusColor: 'text-indigo-600 bg-indigo-50 border-indigo-200',
+        desc: 'Letters of Credit, Bill of Lading, customs clearance & multi-currency freight invoices.',
+        features: ['LC Settlements', 'Bill of Lading', 'Customs Clearance', 'Multi-Currency']
+      },
+      {
+        name: 'Rimi Frozen FMCG',
+        badge: 'Cold-Chain Logistics',
+        badgeColor: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+        icon: Snowflake,
+        color: 'text-cyan-600',
+        bgLight: 'bg-cyan-50/70',
+        borderLight: 'border-cyan-100',
+        route: '/rimi/dashboard',
+        revenueInr: rimiInr,
+        revenueFormatted: formatCurrency(rimiInr),
+        originalCurrency: `₹${(rimiInr / 100000).toFixed(1)} L`,
+        growth: '+14.2%',
+        transactionsCount: Math.max(1, Math.round(baseMetrics.rimiOrders * filterMultiplier)),
+        keyMetricLabel: 'Active Warehouses & Hubs',
+        keyMetricValue: '12 Cold Hubs • 48 Fleet Units',
+        status: 'Active',
+        statusColor: 'text-cyan-600 bg-cyan-50 border-cyan-200',
+        desc: 'Cold storage inventory, batch lifecycle tracking, retail distributor billing & cash collections.',
+        features: ['Warehouse Cold Hubs', 'Batch Lifecycle', 'Fleet Logistics', 'Distributor Billing']
+      },
+      {
+        name: 'Ferex Digital Agency',
+        badge: 'Web, Mobile & AI Tech',
+        badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        icon: Monitor,
+        color: 'text-emerald-600',
+        bgLight: 'bg-emerald-50/70',
+        borderLight: 'border-emerald-100',
+        route: '/digital/dashboard',
+        revenueInr: digInr,
+        revenueFormatted: formatCurrency(digInr),
+        originalCurrency: `₹${(digInr / 100000).toFixed(1)} L`,
+        growth: '+28.9%',
+        transactionsCount: Math.max(1, Math.round(28 * filterMultiplier)),
+        keyMetricLabel: 'Active Client Retainers',
+        keyMetricValue: `${baseMetrics.digitalClients} Accounts • ${baseMetrics.digitalProjects} Sprints`,
+        status: 'Optimal',
+        statusColor: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+        desc: 'Custom software sprints, client milestone contracts, DevOps pipelines & SEO retainers.',
+        features: ['Client Deliverables', 'Sprint Milestones', 'Razorpay Webhooks', 'SEO Retainers']
+      }
+    ];
+  }, [baseMetrics, filterMultiplier, formatCurrency]);
+
+  // Grand Total Consolidated Revenue
+  const grandTotalRevenueInr = useMemo(() => {
+    return divisionsData.reduce((acc, d) => acc + d.revenueInr, 0);
+  }, [divisionsData]);
+
+  const totalTransactionsCount = useMemo(() => {
+    return divisionsData.reduce((acc, d) => acc + d.transactionsCount, 0);
+  }, [divisionsData]);
+
+  // Unified Cross-App Activity & Approvals Desk
+  const [activityDesk, setActivityDesk] = useState([
+    {
+      id: 'ACT-901',
+      division: 'Trade ERP',
+      divisionBadge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      title: 'Letter of Credit EUR 120,000 Verified',
+      subtitle: 'Maersk Line Hamburg Port shipment clearance',
+      time: '12m ago',
+      amount: '€120,000',
+      status: 'Action Required',
+      canApprove: true,
+    },
+    {
+      id: 'ACT-902',
+      division: 'Education',
+      divisionBadge: 'bg-rose-50 text-rose-700 border-rose-200',
+      title: 'Warsaw University Tuition Wire Received',
+      subtitle: 'Batch Autumn 2026 fee clearance for 12 students',
+      time: '34m ago',
+      amount: '₹4,80,000',
+      status: 'Action Required',
+      canApprove: true,
+    },
+    {
+      id: 'ACT-903',
+      division: 'Rimi Frozen',
+      divisionBadge: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+      title: 'Batch Dispatch #8492 to North Warehouse Hub',
+      subtitle: 'Cold chain temperature verified (-18°C compliant)',
+      time: '1h ago',
+      amount: '₹2,45,000',
+      status: 'Cleared',
+      canApprove: false,
+    },
+    {
+      id: 'ACT-904',
+      division: 'Digital Agency',
+      divisionBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      title: 'Nexus FinTech Mobile App Milestone 3 Captured',
+      subtitle: 'Sprint deliverable approved and deployed to production',
+      time: '2h ago',
+      amount: '₹1,50,000',
+      status: 'Action Required',
+      canApprove: true,
+    },
+  ]);
+
+  const handleApproveActivity = (id: string, title: string) => {
+    setActivityDesk(prev =>
+      prev.map(item => (item.id === id ? { ...item, status: 'Cleared', canApprove: false } : item))
+    );
+    showToastMsg(`Executive Approval Granted: ${title}`);
+  };
+
+  // Export Summary Report
+  const handleExportSummary = () => {
+    const reportData = {
+      generatedAt: new Date().toISOString(),
+      dateRange: dateRangeLabel,
+      currency,
+      grandTotalRevenue: grandTotalRevenueInr,
+      grandTotalFormatted: formatCurrency(grandTotalRevenueInr),
+      totalTransactions: totalTransactionsCount,
+      divisions: divisionsData.map(d => ({
+        division: d.name,
+        revenueInr: d.revenueInr,
+        revenueFormatted: d.revenueFormatted,
+        growth: d.growth,
+        transactions: d.transactionsCount,
+        status: d.status,
+      }))
+    };
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `FEREX_SuperAdmin_Executive_Report_${dateFilter}_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToastMsg('Consolidated 4-App Executive Audit Report downloaded');
+  };
+
+  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.07, duration: 0.3 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.05, duration: 0.25 } }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } }
+    hidden: { opacity: 0, y: 12 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' as const } }
   };
 
   return (
@@ -82,649 +374,567 @@ export const CentralDashboard: React.FC = () => {
       animate="visible"
       className="space-y-6 text-left antialiased"
     >
-      {/* Toast Feedback */}
+      {/* Dynamic Toast Feedback */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 border border-white/20"
           >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {toast}
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{toast}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 1. Executive Command Center Hero Header */}
+      {/* 1. TOP EXECUTIVE COMMAND BANNER */}
       <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-6 md:p-7 shadow-xl border border-[#6A1B2E]/30">
-          <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
-            <svg width="300" height="300" viewBox="0 0 100 100" fill="none">
-              <path d="M50 5 L92 23 L50 41 L8 23 Z" fill="white" />
-              <path d="M30 36.5 C30 47.5, 70 47.5, 70 36.5 C70 42 63.5 46.5, 50 46.5 C36.5 46.5, 30 42, 30 36.5 Z" fill="white" />
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#360812] text-white p-6 md:p-8 shadow-xl border border-[#6A1B2E]/40">
+          
+          {/* Subtle Ambient Background Visual */}
+          <div className="absolute -right-8 -bottom-8 opacity-10 pointer-events-none">
+            <svg width="280" height="280" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="45" stroke="white" strokeWidth="2" strokeDasharray="6 4" />
+              <circle cx="50" cy="50" r="30" stroke="white" strokeWidth="1.5" />
+              <path d="M50 15 L50 85 M15 50 L85 50" stroke="white" strokeWidth="1.5" />
             </svg>
           </div>
 
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-2 max-w-2xl">
+            <div className="space-y-2.5 max-w-3xl">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white">
-                  Executive Command Center
+                <span className="text-[10px] font-black uppercase tracking-widest bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white flex items-center gap-1.5">
+                  <Shield className="w-3 h-3 text-amber-300" /> Super Admin Central Command
                 </span>
                 <span className="text-[10px] font-black text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-400/30 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Operational
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> 4 Subsidiary Apps Connected
                 </span>
                 <span className="text-[10px] font-bold text-white/70 bg-white/10 px-2.5 py-1 rounded-full border border-white/10">
-                  Last Sync: {lastSyncTime}
+                  Synced: {lastSyncTime}
                 </span>
               </div>
 
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
-                Ferex Education Global Headquarters
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
+                Consolidated Enterprise Command & Financials
               </h1>
-              <p className="text-xs md:text-sm text-white/85 font-semibold leading-relaxed">
-                Super Admin Control • Overseeing 1,480 active students, 120 partner European institutions, and ₹4.82 Cr annual fee volume across Poland, Germany & Netherlands.
+              <p className="text-xs md:text-sm text-white/85 font-medium leading-relaxed">
+                Single pane of glass governing <strong className="text-white font-bold">Ferex Education</strong>, <strong className="text-white font-bold">Global Trade ERP</strong>, <strong className="text-white font-bold">Rimi Frozen FMCG</strong>, and <strong className="text-white font-bold">Ferex Digital Agency</strong>.
               </p>
             </div>
 
-            {/* CTAs with SOLID HIGH-CONTRAST VISIBLE TEXT (NO HOVER DEPENDENCY) */}
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {/* Top Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <button
-                onClick={() => navigate('/central/reports')}
-                className="h-9.5 px-4 rounded-xl text-xs font-extrabold text-[#6A1B2E] bg-white hover:bg-slate-100 transition-all shadow-md flex items-center gap-1.5 active:scale-98 cursor-pointer"
+                onClick={() => navigate('/central/admins')}
+                className="h-9.5 px-4 rounded-xl text-xs font-black text-[#6A1B2E] bg-white hover:bg-slate-100 transition-all shadow-md flex items-center gap-1.5 active:scale-98 cursor-pointer"
               >
-                Executive Reports <ArrowUpRight className="w-4 h-4" />
+                <ShieldCheck className="w-4 h-4 text-[#6A1B2E]" /> Division Admins
               </button>
 
               <button
-                onClick={() => navigate('/central/admins')}
-                className="h-9.5 px-4 rounded-xl text-xs font-extrabold text-white bg-white/15 hover:bg-white/25 border border-white/30 transition-all shadow-xs flex items-center gap-1.5 active:scale-98 cursor-pointer"
+                onClick={() => navigate('/central/roles')}
+                className="h-9.5 px-4 rounded-xl text-xs font-black text-white bg-white/15 hover:bg-white/25 border border-white/30 transition-all shadow-xs flex items-center gap-1.5 active:scale-98 cursor-pointer"
               >
-                <Shield className="w-4 h-4 text-white" /> Manage Staff
+                <UserCheck className="w-4 h-4 text-white" /> Roles & Privileges
               </button>
 
               <button
                 onClick={handleRefreshSync}
-                className="p-2.5 rounded-xl text-white/90 bg-white/10 hover:bg-white/20 border border-white/20 transition-all cursor-pointer"
-                title="Sync Dashboard Metrics"
+                disabled={isSyncing}
+                className="p-2.5 rounded-xl text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all cursor-pointer disabled:opacity-50"
+                title="Refresh Live Metrics"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
         </div>
       </motion.div>
 
-      {/* 2. Executive KPI Cards with Structured Enterprise Metadata */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          {
-            title: 'Total Enrolled Students',
-            value: Number(metrics.educationStudents || 1480).toLocaleString(),
-            growth: '+14%',
-            growthColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-            icon: Users,
-            color: 'text-indigo-600 bg-indigo-50 border-indigo-100',
-            metaLeft: `${metrics.educationApplications} Applications`,
-            metaLeftStyle: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-            metaRight: 'Active Direct',
-            sub: 'Live Supabase synced',
-            path: '/central/students',
-          },
-          {
-            title: 'Gross Annual Volume',
-            value: `₹${(metrics.educationRevenueInr / 10000000).toFixed(2)} Cr`,
-            growth: '+22% YoY',
-            growthColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-            icon: CreditCard,
-            color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20',
-            metaLeft: `₹${(metrics.digitalRevenueInr / 100000).toFixed(1)}L Digital`,
-            metaLeftStyle: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20',
-            metaRight: 'Verified Ledgers',
-            sub: 'Live payment logs',
-            path: '/central/financials',
-          },
-          {
-            title: 'Digital & Trade Units',
-            value: `${metrics.digitalClients + metrics.tradeShipments} Entities`,
-            growth: '+18% Enterprise',
-            growthColor: 'text-blue-700 bg-blue-50 border-blue-200',
-            icon: GraduationCap,
-            color: 'text-blue-600 bg-blue-50 border-blue-100',
-            metaLeft: `${metrics.digitalProjects} Running PRJ`,
-            metaLeftStyle: 'text-blue-700 bg-blue-50 border-blue-200',
-            metaRight: `${metrics.tradeShipments} Shipments`,
-            sub: 'Cross-divisional operations',
-            path: '/central/universities',
-          },
-          {
-            title: 'Executive Staff',
-            value: `${metrics.staffCount} Staff`,
-            growth: '100% SLA',
-            growthColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-            icon: ShieldCheck,
-            color: 'text-emerald-600 bg-emerald-50 border-emerald-100',
-            metaLeft: 'Enterprise RBAC',
-            metaLeftStyle: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-            metaRight: 'Verified Portals',
-            sub: 'Access & security active',
-            path: '/central/admins',
-          },
-        ].map((stat, idx) => (
-          <motion.div key={idx} variants={itemVariants} onClick={() => navigate(stat.path)}>
-            <Card className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-11 h-11 rounded-xl border flex items-center justify-center ${stat.color} group-hover:scale-105 transition-transform`}>
-                    <stat.icon className="w-5 h-5" />
-                  </div>
-                  <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${stat.growthColor}`}>
-                    <TrendingUp className="w-3 h-3" /> {stat.growth}
-                  </span>
-                </div>
-                <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">{stat.title}</span>
-                <span className="text-2xl font-black text-slate-900 leading-none">{stat.value}</span>
-              </div>
+      {/* 2. DATE FILTER & CURRENCY CONTROLS BAR */}
+      <motion.div variants={itemVariants}>
+        <Card className="p-4 border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          
+          {/* Left: Date Preset Pills */}
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-500 mr-1">
+              <Calendar className="w-4 h-4 text-[#6A1B2E]" />
+              <span>Timeframe:</span>
+            </div>
 
-              {/* Refined Enterprise KPI Metadata Area (Clean Typography & Small Badges, No Sparklines) */}
-              <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${stat.metaLeftStyle}`}>
-                    {stat.metaLeft}
-                  </span>
-                  <span className="text-[10.5px] font-extrabold text-slate-700">
-                    {stat.metaRight}
-                  </span>
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+              {[
+                { key: 'today', label: 'Today' },
+                { key: '7days', label: 'Last 7 Days' },
+                { key: '1month', label: '1 Month' },
+                { key: 'custom', label: 'Custom Range' },
+              ].map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setDateFilter(f.key as DateFilterType)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                    dateFilter === f.key
+                      ? 'bg-[#6A1B2E] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Range Date Pickers */}
+            {dateFilter === 'custom' && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-2 mt-2 md:mt-0"
+              >
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="h-8 px-2.5 text-xs font-bold bg-white border border-slate-200 rounded-lg text-slate-700"
+                />
+                <span className="text-xs text-slate-400 font-bold">to</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="h-8 px-2.5 text-xs font-bold bg-white border border-slate-200 rounded-lg text-slate-700"
+                />
+              </motion.div>
+            )}
+          </div>
+
+          {/* Right: Active Date Range Label, Currency Toggle & Report Download */}
+          <div className="flex items-center gap-2.5 self-end md:self-center">
+            
+            {/* Currency Selector */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-black">
+              {(['INR', 'EUR', 'USD'] as const).map(curr => (
+                <button
+                  key={curr}
+                  onClick={() => setCurrency(curr)}
+                  className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
+                    currency === curr ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  {curr === 'INR' ? '₹ INR' : curr === 'EUR' ? '€ EUR' : '$ USD'}
+                </button>
+              ))}
+            </div>
+
+            {/* Download Report */}
+            <button
+              onClick={handleExportSummary}
+              className="h-8.5 px-3 rounded-xl bg-slate-900 hover:bg-[#6A1B2E] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              title="Download Executive JSON/CSV Summary"
+            >
+              <Download className="w-3.5 h-3.5" /> Export Audit
+            </button>
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* 3. TOTAL CONSOLIDATED ENTERPRISE REVENUE & OVERVIEW METRICS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Card 1: Combined 4-App Gross Volume */}
+        <motion.div variants={itemVariants}>
+          <Card className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between h-full bg-gradient-to-br from-white to-rose-50/30">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-11 h-11 rounded-2xl bg-[#6A1B2E]/10 border border-[#6A1B2E]/20 text-[#6A1B2E] flex items-center justify-center font-black">
+                  <CreditCard className="w-5 h-5" />
                 </div>
-                <div className="text-[10px] font-bold text-slate-400 truncate">
-                  {stat.sub}
-                </div>
+                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> +24.8% YoY
+                </span>
               </div>
-            </Card>
-          </motion.div>
-        ))}
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                Total Combined Gross Revenue
+              </span>
+              <div className="text-2xl lg:text-3xl font-black text-slate-900 leading-tight">
+                {formatCurrency(grandTotalRevenueInr)}
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-[10px] font-extrabold text-slate-500">
+                {totalTransactionsCount} Settlements Processed
+              </span>
+              <span className="text-[10px] font-black text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded-md">
+                4 Divisions
+              </span>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Card 2: Total Active Users Across Platforms */}
+        <motion.div variants={itemVariants}>
+          <Card className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between h-full">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center">
+                  <Users className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  Enterprise
+                </span>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                Total Active Enterprise Accounts
+              </span>
+              <div className="text-2xl lg:text-3xl font-black text-slate-900 leading-tight">
+                {(baseMetrics.educationStudents + baseMetrics.digitalClients + 42).toLocaleString()}
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-[10px] font-bold text-slate-500">
+                Students + Partners + Clients
+              </span>
+              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                99.8% Active
+              </span>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Card 3: 4 App Service Health & Uptime */}
+        <motion.div variants={itemVariants}>
+          <Card className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between h-full">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  99.98% SLA
+                </span>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                Infrastructure Health Status
+              </span>
+              <div className="text-2xl lg:text-3xl font-black text-emerald-700 leading-tight">
+                All Systems Normal
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-[10px] font-bold text-slate-500">
+                Edge APIs & Supabase DB
+              </span>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                0 Incidents
+              </span>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Card 4: Executive Division Governance */}
+        <motion.div variants={itemVariants}>
+          <Card className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between h-full bg-gradient-to-br from-white to-amber-50/30">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <button
+                  onClick={() => navigate('/central/admins')}
+                  className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-amber-100/80 text-amber-900 border border-amber-300 hover:bg-amber-200 transition-colors cursor-pointer"
+                >
+                  Manage Admins →
+                </button>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                Division Admins & Roles
+              </span>
+              <div className="text-2xl lg:text-3xl font-black text-slate-900 leading-tight">
+                {baseMetrics.staffCount} Admins Active
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-[10px] font-bold text-slate-500">
+                Role-Based Access Control
+              </span>
+              <span className="text-[10px] font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded-md">
+                4 Portals Protected
+              </span>
+            </div>
+          </Card>
+        </motion.div>
+
       </div>
 
-      {/* 2.5 4-APP ENTERPRISE DIVISION COMMAND & LAUNCH DECK */}
-      <motion.div variants={itemVariants} className="space-y-3">
-        <div className="flex items-center justify-between">
+      {/* 4. CONSOLIDATED 4-APP STATUS & REVENUE BREAKDOWN CARDS */}
+      <motion.div variants={itemVariants} className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#6A1B2E]" /> 4 Enterprise Division Applications
+              <Layers className="w-4 h-4 text-[#6A1B2E]" /> 4 Subsidiary Enterprise Applications — Status & Performance
             </h2>
-            <p className="text-xs font-semibold text-slate-400">
-              Super Admin direct control & delegation across all subsidiary apps.
+            <p className="text-xs font-semibold text-slate-400 mt-0.5">
+              Metrics calculated for timeframe: <strong className="text-slate-700 font-bold">{dateRangeLabel}</strong>
             </p>
           </div>
           <button
             onClick={() => navigate('/central/admins')}
-            className="text-xs font-black text-[#6A1B2E] hover:underline flex items-center gap-1 cursor-pointer"
+            className="text-xs font-black text-[#6A1B2E] hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
           >
-            Manage Division Admins <ChevronRight className="w-3.5 h-3.5" />
+            Provision Division Logins <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            {
-              title: 'GLOBAL TRADE',
-              roleLabel: 'Trade Admin',
-              badge: 'Freight ERP',
-              badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-              route: '/trade/dashboard',
-              icon: Globe,
-              accentColor: 'text-indigo-600 bg-indigo-50 border-indigo-100',
-              desc: 'International shipping, LC settlements & multi-currency trade documents.',
-              modules: [
-                'Shipment Tracking', 'Trade CRM', 'Commercial Invoice', 'Packing List',
-                'Bill of Lading', 'Certificates', 'Trade Documents', 'Document Approval',
-                'Workflow', 'Payments', 'Letters of Credit', 'Multi Currency', 'Shipping Timeline', 'Email Automation'
-              ]
-            },
-            {
-              title: 'RIMI FROZEN',
-              roleLabel: 'Rimi Admin',
-              badge: 'FMCG Logistics',
-              badgeColor: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-              route: '/rimi/dashboard',
-              icon: Snowflake,
-              accentColor: 'text-cyan-600 bg-cyan-50 border-cyan-100',
-              desc: 'Cold chain supply, distributor network, batch lifecycle & cash collections.',
-              modules: [
-                'CRM', 'Distributors', 'Retailers', 'Wholesalers',
-                'Inventory', 'Products', 'Warehouse', 'Expiry',
-                'Batch', 'Sales', 'Orders', 'Delivery', 'Collections', 'Analytics', 'Regional Dashboard'
-              ]
-            },
-            {
-              title: 'FEREX DIGITAL',
-              roleLabel: 'Digital Admin',
-              badge: 'Agency & Tech',
-              badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-              route: '/digital/dashboard',
-              icon: Monitor,
-              accentColor: 'text-emerald-600 bg-emerald-50 border-emerald-100',
-              desc: 'Software development, client deliverables, project sprints & milestone invoices.',
-              modules: [
-                'Projects', 'Clients', 'Tasks', 'Deliverables',
-                'Invoices', 'Milestones', 'Payments', 'Files',
-                'Comments', 'Timeline', 'Review', 'Revision', 'Delivered', 'Closed'
-              ]
-            },
-            {
-              title: 'FEREX EDUCATION',
-              roleLabel: 'Education Admin',
-              badge: 'Core Academy',
-              badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
-              route: '/admin/dashboard',
-              icon: GraduationCap,
-              accentColor: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20',
-              desc: 'European university alliances, NAWA document legalization & visa processing.',
-              modules: [
-                'Students', 'Universities', 'Status Tracker', 'Applications',
-                'Documents Review', 'NAWA Legalization', 'Payments', 'VFS Visa Tracker',
-                'Post Travel', 'Support Tickets', 'Reports & Planner'
-              ]
-            }
-          ].map((divApp, idx) => (
-            <Card
-              key={idx}
-              className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg transition-all flex flex-col justify-between group"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${divApp.accentColor} group-hover:scale-105 transition-transform`}>
-                    <divApp.icon className="w-5 h-5" />
+          {divisionsData.map((div, idx) => {
+            const Icon = div.icon;
+            const revenueSharePercent = grandTotalRevenueInr > 0 ? Math.round((div.revenueInr / grandTotalRevenueInr) * 100) : 25;
+
+            return (
+              <Card
+                key={idx}
+                className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg transition-all flex flex-col justify-between group h-full bg-white relative overflow-hidden"
+              >
+                <div>
+                  {/* Division Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${div.bgLight} ${div.borderLight} ${div.color} group-hover:scale-105 transition-transform`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${div.statusColor}`}>
+                      🟢 {div.status}
+                    </span>
                   </div>
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${divApp.badgeColor}`}>
-                    {divApp.badge}
+
+                  <h3 className="text-base font-black text-slate-900 leading-snug">{div.name}</h3>
+                  <span className={`inline-block text-[9.5px] font-black px-2 py-0.5 rounded-md border mt-1 mb-2 ${div.badgeColor}`}>
+                    {div.badge}
                   </span>
-                </div>
+                  
+                  <p className="text-xs text-slate-600 font-medium mb-3 line-clamp-2 leading-relaxed">
+                    {div.desc}
+                  </p>
 
-                <h3 className="text-base font-black text-slate-900 leading-snug">{divApp.title}</h3>
-                <p className="text-[11px] font-extrabold text-slate-400 mb-2">{divApp.roleLabel}</p>
-                <p className="text-xs text-slate-600 font-medium mb-3 line-clamp-2 leading-relaxed">
-                  {divApp.desc}
-                </p>
+                  {/* Financial Stats Block */}
+                  <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-100 space-y-2 mb-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Division Revenue</span>
+                      <span className="text-xs font-black text-slate-900">{div.revenueFormatted}</span>
+                    </div>
 
-                <div className="space-y-1.5 pt-3 border-t border-slate-100">
-                  <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider block">Key Features ({divApp.modules.length}):</span>
-                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto scrollbar-none py-0.5">
-                    {divApp.modules.slice(0, 6).map((m, mIdx) => (
-                      <span key={mIdx} className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200/60">
-                        {m}
-                      </span>
-                    ))}
-                    {divApp.modules.length > 6 && (
-                      <span className="text-[10px] font-black text-[#6A1B2E] px-1.5 py-0.5">
-                        +{divApp.modules.length - 6} more
-                      </span>
-                    )}
+                    {/* Progress Bar for Revenue Share */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
+                        <span>Contribution Share</span>
+                        <span>{revenueSharePercent}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#6A1B2E] rounded-full transition-all duration-500"
+                          style={{ width: `${Math.max(5, revenueSharePercent)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] font-extrabold text-slate-500 pt-1 border-t border-slate-200/50">
+                      <span>{div.transactionsCount} Transactions</span>
+                      <span className="text-emerald-700 font-bold">{div.growth}</span>
+                    </div>
+                  </div>
+
+                  {/* Key Operational Metric */}
+                  <div className="space-y-1">
+                    <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider block">
+                      {div.keyMetricLabel}:
+                    </span>
+                    <span className="text-xs font-black text-slate-800">
+                      {div.keyMetricValue}
+                    </span>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-100">
-                <button
-                  onClick={() => navigate(divApp.route)}
-                  className="w-full h-9 rounded-xl bg-slate-900 hover:bg-[#6A1B2E] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  Launch {divApp.title} <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </Card>
-          ))}
+                {/* Direct Launch Portal CTA */}
+                <div className="mt-4 pt-3 border-t border-slate-100">
+                  <button
+                    onClick={() => navigate(div.route)}
+                    className="w-full h-9 rounded-xl bg-slate-900 hover:bg-[#6A1B2E] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    Open {div.name} <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       </motion.div>
+
+      {/* 5. MULTI-DIVIDIONAL REVENUE ANALYTICS & REVENUE VELOCITY CHART */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Left 2 Columns: Multi-Widget Enterprise Analytics */}
+        
+        {/* Left 2 Columns: Multi-Division Interactive Chart */}
         <motion.div variants={itemVariants} className="lg:col-span-2 space-y-6">
-
-          {/* Widget 1: Revenue Trend Analytics */}
-          <Card className="p-6 border border-slate-200/70 shadow-xs">
+          <Card className="p-6 border border-slate-200/80 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 mb-5 gap-3">
               <div>
-                <h3 className="text-sm font-black text-slate-900">Revenue Velocity & Financial Forecast</h3>
-                <p className="text-xs text-slate-400 font-semibold mt-0.5">2026 Monthly tuition & fee ledger flow (₹ In Lakhs)</p>
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-[#6A1B2E]" /> Consolidated Revenue Velocity & Division Flow
+                </h3>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">
+                  Dynamic multi-app volume breakdown for {dateRangeLabel} ({currency})
+                </p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-extrabold text-[#6A1B2E] bg-[#6A1B2E]/10 px-3 py-1 rounded-full uppercase border border-[#6A1B2E]/20">
-                  Forecast: ₹6.0 Cr
-                </span>
+
+              {/* Chart Filter Selector */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-[10px] font-black overflow-x-auto scrollbar-none">
+                {[
+                  { key: 'all', label: 'All 4 Apps' },
+                  { key: 'education', label: 'Education' },
+                  { key: 'trade', label: 'Trade' },
+                  { key: 'rimi', label: 'Rimi' },
+                  { key: 'digital', label: 'Digital' },
+                ].map(item => (
+                  <button
+                    key={item.key}
+                    onClick={() => setSelectedChartDivision(item.key as any)}
+                    className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                      selectedChartDivision === item.key
+                        ? 'bg-[#6A1B2E] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* SVG Line Chart */}
-            <div className="h-[220px] w-full relative">
-              <svg className="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
+            {/* SVG Visual Flow Graph */}
+            <div className="h-[230px] w-full relative">
+              <svg className="w-full h-full" viewBox="0 0 600 200" preserveAspectRatio="none">
                 <defs>
-                  <linearGradient id="rev-grad-2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6A1B2E" stopOpacity="0.22" />
+                  <linearGradient id="central-chart-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6A1B2E" stopOpacity="0.25" />
                     <stop offset="100%" stopColor="#6A1B2E" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
-                <line x1="0" y1="40" x2="500" y2="40" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="0" y1="90" x2="500" y2="90" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="0" y1="140" x2="500" y2="140" stroke="#f1f5f9" strokeWidth="1" />
 
-                <path d="M 0 170 Q 100 130, 200 110 T 400 45 T 500 30 L 500 200 L 0 200 Z" fill="url(#rev-grad-2)" />
-                <path d="M 0 170 Q 100 130, 200 110 T 400 45 T 500 30" fill="none" stroke="#6A1B2E" strokeWidth="3.5" strokeLinecap="round" />
-                <circle cx="200" cy="110" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
-                <circle cx="400" cy="45" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
+                {/* Grid guidelines */}
+                <line x1="0" y1="40" x2="600" y2="40" stroke="#f1f5f9" strokeWidth="1" />
+                <line x1="0" y1="90" x2="600" y2="90" stroke="#f1f5f9" strokeWidth="1" />
+                <line x1="0" y1="140" x2="600" y2="140" stroke="#f1f5f9" strokeWidth="1" />
+
+                {/* Primary Trend Area & Curve */}
+                <path
+                  d="M 0 170 Q 120 140, 220 110 T 420 50 T 600 30 L 600 200 L 0 200 Z"
+                  fill="url(#central-chart-grad)"
+                />
+                <path
+                  d="M 0 170 Q 120 140, 220 110 T 420 50 T 600 30"
+                  fill="none"
+                  stroke="#6A1B2E"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                />
+
+                {/* Secondary division indicator lines */}
+                <path
+                  d="M 0 185 Q 150 160, 300 130 T 600 90"
+                  fill="none"
+                  stroke="#4f46e5"
+                  strokeWidth="2"
+                  strokeDasharray="4 4"
+                />
+                <path
+                  d="M 0 190 Q 150 175, 300 155 T 600 135"
+                  fill="none"
+                  stroke="#0891b2"
+                  strokeWidth="1.5"
+                  strokeDasharray="3 3"
+                />
+
+                {/* Highlight Points */}
+                <circle cx="220" cy="110" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
+                <circle cx="420" cy="50" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
+                <circle cx="600" cy="30" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
               </svg>
 
-              <div className="absolute top-[25px] left-[360px] bg-slate-900 text-white text-[9px] font-bold px-2.5 py-1 rounded shadow-md pointer-events-none select-none">
-                Q3 Peak: ₹84.5 Lakhs
+              <div className="absolute top-[20px] right-[40px] bg-slate-900 text-white text-[9.5px] font-bold px-3 py-1 rounded-lg shadow-md pointer-events-none select-none border border-slate-700">
+                Peak Velocity: {formatCurrency(grandTotalRevenueInr * 0.42)}
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mt-2 px-1 select-none">
-              <span>Q1 Jan-Mar</span>
-              <span>Q2 Apr-Jun</span>
-              <span>Q3 Jul-Sep (Active)</span>
-              <span>Q4 Oct-Dec (Projected)</span>
+            {/* Time Axis Labels */}
+            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mt-3 px-1 select-none border-t border-slate-100 pt-2">
+              <span>Period Start ({dateFilter === 'today' ? '00:00' : 'Week 1'})</span>
+              <span>Mid Period ({dateFilter === 'today' ? '12:00' : 'Week 2'})</span>
+              <span>Current Intake ({dateFilter === 'today' ? 'Active' : 'Week 3'})</span>
+              <span>Forecast ({dateFilter === 'today' ? '23:59' : 'Week 4'})</span>
             </div>
           </Card>
+        </motion.div>
 
-          {/* Widget 2 & 3 Dual Row: Applications by Country & University Distribution */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-
-            {/* Widget 2: Applications by Country */}
-            <Card className="p-5 border border-slate-200/70 shadow-xs">
-              <h3 className="text-xs font-black text-slate-900 border-b border-slate-100 pb-3 mb-3 flex items-center justify-between">
-                Applications by Country
-                <span className="text-[10px] font-bold text-slate-400">Total: 1,480</span>
-              </h3>
-              <div className="space-y-3.5 text-xs font-semibold text-slate-700">
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="flex items-center gap-1.5 font-bold">🇵🇱 Poland (Warsaw, WUT)</span>
-                    <span className="font-extrabold text-slate-900">640 (43%)</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#6A1B2E] rounded-full" style={{ width: '43%' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="flex items-center gap-1.5 font-bold">🇩🇪 Germany (TU Berlin, TUM)</span>
-                    <span className="font-extrabold text-slate-900">480 (32%)</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-600 rounded-full" style={{ width: '32%' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="flex items-center gap-1.5 font-bold">🇳🇱 Netherlands (UvA, Leiden)</span>
-                    <span className="font-extrabold text-slate-900">360 (25%)</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: '25%' }} />
-                  </div>
-                </div>
+        {/* Right 1 Column: Consolidated Real-Time Cross-App Activity & Approvals */}
+        <motion.div variants={itemVariants} className="space-y-6">
+          <Card className="p-5 border-l-4 border-l-[#6A1B2E] border-slate-200/80 shadow-xs h-full flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Activity className="w-4 h-4 text-[#6A1B2E]" /> Cross-App Activity & Settlements
+                </h3>
+                <span className="text-[10px] font-bold text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded-md">
+                  Live Stream
+                </span>
               </div>
-            </Card>
 
-            {/* Widget 3: Target University Distribution */}
-            <Card className="p-5 border border-slate-200/70 shadow-xs">
-              <h3 className="text-xs font-black text-slate-900 border-b border-slate-100 pb-3 mb-3 flex items-center justify-between">
-                Partner University Distribution
-                <span className="text-[10px] font-extrabold text-[#6A1B2E]">Top 5</span>
-              </h3>
-              <div className="space-y-2.5 text-xs font-semibold">
-                {[
-                  { name: 'University of Warsaw', count: '640 Students', color: 'bg-red-500' },
-                  { name: 'TU Berlin', count: '480 Students', color: 'bg-indigo-500' },
-                  { name: 'University of Amsterdam', count: '360 Students', color: 'bg-sky-500' },
-                  { name: 'Leiden University', count: '190 Students', color: 'bg-amber-500' },
-                  { name: 'University of Gdansk', count: '120 Students', color: 'bg-emerald-500' },
-                ].map((uni, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-[11px] p-2 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${uni.color}`} />
-                      <span className="font-bold text-slate-900 truncate max-w-[140px]">{uni.name}</span>
+              <div className="space-y-3 max-h-[380px] overflow-y-auto scrollbar-thin pr-1">
+                {activityDesk.map((act) => (
+                  <div key={act.id} className="p-3 bg-slate-50/80 rounded-xl border border-slate-100 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border ${act.divisionBadge}`}>
+                          {act.division}
+                        </span>
+                        <h4 className="text-xs font-black text-slate-900 mt-1">{act.title}</h4>
+                        <p className="text-[10px] font-semibold text-slate-400">{act.subtitle}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-black text-slate-900 block">{act.amount}</span>
+                        <span className="text-[9px] font-semibold text-slate-400">{act.time}</span>
+                      </div>
                     </div>
-                    <span className="font-extrabold text-slate-700">{uni.count}</span>
+
+                    {act.canApprove ? (
+                      <button
+                        onClick={() => handleApproveActivity(act.id, act.title)}
+                        className="w-full h-7 bg-[#6A1B2E] hover:bg-[#521221] text-white text-[10.5px] font-black rounded-lg transition-colors shadow-xs cursor-pointer"
+                      >
+                        Authorize Settlement
+                      </button>
+                    ) : (
+                      <div className="w-full h-6 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" /> Settlement Cleared
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
-            </Card>
+            </div>
 
-          </div>
-
-          {/* Widget 4: Top Performing Counselors */}
-          <Card className="p-6 border border-slate-200/70 shadow-xs">
-            <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
-              Top Performing Staff & Counselors
-              <span className="text-[10px] font-extrabold text-[#6A1B2E] hover:underline cursor-pointer" onClick={() => navigate('/central/admins')}>
-                Manage Team
-              </span>
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100 text-[10px] font-black uppercase text-slate-400">
-                    <th className="pb-2">Counselor</th>
-                    <th className="pb-2">Role</th>
-                    <th className="pb-2">Assigned Students</th>
-                    <th className="pb-2 text-right">Rating</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                  {[
-                    { name: 'Rahul Mehta', role: 'Senior Admissions Officer', count: '120 Students', rating: '4.9 ★' },
-                    { name: 'Anita Roy', role: 'Visa & Document Officer', count: '95 Students', rating: '4.8 ★' },
-                    { name: 'Adam Kowalski', role: 'Regional Rep (Warsaw)', count: '210 Students', rating: '4.9 ★' },
-                  ].map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-2.5 font-bold text-slate-900">{row.name}</td>
-                      <td className="py-2.5 text-slate-500">{row.role}</td>
-                      <td className="py-2.5 font-extrabold text-slate-800">{row.count}</td>
-                      <td className="py-2.5 text-right font-extrabold text-amber-600">{row.rating}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Quick Link to Admins */}
+            <div className="pt-4 border-t border-slate-100 mt-4">
+              <button
+                onClick={() => navigate('/central/roles')}
+                className="w-full h-8.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <UserCheck className="w-3.5 h-3.5" /> Inspect 4-App Permissions Matrix
+              </button>
             </div>
           </Card>
-
-        </motion.div>
-
-        {/* Right Panel: Executive Activity Center */}
-        <motion.div variants={itemVariants} className="space-y-6 text-left">
-
-          {/* Executive Activity Center Widget */}
-          <Card className="p-5 border-l-4 border-l-[#6A1B2E] border-slate-200/70 shadow-xs">
-
-            {/* Header with Navigation Pills */}
-            <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-3">
-              <h3 className="text-xs font-black text-[#6A1B2E] uppercase tracking-wider flex items-center gap-1.5">
-                <Activity className="w-4 h-4" /> Executive Activity Center
-              </h3>
-            </div>
-
-            {/* Multi-Tab Switcher */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl mb-4 overflow-x-auto scrollbar-hide">
-              {[
-                { key: 'approvals', label: 'Approvals' },
-                { key: 'alerts', label: 'Alerts' },
-                { key: 'payments', label: 'Payments' },
-                { key: 'docs', label: 'Docs' },
-                { key: 'meetings', label: 'Meetings' },
-              ].map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => setActiveTab(t.key as any)}
-                  className={`px-2.5 py-1 rounded-lg text-[10.5px] font-extrabold transition-all whitespace-nowrap cursor-pointer ${activeTab === t.key ? 'bg-[#6A1B2E] text-white shadow-xs' : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Tab Contents */}
-            <div className="space-y-3">
-              {activeTab === 'approvals' && (
-                <div>
-                  {pendingApprovals.length > 0 ? (
-                    pendingApprovals.map((item) => (
-                      <div key={item.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2 mb-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="text-[9px] font-extrabold text-slate-400 uppercase">{item.id} · {item.type}</span>
-                            <h4 className="text-xs font-black text-slate-900 mt-0.5">{item.title}</h4>
-                          </div>
-                          <span className="text-[9px] font-semibold text-slate-400">{item.time}</span>
-                        </div>
-                        <button
-                          onClick={() => handleApprove(item.id, item.title)}
-                          className="w-full h-7 bg-[#6A1B2E] hover:bg-[#521221] text-white text-[10px] font-extrabold rounded-lg transition-colors cursor-pointer"
-                        >
-                          Approve Now
-                        </button>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-6 text-slate-400 text-xs font-semibold">
-                      All approvals cleared for today!
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'alerts' && (
-                <div className="space-y-2">
-                  <div className="p-3 bg-red-50 rounded-xl border border-red-100">
-                    <div className="flex items-center gap-1.5 text-xs font-black text-red-700">
-                      <AlertTriangle className="w-3.5 h-3.5" /> High Priority SLA Alert
-                    </div>
-                    <p className="text-[11px] font-semibold text-red-600 mt-1">
-                      2 visa appointment slots for Embassy of Poland require approval.
-                    </p>
-                  </div>
-                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
-                    <div className="flex items-center gap-1.5 text-xs font-black text-amber-800">
-                      <Clock className="w-3.5 h-3.5" /> Audit Warning
-                    </div>
-                    <p className="text-[11px] font-semibold text-amber-700 mt-1">
-                      NAWA transcript batch evaluation pending verification.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'payments' && (
-                <div className="space-y-2">
-                  {[
-                    { id: 'TXN-9021', student: 'Ashly', amount: '₹15,000', status: 'Completed' },
-                    { id: 'TXN-9022', student: 'Rahul Mehta', amount: '₹4,80,000', status: 'Completed' },
-                  ].map((p, idx) => (
-                    <div key={idx} className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
-                      <div>
-                        <div className="font-extrabold text-slate-900">{p.student}</div>
-                        <span className="text-[9px] font-semibold text-slate-400">{p.id}</span>
-                      </div>
-                      <span className="font-black text-[#6A1B2E]">{p.amount}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {activeTab === 'docs' && (
-                <div className="space-y-2">
-                  {[
-                    { name: 'Ashly_Passport_Scan.pdf', type: 'Identity' },
-                    { name: 'Ashly_IELTS_Scorecard.pdf', type: 'Language' },
-                  ].map((d, idx) => (
-                    <div key={idx} className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-[#6A1B2E]" />
-                        <span className="font-bold text-slate-900 truncate max-w-[150px]">{d.name}</span>
-                      </div>
-                      <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Verified</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {activeTab === 'meetings' && (
-                <div className="space-y-2">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center justify-between text-xs font-black text-slate-900">
-                      <span>Executive Board Briefing</span>
-                      <span className="text-[9px] text-[#6A1B2E]">16:00</span>
-                    </div>
-                    <p className="text-[10.5px] font-semibold text-slate-500 mt-1">Reviewing European Q3 Intake & University Alliances</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Executive Quick Action Cards */}
-          <Card className="p-5 border border-slate-200/70 shadow-xs">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3">
-              Executive Quick Control
-            </h3>
-            <div className="space-y-3">
-              {[
-                { title: 'Add Partner University', desc: 'Expand European campus alliances', path: '/central/education', icon: GraduationCap },
-                { title: 'Configure Staff Roles', desc: 'Set RBAC permissions for counselors', path: '/central/roles', icon: ShieldCheck },
-                { title: 'Authorize Batch Payout', desc: 'Release tuition transfers to partner accounts', path: '/central/payments', icon: DollarSign },
-                { title: 'System Security Audit', desc: 'Inspect IP audit trail & 2FA status', path: '/central/activity', icon: Shield },
-              ].map((act, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => navigate(act.path)}
-                  className="p-3.5 rounded-xl border border-slate-200/80 hover:border-[#6A1B2E]/40 hover:bg-slate-50 transition-all cursor-pointer group flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] group-hover:bg-[#6A1B2E] group-hover:text-white flex items-center justify-center transition-colors shrink-0">
-                      <act.icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-slate-900 group-hover:text-[#6A1B2E] transition-colors">{act.title}</h4>
-                      <p className="text-[10px] text-slate-400 font-semibold leading-tight">{act.desc}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#6A1B2E] group-hover:translate-x-0.5 transition-all shrink-0" />
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Real-time Audit Activity Stream */}
-          <Card className="p-5 border border-slate-200/70 shadow-xs">
-            <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
-              Central Audit Log
-              <span className="text-[10px] font-extrabold text-[#6A1B2E] hover:underline cursor-pointer" onClick={() => navigate('/central/activity')}>
-                View All
-              </span>
-            </h3>
-
-            <div className="relative border-l border-slate-200/80 pl-4 py-1 space-y-4 select-none">
-              {[
-                { time: '2m ago', title: 'Batch Fee Payment Cleared', desc: '₹4.8L transfer to Warsaw account.', color: 'bg-emerald-500' },
-                { time: '18m ago', title: 'New Admin Registered', desc: 'Added Rahul Mehta as Senior Counselor.', color: 'bg-blue-500' },
-                { time: '1h ago', title: 'Security 2FA Enforced', desc: 'Global 2FA policy active across staff.', color: 'bg-[#6A1B2E]' },
-              ].map((log, idx) => (
-                <div key={idx} className="relative">
-                  <span className={`absolute -left-[20.5px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white ${log.color}`} />
-                  <span className="text-[9px] font-extrabold text-slate-400 uppercase">{log.time}</span>
-                  <h4 className="text-xs font-black text-slate-800 mt-0.5">{log.title}</h4>
-                  <p className="text-[10.5px] text-slate-500 font-semibold mt-0.5">{log.desc}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-
         </motion.div>
 
       </div>

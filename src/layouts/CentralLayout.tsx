@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, GraduationCap, Users, ShieldCheck, CheckSquare,
-  CreditCard, Folder, LifeBuoy, BarChart3, TrendingUp, Activity, UserCheck, Settings,
+  LayoutDashboard, ShieldCheck, UserCheck,
   Search, Menu, ChevronDown, ChevronRight, LogOut, Bell, X, Crown,
-  Globe, Snowflake, Monitor, ArrowUpRight
+  Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,46 +37,16 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
 
   const menuSections = [
     {
-      title: 'CENTRAL HQ',
+      title: 'COMMAND HQ',
       items: [
         { name: 'Dashboard', path: '/central/dashboard', icon: LayoutDashboard, badge: 'HQ Live' },
       ]
     },
     {
-      title: '4 APPS & DIVISIONS',
+      title: 'GOVERNANCE & ACCESS',
       items: [
-        { name: 'Ferex Education', path: '/admin/dashboard', icon: GraduationCap, badge: 'Core' },
-        { name: 'Global Trade', path: '/trade/dashboard', icon: Globe, badge: 'ERP' },
-        { name: 'Rimi Frozen', path: '/rimi/dashboard', icon: Snowflake, badge: 'FMCG' },
-        { name: 'Ferex Digital', path: '/digital/dashboard', icon: Monitor, badge: 'Agency' },
-      ]
-    },
-    {
-      title: 'USER & ADMIN GOVERNANCE',
-      items: [
-        { name: 'Division Admins', path: '/central/admins', icon: ShieldCheck, badge: 'Create' },
-        { name: 'Roles & Privileges', path: '/central/roles', icon: UserCheck, badge: '4 Apps' },
-      ]
-    },
-    {
-      title: 'EDUCATION HQ OVERVIEW',
-      items: [
-        { name: 'Education Overview', path: '/central/education', icon: GraduationCap, badge: null },
-        { name: 'Students Directory', path: '/central/students', icon: Users, badge: '1.4k' },
-        { name: 'Operations & Tasks', path: '/central/tasks', icon: CheckSquare, badge: '8' },
-        { name: 'Payments Ledger', path: '/central/payments', icon: CreditCard, badge: '₹4.8Cr' },
-        { name: 'Documents Vault', path: '/central/documents', icon: Folder, badge: null },
-        { name: 'Support Desk', path: '/central/support', icon: LifeBuoy, badge: '3' },
-      ]
-    },
-    {
-      title: 'EXECUTIVE ANALYTICS',
-      items: [
-        { name: 'Executive Reports', path: '/central/reports', icon: BarChart3, badge: null },
-        { name: 'Strategic Insights', path: '/central/insights', icon: TrendingUp, badge: 'CEO' },
-        { name: 'Activity Audit Log', path: '/central/activity', icon: Activity, badge: 'Audit' },
-        { name: 'Alerts & Notifs', path: '/central/notifications', icon: Bell, badge: '4' },
-        { name: 'System Settings', path: '/central/settings', icon: Settings, badge: null },
+        { name: 'Division Admins', path: '/central/admins', icon: ShieldCheck, badge: '4 Apps' },
+        { name: 'Roles & Privileges', path: '/central/roles', icon: UserCheck, badge: 'RBAC' },
       ]
     }
   ];
@@ -398,11 +367,11 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
                     <button
                       onClick={() => {
                         setShowProfileDropdown(false);
-                        navigate('/central/settings');
+                        navigate('/central/roles');
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
                     >
-                      <Settings className="w-3.5 h-3.5 text-slate-500" /> Central Settings
+                      <UserCheck className="w-3.5 h-3.5 text-slate-500" /> Roles & Privileges
                     </button>
                     <div className="my-1 border-t border-slate-100" />
                     <button

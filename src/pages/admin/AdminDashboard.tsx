@@ -9,9 +9,13 @@ import {
 import { getAdminDashboardStats } from '../../lib/api/dashboard';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
+  const userRole = (profile?.role || user?.role || user?.user_metadata?.role || '').toLowerCase().trim();
+  const isSuper = userRole === 'superadmin' || userRole === 'super_admin' || userRole === 'central';
 
   const { students: dbStudents } = useStudents();
   const { applications: dbApps } = useApplications();
@@ -79,12 +83,14 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => navigate('/central/dashboard')}
-            className="flex items-center gap-1.5 h-9 px-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs font-black text-amber-900 hover:bg-amber-100 transition-all shadow-2xs cursor-pointer"
-          >
-            <Crown className="w-3.5 h-3.5 text-amber-700" /> Super Admin Console
-          </button>
+          {isSuper && (
+            <button
+              onClick={() => navigate('/central/dashboard')}
+              className="flex items-center gap-1.5 h-9 px-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs font-black text-amber-900 hover:bg-amber-100 transition-all shadow-2xs cursor-pointer"
+            >
+              <Crown className="w-3.5 h-3.5 text-amber-700" /> Super Admin Console
+            </button>
+          )}
           <button
             onClick={() => navigate('/admin/tasks')}
             className="flex items-center gap-2 h-9 px-3.5 bg-[#6A1B2E] rounded-xl text-xs font-bold text-white hover:bg-[#521221] active:scale-98 transition-all shadow-md shadow-[#6A1B2E]/20"
