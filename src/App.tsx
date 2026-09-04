@@ -46,19 +46,8 @@ import { AdminNawaTracker } from './pages/admin/AdminNawaTracker';
 // Central imports
 import { CentralLayout } from './layouts/CentralLayout';
 import { CentralDashboard } from './pages/central/CentralDashboard';
-import { CentralEducation } from './pages/central/CentralEducation';
-import { CentralStudents } from './pages/central/CentralStudents';
 import { CentralAdmins } from './pages/central/CentralAdmins';
-import { CentralTasks } from './pages/central/CentralTasks';
-import { CentralPayments } from './pages/central/CentralPayments';
-import { CentralDocuments } from './pages/central/CentralDocuments';
-import { CentralSupport } from './pages/central/CentralSupport';
-import { CentralReports } from './pages/central/CentralReports';
-import { CentralInsights } from './pages/central/CentralInsights';
-import { CentralActivity } from './pages/central/CentralActivity';
 import { CentralRoles } from './pages/central/CentralRoles';
-import { CentralNotifications } from './pages/central/CentralNotifications';
-import { CentralSettings } from './pages/central/CentralSettings';
 
 // Trade imports
 import { TradeLayout } from './layouts/TradeLayout';
