@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, Search, Plus, CheckCircle2, Download, Trash2 } from 'lucide-react';
+import { CreditCard, Search, Plus, CheckCircle2, Download, Trash2, X } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getDigitalInvoices, createDigitalInvoice, updateDigitalInvoiceStatus, deleteDigitalInvoice } from '../../lib/api/digital';
