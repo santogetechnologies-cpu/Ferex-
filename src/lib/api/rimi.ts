@@ -784,3 +784,261 @@ export function getRimiCustomerCredentials(customerId: string): ProvisionedRimiC
   }
 }
 
+// ─── Rimi Frost Loss & Shrinkage Tracking ────────────────────────────────────
+export interface RimiFrostLoss {
+  id: string;
+  product_id?: string;
+  product_name: string;
+  batch_number: string;
+  warehouse_location: string;
+  quantity_lost_kg: number;
+  loss_reason: 'Defrost Cycle Damage' | 'Freezer Burn' | 'Packaging Seal Rupture' | 'Temperature Excursion' | 'Transit Thaw' | 'Other';
+  estimated_loss_value: number;
+  recorded_by: string;
+  recorded_at: string;
+  status: 'Approved Write-off' | 'Under Investigation';
+}
+
+export async function getRimiFrostLosses(): Promise<RimiFrostLoss[]> {
+  const saved = localStorage.getItem('ferex_rimi_frost_losses');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  const defaults: RimiFrostLoss[] = [
+    {
+      id: 'FL-2026-081',
+      product_name: 'Norwegian Atlantic Salmon Fillets',
+      batch_number: 'LOT-SAL-8821',
+      warehouse_location: 'Mumbai Central Deep Freeze (Bay 4)',
+      quantity_lost_kg: 18.5,
+      loss_reason: 'Freezer Burn',
+      estimated_loss_value: 23125,
+      recorded_by: 'Warehouse Supervisor Rajesh',
+      recorded_at: '2026-09-02T10:30:00Z',
+      status: 'Approved Write-off',
+    },
+    {
+      id: 'FL-2026-082',
+      product_name: 'Gourmet Chicken Breast Nuggets',
+      batch_number: 'LOT-CHK-9102',
+      warehouse_location: 'Navi Mumbai Cold Hub (Bay 2)',
+      quantity_lost_kg: 12.0,
+      loss_reason: 'Packaging Seal Rupture',
+      estimated_loss_value: 4200,
+      recorded_by: 'QA Officer Priya',
+      recorded_at: '2026-09-01T14:15:00Z',
+      status: 'Approved Write-off',
+    },
+  ];
+  localStorage.setItem('ferex_rimi_frost_losses', JSON.stringify(defaults));
+  return defaults;
+}
+
+export async function recordRimiFrostLoss(loss: {
+  product_id?: string;
+  product_name: string;
+  batch_number: string;
+  warehouse_location: string;
+  quantity_lost_kg: number;
+  loss_reason: any;
+  estimated_loss_value: number;
+  recorded_by?: string;
+}): Promise<RimiFrostLoss> {
+  const current = await getRimiFrostLosses();
+  const created: RimiFrostLoss = {
+    id: `FL-2026-${Math.floor(100 + Math.random() * 900)}`,
+    product_id: loss.product_id,
+    product_name: loss.product_name,
+    batch_number: loss.batch_number,
+    warehouse_location: loss.warehouse_location,
+    quantity_lost_kg: Number(loss.quantity_lost_kg) || 1,
+    loss_reason: loss.loss_reason || 'Freezer Burn',
+    estimated_loss_value: Number(loss.estimated_loss_value) || 1500,
+    recorded_by: loss.recorded_by || 'Cold Chain Supervisor',
+    recorded_at: new Date().toISOString(),
+    status: 'Approved Write-off',
+  };
+  const updated = [created, ...current];
+  localStorage.setItem('ferex_rimi_frost_losses', JSON.stringify(updated));
+  triggerLocalSync('ferex_rimi_frost_losses_change');
+  return created;
+}
+
+export async function deleteRimiFrostLoss(id: string): Promise<boolean> {
+  const current = await getRimiFrostLosses();
+  const updated = current.filter(f => f.id !== id);
+  localStorage.setItem('ferex_rimi_frost_losses', JSON.stringify(updated));
+  triggerLocalSync('ferex_rimi_frost_losses_change');
+  return true;
+}
+
+// ─── Rimi Stock Adjustments & Transfers ───────────────────────────────────────
+export interface RimiStockAdjustment {
+  id: string;
+  product_name: string;
+  adjustment_type: 'Inward Addition' | 'Frost Loss Deduction' | 'Inter-Warehouse Transfer' | 'Cycle Count Audit';
+  quantity: number;
+  unit: string;
+  source_location?: string;
+  target_location?: string;
+  reason: string;
+  timestamp: string;
+}
+
+export async function getRimiStockAdjustments(): Promise<RimiStockAdjustment[]> {
+  const saved = localStorage.getItem('ferex_rimi_stock_adjustments');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  const defaults: RimiStockAdjustment[] = [
+    {
+      id: 'ADJ-101',
+      product_name: 'King Tiger Prawns (500g)',
+      adjustment_type: 'Inter-Warehouse Transfer',
+      quantity: 50,
+      unit: 'Packs',
+      source_location: 'Mumbai Central Deep Freeze',
+      target_location: 'Pune Regional Depot',
+      reason: 'Rebalancing stock for weekend hypermarket demand',
+      timestamp: '2026-09-03T11:00:00Z',
+    },
+    {
+      id: 'ADJ-102',
+      product_name: 'Norwegian Atlantic Salmon',
+      adjustment_type: 'Frost Loss Deduction',
+      quantity: 18.5,
+      unit: 'KG',
+      source_location: 'Mumbai Central Deep Freeze (Bay 4)',
+      reason: 'Freezer burn write-off #FL-2026-081',
+      timestamp: '2026-09-02T10:30:00Z',
+    },
+  ];
+  localStorage.setItem('ferex_rimi_stock_adjustments', JSON.stringify(defaults));
+  return defaults;
+}
+
+export async function recordRimiStockAdjustment(adj: {
+  product_name: string;
+  adjustment_type: any;
+  quantity: number;
+  unit?: string;
+  source_location?: string;
+  target_location?: string;
+  reason: string;
+}): Promise<RimiStockAdjustment> {
+  const current = await getRimiStockAdjustments();
+  const created: RimiStockAdjustment = {
+    id: `ADJ-${Math.floor(103 + Math.random() * 900)}`,
+    product_name: adj.product_name,
+    adjustment_type: adj.adjustment_type,
+    quantity: Number(adj.quantity) || 1,
+    unit: adj.unit || 'KG',
+    source_location: adj.source_location || 'Mumbai Central Deep Freeze',
+    target_location: adj.target_location,
+    reason: adj.reason,
+    timestamp: new Date().toISOString(),
+  };
+  const updated = [created, ...current];
+  localStorage.setItem('ferex_rimi_stock_adjustments', JSON.stringify(updated));
+  triggerLocalSync('ferex_rimi_stock_adjustments_change');
+  return created;
+}
+
+// ─── Rimi Delivery Routes ───────────────────────────────────────────────────
+export interface RimiDeliveryRoute {
+  id: string;
+  route_code: string;
+  route_name: string;
+  vehicle_no: string;
+  driver_name: string;
+  driver_phone: string;
+  start_point: string;
+  end_point: string;
+  total_stops: number;
+  status: 'Active En Route' | 'Scheduled' | 'Completed';
+  target_temp: string;
+}
+
+export async function getRimiDeliveryRoutes(): Promise<RimiDeliveryRoute[]> {
+  const saved = localStorage.getItem('ferex_rimi_delivery_routes');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  const defaults: RimiDeliveryRoute[] = [
+    {
+      id: 'RT-1',
+      route_code: 'MUM-WEST-01',
+      route_name: 'Western Suburbs Supermarket Cold Chain',
+      vehicle_no: 'MH-12-AZ-8901 (10T Reefer)',
+      driver_name: 'Sunil Jadhav',
+      driver_phone: '+91 98200 44551',
+      start_point: 'Bhiwandi Central Cold Storage',
+      end_point: 'Bandra-Andheri Retail Corridor',
+      total_stops: 8,
+      status: 'Active En Route',
+      target_temp: '-18.0°C',
+    },
+    {
+      id: 'RT-2',
+      route_code: 'MUM-PUNE-EXP',
+      route_name: 'Mumbai-Pune Expressway Bulk Line',
+      vehicle_no: 'MH-14-BZ-4412 (15T Reefer)',
+      driver_name: 'Ramesh Patil',
+      driver_phone: '+91 98200 44552',
+      start_point: 'Navi Mumbai Deep Freeze Depot',
+      end_point: 'Pune Swargate HORECA Hub',
+      total_stops: 4,
+      status: 'Scheduled',
+      target_temp: '-22.0°C',
+    },
+  ];
+  localStorage.setItem('ferex_rimi_delivery_routes', JSON.stringify(defaults));
+  return defaults;
+}
+
+export async function createRimiDeliveryRoute(route: {
+  route_code: string;
+  route_name: string;
+  vehicle_no: string;
+  driver_name: string;
+  driver_phone?: string;
+  start_point: string;
+  end_point: string;
+  total_stops?: number;
+  status?: any;
+}): Promise<RimiDeliveryRoute> {
+  const current = await getRimiDeliveryRoutes();
+  const created: RimiDeliveryRoute = {
+    id: `RT-${Date.now().toString().slice(-4)}`,
+    route_code: route.route_code,
+    route_name: route.route_name,
+    vehicle_no: route.vehicle_no,
+    driver_name: route.driver_name,
+    driver_phone: route.driver_phone || '+91 98200 11223',
+    start_point: route.start_point,
+    end_point: route.end_point,
+    total_stops: Number(route.total_stops) || 5,
+    status: route.status || 'Scheduled',
+    target_temp: '-18.0°C',
+  };
+  const updated = [created, ...current];
+  localStorage.setItem('ferex_rimi_delivery_routes', JSON.stringify(updated));
+  triggerLocalSync('ferex_rimi_delivery_routes_change');
+  return created;
+}
+
+export async function deleteRimiDeliveryRoute(id: string): Promise<boolean> {
+  const current = await getRimiDeliveryRoutes();
+  const updated = current.filter(r => r.id !== id);
+  localStorage.setItem('ferex_rimi_delivery_routes', JSON.stringify(updated));
+  triggerLocalSync('ferex_rimi_delivery_routes_change');
+  return true;
+}
+
+
