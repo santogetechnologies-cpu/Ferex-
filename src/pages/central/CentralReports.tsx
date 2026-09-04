@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3, CheckCircle2,
@@ -135,49 +135,75 @@ export const CentralReports: React.FC = () => {
 
       {/* Available Executive Report Decks */}
       <div className="space-y-4">
-        <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-          <FileText className="w-4 h-4 text-[#6A1B2E]" /> Ready-to-Generate Executive Audit Reports
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+            <FileText className="w-4 h-4 text-[#6A1B2E]" /> Ready-to-Generate Executive Audit Reports
+          </h2>
+
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
+            {['All', 'Education', 'Trade', 'Rimi', 'Digital'].map(div => (
+              <button
+                key={div}
+                onClick={() => setSelectedDivision(div)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
+                  selectedDivision === div
+                    ? 'bg-[#6A1B2E] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {div === 'All' ? 'All Reports' : div}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
             {
               title: 'Consolidated Enterprise P&L Statement',
               division: 'All 4 Divisions',
+              divKey: 'All',
               desc: 'Comprehensive financial report including revenues, cross-border payments, wire settlements, and operational overheads.',
               format: 'PDF + CSV',
             },
             {
               title: 'Global Trade Letters of Credit & Customs Audit',
               division: 'Global Trade ERP',
+              divKey: 'Trade',
               desc: 'Detailed summary of open, settled, and pending LCs, bill of lading compliance, and freight carrier performance.',
               format: 'PDF + CSV',
             },
             {
               title: 'Rimi Cold-Chain & Batch Traceability Report',
               division: 'Rimi Frozen',
+              divKey: 'Rimi',
               desc: 'Warehouse temperature logs, distributor billing ledger, inventory aging analysis, and batch expiry quality scores.',
               format: 'PDF + CSV',
             },
             {
               title: 'Education Student Intake & University Conversion',
               division: 'Ferex Education',
+              divKey: 'Education',
               desc: 'Application conversion ratios by country (Poland, Germany, Netherlands), NAWA legalizations, and VFS visa turnaround times.',
               format: 'PDF + CSV',
             },
             {
               title: 'Digital Agency Milestone & Client Retainer Audit',
               division: 'Ferex Digital',
+              divKey: 'Digital',
               desc: 'Client billing cycles, deliverables milestone completion, sprint velocity, and monthly retainer run rates.',
               format: 'PDF + CSV',
             },
             {
               title: 'Executive Staff SLA & Governance Audit',
               division: 'Central HQ',
+              divKey: 'All',
               desc: 'Counselor case loads, ticket resolution speed, admin access events, and division operational compliance metrics.',
               format: 'PDF + CSV',
             },
-          ].map((rep, idx) => (
+          ]
+            .filter(rep => selectedDivision === 'All' || rep.divKey === selectedDivision || rep.divKey === 'All')
+            .map((rep, idx) => (
             <Card key={idx} className="p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
               <div>
                 <div className="flex items-center justify-between mb-2">

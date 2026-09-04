@@ -25,7 +25,7 @@ export const CentralActivity: React.FC = () => {
   const [selectedDivision, setSelectedDivision] = useState<string>('All');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('All');
 
-  const [logs, setLogs] = useState<AuditLog[]>([
+  const [logs] = useState<AuditLog[]>([
     {
       id: 'AUD-8821',
       division: 'Trade',
@@ -156,24 +156,42 @@ export const CentralActivity: React.FC = () => {
 
       {/* Filters */}
       <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto w-full sm:w-auto scrollbar-none">
-            {['All', 'Education', 'Trade', 'Rimi', 'Digital', 'HQ'].map(div => (
-              <button
-                key={div}
-                onClick={() => setSelectedDivision(div)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
-                  selectedDivision === div
-                    ? 'bg-[#6A1B2E] text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {div === 'All' ? 'All Divisions' : div}
-              </button>
-            ))}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
+              {['All', 'Education', 'Trade', 'Rimi', 'Digital', 'HQ'].map(div => (
+                <button
+                  key={div}
+                  onClick={() => setSelectedDivision(div)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
+                    selectedDivision === div
+                      ? 'bg-[#6A1B2E] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {div === 'All' ? 'All Divisions' : div}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
+              {['All', 'Success', 'Warning', 'Info', 'Critical'].map(sev => (
+                <button
+                  key={sev}
+                  onClick={() => setSelectedSeverity(sev)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    selectedSeverity === sev
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {sev}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full lg:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CreditCard, Search, Download, CheckCircle2, TrendingUp,
@@ -28,9 +28,7 @@ export const CentralPayments: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivision, setSelectedDivision] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
-  const [dateRange, setDateRange] = useState<'today' | '7days' | '1month' | 'all'>('1month');
   const [toast, setToast] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const [transactions, setTransactions] = useState<TransactionItem[]>([
     {
@@ -317,27 +315,45 @@ export const CentralPayments: React.FC = () => {
 
       {/* Filter and Search Bar */}
       <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          
-          {/* Division Selector Tabs */}
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto w-full sm:w-auto scrollbar-none">
-            {['All', 'Education', 'Trade', 'Rimi', 'Digital'].map(div => (
-              <button
-                key={div}
-                onClick={() => setSelectedDivision(div)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
-                  selectedDivision === div
-                    ? 'bg-[#6A1B2E] text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {div === 'All' ? 'All Divisions' : div}
-              </button>
-            ))}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Division Selector Tabs */}
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
+              {['All', 'Education', 'Trade', 'Rimi', 'Digital'].map(div => (
+                <button
+                  key={div}
+                  onClick={() => setSelectedDivision(div)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
+                    selectedDivision === div
+                      ? 'bg-[#6A1B2E] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {div === 'All' ? 'All Divisions' : div}
+                </button>
+              ))}
+            </div>
+
+            {/* Status Selector Tabs */}
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
+              {['All', 'Verified', 'Pending', 'Settled'].map(st => (
+                <button
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    statusFilter === st
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Search Box */}
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full lg:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
@@ -368,18 +384,16 @@ export const CentralPayments: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
               {filteredTxns.length > 0 ? (
-                filteredTxns.map(t => {
-                  const DivIcon = t.divisionIcon;
-                  return (
-                    <tr key={t.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-4 font-mono text-[11px] font-bold text-slate-900">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold border ${t.divisionBadge}`}>
-                            {t.division}
-                          </span>
-                          <span>{t.refNo}</span>
-                        </div>
-                      </td>
+                filteredTxns.map(t => (
+                  <tr key={t.id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="py-3.5 px-4 font-mono text-[11px] font-bold text-slate-900">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold border ${t.divisionBadge}`}>
+                          {t.division}
+                        </span>
+                        <span>{t.refNo}</span>
+                      </div>
+                    </td>
                       <td className="py-3.5 px-4 font-extrabold text-slate-900">
                         {t.client}
                       </td>
