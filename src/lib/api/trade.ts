@@ -1204,3 +1204,275 @@ export function getTradeClientCredentials(partnerId: string): ProvisionedTradeCr
   }
 }
 
+// ─── 13. CUSTOMS BONDED WAREHOUSE & PORT YARD INVENTORY ──────────────────────
+export interface BondedCargoItem {
+  id: string;
+  sku: string;
+  commodity: string;
+  category: string;
+  port_location: string;
+  warehouse_bay: string;
+  in_stock_metric_tons: number;
+  reserved_metric_tons: number;
+  available_metric_tons: number;
+  unit_value_inr: number;
+  total_valuation_inr: number;
+  customs_bond_no: string;
+  status: 'In Bond' | 'Cleared Customs' | 'In Transit Transfer' | 'Under Inspection';
+  last_inspected_at: string;
+  updated_at: string;
+}
+
+export async function getTradeBondedInventory(): Promise<BondedCargoItem[]> {
+  const saved = localStorage.getItem('ferex_trade_bonded_inventory');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  const defaultItems: BondedCargoItem[] = [
+    {
+      id: 'BOND-01',
+      sku: 'POL-COAL-6000',
+      commodity: 'Premium Polish Thermal Coal (6000 kcal/kg)',
+      category: 'Bulk Energy Commodities',
+      port_location: 'Port of Gdansk, Bonded Bay #4A',
+      warehouse_bay: 'Bay-04 North Terminal',
+      in_stock_metric_tons: 45000,
+      reserved_metric_tons: 12000,
+      available_metric_tons: 33000,
+      unit_value_inr: 11500,
+      total_valuation_inr: 517500000,
+      customs_bond_no: 'PL-GDN-CB-2026-0981',
+      status: 'In Bond',
+      last_inspected_at: '2026-09-02',
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'BOND-02',
+      sku: 'ROT-STEEL-HRC',
+      commodity: 'Hot Rolled Steel Coils (Grade EN 10025)',
+      category: 'Industrial Metals',
+      port_location: 'Port of Rotterdam, Yard Pier 3',
+      warehouse_bay: 'Shed 12 Heavy Stacking',
+      in_stock_metric_tons: 18500,
+      reserved_metric_tons: 5000,
+      available_metric_tons: 13500,
+      unit_value_inr: 62000,
+      total_valuation_inr: 1147000000,
+      customs_bond_no: 'NL-ROT-CB-2026-1140',
+      status: 'In Bond',
+      last_inspected_at: '2026-09-03',
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'BOND-03',
+      sku: 'JNPT-PETRO-BIT',
+      commodity: 'Refined Bitumen & Industrial Petrochemicals',
+      category: 'Chemicals & Energy',
+      port_location: 'JNPT Mumbai, Bulk Tank Yard #2',
+      warehouse_bay: 'Tank Cluster 02-B',
+      in_stock_metric_tons: 8200,
+      reserved_metric_tons: 2200,
+      available_metric_tons: 6000,
+      unit_value_inr: 48000,
+      total_valuation_inr: 393600000,
+      customs_bond_no: 'IN-JNPT-CB-2026-4412',
+      status: 'Cleared Customs',
+      last_inspected_at: '2026-09-01',
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'BOND-04',
+      sku: 'DXB-ALUM-ING',
+      commodity: 'Primary Aluminium Ingots (99.7% P1020A)',
+      category: 'Non-Ferrous Metals',
+      port_location: 'Jebel Ali Port, Dubai FTZ #7',
+      warehouse_bay: 'FTZ Bay 7-E',
+      in_stock_metric_tons: 6400,
+      reserved_metric_tons: 1400,
+      available_metric_tons: 5000,
+      unit_value_inr: 215000,
+      total_valuation_inr: 1376000000,
+      customs_bond_no: 'AE-DXB-FTZ-2026-8819',
+      status: 'In Bond',
+      last_inspected_at: '2026-08-30',
+      updated_at: new Date().toISOString(),
+    }
+  ];
+  try { localStorage.setItem('ferex_trade_bonded_inventory', JSON.stringify(defaultItems)); } catch {}
+  return defaultItems;
+}
+
+export async function createTradeBondedItem(item: Partial<BondedCargoItem>): Promise<BondedCargoItem> {
+  const current = await getTradeBondedInventory();
+  const inStock = Number(item.in_stock_metric_tons) || 1000;
+  const reserved = Number(item.reserved_metric_tons) || 0;
+  const unitVal = Number(item.unit_value_inr) || 15000;
+  const created: BondedCargoItem = {
+    id: `BOND-${Math.floor(10 + Math.random() * 90)}`,
+    sku: item.sku || `SKU-TRD-${Math.floor(1000 + Math.random() * 9000)}`,
+    commodity: item.commodity || 'Industrial Bulk Commodity',
+    category: item.category || 'General Cargo',
+    port_location: item.port_location || 'Port of Gdansk, Poland',
+    warehouse_bay: item.warehouse_bay || 'Bay 01-East',
+    in_stock_metric_tons: inStock,
+    reserved_metric_tons: reserved,
+    available_metric_tons: Math.max(0, inStock - reserved),
+    unit_value_inr: unitVal,
+    total_valuation_inr: inStock * unitVal,
+    customs_bond_no: item.customs_bond_no || `BOND-${Math.floor(100000 + Math.random() * 900000)}`,
+    status: item.status || 'In Bond',
+    last_inspected_at: item.last_inspected_at || new Date().toISOString().split('T')[0],
+    updated_at: new Date().toISOString(),
+  };
+  const updated = [created, ...current];
+  localStorage.setItem('ferex_trade_bonded_inventory', JSON.stringify(updated));
+  window.dispatchEvent(new Event('ferex_trade_bonded_inventory_change'));
+  return created;
+}
+
+export async function updateTradeBondedStock(id: string, updates: Partial<BondedCargoItem>) {
+  const current = await getTradeBondedInventory();
+  const updated = current.map(item => {
+    if (item.id === id) {
+      const inStock = updates.in_stock_metric_tons !== undefined ? Number(updates.in_stock_metric_tons) : item.in_stock_metric_tons;
+      const reserved = updates.reserved_metric_tons !== undefined ? Number(updates.reserved_metric_tons) : item.reserved_metric_tons;
+      const unitVal = updates.unit_value_inr !== undefined ? Number(updates.unit_value_inr) : item.unit_value_inr;
+      return {
+        ...item,
+        ...updates,
+        in_stock_metric_tons: inStock,
+        reserved_metric_tons: reserved,
+        available_metric_tons: Math.max(0, inStock - reserved),
+        unit_value_inr: unitVal,
+        total_valuation_inr: inStock * unitVal,
+        updated_at: new Date().toISOString(),
+      };
+    }
+    return item;
+  });
+  localStorage.setItem('ferex_trade_bonded_inventory', JSON.stringify(updated));
+  window.dispatchEvent(new Event('ferex_trade_bonded_inventory_change'));
+  return true;
+}
+
+export async function deleteTradeBondedItem(id: string) {
+  const current = await getTradeBondedInventory();
+  const updated = current.filter(item => item.id !== id);
+  localStorage.setItem('ferex_trade_bonded_inventory', JSON.stringify(updated));
+  window.dispatchEvent(new Event('ferex_trade_bonded_inventory_change'));
+  return true;
+}
+
+// ─── 14. DEMURRAGE, CARGO LOSS & DAMAGE / SHRINKAGE ENGINE ──────────────────
+export interface CargoLossRecord {
+  id: string;
+  shipment_no: string;
+  container_no: string;
+  loss_type: 'Port Demurrage Penalty' | 'Transit Shrinkage' | 'Handling Damage' | 'Contamination / Spillage' | 'Customs Detention';
+  port_location: string;
+  loss_amount_inr: number;
+  shrinkage_metric_tons?: number;
+  carrier_responsible?: string;
+  insurance_claim_status: 'Not Filed' | 'Claim Lodged' | 'Under Review' | 'Recovered / Reimbursed';
+  incident_date: string;
+  description: string;
+}
+
+export async function getTradeCargoLosses(): Promise<CargoLossRecord[]> {
+  const saved = localStorage.getItem('ferex_trade_cargo_losses');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  const defaultLosses: CargoLossRecord[] = [
+    {
+      id: 'LOSS-TRD-01',
+      shipment_no: 'SHP-9021',
+      container_no: 'MSCU-884920-1',
+      loss_type: 'Port Demurrage Penalty',
+      port_location: 'Port of Rotterdam (ECT Delta Terminal)',
+      loss_amount_inr: 320000,
+      carrier_responsible: 'Mediterranean Shipping Company',
+      insurance_claim_status: 'Claim Lodged',
+      incident_date: '2026-08-27',
+      description: '4-day delay in customs bond clearance beyond free time allowance resulting in demurrage charges.'
+    },
+    {
+      id: 'LOSS-TRD-02',
+      shipment_no: 'SHP-8840',
+      container_no: 'CMAU-440219-9',
+      loss_type: 'Transit Shrinkage',
+      port_location: 'Port of Gdansk, Poland',
+      loss_amount_inr: 185000,
+      shrinkage_metric_tons: 16.5,
+      carrier_responsible: 'CMA CGM Logistics',
+      insurance_claim_status: 'Recovered / Reimbursed',
+      incident_date: '2026-08-19',
+      description: 'Moisture loss and bulk handling cargo shrinkage during maritime transit from Gdansk to JNPT.'
+    },
+    {
+      id: 'LOSS-TRD-03',
+      shipment_no: 'SHP-7712',
+      container_no: 'HLCU-902144-3',
+      loss_type: 'Handling Damage',
+      port_location: 'Jebel Ali Port Yard #3',
+      loss_amount_inr: 450000,
+      carrier_responsible: 'Hapag-Lloyd AG',
+      insurance_claim_status: 'Under Review',
+      incident_date: '2026-08-12',
+      description: 'Crane spreader impact bent 2 coils during vessel discharge operations. Marine surveyor inspected.'
+    }
+  ];
+  try { localStorage.setItem('ferex_trade_cargo_losses', JSON.stringify(defaultLosses)); } catch {}
+  return defaultLosses;
+}
+
+export async function createTradeCargoLoss(record: Partial<CargoLossRecord>): Promise<CargoLossRecord> {
+  const current = await getTradeCargoLosses();
+  const created: CargoLossRecord = {
+    id: `LOSS-TRD-${Math.floor(10 + Math.random() * 90)}`,
+    shipment_no: record.shipment_no || 'SHP-8900',
+    container_no: record.container_no || 'MSCU-000000-0',
+    loss_type: record.loss_type || 'Port Demurrage Penalty',
+    port_location: record.port_location || 'Port of Gdansk, Poland',
+    loss_amount_inr: Number(record.loss_amount_inr) || 50000,
+    shrinkage_metric_tons: record.shrinkage_metric_tons ? Number(record.shrinkage_metric_tons) : undefined,
+    carrier_responsible: record.carrier_responsible || 'Maersk Line',
+    insurance_claim_status: record.insurance_claim_status || 'Not Filed',
+    incident_date: record.incident_date || new Date().toISOString().split('T')[0],
+    description: record.description || 'Cargo loss incident recorded in maritime log.',
+  };
+  const updated = [created, ...current];
+  localStorage.setItem('ferex_trade_cargo_losses', JSON.stringify(updated));
+  window.dispatchEvent(new Event('ferex_trade_cargo_losses_change'));
+  return created;
+}
+
+export async function deleteTradeCargoLoss(id: string) {
+  const current = await getTradeCargoLosses();
+  const updated = current.filter(l => l.id !== id);
+  localStorage.setItem('ferex_trade_cargo_losses', JSON.stringify(updated));
+  window.dispatchEvent(new Event('ferex_trade_cargo_losses_change'));
+  return true;
+}
+
+export async function getTradeCargoLossSummary() {
+  const losses = await getTradeCargoLosses();
+  const totalLossInr = losses.reduce((sum, l) => sum + (Number(l.loss_amount_inr) || 0), 0);
+  const totalDemurrageInr = losses.filter(l => l.loss_type === 'Port Demurrage Penalty').reduce((sum, l) => sum + (Number(l.loss_amount_inr) || 0), 0);
+  const totalShrinkageTons = losses.reduce((sum, l) => sum + (Number(l.shrinkage_metric_tons) || 0), 0);
+  const recoveredInr = losses.filter(l => l.insurance_claim_status === 'Recovered / Reimbursed').reduce((sum, l) => sum + (Number(l.loss_amount_inr) || 0), 0);
+
+  return {
+    totalLossInr,
+    totalDemurrageInr,
+    totalShrinkageTons,
+    recoveredInr,
+    totalLossesCount: losses.length
+  };
+}
+
+

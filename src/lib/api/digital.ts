@@ -679,3 +679,216 @@ export function getDigitalClientCredentials(clientId: string): ProvisionedClient
   }
 }
 
+// ─── Multi-Project Consolidated Invoicing ──────────────────────────────────
+export interface MultiProjectInvoiceItem {
+  projectId?: string;
+  projectTitle: string;
+  description: string;
+  amount: number;
+}
+
+export async function createDigitalMultiProjectInvoice(payload: {
+  client_id: string;
+  client_name?: string;
+  invoice_no?: string;
+  due_date?: string;
+  items: MultiProjectInvoiceItem[];
+  notes?: string;
+}) {
+  const totalAmount = payload.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const taxAmount = Math.round(totalAmount * 0.18);
+  const invNo = payload.invoice_no || `INV-DIG-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const invoiceRecord = {
+    id: generateUUID(),
+    client_id: payload.client_id,
+    project_id: payload.items[0]?.projectId || null,
+    invoice_no: invNo,
+    amount: totalAmount,
+    tax_amount: taxAmount,
+    currency: 'INR',
+    status: 'Sent',
+    due_date: payload.due_date || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+    issued_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    items: payload.items,
+    notes: payload.notes || `Consolidated invoice spanning ${payload.items.length} client projects.`
+  };
+
+  try {
+    const { data, error } = await supabase.from('digital_invoices').insert({
+      id: invoiceRecord.id,
+      client_id: invoiceRecord.client_id,
+      project_id: invoiceRecord.project_id,
+      invoice_no: invoiceRecord.invoice_no,
+      amount: invoiceRecord.amount,
+      tax_amount: invoiceRecord.tax_amount,
+      currency: invoiceRecord.currency,
+      status: invoiceRecord.status,
+      due_date: invoiceRecord.due_date,
+      issued_at: invoiceRecord.issued_at,
+      created_at: invoiceRecord.created_at,
+    }).select();
+    
+    // Save detailed items in localStorage for instant retrieval
+    const multiSaved = localStorage.getItem('ferex_digital_multi_invoices') || '{}';
+    try {
+      const map = JSON.parse(multiSaved);
+      map[invoiceRecord.id] = payload.items;
+      localStorage.setItem('ferex_digital_multi_invoices', JSON.stringify(map));
+    } catch {}
+
+    triggerLocalSync('ferex_digital_invoices_change');
+    if (!error && data && data.length > 0) return { ...data[0], items: payload.items };
+  } catch {}
+
+  triggerLocalSync('ferex_digital_invoices_change');
+  return invoiceRecord;
+}
+
+export function getDigitalInvoiceItems(invoiceId: string): MultiProjectInvoiceItem[] {
+  try {
+    const multiSaved = localStorage.getItem('ferex_digital_multi_invoices');
+    if (multiSaved) {
+      const map = JSON.parse(multiSaved);
+      if (map[invoiceId]) return map[invoiceId];
+    }
+  } catch {}
+  return [];
+}
+
+// ─── Digital Agency Assets & Software License Inventory ────────────────────
+export interface DigitalAsset {
+  id: string;
+  name: string;
+  type: 'Cloud Infrastructure' | 'SaaS License' | 'Domain & DNS' | 'SSL & Security' | 'API Gateway' | 'Design & Dev Tools';
+  provider: string;
+  cost_per_month_inr: number;
+  renewal_date: string;
+  status: 'Active' | 'Expiring Soon' | 'Auto-Renewed' | 'Suspended';
+  assigned_to_project?: string;
+  assigned_team_lead?: string;
+  license_seats?: number;
+}
+
+export async function getDigitalAssets(): Promise<DigitalAsset[]> {
+  const saved = localStorage.getItem('ferex_digital_assets');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  const defaultAssets: DigitalAsset[] = [
+    {
+      id: 'AST-DIG-01',
+      name: 'AWS Elastic Kubernetes (EKS Production Cluster)',
+      type: 'Cloud Infrastructure',
+      provider: 'Amazon Web Services',
+      cost_per_month_inr: 88500,
+      renewal_date: '2026-10-01',
+      status: 'Active',
+      assigned_to_project: 'Nexus FinTech Platform',
+      assigned_team_lead: 'Kavita Iyer',
+      license_seats: 12
+    },
+    {
+      id: 'AST-DIG-02',
+      name: 'Figma Enterprise Organization Workspace',
+      type: 'Design & Dev Tools',
+      provider: 'Figma Inc.',
+      cost_per_month_inr: 32000,
+      renewal_date: '2026-09-28',
+      status: 'Active',
+      assigned_to_project: 'Global Design System',
+      assigned_team_lead: 'Sameer Sen',
+      license_seats: 25
+    },
+    {
+      id: 'AST-DIG-03',
+      name: 'Cloudflare Enterprise SSL & DDoS Shield',
+      type: 'SSL & Security',
+      provider: 'Cloudflare Inc.',
+      cost_per_month_inr: 21500,
+      renewal_date: '2026-09-15',
+      status: 'Expiring Soon',
+      assigned_to_project: 'All Active Client Portals',
+      assigned_team_lead: 'Rohan Joshi',
+    },
+    {
+      id: 'AST-DIG-04',
+      name: 'OpenAI GPT-4o Enterprise API Gateway',
+      type: 'API Gateway',
+      provider: 'OpenAI LLC',
+      cost_per_month_inr: 54000,
+      renewal_date: '2026-10-05',
+      status: 'Active',
+      assigned_to_project: 'AI Copilot & Workflow Engines',
+      assigned_team_lead: 'Kavita Iyer',
+    },
+    {
+      id: 'AST-DIG-05',
+      name: 'GitHub Enterprise & Copilot Business Seats',
+      type: 'SaaS License',
+      provider: 'GitHub Inc.',
+      cost_per_month_inr: 18000,
+      renewal_date: '2026-11-01',
+      status: 'Active',
+      assigned_to_project: 'Core Engineering',
+      assigned_team_lead: 'Kavita Iyer',
+      license_seats: 18
+    }
+  ];
+  try { localStorage.setItem('ferex_digital_assets', JSON.stringify(defaultAssets)); } catch {}
+  return defaultAssets;
+}
+
+export async function createDigitalAsset(asset: Partial<DigitalAsset>): Promise<DigitalAsset> {
+  const current = await getDigitalAssets();
+  const created: DigitalAsset = {
+    id: `AST-DIG-${Math.floor(10 + Math.random() * 90)}`,
+    name: asset.name || 'Cloud Asset / License',
+    type: asset.type || 'SaaS License',
+    provider: asset.provider || 'SaaS Provider',
+    cost_per_month_inr: Number(asset.cost_per_month_inr) || 12000,
+    renewal_date: asset.renewal_date || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+    status: asset.status || 'Active',
+    assigned_to_project: asset.assigned_to_project || 'Internal Core',
+    assigned_team_lead: asset.assigned_team_lead || 'Engineering Lead',
+    license_seats: asset.license_seats ? Number(asset.license_seats) : 1
+  };
+  const updated = [created, ...current];
+  localStorage.setItem('ferex_digital_assets', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_assets_change');
+  return created;
+}
+
+export async function updateDigitalAsset(id: string, updates: Partial<DigitalAsset>) {
+  const current = await getDigitalAssets();
+  const updated = current.map(a => a.id === id ? { ...a, ...updates } : a);
+  localStorage.setItem('ferex_digital_assets', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_assets_change');
+  return true;
+}
+
+export async function deleteDigitalAsset(id: string) {
+  const current = await getDigitalAssets();
+  const updated = current.filter(a => a.id !== id);
+  localStorage.setItem('ferex_digital_assets', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_assets_change');
+  return true;
+}
+
+export async function getDigitalAssetCostSummary() {
+  const assets = await getDigitalAssets();
+  const totalMonthlyInr = assets.reduce((sum, a) => sum + (Number(a.cost_per_month_inr) || 0), 0);
+  const expiringSoonCount = assets.filter(a => a.status === 'Expiring Soon').length;
+  const activeCount = assets.filter(a => a.status === 'Active').length;
+  return {
+    totalMonthlyInr,
+    expiringSoonCount,
+    activeCount,
+    totalAssetsCount: assets.length
+  };
+}
+
+
