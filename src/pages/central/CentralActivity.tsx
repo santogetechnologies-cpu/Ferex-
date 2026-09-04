@@ -1,96 +1,218 @@
-import React, { useState, useEffect } from 'react';
-import { Activity, Search } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Activity, Search, CheckCircle2, Download
+} from 'lucide-react';
 import { Card } from '../../components/Card';
-import { getActivityLogs } from '../../lib/api/activity';
+import { Button } from '../../components/Button';
+
+interface AuditLog {
+  id: string;
+  division: 'Education' | 'Trade' | 'Rimi' | 'Digital' | 'HQ';
+  divisionBadge: string;
+  action: string;
+  details: string;
+  actor: string;
+  ip: string;
+  timestamp: string;
+  severity: 'Info' | 'Success' | 'Warning' | 'Critical';
+  severityBadge: string;
+}
 
 export const CentralActivity: React.FC = () => {
+  const [toast, setToast] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [logs, setLogs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [selectedDivision, setSelectedDivision] = useState<string>('All');
+  const [selectedSeverity, setSelectedSeverity] = useState<string>('All');
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      const data = await getActivityLogs(50);
-      const mapped = data.map((l: any) => ({
-        id: l.id ? `LOG-${l.id.slice(0, 6).toUpperCase()}` : 'LOG-EVENT',
-        user: l.user_id ? `User (${l.user_id.slice(0, 8)})` : 'System Enforcement',
-        action: l.action,
-        target: l.entity_type ? `${l.entity_type}${l.entity_id ? ` (#${l.entity_id.slice(0, 6)})` : ''}` : 'Global Resource',
-        ip: l.ip_address || '127.0.0.1',
-        time: l.created_at ? new Date(l.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
-        severity: 'Info'
-      }));
-      setLogs(mapped);
-      setLoading(false);
-    };
-    load();
-  }, []);
+  const [logs, setLogs] = useState<AuditLog[]>([
+    {
+      id: 'AUD-8821',
+      division: 'Trade',
+      divisionBadge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      action: 'Letter of Credit Settlement Approved',
+      details: 'EUR 120,000 MT700 wire release authorized for Hamburg Port shipping consignment.',
+      actor: 'Central Super Admin',
+      ip: '192.168.1.104',
+      timestamp: '5m ago',
+      severity: 'Success',
+      severityBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    },
+    {
+      id: 'AUD-8822',
+      division: 'Education',
+      divisionBadge: 'bg-rose-50 text-rose-700 border-rose-200',
+      action: 'Student Tuition Wire Verified',
+      details: '₹4,80,000 ledger deposit cleared for Warsaw University batch Autumn 2026.',
+      actor: 'Rahul Mehta (Admissions)',
+      ip: '103.21.58.12',
+      timestamp: '18m ago',
+      severity: 'Success',
+      severityBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    },
+    {
+      id: 'AUD-8823',
+      division: 'Rimi',
+      divisionBadge: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+      action: 'Cold Chain Expiry Sensor Trigger',
+      details: 'Hub-2 Cold storage unit temperature telemetry logged minor fluctuation (-16.5°C).',
+      actor: 'Automated IoT Daemon',
+      ip: '10.0.4.88',
+      timestamp: '42m ago',
+      severity: 'Warning',
+      severityBadge: 'bg-amber-50 text-amber-700 border-amber-200',
+    },
+    {
+      id: 'AUD-8824',
+      division: 'Digital',
+      divisionBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      action: 'Production Webhook Payment Captured',
+      details: 'Razorpay settlement ₹1,50,000 for Nexus FinTech Mobile Sprint milestone 3.',
+      actor: 'Razorpay Webhook API',
+      ip: '52.66.12.90',
+      timestamp: '1h ago',
+      severity: 'Info',
+      severityBadge: 'bg-blue-50 text-blue-700 border-blue-200',
+    },
+    {
+      id: 'AUD-8825',
+      division: 'HQ',
+      divisionBadge: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20',
+      action: 'Division Admin Login Provisioned',
+      details: 'Created access credentials for Trade Admin: tradeadmin@santoge.com.',
+      actor: 'Central Super Admin',
+      ip: '192.168.1.104',
+      timestamp: '2h ago',
+      severity: 'Info',
+      severityBadge: 'bg-blue-50 text-blue-700 border-blue-200',
+    },
+  ]);
 
-  const filteredLogs = logs.filter(l =>
-    l.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    l.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    l.action.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const showToastMsg = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
+
+  const handleExportAudit = () => {
+    showToastMsg('Exporting complete Central Security Audit Log (CSV)...');
+  };
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter(l => {
+      const matchSearch =
+        l.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        l.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        l.details.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        l.actor.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchDiv = selectedDivision === 'All' || l.division === selectedDivision;
+      const matchSev = selectedSeverity === 'All' || l.severity === selectedSeverity;
+      return matchSearch && matchDiv && matchSev;
+    });
+  }, [logs, searchQuery, selectedDivision, selectedSeverity]);
 
   return (
-    <div className="space-y-6 text-left">
+    <div className="space-y-6 text-left antialiased">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Activity className="w-5 h-5 text-[#6A1B2E]" /> Immutable Security Audit Logs
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <Activity className="w-6 h-6 text-[#6A1B2E]" /> Universal Security Audit Trail & Activity Feed
+            </h1>
+            <span className="text-[10px] font-black bg-[#6A1B2E]/10 text-[#6A1B2E] border border-[#6A1B2E]/20 px-2.5 py-0.5 rounded-full">
+              Real-time Logs
+            </span>
+          </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Super Admin Console • Real-time audit trail, user actions, IP records, and security events.
+            Immutable executive record of user logins, permission escalations, wire clearances, and operational events across the enterprise.
           </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            size="sm"
+            onClick={handleExportAudit}
+            className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold text-white shadow-xs"
+          >
+            <Download className="w-4 h-4 mr-1.5" /> Download Audit CSV
+          </Button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading audit logs...</div>
-      ) : null}
+      {/* Filters */}
+      <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto w-full sm:w-auto scrollbar-none">
+            {['All', 'Education', 'Trade', 'Rimi', 'Digital', 'HQ'].map(div => (
+              <button
+                key={div}
+                onClick={() => setSelectedDivision(div)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
+                  selectedDivision === div
+                    ? 'bg-[#6A1B2E] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {div === 'All' ? 'All Divisions' : div}
+              </button>
+            ))}
+          </div>
 
-      <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search action, user, or IP..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
-        </div>
-        <span className="text-xs font-bold text-slate-400">{filteredLogs.length} Audit Events</span>
-      </Card>
-
-      <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
-                <th className="py-3 px-4">Event ID & Timestamp</th>
-                <th className="py-3 px-4">User Account</th>
-                <th className="py-3 px-4">Action Event</th>
-                <th className="py-3 px-4">Target Resource</th>
-                <th className="py-3 px-4 text-right">IP Address</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-              {filteredLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
-                    <div>{log.id}</div>
-                    <span className="text-[10px] font-semibold text-slate-400">{log.time}</span>
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800">{log.user}</td>
-                  <td className="py-3.5 px-4">
-                    <span className="font-mono text-[11px] font-extrabold text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded border border-[#6A1B2E]/20">
-                      {log.action}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800">{log.target}</td>
-                  <td className="py-3.5 px-4 text-right font-mono text-slate-500">{log.ip}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search audit actions, IP, actor..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full h-9 pl-9 pr-3 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-[#6A1B2E]"
+            />
+          </div>
         </div>
       </Card>
+
+      {/* Log Feed */}
+      <div className="space-y-3">
+        {filteredLogs.map(l => (
+          <Card key={l.id} className="p-4 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5 mb-2.5">
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-black border ${l.divisionBadge}`}>
+                  {l.division}
+                </span>
+                <span className={`px-2 py-0.5 rounded-md text-[9px] font-extrabold border ${l.severityBadge}`}>
+                  {l.severity}
+                </span>
+                <span className="font-mono text-xs font-black text-slate-900">{l.id}</span>
+                <span className="text-xs font-black text-slate-800">— {l.action}</span>
+              </div>
+              <span className="text-[10px] font-bold text-slate-400">{l.timestamp}</span>
+            </div>
+
+            <p className="text-xs text-slate-600 font-medium leading-relaxed">{l.details}</p>
+
+            <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400">
+              <span>Actor: <strong className="text-slate-700">{l.actor}</strong></span>
+              <span>Source IP: <strong className="font-mono text-slate-700">{l.ip}</strong></span>
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };

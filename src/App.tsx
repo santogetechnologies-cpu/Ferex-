@@ -46,8 +46,14 @@ import { AdminNawaTracker } from './pages/admin/AdminNawaTracker';
 // Central imports
 import { CentralLayout } from './layouts/CentralLayout';
 import { CentralDashboard } from './pages/central/CentralDashboard';
+import { CentralPayments } from './pages/central/CentralPayments';
+import { CentralReports } from './pages/central/CentralReports';
 import { CentralAdmins } from './pages/central/CentralAdmins';
 import { CentralRoles } from './pages/central/CentralRoles';
+import { CentralTasks } from './pages/central/CentralTasks';
+import { CentralActivity } from './pages/central/CentralActivity';
+import { CentralNotifications } from './pages/central/CentralNotifications';
+import { CentralSettings } from './pages/central/CentralSettings';
 
 // Trade imports
 import { TradeLayout } from './layouts/TradeLayout';
@@ -261,19 +267,20 @@ function App() {
 
           {/* ── Central Super Admin Routes (Strictly Super Admin Only) ── */}
           <Route path="/central/dashboard" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralDashboard /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/finance" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/payments" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/reports" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralReports /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/admins" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralAdmins /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/roles" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralRoles /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/tasks" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralTasks /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/activity" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralActivity /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/notifications" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralNotifications /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/settings" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralSettings /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/education" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/central/students" element={<Navigate to="/admin/students" replace />} />
-          <Route path="/central/tasks" element={<Navigate to="/admin/tasks" replace />} />
-          <Route path="/central/payments" element={<Navigate to="/admin/payments" replace />} />
           <Route path="/central/documents" element={<Navigate to="/admin/documents" replace />} />
           <Route path="/central/support" element={<Navigate to="/admin/support" replace />} />
-          <Route path="/central/reports" element={<Navigate to="/central/dashboard" replace />} />
-          <Route path="/central/insights" element={<Navigate to="/central/dashboard" replace />} />
-          <Route path="/central/activity" element={<Navigate to="/central/dashboard" replace />} />
-          <Route path="/central/notifications" element={<Navigate to="/central/dashboard" replace />} />
-          <Route path="/central/settings" element={<Navigate to="/central/roles" replace />} />
+          <Route path="/central/insights" element={<Navigate to="/central/reports" replace />} />
 
           {/* ── Global Trade Routes ── */}
           <Route path="/trade/dashboard" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeDashboard /></TradeLayout></ProtectedRoute>} />

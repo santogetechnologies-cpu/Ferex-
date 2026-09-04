@@ -2,12 +2,10 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CreditCard, Search, Download, CheckCircle2, TrendingUp,
-  GraduationCap, Globe, Snowflake, Monitor, Calendar, Filter, ArrowUpRight, DollarSign,
-  ArrowDownRight, Check, Clock, RefreshCw, FileText
+  GraduationCap, Globe, Snowflake, Monitor, Check
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { supabase } from '../../lib/supabase';
 
 interface TransactionItem {
   id: string;

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, ShieldCheck, UserCheck,
-  Search, Menu, ChevronDown, ChevronRight, LogOut, Bell, X, Crown,
+  LayoutDashboard, CreditCard, BarChart3, ShieldCheck, UserCheck,
+  CheckSquare, Activity, Bell, Settings,
+  Search, Menu, ChevronDown, ChevronRight, LogOut, X, Crown,
   Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
@@ -37,16 +38,27 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
 
   const menuSections = [
     {
-      title: 'COMMAND HQ',
+      title: 'EXECUTIVE COMMAND',
       items: [
         { name: 'Dashboard', path: '/central/dashboard', icon: LayoutDashboard, badge: 'HQ Live' },
+        { name: 'Enterprise Finance', path: '/central/finance', icon: CreditCard, badge: '₹6.5Cr' },
+        { name: 'Executive Reports', path: '/central/reports', icon: BarChart3, badge: '4-App' },
       ]
     },
     {
-      title: 'GOVERNANCE & ACCESS',
+      title: 'ADMIN & GOVERNANCE',
       items: [
-        { name: 'Division Admins', path: '/central/admins', icon: ShieldCheck, badge: '4 Apps' },
+        { name: 'Division Admins', path: '/central/admins', icon: ShieldCheck, badge: 'Logins' },
         { name: 'Roles & Privileges', path: '/central/roles', icon: UserCheck, badge: 'RBAC' },
+      ]
+    },
+    {
+      title: 'OPERATIONS & AUDIT',
+      items: [
+        { name: 'Operations & Tasks', path: '/central/tasks', icon: CheckSquare, badge: 'Live' },
+        { name: 'Audit & Activity Log', path: '/central/activity', icon: Activity, badge: 'Realtime' },
+        { name: 'Alerts & Notifs', path: '/central/notifications', icon: Bell, badge: '4' },
+        { name: 'System Settings', path: '/central/settings', icon: Settings, badge: 'Config' },
       ]
     }
   ];

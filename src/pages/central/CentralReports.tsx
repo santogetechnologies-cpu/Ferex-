@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  BarChart3, Download, CheckCircle2, TrendingUp,
-  FileSpreadsheet, FileText, Printer, ArrowUpRight, GraduationCap, Globe, Snowflake, Monitor, Calendar
+  BarChart3, CheckCircle2,
+  FileSpreadsheet, FileText, GraduationCap, Globe, Snowflake, Monitor
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
