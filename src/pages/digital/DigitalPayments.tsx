@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, Search, Plus, CheckCircle2, Download, Trash2, X } from 'lucide-react';
+import { CreditCard, Search, Plus, CheckCircle2, Download, Trash2, X, Printer, Receipt, Eye } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getDigitalInvoices, createDigitalInvoice, updateDigitalInvoiceStatus, deleteDigitalInvoice } from '../../lib/api/digital';
@@ -11,6 +11,7 @@ export const DigitalPayments: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
   const [toast, setToast] = useState('');
 
   const [newPay, setNewPay] = useState({
@@ -34,7 +35,10 @@ export const DigitalPayments: React.FC = () => {
           id: d.id,
           client: d.client?.company_name || 'Enterprise Client',
           invoice: d.invoice_no || d.id,
+          amountRaw: Number(d.amount || 0),
           amount: `₹${Number(d.amount || 0).toLocaleString('en-IN')}`,
+          taxAmount: `₹${Number(d.tax_amount || Math.round(Number(d.amount || 0) * 0.18)).toLocaleString('en-IN')}`,
+          totalSettled: `₹${(Number(d.amount || 0) + Number(d.tax_amount || Math.round(Number(d.amount || 0) * 0.18))).toLocaleString('en-IN')}`,
           method: 'RTGS / Bank Wire',
           date: d.paid_at ? new Date(d.paid_at).toLocaleDateString() : (d.issued_at ? new Date(d.issued_at).toLocaleDateString() : 'Recent'),
           status: d.status === 'Paid' ? 'Received' : 'Pending',
@@ -42,8 +46,8 @@ export const DigitalPayments: React.FC = () => {
         setPayments(mapped);
       } else {
         setPayments([
-          { id: '1', client: 'Nexus FinTech Global', invoice: 'INV-DIG-8810', amount: '₹4,50,000', method: 'RTGS / Bank Wire', date: '2026-09-01', status: 'Received' },
-          { id: '2', client: 'Starlight E-Commerce Brands', invoice: 'INV-DIG-8811', amount: '₹2,80,000', method: 'NEFT Transfer', date: '2026-09-02', status: 'Pending' },
+          { id: '1', client: 'Nexus FinTech Global', invoice: 'INV-DIG-8810', amountRaw: 450000, amount: '₹4,50,000', taxAmount: '₹81,000', totalSettled: '₹5,31,000', method: 'RTGS / Bank Wire', date: '2026-09-01', status: 'Received' },
+          { id: '2', client: 'Starlight E-Commerce Brands', invoice: 'INV-DIG-8811', amountRaw: 280000, amount: '₹2,80,000', taxAmount: '₹50,400', totalSettled: '₹3,30,400', method: 'NEFT Transfer', date: '2026-09-02', status: 'Pending' },
         ]);
       }
     } finally {
@@ -97,6 +101,18 @@ export const DigitalPayments: React.FC = () => {
     showToast('Payment log removed');
   };
 
+  const handleExportCSV = () => {
+    const headers = ['Client,Invoice No,Method,Settled Date,Base Amount,Status\n'];
+    const rows = filtered.map(p => `"${p.client}","${p.invoice}","${p.method}","${p.date}","${p.amount}","${p.status}"\n`);
+    const blob = new Blob([...headers, ...rows], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Ferex_Digital_Payments_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    showToast('Exported payments CSV successfully');
+  };
+
   const filtered = payments.filter(p => {
     return (p.client || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.invoice || '').toLowerCase().includes(search.toLowerCase());
@@ -118,12 +134,12 @@ export const DigitalPayments: React.FC = () => {
             <CreditCard className="w-5 h-5 text-[#6A1B2E]" /> Inbound Payment Receipts & Collections
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Ferex Digital ERP • Wire transfers, RTGS collections, and client settlement status.
+            Ferex Digital ERP • Wire transfers, RTGS collections, client settlement vouchers, and downloadable tax receipts.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => showToast('Exported payments CSV')}>
-            <Download className="w-4 h-4 mr-1.5" /> Export CSV
+          <Button size="sm" variant="outline" className="text-xs font-bold border-slate-200" onClick={handleExportCSV}>
+            <Download className="w-4 h-4 mr-1.5 text-[#6A1B2E]" /> Export CSV
           </Button>
           <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-1.5" /> Record Receipt
@@ -177,9 +193,14 @@ export const DigitalPayments: React.FC = () => {
                       </button>
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <button onClick={() => handleDelete(p.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => setSelectedReceipt(p)} className="p-1.5 text-[#6A1B2E] hover:bg-[#6A1B2E]/10 rounded-lg" title="View & Download Bill Receipt">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(p.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -219,6 +240,68 @@ export const DigitalPayments: React.FC = () => {
                   <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Record Settlement</Button>
                 </div>
               </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Receipt Voucher Modal */}
+      <AnimatePresence>
+        {selectedReceipt && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setSelectedReceipt(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">Official Payment Settlement Receipt</h3>
+                    <p className="text-[11px] font-semibold text-slate-500">FEREX DIGITAL PRIVATE LIMITED</p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedReceipt(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-xl space-y-3 text-xs">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] uppercase font-extrabold text-slate-400 block">Received From</span>
+                    <span className="font-black text-slate-900 text-sm">{selectedReceipt.client}</span>
+                    <span className="text-slate-500 block text-[11px]">Invoice Ref: {selectedReceipt.invoice}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-extrabold text-slate-400 block">Receipt Date</span>
+                    <span className="font-bold text-slate-700">{selectedReceipt.date}</span>
+                    <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-800">
+                      Payment Verified
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 space-y-1.5 text-slate-600">
+                  <div className="flex justify-between">
+                    <span>Base Digital Engineering Fee:</span>
+                    <span className="font-bold text-slate-900">{selectedReceipt.amount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>GST (CGST + SGST @ 18%):</span>
+                    <span className="font-bold text-slate-900">{selectedReceipt.taxAmount}</span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-slate-200/80 font-black text-slate-900 text-sm">
+                    <span>Total Amount Settled (INR):</span>
+                    <span className="text-emerald-700">{selectedReceipt.totalSettled}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => window.print()}>
+                  <Printer className="w-3.5 h-3.5 mr-1" /> Print / Save PDF
+                </Button>
+                <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => setSelectedReceipt(null)}>Close</Button>
+              </div>
             </motion.div>
           </>
         )}

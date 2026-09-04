@@ -162,6 +162,8 @@ export const LoginPage: React.FC = () => {
     }
 
     let role: string | null = null;
+    let mustChangePassword = false;
+
     const { data: dbProfile } = await supabase
       .from('users')
       .select('role, must_change_password')
@@ -170,6 +172,7 @@ export const LoginPage: React.FC = () => {
 
     if (dbProfile?.role) {
       role = dbProfile.role;
+      mustChangePassword = !!dbProfile.must_change_password;
     } else if (cleanEmail) {
       const { data: dbProfileByEmail } = await supabase
         .from('users')
@@ -178,6 +181,7 @@ export const LoginPage: React.FC = () => {
         .maybeSingle();
       if (dbProfileByEmail?.role) {
         role = dbProfileByEmail.role;
+        mustChangePassword = !!dbProfileByEmail.must_change_password;
       }
     }
 
@@ -185,7 +189,11 @@ export const LoginPage: React.FC = () => {
       const localCred = localStorage.getItem(`ferex_admin_cred_${cleanEmail.toLowerCase()}`);
       if (localCred) {
         try {
-          role = JSON.parse(localCred).role;
+          const parsed = JSON.parse(localCred);
+          role = parsed.role;
+          if (parsed.require_password_reset) {
+            mustChangePassword = true;
+          }
         } catch {}
       }
     }
@@ -193,6 +201,12 @@ export const LoginPage: React.FC = () => {
     // Direct unassigned Supabase auth defaults to superadmin
     if (!role) {
       role = user.user_metadata?.role || 'superadmin';
+    }
+
+    if (mustChangePassword) {
+      setIsLoading(false);
+      setShowFirstTimeModal(true);
+      return;
     }
 
     const portalLabel = getPortalLabel(role);

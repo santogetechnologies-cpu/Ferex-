@@ -295,10 +295,8 @@ export const TradeInvoices: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 pt-2">
-                  <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => {
-                    showToastMsg(`Sent invoice PDF to ${selectedInv.buyer}`);
-                  }}>
-                    Send Official PDF Copy
+                  <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => window.print()}>
+                    <Download className="w-3.5 h-3.5 mr-1" /> Print / Save Commercial Invoice PDF
                   </Button>
                   <Button size="sm" variant="outline" className="w-full text-xs font-bold" onClick={() => setSelectedInv(null)}>
                     Close Inspector
