@@ -6,6 +6,7 @@ import { Button } from '../../components/Button';
 import { getDigitalInvoices, getDigitalProjects, getDigitalClients, getDigitalEmployees, getDigitalAssets } from '../../lib/api/digital';
 
 export const DigitalReports: React.FC = () => {
+  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
   const [search, setSearch] = useState('');
   const [dateRange, setDateRange] = useState('This Month');
@@ -111,6 +112,7 @@ export const DigitalReports: React.FC = () => {
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
             <FileText className="w-6 h-6 text-[#6A1B2E]" /> Executive Business Reporting Console
+            {loading && <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 animate-pulse">Syncing...</span>}
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Dynamic operational digests, client performance audits, team billability summaries, and automated reporting schedules.
