@@ -579,6 +579,10 @@ export async function deleteRimiCollection(id: string) {
   return true;
 }
 
+export async function getRimiPayments() {
+  return getRimiCollections();
+}
+
 // ─── Rimi Messages & Notifications ──────────────────────────────────────────
 export async function getRimiMessages(conversationId: string = '1') {
   try {
@@ -1040,54 +1044,3 @@ export async function deleteRimiDeliveryRoute(id: string): Promise<boolean> {
   triggerLocalSync('ferex_rimi_delivery_routes_change');
   return true;
 }
-
-// ─── Rimi Collections & Payments ───────────────────────────────────────────
-export async function getRimiCollections() {
-  try {
-    const { data, error } = await supabase
-      .from('rimi_payments')
-      .select('*, distributor:rimi_distributors(*)')
-      .order('payment_date', { ascending: false });
-    if (error) return [];
-    return data ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function getRimiPayments() {
-  return getRimiCollections();
-}
-
-export async function createRimiCollection(col: {
-  distributor_id?: string;
-  customer_name?: string;
-  amount: number;
-  payment_method?: string;
-  reference_no?: string;
-}) {
-  const payload = {
-    id: generateUUID(),
-    distributor_id: col.distributor_id || null,
-    customer_name: col.customer_name || 'HyperCity Hub',
-    amount: Number(col.amount) || 100000,
-    payment_method: col.payment_method || 'RTGS / Bank Wire',
-    reference_no: col.reference_no || `REF-FMCG-${Date.now().toString().slice(-4)}`,
-    payment_date: new Date().toISOString().split('T')[0],
-    created_at: new Date().toISOString(),
-  };
-
-  const { data, error } = await supabase.from('rimi_payments').insert(payload).select();
-  triggerLocalSync('ferex_rimi_collections_change');
-  if (error || !data || data.length === 0) return payload;
-  return data[0];
-}
-
-export async function deleteRimiCollection(id: string) {
-  await supabase.from('rimi_payments').delete().eq('id', id);
-  triggerLocalSync('ferex_rimi_collections_change');
-  return true;
-}
-
-
-
