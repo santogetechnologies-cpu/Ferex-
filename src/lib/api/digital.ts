@@ -7,6 +7,17 @@ function triggerLocalSync(eventName: string) {
   }
 }
 
+// ─── Seed Guard Helpers ──────────────────────────────────────────────────────
+// These prevent mock/default data from resurrecting after the user deletes it.
+// On first launch, data is seeded into BOTH localStorage and Supabase.
+// After that, an empty Supabase result is treated as "user deleted everything".
+function isSeeded(entity: string): boolean {
+  try { return localStorage.getItem('ferex_dig_seeded_' + entity) === 'true'; } catch { return false; }
+}
+function markSeeded(entity: string): void {
+  try { localStorage.setItem('ferex_dig_seeded_' + entity, 'true'); } catch {}
+}
+
 // ─── Default Real-World Seed Data ───────────────────────────────────────────
 const DEFAULT_CLIENTS = [
   {
@@ -294,30 +305,42 @@ const DEFAULT_INVOICES = [
 
 // ─── Digital Clients ────────────────────────────────────────────────────────
 export async function getDigitalClients() {
+  const seeded = isSeeded('clients');
   try {
     const { data, error } = await supabase
       .from('digital_clients')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data && data.length > 0) {
-      try { localStorage.setItem('ferex_digital_clients', JSON.stringify(data)); } catch {}
-      return data;
+    if (!error && data) {
+      if (data.length > 0) {
+        try { localStorage.setItem('ferex_digital_clients', JSON.stringify(data)); } catch {}
+        if (!seeded) markSeeded('clients');
+        return data;
+      } else if (seeded) {
+        // Seeded before but Supabase is empty → user deleted all records, respect it
+        try { localStorage.setItem('ferex_digital_clients', JSON.stringify([])); } catch {}
+        return [];
+      }
     }
 
+    // Supabase unavailable → use local cache (trust it even if empty[])
     const local = localStorage.getItem('ferex_digital_clients');
-    if (local) {
+    if (local !== null) {
       try { return JSON.parse(local); } catch {}
     }
 
+    // First-ever load: seed into Supabase + localStorage, mark seeded
+    markSeeded('clients');
     try { localStorage.setItem('ferex_digital_clients', JSON.stringify(DEFAULT_CLIENTS)); } catch {}
+    try { await supabase.from('digital_clients').insert(DEFAULT_CLIENTS); } catch {}
     return DEFAULT_CLIENTS;
   } catch {
     const local = localStorage.getItem('ferex_digital_clients');
-    if (local) {
+    if (local !== null) {
       try { return JSON.parse(local); } catch {}
     }
-    return DEFAULT_CLIENTS;
+    return seeded ? [] : DEFAULT_CLIENTS;
   }
 }
 
@@ -374,32 +397,8 @@ export async function deleteDigitalClient(id: string) {
 // ─── Digital Leads ──────────────────────────────────────────────────────────
 export async function getDigitalLeads() {
   const clients = await getDigitalClients();
-  const leads = clients.filter((c: any) => c.status === 'Lead');
-  if (leads.length > 0) return leads;
-  return [
-    {
-      id: 'lead-dig-01',
-      company_name: 'Zomato Enterprise Fleet Portal',
-      contact_person: 'Abhishek Roy',
-      email: 'a.roy@zomato-logistics.com',
-      phone: '+91 98760 11223',
-      industry: 'Hyperlocal Logistics',
-      status: 'Lead',
-      estimated_budget: 1200000,
-      created_at: '2026-09-02T10:00:00Z',
-    },
-    {
-      id: 'lead-dig-02',
-      company_name: 'Urban Company Pro-Partner App',
-      contact_person: 'Sneha Kapoor',
-      email: 'sneha.k@urbancompany.com',
-      phone: '+91 98112 44556',
-      industry: 'Home Services Marketplace',
-      status: 'Lead',
-      estimated_budget: 1800000,
-      created_at: '2026-09-01T15:00:00Z',
-    },
-  ];
+  // Return actual leads from DB; never fall back to hardcoded mock leads
+  return clients.filter((c: any) => c.status === 'Lead');
 }
 
 export async function createDigitalLead(lead: {
@@ -418,19 +417,27 @@ export async function createDigitalLead(lead: {
 
 // ─── Digital Projects ───────────────────────────────────────────────────────
 export async function getDigitalProjects(category?: string) {
+  const seeded = isSeeded('projects');
   try {
     let query = supabase.from('digital_projects').select('*, client:digital_clients(*)').order('created_at', { ascending: false });
     if (category && category !== 'All') {
       query = query.eq('service_category', category);
     }
     const { data, error } = await query;
-    if (!error && data && data.length > 0) {
-      try { localStorage.setItem('ferex_digital_projects', JSON.stringify(data)); } catch {}
-      return data;
+    if (!error && data) {
+      if (data.length > 0) {
+        try { localStorage.setItem('ferex_digital_projects', JSON.stringify(data)); } catch {}
+        if (!seeded) markSeeded('projects');
+        if (category && category !== 'All') return data.filter((p: any) => p.service_category === category);
+        return data;
+      } else if (seeded) {
+        try { localStorage.setItem('ferex_digital_projects', JSON.stringify([])); } catch {}
+        return [];
+      }
     }
 
     const local = localStorage.getItem('ferex_digital_projects');
-    if (local) {
+    if (local !== null) {
       try {
         const parsed = JSON.parse(local);
         if (category && category !== 'All') return parsed.filter((p: any) => p.service_category === category);
@@ -438,19 +445,22 @@ export async function getDigitalProjects(category?: string) {
       } catch {}
     }
 
+    // First-ever load: seed into Supabase + localStorage, mark seeded
+    markSeeded('projects');
     try { localStorage.setItem('ferex_digital_projects', JSON.stringify(DEFAULT_PROJECTS)); } catch {}
+    try { await supabase.from('digital_projects').insert(DEFAULT_PROJECTS.map(p => ({ ...p, client: undefined }))); } catch {}
     if (category && category !== 'All') return DEFAULT_PROJECTS.filter((p: any) => p.service_category === category);
     return DEFAULT_PROJECTS;
   } catch {
     const local = localStorage.getItem('ferex_digital_projects');
-    if (local) {
+    if (local !== null) {
       try {
         const parsed = JSON.parse(local);
         if (category && category !== 'All') return parsed.filter((p: any) => p.service_category === category);
         return parsed;
       } catch {}
     }
-    return DEFAULT_PROJECTS;
+    return seeded ? [] : DEFAULT_PROJECTS;
   }
 }
 
@@ -528,19 +538,27 @@ export async function deleteDigitalProject(id: string) {
 
 // ─── Digital Tasks ──────────────────────────────────────────────────────────
 export async function getDigitalTasks(projectId?: string) {
+  const seeded = isSeeded('tasks');
   try {
     let query = supabase.from('digital_tasks').select('*, project:digital_projects(*)').order('created_at', { ascending: false });
     if (projectId) {
       query = query.eq('project_id', projectId);
     }
     const { data, error } = await query;
-    if (!error && data && data.length > 0) {
-      try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(data)); } catch {}
-      return data;
+    if (!error && data) {
+      if (data.length > 0) {
+        try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(data)); } catch {}
+        if (!seeded) markSeeded('tasks');
+        if (projectId) return data.filter((t: any) => t.project_id === projectId);
+        return data;
+      } else if (seeded) {
+        try { localStorage.setItem('ferex_digital_tasks', JSON.stringify([])); } catch {}
+        return [];
+      }
     }
 
     const local = localStorage.getItem('ferex_digital_tasks');
-    if (local) {
+    if (local !== null) {
       try {
         const parsed = JSON.parse(local);
         if (projectId) return parsed.filter((t: any) => t.project_id === projectId);
@@ -548,19 +566,22 @@ export async function getDigitalTasks(projectId?: string) {
       } catch {}
     }
 
+    // First-ever load: seed into Supabase + localStorage, mark seeded
+    markSeeded('tasks');
     try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(DEFAULT_TASKS)); } catch {}
+    try { await supabase.from('digital_tasks').insert(DEFAULT_TASKS.map(t => ({ ...t, project: undefined }))); } catch {}
     if (projectId) return DEFAULT_TASKS.filter((t: any) => t.project_id === projectId);
     return DEFAULT_TASKS;
   } catch {
     const local = localStorage.getItem('ferex_digital_tasks');
-    if (local) {
+    if (local !== null) {
       try {
         const parsed = JSON.parse(local);
         if (projectId) return parsed.filter((t: any) => t.project_id === projectId);
         return parsed;
       } catch {}
     }
-    return DEFAULT_TASKS;
+    return seeded ? [] : DEFAULT_TASKS;
   }
 }
 
@@ -628,30 +649,44 @@ export async function deleteDigitalTask(id: string) {
 
 // ─── Digital Invoices & Payments ────────────────────────────────────────────
 export async function getDigitalInvoices() {
+  const seeded = isSeeded('invoices');
   try {
     const { data, error } = await supabase
       .from('digital_invoices')
       .select('*, client:digital_clients(*), project:digital_projects(*)')
       .order('issued_at', { ascending: false });
 
-    if (!error && data && data.length > 0) {
-      try { localStorage.setItem('ferex_digital_invoices', JSON.stringify(data)); } catch {}
-      return data;
+    if (!error && data) {
+      if (data.length > 0) {
+        try { localStorage.setItem('ferex_digital_invoices', JSON.stringify(data)); } catch {}
+        if (!seeded) markSeeded('invoices');
+        return data;
+      } else if (seeded) {
+        try { localStorage.setItem('ferex_digital_invoices', JSON.stringify([])); } catch {}
+        return [];
+      }
     }
 
     const local = localStorage.getItem('ferex_digital_invoices');
-    if (local) {
+    if (local !== null) {
       try { return JSON.parse(local); } catch {}
     }
 
+    // First-ever load: seed into Supabase + localStorage, mark seeded
+    markSeeded('invoices');
     try { localStorage.setItem('ferex_digital_invoices', JSON.stringify(DEFAULT_INVOICES)); } catch {}
+    try {
+      await supabase.from('digital_invoices').insert(
+        DEFAULT_INVOICES.map(i => ({ ...i, client: undefined, project: undefined }))
+      );
+    } catch {}
     return DEFAULT_INVOICES;
   } catch {
     const local = localStorage.getItem('ferex_digital_invoices');
-    if (local) {
+    if (local !== null) {
       try { return JSON.parse(local); } catch {}
     }
-    return DEFAULT_INVOICES;
+    return seeded ? [] : DEFAULT_INVOICES;
   }
 }
 
