@@ -129,6 +129,7 @@ import { DigitalNotifications } from './pages/digital/DigitalNotifications';
 import { DigitalProfile } from './pages/digital/DigitalProfile';
 import { DigitalSettings } from './pages/digital/DigitalSettings';
 import { DigitalLoginPage } from './pages/digital/DigitalLoginPage';
+import DigitalClientPortal from './pages/digital/DigitalClientPortal';
 
 // Staff Panel Imports
 import { StaffLayout } from './components/layout/StaffLayout';
@@ -376,6 +377,9 @@ function App() {
           <Route path="/digital/notifications" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalNotifications /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/profile" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProfile /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/settings" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalSettings /></DigitalLayout></ProtectedRoute>} />
+
+          {/* ── Ferex Digital Client Portal (restricted view for provisioned clients) ── */}
+          <Route path="/digital/client-portal" element={<ProtectedRoute allowedRoles={['digital_client']}><DigitalClientPortal /></ProtectedRoute>} />
 
           {/* ── Ferex Staff Panel Routes ── */}
           <Route path="/staff" element={<Navigate to="/staff/dashboard" replace />} />

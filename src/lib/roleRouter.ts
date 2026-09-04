@@ -11,6 +11,7 @@ export type FerexRole =
   | 'digital'
   | 'digital_admin'
   | 'ferex_digital'
+  | 'digital_client'
   | 'trade'
   | 'trade_admin'
   | 'global_trade'
@@ -31,6 +32,7 @@ const ROLE_ROUTES: Record<string, string> = {
   digital: '/digital/dashboard',
   digital_admin: '/digital/dashboard',
   ferex_digital: '/digital/dashboard',
+  digital_client: '/digital/client-portal',
   trade: '/trade/dashboard',
   trade_admin: '/trade/dashboard',
   global_trade: '/trade/dashboard',
@@ -52,6 +54,7 @@ const ROLE_LABELS: Record<string, string> = {
   digital: 'Ferex Digital Portal',
   digital_admin: 'Ferex Digital Portal',
   ferex_digital: 'Ferex Digital Portal',
+  digital_client: 'Ferex Digital Client Portal',
   trade: 'Global Trade Portal',
   trade_admin: 'Global Trade Portal',
   global_trade: 'Global Trade Portal',

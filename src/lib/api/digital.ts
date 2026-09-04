@@ -1073,7 +1073,7 @@ export async function provisionDigitalClientLogin(client: {
   const credentialPayload: ProvisionedClientCredential = {
     email: cleanEmail,
     tempPassword,
-    role: 'digital',
+    role: 'digital_client',
     fullName,
     companyName,
     clientId: client.id,
@@ -1085,9 +1085,10 @@ export async function provisionDigitalClientLogin(client: {
   localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
     email: cleanEmail,
     password: tempPassword,
-    role: 'digital',
+    role: 'digital_client',
     full_name: fullName,
     company_name: companyName,
+    client_id: client.id,
     require_password_reset: true,
   }));
   localStorage.setItem(`ferex_digital_client_cred_${client.id}`, JSON.stringify(credentialPayload));
@@ -1096,7 +1097,7 @@ export async function provisionDigitalClientLogin(client: {
   try {
     await supabase.from('users').upsert({
       email: cleanEmail,
-      role: 'digital',
+      role: 'digital_client',
       full_name: fullName,
       phone: '',
       department: `Digital:${companyName}`,
