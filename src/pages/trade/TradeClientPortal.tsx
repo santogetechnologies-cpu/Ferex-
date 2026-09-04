@@ -24,10 +24,8 @@ import {
   ShieldCheck,
   PackageCheck,
   Download,
-  AlertCircle,
   FileCheck2,
   User,
-  ExternalLink,
   Lock,
 } from 'lucide-react';
 
