@@ -1132,3 +1132,75 @@ export async function getTradeDashboardLiveStats() {
     };
   }
 }
+
+// ─── Trade Partner Credential Provisioning ──────────────────────────────────
+export interface ProvisionedTradeCredential {
+  email: string;
+  tempPassword: string;
+  role: string;
+  fullName: string;
+  companyName: string;
+  partnerId: string;
+  requirePasswordReset: boolean;
+  provisionedAt: string;
+}
+
+export async function provisionTradeClientLogin(partner: {
+  id: string;
+  email: string;
+  company_name: string;
+  contact_person?: string;
+}): Promise<ProvisionedTradeCredential> {
+  const cleanEmail = partner.email.trim().toLowerCase();
+  const tempPassword = `TradePass#${Math.floor(1000 + Math.random() * 9000)}`;
+  const companyName = partner.company_name || 'Global Trade Partner';
+  const fullName = partner.contact_person || partner.company_name || 'Trade Representative';
+
+  const credentialPayload: ProvisionedTradeCredential = {
+    email: cleanEmail,
+    tempPassword,
+    role: 'trade',
+    fullName,
+    companyName,
+    partnerId: partner.id,
+    requirePasswordReset: true,
+    provisionedAt: new Date().toISOString(),
+  };
+
+  // 1. Save to local storage for persistent mock/fallback lookup
+  localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
+    email: cleanEmail,
+    password: tempPassword,
+    role: 'trade',
+    full_name: fullName,
+    company_name: companyName,
+    require_password_reset: true,
+  }));
+  localStorage.setItem(`ferex_trade_partner_cred_${partner.id}`, JSON.stringify(credentialPayload));
+
+  // 2. Persist to Supabase users table if available
+  try {
+    await supabase.from('users').upsert({
+      email: cleanEmail,
+      role: 'trade',
+      full_name: fullName,
+      phone: '',
+      department: `Trade:${companyName}`,
+      created_at: new Date().toISOString(),
+    }, { onConflict: 'email' });
+  } catch {}
+
+  window.dispatchEvent(new Event('ferex_trade_crm_change'));
+  return credentialPayload;
+}
+
+export function getTradeClientCredentials(partnerId: string): ProvisionedTradeCredential | null {
+  const saved = localStorage.getItem(`ferex_trade_partner_cred_${partnerId}`);
+  if (!saved) return null;
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return null;
+  }
+}
+

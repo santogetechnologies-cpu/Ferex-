@@ -606,3 +606,76 @@ export async function getDigitalDashboardStats() {
     };
   }
 }
+
+// ─── Digital Client Credential Provisioning & Mapping ───────────────────────
+export interface ProvisionedClientCredential {
+  email: string;
+  tempPassword: string;
+  role: string;
+  fullName: string;
+  companyName: string;
+  clientId: string;
+  requirePasswordReset: boolean;
+  provisionedAt: string;
+}
+
+export async function provisionDigitalClientLogin(client: {
+  id: string;
+  email: string;
+  name: string;
+  company_name?: string;
+  contact_person?: string;
+}): Promise<ProvisionedClientCredential> {
+  const cleanEmail = client.email.trim().toLowerCase();
+  const tempPassword = `DigPass#${Math.floor(1000 + Math.random() * 9000)}`;
+  const companyName = client.company_name || client.name || 'Digital Client Account';
+  const fullName = client.contact_person || client.name || 'Client Representative';
+
+  const credentialPayload: ProvisionedClientCredential = {
+    email: cleanEmail,
+    tempPassword,
+    role: 'digital',
+    fullName,
+    companyName,
+    clientId: client.id,
+    requirePasswordReset: true,
+    provisionedAt: new Date().toISOString(),
+  };
+
+  // 1. Save to local storage for persistent mock/fallback lookup
+  localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
+    email: cleanEmail,
+    password: tempPassword,
+    role: 'digital',
+    full_name: fullName,
+    company_name: companyName,
+    require_password_reset: true,
+  }));
+  localStorage.setItem(`ferex_digital_client_cred_${client.id}`, JSON.stringify(credentialPayload));
+
+  // 2. Persist to Supabase users table if available
+  try {
+    await supabase.from('users').upsert({
+      email: cleanEmail,
+      role: 'digital',
+      full_name: fullName,
+      phone: '',
+      department: `Digital:${companyName}`,
+      created_at: new Date().toISOString(),
+    }, { onConflict: 'email' });
+  } catch {}
+
+  triggerLocalSync('ferex_digital_clients_change');
+  return credentialPayload;
+}
+
+export function getDigitalClientCredentials(clientId: string): ProvisionedClientCredential | null {
+  const saved = localStorage.getItem(`ferex_digital_client_cred_${clientId}`);
+  if (!saved) return null;
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return null;
+  }
+}
+

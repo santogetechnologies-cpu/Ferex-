@@ -711,3 +711,76 @@ export async function getRimiDashboardStats() {
     };
   }
 }
+
+// ─── Rimi Customer / Distributor Credential Provisioning ────────────────────
+export interface ProvisionedRimiCredential {
+  email: string;
+  tempPassword: string;
+  role: string;
+  fullName: string;
+  businessName: string;
+  customerId: string;
+  requirePasswordReset: boolean;
+  provisionedAt: string;
+}
+
+export async function provisionRimiCustomerLogin(customer: {
+  id: string;
+  email: string;
+  business_name?: string;
+  name?: string;
+  contact_person?: string;
+}): Promise<ProvisionedRimiCredential> {
+  const cleanEmail = customer.email.trim().toLowerCase();
+  const tempPassword = `RimiPass#${Math.floor(1000 + Math.random() * 9000)}`;
+  const businessName = customer.business_name || customer.name || 'Rimi B2B Partner';
+  const fullName = customer.contact_person || customer.name || 'Procurement Executive';
+
+  const credentialPayload: ProvisionedRimiCredential = {
+    email: cleanEmail,
+    tempPassword,
+    role: 'rimi',
+    fullName,
+    businessName,
+    customerId: customer.id,
+    requirePasswordReset: true,
+    provisionedAt: new Date().toISOString(),
+  };
+
+  // 1. Save to local storage for persistent mock/fallback lookup
+  localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
+    email: cleanEmail,
+    password: tempPassword,
+    role: 'rimi',
+    full_name: fullName,
+    company_name: businessName,
+    require_password_reset: true,
+  }));
+  localStorage.setItem(`ferex_rimi_customer_cred_${customer.id}`, JSON.stringify(credentialPayload));
+
+  // 2. Persist to Supabase users table if available
+  try {
+    await supabase.from('users').upsert({
+      email: cleanEmail,
+      role: 'rimi',
+      full_name: fullName,
+      phone: '',
+      department: `Rimi:${businessName}`,
+      created_at: new Date().toISOString(),
+    }, { onConflict: 'email' });
+  } catch {}
+
+  window.dispatchEvent(new Event('ferex_rimi_distributors_change'));
+  return credentialPayload;
+}
+
+export function getRimiCustomerCredentials(customerId: string): ProvisionedRimiCredential | null {
+  const saved = localStorage.getItem(`ferex_rimi_customer_cred_${customerId}`);
+  if (!saved) return null;
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return null;
+  }
+}
+
