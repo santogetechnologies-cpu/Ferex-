@@ -394,43 +394,42 @@ export const CentralPayments: React.FC = () => {
                         <span>{t.refNo}</span>
                       </div>
                     </td>
-                      <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                        {t.client}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600 max-w-xs truncate">
-                        {t.description}
-                      </td>
-                      <td className="py-3.5 px-4 font-black text-slate-900">
-                        {t.amountFormatted}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 text-[11px]">
-                        {t.method}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-400 text-[11px]">
-                        {t.date}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${t.statusBadge}`}>
-                          {t.status}
+                    <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                      {t.client}
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-600 max-w-xs truncate">
+                      {t.description}
+                    </td>
+                    <td className="py-3.5 px-4 font-black text-slate-900">
+                      {t.amountFormatted}
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-500 text-[11px]">
+                      {t.method}
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-400 text-[11px]">
+                      {t.date}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${t.statusBadge}`}>
+                        {t.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      {t.status === 'Pending' ? (
+                        <button
+                          onClick={() => handleVerify(t.id, t.refNo)}
+                          className="px-2.5 py-1 bg-[#6A1B2E] hover:bg-[#521221] text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer"
+                        >
+                          Verify Wire
+                        </button>
+                      ) : (
+                        <span className="text-[10.5px] font-extrabold text-emerald-700 flex items-center justify-end gap-1">
+                          <Check className="w-3.5 h-3.5" /> Cleared
                         </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        {t.status === 'Pending' ? (
-                          <button
-                            onClick={() => handleVerify(t.id, t.refNo)}
-                            className="px-2.5 py-1 bg-[#6A1B2E] hover:bg-[#521221] text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer"
-                          >
-                            Verify Wire
-                          </button>
-                        ) : (
-                          <span className="text-[10.5px] font-extrabold text-emerald-700 flex items-center justify-end gap-1">
-                            <Check className="w-3.5 h-3.5" /> Cleared
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
+                      )}
+                    </td>
+                  </tr>
+                ))
               ) : (
                 <tr>
                   <td colSpan={8} className="py-8 text-center text-slate-400 text-xs font-semibold">
