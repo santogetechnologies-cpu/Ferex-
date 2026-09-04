@@ -74,6 +74,7 @@ import { TradeMessages } from './pages/trade/TradeMessages';
 import { TradeNotifications } from './pages/trade/TradeNotifications';
 import { TradeProfile } from './pages/trade/TradeProfile';
 import { TradeSettings } from './pages/trade/TradeSettings';
+import { TradeClientPortal } from './pages/trade/TradeClientPortal';
 
 // Rimi Frozen Distribution imports
 import { RimiLayout } from './layouts/RimiLayout';
@@ -100,6 +101,7 @@ import { RimiNotifications } from './pages/rimi/RimiNotifications';
 import { RimiProfile } from './pages/rimi/RimiProfile';
 import { RimiSettings } from './pages/rimi/RimiSettings';
 import { RimiLoginPage } from './pages/rimi/RimiLoginPage';
+import { RimiCustomerPortal } from './pages/rimi/RimiCustomerPortal';
 
 // Digital imports
 import { DigitalLayout } from './layouts/DigitalLayout';
@@ -301,6 +303,7 @@ function App() {
           <Route path="/trade/notifications" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeNotifications /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/profile" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeProfile /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/settings" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeSettings /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/client-portal" element={<ProtectedRoute allowedRoles={['trade_client']}><TradeClientPortal /></ProtectedRoute>} />
 
           {/* ── Rimi Frozen Distribution Routes ── */}
           <Route path="/rimi/dashboard" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDashboard /></RimiLayout></ProtectedRoute>} />
@@ -325,6 +328,7 @@ function App() {
           <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiSettings /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/customer-portal" element={<ProtectedRoute allowedRoles={['rimi_client']}><RimiCustomerPortal /></ProtectedRoute>} />
 
           {/* ── Ferex Digital Routes ── */}
           <Route path="/digital/dashboard" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalDashboard /></DigitalLayout></ProtectedRoute>} />

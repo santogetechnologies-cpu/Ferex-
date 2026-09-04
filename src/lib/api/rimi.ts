@@ -8,6 +8,15 @@ function triggerLocalSync(eventName: string) {
   }
 }
 
+// ─── Seed Guard Helpers ──────────────────────────────────────────────────────
+function isSeeded(entity: string): boolean {
+  try { return localStorage.getItem('ferex_rimi_seeded_' + entity) === 'true'; } catch { return false; }
+}
+function markSeeded(entity: string): void {
+  try { localStorage.setItem('ferex_rimi_seeded_' + entity, 'true'); } catch {}
+}
+
+
 // ─── Rimi Products & Inventory ──────────────────────────────────────────────
 export async function getRimiProducts() {
   try {
@@ -743,7 +752,7 @@ export async function provisionRimiCustomerLogin(customer: {
   const credentialPayload: ProvisionedRimiCredential = {
     email: cleanEmail,
     tempPassword,
-    role: 'rimi',
+    role: 'rimi_client',
     fullName,
     businessName,
     customerId: customer.id,
@@ -751,13 +760,14 @@ export async function provisionRimiCustomerLogin(customer: {
     provisionedAt: new Date().toISOString(),
   };
 
-  // 1. Save to local storage for persistent mock/fallback lookup
+  // 1. Save to local storage for persistent lookup
   localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
     email: cleanEmail,
     password: tempPassword,
-    role: 'rimi',
+    role: 'rimi_client',
     full_name: fullName,
     company_name: businessName,
+    customer_id: customer.id,
     require_password_reset: true,
   }));
   localStorage.setItem(`ferex_rimi_customer_cred_${customer.id}`, JSON.stringify(credentialPayload));
@@ -766,7 +776,7 @@ export async function provisionRimiCustomerLogin(customer: {
   try {
     await supabase.from('users').upsert({
       email: cleanEmail,
-      role: 'rimi',
+      role: 'rimi_client',
       full_name: fullName,
       phone: '',
       department: `Rimi:${businessName}`,
@@ -804,12 +814,15 @@ export interface RimiFrostLoss {
 }
 
 export async function getRimiFrostLosses(): Promise<RimiFrostLoss[]> {
+  const seeded = isSeeded('frost_losses');
   const saved = localStorage.getItem('ferex_rimi_frost_losses');
-  if (saved) {
+  if (saved !== null) {
     try {
       return JSON.parse(saved);
     } catch {}
   }
+  if (seeded) return [];
+  markSeeded('frost_losses');
   const defaults: RimiFrostLoss[] = [
     {
       id: 'FL-2026-081',
@@ -836,7 +849,7 @@ export async function getRimiFrostLosses(): Promise<RimiFrostLoss[]> {
       status: 'Approved Write-off',
     },
   ];
-  localStorage.setItem('ferex_rimi_frost_losses', JSON.stringify(defaults));
+  try { localStorage.setItem('ferex_rimi_frost_losses', JSON.stringify(defaults)); } catch {}
   return defaults;
 }
 
@@ -892,12 +905,15 @@ export interface RimiStockAdjustment {
 }
 
 export async function getRimiStockAdjustments(): Promise<RimiStockAdjustment[]> {
+  const seeded = isSeeded('stock_adjustments');
   const saved = localStorage.getItem('ferex_rimi_stock_adjustments');
-  if (saved) {
+  if (saved !== null) {
     try {
       return JSON.parse(saved);
     } catch {}
   }
+  if (seeded) return [];
+  markSeeded('stock_adjustments');
   const defaults: RimiStockAdjustment[] = [
     {
       id: 'ADJ-101',
@@ -921,7 +937,7 @@ export async function getRimiStockAdjustments(): Promise<RimiStockAdjustment[]> 
       timestamp: '2026-09-02T10:30:00Z',
     },
   ];
-  localStorage.setItem('ferex_rimi_stock_adjustments', JSON.stringify(defaults));
+  try { localStorage.setItem('ferex_rimi_stock_adjustments', JSON.stringify(defaults)); } catch {}
   return defaults;
 }
 
@@ -952,6 +968,14 @@ export async function recordRimiStockAdjustment(adj: {
   return created;
 }
 
+export async function deleteRimiStockAdjustment(id: string): Promise<boolean> {
+  const current = await getRimiStockAdjustments();
+  const updated = current.filter(a => a.id !== id);
+  localStorage.setItem('ferex_rimi_stock_adjustments', JSON.stringify(updated));
+  triggerLocalSync('ferex_rimi_stock_adjustments_change');
+  return true;
+}
+
 // ─── Rimi Delivery Routes ───────────────────────────────────────────────────
 export interface RimiDeliveryRoute {
   id: string;
@@ -968,12 +992,15 @@ export interface RimiDeliveryRoute {
 }
 
 export async function getRimiDeliveryRoutes(): Promise<RimiDeliveryRoute[]> {
+  const seeded = isSeeded('delivery_routes');
   const saved = localStorage.getItem('ferex_rimi_delivery_routes');
-  if (saved) {
+  if (saved !== null) {
     try {
       return JSON.parse(saved);
     } catch {}
   }
+  if (seeded) return [];
+  markSeeded('delivery_routes');
   const defaults: RimiDeliveryRoute[] = [
     {
       id: 'RT-1',
@@ -1002,7 +1029,7 @@ export async function getRimiDeliveryRoutes(): Promise<RimiDeliveryRoute[]> {
       target_temp: '-22.0°C',
     },
   ];
-  localStorage.setItem('ferex_rimi_delivery_routes', JSON.stringify(defaults));
+  try { localStorage.setItem('ferex_rimi_delivery_routes', JSON.stringify(defaults)); } catch {}
   return defaults;
 }
 
@@ -1044,3 +1071,4 @@ export async function deleteRimiDeliveryRoute(id: string): Promise<boolean> {
   triggerLocalSync('ferex_rimi_delivery_routes_change');
   return true;
 }
+

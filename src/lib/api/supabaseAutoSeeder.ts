@@ -12,7 +12,29 @@ export async function autoSeedAllDataToSupabase() {
     });
   } catch (err: any) {}
 
-  // Ensure initial Trade Clients exist in Supabase DB
+  // Permanent seed guard: if the database has already completed initial bootstrap,
+  // NEVER re-seed dummy rows when a user deletes table records!
+  const localSeeded = typeof window !== 'undefined' && localStorage.getItem('ferex_divisions_seeded_v1') === 'true';
+  if (localSeeded) return;
+
+  try {
+    const { data: configRow } = await supabase.from('system_config').select('value').eq('key', 'ferex_divisions_seeded_v1').maybeSingle();
+    if (configRow) {
+      try { localStorage.setItem('ferex_divisions_seeded_v1', 'true'); } catch {}
+      return;
+    }
+  } catch {}
+
+  // Mark as seeded in both localStorage and Supabase system_config
+  try { localStorage.setItem('ferex_divisions_seeded_v1', 'true'); } catch {}
+  try {
+    await supabase.from('system_config').upsert({
+      key: 'ferex_divisions_seeded_v1',
+      value: { seeded_at: new Date().toISOString() },
+      updated_at: new Date().toISOString()
+    });
+  } catch {}
+
   try {
     const { count } = await supabase.from('trade_clients').select('*', { count: 'exact', head: true });
     if (count === 0) {

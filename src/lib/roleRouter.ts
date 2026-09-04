@@ -15,9 +15,11 @@ export type FerexRole =
   | 'trade'
   | 'trade_admin'
   | 'global_trade'
+  | 'trade_client'
   | 'rimi'
   | 'rimi_admin'
-  | 'rimi_frozen';
+  | 'rimi_frozen'
+  | 'rimi_client';
 
 const ROLE_ROUTES: Record<string, string> = {
   student: '/student/dashboard',
@@ -36,9 +38,11 @@ const ROLE_ROUTES: Record<string, string> = {
   trade: '/trade/dashboard',
   trade_admin: '/trade/dashboard',
   global_trade: '/trade/dashboard',
+  trade_client: '/trade/client-portal',
   rimi: '/rimi/dashboard',
   rimi_admin: '/rimi/dashboard',
   rimi_frozen: '/rimi/dashboard',
+  rimi_client: '/rimi/customer-portal',
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -58,9 +62,11 @@ const ROLE_LABELS: Record<string, string> = {
   trade: 'Global Trade Portal',
   trade_admin: 'Global Trade Portal',
   global_trade: 'Global Trade Portal',
+  trade_client: 'Global Trade Partner Portal',
   rimi: 'Rimi Frozen Distribution Portal',
   rimi_admin: 'Rimi Frozen Distribution Portal',
   rimi_frozen: 'Rimi Frozen Distribution Portal',
+  rimi_client: 'Rimi Cold Chain Customer Portal',
 };
 
 export function normalizeRole(role?: string | null): string {

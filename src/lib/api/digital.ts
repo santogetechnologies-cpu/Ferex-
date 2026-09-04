@@ -760,17 +760,22 @@ export async function getDigitalPayments() {
 
 // ─── Digital Expenses ───────────────────────────────────────────────────────
 export async function getDigitalExpenses() {
+  const seeded = isSeeded('expenses');
   const saved = localStorage.getItem('ferex_digital_expenses');
-  if (saved) {
+  if (saved !== null) {
     try {
       return JSON.parse(saved);
     } catch {}
   }
-  return [
+  if (seeded) return [];
+  markSeeded('expenses');
+  const defaultExpenses = [
     { id: 'EXP-101', title: 'AWS Cloud Infrastructure Cluster', category: 'Cloud Infrastructure', amount: 84500, date: '2026-09-01', vendor: 'Amazon Web Services', status: 'Settled' },
     { id: 'EXP-102', title: 'Figma Organization & Adobe Suite Licenses', category: 'Software Tools', amount: 42000, date: '2026-08-28', vendor: 'Adobe Systems', status: 'Settled' },
     { id: 'EXP-103', title: 'Google Ads & Meta Campaign Spend', category: 'Ad Spend', amount: 165000, date: '2026-08-25', vendor: 'Google Ads', status: 'Settled' },
   ];
+  try { localStorage.setItem('ferex_digital_expenses', JSON.stringify(defaultExpenses)); } catch {}
+  return defaultExpenses;
 }
 
 export async function createDigitalExpense(expense: {
@@ -806,18 +811,23 @@ export async function deleteDigitalExpense(id: string) {
 
 // ─── Digital Employees ──────────────────────────────────────────────────────
 export async function getDigitalEmployees() {
+  const seeded = isSeeded('employees');
   const saved = localStorage.getItem('ferex_digital_employees');
-  if (saved) {
+  if (saved !== null) {
     try {
       return JSON.parse(saved);
     } catch {}
   }
-  return [
+  if (seeded) return [];
+  markSeeded('employees');
+  const defaultEmployees = [
     { id: 'EMP-01', name: 'Kavita Iyer', role: 'Principal Fullstack Architect', department: 'Engineering', email: 'k.iyer@ferex.digital', status: 'Active', projectsCount: 4 },
     { id: 'EMP-02', name: 'Sameer Sen', role: 'Lead Product Designer (UI/UX)', department: 'Design', email: 'sameer@ferex.digital', status: 'Active', projectsCount: 3 },
     { id: 'EMP-03', name: 'Pooja Hegde', role: 'Senior SEO & Growth Strategist', department: 'Marketing', email: 'pooja.h@ferex.digital', status: 'Active', projectsCount: 5 },
     { id: 'EMP-04', name: 'Rohan Joshi', role: 'Mobile Flutter Engineer', department: 'Engineering', email: 'r.joshi@ferex.digital', status: 'Active', projectsCount: 2 },
   ];
+  try { localStorage.setItem('ferex_digital_employees', JSON.stringify(defaultEmployees)); } catch {}
+  return defaultEmployees;
 }
 
 export async function createDigitalEmployee(emp: {
@@ -852,17 +862,22 @@ export async function deleteDigitalEmployee(id: string) {
 
 // ─── Digital Attendance & HR ────────────────────────────────────────────────
 export async function getDigitalAttendance() {
+  const seeded = isSeeded('attendance');
   const saved = localStorage.getItem('ferex_digital_attendance');
-  if (saved) {
+  if (saved !== null) {
     try {
       return JSON.parse(saved);
     } catch {}
   }
-  return [
+  if (seeded) return [];
+  markSeeded('attendance');
+  const defaultAttendance = [
     { id: 'ATT-01', employee: 'Kavita Iyer', date: '2026-09-03', status: 'Present', checkIn: '09:15 AM', checkOut: '06:30 PM' },
     { id: 'ATT-02', employee: 'Sameer Sen', date: '2026-09-03', status: 'Present', checkIn: '09:30 AM', checkOut: '06:00 PM' },
     { id: 'ATT-03', employee: 'Pooja Hegde', date: '2026-09-03', status: 'Present', checkIn: '09:00 AM', checkOut: '05:45 PM' },
   ];
+  try { localStorage.setItem('ferex_digital_attendance', JSON.stringify(defaultAttendance)); } catch {}
+  return defaultAttendance;
 }
 
 export async function recordDigitalAttendance(record: any) {
@@ -880,16 +895,21 @@ export async function recordDigitalAttendance(record: any) {
 
 // ─── Digital Meetings ───────────────────────────────────────────────────────
 export async function getDigitalMeetings() {
+  const seeded = isSeeded('meetings');
   const saved = localStorage.getItem('ferex_digital_meetings');
-  if (saved) {
+  if (saved !== null) {
     try {
       return JSON.parse(saved);
     } catch {}
   }
-  return [
+  if (seeded) return [];
+  markSeeded('meetings');
+  const defaultMeetings = [
     { id: 'MTG-01', title: 'Nexus FinTech Sprint Architecture Review', client: 'Nexus FinTech Global', time: 'Today, 03:00 PM', link: 'https://meet.google.com/fer-dig-arch', status: 'Scheduled' },
     { id: 'MTG-02', title: 'Starlight Brands UI/UX Design Approval', client: 'Starlight E-Commerce Brands', time: 'Tomorrow, 11:30 AM', link: 'https://meet.google.com/fer-dig-uiux', status: 'Scheduled' },
   ];
+  try { localStorage.setItem('ferex_digital_meetings', JSON.stringify(defaultMeetings)); } catch {}
+  return defaultMeetings;
 }
 
 export async function createDigitalMeeting(mtg: {

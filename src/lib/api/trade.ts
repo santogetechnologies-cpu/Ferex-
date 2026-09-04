@@ -1,6 +1,14 @@
 import { supabase } from '../supabase';
 import { generateUUID } from '../../utils/uuid';
 
+// ─── Seed Guard Helpers ──────────────────────────────────────────────────────
+function isSeeded(entity: string): boolean {
+  try { return localStorage.getItem('ferex_trade_seeded_' + entity) === 'true'; } catch { return false; }
+}
+function markSeeded(entity: string): void {
+  try { localStorage.setItem('ferex_trade_seeded_' + entity, 'true'); } catch {}
+}
+
 // ─── 1. TRADE SHIPMENTS ───────────────────────────────────────────────────────
 export async function getTradeShipments() {
   try {
@@ -1159,7 +1167,7 @@ export async function provisionTradeClientLogin(partner: {
   const credentialPayload: ProvisionedTradeCredential = {
     email: cleanEmail,
     tempPassword,
-    role: 'trade',
+    role: 'trade_client',
     fullName,
     companyName,
     partnerId: partner.id,
@@ -1167,13 +1175,14 @@ export async function provisionTradeClientLogin(partner: {
     provisionedAt: new Date().toISOString(),
   };
 
-  // 1. Save to local storage for persistent mock/fallback lookup
+  // 1. Save to local storage for persistent lookup
   localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
     email: cleanEmail,
     password: tempPassword,
-    role: 'trade',
+    role: 'trade_client',
     full_name: fullName,
     company_name: companyName,
+    partner_id: partner.id,
     require_password_reset: true,
   }));
   localStorage.setItem(`ferex_trade_partner_cred_${partner.id}`, JSON.stringify(credentialPayload));
@@ -1182,7 +1191,7 @@ export async function provisionTradeClientLogin(partner: {
   try {
     await supabase.from('users').upsert({
       email: cleanEmail,
-      role: 'trade',
+      role: 'trade_client',
       full_name: fullName,
       phone: '',
       department: `Trade:${companyName}`,
@@ -1224,12 +1233,15 @@ export interface BondedCargoItem {
 }
 
 export async function getTradeBondedInventory(): Promise<BondedCargoItem[]> {
+  const seeded = isSeeded('bonded_inventory');
   const saved = localStorage.getItem('ferex_trade_bonded_inventory');
-  if (saved) {
+  if (saved !== null) {
     try {
       return JSON.parse(saved);
     } catch {}
   }
+  if (seeded) return [];
+  markSeeded('bonded_inventory');
   const defaultItems: BondedCargoItem[] = [
     {
       id: 'BOND-01',
@@ -1381,12 +1393,15 @@ export interface CargoLossRecord {
 }
 
 export async function getTradeCargoLosses(): Promise<CargoLossRecord[]> {
+  const seeded = isSeeded('cargo_losses');
   const saved = localStorage.getItem('ferex_trade_cargo_losses');
-  if (saved) {
+  if (saved !== null) {
     try {
       return JSON.parse(saved);
     } catch {}
   }
+  if (seeded) return [];
+  markSeeded('cargo_losses');
   const defaultLosses: CargoLossRecord[] = [
     {
       id: 'LOSS-TRD-01',
