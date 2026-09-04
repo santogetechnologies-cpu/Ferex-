@@ -25,15 +25,12 @@ export const DigitalLeads: React.FC = () => {
           contact: d.contact_person,
           email: d.email,
           service: d.industry || 'Web & App Development',
-          value: `₹${Number(d.total_revenue || 850000).toLocaleString('en-IN')}`,
-          valueNum: Number(d.total_revenue || 850000),
+          value: `₹${Number(d.estimated_budget || d.total_revenue || 850000).toLocaleString('en-IN')}`,
+          valueNum: Number(d.estimated_budget || d.total_revenue || 850000),
           status: 'Lead',
         })));
       } else {
-        setLeads([
-          { id: '1', company: 'Global BioTech Innovations', contact: 'Dr. Sameer Roy', email: 's.roy@globalbiotech.com', service: 'UI/UX Design', value: '₹6,50,000', valueNum: 650000, status: 'Lead' },
-          { id: '2', company: 'Vanguard Retail Logistics', contact: 'Karan Mehra', email: 'karan@vanguardlogistics.in', service: 'Web & App Development', value: '₹12,00,000', valueNum: 1200000, status: 'Lead' }
-        ]);
+        setLeads([]);
       }
     } finally {
       setLoading(false);

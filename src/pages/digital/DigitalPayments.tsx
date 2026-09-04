@@ -45,10 +45,7 @@ export const DigitalPayments: React.FC = () => {
         }));
         setPayments(mapped);
       } else {
-        setPayments([
-          { id: '1', client: 'Nexus FinTech Global', invoice: 'INV-DIG-8810', amountRaw: 450000, amount: '₹4,50,000', taxAmount: '₹81,000', totalSettled: '₹5,31,000', method: 'RTGS / Bank Wire', date: '2026-09-01', status: 'Received' },
-          { id: '2', client: 'Starlight E-Commerce Brands', invoice: 'INV-DIG-8811', amountRaw: 280000, amount: '₹2,80,000', taxAmount: '₹50,400', totalSettled: '₹3,30,400', method: 'NEFT Transfer', date: '2026-09-02', status: 'Pending' },
-        ]);
+        setPayments([]);
       }
     } finally {
       setLoading(false);

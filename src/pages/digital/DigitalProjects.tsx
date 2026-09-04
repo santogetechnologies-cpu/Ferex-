@@ -40,14 +40,7 @@ export const DigitalProjects: React.FC = () => {
       ]);
       setClients(clientData);
 
-      if (Array.isArray(projData) && projData.length > 0) {
-        setProjects(projData);
-      } else {
-        setProjects([
-          { id: '1', title: 'Nexus NeoBanking Web & Mobile Platform', client: { company_name: 'Nexus FinTech Global' }, service_category: 'Web & App Development', status: 'In Progress', budget: 1450000, progress: 68, deadline: '2026-10-15', lead_developer: 'Kavita Iyer' },
-          { id: '2', title: 'Starlight Multi-Brand Design System & UI/UX', client: { company_name: 'Starlight E-Commerce Brands' }, service_category: 'UI/UX Design', status: 'In Progress', budget: 820000, progress: 45, deadline: '2026-09-30', lead_developer: 'Sameer Sen' },
-        ]);
-      }
+      setProjects(projData || []);
     } finally {
       setLoading(false);
     }

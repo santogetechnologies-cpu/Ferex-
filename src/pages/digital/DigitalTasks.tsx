@@ -35,14 +35,7 @@ export const DigitalTasks: React.FC = () => {
       ]);
       setProjects(projData);
 
-      if (Array.isArray(tasksData) && tasksData.length > 0) {
-        setTasks(tasksData);
-      } else {
-        setTasks([
-          { id: '1', title: 'Implement OAuth2 PKCE Flow for NeoBanking App', project: { title: 'Nexus NeoBanking Web Platform' }, priority: 'High', status: 'In Progress', due_date: '2026-09-10' },
-          { id: '2', title: 'Export Design Tokens & Component Library into Figma', project: { title: 'Starlight Design System' }, priority: 'Medium', status: 'To Do', due_date: '2026-09-14' },
-        ]);
-      }
+      setTasks(tasksData || []);
     } finally {
       setLoading(false);
     }

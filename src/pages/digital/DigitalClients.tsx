@@ -67,10 +67,7 @@ export const DigitalClients: React.FC = () => {
           hasCredentials: !!getDigitalClientCredentials(d.id),
         })));
       } else {
-        setClients([
-          { id: '1', name: 'Nexus FinTech Global', contact: 'Ananya Deshmukh', email: 'ananya@nexusfintech.io', phone: '+91 98190 33445', city: 'Mumbai', type: 'Fintech & Banking', status: 'Active', spent: '₹14,50,000', hasCredentials: !!getDigitalClientCredentials('1') },
-          { id: '2', name: 'Starlight E-Commerce Brands', contact: 'Rahul Varma', email: 'rahul@starlightbrands.com', phone: '+91 98200 66778', city: 'Bengaluru', type: 'Retail & E-Commerce', status: 'Active', spent: '₹8,20,000', hasCredentials: !!getDigitalClientCredentials('2') },
-        ]);
+        setClients([]);
       }
     } finally {
       setLoading(false);

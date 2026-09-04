@@ -53,14 +53,7 @@ export const DigitalInvoices: React.FC = () => {
       setClients(clientData || []);
       setAllProjects(projData || []);
 
-      if (Array.isArray(invData) && invData.length > 0) {
-        setInvoices(invData);
-      } else {
-        setInvoices([
-          { id: '1', invoice_no: 'INV-DIG-8810', client: { id: 'c1', company_name: 'Nexus FinTech Global' }, amount: 450000, tax_amount: 81000, status: 'Paid', due_date: '2026-09-15', issued_at: '2026-09-01' },
-          { id: '2', invoice_no: 'INV-DIG-8811', client: { id: 'c2', company_name: 'Starlight E-Commerce Brands' }, amount: 280000, tax_amount: 50400, status: 'Sent', due_date: '2026-09-20', issued_at: '2026-09-02' },
-        ]);
-      }
+      setInvoices(invData || []);
     } finally {
       setLoading(false);
     }
