@@ -30,9 +30,9 @@ export const RimiCollections: React.FC = () => {
         getRimiCollections(),
         getRimiDistributors()
       ]);
-      setDistributors(distData);
+      setDistributors(distData || []);
 
-      if (Array.isArray(colData) && colData.length > 0) {
+      if (Array.isArray(colData)) {
         const mapped = colData.map((c: any) => ({
           id: c.reference_no || (c.id ? `COL-${c.id.slice(0, 4).toUpperCase()}` : 'COL-101'),
           rawId: c.id,
@@ -45,10 +45,7 @@ export const RimiCollections: React.FC = () => {
         }));
         setCollections(mapped);
       } else {
-        setCollections([
-          { id: 'REF-HDFC-9910', rawId: '1', customer: 'HyperCity Supermarkets Mumbai Hub', amountRaw: 245000, amount: '₹2,45,000', mode: 'RTGS / Bank Wire', date: '2026-09-02', status: 'Settled & Cleared' },
-          { id: 'REF-ICICI-8821', rawId: '2', customer: 'Royal Ocean HORECA Wholesale Ltd', amountRaw: 480000, amount: '₹4,80,000', mode: 'Cheque Clearance', date: '2026-08-30', status: 'Settled & Cleared' },
-        ]);
+        setCollections([]);
       }
     } finally {
       setLoading(false);

@@ -29,9 +29,9 @@ export const RimiExpiryTracking: React.FC = () => {
         getRimiBatches(),
         getRimiProducts()
       ]);
-      setProducts(prodData);
+      setProducts(prodData || []);
 
-      if (Array.isArray(batchData) && batchData.length > 0) {
+      if (Array.isArray(batchData)) {
         const mapped = batchData.map((b: any, idx: number) => {
           const exp = new Date(b.expiry_date || '2026-12-31');
           const today = new Date();
@@ -57,11 +57,7 @@ export const RimiExpiryTracking: React.FC = () => {
         });
         setExpiringStock(mapped);
       } else {
-        setExpiringStock([
-          { id: 'EXP-101', rawId: '1', product: 'Sweet Corn & Green Peas IQF (1kg)', batch: 'LOT-VG-1109', units: '180 Bags', location: 'Bengaluru South Cold Transit Depot', daysLeft: 25, category: 'Critical', risk: '25 Days Left', riskBadge: 'bg-rose-50 text-rose-700 border-rose-200', status: 'Active' },
-          { id: 'EXP-102', rawId: '2', product: 'Gourmet Chicken Nuggets (1kg)', batch: 'LOT-MT-4402', units: '320 Packs', location: 'Delhi NCR Reefer Logistics Center', daysLeft: 52, category: 'Warning', risk: '52 Days Left', riskBadge: 'bg-amber-50 text-amber-700 border-amber-200', status: 'Active' },
-          { id: 'EXP-103', rawId: '3', product: 'Atlantic Salmon Fillets IQF', batch: 'LOT-SL-9912', units: '210 Packs', location: 'Mumbai Central Deep Freeze (Bay 2)', daysLeft: 190, category: 'Safe', risk: '190 Days Left', riskBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200', status: 'Active' },
-        ]);
+        setExpiringStock([]);
       }
     } finally {
       setLoading(false);

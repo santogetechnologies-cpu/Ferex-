@@ -25,7 +25,7 @@ export const RimiVehicles: React.FC = () => {
     setLoading(true);
     try {
       const data = await getRimiVehicles();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         const formatted = data.map((d: any) => ({
           id: d.id ? `TRK-${d.id.slice(0, 4).toUpperCase()}` : 'TRK-101',
           rawId: d.id,
@@ -40,10 +40,7 @@ export const RimiVehicles: React.FC = () => {
         }));
         setVehicles(formatted);
       } else {
-        setVehicles([
-          { id: 'TRK-101', rawId: '1', regNo: 'MH-12-AZ-8901', model: '14-Ton Ultra Cold Reefer', temp: '-20.4°C', tempNum: -20.4, driver: 'Sanjay Kumar', phone: '+91 98765 43210', route: 'Active Delivery Route', status: 'On Route' },
-          { id: 'TRK-102', rawId: '2', regNo: 'MH-04-DX-3310', model: '10-Ton Reefer Truck', temp: '-19.1°C', tempNum: -19.1, driver: 'Vikram Singh', phone: '+91 98230 44556', route: 'Stationed Cold Logistics Depot', status: 'Stationed' },
-        ]);
+        setVehicles([]);
       }
     } finally {
       setLoading(false);

@@ -9,31 +9,266 @@ function markSeeded(entity: string): void {
   try { localStorage.setItem('ferex_trade_seeded_' + entity, 'true'); } catch {}
 }
 
+// ─── Default Real-World Seed Data for Trade ─────────────────────────────────
+const DEFAULT_TRADE_SHIPMENTS = [
+  {
+    id: 'SHP-9821',
+    shipment_no: 'SHP-9821',
+    container_no: 'MSKU-9821045',
+    carrier: 'Maersk Line',
+    carrier_vessel: 'MSC Oscar (V.8821)',
+    origin_port: 'Port of Gdansk, Poland',
+    destination_port: 'Port of Rotterdam, Netherlands',
+    cargo_description: 'Industrial Bearing Assemblies & Heavy Machinery',
+    commodity: 'Industrial Bearing Assemblies & Heavy Machinery',
+    cargo_weight_kg: 24500,
+    container_count: 1,
+    transport_mode: 'Maritime',
+    incoterm: 'FOB',
+    shipment_status: 'In Transit',
+    status: 'In Transit',
+    eta: '2026-09-18',
+    etd: '2026-09-02',
+    cargo_value: 4500000,
+    currency: 'INR',
+    created_at: '2026-09-02T10:00:00Z',
+  },
+  {
+    id: 'SHP-9822',
+    shipment_no: 'SHP-9822',
+    container_no: 'CMAU-4412093',
+    carrier: 'CMA CGM Logistics',
+    carrier_vessel: 'CMA CGM Antoine de Saint Exupery',
+    origin_port: 'Hamburg Port, Germany',
+    destination_port: 'Port of Antwerp, Belgium',
+    cargo_description: 'Precision Hydraulic Valves & Electronics',
+    commodity: 'Precision Hydraulic Valves & Electronics',
+    cargo_weight_kg: 18200,
+    container_count: 1,
+    transport_mode: 'Maritime',
+    incoterm: 'CIF',
+    shipment_status: 'Loaded on Vessel',
+    status: 'Loaded on Vessel',
+    eta: '2026-09-22',
+    etd: '2026-09-04',
+    cargo_value: 3200000,
+    currency: 'INR',
+    created_at: '2026-09-04T10:00:00Z',
+  },
+];
+
+const DEFAULT_TRADE_INVOICES = [
+  {
+    id: 'INV-TRD-40101',
+    invoice_no: 'INV-TRD-40101',
+    buyer_name: 'Berlin Industrial Supplies GmbH',
+    incoterms: 'CIF Rotterdam',
+    amount: 4250000,
+    currency: 'INR',
+    payment_terms: 'Letter of Credit (LC) at Sight',
+    status: 'Paid',
+    payment_status: 'Paid',
+    issue_date: '2026-08-15',
+    due_date: '2026-09-28',
+    created_at: '2026-08-15T10:00:00Z',
+  },
+  {
+    id: 'INV-TRD-40102',
+    invoice_no: 'INV-TRD-40102',
+    buyer_name: 'Warsaw Global Logistics Sp. z o.o.',
+    incoterms: 'FOB Gdansk',
+    amount: 1820000,
+    currency: 'INR',
+    payment_terms: 'SWIFT Wire (Net 30)',
+    status: 'Issued',
+    payment_status: 'Issued',
+    issue_date: '2026-08-20',
+    due_date: '2026-10-01',
+    created_at: '2026-08-20T10:00:00Z',
+  },
+];
+
+const DEFAULT_TRADE_CRM_CONTACTS = [
+  {
+    id: 'CRM-001',
+    company_name: 'Warsaw Global Logistics Sp. z o.o.',
+    country: 'Poland',
+    contact_person: 'Jan Kowalski',
+    email: 'j.kowalski@warsawlogistics.pl',
+    phone: '+48 22 890 1234',
+    category: 'Freight Forwarder',
+    payment_terms: 'LC 60 Days',
+    status: 'Active',
+    created_at: '2026-08-15T09:00:00Z',
+  },
+  {
+    id: 'CRM-002',
+    company_name: 'Berlin Industrial Supplies GmbH',
+    country: 'Germany',
+    contact_person: 'Hans Weber',
+    email: 'h.weber@berlin-supplies.de',
+    phone: '+49 30 554 9912',
+    category: 'Buyer',
+    payment_terms: 'CIF Rotterdam',
+    status: 'Active',
+    created_at: '2026-08-18T11:30:00Z',
+  },
+  {
+    id: 'CRM-003',
+    company_name: 'Rotterdam Maritime Trading N.V.',
+    country: 'Netherlands',
+    contact_person: 'Anouk de Jong',
+    email: 'a.dejong@rotterdamtrade.nl',
+    phone: '+31 10 442 8870',
+    category: 'Logistics Partner',
+    payment_terms: 'DDP Antwerp',
+    status: 'Active',
+    created_at: '2026-08-20T14:15:00Z',
+  },
+];
+
+const DEFAULT_TRADE_LCS = [
+  {
+    id: 'LC-2026-8810',
+    lc_number: 'LC-2026-8810',
+    issuing_bank: 'HSBC London / Warsaw Desk',
+    beneficiary: 'Warsaw Global Logistics Sp. z o.o.',
+    applicant: 'Ferex Global Trade Corp',
+    amount: 14500000,
+    currency: 'INR',
+    issue_date: '2026-08-25',
+    expiry_date: '2026-10-30',
+    status: 'Active & Confirmed',
+    created_at: '2026-08-25T10:00:00Z',
+  },
+  {
+    id: 'LC-2026-8811',
+    lc_number: 'LC-2026-8811',
+    issuing_bank: 'Deutsche Bank Frankfurt Desk',
+    beneficiary: 'Berlin Industrial Supplies GmbH',
+    applicant: 'Ferex Global Trade Corp',
+    amount: 21000000,
+    currency: 'INR',
+    issue_date: '2026-08-28',
+    expiry_date: '2026-11-15',
+    status: 'Under Banking Verification',
+    created_at: '2026-08-28T10:00:00Z',
+  },
+];
+
+const DEFAULT_TRADE_BLS = [
+  {
+    id: 'BL-992014',
+    bl_number: 'BL-992014',
+    vessel_name: 'MSC Oscar (V.8821)',
+    carrier: 'MSC Mediterranean Shipping Co.',
+    port_of_loading: 'Port of Gdansk 🇵🇱',
+    port_of_discharge: 'Port of Rotterdam 🇳🇱',
+    shipper: 'Ferex Global Trade Corp',
+    consignee: 'Warsaw Global Logistics Sp. z o.o.',
+    issue_date: '2026-09-02',
+    status: 'Clean On-Board Signed',
+    created_at: '2026-09-02T10:00:00Z',
+  },
+];
+
+const DEFAULT_TRADE_PLS = [
+  {
+    id: 'PL-2026-401',
+    pl_number: 'PL-2026-401',
+    shipment_no: 'SHP-9821',
+    buyer_name: 'Berlin Industrial Supplies GmbH',
+    cargo_description: 'High-Precision Industrial Bearing Assemblies (48 Crates)',
+    total_packages: 48,
+    gross_weight_kg: 24500,
+    net_weight_kg: 22800,
+    container_status: 'Loaded & Sealed (Customs Inspected)',
+    created_at: '2026-09-02T10:00:00Z',
+  },
+];
+
+const DEFAULT_TRADE_CERTS = [
+  {
+    id: 'CRT-2026-901',
+    certificate_no: 'CRT-2026-901',
+    title: 'EU Certificate of Origin (Form A)',
+    authority: 'Chamber of Commerce Warsaw',
+    country: 'Poland 🇵🇱',
+    issue_date: '2026-07-10',
+    expiry_date: '2027-07-10',
+    status: 'Verified & Active',
+    created_at: '2026-07-10T10:00:00Z',
+  },
+  {
+    id: 'CRT-2026-902',
+    certificate_no: 'CRT-2026-902',
+    title: 'Phytosanitary Export Inspection Certificate',
+    authority: 'Federal Ministry of Agriculture Berlin',
+    country: 'Germany 🇩🇪',
+    issue_date: '2026-01-22',
+    expiry_date: '2027-01-22',
+    status: 'Verified & Active',
+    created_at: '2026-01-22T10:00:00Z',
+  },
+];
+
+const DEFAULT_TRADE_PAYMENTS = [
+  {
+    id: 'TX-TRD-9001',
+    transaction_ref: 'TX-TRD-9001',
+    partner_entity: 'Warsaw Global Logistics Sp. z o.o.',
+    description: 'Port Clearance & Customs Fee',
+    amount: 1820000,
+    currency: 'INR',
+    payment_type: 'SWIFT Wire Transfer',
+    status: 'Completed',
+    settlement_date: '2026-08-28',
+    created_at: '2026-08-28T10:00:00Z',
+  },
+  {
+    id: 'TX-TRD-9002',
+    transaction_ref: 'TX-TRD-9002',
+    partner_entity: 'Berlin Industrial Supplies GmbH',
+    description: 'Machinery Export Batch #4',
+    amount: 4250000,
+    currency: 'INR',
+    payment_type: 'LC Settlement',
+    status: 'Completed',
+    settlement_date: '2026-09-01',
+    created_at: '2026-09-01T10:00:00Z',
+  },
+];
+
 // ─── 1. TRADE SHIPMENTS ───────────────────────────────────────────────────────
 export async function getTradeShipments() {
+  const seeded = isSeeded('shipments');
+  const local = localStorage.getItem('ferex_trade_shipments');
+  let localList: any[] = [];
+  if (local !== null) {
+    try { localList = JSON.parse(local); } catch {}
+  } else if (!seeded) {
+    markSeeded('shipments');
+    localList = DEFAULT_TRADE_SHIPMENTS;
+    try { localStorage.setItem('ferex_trade_shipments', JSON.stringify(localList)); } catch {}
+  }
+
   try {
     const { data, error } = await supabase
       .from('trade_shipments')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      try { localStorage.setItem('ferex_trade_shipments', JSON.stringify(data)); } catch (e) {}
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const map = new Map<string, any>();
+      data.forEach((item: any) => map.set(item.id, item));
+      localList.forEach((item: any) => { if (!map.has(item.id)) map.set(item.id, item); });
+      const merged = Array.from(map.values());
+      try { localStorage.setItem('ferex_trade_shipments', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+  } catch {}
 
-    const local = localStorage.getItem('ferex_trade_shipments');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  } catch {
-    const local = localStorage.getItem('ferex_trade_shipments');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  }
+  return localList;
 }
 
 export async function createTradeShipment(shipment: {
@@ -72,88 +307,67 @@ export async function createTradeShipment(shipment: {
     created_at: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase.from('trade_shipments').insert(payload).select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_shipments_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  // Local storage fallback
-  try {
-    const existing = await getTradeShipments();
-    const updated = [payload, ...existing.filter((s: any) => s.id !== payload.id)];
-    localStorage.setItem('ferex_trade_shipments', JSON.stringify(updated));
-  } catch (e) {}
-
+  const current = await getTradeShipments();
+  const updated = [payload, ...current.filter((s: any) => s.id !== payload.id)];
+  try { localStorage.setItem('ferex_trade_shipments', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_shipments').insert(payload); } catch {}
   window.dispatchEvent(new Event('ferex_trade_shipments_change'));
   return payload;
 }
 
 export async function updateTradeShipmentStatus(id: string, status: string) {
+  const current = await getTradeShipments();
+  const updated = current.map((s: any) => (s.id === id || s.shipment_no === id) ? { ...s, status, shipment_status: status, updated_at: new Date().toISOString() } : s);
+  try { localStorage.setItem('ferex_trade_shipments', JSON.stringify(updated)); } catch {}
   try {
-    const { data, error } = await supabase
+    await supabase
       .from('trade_shipments')
       .update({ status, shipment_status: status, updated_at: new Date().toISOString() })
-      .or(`id.eq.${id},shipment_no.eq.${id}`)
-      .select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_shipments_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeShipments();
-    const updated = existing.map((s: any) => (s.id === id || s.shipment_no === id) ? { ...s, status, shipment_status: status } : s);
-    localStorage.setItem('ferex_trade_shipments', JSON.stringify(updated));
-  } catch (e) {}
-
+      .or(`id.eq.${id},shipment_no.eq.${id}`);
+  } catch {}
   window.dispatchEvent(new Event('ferex_trade_shipments_change'));
   return { id, status };
 }
 
 export async function deleteTradeShipment(id: string) {
-  try {
-    await supabase.from('trade_shipments').delete().or(`id.eq.${id},shipment_no.eq.${id}`);
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeShipments();
-    const filtered = existing.filter((s: any) => s.id !== id && s.shipment_no !== id);
-    localStorage.setItem('ferex_trade_shipments', JSON.stringify(filtered));
-  } catch (e) {}
-
+  const current = await getTradeShipments();
+  const filtered = current.filter((s: any) => s.id !== id && s.shipment_no !== id);
+  try { localStorage.setItem('ferex_trade_shipments', JSON.stringify(filtered)); } catch {}
+  try { await supabase.from('trade_shipments').delete().or(`id.eq.${id},shipment_no.eq.${id}`); } catch {}
   window.dispatchEvent(new Event('ferex_trade_shipments_change'));
   return true;
 }
 
 // ─── 2. TRADE INVOICES ────────────────────────────────────────────────────────
 export async function getTradeInvoices() {
+  const seeded = isSeeded('invoices');
+  const local = localStorage.getItem('ferex_trade_invoices');
+  let localList: any[] = [];
+  if (local !== null) {
+    try { localList = JSON.parse(local); } catch {}
+  } else if (!seeded) {
+    markSeeded('invoices');
+    localList = DEFAULT_TRADE_INVOICES;
+    try { localStorage.setItem('ferex_trade_invoices', JSON.stringify(localList)); } catch {}
+  }
+
   try {
     const { data, error } = await supabase
       .from('trade_invoices')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      try { localStorage.setItem('ferex_trade_invoices', JSON.stringify(data)); } catch (e) {}
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const map = new Map<string, any>();
+      data.forEach((item: any) => map.set(item.id, item));
+      localList.forEach((item: any) => { if (!map.has(item.id)) map.set(item.id, item); });
+      const merged = Array.from(map.values());
+      try { localStorage.setItem('ferex_trade_invoices', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+  } catch {}
 
-    const local = localStorage.getItem('ferex_trade_invoices');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  } catch {
-    const local = localStorage.getItem('ferex_trade_invoices');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  }
+  return localList;
 }
 
 export async function createTradeInvoice(inv: {
@@ -181,87 +395,67 @@ export async function createTradeInvoice(inv: {
     created_at: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase.from('trade_invoices').insert(payload).select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_invoices_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeInvoices();
-    const updated = [payload, ...existing.filter((i: any) => i.id !== payload.id)];
-    localStorage.setItem('ferex_trade_invoices', JSON.stringify(updated));
-  } catch (e) {}
-
+  const current = await getTradeInvoices();
+  const updated = [payload, ...current.filter((i: any) => i.id !== payload.id)];
+  try { localStorage.setItem('ferex_trade_invoices', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_invoices').insert(payload); } catch {}
   window.dispatchEvent(new Event('ferex_trade_invoices_change'));
   return payload;
 }
 
 export async function updateTradeInvoiceStatus(id: string, status: string) {
+  const current = await getTradeInvoices();
+  const updated = current.map((i: any) => (i.id === id || i.invoice_no === id) ? { ...i, status, payment_status: status, paid_at: status === 'Paid' ? new Date().toISOString() : null, updated_at: new Date().toISOString() } : i);
+  try { localStorage.setItem('ferex_trade_invoices', JSON.stringify(updated)); } catch {}
   try {
-    const { data, error } = await supabase
+    await supabase
       .from('trade_invoices')
-      .update({ status, payment_status: status, paid_at: status === 'Paid' ? new Date().toISOString() : null })
-      .or(`id.eq.${id},invoice_no.eq.${id}`)
-      .select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_invoices_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeInvoices();
-    const updated = existing.map((i: any) => (i.id === id || i.invoice_no === id) ? { ...i, status, payment_status: status } : i);
-    localStorage.setItem('ferex_trade_invoices', JSON.stringify(updated));
-  } catch (e) {}
-
+      .update({ status, payment_status: status, paid_at: status === 'Paid' ? new Date().toISOString() : null, updated_at: new Date().toISOString() })
+      .or(`id.eq.${id},invoice_no.eq.${id}`);
+  } catch {}
   window.dispatchEvent(new Event('ferex_trade_invoices_change'));
   return { id, status };
 }
 
 export async function deleteTradeInvoice(id: string) {
-  try {
-    await supabase.from('trade_invoices').delete().or(`id.eq.${id},invoice_no.eq.${id}`);
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeInvoices();
-    const filtered = existing.filter((i: any) => i.id !== id && i.invoice_no !== id);
-    localStorage.setItem('ferex_trade_invoices', JSON.stringify(filtered));
-  } catch (e) {}
-
+  const current = await getTradeInvoices();
+  const filtered = current.filter((i: any) => i.id !== id && i.invoice_no !== id);
+  try { localStorage.setItem('ferex_trade_invoices', JSON.stringify(filtered)); } catch {}
+  try { await supabase.from('trade_invoices').delete().or(`id.eq.${id},invoice_no.eq.${id}`); } catch {}
   window.dispatchEvent(new Event('ferex_trade_invoices_change'));
   return true;
 }
 
 // ─── 3. TRADE CRM CLIENTS ────────────────────────────────────────────────────
 export async function getTradeCRMContacts() {
+  const seeded = isSeeded('crm_contacts');
+  const local = localStorage.getItem('ferex_trade_crm');
+  let localList: any[] = [];
+  if (local !== null) {
+    try { localList = JSON.parse(local); } catch {}
+  } else if (!seeded) {
+    markSeeded('crm_contacts');
+    localList = DEFAULT_TRADE_CRM_CONTACTS;
+    try { localStorage.setItem('ferex_trade_crm', JSON.stringify(localList)); } catch {}
+  }
+
   try {
     const { data, error } = await supabase
       .from('trade_clients')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      try { localStorage.setItem('ferex_trade_crm', JSON.stringify(data)); } catch (e) {}
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const map = new Map<string, any>();
+      data.forEach((item: any) => map.set(item.id, item));
+      localList.forEach((item: any) => { if (!map.has(item.id)) map.set(item.id, item); });
+      const merged = Array.from(map.values());
+      try { localStorage.setItem('ferex_trade_crm', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+  } catch {}
 
-    const local = localStorage.getItem('ferex_trade_crm');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  } catch {
-    const local = localStorage.getItem('ferex_trade_crm');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  }
+  return localList;
 }
 
 export async function createTradeCRMContact(c: {
@@ -288,20 +482,10 @@ export async function createTradeCRMContact(c: {
     created_at: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase.from('trade_clients').insert(payload).select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_crm_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeCRMContacts();
-    const updated = [payload, ...existing.filter((contact: any) => contact.id !== payload.id)];
-    localStorage.setItem('ferex_trade_crm', JSON.stringify(updated));
-  } catch (e) {}
-
+  const current = await getTradeCRMContacts();
+  const updated = [payload, ...current.filter((contact: any) => contact.id !== payload.id)];
+  try { localStorage.setItem('ferex_trade_crm', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_clients').insert(payload); } catch {}
   window.dispatchEvent(new Event('ferex_trade_crm_change'));
   return payload;
 }
@@ -316,68 +500,58 @@ export async function updateTradeCRMContact(id: string, updates: Partial<{
   payment_terms: string;
   status: string;
 }>) {
+  const current = await getTradeCRMContacts();
+  const updated = current.map((c: any) => (c.id === id || c.rawId === id) ? { ...c, ...updates, updated_at: new Date().toISOString() } : c);
+  try { localStorage.setItem('ferex_trade_crm', JSON.stringify(updated)); } catch {}
   try {
-    const { data, error } = await supabase
+    await supabase
       .from('trade_clients')
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_crm_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeCRMContacts();
-    const updated = existing.map((c: any) => c.id === id ? { ...c, ...updates } : c);
-    localStorage.setItem('ferex_trade_crm', JSON.stringify(updated));
-  } catch (e) {}
-
+      .eq('id', id);
+  } catch {}
   window.dispatchEvent(new Event('ferex_trade_crm_change'));
   return { id, ...updates };
 }
 
 export async function deleteTradeCRMContact(id: string) {
-  try {
-    await supabase.from('trade_clients').delete().eq('id', id);
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeCRMContacts();
-    const filtered = existing.filter((c: any) => c.id !== id);
-    localStorage.setItem('ferex_trade_crm', JSON.stringify(filtered));
-  } catch (e) {}
-
+  const current = await getTradeCRMContacts();
+  const filtered = current.filter((c: any) => c.id !== id && c.rawId !== id);
+  try { localStorage.setItem('ferex_trade_crm', JSON.stringify(filtered)); } catch {}
+  try { await supabase.from('trade_clients').delete().eq('id', id); } catch {}
   window.dispatchEvent(new Event('ferex_trade_crm_change'));
   return true;
 }
 
 // ─── 4. TRADE LETTERS OF CREDIT ──────────────────────────────────────────────
 export async function getTradeLettersOfCredit() {
+  const seeded = isSeeded('lcs');
+  const local = localStorage.getItem('ferex_trade_lcs');
+  let localList: any[] = [];
+  if (local !== null) {
+    try { localList = JSON.parse(local); } catch {}
+  } else if (!seeded) {
+    markSeeded('lcs');
+    localList = DEFAULT_TRADE_LCS;
+    try { localStorage.setItem('ferex_trade_lcs', JSON.stringify(localList)); } catch {}
+  }
+
   try {
     const { data, error } = await supabase
       .from('trade_letters_of_credit')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      try { localStorage.setItem('ferex_trade_lcs', JSON.stringify(data)); } catch (e) {}
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const map = new Map<string, any>();
+      data.forEach((item: any) => map.set(item.id, item));
+      localList.forEach((item: any) => { if (!map.has(item.id)) map.set(item.id, item); });
+      const merged = Array.from(map.values());
+      try { localStorage.setItem('ferex_trade_lcs', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+  } catch {}
 
-    const local = localStorage.getItem('ferex_trade_lcs');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  } catch {
-    const local = localStorage.getItem('ferex_trade_lcs');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  }
+  return localList;
 }
 
 export async function createTradeLetterOfCredit(lc: {
@@ -404,87 +578,67 @@ export async function createTradeLetterOfCredit(lc: {
     created_at: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase.from('trade_letters_of_credit').insert(payload).select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_lcs_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeLettersOfCredit();
-    const updated = [payload, ...existing.filter((item: any) => item.id !== payload.id)];
-    localStorage.setItem('ferex_trade_lcs', JSON.stringify(updated));
-  } catch (e) {}
-
+  const current = await getTradeLettersOfCredit();
+  const updated = [payload, ...current.filter((item: any) => item.id !== payload.id)];
+  try { localStorage.setItem('ferex_trade_lcs', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_letters_of_credit').insert(payload); } catch {}
   window.dispatchEvent(new Event('ferex_trade_lcs_change'));
   return payload;
 }
 
 export async function updateTradeLetterOfCreditStatus(id: string, status: string) {
+  const current = await getTradeLettersOfCredit();
+  const updated = current.map((item: any) => (item.id === id || item.lc_number === id) ? { ...item, status, updated_at: new Date().toISOString() } : item);
+  try { localStorage.setItem('ferex_trade_lcs', JSON.stringify(updated)); } catch {}
   try {
-    const { data, error } = await supabase
+    await supabase
       .from('trade_letters_of_credit')
       .update({ status })
-      .or(`id.eq.${id},lc_number.eq.${id}`)
-      .select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_lcs_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeLettersOfCredit();
-    const updated = existing.map((item: any) => (item.id === id || item.lc_number === id) ? { ...item, status } : item);
-    localStorage.setItem('ferex_trade_lcs', JSON.stringify(updated));
-  } catch (e) {}
-
+      .or(`id.eq.${id},lc_number.eq.${id}`);
+  } catch {}
   window.dispatchEvent(new Event('ferex_trade_lcs_change'));
   return { id, status };
 }
 
 export async function deleteTradeLetterOfCredit(id: string) {
-  try {
-    await supabase.from('trade_letters_of_credit').delete().or(`id.eq.${id},lc_number.eq.${id}`);
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeLettersOfCredit();
-    const filtered = existing.filter((item: any) => item.id !== id && item.lc_number !== id);
-    localStorage.setItem('ferex_trade_lcs', JSON.stringify(filtered));
-  } catch (e) {}
-
+  const current = await getTradeLettersOfCredit();
+  const filtered = current.filter((item: any) => item.id !== id && item.lc_number !== id);
+  try { localStorage.setItem('ferex_trade_lcs', JSON.stringify(filtered)); } catch {}
+  try { await supabase.from('trade_letters_of_credit').delete().or(`id.eq.${id},lc_number.eq.${id}`); } catch {}
   window.dispatchEvent(new Event('ferex_trade_lcs_change'));
   return true;
 }
 
 // ─── 5. TRADE BILLS OF LADING ────────────────────────────────────────────────
 export async function getTradeBillsOfLading() {
+  const seeded = isSeeded('bls');
+  const local = localStorage.getItem('ferex_trade_bls');
+  let localList: any[] = [];
+  if (local !== null) {
+    try { localList = JSON.parse(local); } catch {}
+  } else if (!seeded) {
+    markSeeded('bls');
+    localList = DEFAULT_TRADE_BLS;
+    try { localStorage.setItem('ferex_trade_bls', JSON.stringify(localList)); } catch {}
+  }
+
   try {
     const { data, error } = await supabase
       .from('trade_bills_of_lading')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      try { localStorage.setItem('ferex_trade_bls', JSON.stringify(data)); } catch (e) {}
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const map = new Map<string, any>();
+      data.forEach((item: any) => map.set(item.id, item));
+      localList.forEach((item: any) => { if (!map.has(item.id)) map.set(item.id, item); });
+      const merged = Array.from(map.values());
+      try { localStorage.setItem('ferex_trade_bls', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+  } catch {}
 
-    const local = localStorage.getItem('ferex_trade_bls');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  } catch {
-    const local = localStorage.getItem('ferex_trade_bls');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  }
+  return localList;
 }
 
 export async function createTradeBillOfLading(bl: {
@@ -512,87 +666,67 @@ export async function createTradeBillOfLading(bl: {
     created_at: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase.from('trade_bills_of_lading').insert(payload).select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_bls_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeBillsOfLading();
-    const updated = [payload, ...existing.filter((item: any) => item.id !== payload.id)];
-    localStorage.setItem('ferex_trade_bls', JSON.stringify(updated));
-  } catch (e) {}
-
+  const current = await getTradeBillsOfLading();
+  const updated = [payload, ...current.filter((item: any) => item.id !== payload.id)];
+  try { localStorage.setItem('ferex_trade_bls', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_bills_of_lading').insert(payload); } catch {}
   window.dispatchEvent(new Event('ferex_trade_bls_change'));
   return payload;
 }
 
 export async function updateTradeBillOfLadingStatus(id: string, status: string) {
+  const current = await getTradeBillsOfLading();
+  const updated = current.map((item: any) => (item.id === id || item.bl_number === id) ? { ...item, status, updated_at: new Date().toISOString() } : item);
+  try { localStorage.setItem('ferex_trade_bls', JSON.stringify(updated)); } catch {}
   try {
-    const { data, error } = await supabase
+    await supabase
       .from('trade_bills_of_lading')
       .update({ status })
-      .or(`id.eq.${id},bl_number.eq.${id}`)
-      .select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_bls_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeBillsOfLading();
-    const updated = existing.map((item: any) => (item.id === id || item.bl_number === id) ? { ...item, status } : item);
-    localStorage.setItem('ferex_trade_bls', JSON.stringify(updated));
-  } catch (e) {}
-
+      .or(`id.eq.${id},bl_number.eq.${id}`);
+  } catch {}
   window.dispatchEvent(new Event('ferex_trade_bls_change'));
   return { id, status };
 }
 
 export async function deleteTradeBillOfLading(id: string) {
-  try {
-    await supabase.from('trade_bills_of_lading').delete().or(`id.eq.${id},bl_number.eq.${id}`);
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeBillsOfLading();
-    const filtered = existing.filter((item: any) => item.id !== id && item.bl_number !== id);
-    localStorage.setItem('ferex_trade_bls', JSON.stringify(filtered));
-  } catch (e) {}
-
+  const current = await getTradeBillsOfLading();
+  const filtered = current.filter((item: any) => item.id !== id && item.bl_number !== id);
+  try { localStorage.setItem('ferex_trade_bls', JSON.stringify(filtered)); } catch {}
+  try { await supabase.from('trade_bills_of_lading').delete().or(`id.eq.${id},bl_number.eq.${id}`); } catch {}
   window.dispatchEvent(new Event('ferex_trade_bls_change'));
   return true;
 }
 
 // ─── 6. TRADE PACKING LISTS ──────────────────────────────────────────────────
 export async function getTradePackingLists() {
+  const seeded = isSeeded('pls');
+  const local = localStorage.getItem('ferex_trade_pls');
+  let localList: any[] = [];
+  if (local !== null) {
+    try { localList = JSON.parse(local); } catch {}
+  } else if (!seeded) {
+    markSeeded('pls');
+    localList = DEFAULT_TRADE_PLS;
+    try { localStorage.setItem('ferex_trade_pls', JSON.stringify(localList)); } catch {}
+  }
+
   try {
     const { data, error } = await supabase
       .from('trade_packing_lists')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      try { localStorage.setItem('ferex_trade_pls', JSON.stringify(data)); } catch (e) {}
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const map = new Map<string, any>();
+      data.forEach((item: any) => map.set(item.id, item));
+      localList.forEach((item: any) => { if (!map.has(item.id)) map.set(item.id, item); });
+      const merged = Array.from(map.values());
+      try { localStorage.setItem('ferex_trade_pls', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+  } catch {}
 
-    const local = localStorage.getItem('ferex_trade_pls');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  } catch {
-    const local = localStorage.getItem('ferex_trade_pls');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  }
+  return localList;
 }
 
 export async function createTradePackingList(pl: {
@@ -618,64 +752,53 @@ export async function createTradePackingList(pl: {
     created_at: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase.from('trade_packing_lists').insert(payload).select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_pls_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradePackingLists();
-    const updated = [payload, ...existing.filter((item: any) => item.id !== payload.id)];
-    localStorage.setItem('ferex_trade_pls', JSON.stringify(updated));
-  } catch (e) {}
-
+  const current = await getTradePackingLists();
+  const updated = [payload, ...current.filter((item: any) => item.id !== payload.id)];
+  try { localStorage.setItem('ferex_trade_pls', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_packing_lists').insert(payload); } catch {}
   window.dispatchEvent(new Event('ferex_trade_pls_change'));
   return payload;
 }
 
 export async function deleteTradePackingList(id: string) {
-  try {
-    await supabase.from('trade_packing_lists').delete().or(`id.eq.${id},pl_number.eq.${id}`);
-  } catch (e) {}
-
-  try {
-    const existing = await getTradePackingLists();
-    const filtered = existing.filter((item: any) => item.id !== id && item.pl_number !== id);
-    localStorage.setItem('ferex_trade_pls', JSON.stringify(filtered));
-  } catch (e) {}
-
+  const current = await getTradePackingLists();
+  const filtered = current.filter((item: any) => item.id !== id && item.pl_number !== id);
+  try { localStorage.setItem('ferex_trade_pls', JSON.stringify(filtered)); } catch {}
+  try { await supabase.from('trade_packing_lists').delete().or(`id.eq.${id},pl_number.eq.${id}`); } catch {}
   window.dispatchEvent(new Event('ferex_trade_pls_change'));
   return true;
 }
 
 // ─── 7. TRADE CERTIFICATES ───────────────────────────────────────────────────
 export async function getTradeCertificates() {
+  const seeded = isSeeded('certs');
+  const local = localStorage.getItem('ferex_trade_certs');
+  let localList: any[] = [];
+  if (local !== null) {
+    try { localList = JSON.parse(local); } catch {}
+  } else if (!seeded) {
+    markSeeded('certs');
+    localList = DEFAULT_TRADE_CERTS;
+    try { localStorage.setItem('ferex_trade_certs', JSON.stringify(localList)); } catch {}
+  }
+
   try {
     const { data, error } = await supabase
       .from('trade_certificates')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      try { localStorage.setItem('ferex_trade_certs', JSON.stringify(data)); } catch (e) {}
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const map = new Map<string, any>();
+      data.forEach((item: any) => map.set(item.id, item));
+      localList.forEach((item: any) => { if (!map.has(item.id)) map.set(item.id, item); });
+      const merged = Array.from(map.values());
+      try { localStorage.setItem('ferex_trade_certs', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+  } catch {}
 
-    const local = localStorage.getItem('ferex_trade_certs');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  } catch {
-    const local = localStorage.getItem('ferex_trade_certs');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  }
+  return localList;
 }
 
 export async function createTradeCertificate(cert: {
@@ -700,87 +823,67 @@ export async function createTradeCertificate(cert: {
     created_at: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase.from('trade_certificates').insert(payload).select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_certs_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeCertificates();
-    const updated = [payload, ...existing.filter((item: any) => item.id !== payload.id)];
-    localStorage.setItem('ferex_trade_certs', JSON.stringify(updated));
-  } catch (e) {}
-
+  const current = await getTradeCertificates();
+  const updated = [payload, ...current.filter((item: any) => item.id !== payload.id)];
+  try { localStorage.setItem('ferex_trade_certs', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_certificates').insert(payload); } catch {}
   window.dispatchEvent(new Event('ferex_trade_certs_change'));
   return payload;
 }
 
 export async function updateTradeCertificateStatus(id: string, status: string) {
+  const current = await getTradeCertificates();
+  const updated = current.map((item: any) => (item.id === id || item.certificate_no === id) ? { ...item, status, updated_at: new Date().toISOString() } : item);
+  try { localStorage.setItem('ferex_trade_certs', JSON.stringify(updated)); } catch {}
   try {
-    const { data, error } = await supabase
+    await supabase
       .from('trade_certificates')
       .update({ status })
-      .or(`id.eq.${id},certificate_no.eq.${id}`)
-      .select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_certs_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeCertificates();
-    const updated = existing.map((item: any) => (item.id === id || item.certificate_no === id) ? { ...item, status } : item);
-    localStorage.setItem('ferex_trade_certs', JSON.stringify(updated));
-  } catch (e) {}
-
+      .or(`id.eq.${id},certificate_no.eq.${id}`);
+  } catch {}
   window.dispatchEvent(new Event('ferex_trade_certs_change'));
   return { id, status };
 }
 
 export async function deleteTradeCertificate(id: string) {
-  try {
-    await supabase.from('trade_certificates').delete().or(`id.eq.${id},certificate_no.eq.${id}`);
-  } catch (e) {}
-
-  try {
-    const existing = await getTradeCertificates();
-    const filtered = existing.filter((item: any) => item.id !== id && item.certificate_no !== id);
-    localStorage.setItem('ferex_trade_certs', JSON.stringify(filtered));
-  } catch (e) {}
-
+  const current = await getTradeCertificates();
+  const filtered = current.filter((item: any) => item.id !== id && item.certificate_no !== id);
+  try { localStorage.setItem('ferex_trade_certs', JSON.stringify(filtered)); } catch {}
+  try { await supabase.from('trade_certificates').delete().or(`id.eq.${id},certificate_no.eq.${id}`); } catch {}
   window.dispatchEvent(new Event('ferex_trade_certs_change'));
   return true;
 }
 
 // ─── 8. TRADE PAYMENTS & LEDGER ──────────────────────────────────────────────
 export async function getTradePayments() {
+  const seeded = isSeeded('payments');
+  const local = localStorage.getItem('ferex_trade_payments');
+  let localList: any[] = [];
+  if (local !== null) {
+    try { localList = JSON.parse(local); } catch {}
+  } else if (!seeded) {
+    markSeeded('payments');
+    localList = DEFAULT_TRADE_PAYMENTS;
+    try { localStorage.setItem('ferex_trade_payments', JSON.stringify(localList)); } catch {}
+  }
+
   try {
     const { data, error } = await supabase
       .from('trade_payments')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      try { localStorage.setItem('ferex_trade_payments', JSON.stringify(data)); } catch (e) {}
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const map = new Map<string, any>();
+      data.forEach((item: any) => map.set(item.id, item));
+      localList.forEach((item: any) => { if (!map.has(item.id)) map.set(item.id, item); });
+      const merged = Array.from(map.values());
+      try { localStorage.setItem('ferex_trade_payments', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+  } catch {}
 
-    const local = localStorage.getItem('ferex_trade_payments');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  } catch {
-    const local = localStorage.getItem('ferex_trade_payments');
-    if (local) {
-      try { return JSON.parse(local); } catch (e) {}
-    }
-    return [];
-  }
+  return localList;
 }
 
 export async function createTradePayment(pay: {
@@ -807,58 +910,33 @@ export async function createTradePayment(pay: {
     created_at: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase.from('trade_payments').insert(payload).select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_payments_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradePayments();
-    const updated = [payload, ...existing.filter((item: any) => item.id !== payload.id)];
-    localStorage.setItem('ferex_trade_payments', JSON.stringify(updated));
-  } catch (e) {}
-
+  const current = await getTradePayments();
+  const updated = [payload, ...current.filter((item: any) => item.id !== payload.id)];
+  try { localStorage.setItem('ferex_trade_payments', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_payments').insert(payload); } catch {}
   window.dispatchEvent(new Event('ferex_trade_payments_change'));
   return payload;
 }
 
 export async function updateTradePaymentStatus(id: string, status: string) {
+  const current = await getTradePayments();
+  const updated = current.map((item: any) => (item.id === id || item.transaction_ref === id) ? { ...item, status, updated_at: new Date().toISOString() } : item);
+  try { localStorage.setItem('ferex_trade_payments', JSON.stringify(updated)); } catch {}
   try {
-    const { data, error } = await supabase
+    await supabase
       .from('trade_payments')
       .update({ status })
-      .or(`id.eq.${id},transaction_ref.eq.${id}`)
-      .select();
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_trade_payments_change'));
-      return data[0];
-    }
-  } catch (e) {}
-
-  try {
-    const existing = await getTradePayments();
-    const updated = existing.map((item: any) => (item.id === id || item.transaction_ref === id) ? { ...item, status } : item);
-    localStorage.setItem('ferex_trade_payments', JSON.stringify(updated));
-  } catch (e) {}
-
+      .or(`id.eq.${id},transaction_ref.eq.${id}`);
+  } catch {}
   window.dispatchEvent(new Event('ferex_trade_payments_change'));
   return { id, status };
 }
 
 export async function deleteTradePayment(id: string) {
-  try {
-    await supabase.from('trade_payments').delete().or(`id.eq.${id},transaction_ref.eq.${id}`);
-  } catch (e) {}
-
-  try {
-    const existing = await getTradePayments();
-    const filtered = existing.filter((item: any) => item.id !== id && item.transaction_ref !== id);
-    localStorage.setItem('ferex_trade_payments', JSON.stringify(filtered));
-  } catch (e) {}
-
+  const current = await getTradePayments();
+  const filtered = current.filter((item: any) => item.id !== id && item.transaction_ref !== id);
+  try { localStorage.setItem('ferex_trade_payments', JSON.stringify(filtered)); } catch {}
+  try { await supabase.from('trade_payments').delete().or(`id.eq.${id},transaction_ref.eq.${id}`); } catch {}
   window.dispatchEvent(new Event('ferex_trade_payments_change'));
   return true;
 }

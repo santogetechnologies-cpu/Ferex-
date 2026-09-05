@@ -28,7 +28,7 @@ export const RimiWarehouses: React.FC = () => {
     setLoading(true);
     try {
       const data = await getRimiWarehouses();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         const mapped = data.map((d: any) => {
           const utilPct = d.total_capacity_pallets > 0 ? Math.round((d.utilized_pallets / d.total_capacity_pallets) * 100) : 75;
           return {
@@ -45,12 +45,7 @@ export const RimiWarehouses: React.FC = () => {
         });
         setFacilities(mapped);
       } else {
-        // Fallback default facilities
-        setFacilities([
-          { id: 'WH-MUM-01', rawId: '1', name: 'Mumbai Central Deep Freeze Hub', city: 'Navi Mumbai', address: 'APMC Logistics Corridor, Sector 19', temp: '-22.4°C', capacity: '1,200 Pallets (88% Used)', manager: 'Rajesh Sharma', status: 'Active Frozen' },
-          { id: 'WH-DEL-02', rawId: '2', name: 'Delhi NCR Reefer Logistics Center', city: 'Gurugram', address: 'Cyber City Expressway Cold Park', temp: '-20.1°C', capacity: '850 Pallets (64% Used)', manager: 'Amit Verma', status: 'Active Frozen' },
-          { id: 'WH-BLR-03', rawId: '3', name: 'Bengaluru South Cold Transit Depot', city: 'Bengaluru', address: 'Electronic City Phase II Depot', temp: '-18.8°C', capacity: '600 Pallets (72% Used)', manager: 'K. Sunderam', status: 'Active Frozen' },
-        ]);
+        setFacilities([]);
       }
     } finally {
       setLoading(false);

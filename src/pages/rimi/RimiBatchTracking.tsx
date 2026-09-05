@@ -31,9 +31,9 @@ export const RimiBatchTracking: React.FC = () => {
         getRimiBatches(),
         getRimiProducts()
       ]);
-      setProducts(prodData);
+      setProducts(prodData || []);
 
-      if (Array.isArray(batchData) && batchData.length > 0) {
+      if (Array.isArray(batchData)) {
         const mapped = batchData.map((b: any) => ({
           id: b.batch_number || b.id,
           rawId: b.id,
@@ -47,12 +47,7 @@ export const RimiBatchTracking: React.FC = () => {
         }));
         setBatches(mapped);
       } else {
-        // Fallback default batch telemetry
-        setBatches([
-          { id: 'LOT-SEA-9821', rawId: '1', product: 'Premium King Prawns (500g IQF)', mfgDate: '2026-08-01', expDate: '2027-08-01', units: '450 Packs', supplier: 'Mumbai Central Deep Freeze Hub', grade: 'Grade A Export', status: 'Active' },
-          { id: 'LOT-MT-4402', rawId: '2', product: 'Gourmet Chicken Nuggets (1kg Family Pack)', mfgDate: '2026-07-15', expDate: '2027-01-15', units: '320 Packs', supplier: 'Delhi NCR Reefer Logistics Center', grade: 'Grade A Export', status: 'Active' },
-          { id: 'LOT-VG-1109', rawId: '3', product: 'Sweet Corn & Green Peas IQF (1kg)', mfgDate: '2026-06-20', expDate: '2026-12-20', units: '180 Bags', supplier: 'Bengaluru South Cold Transit Depot', grade: 'Grade A Export', status: 'Near Expiry Alert' },
-        ]);
+        setBatches([]);
       }
     } finally {
       setLoading(false);

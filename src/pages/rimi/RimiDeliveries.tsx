@@ -29,9 +29,9 @@ export const RimiDeliveries: React.FC = () => {
         getRimiDeliveries(),
         getRimiSalesOrders()
       ]);
-      setOrders(orderData);
+      setOrders(orderData || []);
 
-      if (Array.isArray(delData) && delData.length > 0) {
+      if (Array.isArray(delData)) {
         const mapped = delData.map(d => ({
           id: d.delivery_number || (d.id ? `DEL-${d.id.slice(0, 4).toUpperCase()}` : 'DEL-2026-01'),
           rawId: d.id,
@@ -45,10 +45,7 @@ export const RimiDeliveries: React.FC = () => {
         }));
         setDeliveries(mapped);
       } else {
-        setDeliveries([
-          { id: 'DEL-2026-901', rawId: '1', orderNo: 'SO-2026-101', customer: 'HyperCity Supermarkets Mumbai Hub', vehicle: 'Reefer Truck #MH-12-AZ-8901', driver: 'Sanjay Kumar', driverPhone: '+91 98765 43210', temp: '-19.2°C', status: 'In Transit' },
-          { id: 'DEL-2026-902', rawId: '2', orderNo: 'SO-2026-102', customer: 'Royal Ocean HORECA Wholesale Ltd', vehicle: 'Reefer Truck #MH-04-DX-3310', driver: 'Vikram Singh', driverPhone: '+91 98230 44556', temp: '-20.5°C', status: 'Assigned' },
-        ]);
+        setDeliveries([]);
       }
     } finally {
       setLoading(false);
