@@ -13,6 +13,7 @@ import {
   deleteRimiFrostLoss,
   getRimiStockAdjustments,
   recordRimiStockAdjustment,
+  deleteRimiStockAdjustment,
   type RimiFrostLoss,
   type RimiStockAdjustment
 } from '../../lib/api/rimi';
@@ -82,31 +83,16 @@ export const RimiInventory: React.FC = () => {
       if (Array.isArray(invData) && invData.length > 0) {
         const mapped = invData.map((d: any) => ({
           id: d.id,
-          batchNo: d.batch_number,
+          batchNo: d.batch_number || 'LOT-GEN',
           productName: d.product?.name || 'Frozen SKU',
           warehouse: d.warehouse_location || 'Mumbai Central Deep Freeze',
-          quantityNum: Number(d.quantity_on_hand),
-          unitPrice: Number(d.product?.unit_price || 350),
+          quantityNum: Number(d.quantity_on_hand) || 0,
+          unitPrice: Number(d.product?.unit_price || 500),
           quantity: `${d.quantity_on_hand} ${d.product?.unit || 'KG'}`,
-          valuation: `₹${(Number(d.quantity_on_hand) * Number(d.product?.unit_price || 350)).toLocaleString('en-IN')}`,
+          valuation: `₹${(Number(d.quantity_on_hand) * Number(d.product?.unit_price || 500)).toLocaleString('en-IN')}`,
           expiryDate: d.expiry_date,
           status: Number(d.quantity_on_hand) > 50 ? 'Optimal Stock' : 'Reorder Alert',
           statusBadge: Number(d.quantity_on_hand) > 50 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-        }));
-        setStockItems(mapped);
-      } else if (prodData.length > 0) {
-        const mapped = prodData.map((p: any) => ({
-          id: p.id,
-          batchNo: `LOT-${p.sku?.slice(0, 6) || 'SKU'}`,
-          productName: p.name,
-          warehouse: 'Mumbai Central Deep Freeze (-22°C)',
-          quantityNum: 150,
-          unitPrice: Number(p.unit_price || 400),
-          quantity: `150 ${p.unit || 'KG'}`,
-          valuation: `₹${(150 * Number(p.unit_price || 400)).toLocaleString('en-IN')}`,
-          expiryDate: '2027-04-30',
-          status: 'Optimal Stock',
-          statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
         }));
         setStockItems(mapped);
       } else {
@@ -141,8 +127,7 @@ export const RimiInventory: React.FC = () => {
   // Handle Inward Stock
   const handleAddInward = async (e: React.FormEvent) => {
     e.preventDefault();
-    const prodId = newInward.product_id || (products.length > 0 ? products[0].id : '');
-    if (!prodId) return;
+    const prodId = newInward.product_id || (products.length > 0 ? products[0].id : 'PROD-01');
 
     await createRimiInventoryItem({
       product_id: prodId,
@@ -153,6 +138,13 @@ export const RimiInventory: React.FC = () => {
     });
 
     setShowInwardModal(false);
+    setNewInward({
+      product_id: products.length > 0 ? products[0].id : '',
+      batch_number: `LOT-2026-${Math.floor(100 + Math.random() * 900)}`,
+      warehouse_location: 'Mumbai Central Deep Freeze (Bay 1)',
+      quantity: 200,
+      expiry_date: '2027-03-31'
+    });
     showToastMsg(`Inwarded stock batch ${newInward.batch_number}`);
     await loadData();
   };
@@ -200,8 +192,14 @@ export const RimiInventory: React.FC = () => {
 
   const handleDeleteFrostLoss = async (id: string) => {
     await deleteRimiFrostLoss(id);
+    setFrostLosses(prev => prev.filter(f => f.id !== id));
     showToastMsg('Deleted frost loss record');
-    loadData();
+  };
+
+  const handleDeleteAdjustment = async (id: string) => {
+    await deleteRimiStockAdjustment(id);
+    setAdjustments(prev => prev.filter(a => a.id !== id));
+    showToastMsg('Removed stock adjustment record');
   };
 
   const handleExportCSV = () => {
@@ -474,6 +472,7 @@ export const RimiInventory: React.FC = () => {
                     <th className="py-3 px-4">Source → Target Location</th>
                     <th className="py-3 px-4">Reason / Audit Trail</th>
                     <th className="py-3 px-4">Timestamp</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
@@ -494,6 +493,11 @@ export const RimiInventory: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-slate-500 font-semibold">{a.reason}</td>
                       <td className="py-3.5 px-4 font-bold text-slate-400">{new Date(a.timestamp).toLocaleDateString()}</td>
+                      <td className="py-3.5 px-4 text-right">
+                        <button onClick={() => handleDeleteAdjustment(a.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded" title="Delete Adjustment">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

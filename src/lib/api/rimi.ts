@@ -18,6 +18,31 @@ function markSeeded(entity: string): void {
 
 
 // ─── Default Real-World Seed Data for Rimi ──────────────────────────────────
+const DEFAULT_RIMI_PRODUCTS = [
+  { id: 'PROD-01', sku: 'RIMI-FF-01', name: 'frozen food', category: 'Frozen Meat & Seafood', unit: 'KG', unit_price: 500, storage_temp: '-22°C', min_stock_alert: 50, is_active: true },
+  { id: 'PROD-02', sku: 'RIMI-PRAWN', name: 'King Tiger Prawns (500g IQF)', category: 'Seafood', unit: 'Packs', unit_price: 650, storage_temp: '-18°C', min_stock_alert: 30, is_active: true },
+  { id: 'PROD-03', sku: 'RIMI-SALMON', name: 'Norwegian Atlantic Salmon', category: 'Fish', unit: 'KG', unit_price: 1200, storage_temp: '-20°C', min_stock_alert: 20, is_active: true },
+];
+
+const DEFAULT_RIMI_INVENTORY = [
+  {
+    id: 'INV-LOT-01',
+    product_id: 'PROD-01',
+    batch_number: 'LOT-RIMI-S',
+    warehouse_location: 'Mumbai Central Deep Freeze (-22°C)',
+    quantity_on_hand: 150,
+    expiry_date: '2027-04-30',
+    product: {
+      id: 'PROD-01',
+      sku: 'RIMI-FF-01',
+      name: 'frozen food',
+      unit: 'KG',
+      unit_price: 500,
+    },
+    updated_at: '2026-09-01T10:00:00Z'
+  }
+];
+
 const DEFAULT_RIMI_WAREHOUSES = [
   { id: 'WH-MUM-01', code: 'WH-MUM-01', name: 'Mumbai Central Deep Freeze Hub', city: 'Navi Mumbai', address: 'APMC Logistics Corridor, Sector 19', cold_room_temp_celsius: -22.4, total_capacity_pallets: 1200, utilized_pallets: 1056, manager_name: 'Rajesh Sharma', manager_phone: '+91 98200 44556', created_at: '2026-08-01T10:00:00Z' },
   { id: 'WH-DEL-02', code: 'WH-DEL-02', name: 'Delhi NCR Reefer Logistics Center', city: 'Gurugram', address: 'Cyber City Expressway Cold Park', cold_room_temp_celsius: -20.1, total_capacity_pallets: 850, utilized_pallets: 544, manager_name: 'Amit Verma', manager_phone: '+91 98200 44557', created_at: '2026-08-05T10:00:00Z' },
@@ -73,7 +98,8 @@ export async function getRimiProducts() {
   if (local !== null) return localList;
   if (seeded) return [];
   markSeeded('products');
-  return [];
+  try { localStorage.setItem('ferex_rimi_products', JSON.stringify(DEFAULT_RIMI_PRODUCTS)); } catch {}
+  return DEFAULT_RIMI_PRODUCTS;
 }
 
 export async function createRimiProduct(product: {
@@ -266,7 +292,11 @@ export async function getRimiInventory() {
     }
   } catch {}
 
-  return localList;
+  if (local !== null) return localList;
+  if (seeded) return [];
+  markSeeded('inventory');
+  try { localStorage.setItem('ferex_rimi_inventory', JSON.stringify(DEFAULT_RIMI_INVENTORY)); } catch {}
+  return DEFAULT_RIMI_INVENTORY;
 }
 
 export async function createRimiInventoryItem(item: {
@@ -277,21 +307,40 @@ export async function createRimiInventoryItem(item: {
   production_date?: string;
   expiry_date: string;
 }) {
+  const products = await getRimiProducts();
+  const matchedProd = products.find((p: any) => p.id === item.product_id);
+
   const payload = {
     id: generateUUID(),
     product_id: item.product_id,
     batch_number: item.batch_number,
-    warehouse_location: item.warehouse_location || 'Cold Storage 1 (Mumbai Hub)',
-    quantity_on_hand: item.quantity_on_hand,
+    warehouse_location: item.warehouse_location || 'Mumbai Central Deep Freeze (-22°C)',
+    quantity_on_hand: Number(item.quantity_on_hand) || 0,
     production_date: item.production_date || new Date().toISOString().split('T')[0],
-    expiry_date: item.expiry_date,
+    expiry_date: item.expiry_date || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    product: matchedProd ? {
+      id: matchedProd.id,
+      name: matchedProd.name,
+      sku: matchedProd.sku,
+      unit: matchedProd.unit || 'KG',
+      unit_price: matchedProd.unit_price || 500
+    } : {
+      id: item.product_id,
+      name: 'frozen food',
+      sku: 'RIMI-FF-01',
+      unit: 'KG',
+      unit_price: 500
+    },
     updated_at: new Date().toISOString(),
   };
 
   const current = await getRimiInventory();
   const updated = [payload, ...current.filter((i: any) => i.id !== payload.id)];
   try { localStorage.setItem('ferex_rimi_inventory', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('rimi_inventory').insert(payload); } catch {}
+  try {
+    const { product, ...dbPayload } = payload;
+    await supabase.from('rimi_inventory').insert(dbPayload);
+  } catch {}
   triggerLocalSync('ferex_rimi_inventory_change');
   return payload;
 }
