@@ -1,13 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Plus, Search, RefreshCw, X, Trash2, CheckCircle2,
-  Clock, FileText, Stamp, ChevronRight, ShieldCheck, Globe,
-  Sliders, Settings, ExternalLink, ArrowRight, BookOpen, Layers,
-  DollarSign, Check, Edit2, Sparkles, Building2
+  Plus, Search, X, Trash2, CheckCircle2,
+  FileText, Stamp, Globe, Edit2
 } from 'lucide-react';
-import { Card } from '../../components/Card';
-import { Button } from '../../components/Button';
 import { getStudents } from '../../lib/api/students';
 import {
   getNawaRecords, createNawaRecord, updateNawaStep, deleteNawaRecord

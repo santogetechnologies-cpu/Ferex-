@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, CheckCircle2, Shield, Bell, Palette, Mail, Lock, Building2, Plus, DollarSign, Sliders, Sparkles } from 'lucide-react';
+import { Save, CheckCircle2, Shield, Bell, Palette, Mail, Lock, Building2, Plus, DollarSign, Sparkles } from 'lucide-react';
 import { AdminFeeConfig } from './AdminFeeConfig';
 import { AdminCustomizationPolicies } from './AdminCustomizationPolicies';
 

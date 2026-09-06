@@ -4,10 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   GraduationCap, Building2, ShieldCheck, ArrowRight,
   FileCheck, Plane, HelpCircle, LogIn, LogOut, ChevronDown, Mail, Phone, MapPin,
-  User, Users, Clock, Calculator, Search, CheckCircle2, Award, Globe,
-  DollarSign, Sparkles, BookOpen, FileText, Check, ArrowUpRight, Compass, Shield
+  User, Users, Clock, Calculator, Search, Award, Globe,
+  Check, ArrowUpRight, Compass
 } from 'lucide-react';
-import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useUniversities } from '../hooks/useUniversities';
 import { useSystemConfig } from '../hooks/useSystemConfig';

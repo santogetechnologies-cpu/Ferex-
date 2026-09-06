@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck, AlertCircle, KeyRound, ArrowLeft, LogIn, UserPlus, Lock,
-  FileText, CheckCircle2, X, Shield, FileCheck, Info, Check
+  FileText, X, FileCheck, Check
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '../components/Input';

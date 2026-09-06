@@ -93,7 +93,7 @@ export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
 
   // Try Supabase system_config table if present
   try {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('system_config')
       .select('config')
       .eq('id', 'ferex-sys-config-v1')

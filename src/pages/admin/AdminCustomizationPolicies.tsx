@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Save, Sparkles, Megaphone, DollarSign, ShieldCheck, FileCheck,
-  Phone, Globe, CheckCircle2, RotateCcw, AlertTriangle, Info, BellRing,
-  HelpCircle, Sliders, Layers, Laptop, MessageCircle, Snowflake, Truck
+  Globe, RotateCcw, BellRing, Sliders, Laptop, Snowflake, Truck
 } from 'lucide-react';
 import { useSystemConfig } from '../../hooks/useSystemConfig';
 import type { SystemCustomizationConfig } from '../../lib/types';
@@ -12,10 +11,12 @@ interface Props {
   onNotify?: (msg: string) => void;
 }
 
+type SectionId = 'branding' | 'broadcast' | 'installments' | 'documents' | 'visa' | 'features' | 'digital' | 'rimi' | 'trade';
+
 export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
   const { config, updateConfig, resetToDefault, loading } = useSystemConfig();
   const [form, setForm] = useState<SystemCustomizationConfig>(config);
-  const [activeSection, setActiveSection] = useState<'branding' | 'broadcast' | 'installments' | 'documents' | 'visa' | 'features' | 'digital' | 'rimi' | 'trade'>('branding');
+  const [activeSection, setActiveSection] = useState<SectionId>('branding');
   const [isSaving, setIsSaving] = useState(false);
 
   // Sync state if external change happens and not dirty
@@ -52,7 +53,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
     }
   };
 
-  const SECTIONS = [
+  const SECTIONS: Array<{ id: SectionId; label: string; icon: React.ComponentType<any>; badge?: string }> = [
     { id: 'branding', label: 'Portal Branding & Desk', icon: Globe },
     { id: 'broadcast', label: 'Broadcast Banner', icon: Megaphone, badge: form.broadcast.is_active ? 'Active' : undefined },
     { id: 'installments', label: 'Fee & Installments', icon: DollarSign },
@@ -62,7 +63,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
     { id: 'digital', label: 'FEREX Digital Agency', icon: Laptop },
     { id: 'rimi', label: 'Rimi Frozen Logistics', icon: Snowflake },
     { id: 'trade', label: 'Global Trade & Maritime', icon: Truck },
-  ] as const;
+  ];
 
   return (
     <div className="space-y-6 text-left">

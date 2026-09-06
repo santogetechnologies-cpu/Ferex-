@@ -1,19 +1,26 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Settings, CheckCircle2, Shield, Ship, DollarSign, Megaphone,
-  Anchor, Building2, Save, RotateCcw, Plus, Trash2, Sliders, Sparkles,
-  AlertTriangle, Phone, Globe, FileText, Check, Clock, Compass, FileCheck
+  Settings, CheckCircle2, Ship, Megaphone,
+  Anchor, Building2, Save, RotateCcw, Plus, Trash2, Sliders
 } from 'lucide-react';
 import { Card } from '../../components/Card';
-import { Button } from '../../components/Button';
 import { useTradeConfig } from '../../hooks/useTradeConfig';
 import type { TradeCustomizationConfig, TradeFreightCorridor } from '../../lib/api/tradeConfig';
+
+type TradeTab = 'branding' | 'incoterms' | 'client_policies' | 'broadcast' | 'corridors';
+interface TabItem {
+  id: TradeTab;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  count?: number;
+}
 
 export const TradeSettings: React.FC = () => {
   const { config, updateConfig, resetToDefault, loading } = useTradeConfig();
   const [form, setForm] = useState<TradeCustomizationConfig>(config);
-  const [activeTab, setActiveTab] = useState<'branding' | 'incoterms' | 'client_policies' | 'broadcast' | 'corridors'>('branding');
+  const [activeTab, setActiveTab] = useState<TradeTab>('branding');
   const [toast, setToast] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -76,13 +83,13 @@ export const TradeSettings: React.FC = () => {
     });
   };
 
-  const TABS = [
+  const TABS: TabItem[] = [
     { id: 'branding', label: 'Entity & Port Desk', icon: Building2 },
     { id: 'incoterms', label: 'Incoterms & Banking Policies', icon: Anchor },
     { id: 'client_policies', label: 'Client Portal & Cargo Rules', icon: Sliders },
     { id: 'broadcast', label: 'Live Maritime Broadcast', icon: Megaphone, badge: form.broadcast?.is_active ? 'Live' : undefined },
     { id: 'corridors', label: 'Shipping Corridors & Routes', icon: Ship, count: form.corridors?.length },
-  ] as const;
+  ];
 
   return (
     <div className="space-y-6 text-left antialiased">

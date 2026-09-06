@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Compass, CheckCircle2, Clock, ArrowRight, XCircle, Globe, ShieldCheck, FileCheck, Layers } from 'lucide-react';
+import { Compass, CheckCircle2, Clock, ArrowRight, XCircle, Globe } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,7 +12,6 @@ import { useVisa } from '../hooks/useVisa';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { getNawaRecords } from '../lib/api/nawa';
 import type { NawaRecord } from '../lib/api/nawa';
-import type { JourneyStage } from '../lib/types';
 
 export const JourneyTracker: React.FC = () => {
   const navigate = useNavigate();
@@ -23,7 +22,6 @@ export const JourneyTracker: React.FC = () => {
   const { records: visaRecords } = useVisa(user?.id);
   const { workflows, getWorkflowForCountry } = useCountryWorkflows();
 
-  const [stages, setStages] = useState<JourneyStage[]>([]);
   const [nawaRecord, setNawaRecord] = useState<NawaRecord | null>(null);
 
   // Determine student target country and workflow
@@ -179,7 +177,7 @@ export const JourneyTracker: React.FC = () => {
       name: `4. ${targetWorkflow.authority_acronym} Process — ${targetWorkflow.country} Legalization & Audit`,
       status: (() => {
         const hasApprovedApp = applications.some(a => String(a.status || '').toLowerCase().includes('approved'));
-        if (nawaRecord?.status === 'Approved' || nawaRecord?.current_step >= maxAuthSteps || hasApprovedApp) return 'completed';
+        if (nawaRecord?.status === 'Approved' || (nawaRecord?.current_step ?? 0) >= maxAuthSteps || hasApprovedApp) return 'completed';
         const activeAppRec = applications.find(a => String(a.status || '').toLowerCase().includes('review') || String(a.status || '').toLowerCase().includes('step'));
         if (nawaRecord || activeAppRec) return 'current';
         if (!inst1Paid && applications.length === 0) return 'pending';
@@ -187,14 +185,14 @@ export const JourneyTracker: React.FC = () => {
       })(),
       date: (() => {
         const hasApprovedApp = applications.some(a => String(a.status || '').toLowerCase().includes('approved'));
-        if (nawaRecord?.status === 'Approved' || nawaRecord?.current_step >= maxAuthSteps || hasApprovedApp) return `✓ ${targetWorkflow.authority_acronym} Approved`;
+        if (nawaRecord?.status === 'Approved' || (nawaRecord?.current_step ?? 0) >= maxAuthSteps || hasApprovedApp) return `✓ ${targetWorkflow.authority_acronym} Approved`;
         if (nawaRecord) return `Step ${nawaRecord.current_step} of ${maxAuthSteps} — ${nawaRecord.status}`;
         if (!inst1Paid) return '🔒 Requires 1st Installment';
         return 'Initiated';
       })(),
       desc: `FEREX initiates ${targetWorkflow.authority_name} qualification verification, sworn translations, and comparability certificates.`,
       detail: (() => {
-        if (nawaRecord?.status === 'Approved' || nawaRecord?.current_step >= maxAuthSteps) {
+        if (nawaRecord?.status === 'Approved' || (nawaRecord?.current_step ?? 0) >= maxAuthSteps) {
           return `✅ ${targetWorkflow.authority_name} approved and certificate granted!`;
         }
         if (nawaRecord) {

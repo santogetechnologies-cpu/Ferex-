@@ -1,19 +1,27 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Settings, Shield, Bell, Key, Globe, CheckCircle2, Save,
-  Megaphone, Sliders, DollarSign, Layers, Sparkles, RotateCcw,
-  Plus, Trash2, Check, ExternalLink, Code2, Smartphone, Palette, TrendingUp
+  Settings, Globe, CheckCircle2, Save,
+  Megaphone, Sliders, Layers, Sparkles, RotateCcw,
+  Plus, Trash2
 } from 'lucide-react';
 import { Card } from '../../components/Card';
-import { Button } from '../../components/Button';
 import { useDigitalConfig } from '../../hooks/useDigitalConfig';
 import type { DigitalCustomizationConfig, DigitalServicePackage } from '../../lib/api/digitalConfig';
+
+type DigitalTab = 'branding' | 'client_policies' | 'delivery' | 'broadcast' | 'services';
+interface TabItem {
+  id: DigitalTab;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  count?: number;
+}
 
 export const DigitalSettings: React.FC = () => {
   const { config, updateConfig, resetToDefault, loading } = useDigitalConfig();
   const [form, setForm] = useState<DigitalCustomizationConfig>(config);
-  const [activeTab, setActiveTab] = useState<'branding' | 'client_policies' | 'delivery' | 'broadcast' | 'services'>('branding');
+  const [activeTab, setActiveTab] = useState<DigitalTab>('branding');
   const [toast, setToast] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -77,13 +85,13 @@ export const DigitalSettings: React.FC = () => {
     });
   };
 
-  const TABS = [
+  const TABS: TabItem[] = [
     { id: 'branding', label: 'Agency Branding & Desks', icon: Globe },
     { id: 'client_policies', label: 'Client Portal & SLAs', icon: Sliders },
     { id: 'delivery', label: 'Sprint & Quality Gates', icon: Layers },
     { id: 'broadcast', label: 'Broadcast Banner', icon: Megaphone, badge: form.broadcast?.is_active ? 'Live' : undefined },
     { id: 'services', label: 'Service Offerings', icon: Sparkles, count: form.services?.length },
-  ] as const;
+  ];
 
   return (
     <div className="space-y-6 text-left antialiased">

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getSystemConfig, saveSystemConfig, resetSystemConfig, DEFAULT_SYSTEM_CONFIG } from '../lib/api/systemConfig';
-import type { SystemCustomizationConfig } from '../types';
+import type { SystemCustomizationConfig } from '../lib/types';
 
 export const useSystemConfig = () => {
   const [config, setConfig] = useState<SystemCustomizationConfig>(DEFAULT_SYSTEM_CONFIG);

@@ -6,7 +6,7 @@ import type { CountryWorkflowConfig } from '../lib/types';
 
 export function useCountryWorkflows() {
   const [workflows, setWorkflows] = useState<CountryWorkflowConfig[]>(getCountryWorkflows());
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   const refresh = useCallback(() => {
     setWorkflows(getCountryWorkflows());

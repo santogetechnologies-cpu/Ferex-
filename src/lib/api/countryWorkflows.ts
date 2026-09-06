@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import type { CountryWorkflowConfig, WorkflowStageConfig, WorkflowDocumentRequirement, VisaProcedureConfig } from '../types';
+import type { CountryWorkflowConfig } from '../types';
 
 export const DEFAULT_COUNTRY_WORKFLOWS: CountryWorkflowConfig[] = [
   {
@@ -628,10 +628,12 @@ export function saveCountryWorkflow(workflow: CountryWorkflowConfig): CountryWor
   }
 
   // Attempt async sync to Supabase system_config
-  supabase.from('system_config').upsert({
-    key: `workflow_${workflow.country.toLowerCase()}`,
-    value: workflow
-  }).catch(() => {});
+  Promise.resolve(
+    supabase.from('system_config').upsert({
+      key: `workflow_${workflow.country.toLowerCase()}`,
+      value: workflow
+    })
+  ).catch(() => {});
 
   window.dispatchEvent(new Event('ferex_country_workflow_change'));
   window.dispatchEvent(new Event('ferex_nawa_change'));

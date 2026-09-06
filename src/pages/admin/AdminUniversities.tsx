@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Plus, Building2, MapPin, Trash2, X, CheckCircle2, Edit2,
-  Calendar, DollarSign, Layers, ChevronRight, Eye, GraduationCap, Image, Globe, Shield, Sparkles
+  Calendar, ChevronRight, Eye, GraduationCap, Shield
 } from 'lucide-react';
 import { useUniversities } from '../../hooks/useUniversities';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
@@ -51,19 +51,6 @@ const PRESET_COUNTRIES = [
   'Netherlands',
   'United Kingdom',
   'United States'
-];
-
-const PRESET_BADGES = [
-  'Top Choice',
-  'AACSB Accredited',
-  'High Acceptance',
-  'Research Hub',
-  'Industry Partner',
-  'Top European Rank',
-  'Historic Heritage',
-  'Affordable Living',
-  'DSU Scholarship Eligible',
-  'Zero Tuition Candidate'
 ];
 
 export const AdminUniversities: React.FC = () => {
@@ -172,16 +159,6 @@ export const AdminUniversities: React.FC = () => {
     setInstallmentsList(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleUpdateSemesterSubject = (semIndex: number, subIndex: number, val: string) => {
-    setSemestersList(prev => prev.map((sem, i) => {
-      if (i === semIndex) {
-        const nextSubs = [...sem.subjects];
-        nextSubs[subIndex] = val;
-        return { ...sem, subjects: nextSubs };
-      }
-      return sem;
-    }));
-  };
 
   const resetForm = () => {
     setEditingId(null);
@@ -419,8 +396,6 @@ export const AdminUniversities: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map(u => {
             const displayIntakes = u.intakes || ['October 2026', 'February 2027'];
-            const vFee = u.vfs_fee || '₹15,000';
-            const aFee = u.agency_fee || '₹25,000';
 
             return (
               <motion.div

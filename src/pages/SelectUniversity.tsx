@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, Upload, Globe, ShieldCheck, FileCheck } from 'lucide-react';
+import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, Upload, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUniversities } from '../hooks/useUniversities';
 import { useApplications } from '../hooks/useApplications';
@@ -15,12 +15,10 @@ export const SelectUniversity: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { universities } = useUniversities();
-  const { addApp, applications } = useApplications(user?.id);
+  const { addApp } = useApplications(user?.id);
   const { payments } = usePayments(user?.id);
   const { documents } = useDocuments(user?.id);
   const { getWorkflowForCountry } = useCountryWorkflows();
-
-  const [nawaApproved, setNawaApproved] = useState<boolean>(false);
 
   useEffect(() => {
     const checkNawa = () => {

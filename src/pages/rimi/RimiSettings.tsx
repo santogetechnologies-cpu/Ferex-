@@ -1,19 +1,26 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Settings, CheckCircle2, Shield, Thermometer, DollarSign, Megaphone,
-  Truck, Building2, Save, RotateCcw, Plus, Trash2, Sliders, Sparkles,
-  AlertTriangle, Phone, Globe, FileText, Check, Clock
+  Settings, CheckCircle2, Thermometer, Megaphone,
+  Truck, Building2, Save, RotateCcw, Plus, Trash2, Sliders
 } from 'lucide-react';
 import { Card } from '../../components/Card';
-import { Button } from '../../components/Button';
 import { useRimiConfig } from '../../hooks/useRimiConfig';
 import type { RimiCustomizationConfig, RimiDistributionZone } from '../../lib/api/rimiConfig';
+
+type RimiTab = 'branding' | 'cold_chain' | 'customer_policies' | 'broadcast' | 'zones';
+interface TabItem {
+  id: RimiTab;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  count?: number;
+}
 
 export const RimiSettings: React.FC = () => {
   const { config, updateConfig, resetToDefault, loading } = useRimiConfig();
   const [form, setForm] = useState<RimiCustomizationConfig>(config);
-  const [activeTab, setActiveTab] = useState<'branding' | 'cold_chain' | 'customer_policies' | 'broadcast' | 'zones'>('branding');
+  const [activeTab, setActiveTab] = useState<RimiTab>('branding');
   const [toast, setToast] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -76,13 +83,13 @@ export const RimiSettings: React.FC = () => {
     });
   };
 
-  const TABS = [
+  const TABS: TabItem[] = [
     { id: 'branding', label: 'Entity & Hub Branding', icon: Building2 },
     { id: 'cold_chain', label: 'Cold Chain & Safety Limits', icon: Thermometer },
     { id: 'customer_policies', label: 'Customer Order Policies', icon: Sliders },
     { id: 'broadcast', label: 'Live Broadcast Ticker', icon: Megaphone, badge: form.broadcast?.is_active ? 'Live' : undefined },
     { id: 'zones', label: 'Distribution Hubs & Routes', icon: Truck, count: form.zones?.length },
-  ] as const;
+  ];
 
   return (
     <div className="space-y-6 text-left antialiased">
