@@ -31,12 +31,10 @@ export const DigitalMarketing: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [pData, cData, lData] = await Promise.all([
-        getDigitalProjects(),
+      const [cData, lData] = await Promise.all([
         getDigitalClients(),
         getDigitalLeads()
       ]);
-      setProjects(pData || []);
       setClients(cData || []);
       setLeads(lData || []);
 

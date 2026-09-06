@@ -844,14 +844,10 @@ export async function createDigitalEmployee(emp: {
   const current = await getDigitalEmployees();
   const created = {
     id: `EMP-${Math.floor(10 + Math.random() * 90)}`,
-    name: emp.name,
-    role: emp.role,
-    department: emp.department,
-    email: emp.email,
-    rating: emp.rating ?? 4.8,
     status: 'Active',
     projectsCount: emp.projects || 1,
-    ...emp
+    ...emp,
+    rating: emp.rating ?? 4.8,
   };
   const updated = [created, ...current];
   localStorage.setItem('ferex_digital_employees', JSON.stringify(updated));
@@ -867,6 +863,9 @@ export async function updateDigitalEmployee(id: string, updates: Partial<{
   status: string;
   projectsCount: number;
   rating?: number;
+  kpiScore?: number;
+  feedback?: string;
+  tasks?: number;
 }>) {
   const current = await getDigitalEmployees();
   const updated = current.map((e: any) => e.id === id ? { ...e, ...updates } : e);

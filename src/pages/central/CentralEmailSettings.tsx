@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail, CheckCircle2, Send, Terminal, Globe, Server,
   Key, Save, Copy, Check,
-  Zap, Database, Eye, EyeOff, Sliders,
+  Zap, Database, Eye, EyeOff, Sliders, RefreshCw,
   GraduationCap, Snowflake, Monitor
 } from 'lucide-react';
 import {

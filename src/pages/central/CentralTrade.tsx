@@ -12,6 +12,7 @@ import {
   getTradeLettersOfCredit,
   getTradeCRMContacts
 } from '../../lib/api/trade';
+import { sendTradeStageEmail } from '../../lib/api/automatedEmails';
 
 export const CentralTrade: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'shipments' | 'documents' | 'lcs' | 'clients'>('shipments');
