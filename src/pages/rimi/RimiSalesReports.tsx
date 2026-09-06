@@ -11,7 +11,7 @@ export const RimiSalesReports: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [distributors, setDistributors] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<any | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'retail' | 'distributor' | 'category'>('all');
 

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Mail, Send, CheckCircle2, AlertTriangle, Search, Filter, Eye, RefreshCw, 
-  ExternalLink, Download, Clock, ShieldCheck, Check, Globe, GraduationCap, 
-  Snowflake, Monitor, ArrowRight, X, Sparkles, Inbox
+  Mail, Send, CheckCircle2, Search, Eye, RefreshCw, 
+  Download, Clock, Check, Globe, GraduationCap, 
+  Snowflake, Monitor, X, Inbox
 } from 'lucide-react';
-import { getLocalEmailLogs, EmailLogEntry, logAutomatedEmail } from '../../lib/api/automatedEmails';
+import { getLocalEmailLogs, type EmailLogEntry, logAutomatedEmail } from '../../lib/api/automatedEmails';
 
 export const CentralEmailLogs: React.FC = () => {
   const [logs, setLogs] = useState<EmailLogEntry[]>([]);

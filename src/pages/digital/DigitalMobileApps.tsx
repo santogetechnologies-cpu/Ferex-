@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Smartphone, CheckCircle2, Play, X, Send, Plus, RefreshCw, Cpu, ShieldCheck } from 'lucide-react';
+import { Smartphone, CheckCircle2, Play, X, Send, Plus, ShieldCheck } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getDigitalProjects, getDigitalEmployees } from '../../lib/api/digital';
@@ -13,7 +13,7 @@ export const DigitalMobileApps: React.FC = () => {
   const [selectedBuild, setSelectedBuild] = useState<any>(null);
   const [showBuildModal, setShowBuildModal] = useState(false);
   const [appReleases, setAppReleases] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   const [newBuild, setNewBuild] = useState({
     ver: 'v2.5.0 (Build 860)',

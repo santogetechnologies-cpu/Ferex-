@@ -10,7 +10,6 @@ import {
   getDigitalMeetings,
 } from '../../lib/api/digital';
 import { UnifiedPaymentModal } from '../../components/UnifiedPaymentModal';
-import { CreditCard, QrCode } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ClientData {

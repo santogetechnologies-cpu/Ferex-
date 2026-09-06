@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CreditCard, QrCode, ShieldCheck, CheckCircle2, Copy, Check,
-  ExternalLink, Lock, AlertCircle, Sparkles, Download, X, Clock, ArrowRight
+  Lock, Download, X, Clock
 } from 'lucide-react';
 import { Button } from './Button';
-import { Card } from './Card';
 import {
   getGlobalPaymentGateways,
   generateUpiPaymentUri,
@@ -45,7 +44,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
   invoiceId,
   purpose,
   payerName = 'Payer Account',
-  payerEmail,
+  payerEmail = 'payer@ferexventures.com',
   studentId,
   clientId,
   customerId,
@@ -143,6 +142,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
           cardLast4: cardNumber.slice(-4) || '4242',
           cardBrand: 'Visa / Mastercard',
           stripeEnvironment: gateways.stripe.environment,
+          payerEmail,
         }
       });
 
@@ -178,6 +178,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
         metadata: {
           upiIdUsed: upiId,
           merchantName,
+          payerEmail,
         }
       });
 

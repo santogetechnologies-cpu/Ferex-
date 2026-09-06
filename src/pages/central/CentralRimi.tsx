@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Snowflake, Search, ShoppingBag, Truck, FileText, Download,
+  Snowflake, Search, ShoppingBag, Truck, Download,
   CheckCircle2, RefreshCw, ThermometerSnowflake, UserCheck, Layers
 } from 'lucide-react';
 import { Card } from '../../components/Card';
@@ -12,14 +12,13 @@ import {
   getRimiDeliveries,
   getRimiProducts
 } from '../../lib/api/rimi';
-import { sendRimiColdChainEmail } from '../../lib/api/automatedEmails';
 
 export const CentralRimi: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'customers' | 'sales' | 'inventory' | 'fleet'>('customers');
   const [customerFilter, setCustomerFilter] = useState<'All' | 'Distributor' | 'Retailer' | 'Wholesaler'>('All');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   const [customers, setCustomers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);

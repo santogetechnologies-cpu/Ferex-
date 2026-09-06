@@ -78,7 +78,7 @@ export const DigitalDashboard: React.FC = () => {
       {/* Live Broadcast Ticker if active */}
       {config.broadcast?.is_active && config.broadcast.message && (
         <div className={`p-4 rounded-xl border flex items-center gap-3 shadow-xs ${
-          config.broadcast.urgency === 'danger'
+          config.broadcast.urgency === 'urgent'
             ? 'bg-rose-50 border-rose-200 text-rose-800'
             : config.broadcast.urgency === 'warning'
             ? 'bg-amber-50 border-amber-200 text-amber-800'

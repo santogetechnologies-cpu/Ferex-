@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Award, CheckCircle2, Download, Copy, Check,
-  Package, CreditCard, Shirt, Tv, Sparkles, RefreshCw
+  Package, CreditCard, Shirt, Tv, Sparkles
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -16,7 +16,7 @@ export const DigitalBranding: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [selectedMockup, setSelectedMockup] = useState<'business-card' | 'packaging' | 'merch' | 'billboard'>('business-card');
 
-  const [colorSwatches, setColorSwatches] = useState([
+  const [colorSwatches] = useState([
     { name: 'Deep Maroon', hex: '#6A1B2E', role: 'Primary Brand' },
     { name: 'Crimson Rose', hex: '#9B3A50', role: 'Secondary Accent' },
     { name: 'Emerald Velvet', hex: '#10B981', role: 'Success Token' },

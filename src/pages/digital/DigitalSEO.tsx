@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getDigitalProjects, getDigitalClients } from '../../lib/api/digital';
+import { getDigitalClients } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 
 // ── Crawler Modal Steps ─────────────────────────────────────────────────────
@@ -30,7 +30,6 @@ const crawlerSteps = [
 
 export const DigitalSEO: React.FC = () => {
   const [toast, setToast] = useState('');
-  const [projects, setProjects] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('enterprise software solutions');
@@ -64,11 +63,7 @@ export const DigitalSEO: React.FC = () => {
 
   const loadData = useCallback(async () => {
     try {
-      const [pData, cData] = await Promise.all([
-        getDigitalProjects(),
-        getDigitalClients(),
-      ]);
-      setProjects(pData || []);
+      const cData = await getDigitalClients();
       setClients(cData || []);
       if (cData && cData.length > 0 && !selectedClient) {
         setSelectedClient(cData[0]);

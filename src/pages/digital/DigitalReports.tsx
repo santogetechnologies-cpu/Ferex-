@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Download, Printer, Filter, Calendar, CheckCircle2, Search, FileSpreadsheet, X, Layers, Briefcase, Users } from 'lucide-react';
+import { FileText, Download, Printer, Filter, Calendar, CheckCircle2, Search, FileSpreadsheet, X } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getDigitalInvoices, getDigitalProjects, getDigitalClients, getDigitalEmployees, getDigitalAssets } from '../../lib/api/digital';

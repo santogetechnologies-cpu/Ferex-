@@ -835,6 +835,11 @@ export async function createDigitalEmployee(emp: {
   role: string;
   department: string;
   email: string;
+  rating?: number;
+  kpiScore?: number;
+  feedback?: string;
+  projects?: number;
+  tasks?: number;
 }) {
   const current = await getDigitalEmployees();
   const created = {
@@ -843,13 +848,31 @@ export async function createDigitalEmployee(emp: {
     role: emp.role,
     department: emp.department,
     email: emp.email,
+    rating: emp.rating ?? 4.8,
     status: 'Active',
-    projectsCount: 1
+    projectsCount: emp.projects || 1,
+    ...emp
   };
   const updated = [created, ...current];
   localStorage.setItem('ferex_digital_employees', JSON.stringify(updated));
   triggerLocalSync('ferex_digital_employees_change');
   return created;
+}
+
+export async function updateDigitalEmployee(id: string, updates: Partial<{
+  name: string;
+  role: string;
+  department: string;
+  email: string;
+  status: string;
+  projectsCount: number;
+  rating?: number;
+}>) {
+  const current = await getDigitalEmployees();
+  const updated = current.map((e: any) => e.id === id ? { ...e, ...updates } : e);
+  localStorage.setItem('ferex_digital_employees', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_employees_change');
+  return updated.find((e: any) => e.id === id) || { id, ...updates };
 }
 
 export async function deleteDigitalEmployee(id: string) {
@@ -1373,68 +1396,6 @@ export async function getDigitalAssetCostSummary() {
     activeCount,
     totalAssetsCount: assets.length
   };
-}
-
-// ─── Digital Notifications ──────────────────────────────────────────────────
-export async function getDigitalNotifications(): Promise<any[]> {
-  const local = localStorage.getItem('ferex_digital_notifications');
-  let localList: any[] = [];
-  if (local !== null) {
-    try { localList = JSON.parse(local); } catch {}
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('digital_notifications')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!error && Array.isArray(data) && data.length > 0) {
-      const map = new Map<string, any>();
-      data.forEach((item: any) => map.set(item.id, item));
-      localList.forEach((item: any) => { if (!map.has(item.id)) map.set(item.id, item); });
-      const merged = Array.from(map.values());
-      try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(merged)); } catch {}
-      return merged;
-    }
-  } catch {}
-
-  if (localList.length > 0) return localList;
-
-  const defaultNotifications = [
-    { id: 'NTF-001', title: 'Invoice Paid', description: 'Nexus FinTech Global settled Tax Invoice #INV-DIG-8810 (₹4,50,000 via RTGS).', is_read: false, category: 'Finance', created_at: new Date(Date.now() - 7200000).toISOString() },
-    { id: 'NTF-002', title: 'Sprint Milestone Completed', description: 'Starlight E-Commerce Design System approved for production build.', is_read: false, category: 'Projects', created_at: new Date(Date.now() - 14400000).toISOString() },
-    { id: 'NTF-003', title: 'AWS Cloud Alert', description: 'Production cluster utilization steady at 38%. Zero downtime.', is_read: true, category: 'DevOps', created_at: new Date(Date.now() - 86400000).toISOString() },
-  ];
-  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(defaultNotifications)); } catch {}
-  return defaultNotifications;
-}
-
-export async function createDigitalNotification(notif: { title: string; description: string; category?: string }): Promise<any> {
-  const id = generateUUID();
-  const payload = {
-    id,
-    title: notif.title,
-    description: notif.description,
-    category: notif.category || 'Engineering',
-    is_read: false,
-    created_at: new Date().toISOString()
-  };
-  const current = await getDigitalNotifications();
-  const updated = [payload, ...current];
-  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_notifications').insert(payload); } catch {}
-  triggerLocalSync('ferex_digital_notifications_change');
-  return payload;
-}
-
-export async function markDigitalNotificationRead(id: string): Promise<boolean> {
-  const current = await getDigitalNotifications();
-  const updated = current.map(n => n.id === id ? { ...n, is_read: true } : n);
-  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_notifications').update({ is_read: true }).eq('id', id); } catch {}
-  triggerLocalSync('ferex_digital_notifications_change');
-  return true;
 }
 
 

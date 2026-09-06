@@ -1,22 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Megaphone, CheckCircle2, Heart, MessageCircle, Share2, BarChart3, Plus, X, Globe, Sparkles
+  Megaphone, CheckCircle2, Heart, MessageCircle, Share2, BarChart3, Plus, X, Sparkles
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getDigitalProjects, getDigitalClients, getDigitalLeads } from '../../lib/api/digital';
+import { getDigitalClients, getDigitalLeads } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 
 export const DigitalMarketing: React.FC = () => {
   const [toast, setToast] = useState('');
-  const [projects, setProjects] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   const [newCampaign, setNewCampaign] = useState({
     name: 'Diwali Festive Omnichannel Blast',

@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Mail, Settings, CheckCircle2, Shield, Send, Terminal, Globe, Server,
-  Lock, Key, RefreshCw, Save, Copy, Check, AlertTriangle, ExternalLink,
-  Zap, Database, Eye, EyeOff, Sparkles, Sliders, ChevronRight, Layers,
-  GraduationCap, Snowflake, Monitor, HelpCircle
+  Mail, CheckCircle2, Send, Terminal, Globe, Server,
+  Key, Save, Copy, Check,
+  Zap, Database, Eye, EyeOff, Sliders,
+  GraduationCap, Snowflake, Monitor
 } from 'lucide-react';
 import {
-  EmailProviderType,
-  GlobalEmailConfig,
+  type EmailProviderType,
+  type GlobalEmailConfig,
   DEFAULT_EMAIL_CONFIG,
   getGlobalEmailConfig,
   saveGlobalEmailConfig,
   sendTestEmail,
-  TestEmailResult,
+  type TestEmailResult,
   SQL_SCHEMA_EMAIL_CONFIG
 } from '../../lib/api/emailSettings';
 
@@ -95,7 +95,7 @@ export const CentralEmailSettings: React.FC = () => {
   const [config, setConfig] = useState<GlobalEmailConfig>(DEFAULT_EMAIL_CONFIG);
   const [selectedProviderTab, setSelectedProviderTab] = useState<EmailProviderType>('resend');
   const [activeSection, setActiveSection] = useState<'providers' | 'senders' | 'advanced' | 'schema'>('providers');
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});

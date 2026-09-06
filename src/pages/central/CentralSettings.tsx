@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, Shield, Database, Globe, CheckCircle2,
-  RefreshCw, Save, Mail, CreditCard, QrCode, Lock, Check,
-  ExternalLink, Sparkles, Sliders
+  RefreshCw, Save, Mail, CreditCard, QrCode
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';

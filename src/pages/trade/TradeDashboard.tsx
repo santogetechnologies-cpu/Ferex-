@@ -108,7 +108,7 @@ export const TradeDashboard: React.FC = () => {
           <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] uppercase font-black tracking-widest bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white">
-                {tradeConfig.branding.legal_entity_name || 'FEREX GLOBAL TRADE CORP'}
+                {tradeConfig.branding.entity_name || 'FEREX GLOBAL TRADE CORP'}
               </span>
               <span className="text-[10px] font-extrabold text-amber-300 bg-amber-500/20 px-2.5 py-1 rounded-full border border-amber-400/30">
                 IEC: {tradeConfig.branding.iec_code || '0315024881'}

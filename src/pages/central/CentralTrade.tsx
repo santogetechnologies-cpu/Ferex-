@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Globe, Search, Ship, FileText, CreditCard, CheckCircle2,
-  Anchor, Navigation, Filter, Eye, RefreshCw, Clock, Send, Download
+  Anchor, RefreshCw
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -12,21 +12,19 @@ import {
   getTradeLettersOfCredit,
   getTradeCRMContacts
 } from '../../lib/api/trade';
-import { sendTradeStageEmail } from '../../lib/api/automatedEmails';
 
 export const CentralTrade: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'shipments' | 'documents' | 'lcs' | 'clients'>('shipments');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [toast, setToast] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   const [shipments, setShipments] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [lcs, setLcs] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
 
-  const [selectedShipment, setSelectedShipment] = useState<any | null>(null);
   const [reassignModal, setReassignModal] = useState<any | null>(null);
   const [newStaff, setNewStaff] = useState('Marek Kowalski');
 

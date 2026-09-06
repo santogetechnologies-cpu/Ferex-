@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Logo } from '../../components/Logo';
+import { supabase } from '../../lib/supabase';
 
 export const TradeLoginPage: React.FC = () => {
   const navigate = useNavigate();

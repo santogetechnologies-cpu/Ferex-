@@ -1,26 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Monitor, Search, FolderKanban, FileText, CheckSquare, Users,
-  CheckCircle2, RefreshCw, Layers, DollarSign, Eye
+  Monitor, Search, FolderKanban, FileText, Users,
+  CheckCircle2, RefreshCw
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import {
   getDigitalProjects,
   getDigitalClients,
-  getDigitalInvoices,
-  getDigitalTasks
+  getDigitalInvoices
 } from '../../lib/api/digital';
 import { sendDigitalProjectMilestoneEmail } from '../../lib/api/automatedEmails';
 
 export const CentralDigital: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'projects' | 'clients' | 'invoices'>('projects');
   const [clientTypeFilter, setClientTypeFilter] = useState<'All' | 'Internal' | 'External'>('All');
-  const [stageFilter, setStageFilter] = useState('All');
+  const [stageFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   const [projects, setProjects] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
