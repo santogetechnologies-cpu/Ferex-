@@ -14,12 +14,14 @@ import { usePayments } from '../hooks/usePayments';
 import { useMeetings } from '../hooks/useMeetings';
 import { useVisa } from '../hooks/useVisa';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
+import { useSystemConfig } from '../hooks/useSystemConfig';
 import { getNawaRecords } from '../lib/api/nawa';
 import type { NawaRecord } from '../lib/api/nawa';
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { config } = useSystemConfig();
 
   const { applications } = useApplications(user?.id);
   const { documents } = useDocuments(user?.id);
@@ -143,7 +145,7 @@ export const StudentDashboard: React.FC = () => {
   const checklistItems = [
     { title: '1. Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },
     { title: '2. Mandatory Document Vault (Passport & Marksheets)', isDone: hasApprovedDocs, path: '/student/documents', tag: hasApprovedDocs ? 'Verified' : isDocsUnderReview ? 'Under Review' : 'Mandatory' },
-    { title: '3. 1st Installment Fee Payment (₹15,000)', isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
+    { title: `3. 1st Installment Fee Payment (${config.installments.stage_1_currency === 'EUR' ? '€' : '₹'}${config.installments.stage_1_amount.toLocaleString()})`, isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
     { title: `4. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isNawaApproved, path: '/student/documents', tag: isNawaApproved ? 'Approved' : isNawaSubmitted ? 'Submitted' : isNawaInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Locked' },
     { title: '5. University Selection & Course Application', isDone: isUniSelected, path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Action Needed' },
     { title: '6. Official Admission Offer Issued & Accepted', isDone: isOfferAccepted, path: '/student/offers', tag: isOfferAccepted ? 'Accepted' : hasOffer ? 'Offer Released' : 'Pending' },
@@ -151,7 +153,7 @@ export const StudentDashboard: React.FC = () => {
     { title: '8. Final Acceptance Letter from University', isDone: isFinalAcceptanceIssued, path: '/student/offers', tag: isFinalAcceptanceIssued ? 'Released' : inst2Paid ? 'Awaiting Release' : 'Pending Deposit' },
     { title: '9. VFS Embassy Visa Application Filed', isDone: isVisaFiled, path: '/student/visa-tracker', tag: isVisaFiled ? 'Filed' : 'Pending' },
     { title: '10. Embassy Visa Decision (Approved / Rejected)', isDone: isVisaApproved, isRejected: isVisaRejected, path: '/student/visa-tracker', tag: isVisaApproved ? 'Approved' : isVisaRejected ? 'Rejected' : 'Review' },
-    { title: '11. 3rd Installment & Departure Clearance', isDone: inst3Paid, path: '/student/payments', tag: inst3Paid ? 'Paid' : 'Due' },
+    { title: `11. 3rd Installment & Departure Clearance (${config.installments.stage_3_currency === 'EUR' ? '€' : '₹'}${config.installments.stage_3_amount.toLocaleString()})`, isDone: inst3Paid, path: '/student/payments', tag: inst3Paid ? 'Paid' : 'Due' },
     { title: '12. Post Travel & Campus Arrival', isDone: inst3Paid && isVisaApproved, path: '/student/pre-departure', tag: inst3Paid && isVisaApproved ? 'Arrival Ready' : 'Final Milestone' },
   ];
 
@@ -388,11 +390,25 @@ export const StudentDashboard: React.FC = () => {
                       {namePart}
                     </h4>
                     <p className="text-[10.5px] font-bold text-slate-500 truncate">{titlePart}</p>
-                    <p className="text-[9.5px] font-semibold text-emerald-600">FEREX Admissions Desk</p>
+                    <p className="text-[9.5px] font-semibold text-emerald-600">{config.branding.portal_title || 'FEREX Admissions Desk'}</p>
                   </div>
                 </div>
               );
             })()}
+            {config.branding.operating_hours && (
+              <div className="p-2 rounded-lg bg-slate-100/70 border border-slate-200/60 text-[10px] font-bold text-slate-600 space-y-0.5">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Desk Hours:</span>
+                  <span className="text-slate-800 font-extrabold">{config.branding.operating_hours}</span>
+                </div>
+                {config.branding.support_phone && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Helpline:</span>
+                    <span className="text-slate-800 font-extrabold">{config.branding.support_phone}</span>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2 pt-1">
               <Button size="sm" variant="outline" className="text-xs font-bold h-8" onClick={() => navigate('/student/meetings')}>
                 💬 Chat / Notes

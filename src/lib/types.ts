@@ -329,3 +329,84 @@ export interface CountryWorkflowConfig {
   visa_procedures: VisaProcedureConfig;
 }
 
+// ─── Global System Customization & Policy Types ───────────────────────────
+
+export interface BroadcastAnnouncement {
+  id: string;
+  is_active: boolean;
+  message: string;
+  urgency: 'info' | 'warning' | 'urgent' | 'success';
+  link_url?: string;
+  link_label?: string;
+  target_audience: 'all' | 'students' | 'admins';
+  expires_at?: string;
+}
+
+export interface InstallmentStructureConfig {
+  stage_1_name: string;
+  stage_1_amount: number;
+  stage_1_currency: string;
+  stage_1_due_label: string;
+  stage_2_name: string;
+  stage_2_amount_type: 'custom_tuition' | 'fixed';
+  stage_2_fixed_amount?: number;
+  stage_2_due_label: string;
+  stage_3_name: string;
+  stage_3_amount: number;
+  stage_3_currency: string;
+  stage_3_due_label: string;
+  tax_percentage: number;
+  refund_policy_days: number;
+}
+
+export interface DocumentPolicyConfig {
+  min_passport_validity_months: number;
+  max_file_size_mb: number;
+  allowed_file_types: string[];
+  require_moi_letter: boolean;
+  require_apostille_for_europe: boolean;
+  auto_notify_counselor_on_upload: boolean;
+}
+
+export interface VisaMockConfig {
+  mock_sessions_included: number;
+  booking_lead_time_days: number;
+  emergency_visa_helpline: string;
+  embassy_biometric_guidance_url?: string;
+}
+
+export interface FeatureTogglesConfig {
+  enable_landing_calculator: boolean;
+  enable_direct_course_application: boolean;
+  enable_student_meeting_self_booking: boolean;
+  enable_whatsapp_support_widget: boolean;
+  enable_maintenance_banner: boolean;
+}
+
+export interface OrganizationBrandingConfig {
+  org_name: string;
+  portal_title: string;
+  division_name: string;
+  tagline: string;
+  support_email: string;
+  support_phone: string;
+  whatsapp_number: string;
+  emergency_helpline: string;
+  office_address: string;
+  operating_hours: string;
+  primary_color: string;
+  accent_gold: string;
+}
+
+export interface SystemCustomizationConfig {
+  id: string;
+  updated_at: string;
+  branding: OrganizationBrandingConfig;
+  broadcast: BroadcastAnnouncement;
+  installments: InstallmentStructureConfig;
+  document_policy: DocumentPolicyConfig;
+  visa_mock: VisaMockConfig;
+  features: FeatureTogglesConfig;
+}
+
+

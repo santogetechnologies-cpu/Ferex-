@@ -9,8 +9,10 @@ import {
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
+import { useSystemConfig } from '../hooks/useSystemConfig';
 import { supabase } from '../lib/supabase';
 import { normalizeRole, getDashboardRoute } from '../lib/roleRouter';
+import { MessageCircle } from 'lucide-react';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -21,6 +23,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   const location = useLocation();
   const { user, profile, signOut } = useAuth();
   const { notifications, markRead } = useNotifications(user?.id);
+  const { config } = useSystemConfig();
 
   // Authoritative role guard: if non-student is here, redirect immediately to their dashboard
   useEffect(() => {
@@ -517,6 +520,29 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
           </div>
         </header>
 
+        {/* Live Broadcast Announcement Banner for Students */}
+        {config.broadcast?.is_active && config.broadcast.target_audience !== 'admins' && (
+          <div className={`px-4 py-2.5 text-xs font-bold flex items-center justify-between border-b shadow-2xs ${
+            config.broadcast.urgency === 'urgent' ? 'bg-red-50 text-red-950 border-red-200' :
+            config.broadcast.urgency === 'warning' ? 'bg-amber-50 text-amber-950 border-amber-200' :
+            config.broadcast.urgency === 'success' ? 'bg-emerald-50 text-emerald-950 border-emerald-200' :
+            'bg-blue-50 text-blue-950 border-blue-200'
+          }`}>
+            <div className="flex items-center gap-2 max-w-5xl mx-auto w-full">
+              <span className="w-2 h-2 rounded-full bg-current animate-ping shrink-0" />
+              <span className="tracking-tight">{config.broadcast.message}</span>
+              {config.broadcast.link_url && (
+                <Link
+                  to={config.broadcast.link_url}
+                  className="ml-auto underline font-black text-current hover:opacity-80 shrink-0"
+                >
+                  {config.broadcast.link_label || 'Explore'} →
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* MAIN BODY AREA */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           <motion.div
@@ -529,6 +555,20 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
           </motion.div>
         </main>
       </div>
+
+      {/* Floating WhatsApp Admissions Assistant Widget */}
+      {config.features?.enable_whatsapp_support_widget && config.branding?.whatsapp_number && (
+        <a
+          href={`https://wa.me/${config.branding.whatsapp_number.replace(/[^0-9]/g, '')}?text=Hello%20FEREX%20Admissions%20Team%2C%20I%20need%20assistance%20with%20my%20application.`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Chat with Admissions Counselor on WhatsApp"
+          className="fixed bottom-6 right-6 z-40 bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center gap-2 border-2 border-white/40"
+        >
+          <MessageCircle className="w-5 h-5 fill-white" />
+          <span className="text-xs font-black hidden sm:inline pr-1">Admissions Desk</span>
+        </a>
+      )}
 
     </div>
   );

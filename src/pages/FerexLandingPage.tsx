@@ -10,8 +10,10 @@ import {
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useUniversities } from '../hooks/useUniversities';
+import { useSystemConfig } from '../hooks/useSystemConfig';
 import { getDashboardRoute, getPortalLabel } from '../lib/roleRouter';
 import type { University } from '../lib/types';
+import { MessageCircle } from 'lucide-react';
 
 import ferexLogoImg from '../assets/ferex-logo.png';
 
@@ -63,6 +65,7 @@ export const FerexLandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, session, profile, signOut } = useAuth();
   const { universities, loading: unisLoading } = useUniversities();
+  const { config } = useSystemConfig();
 
   // Filters & State
   const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>('All');
@@ -292,6 +295,27 @@ export const FerexLandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#24020B] text-white font-sans selection:bg-[#EAD5B5] selection:text-[#24020B] relative overflow-x-hidden">
+
+      {/* ── TOP LIVE BROADCAST TICKER ────────────────────────────────────── */}
+      {config.broadcast?.is_active && (
+        <div className={`py-2 px-4 text-xs font-bold text-center flex items-center justify-center gap-2 relative z-50 border-b ${
+          config.broadcast.urgency === 'urgent' ? 'bg-red-600 text-white border-red-700' :
+          config.broadcast.urgency === 'warning' ? 'bg-amber-600 text-white border-amber-700' :
+          config.broadcast.urgency === 'success' ? 'bg-emerald-700 text-white border-emerald-800' :
+          'bg-[#50001D] text-[#E6CA9E] border-[#6A1B2E]'
+        }`}>
+          <span className="w-2 h-2 rounded-full bg-current animate-ping shrink-0" />
+          <span>{config.broadcast.message}</span>
+          {config.broadcast.link_url && (
+            <a
+              href={config.broadcast.link_url}
+              className="underline font-black text-white ml-2 hover:opacity-80"
+            >
+              {config.broadcast.link_label || 'Learn More'} →
+            </a>
+          )}
+        </div>
+      )}
 
       {/* ── NAVBAR ──────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 bg-[#2D030D]/95 backdrop-blur-md border-b border-[#52101F]/80 shadow-lg">
@@ -1362,11 +1386,20 @@ export const FerexLandingPage: React.FC = () => {
             </div>
 
             <div>
-              <h4 className="text-xs font-extrabold text-white uppercase tracking-wider mb-4">European Headquarters</h4>
+              <h4 className="text-xs font-extrabold text-white uppercase tracking-wider mb-4">Admissions & Desks</h4>
               <ul className="space-y-2 text-rose-200/70">
-                <li className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-amber-300 shrink-0" /> Warsaw & Kraków, Poland</li>
-                <li className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-amber-300 shrink-0" /> info@ferexeducation.com</li>
-                <li className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-amber-300 shrink-0" /> +48 22 123 4567</li>
+                <li className="flex items-start gap-2">
+                  <MapPin className="w-3.5 h-3.5 text-amber-300 shrink-0 mt-0.5" />
+                  <span>{config.branding.office_address || 'Warsaw, Poland & Bangalore, India'}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Mail className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  <a href={`mailto:${config.branding.support_email}`} className="hover:text-white transition-colors">{config.branding.support_email || 'admissions@ferexeducation.com'}</a>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Phone className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  <span>{config.branding.support_phone || '+91 80001 22334'}</span>
+                </li>
               </ul>
             </div>
 
@@ -1385,7 +1418,7 @@ export const FerexLandingPage: React.FC = () => {
           </div>
 
           <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-rose-200/60">
-            <p>© {new Date().getFullYear()} FEREX Education. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} {config.branding.org_name || 'FEREX Higher Education Global'}. All rights reserved.</p>
             <div className="flex items-center gap-6">
               <button onClick={() => goToLogin('signin')} className="hover:text-white cursor-pointer">Privacy Policy</button>
               <button onClick={() => goToLogin('signin')} className="hover:text-white cursor-pointer">Terms of Service</button>
@@ -1394,6 +1427,20 @@ export const FerexLandingPage: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* Floating WhatsApp Admissions Assistant Widget */}
+      {config.features?.enable_whatsapp_support_widget && config.branding?.whatsapp_number && (
+        <a
+          href={`https://wa.me/${config.branding.whatsapp_number.replace(/[^0-9]/g, '')}?text=Hello%20FEREX%20Admissions%20Team%2C%20I%20would%20like%20to%20know%20more%20about%20European%20university%20programs.`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Chat with FEREX Admissions on WhatsApp"
+          className="fixed bottom-6 right-6 z-40 bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center gap-2 border-2 border-white/40"
+        >
+          <MessageCircle className="w-5 h-5 fill-white" />
+          <span className="text-xs font-black hidden sm:inline pr-1">Admissions WhatsApp</span>
+        </a>
+      )}
 
     </div>
   );

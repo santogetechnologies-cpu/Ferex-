@@ -10,6 +10,7 @@ import {
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
+import { useSystemConfig } from '../hooks/useSystemConfig';
 import { getAllPaymentsAdmin } from '../lib/api/payments';
 
 interface AdminLayoutProps { children: React.ReactNode; }
@@ -37,6 +38,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const location = useLocation();
   const { user, profile, signOut } = useAuth();
   const { notifications } = useNotifications();
+  const { config } = useSystemConfig();
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -222,10 +224,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
             <Link to="/admin/dashboard" className="hover:text-slate-700 transition-colors flex items-center gap-1.5 text-slate-700 font-bold">
               <GraduationCap className="w-4 h-4 text-[#6A1B2E]" />
-              <span>Education Admin Portal</span>
+              <span>{config.branding.portal_title || 'Education Admin Portal'}</span>
             </Link>
-            <span className="text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md hidden sm:inline-block">
-              Division
+            <span className="text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md hidden sm:inline-block truncate max-w-[200px]" title={config.branding.division_name}>
+              {config.branding.division_name || 'Division'}
             </span>
             <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
             <span className="text-slate-900 font-extrabold bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60">{active}</span>
@@ -373,6 +375,29 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             </div>
           </div>
         </header>
+
+        {/* Live Broadcast Announcement Banner for Admins */}
+        {config.broadcast?.is_active && config.broadcast.target_audience !== 'students' && (
+          <div className={`px-4 py-2.5 text-xs font-bold flex items-center justify-between border-b shadow-2xs ${
+            config.broadcast.urgency === 'urgent' ? 'bg-red-50 text-red-950 border-red-200' :
+            config.broadcast.urgency === 'warning' ? 'bg-amber-50 text-amber-950 border-amber-200' :
+            config.broadcast.urgency === 'success' ? 'bg-emerald-50 text-emerald-950 border-emerald-200' :
+            'bg-blue-50 text-blue-950 border-blue-200'
+          }`}>
+            <div className="flex items-center gap-2 max-w-5xl mx-auto w-full">
+              <span className="w-2 h-2 rounded-full bg-current animate-ping shrink-0" />
+              <span className="tracking-tight">{config.broadcast.message}</span>
+              {config.broadcast.link_url && (
+                <Link
+                  to={config.broadcast.link_url}
+                  className="ml-auto underline font-black text-current hover:opacity-80 shrink-0"
+                >
+                  {config.broadcast.link_label || 'View Details'} →
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Page Content with smooth route transition */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">

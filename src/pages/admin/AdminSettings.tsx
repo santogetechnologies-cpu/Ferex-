@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Save, CheckCircle2, Shield, Bell, Palette, Mail, Lock, Building2, Plus, DollarSign } from 'lucide-react';
+import { Save, CheckCircle2, Shield, Bell, Palette, Mail, Lock, Building2, Plus, DollarSign, Sliders, Sparkles } from 'lucide-react';
 import { AdminFeeConfig } from './AdminFeeConfig';
+import { AdminCustomizationPolicies } from './AdminCustomizationPolicies';
 
-const TABS = ['Organization', 'Fee & Intake Config', 'Email Templates', 'Notifications', 'Roles & Permissions', 'Security', 'Appearance'];
+const TABS = ['Customization & Policies', 'Fee & Intake Config', 'Organization', 'Email Templates', 'Notifications', 'Roles & Permissions', 'Security', 'Appearance'];
 
 const TAB_ICONS: Record<string, any> = {
-  Organization: <Building2 className="w-4 h-4" />,
+  'Customization & Policies': <Sparkles className="w-4 h-4 text-[#E6CA9E]" />,
   'Fee & Intake Config': <DollarSign className="w-4 h-4 text-emerald-600" />,
+  Organization: <Building2 className="w-4 h-4" />,
   'Email Templates': <Mail className="w-4 h-4" />,
   Notifications: <Bell className="w-4 h-4" />,
   'Roles & Permissions': <Shield className="w-4 h-4" />,
@@ -34,7 +36,7 @@ const ROLES = [
 ];
 
 export const AdminSettings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('Organization');
+  const [activeTab, setActiveTab] = useState('Customization & Policies');
   const [org, setOrg] = useState(INITIAL_ORG);
   const [toast, setToast] = useState('');
   const [twoFA, setTwoFA] = useState(true);
@@ -213,8 +215,9 @@ export const AdminSettings: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'Organization': return renderOrg();
+      case 'Customization & Policies': return <AdminCustomizationPolicies onNotify={showToast} />;
       case 'Fee & Intake Config': return <AdminFeeConfig />;
+      case 'Organization': return renderOrg();
       case 'Email Templates': return renderEmailTemplates();
       case 'Notifications': return renderNotifications();
       case 'Roles & Permissions': return renderRoles();

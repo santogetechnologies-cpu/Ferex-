@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDigitalConfig } from '../../hooks/useDigitalConfig';
 import { supabase } from '../../lib/supabase';
 import {
   getDigitalClients,
@@ -45,6 +46,7 @@ const statusColor: Record<string, string> = {
 const DigitalClientPortal: React.FC = () => {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const { config: digitalConfig } = useDigitalConfig();
 
   const [client, setClient] = useState<ClientData | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -144,7 +146,38 @@ const DigitalClientPortal: React.FC = () => {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', color: '#e2e8f0', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#0f172a', color: '#e2e8f0', fontFamily: "'Inter', system-ui, sans-serif", position: 'relative' }}>
+      {/* ── Live Broadcast Announcement Banner ── */}
+      {digitalConfig.broadcast?.is_active && digitalConfig.broadcast.target_audience !== 'staff' && (
+        <div style={{
+          padding: '10px 24px',
+          fontSize: 13,
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: digitalConfig.broadcast.urgency === 'urgent' ? 'linear-gradient(90deg, #991b1b, #dc2626)' :
+                      digitalConfig.broadcast.urgency === 'warning' ? 'linear-gradient(90deg, #92400e, #d97706)' :
+                      digitalConfig.broadcast.urgency === 'success' ? 'linear-gradient(90deg, #065f46, #059669)' :
+                      'linear-gradient(90deg, #1e3a8a, #2563eb)',
+          color: '#fff',
+          borderBottom: '1px solid rgba(255,255,255,0.15)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
+            <span>{digitalConfig.broadcast.message}</span>
+            {digitalConfig.broadcast.link_url && (
+              <a
+                href={digitalConfig.broadcast.link_url}
+                style={{ marginLeft: 'auto', color: '#fff', textDecoration: 'underline', fontWeight: 800, whiteSpace: 'nowrap' }}
+              >
+                {digitalConfig.broadcast.link_label || 'View Sprints'} →
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <header style={{ background: 'rgba(15,23,42,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #1e293b', padding: '0 32px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -153,7 +186,7 @@ const DigitalClientPortal: React.FC = () => {
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15, color: '#f1f5f9' }}>{client?.company_name || 'Client Portal'}</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Ferex Digital — Client Dashboard</div>
+            <div style={{ fontSize: 11, color: '#64748b' }}>{digitalConfig.branding.portal_title || 'FEREX Digital — Client Dashboard'}</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -175,13 +208,20 @@ const DigitalClientPortal: React.FC = () => {
       {/* ── Main Content ── */}
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
         {/* Welcome */}
-        <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#f1f5f9', margin: 0 }}>
-            Welcome back, {client?.contact_person?.split(' ')[0] || 'Client'} 👋
-          </h1>
-          <p style={{ color: '#64748b', fontSize: 14, marginTop: 6 }}>
-            Here's a real-time overview of your engagement with Ferex Digital Agency.
-          </p>
+        <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: '#f1f5f9', margin: 0 }}>
+              Welcome back, {client?.contact_person?.split(' ')[0] || 'Client'} 👋
+            </h1>
+            <p style={{ color: '#64748b', fontSize: 14, marginTop: 6 }}>
+              Here's a real-time overview of your engagement with {digitalConfig.branding.agency_name || 'FEREX Digital'}.
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ padding: '6px 12px', borderRadius: 20, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', fontSize: 12, fontWeight: 700 }}>
+              ⚡ {digitalConfig.client_policies.guaranteed_sla_response_hours}h SLA Response Guaranteed
+            </span>
+          </div>
         </div>
 
         {/* ── Stat Cards ── */}
@@ -382,6 +422,38 @@ const DigitalClientPortal: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* ── Floating WhatsApp Tech Support Widget ── */}
+      {digitalConfig.branding?.whatsapp_number && (
+        <a
+          href={`https://wa.me/${digitalConfig.branding.whatsapp_number.replace(/[^0-9]/g, '')}?text=Hello%20FEREX%20Digital%20Team%2C%20I%20need%20assistance%20with%20my%20project%20deliverables.`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Chat with Account Manager on WhatsApp"
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 1000,
+            background: '#10b981',
+            color: '#fff',
+            padding: '12px 18px',
+            borderRadius: 30,
+            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontWeight: 800,
+            fontSize: 13,
+            textDecoration: 'none',
+            border: '2px solid rgba(255,255,255,0.2)'
+          }}
+        >
+          <span>💬</span>
+          <span>Tech Support</span>
+        </a>
+      )}
+
     </div>
   );
 };
