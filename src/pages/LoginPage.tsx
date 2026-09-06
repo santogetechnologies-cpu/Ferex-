@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, AlertCircle, KeyRound, ArrowLeft, LogIn, UserPlus, Lock } from 'lucide-react';
+import {
+  ShieldCheck, AlertCircle, KeyRound, ArrowLeft, LogIn, UserPlus, Lock,
+  FileText, CheckCircle2, X, Shield, FileCheck, Info, Check
+} from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '../components/Input';
 import { Checkbox } from '../components/Checkbox';
@@ -15,6 +18,7 @@ export const LoginPage: React.FC = () => {
 
   // Tab mode: 'signin' | 'signup'
   const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
+  const prefilledUni = searchParams.get('uni') || '';
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>(initialMode);
 
   // Sign In Specific Fields
@@ -22,12 +26,14 @@ export const LoginPage: React.FC = () => {
   const [signInPassword, setSignInPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
 
-  // Sign Up Specific Fields (Completely isolated and initialized empty)
+  // Sign Up Specific Fields
   const [signUpFullName, setSignUpFullName] = useState('');
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(true);
+  const [agreeConsent, setAgreeConsent] = useState(true);
+  const [showConsentModal, setShowConsentModal] = useState(false);
 
   // Validation errors
   const [errors, setErrors] = useState<{
@@ -38,6 +44,7 @@ export const LoginPage: React.FC = () => {
     signUpPassword?: string;
     signUpConfirmPassword?: string;
     terms?: string;
+    consent?: string;
   }>({});
 
   // Auth statuses
@@ -126,7 +133,11 @@ export const LoginPage: React.FC = () => {
       }
 
       if (!agreeTerms) {
-        newErrors.terms = 'Please accept the terms of enrollment';
+        newErrors.terms = 'Please accept the general terms of service';
+      }
+
+      if (!agreeConsent) {
+        newErrors.consent = 'Document Processing & NAWA Authorization consent is mandatory to proceed';
       }
     }
 
@@ -241,7 +252,7 @@ export const LoginPage: React.FC = () => {
     }
 
     // Account creation successful
-    setSuccessMsg('🎉 Account created successfully! Preparing your Student Portal...');
+    setSuccessMsg('🎉 Account created with Document Processing Consent verified! Preparing your Student Portal...');
     setIsLoading(false);
 
     setTimeout(() => {
@@ -423,6 +434,13 @@ export const LoginPage: React.FC = () => {
                 </div>
               </div>
 
+              {prefilledUni && authMode === 'signup' && (
+                <div className="mb-3 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-2">
+                  <span className="text-amber-600">Selected University:</span>
+                  <span className="underline">{prefilledUni}</span>
+                </div>
+              )}
+
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-1.5">
                 {authMode === 'signin' ? 'Sign in to your portal' : 'Create your student account'}
               </h2>
@@ -528,7 +546,7 @@ export const LoginPage: React.FC = () => {
                 </button>
               </form>
             ) : (
-              /* SIGN UP FORM — ALWAYS OPENS WITH EMPTY FIELDS */
+              /* SIGN UP FORM WITH MANDATORY DOCUMENT CONSENT */
               <form onSubmit={handleSignUp} className="space-y-4" autoComplete="off">
                 <Input
                   label="Full Name"
@@ -576,6 +594,7 @@ export const LoginPage: React.FC = () => {
                   />
                 </div>
 
+                {/* Terms Checkbox */}
                 <div className="pt-1">
                   <Checkbox
                     label="I agree to the Terms of Service and Privacy Policy"
@@ -584,6 +603,41 @@ export const LoginPage: React.FC = () => {
                     disabled={isLoading}
                   />
                   {errors.terms && <p className="text-[11px] font-bold text-red-600 mt-1">{errors.terms}</p>}
+                </div>
+
+                {/* Document Processing & NAWA Consent Card */}
+                <div className="p-3.5 bg-[#FAF4E8] rounded-2xl border border-[#C5A880]/60 space-y-2 text-left">
+                  <div className="flex items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      id="agreeConsentBox"
+                      checked={agreeConsent}
+                      onChange={(e) => setAgreeConsent(e.target.checked)}
+                      disabled={isLoading}
+                      className="w-4 h-4 mt-0.5 rounded accent-[#50001D] text-[#50001D] cursor-pointer"
+                    />
+                    <label htmlFor="agreeConsentBox" className="text-[11.5px] font-bold text-slate-900 leading-snug cursor-pointer">
+                      I consent to FEREX Education processing my academic transcripts, passport, and financial documents for Polish NAWA Legalization, University Admissions, and VFS Visa Filing.
+                    </label>
+                  </div>
+
+                  <div className="pl-6 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setShowConsentModal(true)}
+                      className="text-[11px] font-black text-[#50001D] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-[#50001D]" />
+                      <span>Review Mandatory Document Processing Consent Agreement</span>
+                    </button>
+                    <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                      GDPR Compliant
+                    </span>
+                  </div>
+
+                  {errors.consent && (
+                    <p className="text-[11px] font-bold text-red-600 pl-6">{errors.consent}</p>
+                  )}
                 </div>
 
                 {/* Submit Button */}
@@ -595,7 +649,7 @@ export const LoginPage: React.FC = () => {
                   {isLoading ? (
                     <span className="flex items-center gap-2">
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Creating Account...
+                      Creating Account & Verifying Consent...
                     </span>
                   ) : (
                     <>
@@ -689,8 +743,117 @@ export const LoginPage: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── MANDATORY STUDENT DOCUMENT PROCESSING & NAWA CONSENT MODAL ───────── */}
+      <AnimatePresence>
+        {showConsentModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50"
+              onClick={() => setShowConsentModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-3xl shadow-2xl z-50 border border-slate-200 p-6 sm:p-7 max-h-[88vh] overflow-y-auto text-left"
+            >
+              {/* Modal Header */}
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#50001D] text-amber-300 flex items-center justify-center font-bold shadow-md shrink-0">
+                    <FileCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">
+                      Student Document Processing & Data Privacy Consent
+                    </h3>
+                    <p className="text-[11px] font-semibold text-slate-500">
+                      FEREX Education • Legal Authorization & GDPR Compliance
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowConsentModal(false)}
+                  className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Consent Clauses */}
+              <div className="space-y-4 text-xs text-slate-700 leading-relaxed">
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
+                  <div className="font-black text-slate-900 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-[#50001D] text-white text-[10px] flex items-center justify-center font-bold">1</span>
+                    Collection & Storage of Sensitive Documentation
+                  </div>
+                  <p className="text-[11.5px] text-slate-600 pl-6.5">
+                    You authorize FEREX Education to receive, digitize, and securely store your academic records (10th/12th marksheets, Bachelor transcripts, degree diplomas), passport biodata, police clearance, and financial sponsorship statements in our encrypted 256-bit cloud infrastructure.
+                  </p>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
+                  <div className="font-black text-slate-900 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-[#50001D] text-white text-[10px] flex items-center justify-center font-bold">2</span>
+                    NAWA Legalization & University Representation Authorization
+                  </div>
+                  <p className="text-[11.5px] text-slate-600 pl-6.5">
+                    You grant FEREX Education full power of representation to submit your certified academic dossiers to the <strong>Polish National Agency for Academic Exchange (NAWA)</strong> in Warsaw, accredited partner European universities, and VFS Global / European Consular Embassies for admission, apostille, and National D visa processing.
+                  </p>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
+                  <div className="font-black text-slate-900 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-[#50001D] text-white text-[10px] flex items-center justify-center font-bold">3</span>
+                    Document Authenticity & Anti-Fraud Guarantee
+                  </div>
+                  <p className="text-[11.5px] text-slate-600 pl-6.5">
+                    You legally declare that all uploaded certificates, test scores, bank statements, and identification credentials are valid, authentic, and unaltered copies of official government and university records.
+                  </p>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
+                  <div className="font-black text-slate-900 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-[#50001D] text-white text-[10px] flex items-center justify-center font-bold">4</span>
+                    GDPR Confidentiality & Non-Disclosure
+                  </div>
+                  <p className="text-[11.5px] text-slate-600 pl-6.5">
+                    FEREX Education strictly adheres to European General Data Protection Regulations (GDPR). Your personal and financial documents will never be sold, commercialized, or shared with unauthorized third parties outside your designated admissions and visa proceedings.
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowConsentModal(false)}
+                  className="w-full sm:w-auto h-10 px-5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  Close Document
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAgreeConsent(true);
+                    setShowConsentModal(false);
+                  }}
+                  className="w-full sm:w-auto h-10 px-6 bg-[#50001D] hover:bg-[#3D0016] text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                >
+                  <Check className="w-4 h-4 text-amber-300" />
+                  <span>I Understand & Accept Consent Terms</span>
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
-
-

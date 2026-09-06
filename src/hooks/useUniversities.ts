@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getUniversities, createUniversity, updateUniversityRecord, deleteUniversity } from '../lib/api/universities';
-import type { University, PaymentInstallment, CourseSemester } from '../lib/types';
+import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../lib/types';
 
 export function useUniversities() {
   const [universities, setUniversities] = useState<University[]>([]);
@@ -23,12 +23,28 @@ export function useUniversities() {
 
   useEffect(() => {
     fetchUniversities();
+
+    const handleDataChange = () => {
+      fetchUniversities();
+    };
+
+    window.addEventListener('ferex_university_change', handleDataChange);
+    window.addEventListener('storage', handleDataChange);
+    return () => {
+      window.removeEventListener('ferex_university_change', handleDataChange);
+      window.removeEventListener('storage', handleDataChange);
+    };
   }, [fetchUniversities]);
 
   const addUniversity = async (payload: {
     name: string;
     country: string;
     city?: string;
+    logo_url?: string;
+    image_url?: string;
+    badge?: string;
+    category?: string;
+    description?: string;
     ranking?: number;
     rating?: number;
     programs?: string[];
@@ -37,6 +53,9 @@ export function useUniversities() {
     university_fee?: string;
     vfs_fee?: string;
     agency_fee?: string;
+    living_cost_monthly?: string;
+    nawa_required?: boolean;
+    course_programs?: CourseProgram[];
     installments?: PaymentInstallment[];
     semesters?: CourseSemester[];
   }) => {

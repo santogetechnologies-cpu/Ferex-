@@ -42,6 +42,10 @@ export interface University {
   country: string;
   city: string;
   logo_url: string;
+  image_url?: string;
+  badge?: string;
+  category?: string;
+  description?: string;
   ranking: number;
   rating?: number;
   programs: string[];
@@ -51,6 +55,8 @@ export interface University {
   university_fee?: string;
   vfs_fee?: string;
   agency_fee?: string;
+  living_cost_monthly?: string;
+  nawa_required?: boolean;
   course_programs?: CourseProgram[];
   installments?: PaymentInstallment[];
   semesters?: CourseSemester[];
