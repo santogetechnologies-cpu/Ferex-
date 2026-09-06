@@ -1,14 +1,18 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, Search, Upload, Eye, FileText, X, AlertCircle } from 'lucide-react';
+import { Folder, Search, Upload, Eye, FileText, X, AlertCircle, ShieldCheck, Globe, CheckCircle2 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { useDocuments } from '../hooks/useDocuments';
+import { useApplications } from '../hooks/useApplications';
+import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { ensureStudentApplication } from '../lib/api/applications';
 
 export const Documents: React.FC = () => {
   const { user } = useAuth();
+  const { applications } = useApplications(user?.id);
+  const { getWorkflowForCountry } = useCountryWorkflows();
 
   const activeStudentId = (() => {
     if (user?.id) return user.id;
@@ -24,6 +28,15 @@ export const Documents: React.FC = () => {
 
   const { documents: dbDocs, loading, addDoc, replaceDoc } = useDocuments(activeStudentId);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Target country resolution
+  const targetCountry = useMemo(() => {
+    return applications[0]?.universities?.country || 'Poland';
+  }, [applications]);
+
+  const targetWf = useMemo(() => {
+    return getWorkflowForCountry(targetCountry);
+  }, [targetCountry, getWorkflowForCountry]);
 
   // Map DB docs or fall back to empty list if none
   const documents = dbDocs.map(d => ({
@@ -186,6 +199,81 @@ export const Documents: React.FC = () => {
           <Upload className="w-4 h-4" /> Upload Document
         </Button>
       </div>
+
+      {/* Country Workflow Document Requirements Banner */}
+      {targetWf && (
+        <div className="bg-gradient-to-r from-[#24020B] to-[#50001D] rounded-2xl p-5 text-white shadow-md relative overflow-hidden border border-[#6A1B2E]/40">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#E6CA9E]/5 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#E6CA9E]/20 text-[#E6CA9E] text-[10px] font-extrabold uppercase tracking-wider border border-[#E6CA9E]/30">
+                  <Globe className="w-3 h-3" />
+                  {targetCountry} Legalization Requirements
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-300">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  Authority: {targetWf.authority_acronym || targetWf.authority_name}
+                </span>
+              </div>
+              <h2 className="text-base font-black text-white">{targetWf.authority_badge}</h2>
+              <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                {targetWf.authority_description}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 bg-white/10 p-3 rounded-xl backdrop-blur-xs border border-white/10 self-start md:self-auto shrink-0">
+              <div className="text-right">
+                <p className="text-[10px] uppercase font-bold text-slate-300">Processing Time</p>
+                <p className="text-xs font-black text-[#E6CA9E]">{targetWf.estimated_processing_days}</p>
+              </div>
+              <div className="w-px h-6 bg-white/20 mx-1" />
+              <div className="text-right">
+                <p className="text-[10px] uppercase font-bold text-slate-300">Authority Fee</p>
+                <p className="text-xs font-black text-white">{targetWf.authority_fee}</p>
+              </div>
+            </div>
+          </div>
+
+          {targetWf.checklist_documents && targetWf.checklist_documents.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#E6CA9E] mb-2.5 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Required Legalization & Visa Checklist ({targetWf.checklist_documents.length} Items)
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {targetWf.checklist_documents.map((reqDoc) => {
+                  const isUploaded = documents.some(d => 
+                    d.name.toLowerCase().includes(reqDoc.name.toLowerCase().slice(0, 8)) ||
+                    d.type.toLowerCase().includes(reqDoc.category.toLowerCase())
+                  );
+                  return (
+                    <div 
+                      key={reqDoc.id}
+                      className={`p-2.5 rounded-xl border text-xs flex flex-col justify-between transition-all ${
+                        isUploaded 
+                          ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100' 
+                          : 'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <span className="font-bold text-[11px] leading-tight">{reqDoc.name}</span>
+                        {reqDoc.is_mandatory && (
+                          <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                            Required
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-300 leading-snug line-clamp-2">
+                        {reqDoc.instructions}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Search & Filter Bar */}
       <div className="bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col sm:flex-row items-center gap-3">
