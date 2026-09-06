@@ -5,6 +5,7 @@ import {
   Truck, Building2, Save, RotateCcw, Plus, Trash2, Sliders
 } from 'lucide-react';
 import { Card } from '../../components/Card';
+import { Button } from '../../components/Button';
 import { useRimiConfig } from '../../hooks/useRimiConfig';
 import type { RimiCustomizationConfig, RimiDistributionZone } from '../../lib/api/rimiConfig';
 

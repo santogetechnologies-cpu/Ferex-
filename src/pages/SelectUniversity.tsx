@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, Upload, ShieldCheck } from 'lucide-react';
+import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUniversities } from '../hooks/useUniversities';
 import { useApplications } from '../hooks/useApplications';
@@ -9,7 +9,6 @@ import { useDocuments } from '../hooks/useDocuments';
 import { useAuth } from '../contexts/AuthContext';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { Card } from '../components/Card';
-import { getNawaRecords } from '../lib/api/nawa';
 
 export const SelectUniversity: React.FC = () => {
   const navigate = useNavigate();
@@ -19,22 +18,6 @@ export const SelectUniversity: React.FC = () => {
   const { payments } = usePayments(user?.id);
   const { documents } = useDocuments(user?.id);
   const { getWorkflowForCountry } = useCountryWorkflows();
-
-  useEffect(() => {
-    const checkNawa = () => {
-      getNawaRecords(user?.id).then(recs => {
-        const isApproved = recs.some(r =>
-          (r.student_id === user?.id || (user?.email && r.student_email === user.email) || r.id === user?.id) &&
-          (r.status === 'Approved' || r.current_step >= 4)
-        );
-        setNawaApproved(isApproved);
-      }).catch(() => {});
-    };
-
-    checkNawa();
-    window.addEventListener('ferex_nawa_change', checkNawa);
-    return () => window.removeEventListener('ferex_nawa_change', checkNawa);
-  }, [user?.id, user?.email]);
 
   // Check if mandatory documents (Passport & Marksheets/Transcripts) are uploaded
   const hasPassport = documents.some(d =>

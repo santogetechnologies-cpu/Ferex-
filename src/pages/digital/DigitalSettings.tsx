@@ -6,6 +6,7 @@ import {
   Plus, Trash2
 } from 'lucide-react';
 import { Card } from '../../components/Card';
+import { Button } from '../../components/Button';
 import { useDigitalConfig } from '../../hooks/useDigitalConfig';
 import type { DigitalCustomizationConfig, DigitalServicePackage } from '../../lib/api/digitalConfig';
 

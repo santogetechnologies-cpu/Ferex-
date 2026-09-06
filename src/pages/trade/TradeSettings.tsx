@@ -5,6 +5,7 @@ import {
   Anchor, Building2, Save, RotateCcw, Plus, Trash2, Sliders
 } from 'lucide-react';
 import { Card } from '../../components/Card';
+import { Button } from '../../components/Button';
 import { useTradeConfig } from '../../hooks/useTradeConfig';
 import type { TradeCustomizationConfig, TradeFreightCorridor } from '../../lib/api/tradeConfig';
 
