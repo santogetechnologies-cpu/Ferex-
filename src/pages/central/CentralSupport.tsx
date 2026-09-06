@@ -7,7 +7,10 @@ import { getTickets } from '../../lib/api/tickets';
 
 export const CentralSupport: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDivision, setSelectedDivision] = useState<string>('All');
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [reassignTicket, setReassignTicket] = useState<any | null>(null);
+  const [reassignStaffName, setReassignStaffName] = useState('');
   const [replyText, setReplyText] = useState('');
   const [toast, setToast] = useState('');
   const [tickets, setTickets] = useState<any[]>([]);
@@ -19,7 +22,9 @@ export const CentralSupport: React.FC = () => {
     const formatted = data.map((d: any) => ({
       id: d.ticket_no || (d.id ? `TCK-${d.id.slice(0, 4).toUpperCase()}` : 'TCK-801'),
       rawId: d.id,
-      student: d.users?.full_name || 'Student',
+      student: d.users?.full_name || 'Student / Partner',
+      division: d.division || 'Education',
+      assignedStaff: d.assigned_staff || 'Rahul Mehta',
       subject: d.subject,
       category: d.category || 'General Query',
       priority: d.priority || 'Medium',
@@ -53,11 +58,14 @@ export const CentralSupport: React.FC = () => {
     setReplyText('');
   };
 
-  const filteredTickets = tickets.filter(t =>
-    t.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.student.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.subject.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTickets = tickets.filter(t => {
+    const matchSearch =
+      t.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.student.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.subject.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchDiv = selectedDivision === 'All' || t.division === selectedDivision;
+    return matchSearch && matchDiv;
+  });
 
   return (
     <div className="space-y-6 text-left">
@@ -81,12 +89,23 @@ export const CentralSupport: React.FC = () => {
         </div>
       </div>
 
-      <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
-        <div className="relative w-full sm:w-80">
+      {/* Division Filter Tabs & Search Bar */}
+      <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div className="relative w-full md:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search ticket ID or subject..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search ticket ID, student, or issue..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
         </div>
-        <span className="text-xs font-bold text-slate-400">{filteredTickets.length} Support Tickets</span>
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          {['All', 'Education', 'Trade', 'Rimi', 'Digital'].map((div) => (
+            <button
+              key={div}
+              onClick={() => setSelectedDivision(div)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${selectedDivision === div ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              {div}
+            </button>
+          ))}
+        </div>
       </Card>
 
       {loading ? (
@@ -104,18 +123,87 @@ export const CentralSupport: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-extrabold text-slate-400 uppercase">{ticket.id} · {ticket.student}</span>
                   <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${ticket.statusBadge}`}>{ticket.status}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold border bg-slate-50 text-slate-700">{ticket.division || 'Education'}</span>
                 </div>
                 <h3 className="text-xs font-black text-slate-900 mt-0.5">{ticket.subject}</h3>
-                <p className="text-[11px] font-semibold text-slate-400 mt-0.5">Category: {ticket.category} · Opened {ticket.date}</p>
+                <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                  Category: {ticket.category} · Assigned Staff: <strong className="text-slate-700">{ticket.assignedStaff || 'Rahul Mehta'}</strong>
+                </p>
               </div>
             </div>
 
-            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold self-end sm:self-center" onClick={() => setSelectedTicket(ticket)}>
-              Reply / Resolve
-            </Button>
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs font-bold"
+                onClick={() => setReassignTicket(ticket)}
+              >
+                Reassign Staff
+              </Button>
+              <Button
+                size="sm"
+                className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold"
+                onClick={() => setSelectedTicket(ticket)}
+              >
+                Reply / Resolve
+              </Button>
+            </div>
           </Card>
         ))}
       </div>
+
+      {/* Reassign Ticket Modal */}
+      <AnimatePresence>
+        {reassignTicket && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setReassignTicket(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 className="text-sm font-black text-slate-900">Reassign Ticket to Staff</h3>
+                <button onClick={() => setReassignTicket(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="space-y-4 text-xs">
+                <p className="font-bold text-slate-700">Ticket: <span className="text-slate-900">{reassignTicket.subject}</span></p>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Select Assigned Staff Member</label>
+                  <select
+                    value={reassignStaffName || reassignTicket.assignedStaff || 'Rahul Mehta'}
+                    onChange={(e) => setReassignStaffName(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                  >
+                    <option value="Rahul Mehta (Education Admissions)">Rahul Mehta (Education Admissions)</option>
+                    <option value="Sanjay Sharma (Education Counselor)">Sanjay Sharma (Education Counselor)</option>
+                    <option value="Marek Kowalski (Trade Logistics)">Marek Kowalski (Trade Logistics)</option>
+                    <option value="Jan Nowak (Customs Clearance)">Jan Nowak (Customs Clearance)</option>
+                    <option value="Rajesh Kulkarni (Rimi Cold Warehouse)">Rajesh Kulkarni (Rimi Cold Warehouse)</option>
+                    <option value="Sunil Jadhav (Rimi Fleet Operations)">Sunil Jadhav (Rimi Fleet Operations)</option>
+                    <option value="Priya Nair (Digital Project Lead)">Priya Nair (Digital Project Lead)</option>
+                    <option value="Arun Patel (Digital Senior Engineer)">Arun Patel (Digital Senior Engineer)</option>
+                  </select>
+                </div>
+                <div className="pt-3 flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setReassignTicket(null)}>Cancel</Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]"
+                    onClick={() => {
+                      const updated = reassignStaffName || reassignTicket.assignedStaff || 'Rahul Mehta';
+                      setTickets(tickets.map(t => t.id === reassignTicket.id ? { ...t, assignedStaff: updated } : t));
+                      setReassignTicket(null);
+                      setReassignStaffName('');
+                      showToastMsg(`Ticket reassigned to ${updated}!`);
+                    }}
+                  >
+                    Confirm Reassign
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Reply Modal */}
       <AnimatePresence>

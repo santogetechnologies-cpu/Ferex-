@@ -54,6 +54,14 @@ import { CentralTasks } from './pages/central/CentralTasks';
 import { CentralActivity } from './pages/central/CentralActivity';
 import { CentralNotifications } from './pages/central/CentralNotifications';
 import { CentralSettings } from './pages/central/CentralSettings';
+import { CentralTrade } from './pages/central/CentralTrade';
+import { CentralRimi } from './pages/central/CentralRimi';
+import { CentralDigital } from './pages/central/CentralDigital';
+import { CentralSupport } from './pages/central/CentralSupport';
+import { CentralEducation } from './pages/central/CentralEducation';
+import { CentralStudents } from './pages/central/CentralStudents';
+import { CentralEmailLogs } from './pages/central/CentralEmailLogs';
+import { CentralEmailSettings } from './pages/central/CentralEmailSettings';
 
 // Trade imports
 import { TradeLayout } from './layouts/TradeLayout';
@@ -279,10 +287,16 @@ function App() {
           <Route path="/central/activity" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralActivity /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/notifications" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralNotifications /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/settings" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralSettings /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/education" element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="/central/students" element={<Navigate to="/admin/students" replace />} />
+          <Route path="/central/education" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralStudents /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/universities" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralEducation /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/students" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralStudents /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/trade" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralTrade /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/rimi" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralRimi /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/digital" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralDigital /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/support" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralSupport /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/emails" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralEmailLogs /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/email-settings" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralEmailSettings /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/documents" element={<Navigate to="/admin/documents" replace />} />
-          <Route path="/central/support" element={<Navigate to="/admin/support" replace />} />
           <Route path="/central/insights" element={<Navigate to="/central/reports" replace />} />
 
           {/* ── Global Trade Routes ── */}
@@ -384,6 +398,7 @@ function App() {
 
           {/* ── Ferex Digital Client Portal (restricted view for provisioned clients) ── */}
           <Route path="/digital/client-portal" element={<ProtectedRoute allowedRoles={['digital_client']}><DigitalClientPortal /></ProtectedRoute>} />
+          <Route path="/digital/client" element={<ProtectedRoute allowedRoles={['digital_client']}><DigitalClientPortal /></ProtectedRoute>} />
 
           {/* ── Ferex Staff Panel Routes ── */}
           <Route path="/staff" element={<Navigate to="/staff/dashboard" replace />} />

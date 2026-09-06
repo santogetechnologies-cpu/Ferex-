@@ -66,6 +66,17 @@ export const TradeDocuments: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
+  const TRADE_DOC_FOLDERS = [
+    'All',
+    'Proforma Invoice',
+    'Commercial Invoice',
+    'Packing List',
+    'Bill of Lading / Airway Bill',
+    'Certificate of Origin',
+    'Letter of Credit',
+    'Inspection Certificate'
+  ];
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFileName) return;
@@ -74,11 +85,24 @@ export const TradeDocuments: React.FC = () => {
       document_name: cleanName,
       folder: newFileFolder,
       file_size: '1.5 MB',
-      doc_type: 'Customs Declaration'
+      doc_type: newFileFolder
     });
+
+    // Auto-dispatch email to client
+    try {
+      const { sendTradeStageEmail } = await import('../../lib/api/automatedEmails');
+      await sendTradeStageEmail({
+        clientEmail: 'procurement@globalbuyer.eu',
+        clientName: 'Commercial Trade Partner',
+        shipmentNo: 'SHP-EU-8840',
+        stage: 'Document Ready',
+        documentTitle: `${cleanName} (${newFileFolder})`
+      });
+    } catch {}
+
     await loadData();
     setShowUploadModal(false);
-    showToastMsg(`Uploaded ${cleanName} to vault!`);
+    showToastMsg(`Uploaded ${cleanName} & automated notice sent to trade partner!`);
     setNewFileName('');
   };
 
@@ -111,7 +135,7 @@ export const TradeDocuments: React.FC = () => {
             <FolderArchive className="w-5 h-5 text-[#6A1B2E]" /> Global Trade Document Vault
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Ferex Trade Console • Repository for Bill of Lading scans, export licenses, customs declarations, and LC contracts.
+            Ferex Trade Console • Repository for Bill of Lading, Commercial Invoices, Packing Lists, Certificates of Origin & Letters of Credit.
           </p>
         </div>
         <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowUploadModal(true)}>
@@ -126,7 +150,7 @@ export const TradeDocuments: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto">
-          {['All', 'Shipment Contracts', 'Export Invoices', 'Customs Clearance', 'Letters of Credit'].map((folder) => (
+          {TRADE_DOC_FOLDERS.map((folder) => (
             <button key={folder} onClick={() => setActiveFolder(folder)} className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${activeFolder === folder ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
               {folder}
             </button>
@@ -196,12 +220,15 @@ export const TradeDocuments: React.FC = () => {
                   <input type="text" required value={newFileName} onChange={(e) => setNewFileName(e.target.value)} placeholder="e.g. Maersk_Bill_Of_Lading_BL992014.pdf" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Target Vault Folder</label>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Target Vault Category</label>
                   <select value={newFileFolder} onChange={(e) => setNewFileFolder(e.target.value)} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                    <option value="Shipment Contracts">Shipment Contracts</option>
-                    <option value="Export Invoices">Export Invoices</option>
-                    <option value="Customs Clearance">Customs Clearance</option>
-                    <option value="Letters of Credit">Letters of Credit</option>
+                    <option value="Proforma Invoice">Proforma Invoice</option>
+                    <option value="Commercial Invoice">Commercial Invoice</option>
+                    <option value="Packing List">Packing List</option>
+                    <option value="Bill of Lading / Airway Bill">Bill of Lading / Airway Bill</option>
+                    <option value="Certificate of Origin">Certificate of Origin</option>
+                    <option value="Letter of Credit">Letter of Credit</option>
+                    <option value="Inspection Certificate">Inspection Certificate</option>
                   </select>
                 </div>
                 <div className="pt-3 flex gap-2">

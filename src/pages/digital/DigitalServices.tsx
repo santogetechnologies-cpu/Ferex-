@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-  Code, Smartphone, Palette, Megaphone, Search as SearchIcon, Award,
+  Code, Smartphone, Palette,
   ArrowRight, CheckCircle2, Users
 } from 'lucide-react';
 import { Card } from '../../components/Card';
@@ -64,48 +64,6 @@ const SERVICE_SELECTION_CARDS: ServiceCardData[] = [
     status: 'Popular',
     badgeColor: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20',
     workspaceTitle: 'Design Studio',
-  },
-  {
-    id: 'SVC-MKT',
-    name: 'Digital Marketing',
-    route: '/digital/services/digital-marketing',
-    icon: Megaphone,
-    desc: 'Omnichannel Google Ads, Meta Reels, LinkedIn B2B lead generation campaigns, and ROAS optimization.',
-    activeProjects: 3,
-    team: ['Riya Thomas', 'Arun Patel'],
-    startingPrice: '₹95,000/mo',
-    timeline: 'Ongoing Retainer',
-    status: 'Active',
-    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    workspaceTitle: 'Marketing Command Center',
-  },
-  {
-    id: 'SVC-SEO',
-    name: 'SEO & Organic Growth',
-    route: '/digital/services/seo',
-    icon: SearchIcon,
-    desc: 'Technical SEO audits, Google Search Console index status, Core Web Vitals optimization, and Page #1 rank tracking.',
-    activeProjects: 2,
-    team: ['Riya Thomas', 'Sneha Roy'],
-    startingPrice: '₹85,000/mo',
-    timeline: 'Ongoing Retainer',
-    status: 'High Demand',
-    badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
-    workspaceTitle: 'SEO Analytics Center',
-  },
-  {
-    id: 'SVC-BRD',
-    name: 'Branding & Identity',
-    route: '/digital/services/branding',
-    icon: Award,
-    desc: 'Corporate logo systems, vector asset vaults, brand guidelines manuals (85+ pages), and collateral mockups.',
-    activeProjects: 2,
-    team: ['Sneha Roy', 'Arun Patel'],
-    startingPrice: '₹2,20,000',
-    timeline: '3 - 4 Weeks',
-    status: 'Active',
-    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    workspaceTitle: 'Creative Brand Studio',
   }
 ];
 

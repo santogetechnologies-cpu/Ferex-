@@ -2,14 +2,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, FolderKanban, CheckSquare, DollarSign,
-  ArrowUpRight
+  ArrowUpRight, Megaphone
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { getDigitalDashboardStats, getDigitalProjects, getDigitalTasks } from '../../lib/api/digital';
+import { useDigitalConfig } from '../../hooks/useDigitalConfig';
 import { supabase } from '../../lib/supabase';
 
 export const DigitalDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { config } = useDigitalConfig();
   const [stats, setStats] = useState({
     activeClientsCount: 0,
     activeProjectsCount: 0,
@@ -73,13 +75,32 @@ export const DigitalDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left antialiased">
+      {/* Live Broadcast Ticker if active */}
+      {config.broadcast?.is_active && config.broadcast.message && (
+        <div className={`p-4 rounded-xl border flex items-center gap-3 shadow-xs ${
+          config.broadcast.urgency === 'danger'
+            ? 'bg-rose-50 border-rose-200 text-rose-800'
+            : config.broadcast.urgency === 'warning'
+            ? 'bg-amber-50 border-amber-200 text-amber-800'
+            : 'bg-blue-50 border-blue-200 text-blue-800'
+        }`}>
+          <Megaphone className="w-5 h-5 shrink-0 animate-bounce" />
+          <div className="text-xs font-bold leading-relaxed flex-1">
+            <span className="uppercase tracking-wider font-black mr-2 px-2 py-0.5 rounded bg-white/80 border text-[10px]">
+              {config.broadcast.urgency} Announcement
+            </span>
+            {config.broadcast.message}
+          </div>
+        </div>
+      )}
+
       {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-6 md:p-8 shadow-xl">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] uppercase font-black tracking-widest bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white">
-                Ferex Digital Agency ERP
+                {config.branding?.agency_name || 'Ferex Digital'} ERP
               </span>
               <span className="text-[10px] font-extrabold text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-400/30 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Supabase Realtime Active
@@ -89,7 +110,7 @@ export const DigitalDashboard: React.FC = () => {
               Good Morning, Digital Director
             </h1>
             <p className="text-xs md:text-sm text-white/85 leading-relaxed font-semibold">
-              Managing full-stack web applications, mobile platforms, UI/UX design systems, performance marketing, and client deliverables.
+              {config.branding?.tagline || 'Managing full-stack web applications, mobile platforms, UI/UX design systems, performance marketing, and client deliverables.'}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 shrink-0">

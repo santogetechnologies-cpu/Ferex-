@@ -1,22 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, TrendingUp, Eye, FileText, X, BarChart2, Plus, Star, Award } from 'lucide-react';
+import { CheckCircle2, TrendingUp, Eye, FileText, X, BarChart2, Plus, Star, Award, Search } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getDigitalEmployees, createDigitalEmployee } from '../../lib/api/digital';
+import { getDigitalEmployees, createDigitalEmployee, updateDigitalEmployee } from '../../lib/api/digital';
+import { supabase } from '../../lib/supabase';
 
 export const DigitalPerformance: React.FC = () => {
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmp, setSelectedEmp] = useState<any>(null);
   const [showAddReviewModal, setShowAddReviewModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState('');
 
   const [reviewForm, setReviewForm] = useState({
     name: '',
     role: 'Fullstack Developer',
     department: 'Engineering',
-    rating: 9.0,
+    rating: 9.2,
     kpiScore: 95,
     feedback: 'Consistently delivers clean code ahead of sprint deadlines.'
   });
@@ -32,10 +34,10 @@ export const DigitalPerformance: React.FC = () => {
       const empData = await getDigitalEmployees();
 
       const defaultPerformance = [
-        { id: '1', name: 'Kavita Iyer', role: 'Principal Fullstack Architect', rating: 9.6, projects: 4, tasks: 28, kpi: 98, feedback: 'Architected high-throughput microservices and Next.js frontend with zero downtime.' },
-        { id: '2', name: 'Sameer Sen', role: 'Lead Product Designer (UI/UX)', rating: 9.4, projects: 3, tasks: 22, kpi: 96, feedback: 'Created tokenized design system adopted across mobile and web platforms.' },
-        { id: '3', name: 'Pooja Hegde', role: 'Senior SEO & Growth Strategist', rating: 9.1, projects: 5, tasks: 34, kpi: 93, feedback: 'Drove 140% surge in organic traffic and achieved Page #1 rankings.' },
-        { id: '4', name: 'Rohan Joshi', role: 'Mobile Flutter Engineer', rating: 8.9, projects: 2, tasks: 19, kpi: 91, feedback: 'Implemented smooth animations and cross-platform push notification pipelines.' },
+        { id: 'EMP-01', name: 'Kavita Iyer', role: 'Principal Fullstack Architect', department: 'Engineering', rating: 9.6, projects: 4, tasks: 28, kpi: 98, feedback: 'Architected high-throughput microservices and Next.js frontend with zero downtime.' },
+        { id: 'EMP-02', name: 'Sameer Sen', role: 'Lead Product Designer (UI/UX)', department: 'Design', rating: 9.4, projects: 3, tasks: 22, kpi: 96, feedback: 'Created tokenized design system adopted across mobile and web platforms.' },
+        { id: 'EMP-03', name: 'Pooja Hegde', role: 'Senior SEO & Growth Strategist', department: 'Marketing', rating: 9.1, projects: 5, tasks: 34, kpi: 93, feedback: 'Drove 140% surge in organic traffic and achieved Page #1 rankings.' },
+        { id: 'EMP-04', name: 'Rohan Joshi', role: 'Mobile Flutter Engineer', department: 'Engineering', rating: 8.9, projects: 2, tasks: 19, kpi: 91, feedback: 'Implemented smooth animations and cross-platform push notification pipelines.' },
       ];
 
       if (Array.isArray(empData) && empData.length > 0) {
@@ -44,12 +46,13 @@ export const DigitalPerformance: React.FC = () => {
           return {
             id: e.id || `EMP-${idx + 1}`,
             name: e.name,
-            role: e.role || 'Digital Specialist',
-            rating: matched?.rating || 9.0,
-            projects: matched?.projects || e.projectsCount || 2,
-            tasks: matched?.tasks || 15,
-            kpi: matched?.kpi || 92,
-            feedback: matched?.feedback || 'Strong collaborator with excellent task completion rate.'
+            role: e.role || matched?.role || 'Digital Specialist',
+            department: e.department || matched?.department || 'Engineering',
+            rating: e.rating || matched?.rating || 9.0,
+            projects: e.projectsCount || matched?.projects || 2,
+            tasks: e.tasksCount || matched?.tasks || 15,
+            kpi: e.kpiScore || matched?.kpi || 92,
+            feedback: e.feedback || matched?.feedback || 'Strong collaborator with excellent task completion rate.'
           };
         });
         setEmployees(merged);
@@ -63,47 +66,90 @@ export const DigitalPerformance: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    window.addEventListener('ferex_digital_employees_change', loadData);
-    return () => window.removeEventListener('ferex_digital_employees_change', loadData);
+
+    const channel = supabase
+      .channel('realtime_digital_perf_emp')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_employees' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    const handleLocalChange = () => loadData();
+    window.addEventListener('ferex_digital_employees_change', handleLocalChange);
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_digital_employees_change', handleLocalChange);
+    };
   }, [loadData]);
 
   const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewForm.name) return;
 
-    await createDigitalEmployee({
-      name: reviewForm.name,
-      role: reviewForm.role,
-      department: reviewForm.department,
-      email: `${reviewForm.name.toLowerCase().replace(/\s+/g, '.')}@ferex.digital`
-    });
+    // Check if employee exists, if so update their appraisal review
+    const existing = employees.find(emp => emp.name.toLowerCase() === reviewForm.name.toLowerCase());
+    if (existing) {
+      await updateDigitalEmployee(existing.id, {
+        rating: Number(reviewForm.rating),
+        kpiScore: Number(reviewForm.kpiScore),
+        feedback: reviewForm.feedback,
+        role: reviewForm.role,
+        department: reviewForm.department
+      });
+      setEmployees(prev => prev.map(emp => emp.id === existing.id ? {
+        ...emp,
+        rating: Number(reviewForm.rating),
+        kpi: Number(reviewForm.kpiScore),
+        feedback: reviewForm.feedback,
+        role: reviewForm.role,
+        department: reviewForm.department
+      } : emp));
+      showToast(`Updated performance review for ${reviewForm.name}`);
+    } else {
+      const created = await createDigitalEmployee({
+        name: reviewForm.name,
+        role: reviewForm.role,
+        department: reviewForm.department,
+        email: `${reviewForm.name.toLowerCase().replace(/\s+/g, '.')}@ferex.digital`,
+        rating: Number(reviewForm.rating),
+        kpiScore: Number(reviewForm.kpiScore),
+        feedback: reviewForm.feedback
+      });
 
-    const newEntry = {
-      id: `EMP-${Date.now().toString().slice(-4)}`,
-      name: reviewForm.name,
-      role: reviewForm.role,
-      rating: Number(reviewForm.rating),
-      projects: 1,
-      tasks: 8,
-      kpi: Number(reviewForm.kpiScore),
-      feedback: reviewForm.feedback
-    };
+      const newEntry = {
+        id: created.id || `EMP-${Date.now().toString().slice(-4)}`,
+        name: reviewForm.name,
+        role: reviewForm.role,
+        department: reviewForm.department,
+        rating: Number(reviewForm.rating),
+        projects: 1,
+        tasks: 8,
+        kpi: Number(reviewForm.kpiScore),
+        feedback: reviewForm.feedback
+      };
+      setEmployees(prev => [newEntry, ...prev]);
+      showToast(`Recorded appraisal review for ${reviewForm.name}`);
+    }
 
-    setEmployees(prev => [newEntry, ...prev]);
     setShowAddReviewModal(false);
-    showToast(`Recorded performance review for ${reviewForm.name}`);
     setReviewForm({
       name: '',
       role: 'Fullstack Developer',
       department: 'Engineering',
-      rating: 9.0,
+      rating: 9.2,
       kpiScore: 95,
       feedback: 'Consistently delivers clean code ahead of sprint deadlines.'
     });
   };
 
-  const avgRating = employees.length > 0 ? (employees.reduce((sum, e) => sum + e.rating, 0) / employees.length).toFixed(1) : '9.2';
-  const avgKpi = employees.length > 0 ? (employees.reduce((sum, e) => sum + e.kpi, 0) / employees.length).toFixed(1) : '94.5';
+  const filteredEmployees = employees.filter(e =>
+    e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    e.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    e.department?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const avgRating = employees.length > 0 ? (employees.reduce((sum, e) => sum + Number(e.rating || 9.0), 0) / employees.length).toFixed(1) : '9.3';
+  const avgKpi = employees.length > 0 ? (employees.reduce((sum, e) => sum + Number(e.kpi || 90), 0) / employees.length).toFixed(1) : '94.5';
 
   return (
     <div className="space-y-6 text-left antialiased max-w-7xl mx-auto">
@@ -178,51 +224,71 @@ export const DigitalPerformance: React.FC = () => {
         </Card>
       </div>
 
+      {/* Search Toolbar */}
+      <div className="relative w-full sm:w-80">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search team member by name or role..."
+          className="w-full h-9 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+        />
+      </div>
+
       {/* Employee Performance Cards */}
       <div className="space-y-3">
         {loading ? (
           <div className="p-8 text-center text-xs font-bold text-slate-400">Loading appraisal metrics...</div>
-        ) : employees.map((emp) => (
-          <Card key={emp.id} className="p-4 border border-slate-200/80 bg-white rounded-2xl shadow-xs hover:shadow-md transition-all space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6A1B2E] to-[#9B3A50] text-white flex items-center justify-center text-sm font-black shadow-xs shrink-0">
-                  {emp.name.charAt(0)}
+        ) : filteredEmployees.length === 0 ? (
+          <Card className="p-12 text-center border border-dashed border-slate-200">
+            <BarChart2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-sm font-black text-slate-800">No appraisal records found</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">Add your team members to record their appraisal ratings.</p>
+          </Card>
+        ) : (
+          filteredEmployees.map((emp) => (
+            <Card key={emp.id} className="p-4 border border-slate-200/80 bg-white rounded-2xl shadow-xs hover:shadow-md transition-all space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6A1B2E] to-[#9B3A50] text-white flex items-center justify-center text-sm font-black shadow-xs shrink-0">
+                    {emp.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 leading-none">{emp.name}</h3>
+                    <p className="text-xs font-semibold text-slate-500 mt-1">{emp.role} · <span className="text-slate-400">{emp.department || 'Engineering'}</span></p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5 fill-current" /> {emp.rating} Rating
+                  </span>
+                  <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-50 text-blue-700 border border-blue-200">
+                    {emp.kpi}% KPI Score
+                  </span>
+                  <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => setSelectedEmp(emp)}>
+                    <Eye className="w-3.5 h-3.5 mr-1" /> Dossier
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-100 text-xs">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Active Projects</span>
+                  <div className="font-bold text-slate-800">{emp.projects} Projects</div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900 leading-none">{emp.name}</h3>
-                  <p className="text-xs font-semibold text-slate-500 mt-1">{emp.role}</p>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Completed Tasks</span>
+                  <div className="font-bold text-slate-800">{emp.tasks} Sprint Items</div>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Supervisor Assessment</span>
+                  <p className="text-xs text-slate-600 italic font-medium truncate">{emp.feedback}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                  <Star className="w-3.5 h-3.5 fill-current" /> {emp.rating} Rating
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-50 text-blue-700 border border-blue-200">
-                  {emp.kpi}% KPI Score
-                </span>
-                <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => setSelectedEmp(emp)}>
-                  <Eye className="w-3.5 h-3.5 mr-1" /> Dossier
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-100 text-xs">
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Active Projects</span>
-                <div className="font-bold text-slate-800">{emp.projects} Projects</div>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Completed Tasks</span>
-                <div className="font-bold text-slate-800">{emp.tasks} Sprint Items</div>
-              </div>
-              <div className="col-span-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Supervisor Assessment</span>
-                <p className="text-xs text-slate-600 italic font-medium truncate">{emp.feedback}</p>
-              </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))
+        )}
       </div>
 
       {/* ─── MODAL: ADD APPRAISAL REVIEW ─── */}
@@ -289,14 +355,14 @@ export const DigitalPerformance: React.FC = () => {
             <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-md bg-white z-50 shadow-2xl p-6 overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                 <h3 className="text-base font-black text-slate-900">Employee Appraisal Dossier</h3>
-                <button onClick={() => setSelectedEmp(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-4 h-4" /></button>
+                <button onClick={() => setSelectedEmp(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
 
               <div className="space-y-4 text-left text-xs">
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
                   <span className="text-[10px] font-black text-[#6A1B2E] uppercase">Ferex Digital Talent Directory</span>
                   <h4 className="text-lg font-black text-slate-900">{selectedEmp.name}</h4>
-                  <p className="text-xs font-semibold text-slate-500">{selectedEmp.role}</p>
+                  <p className="text-xs font-semibold text-slate-500">{selectedEmp.role} · {selectedEmp.department || 'Engineering'}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

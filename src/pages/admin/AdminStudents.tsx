@@ -122,7 +122,7 @@ export const AdminStudents: React.FC = () => {
         await updateJourneyStageStatus(nextStage.id, 'In Progress');
       }
 
-      // 3. Automatically notify the student (writes to Supabase & triggers mock email toast)
+      // 3. Automatically notify the student and log automated email
       await createNotification({
         user_id: viewStudent.id,
         title: `Stage Completed: ${stage.stage_name}`,
@@ -130,12 +130,21 @@ export const AdminStudents: React.FC = () => {
         category: 'Journey'
       });
 
+      const { sendEducationProcessEmail } = await import('../../lib/api/automatedEmails');
+      await sendEducationProcessEmail({
+        studentEmail: viewStudent.email,
+        studentName: viewStudent.name,
+        stepName: stage.stage_name,
+        stepStatus: 'Completed',
+        notes: `Step completed. Next milestone: ${nextStage ? nextStage.stage_name : 'Arrival Preparation'}`
+      });
+
       // Refresh local stages
       const { getJourneyStages } = await import('../../lib/api/journey');
       const list = await getJourneyStages(viewStudent.id);
       setStudentStages(list);
 
-      showToast(`🎉 Journey step "${stage.stage_name}" confirmed! Student notified via email.`);
+      showToast(`🎉 Journey step "${stage.stage_name}" confirmed! Automated email sent to ${viewStudent.email}.`);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to confirm journey stage'}`);
     }

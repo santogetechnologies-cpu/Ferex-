@@ -10,30 +10,49 @@ export async function autoSeedAllDataToSupabase() {
       value: feeConfig,
       updated_at: new Date().toISOString()
     });
+
+    // Seed Stripe & UPI payment gateways config if not present
+    const { data: gwData } = await supabase.from('system_config').select('value').eq('key', 'payment_gateways').maybeSingle();
+    if (!gwData) {
+      const defaultGateways = {
+        stripe: {
+          enabled: true,
+          publishableKey: 'pk_test_51MzDemoKeyFerexGlobalEnterprise99420StripePublishableKey',
+          secretKey: 'sk_test_51MzDemoSecretKeyFerexGlobalEnterprise99420StripeSecretKey',
+          webhookSecret: 'whsec_demoWebhookSecretFerex2026',
+          environment: 'sandbox',
+          supportedCurrencies: ['INR', 'EUR', 'USD'],
+          defaultCurrency: 'INR',
+          autoCapture: true,
+        },
+        upi: {
+          enabled: true,
+          upiId: 'ferex.payments@icici',
+          merchantName: 'FEREX ENTERPRISE GROUP',
+          merchantCode: '5411',
+          qrCodeEnabled: true,
+          collectRequestEnabled: true,
+          autoVerifyUtr: true,
+        },
+        divisions: {
+          education: { allowStripe: true, allowUpi: true, customUpiId: 'ferex.education@icici', customMerchantName: 'FEREX GLOBAL EDUCATION' },
+          digital: { allowStripe: true, allowUpi: true, customUpiId: 'ferex.digital@icici', customMerchantName: 'FEREX DIGITAL ERP' },
+          rimi: { allowStripe: true, allowUpi: true, customUpiId: 'ferex.rimi@icici', customMerchantName: 'RIMI FROZEN LOGISTICS' },
+          trade: { allowStripe: true, allowUpi: true, customUpiId: 'ferex.trade@icici', customMerchantName: 'FEREX GLOBAL TRADE' },
+        },
+        updated_at: new Date().toISOString(),
+        updated_by: 'System AutoSeeder',
+      };
+      await supabase.from('system_config').upsert({
+        key: 'payment_gateways',
+        value: defaultGateways,
+        updated_at: new Date().toISOString(),
+      });
+    }
   } catch (err: any) {}
 
-  // Permanent seed guard: if the database has already completed initial bootstrap,
-  // NEVER re-seed dummy rows when a user deletes table records!
-  const localSeeded = typeof window !== 'undefined' && localStorage.getItem('ferex_divisions_seeded_v1') === 'true';
-  if (localSeeded) return;
-
-  try {
-    const { data: configRow } = await supabase.from('system_config').select('value').eq('key', 'ferex_divisions_seeded_v1').maybeSingle();
-    if (configRow) {
-      try { localStorage.setItem('ferex_divisions_seeded_v1', 'true'); } catch {}
-      return;
-    }
-  } catch {}
-
-  // Mark as seeded in both localStorage and Supabase system_config
-  try { localStorage.setItem('ferex_divisions_seeded_v1', 'true'); } catch {}
-  try {
-    await supabase.from('system_config').upsert({
-      key: 'ferex_divisions_seeded_v1',
-      value: { seeded_at: new Date().toISOString() },
-      updated_at: new Date().toISOString()
-    });
-  } catch {}
+  // Per-table initialization: checks count for each table individually
+  // so if any new table or empty division needs initial baseline records, it gracefully populates it without overwriting anything.
 
   try {
     const { count } = await supabase.from('trade_clients').select('*', { count: 'exact', head: true });
@@ -465,4 +484,379 @@ export async function autoSeedAllDataToSupabase() {
       ]);
     }
   } catch (e) {}
+
+  // Ensure initial Trade Bonded Inventory exists in Supabase DB
+  try {
+    const { count } = await supabase.from('trade_bonded_inventory').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('trade_bonded_inventory').insert([
+        {
+          sku: 'POL-COAL-6000',
+          commodity: 'Premium Polish Thermal Coal (6000 kcal/kg)',
+          category: 'Bulk Energy Commodities',
+          port_location: 'Port of Gdansk, Bonded Bay #4A',
+          warehouse_bay: 'Bay-04 North Terminal',
+          in_stock_metric_tons: 45000,
+          reserved_metric_tons: 12000,
+          available_metric_tons: 33000,
+          unit_value_inr: 11500,
+          total_valuation_inr: 517500000,
+          customs_bond_no: 'PL-GDN-CB-2026-0981',
+          status: 'In Bond'
+        },
+        {
+          sku: 'ROT-STEEL-HRC',
+          commodity: 'Hot Rolled Steel Coils (Grade EN 10025)',
+          category: 'Industrial Metals',
+          port_location: 'Port of Rotterdam, Yard Pier 3',
+          warehouse_bay: 'Shed 12 Heavy Stacking',
+          in_stock_metric_tons: 18500,
+          reserved_metric_tons: 5000,
+          available_metric_tons: 13500,
+          unit_value_inr: 62000,
+          total_valuation_inr: 1147000000,
+          customs_bond_no: 'NL-ROT-CB-2026-1140',
+          status: 'In Bond'
+        },
+        {
+          sku: 'JNPT-PETRO-BIT',
+          commodity: 'Refined Bitumen & Industrial Petrochemicals',
+          category: 'Chemicals & Energy',
+          port_location: 'JNPT Mumbai, Bulk Tank Yard #2',
+          warehouse_bay: 'Tank Cluster 02-B',
+          in_stock_metric_tons: 8200,
+          reserved_metric_tons: 2200,
+          available_metric_tons: 6000,
+          unit_value_inr: 48000,
+          total_valuation_inr: 393600000,
+          customs_bond_no: 'IN-JNPT-CB-2026-4412',
+          status: 'Cleared Customs'
+        },
+        {
+          sku: 'DXB-ALUM-ING',
+          commodity: 'Primary Aluminium Ingots (99.7% P1020A)',
+          category: 'Non-Ferrous Metals',
+          port_location: 'Jebel Ali Port, Dubai FTZ #7',
+          warehouse_bay: 'FTZ Bay 7-E',
+          in_stock_metric_tons: 6400,
+          reserved_metric_tons: 1400,
+          available_metric_tons: 5000,
+          unit_value_inr: 215000,
+          total_valuation_inr: 1376000000,
+          customs_bond_no: 'AE-DXB-FTZ-2026-8819',
+          status: 'In Bond'
+        }
+      ]);
+    }
+  } catch (e) {}
+
+  // Ensure initial Digital Invoices exist in Supabase DB
+  try {
+    const { count } = await supabase.from('digital_invoices').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('digital_invoices').insert([
+        {
+          invoice_no: 'INV-DIG-8841',
+          amount: 1450000.00,
+          tax_amount: 261000.00,
+          currency: 'INR',
+          status: 'Paid',
+          due_date: '2026-08-15'
+        },
+        {
+          invoice_no: 'INV-DIG-8842',
+          amount: 680000.00,
+          tax_amount: 122400.00,
+          currency: 'INR',
+          status: 'Paid',
+          due_date: '2026-08-28'
+        },
+        {
+          invoice_no: 'INV-DIG-8843',
+          amount: 725000.00,
+          tax_amount: 130500.00,
+          currency: 'INR',
+          status: 'Sent',
+          due_date: '2026-09-25'
+        }
+      ]);
+    }
+  } catch (e) {}
+
+  // Ensure initial Rimi Warehouses exist in Supabase DB
+  try {
+    const { count } = await supabase.from('rimi_warehouses').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('rimi_warehouses').insert([
+        {
+          code: 'WH-MUM-01',
+          name: 'Mumbai Central Deep Freeze Hub',
+          city: 'Navi Mumbai',
+          address: 'APMC Logistics Corridor, Sector 19',
+          cold_room_temp_celsius: -22.40,
+          total_capacity_pallets: 1200,
+          utilized_pallets: 1056,
+          manager_name: 'Rajesh Sharma',
+          manager_phone: '+91 98200 44556'
+        },
+        {
+          code: 'WH-DEL-02',
+          name: 'Delhi NCR Reefer Logistics Center',
+          city: 'Gurugram',
+          address: 'Cyber City Expressway Cold Park',
+          cold_room_temp_celsius: -20.10,
+          total_capacity_pallets: 850,
+          utilized_pallets: 544,
+          manager_name: 'Amit Verma',
+          manager_phone: '+91 98200 44557'
+        },
+        {
+          code: 'WH-BLR-03',
+          name: 'Bengaluru South Cold Transit Depot',
+          city: 'Bengaluru',
+          address: 'Electronic City Phase II Depot',
+          cold_room_temp_celsius: -18.80,
+          total_capacity_pallets: 600,
+          utilized_pallets: 432,
+          manager_name: 'K. Sunderam',
+          manager_phone: '+91 98200 44558'
+        }
+      ]);
+    }
+  } catch (e) {}
+
+  // Ensure initial Digital Employees exist in Supabase DB
+  try {
+    const { count } = await supabase.from('digital_employees').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('digital_employees').insert([
+        {
+          name: 'Kavita Iyer',
+          role: 'Principal Fullstack Architect',
+          department: 'Engineering',
+          email: 'k.iyer@ferex.digital',
+          status: 'Active',
+          rating: 9.6,
+          kpiScore: 98,
+          feedback: 'Architected high-throughput microservices and Next.js frontend with zero downtime.'
+        },
+        {
+          name: 'Sameer Sen',
+          role: 'Lead Product Designer (UI/UX)',
+          department: 'Design',
+          email: 's.sen@ferex.digital',
+          status: 'Active',
+          rating: 9.4,
+          kpiScore: 96,
+          feedback: 'Created tokenized design system adopted across mobile and web platforms.'
+        },
+        {
+          name: 'Pooja Hegde',
+          role: 'Senior SEO & Growth Strategist',
+          department: 'Marketing',
+          email: 'p.hegde@ferex.digital',
+          status: 'Active',
+          rating: 9.1,
+          kpiScore: 93,
+          feedback: 'Drove 140% surge in organic traffic and achieved Page #1 rankings.'
+        },
+        {
+          name: 'Rohan Joshi',
+          role: 'Mobile Flutter Engineer',
+          department: 'Engineering',
+          email: 'r.joshi@ferex.digital',
+          status: 'Active',
+          rating: 8.9,
+          kpiScore: 91,
+          feedback: 'Implemented smooth animations and cross-platform push notification pipelines.'
+        }
+      ]);
+    }
+  } catch (e) {}
+
+  // Ensure initial Digital Assets exist in Supabase DB
+  try {
+    const { count } = await supabase.from('digital_assets').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('digital_assets').insert([
+        {
+          name: 'AWS Elastic Kubernetes (EKS Production Cluster)',
+          type: 'Cloud Infrastructure',
+          provider: 'Amazon Web Services',
+          cost_per_month_inr: 88500,
+          renewal_date: '2026-10-01',
+          status: 'Active',
+          assigned_to_project: 'Nexus FinTech Platform',
+          assigned_team_lead: 'Kavita Iyer',
+          license_seats: 12
+        },
+        {
+          name: 'Figma Enterprise Organization Workspace',
+          type: 'Design & Dev Tools',
+          provider: 'Figma Inc.',
+          cost_per_month_inr: 32000,
+          renewal_date: '2026-09-28',
+          status: 'Active',
+          assigned_to_project: 'Global Design System',
+          assigned_team_lead: 'Sameer Sen',
+          license_seats: 25
+        },
+        {
+          name: 'Cloudflare Enterprise SSL & DDoS Shield',
+          type: 'SSL & Security',
+          provider: 'Cloudflare Inc.',
+          cost_per_month_inr: 21500,
+          renewal_date: '2026-09-15',
+          status: 'Expiring Soon',
+          assigned_to_project: 'All Active Client Portals',
+          assigned_team_lead: 'Rohan Joshi'
+        },
+        {
+          name: 'OpenAI GPT-4o Enterprise API Gateway',
+          type: 'API Gateway',
+          provider: 'OpenAI LLC',
+          cost_per_month_inr: 54000,
+          renewal_date: '2026-10-05',
+          status: 'Active',
+          assigned_to_project: 'AI Copilot & Workflow Engines',
+          assigned_team_lead: 'Kavita Iyer'
+        },
+        {
+          name: 'GitHub Enterprise & Copilot Business Seats',
+          type: 'SaaS License',
+          provider: 'GitHub Inc.',
+          cost_per_month_inr: 18000,
+          renewal_date: '2026-11-01',
+          status: 'Active',
+          assigned_to_project: 'Core Engineering',
+          assigned_team_lead: 'Kavita Iyer',
+          license_seats: 18
+        }
+      ]);
+    }
+  } catch (e) {}
+
+  // Ensure initial Digital Notifications exist in Supabase DB
+  try {
+    const { count } = await supabase.from('digital_notifications').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('digital_notifications').insert([
+        {
+          title: 'Invoice Paid',
+          description: 'Nexus FinTech Global settled Tax Invoice #INV-DIG-8810 (₹4,50,000 via RTGS).',
+          category: 'Finance',
+          is_read: false
+        },
+        {
+          title: 'Sprint Milestone Completed',
+          description: 'Starlight E-Commerce Design System approved for production build.',
+          category: 'Projects',
+          is_read: false
+        },
+        {
+          title: 'AWS Cloud Alert',
+          description: 'Production cluster utilization steady at 38%. Zero downtime.',
+          category: 'DevOps',
+          is_read: true
+        }
+      ]);
+    }
+  } catch (e) {}
+
+  // Ensure initial Rimi Notifications exist in Supabase DB
+  try {
+    const { count } = await supabase.from('rimi_notifications').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('rimi_notifications').insert([
+        {
+          title: 'Reefer Truck #MH-12 Temp Optimal',
+          description: 'Active reefer logging steady at -19.4°C. No deviations detected.',
+          category: 'Telemetry',
+          is_read: false,
+          is_archived: false
+        },
+        {
+          title: 'Order #SO-2026-901 Delivered',
+          description: 'HyperCity Supermarket Mumbai Hub confirmed fresh arrival.',
+          category: 'Logistics',
+          is_read: false,
+          is_archived: false
+        },
+        {
+          title: 'Cold Storage Room #1 Telemetry',
+          description: 'Deep freeze warehouse locked at -22.4°C.',
+          category: 'Storage',
+          is_read: true,
+          is_archived: false
+        }
+      ]);
+    }
+  } catch (e) {}
+
+  // Ensure initial Rimi Messages exist in Supabase DB
+  try {
+    const { count } = await supabase.from('rimi_messages').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('rimi_messages').insert([
+        {
+          conversation_id: '1',
+          contact_name: 'Rajesh Kulkarni (Mumbai Cold Hub)',
+          contact_role: 'Warehouse Manager',
+          sender_name: 'Rajesh Kulkarni',
+          message: 'Good morning. Checking cold room #2 telemetry.',
+          is_self: false
+        },
+        {
+          conversation_id: '1',
+          contact_name: 'Rajesh Kulkarni (Mumbai Cold Hub)',
+          contact_role: 'Warehouse Manager',
+          sender_name: 'Rimi Cold Chain Lead',
+          message: 'Confirmed. Keep temperature locked at -22°C.',
+          is_self: true
+        },
+        {
+          conversation_id: '1',
+          contact_name: 'Rajesh Kulkarni (Mumbai Cold Hub)',
+          contact_role: 'Warehouse Manager',
+          sender_name: 'Rajesh Kulkarni',
+          message: 'Temperature steady at -22.4°C across all sensors.',
+          is_self: false
+        }
+      ]);
+    }
+  } catch (e) {}
+
+  // Ensure initial Trade Cargo Losses exist in Supabase DB
+  try {
+    const { count } = await supabase.from('trade_cargo_losses').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await supabase.from('trade_cargo_losses').insert([
+        {
+          shipment_no: 'SHP-9821',
+          container_no: 'MSKU-9821045',
+          loss_type: 'Port Demurrage Penalty',
+          port_location: 'Port of Rotterdam (ECT Delta Terminal)',
+          loss_amount_inr: 120000,
+          shrinkage_metric_tons: 0,
+          carrier_responsible: 'Maersk Line',
+          insurance_claim_status: 'Claim Lodged',
+          incident_date: '2026-08-25',
+          description: '4-day customs inspection terminal overstay clearance demurrage charge.'
+        },
+        {
+          shipment_no: 'SHP-9822',
+          container_no: 'CMAU-4412093',
+          loss_type: 'Handling Impact Shock',
+          port_location: 'Hamburg Container Terminal Altenwerder',
+          loss_amount_inr: 85000,
+          shrinkage_metric_tons: 1.2,
+          carrier_responsible: 'CMA CGM Logistics',
+          insurance_claim_status: 'Recovered / Reimbursed',
+          incident_date: '2026-08-14',
+          description: 'Cranial hoisting rough set-down damaged protective steel wrap.'
+        }
+      ]);
+    }
+  } catch (e) {}
 }
+

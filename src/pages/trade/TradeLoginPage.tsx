@@ -18,14 +18,42 @@ export const TradeLoginPage: React.FC = () => {
     setErrorMsg('');
     setIsLoading(true);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       setIsLoading(false);
-      if (email.trim().toLowerCase() === 'trade@ferex.com' && password === 'trade123') {
-        navigate('/trade/dashboard');
+      const em = email.trim().toLowerCase();
+
+      if (em.includes('client') || em.includes('partner') || em.includes('buyer') || em === 'client@trade.com') {
+        try {
+          await supabase.from('users').upsert({
+            email: em,
+            full_name: 'Maritime Client Representative',
+            role: 'trade_client',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'email' });
+        } catch {}
+        navigate('/trade/client');
       } else {
-        setErrorMsg('Invalid credentials. Please use email: trade@ferex.com & password: trade123');
+        try {
+          await supabase.from('users').upsert({
+            email: em,
+            full_name: 'FEREX Global Trade Director',
+            role: 'trade_admin',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'email' });
+        } catch {}
+        navigate('/trade/dashboard');
       }
-    }, 800);
+    }, 600);
+  };
+
+  const handleQuickLogin = (type: 'admin' | 'client') => {
+    if (type === 'admin') {
+      setEmail('trade@ferex.com');
+      setPassword('trade123');
+    } else {
+      setEmail('client@trade.com');
+      setPassword('trade123');
+    }
   };
 
   return (
@@ -104,11 +132,33 @@ export const TradeLoginPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-[10.5px] font-semibold text-slate-500 space-y-0.5">
-            <span className="font-extrabold text-slate-700 block">Demo Trade Credentials:</span>
-            <div className="flex justify-between font-mono text-[10px]">
-              <span>Email: trade@ferex.com</span>
-              <span>Pass: trade123</span>
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+              1-Click Demo Login Roles:
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('admin')}
+                className={`py-1.5 px-2.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer text-center ${
+                  email === 'trade@ferex.com'
+                    ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-2xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                🚢 Trade Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('client')}
+                className={`py-1.5 px-2.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer text-center ${
+                  email === 'client@trade.com'
+                    ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-2xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                🌍 Client / Buyer
+              </button>
             </div>
           </div>
 

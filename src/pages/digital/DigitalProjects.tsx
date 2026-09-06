@@ -96,8 +96,24 @@ export const DigitalProjects: React.FC = () => {
       status: editingProject.status,
       lead_developer: editingProject.lead_developer
     });
+
+    // Automated Email Dispatch
+    try {
+      const { sendDigitalProjectMilestoneEmail } = await import('../../lib/api/automatedEmails');
+      const clientObj = clients.find(c => c.id === editingProject.client_id) || editingProject.client;
+      if (clientObj?.email) {
+        await sendDigitalProjectMilestoneEmail({
+          clientEmail: clientObj.email,
+          clientName: clientObj.contact_person || clientObj.company_name || 'Client',
+          projectTitle: editingProject.title,
+          stage: editingProject.status as any,
+          amount: Number(editingProject.budget || 0)
+        });
+      }
+    } catch {}
+
     setEditingProject(null);
-    showToast(`Updated "${editingProject.title}"`);
+    showToast(`Updated "${editingProject.title}" to ${editingProject.status}`);
     await loadData();
   };
 
@@ -239,11 +255,9 @@ export const DigitalProjects: React.FC = () => {
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Service Domain</label>
                     <select value={newProj.service_category} onChange={(e) => setNewProj({ ...newProj, service_category: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                      <option value="Web & App Development">Web & App Development</option>
+                      <option value="Web Development">Web Development</option>
+                      <option value="Mobile App Development">Mobile App Development</option>
                       <option value="UI/UX Design">UI/UX Design</option>
-                      <option value="Digital Marketing">Digital Marketing</option>
-                      <option value="SEO & Performance">SEO & Performance</option>
-                      <option value="Branding & Identity">Branding & Identity</option>
                     </select>
                   </div>
                   <div>
@@ -288,12 +302,14 @@ export const DigitalProjects: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Status</label>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Lifecycle Stage</label>
                     <select value={editingProject.status} onChange={(e) => setEditingProject({ ...editingProject, status: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                      <option value="Planning">Planning</option>
+                      <option value="Briefing">Briefing</option>
                       <option value="In Progress">In Progress</option>
-                      <option value="In Review">In Review</option>
-                      <option value="Completed">Completed</option>
+                      <option value="Review">Review</option>
+                      <option value="Revisions">Revisions</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Closed">Closed</option>
                     </select>
                   </div>
                   <div>

@@ -1,18 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search as SearchIcon, CheckCircle2,
   Sparkles, Play, ChevronDown, ChevronUp,
-  Loader2, Clock
+  Loader2, Clock, Globe
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-
-// ── Google SERP Simulator Data ─────────────────────────────────────────────
-const paaQuestions = [
-  { q: 'Which is the best place to buy smartphones online in India?', a: 'Reliance Digital offers 100% genuine products with official brand warranty, same-day delivery, and festival discounts.' },
-  { q: 'How to get instant cashback on electronics?', a: 'Use HDFC Bank, ICICI Bank, or Axis Bank credit cards during checkout for up to ₹10,000 instant cashback.' }
-];
+import { getDigitalProjects, getDigitalClients } from '../../lib/api/digital';
+import { supabase } from '../../lib/supabase';
 
 // ── Crawler Modal Steps ─────────────────────────────────────────────────────
 const crawlerSteps = [
@@ -32,19 +28,12 @@ const crawlerSteps = [
   '✓ Technical Crawler Scan Completed (100% Passed)'
 ];
 
-// ── AI Findings Panel Data ─────────────────────────────────────────────────
-const initialAiRecommendations = [
-  { priority: 'High Priority', impact: '+14 Score Impact', time: '30 mins to fix', title: 'Optimize Largest Contentful Paint (LCP)', desc: 'Preload LCP hero banner image to reduce render delay from 1.2s to 0.8s.', bg: 'bg-red-50 text-red-700 border-red-200' },
-  { priority: 'High Priority', impact: '+12 Score Impact', time: '15 mins to fix', title: 'Missing Schema on Product Pages', desc: 'Inject Schema.org Product & Offer JSON-LD to enable Google Price Snippets.', bg: 'bg-red-50 text-red-700 border-red-200' },
-  { priority: 'Medium Priority', impact: '+8 Score Impact', time: '20 mins to fix', title: 'Compress 42 Hero Banner Images', desc: 'Convert PNG/JPEG gallery assets to WebP format to save 1.4 MB payload.', bg: 'bg-amber-50 text-amber-700 border-amber-200' },
-  { priority: 'Medium Priority', impact: '+6 Score Impact', time: '10 mins to fix', title: 'Fix Duplicate Meta Descriptions', desc: '6 category URLs share identical meta tags. Apply tokenized descriptions.', bg: 'bg-amber-50 text-amber-700 border-amber-200' },
-  { priority: 'Low Priority', impact: '+4 Score Impact', time: '25 mins to fix', title: 'Add Internal Links to Blog Posts', desc: 'Link blog reviews directly to product catalog URLs for pagerank flow.', bg: 'bg-blue-50 text-blue-700 border-blue-200' },
-  { priority: 'Low Priority', impact: '+4 Score Impact', time: '10 mins to fix', title: 'Improve Mobile CLS Layout Stability', desc: 'Add explicit width and height attributes to promotional banners.', bg: 'bg-blue-50 text-blue-700 border-blue-200' },
-];
-
 export const DigitalSEO: React.FC = () => {
   const [toast, setToast] = useState('');
-  const [searchQuery, setSearchQuery] = useState('online electronics shopping India');
+  const [projects, setProjects] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState('enterprise software solutions');
   const [openPaa, setOpenPaa] = useState<number | null>(0);
 
   // Live Technical Scan Modal State
@@ -61,7 +50,44 @@ export const DigitalSEO: React.FC = () => {
   const [ctrRate, setCtrRate] = useState('4.8%');
   const [crawlErrors, setCrawlErrors] = useState(8);
 
+  // Dynamic AI Recommendations
+  const [recommendations, setRecommendations] = useState([
+    { id: 'rec-1', priority: 'High Priority', impact: '+14 Score Impact', time: '30 mins to fix', title: 'Optimize Largest Contentful Paint (LCP)', desc: 'Preload LCP hero banner image to reduce render delay from 1.2s to 0.8s.', bg: 'bg-red-50 text-red-700 border-red-200', fixed: false },
+    { id: 'rec-2', priority: 'High Priority', impact: '+12 Score Impact', time: '15 mins to fix', title: 'Missing Schema on Service Pages', desc: 'Inject Schema.org Service & Organization JSON-LD to enable rich Google snippets.', bg: 'bg-red-50 text-red-700 border-red-200', fixed: false },
+    { id: 'rec-3', priority: 'Medium Priority', impact: '+8 Score Impact', time: '20 mins to fix', title: 'Compress 42 Hero Banner Images', desc: 'Convert PNG/JPEG gallery assets to WebP format to save 1.4 MB payload.', bg: 'bg-amber-50 text-amber-700 border-amber-200', fixed: false },
+    { id: 'rec-4', priority: 'Medium Priority', impact: '+6 Score Impact', time: '10 mins to fix', title: 'Fix Duplicate Meta Descriptions', desc: '6 category URLs share identical meta tags. Apply tokenized descriptions.', bg: 'bg-amber-50 text-amber-700 border-amber-200', fixed: false },
+    { id: 'rec-5', priority: 'Low Priority', impact: '+4 Score Impact', time: '25 mins to fix', title: 'Add Internal Links to Case Studies', desc: 'Link case studies directly to service catalog URLs for pagerank flow.', bg: 'bg-blue-50 text-blue-700 border-blue-200', fixed: false },
+    { id: 'rec-6', priority: 'Low Priority', impact: '+4 Score Impact', time: '10 mins to fix', title: 'Improve Mobile CLS Layout Stability', desc: 'Add explicit width and height attributes to promotional banners.', bg: 'bg-blue-50 text-blue-700 border-blue-200', fixed: false },
+  ]);
+
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+
+  const loadData = useCallback(async () => {
+    try {
+      const [pData, cData] = await Promise.all([
+        getDigitalProjects(),
+        getDigitalClients(),
+      ]);
+      setProjects(pData || []);
+      setClients(cData || []);
+      if (cData && cData.length > 0 && !selectedClient) {
+        setSelectedClient(cData[0]);
+      }
+    } catch {}
+  }, [selectedClient]);
+
+  useEffect(() => {
+    loadData();
+
+    const channel = supabase
+      .channel('realtime_digital_seo')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_clients' }, () => loadData())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadData]);
 
   // Trigger Live Technical Scanner Modal
   const startLiveTechnicalScan = () => {
@@ -99,6 +125,15 @@ export const DigitalSEO: React.FC = () => {
     }, 450);
   };
 
+  const handleApplyFix = (id: string, title: string) => {
+    setRecommendations(prev => prev.map(r => r.id === id ? { ...r, fixed: true } : r));
+    setHealthScore(prev => Math.min(100, prev + 1));
+    showToast(`Fix applied for: ${title}`);
+  };
+
+  const clientName = selectedClient?.company_name || 'Enterprise Client';
+  const clientDomain = selectedClient?.email ? `https://${selectedClient.email.split('@')[1] || 'client.com'}` : 'https://www.ferex.digital';
+
   return (
     <div className="space-y-8 text-left antialiased select-none">
       {/* Toast Notification */}
@@ -130,7 +165,7 @@ export const DigitalSEO: React.FC = () => {
               Organic Search Operations & SERP Command Center
             </h1>
             <p className="text-xs text-white/80 font-semibold leading-relaxed">
-              Google Search Console API integration, Core Web Vitals index, technical crawler scan, and AI recommendations.
+              Google Search Console API integration, Core Web Vitals index, technical crawler scan, and AI recommendations for <span className="text-amber-200 font-bold">{clientName}</span>.
             </p>
           </div>
 
@@ -154,6 +189,24 @@ export const DigitalSEO: React.FC = () => {
         </div>
       </div>
 
+      {/* Client Domain Selector Bar */}
+      <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Globe className="w-4 h-4 text-[#6A1B2E]" />
+          <span className="text-xs font-bold text-slate-700">Audit Target Domain:</span>
+          <select
+            value={selectedClient?.id || ''}
+            onChange={(e) => setSelectedClient(clients.find(c => c.id === e.target.value) || null)}
+            className="h-8 px-3 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-900"
+          >
+            {clients.map(c => (
+              <option key={c.id} value={c.id}>{c.company_name} ({c.email || 'domain'})</option>
+            ))}
+          </select>
+        </div>
+        <span className="text-xs font-mono font-bold text-slate-500">{clientDomain}</span>
+      </Card>
+
       {/* Dynamic Health Score & Metrics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="p-4 border border-slate-200/70 shadow-xs text-center bg-gradient-to-b from-white to-slate-50">
@@ -161,7 +214,7 @@ export const DigitalSEO: React.FC = () => {
           <motion.div key={healthScore} initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-2xl font-black text-emerald-600">
             {healthScore} / 100
           </motion.div>
-          <span className="text-[9.5px] font-bold text-emerald-700 mt-1 block">✓ All Tests Passing</span>
+          <span className="text-[9.5px] font-bold text-emerald-700 mt-1 block">✓ All Core Vitals Passed</span>
         </Card>
 
         <Card className="p-4 border border-slate-200/70 shadow-xs text-center">
@@ -193,7 +246,7 @@ export const DigitalSEO: React.FC = () => {
           <motion.div key={crawlErrors} initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-xl font-black text-amber-700">
             {crawlErrors} Errors
           </motion.div>
-          <span className="text-[9.5px] font-semibold text-slate-400 mt-1 block">Reduced from 8</span>
+          <span className="text-[9.5px] font-semibold text-slate-400 mt-1 block">0 Critical 500s</span>
         </Card>
       </div>
 
@@ -228,29 +281,32 @@ export const DigitalSEO: React.FC = () => {
             <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-2">
               <span className="text-[10px] font-black uppercase text-amber-900 bg-amber-200 px-2 py-0.5 rounded">Featured Snippet (Position 0)</span>
               <p className="text-xs font-semibold text-amber-950 leading-relaxed">
-                "Reliance Digital is India's leading online electronics retail portal offering guaranteed same-day delivery, official brand warranty, and festival cashback deals on top smartphones, laptops, and smart TVs."
+                "{clientName} delivers verified high-performance software engineering, cloud solutions, and digital enterprise transformation across Pan-India."
               </p>
-              <span className="text-[10px] font-mono font-bold text-amber-800 block">Source: https://www.reliancedigital.in</span>
+              <span className="text-[10px] font-mono font-bold text-amber-800 block">Source: {clientDomain}</span>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
-              <span className="text-[10px] font-mono text-slate-500">https://www.reliancedigital.in</span>
+              <span className="text-[10px] font-mono text-slate-500">{clientDomain}</span>
               <h3 className="text-sm font-black text-blue-800 hover:underline cursor-pointer">
-                Reliance Digital — Buy Smartphones, Laptops & Appliances Online
+                {clientName} — Custom Software & Digital Solutions
               </h3>
               <p className="text-xs font-semibold text-slate-600">
-                Shop latest electronics online at best prices in India. Free delivery, EMI options & 24/7 store pickup available.
+                Discover enterprise mobile apps, secure cloud infrastructure, and AI engineering services tailored for scalability.
               </p>
               <div className="flex items-center justify-between border-t border-slate-200/60 pt-2 text-[10.5px] font-bold text-emerald-700">
                 <span>✓ Organic Position #1</span>
-                <span>Search Volume: 180,000/mo</span>
+                <span>Search Volume: 140,000/mo</span>
               </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
               <span className="text-xs font-black text-slate-900 block">People Also Ask (PAA)</span>
               <div className="space-y-2">
-                {paaQuestions.map((paa, idx) => (
+                {[
+                  { q: `What services does ${clientName} provide?`, a: `${clientName} provides custom fullstack software engineering, React Native mobile apps, automated CI/CD, and corporate brand positioning.` },
+                  { q: `How do I book a consultation with ${clientName}?`, a: `Contact the operations team directly via portal or email ${selectedClient?.email || 'contact@ferex.digital'}.` }
+                ].map((paa, idx) => (
                   <div key={idx} className="border border-slate-200 rounded-xl overflow-hidden bg-white text-xs font-semibold">
                     <button
                       onClick={() => setOpenPaa(openPaa === idx ? null : idx)}
@@ -274,13 +330,13 @@ export const DigitalSEO: React.FC = () => {
             <span className="text-[10px] font-black uppercase text-slate-400 block">Google Knowledge Panel</span>
             <div className="h-36 rounded-xl bg-gradient-to-br from-[#6A1B2E] to-[#3B0B16] text-white p-4 flex flex-col justify-between">
               <span className="text-[9px] uppercase font-bold text-white/70">Verified Entity</span>
-              <h4 className="text-lg font-black text-white">Reliance Digital</h4>
-              <span className="text-[10px] text-white/80 font-bold">Consumer Electronics Retailer</span>
+              <h4 className="text-lg font-black text-white">{clientName}</h4>
+              <span className="text-[10px] text-white/80 font-bold">Enterprise Client Account</span>
             </div>
             <div className="space-y-1.5 text-xs font-semibold text-slate-700">
-              <p>Customer Service: <span className="font-bold text-slate-900">1800 889 1055</span></p>
-              <p>Headquarters: <span className="font-bold text-slate-900">Mumbai, Maharashtra</span></p>
-              <p>Parent Organization: <span className="font-bold text-[#6A1B2E]">Reliance Retail</span></p>
+              <p>Contact: <span className="font-bold text-slate-900">{selectedClient?.phone || '+91 98765 43210'}</span></p>
+              <p>Email: <span className="font-bold text-slate-900">{selectedClient?.email || 'info@client.com'}</span></p>
+              <p>Client Category: <span className="font-bold text-[#6A1B2E]">{selectedClient?.category || 'Enterprise Account'}</span></p>
             </div>
           </div>
         </div>
@@ -294,24 +350,28 @@ export const DigitalSEO: React.FC = () => {
             <h3 className="text-base font-black text-slate-900">AI SEO Recommendation Engine</h3>
           </div>
           <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-            6 Action Items Generated
+            {recommendations.filter(r => !r.fixed).length} Action Items Remaining
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {initialAiRecommendations.map((rec, idx) => (
-            <div key={idx} className={`p-4 rounded-2xl border ${rec.bg} space-y-2 text-left flex flex-col justify-between`}>
+          {recommendations.map((rec) => (
+            <div key={rec.id} className={`p-4 rounded-2xl border ${rec.fixed ? 'bg-emerald-50/50 border-emerald-200 opacity-75' : rec.bg} space-y-2 text-left flex flex-col justify-between`}>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[9.5px] font-black uppercase px-2 py-0.5 rounded bg-white">{rec.priority}</span>
-                  <span className="text-xs font-black text-emerald-700">{rec.impact}</span>
+                  <span className="text-xs font-black text-emerald-700">{rec.fixed ? '✓ Fixed' : rec.impact}</span>
                 </div>
                 <h4 className="text-xs font-black text-slate-900">{rec.title}</h4>
                 <p className="text-[11px] font-semibold text-slate-600 leading-relaxed">{rec.desc}</p>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-[10px] font-bold text-slate-500">
                 <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-slate-400" />{rec.time}</span>
-                <button onClick={() => showToast(`Fix applied for: ${rec.title}`)} className="text-[#6A1B2E] font-black hover:underline">Apply Fix →</button>
+                {rec.fixed ? (
+                  <span className="text-emerald-700 font-black">Applied ✓</span>
+                ) : (
+                  <button onClick={() => handleApplyFix(rec.id, rec.title)} className="text-[#6A1B2E] font-black hover:underline">Apply Fix →</button>
+                )}
               </div>
             </div>
           ))}
@@ -353,7 +413,7 @@ export const DigitalSEO: React.FC = () => {
 
               {/* Live Scanning Step Stream */}
               <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800/80 font-mono text-xs text-emerald-400 space-y-2 h-48 overflow-y-auto">
-                <p className="text-slate-400">$ screaming-frog --crawl https://store.reliancedigital.in</p>
+                <p className="text-slate-400">$ screaming-frog --crawl {clientDomain}</p>
                 <p className="text-slate-300">{crawlerSteps[scanStepIndex]}</p>
                 {scanProgress >= 100 && (
                   <p className="text-emerald-400 font-bold">✓ Complete: All 2,420 URLs scanned successfully with 0 critical errors!</p>

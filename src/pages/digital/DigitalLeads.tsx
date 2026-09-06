@@ -198,11 +198,9 @@ export const DigitalLeads: React.FC = () => {
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Service Interest</label>
                     <select value={newLead.service} onChange={(e) => setNewLead({ ...newLead, service: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                      <option value="Web & App Development">Web & App Development</option>
+                      <option value="Web Development">Web Development</option>
+                      <option value="Mobile App Development">Mobile App Development</option>
                       <option value="UI/UX Design">UI/UX Design</option>
-                      <option value="Digital Marketing">Digital Marketing</option>
-                      <option value="SEO & Performance">SEO & Performance</option>
-                      <option value="Branding & Identity">Branding & Identity</option>
                     </select>
                   </div>
                 </div>

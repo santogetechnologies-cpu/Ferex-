@@ -16,6 +16,7 @@ import {
   getDigitalInvoiceItems,
   type MultiProjectInvoiceItem
 } from '../../lib/api/digital';
+import { UnifiedPaymentModal } from '../../components/UnifiedPaymentModal';
 import { supabase } from '../../lib/supabase';
 
 export const DigitalInvoices: React.FC = () => {
@@ -25,6 +26,7 @@ export const DigitalInvoices: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [settlingInvoice, setSettlingInvoice] = useState<any | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -556,6 +558,16 @@ export const DigitalInvoices: React.FC = () => {
                 </div>
 
                 <div className="pt-3 flex gap-2">
+                  {selectedInvoice.status !== 'Paid' && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="flex-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => setSettlingInvoice(selectedInvoice)}
+                    >
+                      ⚡ Collect (Stripe / UPI)
+                    </Button>
+                  )}
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => { window.print(); }}>
                     <Printer className="w-3.5 h-3.5 mr-1" /> Print Official PDF
                   </Button>
@@ -566,6 +578,30 @@ export const DigitalInvoices: React.FC = () => {
           </>
         )}
       </AnimatePresence>
+
+      {/* ── Unified Payment Gateway Modal ── */}
+      {settlingInvoice && (
+        <UnifiedPaymentModal
+          isOpen={!!settlingInvoice}
+          onClose={() => setSettlingInvoice(null)}
+          onSuccess={() => {
+            setSettlingInvoice(null);
+            setSelectedInvoice(null);
+            showToast('Invoice collected & recorded via gateway successfully!');
+            loadData();
+          }}
+          division="digital"
+          amount={Number(settlingInvoice.amount) + Number(settlingInvoice.tax_amount || 0)}
+          currency="INR"
+          title={`Digital Settlement: ${settlingInvoice.invoice_no}`}
+          invoiceNo={settlingInvoice.invoice_no}
+          invoiceId={settlingInvoice.id}
+          purpose={`Client invoice settlement ${settlingInvoice.invoice_no}`}
+          payerName={settlingInvoice.client?.company_name || settlingInvoice.client?.name || 'Client'}
+          payerEmail={settlingInvoice.client?.email || ''}
+          clientId={settlingInvoice.client_id}
+        />
+      )}
     </div>
   );
 };

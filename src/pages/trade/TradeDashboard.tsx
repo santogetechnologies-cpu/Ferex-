@@ -2,15 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Globe, Truck, FileSpreadsheet, Building2, CreditCard, ArrowUpRight,
-  ShieldCheck, Anchor, FileCheck2, Plus, Clock, CheckCircle2
+  ShieldCheck, Anchor, FileCheck2, Plus, Clock, CheckCircle2, Megaphone
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { supabase } from '../../lib/supabase';
 import { getTradeDashboardLiveStats, getTradeShipments, getTradeInvoices } from '../../lib/api/trade';
+import { useTradeConfig } from '../../hooks/useTradeConfig';
 
 export const TradeDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { config: tradeConfig } = useTradeConfig();
   const [shipments, setShipments] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [stats, setStats] = useState({
@@ -74,6 +76,31 @@ export const TradeDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left antialiased">
+      {/* Live Maritime Broadcast Banner */}
+      {tradeConfig.broadcast?.is_active && (tradeConfig.broadcast.target_audience === 'all' || tradeConfig.broadcast.target_audience === 'staff') && (
+        <div className={`p-4 rounded-2xl text-xs font-bold flex items-center justify-between gap-4 border shadow-sm ${
+          tradeConfig.broadcast.urgency === 'urgent'
+            ? 'bg-red-50 text-red-900 border-red-200'
+            : tradeConfig.broadcast.urgency === 'warning'
+            ? 'bg-amber-50 text-amber-900 border-amber-200'
+            : tradeConfig.broadcast.urgency === 'success'
+            ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+            : 'bg-blue-50 text-blue-900 border-blue-200'
+        }`}>
+          <div className="flex items-center gap-2">
+            <Megaphone className="w-4 h-4 shrink-0 text-amber-600 animate-bounce" />
+            <span>{tradeConfig.broadcast.message}</span>
+          </div>
+          {tradeConfig.broadcast.link_label && (
+            <a
+              href={tradeConfig.broadcast.link_url || '#'}
+              className="px-3 py-1 bg-white text-slate-900 rounded-lg text-xs font-black shrink-0 border border-slate-200 shadow-2xs hover:bg-slate-50 transition-all"
+            >
+              {tradeConfig.broadcast.link_label}
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-6 md:p-8 shadow-xl border border-[#6A1B2E]/30">
@@ -81,7 +108,10 @@ export const TradeDashboard: React.FC = () => {
           <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] uppercase font-black tracking-widest bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white">
-                Executive Command Console
+                {tradeConfig.branding.legal_entity_name || 'FEREX GLOBAL TRADE CORP'}
+              </span>
+              <span className="text-[10px] font-extrabold text-amber-300 bg-amber-500/20 px-2.5 py-1 rounded-full border border-amber-400/30">
+                IEC: {tradeConfig.branding.iec_code || '0315024881'}
               </span>
               <span className="text-[10px] font-extrabold text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-400/30 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Supabase Realtime Active

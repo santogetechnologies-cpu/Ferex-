@@ -9,6 +9,8 @@ import {
   getDigitalInvoices,
   getDigitalMeetings,
 } from '../../lib/api/digital';
+import { UnifiedPaymentModal } from '../../components/UnifiedPaymentModal';
+import { CreditCard, QrCode } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ClientData {
@@ -54,6 +56,7 @@ const DigitalClientPortal: React.FC = () => {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'invoices' | 'meetings'>('overview');
+  const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -76,13 +79,16 @@ const DigitalClientPortal: React.FC = () => {
         }
       }
 
-      if (myClient) setClient(myClient);
-      else if (clientId) {
+      if (myClient) {
+        setClient(myClient);
+      } else if (clientId) {
         const found = allClients.find((c: ClientData) => c.id === clientId);
         if (found) setClient(found);
+      } else if (allClients.length > 0) {
+        setClient(allClients[0]);
       }
 
-      const effectiveId = clientId || myClient?.id;
+      const effectiveId = clientId || myClient?.id || (allClients.length > 0 ? allClients[0].id : null);
       if (!effectiveId) { setLoading(false); return; }
 
       // 3. Load client-specific data
@@ -361,7 +367,7 @@ const DigitalClientPortal: React.FC = () => {
         {/* ── Invoices Tab ── */}
         {activeTab === 'invoices' && (
           <div style={{ background: '#1e293b', borderRadius: 14, padding: 24, border: '1px solid #334155' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Invoice History</h3>
+            <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Invoice History & Payment Gateway</h3>
             {invoices.length === 0
               ? <div style={{ textAlign: 'center', padding: 48, color: '#475569' }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>🧾</div>
@@ -370,7 +376,7 @@ const DigitalClientPortal: React.FC = () => {
               : <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid #334155' }}>
-                      {['Invoice #', 'Amount', 'Tax', 'Due Date', 'Status'].map((h) => (
+                      {['Invoice #', 'Amount', 'Tax', 'Due Date', 'Status', 'Action'].map((h) => (
                         <th key={h} style={{ padding: '10px 12px', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: 12 }}>{h}</th>
                       ))}
                     </tr>
@@ -384,6 +390,30 @@ const DigitalClientPortal: React.FC = () => {
                         <td style={{ padding: '14px 12px', color: '#94a3b8' }}>{inv.due_date || '—'}</td>
                         <td style={{ padding: '14px 12px' }}>
                           <span style={{ fontSize: 12, fontWeight: 700, color: statusColor[inv.status] || '#94a3b8', background: `${statusColor[inv.status] || '#94a3b8'}18`, padding: '3px 10px', borderRadius: 6 }}>{inv.status}</span>
+                        </td>
+                        <td style={{ padding: '14px 12px' }}>
+                          {inv.status === 'Paid' ? (
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', background: 'rgba(34,197,94,0.1)', padding: '4px 10px', borderRadius: 6 }}>✓ Settled</span>
+                          ) : (
+                            <button
+                              onClick={() => setPayingInvoice(inv)}
+                              style={{
+                                background: '#10b981',
+                                color: '#042f2e',
+                                border: 'none',
+                                padding: '6px 14px',
+                                borderRadius: 8,
+                                fontWeight: 800,
+                                fontSize: 11,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}
+                            >
+                              ⚡ Pay with Stripe / UPI
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -454,6 +484,27 @@ const DigitalClientPortal: React.FC = () => {
         </a>
       )}
 
+      {/* ── Unified Stripe & UPI Payment Modal ── */}
+      {payingInvoice && (
+        <UnifiedPaymentModal
+          isOpen={!!payingInvoice}
+          onClose={() => setPayingInvoice(null)}
+          onSuccess={() => {
+            setPayingInvoice(null);
+            loadData();
+          }}
+          division="digital"
+          amount={payingInvoice.amount}
+          currency="INR"
+          title={`Digital Invoice Settlement: ${payingInvoice.invoice_no}`}
+          invoiceNo={payingInvoice.invoice_no}
+          invoiceId={payingInvoice.id}
+          purpose={`Settlement of invoice ${payingInvoice.invoice_no}`}
+          payerName={client?.contact_person || client?.company_name || 'Client'}
+          payerEmail={client?.email || profile?.email || ''}
+          clientId={client?.id}
+        />
+      )}
     </div>
   );
 };

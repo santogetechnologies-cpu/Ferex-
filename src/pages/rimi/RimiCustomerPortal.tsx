@@ -12,6 +12,7 @@ import {
   getRimiMessages,
   sendRimiMessage,
 } from '../../lib/api/rimi';
+import { UnifiedPaymentModal } from '../../components/UnifiedPaymentModal';
 import {
   Snowflake,
   ShoppingBag,
@@ -47,6 +48,7 @@ export const RimiCustomerPortal: React.FC = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
+  const [payingOrder, setPayingOrder] = useState<any | null>(null);
 
   // New Order Modal State
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -476,6 +478,7 @@ export const RimiCustomerPortal: React.FC = () => {
                     <th className="py-3.5 px-4">Items Summary</th>
                     <th className="py-3.5 px-4 text-right">Total Amount</th>
                     <th className="py-3.5 px-4 text-center">Payment</th>
+                    <th className="py-3.5 px-4 text-center">Action</th>
                     <th className="py-3.5 px-4 text-right">Status</th>
                   </tr>
                 </thead>
@@ -497,6 +500,18 @@ export const RimiCustomerPortal: React.FC = () => {
                           {o.payment_status || 'Unpaid'}
                         </span>
                       </td>
+                      <td className="py-3.5 px-4 text-center">
+                        {o.payment_status === 'Paid' ? (
+                          <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md">✓ Settled</span>
+                        ) : (
+                          <button
+                            onClick={() => setPayingOrder(o)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-[11px] shadow-sm active:scale-95 transition-all"
+                          >
+                            ⚡ Pay (UPI/Stripe)
+                          </button>
+                        )}
+                      </td>
                       <td className="py-3.5 px-4 text-right">
                         <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${
                           o.order_status === 'Delivered'
@@ -510,7 +525,7 @@ export const RimiCustomerPortal: React.FC = () => {
                   ))}
                   {orders.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-500">
+                      <td colSpan={7} className="py-12 text-center text-slate-500">
                         No orders recorded.
                       </td>
                     </tr>
@@ -764,6 +779,29 @@ export const RimiCustomerPortal: React.FC = () => {
           <MessageCircle className="w-5 h-5 fill-white" />
           <span className="text-xs font-black hidden sm:inline pr-1">Rimi Order Desk</span>
         </a>
+      )}
+
+      {/* ── Unified Payment Modal for Rimi Orders ── */}
+      {payingOrder && (
+        <UnifiedPaymentModal
+          isOpen={!!payingOrder}
+          onClose={() => setPayingOrder(null)}
+          onSuccess={() => {
+            setPayingOrder(null);
+            showToast('Order payment settled successfully!');
+            loadData();
+          }}
+          division="rimi"
+          amount={Number(payingOrder.total_amount || 0)}
+          currency="INR"
+          title={`Rimi Cold Chain Settlement: ${payingOrder.order_no || payingOrder.id}`}
+          invoiceNo={payingOrder.order_no || payingOrder.id}
+          invoiceId={payingOrder.id}
+          purpose={`Settlement for cold chain order ${payingOrder.order_no || payingOrder.id}`}
+          payerName={customerName || businessName}
+          payerEmail={customerEmail}
+          customerId={payingOrder.customer_id || user?.id}
+        />
       )}
 
     </div>

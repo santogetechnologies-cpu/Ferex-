@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import {
   ShoppingCart, Package, Truck, DollarSign,
   ArrowUpRight, Thermometer,
-  Boxes
+  Boxes, Megaphone
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { getRimiDashboardStats, getRimiSalesOrders, getRimiWarehouses, getRimiVehicles } from '../../lib/api/rimi';
+import { useRimiConfig } from '../../hooks/useRimiConfig';
 import { supabase } from '../../lib/supabase';
 
 export const RimiDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { config } = useRimiConfig();
   const [stats, setStats] = useState({
     activeOrdersCount: 0,
     totalOrdersCount: 0,
@@ -72,23 +74,44 @@ export const RimiDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left antialiased">
+      {/* Live Broadcast Announcement Ticker if active */}
+      {config.broadcast?.is_active && config.broadcast.message && (
+        <div className={`p-4 rounded-xl border flex items-center gap-3 shadow-xs ${
+          config.broadcast.urgency === 'urgent'
+            ? 'bg-rose-50 border-rose-200 text-rose-800'
+            : config.broadcast.urgency === 'warning'
+            ? 'bg-amber-50 border-amber-200 text-amber-800'
+            : config.broadcast.urgency === 'success'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            : 'bg-blue-50 border-blue-200 text-blue-800'
+        }`}>
+          <Megaphone className="w-5 h-5 shrink-0 animate-bounce" />
+          <div className="text-xs font-bold leading-relaxed flex-1">
+            <span className="uppercase tracking-wider font-black mr-2 px-2 py-0.5 rounded bg-white/80 border text-[10px]">
+              {config.broadcast.urgency} Announcement
+            </span>
+            {config.broadcast.message}
+          </div>
+        </div>
+      )}
+
       {/* FMCG Cold Chain Hero Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-6 md:p-8 shadow-xl border border-[#6A1B2E]/30">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] uppercase font-black tracking-widest bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white">
-                FMCG Executive ERP Console
+                {config.branding?.portal_title || 'Rimi Frozen Foods'}
               </span>
               <span className="text-[10px] font-extrabold text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-400/30 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Supabase Realtime Active
               </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
-              Rimi Frozen Distribution Hub
+              {config.branding?.entity_name || 'Rimi Frozen Distribution Hub'}
             </h1>
             <p className="text-xs md:text-sm text-white/85 leading-relaxed font-semibold">
-              Managing regional frozen food logistics, supermarket reefer supply chains, temperature-controlled warehouses, and batch expiration telemetry.
+              {config.branding?.tagline || 'Managing regional frozen food logistics, supermarket reefer supply chains, temperature-controlled warehouses, and batch expiration telemetry.'}
             </p>
           </div>
 

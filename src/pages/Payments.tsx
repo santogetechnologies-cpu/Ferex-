@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, CheckCircle2, Lock, Sparkles, X, Upload, Clock, AlertCircle, FileText, Eye } from 'lucide-react';
+import { CreditCard, CheckCircle2, Lock, Sparkles, X, Upload, Clock, AlertCircle, FileText, Eye, QrCode } from 'lucide-react';
 import { Card } from '../components/Card';
 import { useAuth } from '../contexts/AuthContext';
 import { usePayments } from '../hooks/usePayments';
@@ -8,6 +8,7 @@ import { useApplications } from '../hooks/useApplications';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { createValidInvoicePdfBlob } from '../lib/api/payments';
 import { InvoiceModal, type InvoiceData } from '../components/InvoiceModal';
+import { UnifiedPaymentModal } from '../components/UnifiedPaymentModal';
 
 interface Installment {
   id: number;
@@ -30,6 +31,7 @@ export const Payments: React.FC = () => {
   const { config } = useFeeConfig();
 
   const [viewInvoice, setViewInvoice] = useState<InvoiceData | null>(null);
+  const [onlinePayInst, setOnlinePayInst] = useState<Installment | null>(null);
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
 
   // Dynamic Course Fee Lookup from Selected Application
@@ -610,15 +612,24 @@ export const Payments: React.FC = () => {
                       <Clock className="w-4 h-4 animate-spin" /> Awaiting Admin Approval
                     </div>
                   ) : inst.unlocked ? (
-                    <button
-                      onClick={() => {
-                        setSelectedInst(inst);
-                        setUtrNumber('');
-                      }}
-                      className="w-full h-10 bg-[#6A1B2E] text-white rounded-xl text-xs font-bold hover:bg-[#521221] shadow-md shadow-[#6A1B2E]/20 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Upload className="w-4 h-4" /> {isRejected ? 'Re-upload Payment Proof' : `Submit Payment Proof (₹${inst.amount.toLocaleString()})`}
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <button
+                        onClick={() => setOnlinePayInst(inst)}
+                        className="flex-1 h-10 bg-emerald-600 text-white rounded-xl text-xs font-black hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <QrCode className="w-3.5 h-3.5" /> Pay via Stripe / UPI
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedInst(inst);
+                          setUtrNumber('');
+                        }}
+                        className="h-10 px-3 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                        title="Upload offline NEFT / Wire transfer receipt"
+                      >
+                        <Upload className="w-3.5 h-3.5" /> Proof
+                      </button>
+                    </div>
                   ) : (
                     <div className="w-full h-10 bg-slate-100 text-slate-400 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
                       <Lock className="w-4 h-4" /> Unlocks After Stage {inst.stageNum - 1} Approved
@@ -924,6 +935,26 @@ export const Payments: React.FC = () => {
         onClose={() => setViewInvoice(null)}
         invoice={viewInvoice}
       />
+
+      {/* Online Stripe / UPI Checkout Modal */}
+      {onlinePayInst && (
+        <UnifiedPaymentModal
+          isOpen={Boolean(onlinePayInst)}
+          onClose={() => setOnlinePayInst(null)}
+          division="education"
+          amount={onlinePayInst.amount}
+          currency="INR"
+          title={`Pay ${onlinePayInst.title}`}
+          purpose={onlinePayInst.description || 'Student Tuition Fee Installment'}
+          payerName={studentName}
+          payerEmail={user?.email}
+          studentId={user?.id}
+          invoiceNo={`INV-EDU-${onlinePayInst.stageNum}-${Date.now().toString().slice(-4)}`}
+          onSuccess={() => {
+            setOnlinePayInst(null);
+          }}
+        />
+      )}
     </div>
   );
 };

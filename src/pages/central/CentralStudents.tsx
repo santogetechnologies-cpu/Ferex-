@@ -141,10 +141,12 @@ export const CentralStudents: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
-                <th className="py-3 px-4">Student ID & Name</th>
-                <th className="py-3 px-4">Target Institution & Course</th>
-                <th className="py-3 px-4">Admissions Stage</th>
-                <th className="py-3 px-4">Assigned Counselor</th>
+                <th className="py-3 px-4">Student Name & ID</th>
+                <th className="py-3 px-4">Target University & Course</th>
+                <th className="py-3 px-4">Process Journey Stage</th>
+                <th className="py-3 px-4 text-center">Payment Status</th>
+                <th className="py-3 px-4 text-center">Document Status</th>
+                <th className="py-3 px-4">Assigned Staff / Counselor</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -169,12 +171,30 @@ export const CentralStudents: React.FC = () => {
                     <div className="text-[10px] font-semibold text-slate-400">{student.course}</div>
                   </td>
                   <td className="py-3.5 px-4">
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${student.stageBadge}`}>
-                      {student.stage}
+                    <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-rose-50 text-rose-700 border-rose-200">
+                      {student.stage || 'NAWA Process'}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800">
-                    {student.counselor}
+                  <td className="py-3.5 px-4 text-center">
+                    <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-200">
+                      {student.paymentStatus || 'Paid (Installment 1)'}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-center">
+                    <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-blue-50 text-blue-700 border-blue-200">
+                      {student.docStatus || 'Approved (4/4)'}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-1.5">
+                      <strong className="text-slate-800">{student.counselor}</strong>
+                      <button
+                        onClick={() => setEditingStudent(student)}
+                        className="text-[10px] font-bold text-[#6A1B2E] hover:underline cursor-pointer"
+                      >
+                        (Reassign)
+                      </button>
+                    </div>
                   </td>
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex items-center justify-end gap-1">
@@ -188,7 +208,7 @@ export const CentralStudents: React.FC = () => {
                       <button
                         onClick={() => setEditingStudent(student)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                        title="Edit Student Profile"
+                        title="Edit Student Profile / Reassign"
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>

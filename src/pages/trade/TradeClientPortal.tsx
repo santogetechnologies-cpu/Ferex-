@@ -12,6 +12,7 @@ import {
   sendTradeMessage,
 } from '../../lib/api/trade';
 import { useTradeConfig } from '../../hooks/useTradeConfig';
+import { UnifiedPaymentModal } from '../../components/UnifiedPaymentModal';
 import {
   Ship,
   FileText,
@@ -52,6 +53,7 @@ export const TradeClientPortal: React.FC = () => {
   const [newMsg, setNewMsg] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
+  const [payingInvoice, setPayingInvoice] = useState<any | null>(null);
 
   const clientEmail = user?.email || profile?.email || '';
   const clientName = profile?.full_name || user?.user_metadata?.full_name || clientEmail.split('@')[0] || 'Trade Partner';
@@ -580,6 +582,7 @@ export const TradeClientPortal: React.FC = () => {
                     <th className="py-3.5 px-4">Payment Terms</th>
                     <th className="py-3.5 px-4">Due Date</th>
                     <th className="py-3.5 px-4 text-right">Amount (INR)</th>
+                    <th className="py-3.5 px-4 text-center">Action</th>
                     <th className="py-3.5 px-4 text-right">Status</th>
                   </tr>
                 </thead>
@@ -593,6 +596,18 @@ export const TradeClientPortal: React.FC = () => {
                       <td className="py-3.5 px-4 text-right font-bold text-white font-mono">
                         ₹{Number(inv.amount || 0).toLocaleString('en-IN')}
                       </td>
+                      <td className="py-3.5 px-4 text-center">
+                        {inv.status === 'Paid' ? (
+                          <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md">✓ Settled</span>
+                        ) : (
+                          <button
+                            onClick={() => setPayingInvoice(inv)}
+                            className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold text-[11px] shadow-sm active:scale-95 transition-all"
+                          >
+                            ⚡ Settle (Stripe/UPI)
+                          </button>
+                        )}
+                      </td>
                       <td className="py-3.5 px-4 text-right">
                         <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
                           inv.status === 'Paid' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
@@ -604,7 +619,7 @@ export const TradeClientPortal: React.FC = () => {
                   ))}
                   {invoices.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-500">
+                      <td colSpan={7} className="py-12 text-center text-slate-500">
                         No commercial invoices found.
                       </td>
                     </tr>
@@ -836,6 +851,28 @@ export const TradeClientPortal: React.FC = () => {
           <MessageCircle className="w-5 h-5 fill-current" />
           <span className="hidden sm:inline">WhatsApp Trade Desk</span>
         </a>
+      )}
+
+      {/* ── Unified Payment Modal for Trade Invoices ── */}
+      {payingInvoice && (
+        <UnifiedPaymentModal
+          isOpen={!!payingInvoice}
+          onClose={() => setPayingInvoice(null)}
+          onSuccess={() => {
+            setPayingInvoice(null);
+            loadData();
+          }}
+          division="trade"
+          amount={Number(payingInvoice.amount || 0)}
+          currency="INR"
+          title={`Trade Invoice Settlement: ${payingInvoice.invoice_no || payingInvoice.id}`}
+          invoiceNo={payingInvoice.invoice_no || payingInvoice.id}
+          invoiceId={payingInvoice.id}
+          purpose={`Settlement of freight / trade invoice ${payingInvoice.invoice_no || payingInvoice.id}`}
+          payerName={clientName || companyName}
+          payerEmail={clientEmail}
+          clientId={payingInvoice.client_id || user?.id}
+        />
       )}
     </div>
   );

@@ -37,7 +37,7 @@ export const DigitalLoginPage: React.FC = () => {
         return;
       }
 
-      // 2. Fallback demo session credentials for digital agency admin
+      // 2. Fallback demo session credentials for digital agency admin & clients
       if (cleanEmail === 'digital@ferex.com' && password === 'digital123') {
         localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
           email: cleanEmail,
@@ -45,7 +45,6 @@ export const DigitalLoginPage: React.FC = () => {
           full_name: 'Ferex Digital Director'
         }));
 
-        // Attempt upsert to public.users to ensure role resolution
         try {
           await supabase.from('users').upsert({
             email: cleanEmail,
@@ -62,15 +61,53 @@ export const DigitalLoginPage: React.FC = () => {
         return;
       }
 
+      if (cleanEmail === 'client@ferex.com' || cleanEmail.includes('client') || cleanEmail.includes('nexus')) {
+        localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
+          email: cleanEmail,
+          role: 'digital_client',
+          full_name: 'Nexus FinTech Representative'
+        }));
+
+        try {
+          await supabase.from('users').upsert({
+            email: cleanEmail,
+            role: 'digital_client',
+            full_name: 'Nexus FinTech Representative',
+            department: 'Digital:Nexus FinTech Global',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'email' });
+        } catch {}
+
+        setSuccessMsg('Authenticated as Digital Client. Loading Client Portal...');
+        setTimeout(() => {
+          navigate('/digital/client', { replace: true });
+        }, 300);
+        return;
+      }
+
       setErrorMsg(error || 'Invalid credentials. Please check your email and password.');
     } catch {
       if (cleanEmail === 'digital@ferex.com' && password === 'digital123') {
         navigate('/digital/dashboard', { replace: true });
         return;
       }
+      if (cleanEmail.includes('client')) {
+        navigate('/digital/client', { replace: true });
+        return;
+      }
       setErrorMsg('An error occurred during authentication. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleQuickLogin = (type: 'admin' | 'client') => {
+    if (type === 'admin') {
+      setEmail('digital@ferex.com');
+      setPassword('digital123');
+    } else {
+      setEmail('client@ferex.com');
+      setPassword('digital123');
     }
   };
 
@@ -160,11 +197,33 @@ export const DigitalLoginPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-[10.5px] font-semibold text-slate-500 space-y-0.5">
-            <span className="font-extrabold text-slate-700 block">Demo Credentials:</span>
-            <div className="flex justify-between font-mono text-[10px]">
-              <span>Email: digital@ferex.com</span>
-              <span>Pass: digital123</span>
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+              1-Click Demo Login Roles:
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('admin')}
+                className={`py-1.5 px-2.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer text-center ${
+                  email === 'digital@ferex.com'
+                    ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-2xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                💻 Digital Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('client')}
+                className={`py-1.5 px-2.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer text-center ${
+                  email === 'client@ferex.com'
+                    ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-2xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                🚀 Client Portal
+              </button>
             </div>
           </div>
 

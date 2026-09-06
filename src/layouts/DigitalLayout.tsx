@@ -3,9 +3,9 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, LayoutDashboard, Users, UserPlus, FolderKanban, CheckSquare, Calendar,
-  Megaphone, Search as SearchIcon, Award, FileText,
-  CreditCard, DollarSign, UserCheck, Clock, TrendingUp, BarChart3, PieChart,
-  Bell, User, Settings, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus, CheckCircle2
+  FileText, CreditCard, DollarSign, TrendingUp, BarChart3, PieChart,
+  Bell, User, Settings, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus, CheckCircle2,
+  Code, Smartphone, Palette, Layers
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -78,9 +78,10 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     {
       title: 'SERVICES',
       items: [
-        { label: 'Digital Marketing', path: '/digital/services/digital-marketing', icon: Megaphone },
-        { label: 'SEO', path: '/digital/services/seo', icon: SearchIcon },
-        { label: 'Branding', path: '/digital/services/branding', icon: Award }
+        { label: 'Services Overview', path: '/digital/services', icon: Layers },
+        { label: 'Web Development', path: '/digital/services/web-development', icon: Code },
+        { label: 'Mobile Apps', path: '/digital/services/mobile-apps', icon: Smartphone },
+        { label: 'UI/UX Design', path: '/digital/services/ui-ux-design', icon: Palette }
       ]
     },
     {
@@ -94,8 +95,6 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     {
       title: 'TEAM',
       items: [
-        { label: 'Employees', path: '/digital/employees', icon: UserCheck },
-        { label: 'Attendance', path: '/digital/attendance', icon: Clock },
         { label: 'Performance', path: '/digital/performance', icon: TrendingUp }
       ]
     },

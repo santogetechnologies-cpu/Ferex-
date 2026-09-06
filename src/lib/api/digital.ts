@@ -981,20 +981,37 @@ export async function sendDigitalMessage(msg: {
 }
 
 export async function getDigitalNotifications() {
+  const local = localStorage.getItem('ferex_digital_notifications');
+  let localList: any[] = [];
+  if (local) {
+    try { localList = JSON.parse(local); } catch {}
+  }
+
   try {
     const { data, error } = await supabase
-      .from('trade_notifications')
+      .from('digital_notifications')
       .select('*')
-      .ilike('category', '%Digital%')
       .order('created_at', { ascending: false });
-    if (error || !data || data.length === 0) {
-      const { data: allNotifs } = await supabase.from('trade_notifications').select('*').limit(10);
-      return allNotifs ?? [];
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const map = new Map<string, any>();
+      data.forEach((item: any) => map.set(item.id, item));
+      localList.forEach((item: any) => { if (!map.has(item.id)) map.set(item.id, item); });
+      const merged = Array.from(map.values());
+      try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(merged)); } catch {}
+      return merged;
     }
-    return data ?? [];
-  } catch {
-    return [];
-  }
+  } catch {}
+
+  if (localList.length > 0) return localList;
+
+  const defaultNotifs = [
+    { id: 'NTF-001', title: 'Invoice Paid', description: 'Nexus FinTech Global settled Tax Invoice #INV-DIG-8810 (₹4,50,000 via RTGS).', category: 'Finance', is_read: false, created_at: new Date(Date.now() - 2 * 3600000).toISOString() },
+    { id: 'NTF-002', title: 'Sprint Milestone Completed', description: 'Starlight E-Commerce Design System approved for production build.', category: 'Projects', is_read: false, created_at: new Date(Date.now() - 4 * 3600000).toISOString() },
+    { id: 'NTF-003', title: 'AWS Cloud Alert', description: 'Production cluster utilization steady at 38%. Zero downtime.', category: 'DevOps', is_read: true, created_at: new Date(Date.now() - 24 * 3600000).toISOString() },
+  ];
+  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(defaultNotifs)); } catch {}
+  return defaultNotifs;
 }
 
 export async function createDigitalNotification(notif: {
@@ -1005,20 +1022,27 @@ export async function createDigitalNotification(notif: {
   const payload = {
     id: generateUUID(),
     title: notif.title,
+    message: notif.description,
     description: notif.description,
+    type: 'info',
     category: notif.category || 'Digital',
     is_read: false,
-    is_archived: false,
     created_at: new Date().toISOString(),
   };
 
-  const { data } = await supabase.from('trade_notifications').insert(payload).select();
+  const current = await getDigitalNotifications();
+  const updated = [payload, ...current];
+  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_notifications').insert(payload); } catch {}
   triggerLocalSync('ferex_digital_notifications_change');
-  return data?.[0] || payload;
+  return payload;
 }
 
 export async function markDigitalNotificationRead(id: string) {
-  await supabase.from('trade_notifications').update({ is_read: true }).eq('id', id);
+  const current = await getDigitalNotifications();
+  const updated = current.map(n => n.id === id ? { ...n, is_read: true } : n);
+  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_notifications').update({ is_read: true }).eq('id', id); } catch {}
   triggerLocalSync('ferex_digital_notifications_change');
   return true;
 }
@@ -1350,5 +1374,68 @@ export async function getDigitalAssetCostSummary() {
     totalAssetsCount: assets.length
   };
 }
+
+// ─── Digital Notifications ──────────────────────────────────────────────────
+export async function getDigitalNotifications(): Promise<any[]> {
+  const local = localStorage.getItem('ferex_digital_notifications');
+  let localList: any[] = [];
+  if (local !== null) {
+    try { localList = JSON.parse(local); } catch {}
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('digital_notifications')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const map = new Map<string, any>();
+      data.forEach((item: any) => map.set(item.id, item));
+      localList.forEach((item: any) => { if (!map.has(item.id)) map.set(item.id, item); });
+      const merged = Array.from(map.values());
+      try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(merged)); } catch {}
+      return merged;
+    }
+  } catch {}
+
+  if (localList.length > 0) return localList;
+
+  const defaultNotifications = [
+    { id: 'NTF-001', title: 'Invoice Paid', description: 'Nexus FinTech Global settled Tax Invoice #INV-DIG-8810 (₹4,50,000 via RTGS).', is_read: false, category: 'Finance', created_at: new Date(Date.now() - 7200000).toISOString() },
+    { id: 'NTF-002', title: 'Sprint Milestone Completed', description: 'Starlight E-Commerce Design System approved for production build.', is_read: false, category: 'Projects', created_at: new Date(Date.now() - 14400000).toISOString() },
+    { id: 'NTF-003', title: 'AWS Cloud Alert', description: 'Production cluster utilization steady at 38%. Zero downtime.', is_read: true, category: 'DevOps', created_at: new Date(Date.now() - 86400000).toISOString() },
+  ];
+  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(defaultNotifications)); } catch {}
+  return defaultNotifications;
+}
+
+export async function createDigitalNotification(notif: { title: string; description: string; category?: string }): Promise<any> {
+  const id = generateUUID();
+  const payload = {
+    id,
+    title: notif.title,
+    description: notif.description,
+    category: notif.category || 'Engineering',
+    is_read: false,
+    created_at: new Date().toISOString()
+  };
+  const current = await getDigitalNotifications();
+  const updated = [payload, ...current];
+  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_notifications').insert(payload); } catch {}
+  triggerLocalSync('ferex_digital_notifications_change');
+  return payload;
+}
+
+export async function markDigitalNotificationRead(id: string): Promise<boolean> {
+  const current = await getDigitalNotifications();
+  const updated = current.map(n => n.id === id ? { ...n, is_read: true } : n);
+  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_notifications').update({ is_read: true }).eq('id', id); } catch {}
+  triggerLocalSync('ferex_digital_notifications_change');
+  return true;
+}
+
 
 

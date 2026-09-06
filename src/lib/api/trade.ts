@@ -1311,15 +1311,30 @@ export interface BondedCargoItem {
 }
 
 export async function getTradeBondedInventory(): Promise<BondedCargoItem[]> {
-  const seeded = isSeeded('bonded_inventory');
-  const saved = localStorage.getItem('ferex_trade_bonded_inventory');
-  if (saved !== null) {
-    try {
-      return JSON.parse(saved);
-    } catch {}
+  const local = localStorage.getItem('ferex_trade_bonded_inventory');
+  let localList: any[] = [];
+  if (local) {
+    try { localList = JSON.parse(local); } catch {}
   }
-  if (seeded) return [];
-  markSeeded('bonded_inventory');
+
+  try {
+    const { data, error } = await supabase
+      .from('trade_bonded_inventory')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const map = new Map<string, any>();
+      data.forEach((item: any) => map.set(item.id || item.sku, item));
+      localList.forEach((item: any) => { if (!map.has(item.id || item.sku)) map.set(item.id || item.sku, item); });
+      const merged = Array.from(map.values());
+      try { localStorage.setItem('ferex_trade_bonded_inventory', JSON.stringify(merged)); } catch {}
+      return merged;
+    }
+  } catch {}
+
+  if (localList.length > 0) return localList;
+
   const defaultItems: BondedCargoItem[] = [
     {
       id: 'BOND-01',
@@ -1400,7 +1415,7 @@ export async function createTradeBondedItem(item: Partial<BondedCargoItem>): Pro
   const reserved = Number(item.reserved_metric_tons) || 0;
   const unitVal = Number(item.unit_value_inr) || 15000;
   const created: BondedCargoItem = {
-    id: `BOND-${Math.floor(10 + Math.random() * 90)}`,
+    id: generateUUID(),
     sku: item.sku || `SKU-TRD-${Math.floor(1000 + Math.random() * 9000)}`,
     commodity: item.commodity || 'Industrial Bulk Commodity',
     category: item.category || 'General Cargo',
@@ -1417,7 +1432,8 @@ export async function createTradeBondedItem(item: Partial<BondedCargoItem>): Pro
     updated_at: new Date().toISOString(),
   };
   const updated = [created, ...current];
-  localStorage.setItem('ferex_trade_bonded_inventory', JSON.stringify(updated));
+  try { localStorage.setItem('ferex_trade_bonded_inventory', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_bonded_inventory').insert(created); } catch {}
   window.dispatchEvent(new Event('ferex_trade_bonded_inventory_change'));
   return created;
 }
@@ -1425,7 +1441,7 @@ export async function createTradeBondedItem(item: Partial<BondedCargoItem>): Pro
 export async function updateTradeBondedStock(id: string, updates: Partial<BondedCargoItem>) {
   const current = await getTradeBondedInventory();
   const updated = current.map(item => {
-    if (item.id === id) {
+    if (item.id === id || item.sku === id) {
       const inStock = updates.in_stock_metric_tons !== undefined ? Number(updates.in_stock_metric_tons) : item.in_stock_metric_tons;
       const reserved = updates.reserved_metric_tons !== undefined ? Number(updates.reserved_metric_tons) : item.reserved_metric_tons;
       const unitVal = updates.unit_value_inr !== undefined ? Number(updates.unit_value_inr) : item.unit_value_inr;
@@ -1442,15 +1458,17 @@ export async function updateTradeBondedStock(id: string, updates: Partial<Bonded
     }
     return item;
   });
-  localStorage.setItem('ferex_trade_bonded_inventory', JSON.stringify(updated));
+  try { localStorage.setItem('ferex_trade_bonded_inventory', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_bonded_inventory').update(updates).or(`id.eq.${id},sku.eq.${id}`); } catch {}
   window.dispatchEvent(new Event('ferex_trade_bonded_inventory_change'));
   return true;
 }
 
 export async function deleteTradeBondedItem(id: string) {
   const current = await getTradeBondedInventory();
-  const updated = current.filter(item => item.id !== id);
-  localStorage.setItem('ferex_trade_bonded_inventory', JSON.stringify(updated));
+  const updated = current.filter(item => item.id !== id && item.sku !== id);
+  try { localStorage.setItem('ferex_trade_bonded_inventory', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_bonded_inventory').delete().or(`id.eq.${id},sku.eq.${id}`); } catch {}
   window.dispatchEvent(new Event('ferex_trade_bonded_inventory_change'));
   return true;
 }

@@ -21,22 +21,44 @@ DROP FUNCTION IF EXISTS public.is_super_admin() CASCADE;
 DROP FUNCTION IF EXISTS public.get_auth_user_role() CASCADE;
 
 DROP TABLE IF EXISTS public.central_audit_logs CASCADE;
+DROP TABLE IF EXISTS public.activity_log CASCADE;
+DROP TABLE IF EXISTS public.tasks CASCADE;
+DROP TABLE IF EXISTS public.rimi_notifications CASCADE;
+DROP TABLE IF EXISTS public.rimi_messages CASCADE;
 DROP TABLE IF EXISTS public.rimi_payments CASCADE;
 DROP TABLE IF EXISTS public.rimi_deliveries CASCADE;
+DROP TABLE IF EXISTS public.rimi_delivery_routes CASCADE;
+DROP TABLE IF EXISTS public.rimi_vehicles CASCADE;
+DROP TABLE IF EXISTS public.rimi_batches CASCADE;
+DROP TABLE IF EXISTS public.rimi_warehouses CASCADE;
 DROP TABLE IF EXISTS public.rimi_order_items CASCADE;
 DROP TABLE IF EXISTS public.rimi_sales_orders CASCADE;
 DROP TABLE IF EXISTS public.rimi_inventory CASCADE;
 DROP TABLE IF EXISTS public.rimi_products CASCADE;
 DROP TABLE IF EXISTS public.rimi_distributors CASCADE;
+DROP TABLE IF EXISTS public.trade_cargo_losses CASCADE;
+DROP TABLE IF EXISTS public.trade_bonded_inventory CASCADE;
+DROP TABLE IF EXISTS public.trade_notifications CASCADE;
+DROP TABLE IF EXISTS public.trade_messages CASCADE;
+DROP TABLE IF EXISTS public.trade_certificates CASCADE;
+DROP TABLE IF EXISTS public.trade_packing_lists CASCADE;
+DROP TABLE IF EXISTS public.trade_letters_of_credit CASCADE;
+DROP TABLE IF EXISTS public.trade_bills_of_lading CASCADE;
+DROP TABLE IF EXISTS public.trade_payments CASCADE;
 DROP TABLE IF EXISTS public.trade_invoices CASCADE;
 DROP TABLE IF EXISTS public.trade_documents CASCADE;
 DROP TABLE IF EXISTS public.trade_shipments CASCADE;
 DROP TABLE IF EXISTS public.trade_clients CASCADE;
+DROP TABLE IF EXISTS public.digital_assets CASCADE;
+DROP TABLE IF EXISTS public.digital_notifications CASCADE;
+DROP TABLE IF EXISTS public.digital_messages CASCADE;
+DROP TABLE IF EXISTS public.digital_meetings CASCADE;
 DROP TABLE IF EXISTS public.digital_deliverables CASCADE;
 DROP TABLE IF EXISTS public.digital_invoices CASCADE;
 DROP TABLE IF EXISTS public.digital_tasks CASCADE;
 DROP TABLE IF EXISTS public.digital_projects CASCADE;
 DROP TABLE IF EXISTS public.digital_clients CASCADE;
+DROP TABLE IF EXISTS public.conversations CASCADE;
 DROP TABLE IF EXISTS public.chat_messages CASCADE;
 DROP TABLE IF EXISTS public.chat_conversations CASCADE;
 DROP TABLE IF EXISTS public.meetings CASCADE;
@@ -45,7 +67,11 @@ DROP TABLE IF EXISTS public.ticket_replies CASCADE;
 DROP TABLE IF EXISTS public.ticket_messages CASCADE;
 DROP TABLE IF EXISTS public.support_tickets CASCADE;
 DROP TABLE IF EXISTS public.pre_departure_checklists CASCADE;
+DROP TABLE IF EXISTS public.visa_tracking CASCADE;
 DROP TABLE IF EXISTS public.visa_applications CASCADE;
+DROP TABLE IF EXISTS public.nawa_records CASCADE;
+DROP TABLE IF EXISTS public.journey_stages CASCADE;
+DROP TABLE IF EXISTS public.application_checklist CASCADE;
 DROP TABLE IF EXISTS public.credit_notes CASCADE;
 DROP TABLE IF EXISTS public.receipts CASCADE;
 DROP TABLE IF EXISTS public.invoices CASCADE;
@@ -184,6 +210,12 @@ CREATE TABLE public.universities (
   country TEXT NOT NULL,
   city TEXT NOT NULL DEFAULT '',
   logo_url TEXT DEFAULT '',
+  image_url TEXT DEFAULT '',
+  badge TEXT DEFAULT 'Top Choice',
+  category TEXT DEFAULT 'Engineering',
+  description TEXT DEFAULT '',
+  living_cost_monthly TEXT DEFAULT '€350 - €500 / mo',
+  nawa_required BOOLEAN NOT NULL DEFAULT true,
   ranking INTEGER DEFAULT 100,
   rating NUMERIC(3, 2) DEFAULT 4.5,
   programs TEXT[] DEFAULT ARRAY['Computer Science', 'Business Management'],
@@ -222,6 +254,52 @@ CREATE TABLE public.applications (
   notes TEXT DEFAULT '',
   offer_letter_url TEXT DEFAULT '',
   final_acceptance_url TEXT DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Application Checklist (Per-application document and step tracking)
+CREATE TABLE public.application_checklist (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  application_id UUID REFERENCES public.applications(id) ON DELETE CASCADE,
+  item_name TEXT NOT NULL,
+  is_mandatory BOOLEAN NOT NULL DEFAULT true,
+  is_completed BOOLEAN NOT NULL DEFAULT false,
+  file_url TEXT DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 12-Step Student Journey Stages Progress
+CREATE TABLE public.journey_stages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  stage_number INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'Pending' CHECK (
+    status IN ('Pending', 'In Progress', 'Completed', 'Skipped', 'Locked')
+  ),
+  notes TEXT DEFAULT '',
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- NAWA Qualification Equivalency Records (Polish Education Governance)
+CREATE TABLE public.nawa_records (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  student_name TEXT NOT NULL DEFAULT 'Student',
+  student_email TEXT DEFAULT '',
+  nawa_ref_no TEXT NOT NULL DEFAULT '',
+  document_type TEXT NOT NULL DEFAULT 'Academic Diploma & Transcripts',
+  current_step INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'Draft' CHECK (
+    status IN ('Draft', 'Submitted', 'Under Evaluation', 'In Review', 'Additional Docs Requested', 'Approved', 'Rejected')
+  ),
+  submission_date TIMESTAMPTZ DEFAULT NOW(),
+  approval_date TIMESTAMPTZ,
+  notes TEXT DEFAULT '',
+  certificate_url TEXT DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -451,6 +529,65 @@ CREATE TABLE public.meetings (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Visa Tracking (Consular Appointments & Biometrics)
+CREATE TABLE public.visa_tracking (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  student_name TEXT NOT NULL DEFAULT 'Student',
+  country TEXT NOT NULL DEFAULT 'Poland',
+  vfs_center TEXT DEFAULT 'VFS New Delhi',
+  appointment_date DATE,
+  submission_date DATE,
+  reference_no TEXT DEFAULT '',
+  tracking_id TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'Documents Prepared' CHECK (
+    status IN ('Documents Prepared', 'Appointment Booked', 'Submitted at VFS', 'Under Embassy Review', 'Visa Approved', 'Visa Refused')
+  ),
+  notes TEXT DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Staff / Counselor Admin Tasks
+CREATE TABLE public.tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_by TEXT DEFAULT 'admin',
+  student_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  student_name TEXT DEFAULT '',
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  assigned_to TEXT DEFAULT 'Staff Member',
+  priority TEXT NOT NULL DEFAULT 'Medium' CHECK (priority IN ('Low', 'Normal', 'Medium', 'High', 'Urgent')),
+  status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'In Progress', 'Completed', 'Cancelled')),
+  due_date DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- System Activity & Audit Log
+CREATE TABLE public.activity_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT DEFAULT '',
+  details JSONB DEFAULT '{}'::jsonb,
+  ip_address TEXT DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Realtime Chat & Counseling Conversations
+CREATE TABLE public.conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  admin_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  title TEXT NOT NULL DEFAULT 'Admissions Counseling',
+  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Archived', 'Closed')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Realtime Chat
 CREATE TABLE public.chat_conversations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -545,6 +682,51 @@ CREATE TABLE public.digital_deliverables (
   version TEXT DEFAULT 'v1.0',
   approved_by_client BOOLEAN DEFAULT false,
   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.digital_meetings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  scheduled_at TIMESTAMPTZ NOT NULL,
+  meeting_url TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'Scheduled',
+  agenda TEXT DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.digital_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id TEXT NOT NULL,
+  sender_role TEXT NOT NULL DEFAULT 'client',
+  sender_name TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.digital_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id TEXT,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT DEFAULT 'info',
+  is_read BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.digital_assets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id UUID REFERENCES public.digital_clients(id) ON DELETE SET NULL,
+  project_id UUID REFERENCES public.digital_projects(id) ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Domain / SSL',
+  asset_url TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Pending', 'Renewing', 'Expired', 'Archived')),
+  expiry_date DATE,
+  cost NUMERIC(12, 2) DEFAULT 0.00,
+  details JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -710,6 +892,40 @@ CREATE TABLE public.trade_notifications (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE public.trade_bonded_inventory (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sku TEXT NOT NULL UNIQUE,
+  commodity TEXT NOT NULL,
+  category TEXT DEFAULT 'General Cargo',
+  port_location TEXT NOT NULL DEFAULT 'Port of Gdansk, Poland',
+  warehouse_bay TEXT DEFAULT 'Bay 01-East',
+  in_stock_metric_tons NUMERIC(14, 2) NOT NULL DEFAULT 0.00,
+  reserved_metric_tons NUMERIC(14, 2) NOT NULL DEFAULT 0.00,
+  available_metric_tons NUMERIC(14, 2) NOT NULL DEFAULT 0.00,
+  unit_value_inr NUMERIC(14, 2) NOT NULL DEFAULT 0.00,
+  total_valuation_inr NUMERIC(14, 2) NOT NULL DEFAULT 0.00,
+  customs_bond_no TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'In Bond',
+  last_inspected_at DATE DEFAULT CURRENT_DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.trade_cargo_losses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  shipment_no TEXT NOT NULL,
+  container_no TEXT DEFAULT '',
+  loss_type TEXT NOT NULL DEFAULT 'Port Demurrage Penalty',
+  port_location TEXT NOT NULL DEFAULT 'Port of Rotterdam',
+  loss_amount_inr NUMERIC(14, 2) NOT NULL DEFAULT 0.00,
+  shrinkage_metric_tons NUMERIC(14, 2),
+  carrier_responsible TEXT DEFAULT '',
+  insurance_claim_status TEXT NOT NULL DEFAULT 'Not Filed',
+  incident_date DATE DEFAULT CURRENT_DATE,
+  description TEXT DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ─────────────────────────────────────────────────────────────────────────────
 -- STEP 6: 4. RIMI FROZEN FOODS DISTRIBUTION ERP
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -800,6 +1016,80 @@ CREATE TABLE public.rimi_payments (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE public.rimi_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  distributor_id TEXT NOT NULL,
+  sender_role TEXT NOT NULL DEFAULT 'customer',
+  sender_name TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.rimi_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  distributor_id TEXT,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT DEFAULT 'info',
+  is_read BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.rimi_warehouses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  city TEXT NOT NULL,
+  address TEXT DEFAULT '',
+  cold_room_temp_celsius NUMERIC(5, 2) NOT NULL DEFAULT -22.00,
+  total_capacity_pallets INTEGER NOT NULL DEFAULT 1000,
+  utilized_pallets INTEGER NOT NULL DEFAULT 0,
+  manager_name TEXT DEFAULT 'Hub Lead',
+  manager_phone TEXT DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.rimi_batches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  batch_number TEXT NOT NULL UNIQUE,
+  product_id UUID REFERENCES public.rimi_products(id) ON DELETE SET NULL,
+  product_name TEXT NOT NULL,
+  warehouse_id UUID REFERENCES public.rimi_warehouses(id) ON DELETE SET NULL,
+  warehouse_name TEXT DEFAULT 'Central Cold Hub (-22°C)',
+  quantity_units INTEGER NOT NULL DEFAULT 0,
+  production_date DATE DEFAULT CURRENT_DATE,
+  expiry_date DATE NOT NULL,
+  quality_grade TEXT NOT NULL DEFAULT 'Grade A Export',
+  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Near Expiry Alert', 'Quarantined', 'Expired', 'Archived')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.rimi_vehicles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  vehicle_number TEXT NOT NULL UNIQUE,
+  driver_name TEXT NOT NULL,
+  driver_phone TEXT DEFAULT '',
+  capacity_tonnes NUMERIC(6, 2) NOT NULL DEFAULT 10.00,
+  current_temp_celsius NUMERIC(5, 2) NOT NULL DEFAULT -20.00,
+  status TEXT NOT NULL DEFAULT 'Stationed' CHECK (status IN ('Stationed', 'On Route', 'Loading', 'Maintenance', 'Inactive')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE public.rimi_delivery_routes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  route_name TEXT NOT NULL,
+  origin_warehouse TEXT NOT NULL,
+  destination_region TEXT NOT NULL,
+  assigned_vehicle TEXT DEFAULT '',
+  estimated_transit_hours INTEGER DEFAULT 4,
+  stops JSONB DEFAULT '[]'::jsonb,
+  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Scheduled', 'Completed', 'Inactive')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ─────────────────────────────────────────────────────────────────────────────
 -- STEP 7: 5. CENTRAL SUPER ADMIN AUDIT & DASHBOARD
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -858,6 +1148,8 @@ ALTER TABLE public.trade_certificates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trade_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trade_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trade_notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trade_bonded_inventory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trade_cargo_losses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rimi_distributors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rimi_products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rimi_inventory ENABLE ROW LEVEL SECURITY;
@@ -865,6 +1157,23 @@ ALTER TABLE public.rimi_sales_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rimi_order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rimi_deliveries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rimi_payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rimi_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rimi_notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rimi_warehouses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rimi_batches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rimi_vehicles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rimi_delivery_routes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.digital_meetings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.digital_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.digital_notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.digital_assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.nawa_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.visa_tracking ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.journey_stages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.application_checklist ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.activity_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.central_audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- 1. Users policies (NO RECURSION using SECURITY DEFINER public.get_auth_user_role)
@@ -1024,6 +1333,8 @@ CREATE POLICY "trade_cert_all" ON public.trade_certificates FOR ALL TO authentic
 CREATE POLICY "trade_pay_all" ON public.trade_payments FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "trade_msg_all" ON public.trade_messages FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "trade_notif_all" ON public.trade_notifications FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "trade_bonded_all" ON public.trade_bonded_inventory FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "trade_loss_all" ON public.trade_cargo_losses FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 
 -- 12. RIMI DISTRIBUTION ERP POLICIES
@@ -1048,11 +1359,64 @@ CREATE POLICY "rimi_deliveries_all" ON public.rimi_deliveries FOR ALL TO authent
 CREATE POLICY "rimi_payments_all" ON public.rimi_payments FOR ALL TO authenticated USING (
   public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen')
 );
+CREATE POLICY "rimi_warehouses_all" ON public.rimi_warehouses FOR ALL TO authenticated USING (
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen')
+);
+CREATE POLICY "rimi_batches_all" ON public.rimi_batches FOR ALL TO authenticated USING (
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen')
+);
+CREATE POLICY "rimi_vehicles_all" ON public.rimi_vehicles FOR ALL TO authenticated USING (
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen')
+);
+CREATE POLICY "rimi_routes_all" ON public.rimi_delivery_routes FOR ALL TO authenticated USING (
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'rimi', 'rimi_admin', 'rimi_frozen')
+);
 
--- 13. AUDIT LOGS
+-- 13. AUDIT & ACTIVITY LOGS
 CREATE POLICY "audit_logs_superadmin" ON public.central_audit_logs FOR ALL TO authenticated USING (
   public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central')
 );
+CREATE POLICY "activity_log_all" ON public.activity_log FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- 14. NAWA, VISA, JOURNEY, TASKS, CONVERSATIONS POLICIES
+CREATE POLICY "nawa_records_admin_all" ON public.nawa_records FOR ALL TO authenticated USING (
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff')
+);
+CREATE POLICY "nawa_records_student_access" ON public.nawa_records FOR ALL TO authenticated USING (
+  student_id = auth.uid() OR student_id IS NULL
+) WITH CHECK (
+  student_id = auth.uid() OR student_id IS NULL
+);
+
+CREATE POLICY "visa_tracking_admin_all" ON public.visa_tracking FOR ALL TO authenticated USING (
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff')
+);
+CREATE POLICY "visa_tracking_student_access" ON public.visa_tracking FOR ALL TO authenticated USING (
+  student_id = auth.uid() OR student_id IS NULL
+) WITH CHECK (
+  student_id = auth.uid() OR student_id IS NULL
+);
+
+CREATE POLICY "journey_stages_admin_all" ON public.journey_stages FOR ALL TO authenticated USING (
+  public.get_auth_user_role() IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff')
+);
+CREATE POLICY "journey_stages_student_access" ON public.journey_stages FOR ALL TO authenticated USING (
+  student_id = auth.uid() OR student_id IS NULL
+) WITH CHECK (
+  student_id = auth.uid() OR student_id IS NULL
+);
+
+CREATE POLICY "application_checklist_all" ON public.application_checklist FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "tasks_all" ON public.tasks FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "conversations_all" ON public.conversations FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- 15. DIGITAL & RIMI REALTIME POLICIES
+CREATE POLICY "digital_meetings_all" ON public.digital_meetings FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "digital_messages_all" ON public.digital_messages FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "digital_notif_all" ON public.digital_notifications FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "digital_assets_all" ON public.digital_assets FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "rimi_messages_all" ON public.rimi_messages FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "rimi_notif_all" ON public.rimi_notifications FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- STEP 9: SEED INITIAL BASELINE DATA

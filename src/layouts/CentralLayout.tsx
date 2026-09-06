@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, CreditCard, BarChart3, ShieldCheck, UserCheck,
-  CheckSquare, Activity, Bell, Settings,
+  CheckSquare, Activity, Bell, Settings, Mail,
   Search, Menu, ChevronDown, ChevronRight, LogOut, X, Crown,
   Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight
 } from 'lucide-react';
@@ -41,23 +41,34 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
       title: 'EXECUTIVE COMMAND',
       items: [
         { name: 'Dashboard', path: '/central/dashboard', icon: LayoutDashboard, badge: 'HQ Live' },
-        { name: 'Enterprise Finance', path: '/central/finance', icon: CreditCard, badge: '₹6.5Cr' },
+        { name: 'Enterprise Finance', path: '/central/finance', icon: CreditCard, badge: 'Gateways' },
         { name: 'Executive Reports', path: '/central/reports', icon: BarChart3, badge: '4-App' },
+      ]
+    },
+    {
+      title: 'SUBSIDIARY OVERSIGHT',
+      items: [
+        { name: 'Ferex Education', path: '/central/education', icon: GraduationCap, badge: 'Core' },
+        { name: 'Global Trade', path: '/central/trade', icon: Globe, badge: 'Trade' },
+        { name: 'Rimi Frozen', path: '/central/rimi', icon: Snowflake, badge: 'Cold Chain' },
+        { name: 'Ferex Digital', path: '/central/digital', icon: Monitor, badge: 'Digital' },
+      ]
+    },
+    {
+      title: 'OPERATIONS & ESCALATIONS',
+      items: [
+        { name: 'Cross-App Tasks', path: '/central/tasks', icon: CheckSquare, badge: 'Assign' },
+        { name: 'Support & Tickets', path: '/central/support', icon: ShieldCheck, badge: 'Tickets' },
+        { name: 'Email Dispatch Vault', path: '/central/emails', icon: Bell, badge: 'Audit' },
+        { name: 'Email & SMTP Providers', path: '/central/email-settings', icon: Mail, badge: 'Gateways' },
       ]
     },
     {
       title: 'ADMIN & GOVERNANCE',
       items: [
-        { name: 'Division Admins', path: '/central/admins', icon: ShieldCheck, badge: 'Logins' },
-        { name: 'Roles & Privileges', path: '/central/roles', icon: UserCheck, badge: 'RBAC' },
-      ]
-    },
-    {
-      title: 'OPERATIONS & AUDIT',
-      items: [
-        { name: 'Operations & Tasks', path: '/central/tasks', icon: CheckSquare, badge: 'Live' },
+        { name: 'Division Admins', path: '/central/admins', icon: UserCheck, badge: 'Staff' },
+        { name: 'Roles & Privileges', path: '/central/roles', icon: ShieldCheck, badge: 'RBAC' },
         { name: 'Audit & Activity Log', path: '/central/activity', icon: Activity, badge: 'Realtime' },
-        { name: 'Alerts & Notifs', path: '/central/notifications', icon: Bell, badge: '4' },
         { name: 'System Settings', path: '/central/settings', icon: Settings, badge: 'Config' },
       ]
     }

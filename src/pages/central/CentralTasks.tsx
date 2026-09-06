@@ -25,6 +25,8 @@ export const CentralTasks: React.FC = () => {
   const [selectedPriority, setSelectedPriority] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [reassignTask, setReassignTask] = useState<ExecutiveTask | null>(null);
+  const [reassignName, setReassignName] = useState('');
 
   const [tasks, setTasks] = useState<ExecutiveTask[]>([
     {
@@ -290,8 +292,15 @@ export const CentralTasks: React.FC = () => {
             </div>
 
             <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
-              <div className="text-[11px] font-bold text-slate-500">
-                Assigned to: <strong className="text-slate-800">{t.assignee}</strong>
+              <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
+                <span>Assigned to:</span>
+                <strong className="text-slate-800">{t.assignee}</strong>
+                <button
+                  onClick={() => setReassignTask(t)}
+                  className="text-[10px] font-extrabold text-[#6A1B2E] hover:underline cursor-pointer ml-1"
+                >
+                  (Reassign)
+                </button>
               </div>
 
               <div className="flex items-center gap-2">
@@ -317,6 +326,72 @@ export const CentralTasks: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      {/* Modal to Reassign Task */}
+      <AnimatePresence>
+        {reassignTask && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setReassignTask(null)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 text-left"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 className="text-sm font-black text-slate-900">Reassign Cross-Divisional Task</h3>
+                <button onClick={() => setReassignTask(null)} className="p-1 text-slate-400 hover:text-slate-600">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="space-y-4 text-xs">
+                <p className="font-bold text-slate-700">Task: <span className="text-slate-900">{reassignTask.title}</span></p>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">New Assignee (Admin or Staff)</label>
+                  <select
+                    value={reassignName || reassignTask.assignee}
+                    onChange={(e) => setReassignName(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                  >
+                    <option value="Rahul Mehta (Admissions Admin - Education)">Rahul Mehta (Admissions Admin - Education)</option>
+                    <option value="Sanjay Sharma (Counselor - Education)">Sanjay Sharma (Counselor - Education)</option>
+                    <option value="Marek Kowalski (Port Logistics Admin - Trade)">Marek Kowalski (Port Logistics Admin - Trade)</option>
+                    <option value="Jan Nowak (Customs Staff - Trade)">Jan Nowak (Customs Staff - Trade)</option>
+                    <option value="Rajesh Kulkarni (Cold Warehouse Lead - Rimi)">Rajesh Kulkarni (Cold Warehouse Lead - Rimi)</option>
+                    <option value="Sunil Jadhav (Reefer Fleet Staff - Rimi)">Sunil Jadhav (Reefer Fleet Staff - Rimi)</option>
+                    <option value="Priya Nair (Engineering Admin - Digital)">Priya Nair (Engineering Admin - Digital)</option>
+                    <option value="Arun Patel (Senior Dev - Digital)">Arun Patel (Senior Dev - Digital)</option>
+                    <option value="Executive Super Admin">Executive Super Admin</option>
+                  </select>
+                </div>
+                <div className="pt-3 flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setReassignTask(null)}>Cancel</Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]"
+                    onClick={() => {
+                      const updatedAssignee = reassignName || reassignTask.assignee;
+                      setTasks(prev => prev.map(t => t.id === reassignTask.id ? { ...t, assignee: updatedAssignee } : t));
+                      setReassignTask(null);
+                      setReassignName('');
+                      showToastMsg(`Task reassigned to ${updatedAssignee}!`);
+                    }}
+                  >
+                    Confirm Reassignment
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Modal to Create Executive Task */}
       <AnimatePresence>

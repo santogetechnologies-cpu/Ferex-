@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff, CheckCircle2, Snowflake, Store } from 'lucide-react';
 import { Logo } from '../../components/Logo';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../contexts/AuthContext';
@@ -30,14 +30,18 @@ export const RimiLoginPage: React.FC = () => {
       const { error } = await signIn(cleanEmail, password);
       
       if (!error) {
-        setSuccessMsg('Authorization successful. Redirecting to Cold Chain Console...');
+        setSuccessMsg('Authorization successful. Redirecting...');
         setTimeout(() => {
-          navigate('/rimi/dashboard', { replace: true });
+          if (cleanEmail.includes('customer') || cleanEmail.includes('distributor') || cleanEmail.includes('retail')) {
+            navigate('/rimi/customer-portal', { replace: true });
+          } else {
+            navigate('/rimi/dashboard', { replace: true });
+          }
         }, 300);
         return;
       }
 
-      // 2. If Supabase auth user does not yet exist, check or store credentials for demo session
+      // 2. Demo credentials fallback: Rimi Cold Chain Admin
       if (cleanEmail === 'rimi@ferex.com' && password === 'rimi123') {
         localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
           email: cleanEmail,
@@ -45,7 +49,6 @@ export const RimiLoginPage: React.FC = () => {
           full_name: 'Rimi Cold Chain Manager'
         }));
 
-        // Attempt upserting to public.users to ensure role persistence
         try {
           await supabase.from('users').upsert({
             email: cleanEmail,
@@ -62,15 +65,54 @@ export const RimiLoginPage: React.FC = () => {
         return;
       }
 
+      // 3. Demo credentials fallback: Rimi Customer / Distributor
+      if ((cleanEmail === 'customer@rimi.com' || cleanEmail === 'distributor@ferex.com' || cleanEmail.includes('customer') || cleanEmail.includes('distributor')) && (password === 'rimi123' || password === 'ferex123')) {
+        localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
+          email: cleanEmail,
+          role: 'rimi_client',
+          full_name: 'HyperCity Retail Procurement Lead'
+        }));
+
+        try {
+          await supabase.from('users').upsert({
+            email: cleanEmail,
+            role: 'rimi_client',
+            full_name: 'HyperCity Retail Procurement Lead',
+            department: 'Rimi:HyperCity Retail Hub',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'email' });
+        } catch {}
+
+        setSuccessMsg('Authenticated as Rimi Wholesale Customer. Loading Customer Portal...');
+        setTimeout(() => {
+          navigate('/rimi/customer-portal', { replace: true });
+        }, 300);
+        return;
+      }
+
       setErrorMsg(error || 'Invalid credentials. Please verify your email and password.');
     } catch {
       if (cleanEmail === 'rimi@ferex.com' && password === 'rimi123') {
         navigate('/rimi/dashboard', { replace: true });
         return;
       }
+      if (cleanEmail.includes('customer') || cleanEmail.includes('distributor')) {
+        navigate('/rimi/customer-portal', { replace: true });
+        return;
+      }
       setErrorMsg('An error occurred during authentication. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleQuickLogin = (type: 'admin' | 'customer') => {
+    if (type === 'admin') {
+      setEmail('rimi@ferex.com');
+      setPassword('rimi123');
+    } else {
+      setEmail('customer@rimi.com');
+      setPassword('rimi123');
     }
   };
 
@@ -92,6 +134,36 @@ export const RimiLoginPage: React.FC = () => {
           <p className="text-xs font-semibold text-slate-500 mt-2">
             Cold Chain Distribution & Reefer Logistics Console
           </p>
+        </div>
+
+        {/* Quick Demo Login Preset Buttons */}
+        <div className="grid grid-cols-2 gap-2.5 mb-5">
+          <button
+            type="button"
+            onClick={() => handleQuickLogin('admin')}
+            className={`p-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition-all cursor-pointer ${
+              email === 'rimi@ferex.com'
+                ? 'bg-[#6A1B2E]/10 border-[#6A1B2E] text-[#6A1B2E] shadow-xs'
+                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Snowflake className="w-4 h-4 text-[#6A1B2E]" />
+            <span className="text-[11px] font-black">❄️ Rimi Admin</span>
+            <span className="text-[9px] text-slate-400 font-normal">rimi@ferex.com</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleQuickLogin('customer')}
+            className={`p-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition-all cursor-pointer ${
+              email === 'customer@rimi.com'
+                ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-xs'
+                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Store className="w-4 h-4 text-blue-600" />
+            <span className="text-[11px] font-black">🏪 Customer Portal</span>
+            <span className="text-[9px] text-slate-400 font-normal">customer@rimi.com</span>
+          </button>
         </div>
 
         {/* Alerts */}
@@ -164,20 +236,12 @@ export const RimiLoginPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-[10.5px] font-semibold text-slate-500 space-y-0.5">
-            <span className="font-extrabold text-slate-700 block">Demo Credentials:</span>
-            <div className="flex justify-between font-mono text-[10px]">
-              <span>Email: rimi@ferex.com</span>
-              <span>Pass: rimi123</span>
-            </div>
-          </div>
-
           <Button
             type="submit"
             isLoading={isLoading}
             className="w-full h-11 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-black tracking-wide shadow-md shadow-[#6A1B2E]/20 flex items-center justify-center gap-2 cursor-pointer"
           >
-            Access Rimi Console <ArrowRight className="w-4 h-4" />
+            {email.includes('customer') || email.includes('distributor') ? 'Access Customer Portal' : 'Access Rimi Console'} <ArrowRight className="w-4 h-4" />
           </Button>
         </form>
 
