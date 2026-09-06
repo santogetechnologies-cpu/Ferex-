@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRimiConfig } from '../../hooks/useRimiConfig';
 import { supabase } from '../../lib/supabase';
 import {
   getRimiProducts,
@@ -29,10 +30,12 @@ import {
   User,
   CheckCircle2,
   Lock,
+  MessageCircle,
 } from 'lucide-react';
 
 export const RimiCustomerPortal: React.FC = () => {
   const { user, profile, signOut } = useAuth();
+  const { config: rimiConfig } = useRimiConfig();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'catalog' | 'orders' | 'deliveries' | 'invoices' | 'messages'>('overview');
@@ -164,6 +167,29 @@ export const RimiCustomerPortal: React.FC = () => {
         </div>
       )}
 
+      {/* ── Live Customer Broadcast Ticker ── */}
+      {rimiConfig.broadcast?.is_active && rimiConfig.broadcast.target_audience !== 'staff' && (
+        <div className={`px-4 py-2 text-xs font-bold flex items-center justify-between border-b shadow-md ${
+          rimiConfig.broadcast.urgency === 'urgent' ? 'bg-red-900 text-red-100 border-red-700' :
+          rimiConfig.broadcast.urgency === 'warning' ? 'bg-amber-900 text-amber-100 border-amber-700' :
+          rimiConfig.broadcast.urgency === 'success' ? 'bg-emerald-900 text-emerald-100 border-emerald-700' :
+          'bg-indigo-950 text-cyan-200 border-indigo-800'
+        }`}>
+          <div className="flex items-center gap-2 max-w-6xl mx-auto w-full">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping shrink-0" />
+            <span>{rimiConfig.broadcast.message}</span>
+            {rimiConfig.broadcast.link_url && (
+              <a
+                href={rimiConfig.broadcast.link_url}
+                className="ml-auto underline font-black text-cyan-300 hover:text-white shrink-0"
+              >
+                {rimiConfig.broadcast.link_label || 'View Details'} →
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Top Header Navigation ── */}
       <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between shadow-2xl">
         <div className="flex items-center gap-3">
@@ -172,9 +198,9 @@ export const RimiCustomerPortal: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-base tracking-wide text-white">RIMI FROZEN FOODS</span>
+              <span className="font-bold text-base tracking-wide text-white uppercase">{rimiConfig.branding.entity_name || 'RIMI FROZEN FOODS'}</span>
               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#6A1B2E]/40 text-pink-300 border border-[#6A1B2E]">
-                B2B Customer Portal
+                {rimiConfig.branding.portal_title || 'B2B Customer Portal'}
               </span>
             </div>
             <p className="text-xs text-slate-400 flex items-center gap-1.5">
@@ -725,6 +751,21 @@ export const RimiCustomerPortal: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ── Floating WhatsApp Order Desk Widget ── */}
+      {rimiConfig.branding?.whatsapp_order_desk && (
+        <a
+          href={`https://wa.me/${rimiConfig.branding.whatsapp_order_desk.replace(/[^0-9]/g, '')}?text=Hello%20Rimi%20Frozen%20Dispatch%20Team%2C%20I%20would%20like%20to%20place%20a%20wholesale%20order.`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Direct WhatsApp Order Desk"
+          className="fixed bottom-6 right-6 z-40 bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center gap-2 border-2 border-white/30"
+        >
+          <MessageCircle className="w-5 h-5 fill-white" />
+          <span className="text-xs font-black hidden sm:inline pr-1">Rimi Order Desk</span>
+        </a>
+      )}
+
     </div>
   );
 };

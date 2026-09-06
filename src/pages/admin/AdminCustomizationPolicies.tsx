@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Save, Sparkles, Megaphone, DollarSign, ShieldCheck, FileCheck,
   Phone, Globe, CheckCircle2, RotateCcw, AlertTriangle, Info, BellRing,
-  HelpCircle, Sliders, Layers, Laptop, MessageCircle
+  HelpCircle, Sliders, Layers, Laptop, MessageCircle, Snowflake, Truck
 } from 'lucide-react';
 import { useSystemConfig } from '../../hooks/useSystemConfig';
 import type { SystemCustomizationConfig } from '../../lib/types';
@@ -15,7 +15,7 @@ interface Props {
 export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
   const { config, updateConfig, resetToDefault, loading } = useSystemConfig();
   const [form, setForm] = useState<SystemCustomizationConfig>(config);
-  const [activeSection, setActiveSection] = useState<'branding' | 'broadcast' | 'installments' | 'documents' | 'visa' | 'features' | 'digital'>('branding');
+  const [activeSection, setActiveSection] = useState<'branding' | 'broadcast' | 'installments' | 'documents' | 'visa' | 'features' | 'digital' | 'rimi'>('branding');
   const [isSaving, setIsSaving] = useState(false);
 
   // Sync state if external change happens and not dirty
@@ -60,6 +60,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
     { id: 'visa', label: 'Visa & Mock Prep', icon: ShieldCheck },
     { id: 'features', label: 'Feature Toggles', icon: Sliders },
     { id: 'digital', label: 'FEREX Digital Agency', icon: Laptop },
+    { id: 'rimi', label: 'Rimi Frozen Logistics', icon: Snowflake },
   ] as const;
 
   return (
@@ -753,6 +754,53 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                 <span className="text-[10px] font-extrabold uppercase text-slate-400">Self-Service Access</span>
                 <p className="text-sm font-black text-emerald-600">Active & Verified</p>
                 <p className="text-[11px] text-slate-500 font-medium">Clients can self-manage invoices, assets, and meetings in-portal.</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* SECTION 8: RIMI FROZEN LOGISTICS */}
+        {activeSection === 'rimi' && (
+          <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div className="p-5 bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 rounded-2xl text-white border border-cyan-500/30 shadow-md">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-black uppercase tracking-wider border border-cyan-500/30 mb-2 inline-block">
+                    Cold Chain Synergy
+                  </span>
+                  <h3 className="text-base font-black text-white flex items-center gap-2">
+                    <Snowflake className="w-4 h-4 text-cyan-400" />
+                    Rimi Frozen Distribution Division
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-1 max-w-xl">
+                    Configure cold room safety temperatures (-18°C), wholesale minimum order policies, credit terms, and customer broadcast updates.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.location.href = '/rimi/settings'}
+                  className="h-9 px-4 rounded-xl text-xs font-black bg-cyan-400 hover:bg-cyan-300 text-slate-950 transition-all flex items-center gap-1.5 shadow-sm active:scale-95 shrink-0"
+                >
+                  <Sliders className="w-3.5 h-3.5" /> Open Rimi Cold Console
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
+                <span className="text-[10px] font-extrabold uppercase text-slate-400">Cold Room Threshold</span>
+                <p className="text-sm font-black text-blue-600">-18.0°C Safe Zone</p>
+                <p className="text-[11px] text-slate-500 font-medium">Auto-alarm trigger if temperature rises above threshold.</p>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
+                <span className="text-[10px] font-extrabold uppercase text-slate-400">Wholesale MOV</span>
+                <p className="text-sm font-black text-slate-900">₹5,000 Min Order</p>
+                <p className="text-[11px] text-slate-500 font-medium">Enforced for automated B2B customer portal checkout.</p>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
+                <span className="text-[10px] font-extrabold uppercase text-slate-400">Credit Terms Window</span>
+                <p className="text-sm font-black text-emerald-600">15-Day Net Terms</p>
+                <p className="text-[11px] text-slate-500 font-medium">Automatic invoice reconciliation on delivery dispatch.</p>
               </div>
             </div>
           </motion.div>
