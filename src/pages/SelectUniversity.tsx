@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, ShieldCheck } from 'lucide-react';
+import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, ShieldCheck, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUniversities } from '../hooks/useUniversities';
 import { useApplications } from '../hooks/useApplications';
