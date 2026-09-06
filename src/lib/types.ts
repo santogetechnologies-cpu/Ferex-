@@ -282,3 +282,50 @@ export interface Task {
   assignee?: UserProfile;
   student?: UserProfile;
 }
+
+// ─── Dynamic Country Workflow & Legalization Types ───────────────────────────
+
+export interface WorkflowStageConfig {
+  step_number: number;
+  title: string;
+  short_name: string;
+  description: string;
+  responsible_party: 'student' | 'ferex_admin' | 'authority' | 'university' | 'embassy';
+  required_docs: string[];
+  estimated_days?: string;
+  auto_unlocks_next?: boolean;
+}
+
+export interface WorkflowDocumentRequirement {
+  id: string;
+  name: string;
+  category: 'identity' | 'academic' | 'legalization' | 'financial' | 'visa';
+  is_mandatory: boolean;
+  instructions: string;
+}
+
+export interface VisaProcedureConfig {
+  visa_type: string;
+  financial_proof_req: string;
+  insurance_req: string;
+  appointment_channel: string;
+  interview_required: boolean;
+  notes?: string;
+}
+
+export interface CountryWorkflowConfig {
+  id: string;
+  country: string;
+  authority_name: string;
+  authority_acronym: string;
+  authority_badge: string;
+  authority_description: string;
+  estimated_processing_days: string;
+  authority_fee: string;
+  website_url?: string;
+  is_active: boolean;
+  stages: WorkflowStageConfig[];
+  checklist_documents: WorkflowDocumentRequirement[];
+  visa_procedures: VisaProcedureConfig;
+}
+

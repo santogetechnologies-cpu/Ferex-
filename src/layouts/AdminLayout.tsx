@@ -21,7 +21,7 @@ const baseMenuItems = [
   { name: 'Status Tracker', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
   { name: 'Applications', path: '/admin/applications', icon: FileCheck, badge: null, hasUpdate: false },
   { name: 'Documents Review', path: '/admin/documents', icon: FolderOpen, badge: null, hasUpdate: false },
-  { name: 'NAWA Legalization', path: '/admin/nawa', icon: FileCheck, badge: null, hasUpdate: false },
+  { name: 'Legalization & Workflows', path: '/admin/nawa', icon: FileCheck, badge: null, hasUpdate: false },
   { name: 'Payments', path: '/admin/payments', icon: CreditCard, badge: null, hasUpdate: false },
   { name: 'VFS Visa Tracker', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },
   { name: 'Post Travel Management', path: '/admin/pre-departure', icon: Plane, badge: null, hasUpdate: false },

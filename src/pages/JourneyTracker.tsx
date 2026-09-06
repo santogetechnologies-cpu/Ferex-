@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Compass, CheckCircle2, Clock, ArrowRight, XCircle } from 'lucide-react';
+import { Compass, CheckCircle2, Clock, ArrowRight, XCircle, Globe, ShieldCheck, FileCheck, Layers } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,6 +9,7 @@ import { useApplications } from '../hooks/useApplications';
 import { useDocuments } from '../hooks/useDocuments';
 import { usePayments } from '../hooks/usePayments';
 import { useVisa } from '../hooks/useVisa';
+import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { getNawaRecords } from '../lib/api/nawa';
 import type { NawaRecord } from '../lib/api/nawa';
 import type { JourneyStage } from '../lib/types';
@@ -20,16 +21,36 @@ export const JourneyTracker: React.FC = () => {
   const { documents } = useDocuments(user?.id);
   const { payments } = usePayments(user?.id);
   const { records: visaRecords } = useVisa(user?.id);
+  const { workflows, getWorkflowForCountry } = useCountryWorkflows();
 
   const [stages, setStages] = useState<JourneyStage[]>([]);
   const [nawaRecord, setNawaRecord] = useState<NawaRecord | null>(null);
 
-  // Keep stages reference for dynamic background synchronization
-  useEffect(() => {
-    if (stages.length > 0) {
-      console.log('[JourneyTracker] Synced database stages count:', stages.length);
+  // Determine student target country and workflow
+  const activeApp = applications[0];
+  const targetCountry = useMemo(() => {
+    if (activeApp?.universities?.country) return activeApp.universities.country;
+    if (activeApp?.university_name) {
+      const uName = activeApp.university_name.toLowerCase();
+      if (uName.includes('germany') || uName.includes('munich') || uName.includes('tum')) return 'Germany';
+      if (uName.includes('italy') || uName.includes('rome') || uName.includes('sapienza')) return 'Italy';
+      if (uName.includes('czech') || uName.includes('charles') || uName.includes('prague')) return 'Czech Republic';
+      if (uName.includes('france') || uName.includes('paris')) return 'France';
+      if (uName.includes('spain') || uName.includes('madrid') || uName.includes('barcelona')) return 'Spain';
     }
-  }, [stages]);
+    if (nawaRecord?.document_type) {
+      for (const wf of workflows) {
+        if (nawaRecord.document_type.toLowerCase().includes(wf.country.toLowerCase()) || nawaRecord.document_type.toLowerCase().includes(wf.authority_acronym.toLowerCase())) {
+          return wf.country;
+        }
+      }
+    }
+    return 'Poland';
+  }, [activeApp, nawaRecord, workflows]);
+
+  const targetWorkflow = useMemo(() => {
+    return getWorkflowForCountry(targetCountry);
+  }, [targetCountry, getWorkflowForCountry]);
 
   useEffect(() => {
     const fetchNawa = () => {
@@ -47,38 +68,6 @@ export const JourneyTracker: React.FC = () => {
       window.removeEventListener('ferex_application_change', fetchNawa);
     };
   }, [user?.id, user?.email]);
-
-  useEffect(() => {
-    const fetchStages = async () => {
-      if (!user?.id) return;
-      try {
-        const { supabase } = await import('../lib/supabase');
-
-        const { data: existing, error } = await supabase
-          .from('journey_stages')
-          .select('*')
-          .eq('student_id', user.id)
-          .order('stage_number', { ascending: true });
-
-        if (!error && existing && existing.length > 0) {
-          setStages(existing as JourneyStage[]);
-          return;
-        }
-
-        // Provide default stages in memory without client-side unauthorized POST requests
-        const DEFAULT_STAGES: JourneyStage[] = [
-          { id: `stage-1-${user.id}`, student_id: user.id, stage_number: 1, stage_name: 'Application Submitted', status: 'In Progress', notes: 'Initial submission of visa & university application files.', completed_at: null },
-          { id: `stage-2-${user.id}`, student_id: user.id, stage_number: 2, stage_name: 'NAWA Process', status: 'Pending', notes: 'Verification of eligibility and NAWA apostille/legalization audit.', completed_at: null },
-          { id: `stage-3-${user.id}`, student_id: user.id, stage_number: 3, stage_name: 'Decision', status: 'Pending', notes: 'University admissions and visa officer eligibility decision.', completed_at: null },
-          { id: `stage-4-${user.id}`, student_id: user.id, stage_number: 4, stage_name: 'Visa Outcome', status: 'Pending', notes: 'Passport stamping and visa grant status.', completed_at: null },
-        ];
-        setStages(DEFAULT_STAGES);
-      } catch (err) {
-        console.error('Error fetching stages:', err);
-      }
-    };
-    fetchStages();
-  }, [user]);
 
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
   const isProfileDone = Boolean(profile?.full_name);
@@ -123,7 +112,6 @@ export const JourneyTracker: React.FC = () => {
     Boolean(a.final_acceptance_url)
   );
 
-  // Final Acceptance Letter from University logic (after 2nd Installment & before VFS)
   const hasFinalAcceptanceDoc = documents.some(d =>
     d.file_name.toLowerCase().includes('final_acceptance') ||
     d.file_name.toLowerCase().includes('final acceptance') ||
@@ -136,7 +124,6 @@ export const JourneyTracker: React.FC = () => {
     Boolean(a.final_acceptance_url)
   );
 
-  // Visa Status Logic
   const visaRecord = visaRecords.find(r =>
     (user?.id && r.student_id === user.id) ||
     (r.student_name && studentName.toLowerCase().includes(r.student_name.toLowerCase()))
@@ -153,6 +140,8 @@ export const JourneyTracker: React.FC = () => {
   const isVisaApproved = currentStageNum >= 6 && rawOutcome === 'Approved';
   const isVisaRejected = currentStageNum >= 6 && rawOutcome === 'Rejected';
 
+  const maxAuthSteps = targetWorkflow.stages?.length || 5;
+
   const steps = [
     {
       id: 1,
@@ -165,71 +154,64 @@ export const JourneyTracker: React.FC = () => {
     },
     {
       id: 2,
-      name: '2. Mandatory Document Vault (Passport & Marksheets)',
+      name: `2. Mandatory Document Vault (${targetWorkflow.country} Checklist)`,
       status: hasApprovedDocs ? 'completed' : isDocsUnderReview ? 'current' : isProfileDone ? 'current' : 'pending',
       date: hasApprovedDocs ? '✓ Uploaded & Verified' : isDocsUnderReview ? '⏳ Under Admin Review' : 'Mandatory Step',
-      desc: 'Upload passport scans, bachelor transcripts, and degree certificates before university selection.',
+      desc: `Upload passport scans, academic transcripts, and credentials required for ${targetWorkflow.country}.`,
       detail: hasApprovedDocs
         ? `${approvedDocsCount} document file(s) verified & approved in vault.`
         : isDocsUnderReview
           ? `⏳ ${documents.length} document file(s) uploaded — awaiting Admin verification.`
-          : '🔒 Mandatory: Upload Passport & Marksheets to unlock University Selection.',
+          : `🔒 Mandatory: Upload documents to unlock ${targetWorkflow.authority_acronym} Legalization & University Selection.`,
       path: '/student/documents'
     },
     {
       id: 3,
       name: '3. 1st Installment Fee Payment (₹15,000)',
       status: inst1Paid ? 'completed' : (hasApprovedDocs || isDocsUnderReview) ? 'current' : 'pending',
-      date: inst1Paid ? 'Paid & Verified' : 'Due Before NAWA Process',
-      desc: 'Pay registration, choice allocation, and legalization audit fee before NAWA process begins.',
-      detail: inst1Paid ? '1st Installment cleared! NAWA process is now initiated.' : 'Submit 1st Installment payment proof to unlock the NAWA apostille & legalization process.',
+      date: inst1Paid ? 'Paid & Verified' : `Due Before ${targetWorkflow.authority_acronym} Process`,
+      desc: `Pay registration, university matching, and ${targetWorkflow.authority_acronym} legalization audit fee.`,
+      detail: inst1Paid ? `1st Installment cleared! ${targetWorkflow.authority_acronym} process is now initiated.` : `Submit 1st Installment payment proof to unlock ${targetWorkflow.authority_acronym} legal audit.`,
       path: '/student/payments'
     },
     {
       id: 4,
-      name: '4. NAWA Process — Polish Academic Legalization & Audit',
+      name: `4. ${targetWorkflow.authority_acronym} Process — ${targetWorkflow.country} Legalization & Audit`,
       status: (() => {
-        const hasApprovedApp = applications.some(a => String(a.status || '').toLowerCase().includes('nawa approved') || String(a.status || '').toLowerCase() === 'approved');
-        if (nawaRecord?.status === 'Approved' || nawaRecord?.current_step === 4 || hasApprovedApp) return 'completed';
-        const activeApp = applications.find(a => String(a.status || '').toLowerCase().includes('nawa') || String(a.status || '').toLowerCase().includes('step'));
-        if (nawaRecord || activeApp) return 'current';
+        const hasApprovedApp = applications.some(a => String(a.status || '').toLowerCase().includes('approved'));
+        if (nawaRecord?.status === 'Approved' || nawaRecord?.current_step >= maxAuthSteps || hasApprovedApp) return 'completed';
+        const activeAppRec = applications.find(a => String(a.status || '').toLowerCase().includes('review') || String(a.status || '').toLowerCase().includes('step'));
+        if (nawaRecord || activeAppRec) return 'current';
         if (!inst1Paid && applications.length === 0) return 'pending';
         return 'current';
       })(),
       date: (() => {
-        const hasApprovedApp = applications.some(a => String(a.status || '').toLowerCase().includes('nawa approved') || String(a.status || '').toLowerCase() === 'approved');
-        if (nawaRecord?.status === 'Approved' || nawaRecord?.current_step === 4 || hasApprovedApp) return '✓ NAWA Approved';
-        const activeApp = applications.find(a => String(a.status || '').toLowerCase().includes('nawa') || String(a.status || '').toLowerCase().includes('step'));
-        if (activeApp?.status) return activeApp.status;
-        if (nawaRecord) return `Step ${nawaRecord.current_step} of 4 — ${nawaRecord.status}`;
+        const hasApprovedApp = applications.some(a => String(a.status || '').toLowerCase().includes('approved'));
+        if (nawaRecord?.status === 'Approved' || nawaRecord?.current_step >= maxAuthSteps || hasApprovedApp) return `✓ ${targetWorkflow.authority_acronym} Approved`;
+        if (nawaRecord) return `Step ${nawaRecord.current_step} of ${maxAuthSteps} — ${nawaRecord.status}`;
         if (!inst1Paid) return '🔒 Requires 1st Installment';
         return 'Initiated';
       })(),
-      desc: 'FEREX initiates Polish NAWA academic degree recognition, sworn translation, and Ministry apostille audit.',
+      desc: `FEREX initiates ${targetWorkflow.authority_name} qualification verification, sworn translations, and comparability certificates.`,
       detail: (() => {
-        const hasApprovedApp = applications.some(a => String(a.status || '').toLowerCase().includes('nawa approved') || String(a.status || '').toLowerCase() === 'approved');
-        if (nawaRecord?.status === 'Approved' || nawaRecord?.current_step === 4 || hasApprovedApp) {
-          return '✅ NAWA academic degree recognition & legalization approved by Polish National Agency!';
-        }
-        const activeApp = applications.find(a => String(a.status || '').toLowerCase().includes('nawa') || String(a.status || '').toLowerCase().includes('step'));
-        if (activeApp) {
-          return `Current Stage: ${activeApp.status} | ${activeApp.notes || 'Under sworn translation audit in Warsaw.'}`;
+        if (nawaRecord?.status === 'Approved' || nawaRecord?.current_step >= maxAuthSteps) {
+          return `✅ ${targetWorkflow.authority_name} approved and certificate granted!`;
         }
         if (nawaRecord) {
-          return `Ref: ${nawaRecord.nawa_ref_no} | Step ${nawaRecord.current_step} of 4: ${nawaRecord.notes || 'In sworn translation & audit'}`;
+          return `Ref: ${nawaRecord.nawa_ref_no} | Step ${nawaRecord.current_step} of ${maxAuthSteps}: ${nawaRecord.notes || 'In sworn translation & audit'}`;
         }
-        if (!inst1Paid) return '🔒 Locked — Complete 1st Installment payment to initiate the NAWA apostille & legalization process.';
-        return 'NAWA audit initiated. FEREX team will update status shortly.';
+        if (!inst1Paid) return `🔒 Locked — Complete 1st Installment payment to initiate ${targetWorkflow.authority_acronym} process.`;
+        return `${targetWorkflow.authority_acronym} audit initiated for ${targetWorkflow.country}. FEREX team will update status.`;
       })(),
       path: '/student/documents'
     },
     {
       id: 5,
-      name: '5. University Selection & Course Application',
+      name: `5. University Selection & Course Application (${targetWorkflow.country})`,
       status: hasApp ? 'completed' : inst1Paid ? 'current' : 'pending',
       date: hasApp ? 'Submitted' : 'Action Needed',
-      desc: 'Select target European university courses and submit application for upcoming intakes.',
-      detail: hasApp ? `${applications.length} university application(s) active for ${applications[0]?.university_name && applications[0]?.university_name !== 'Pending University Selection' ? applications[0].university_name : 'applied university'}.` : 'Explore university catalog and apply for target course.',
+      desc: `Select target ${targetWorkflow.country} partner university courses and submit application.`,
+      detail: hasApp ? `${applications.length} application(s) active for ${applications[0]?.university_name && applications[0]?.university_name !== 'Pending University Selection' ? applications[0].university_name : 'applied university'}.` : 'Explore university catalog and apply for target course.',
       path: '/student/select-university'
     },
     {
@@ -250,39 +232,39 @@ export const JourneyTracker: React.FC = () => {
       name: '7. 2nd Installment Tuition Deposit Fee & Visa Filing Status',
       status: inst2Paid ? 'completed' : isOfferAccepted ? 'current' : 'pending',
       date: inst2Paid ? 'Cleared & Visa Ready' : 'Due After Offer',
-      desc: 'Pay university tuition deposit installment to secure enrollment seat & authorize VFS visa filing.',
+      desc: 'Pay university tuition deposit installment to secure enrollment seat & authorize visa filing.',
       detail: inst2Paid
-        ? `2nd Installment tuition deposit cleared! Live VFS Visa status: ${visaRecord?.status_label || 'Ready for Filing'}.`
+        ? `2nd Installment tuition deposit cleared! Live Visa status: ${visaRecord?.status_label || 'Ready for Filing'}.`
         : 'Submit 2nd Installment payment proof in payments portal.',
       path: '/student/payments'
     },
     {
       id: 8,
-      name: '8. Final Acceptance Letter from University (Post-Tuition Deposit)',
+      name: `8. Final Acceptance & Matriculation Certificate (${targetWorkflow.country})`,
       status: isFinalAcceptanceIssued ? 'completed' : inst2Paid ? 'current' : 'pending',
       date: isFinalAcceptanceIssued ? '✓ Released by University' : inst2Paid ? '⏳ Awaiting University Release' : 'Pending Deposit',
-      desc: 'Official Final Acceptance & Enrollment Certificate released by European University upon 2nd installment deposit, mandatory for VFS visa filing.',
+      desc: `Official Final Acceptance Certificate released by European University upon tuition deposit, mandatory for visa filing.`,
       detail: isFinalAcceptanceIssued
-        ? '🎉 Official Final Acceptance Letter released by European University! You may now proceed to VFS Visa Application.'
+        ? '🎉 Official Final Acceptance Letter released! You may now proceed to Visa Application.'
         : inst2Paid
-          ? '⏳ Tuition deposit verified! Admissions team is processing your Official Final Acceptance Letter with University.'
+          ? '⏳ Tuition deposit verified! Admissions team is processing your Final Acceptance Letter.'
           : 'Clear 2nd Installment tuition deposit to issue Final Acceptance Letter.',
       path: '/student/offers'
     },
     {
       id: 9,
-      name: '9. VFS Embassy Visa Application Filed',
+      name: `9. ${targetWorkflow.visa_procedures?.appointment_channel || 'VFS Embassy'} Visa Filing`,
       status: isVisaFiled ? 'completed' : isFinalAcceptanceIssued ? 'current' : 'pending',
       date: isVisaFiled ? 'Visa File Submitted' : 'Pending Filing',
-      desc: 'Book VFS appointment slot and submit physical visa file (with Final Acceptance Letter) at embassy VFS desk.',
+      desc: `Book appointment slot and submit physical visa file at consular desk (${targetWorkflow.visa_procedures?.visa_type || 'National D Visa'}).`,
       detail: isVisaFiled
-        ? `VFS File Submitted! Reference: ${(visaRecord as any)?.tracking_number || 'VFS-84920'}`
-        : 'Prepare VFS appointment file & checklist.',
+        ? `Visa File Submitted! Reference: ${(visaRecord as any)?.tracking_number || 'VFS-84920'}`
+        : 'Prepare appointment file & checklist.',
       path: '/student/visa-tracker'
     },
     {
       id: 10,
-      name: '10. Embassy Visa Decision (Visa Approved / Visa Rejected)',
+      name: '10. Embassy Visa Decision (Approved / Stamped)',
       status: isVisaApproved ? 'completed' : isVisaRejected ? 'rejected' : isVisaFiled ? 'current' : 'pending',
       date: isVisaApproved ? 'Visa Approved & Stamped' : isVisaRejected ? 'Visa Decision Declined' : 'Under Embassy Review',
       desc: 'Embassy consular officer evaluation and visa decision stamping.',
@@ -292,7 +274,7 @@ export const JourneyTracker: React.FC = () => {
           ? '❌ Visa Application Declined by Embassy. Contact counselor for appeal.'
           : isVisaFiled
             ? 'Consular evaluation in progress at Embassy desk.'
-            : 'Awaiting visa file submission at VFS.',
+            : 'Awaiting visa file submission.',
       path: '/student/visa-tracker'
     },
     {
@@ -306,11 +288,11 @@ export const JourneyTracker: React.FC = () => {
     },
     {
       id: 12,
-      name: '12. Post Travel — European Campus Enrolled & Departure Complete',
+      name: `12. Arrival in ${targetWorkflow.country} — Campus Onboarding & Dorm Check-in`,
       status: inst3Paid && isVisaApproved ? 'completed' : 'pending',
       date: inst3Paid && isVisaApproved ? 'Journey Complete' : 'Final Milestone',
-      desc: 'Flight ticket booking, university dorm room key handover, and European campus arrival orientation.',
-      detail: inst3Paid && isVisaApproved ? '🎉 Student Journey Fully Completed! Welcome to Campus.' : 'Complete previous stages to unlock flight departure.',
+      desc: 'Flight ticket booking, university dorm room key handover, and local residence permit onboarding.',
+      detail: inst3Paid && isVisaApproved ? `🎉 Student Journey Fully Completed! Welcome to ${targetWorkflow.country}.` : 'Complete previous stages to unlock flight departure.',
       path: '/student/pre-departure'
     }
   ];
@@ -332,64 +314,80 @@ export const JourneyTracker: React.FC = () => {
       animate="visible"
       className="space-y-6 text-left"
     >
-
-
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+          <div className="flex items-center gap-2 mb-1">
             <span className="w-8 h-8 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center border border-[#6A1B2E]/20">
               <Compass className="w-5 h-5" />
             </span>
-            Complete Step-by-Step Student Journey Checklist
-          </h1>
-          <p className="text-sm font-semibold text-slate-500 mt-1">
-            12-Stage Roadmap: Registration ➔ Document Vault ➔ NAWA Process ➔ 1st Installment ➔ University Application ➔ Offer Letter ➔ 2nd Installment ➔ Final Acceptance Letter ➔ VFS Visa ➔ Visa Decision ➔ 3rd Installment ➔ Departure.
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              Student Journey Roadmap & Checklist
+            </h1>
+          </div>
+          <p className="text-xs sm:text-sm font-semibold text-slate-500">
+            Tailored European pathway for <strong className="text-[#6A1B2E]">{targetWorkflow.country}</strong> via <strong className="text-slate-800">{targetWorkflow.authority_name}</strong>.
           </p>
+        </div>
+
+        {/* Target Country Badge */}
+        <div className="p-2.5 bg-white border border-slate-200 rounded-2xl shadow-xs flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-[#6A1B2E] text-white font-bold flex items-center justify-center text-xs">
+            <Globe className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-[10px] font-black uppercase text-slate-400">Target Destination</div>
+            <div className="text-xs font-black text-slate-900">{targetWorkflow.country} • {targetWorkflow.authority_acronym}</div>
+          </div>
         </div>
       </div>
 
-      {/* Live NAWA Legalization Status Banner */}
-      {nawaRecord && (
-        <Card className="p-4 border-2 border-indigo-100 bg-gradient-to-r from-indigo-50/60 via-white to-slate-50 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-indigo-600 text-white tracking-wider">
-                  NAWA LEGALIZATION PORTAL
-                </span>
+      {/* Dynamic Legalization Authority Status Banner */}
+      <Card className="p-4 border-2 border-[#6A1B2E]/20 bg-gradient-to-r from-[#6A1B2E]/5 via-white to-amber-50/40 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-[#6A1B2E] text-white tracking-wider">
+                {targetWorkflow.authority_badge}
+              </span>
+              {nawaRecord?.nawa_ref_no && (
                 <span className="text-xs font-mono font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
                   {nawaRecord.nawa_ref_no}
                 </span>
-              </div>
-              <h3 className="text-sm font-black text-slate-900">
-                Polish Academic Recognition & Apostille Audit
-              </h3>
-              <p className="text-xs font-semibold text-slate-500">
-                Document: <span className="text-slate-900 font-bold">{nawaRecord.document_type}</span> — {nawaRecord.notes}
-              </p>
+              )}
             </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {[1, 2, 3, 4].map((stepNum) => {
-                const stepPassed = nawaRecord.current_step >= stepNum || nawaRecord.status === 'Approved';
-                return (
-                  <div key={stepNum} className="flex items-center gap-1.5">
-                    <div className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center border ${
-                      stepPassed
-                        ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
-                        : 'bg-slate-100 text-slate-400 border-slate-200'
-                    }`}>
-                      {stepPassed ? '✓' : stepNum}
-                    </div>
-                    {stepNum < 4 && <div className={`w-3 h-0.5 ${stepPassed ? 'bg-indigo-600' : 'bg-slate-200'}`} />}
-                  </div>
-                );
-              })}
-            </div>
+            <h3 className="text-sm font-black text-slate-900">
+              {targetWorkflow.authority_name}
+            </h3>
+            <p className="text-xs font-semibold text-slate-500">
+              {targetWorkflow.authority_description}
+            </p>
           </div>
-        </Card>
-      )}
+
+          <div className="flex items-center gap-2 shrink-0">
+            {targetWorkflow.stages?.slice(0, 5).map((st) => {
+              const currentStep = nawaRecord?.current_step || 1;
+              const isApproved = nawaRecord?.status === 'Approved';
+              const stepPassed = isApproved || currentStep >= st.step_number;
+
+              return (
+                <div key={st.step_number} className="flex items-center gap-1.5" title={st.title}>
+                  <div className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center border transition-all ${
+                    stepPassed
+                      ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-xs'
+                      : 'bg-slate-100 text-slate-400 border-slate-200'
+                  }`}>
+                    {stepPassed ? '✓' : st.step_number}
+                  </div>
+                  {st.step_number < Math.min(5, targetWorkflow.stages.length) && (
+                    <div className={`w-2.5 h-0.5 ${stepPassed ? 'bg-[#6A1B2E]' : 'bg-slate-200'}`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
 
       {/* Vertical Steps Checklist */}
       <div className="space-y-3.5">
@@ -442,7 +440,7 @@ export const JourneyTracker: React.FC = () => {
                     </div>
                   </div>
 
-                  <Button size="sm" variant="outline" className="shrink-0 text-xs font-bold self-end sm:self-center" onClick={() => navigate(step.path)}>
+                  <Button size="sm" variant="outline" className="shrink-0 text-xs font-bold self-end sm:self-center cursor-pointer" onClick={() => navigate(step.path)}>
                     Proceed <ArrowRight className="w-3 h-3 ml-1" />
                   </Button>
                 </div>
