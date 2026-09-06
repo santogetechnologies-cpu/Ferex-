@@ -11,6 +11,7 @@ import {
   getTradeMessages,
   sendTradeMessage,
 } from '../../lib/api/trade';
+import { useTradeConfig } from '../../hooks/useTradeConfig';
 import {
   Ship,
   FileText,
@@ -27,11 +28,18 @@ import {
   FileCheck2,
   User,
   Lock,
+  Megaphone,
+  Phone,
+  Anchor,
+  MessageCircle,
+  ExternalLink,
+  Navigation
 } from 'lucide-react';
 
 export const TradeClientPortal: React.FC = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const { config: tradeConfig } = useTradeConfig();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'shipments' | 'invoices' | 'lcs' | 'documents' | 'messages'>('overview');
   const [loading, setLoading] = useState(true);
@@ -130,7 +138,33 @@ export const TradeClientPortal: React.FC = () => {
   const activeShipments = shipments.filter((s) => s.status !== 'Delivered' && s.shipment_status !== 'Delivered');
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950 relative">
+      {/* ── Live Maritime Broadcast Banner ── */}
+      {tradeConfig.broadcast?.is_active && (tradeConfig.broadcast.target_audience === 'all' || tradeConfig.broadcast.target_audience === 'clients') && (
+        <div className={`px-6 py-2.5 text-xs font-bold flex items-center justify-between gap-4 border-b ${
+          tradeConfig.broadcast.urgency === 'urgent'
+            ? 'bg-red-950/90 text-red-200 border-red-800/80 shadow-md'
+            : tradeConfig.broadcast.urgency === 'warning'
+            ? 'bg-amber-950/90 text-amber-200 border-amber-800/80 shadow-md'
+            : tradeConfig.broadcast.urgency === 'success'
+            ? 'bg-emerald-950/90 text-emerald-200 border-emerald-800/80 shadow-md'
+            : 'bg-blue-950/90 text-blue-200 border-blue-800/80 shadow-md'
+        }`}>
+          <div className="flex items-center gap-2 max-w-4xl truncate">
+            <Megaphone className="w-4 h-4 shrink-0 animate-bounce" />
+            <span className="truncate">{tradeConfig.broadcast.message}</span>
+          </div>
+          {tradeConfig.broadcast.link_label && (
+            <a
+              href={tradeConfig.broadcast.link_url || '#'}
+              className="px-3 py-1 bg-white text-slate-950 rounded-lg text-[11px] font-black shrink-0 hover:bg-slate-200 transition-all flex items-center gap-1 shadow-sm"
+            >
+              {tradeConfig.broadcast.link_label} <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+        </div>
+      )}
+
       {/* ── Top Header Navigation ── */}
       <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between shadow-2xl">
         <div className="flex items-center gap-3">
@@ -139,9 +173,11 @@ export const TradeClientPortal: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-base tracking-wide text-white">FEREX GLOBAL TRADE</span>
+              <span className="font-bold text-base tracking-wide text-white">
+                {tradeConfig.branding.portal_title || 'FEREX GLOBAL TRADE'}
+              </span>
               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                Partner Portal
+                IEC: {tradeConfig.branding.iec_code || '0315024881'}
               </span>
             </div>
             <p className="text-xs text-slate-400 flex items-center gap-1.5">
@@ -205,6 +241,31 @@ export const TradeClientPortal: React.FC = () => {
         {/* ── TAB 1: OVERVIEW ── */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {/* Operational Policy Ticker Banner */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 shrink-0">
+                  <Anchor className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-white flex items-center gap-2">
+                    Incoterms Standard: <span className="text-amber-400">{tradeConfig.trade_policies.default_incoterm || 'CIF'} (Incoterms 2020)</span>
+                    • Clearance SLA: <span className="text-emerald-400">{tradeConfig.trade_policies.customs_clearance_sla_days || 3} Days</span>
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Banking: {tradeConfig.trade_policies.lc_advising_bank_standard || 'HSBC London / Warsaw Desk'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={`tel:${tradeConfig.branding.shipping_hotline || '+91 800 200 4848'}`}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700"
+                >
+                  <Phone className="w-3.5 h-3.5 text-amber-400" /> {tradeConfig.branding.shipping_hotline || '+91 800 200 4848'}
+                </a>
+              </div>
+            </div>
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-lg hover:border-amber-500/40 transition-all">
@@ -389,6 +450,41 @@ export const TradeClientPortal: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Configured Shipping Corridors & Port Terminal Routes */}
+            {tradeConfig.corridors && tradeConfig.corridors.length > 0 && (
+              <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Navigation className="w-4 h-4 text-blue-400" /> Active Maritime Shipping Corridors
+                    </h3>
+                    <p className="text-xs text-slate-400">Regular freight lanes and transit schedules operated by FEREX Trade</p>
+                  </div>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    {tradeConfig.corridors.length} Verified Corridors
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {tradeConfig.corridors.map((c) => (
+                    <div key={c.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 hover:border-slate-700 transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-white">{c.corridor_name}</span>
+                        <span className="text-[10px] font-bold text-blue-400 font-mono">{c.carrier_line}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-300 flex items-center justify-between">
+                        <span>{c.port_of_loading}</span>
+                        <span className="text-slate-500">➔</span>
+                        <span>{c.port_of_discharge}</span>
+                      </div>
+                      <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Transit: {c.transit_time_days}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -726,6 +822,20 @@ export const TradeClientPortal: React.FC = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── Floating WhatsApp Global Trade Desk ── */}
+      {tradeConfig.branding.whatsapp_trade_desk && (
+        <a
+          href={`https://wa.me/${tradeConfig.branding.whatsapp_trade_desk.replace(/[^0-9]/g, '')}?text=Hello%20FEREX%20Global%20Trade%20Desk%2C%20inquiry%20from%20Trade%20Partner%20${encodeURIComponent(companyName)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20bd5a] text-white p-3.5 rounded-full shadow-2xl flex items-center gap-2 font-bold text-xs transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-white/20"
+          title="Direct WhatsApp Trade Desk"
+        >
+          <MessageCircle className="w-5 h-5 fill-current" />
+          <span className="hidden sm:inline">WhatsApp Trade Desk</span>
+        </a>
       )}
     </div>
   );

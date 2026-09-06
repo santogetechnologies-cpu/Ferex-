@@ -15,7 +15,7 @@ interface Props {
 export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
   const { config, updateConfig, resetToDefault, loading } = useSystemConfig();
   const [form, setForm] = useState<SystemCustomizationConfig>(config);
-  const [activeSection, setActiveSection] = useState<'branding' | 'broadcast' | 'installments' | 'documents' | 'visa' | 'features' | 'digital' | 'rimi'>('branding');
+  const [activeSection, setActiveSection] = useState<'branding' | 'broadcast' | 'installments' | 'documents' | 'visa' | 'features' | 'digital' | 'rimi' | 'trade'>('branding');
   const [isSaving, setIsSaving] = useState(false);
 
   // Sync state if external change happens and not dirty
@@ -61,6 +61,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
     { id: 'features', label: 'Feature Toggles', icon: Sliders },
     { id: 'digital', label: 'FEREX Digital Agency', icon: Laptop },
     { id: 'rimi', label: 'Rimi Frozen Logistics', icon: Snowflake },
+    { id: 'trade', label: 'Global Trade & Maritime', icon: Truck },
   ] as const;
 
   return (
@@ -801,6 +802,53 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                 <span className="text-[10px] font-extrabold uppercase text-slate-400">Credit Terms Window</span>
                 <p className="text-sm font-black text-emerald-600">15-Day Net Terms</p>
                 <p className="text-[11px] text-slate-500 font-medium">Automatic invoice reconciliation on delivery dispatch.</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* SECTION 9: GLOBAL TRADE & MARITIME */}
+        {activeSection === 'trade' && (
+          <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div className="p-5 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-2xl text-white border border-blue-500/30 shadow-md">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-black uppercase tracking-wider border border-blue-500/30 mb-2 inline-block">
+                    Maritime & Export Synergy
+                  </span>
+                  <h3 className="text-base font-black text-white flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-blue-400" />
+                    FEREX Global Trade Division
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-1 max-w-xl">
+                    Configure Incoterms 2020 defaults (CIF/FOB), Letter of Credit advising banking standards, customs clearance SLAs, and international shipping corridors.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.location.href = '/trade/settings'}
+                  className="h-9 px-4 rounded-xl text-xs font-black bg-blue-500 hover:bg-blue-600 text-white transition-all flex items-center gap-1.5 shadow-sm active:scale-95 shrink-0"
+                >
+                  <Sliders className="w-3.5 h-3.5" /> Open Global Trade Settings
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
+                <span className="text-[10px] font-extrabold uppercase text-slate-400">Baseline Incoterm</span>
+                <p className="text-sm font-black text-blue-600">CIF / FOB Standard</p>
+                <p className="text-[11px] text-slate-500 font-medium">Incoterms 2020 compliant documentary credits & maritime contracts.</p>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
+                <span className="text-[10px] font-extrabold uppercase text-slate-400">Customs Clearance SLA</span>
+                <p className="text-sm font-black text-slate-900">3 Business Days</p>
+                <p className="text-[11px] text-slate-500 font-medium">Guaranteed turnaround for port berth, bill of lading & duty clearance.</p>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
+                <span className="text-[10px] font-extrabold uppercase text-slate-400">LC Banking Consortium</span>
+                <p className="text-sm font-black text-emerald-600">SWIFT Confirmed</p>
+                <p className="text-[11px] text-slate-500 font-medium">Irrevocable Letters of Credit advised via international banking desks.</p>
               </div>
             </div>
           </motion.div>
