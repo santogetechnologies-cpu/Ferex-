@@ -13,6 +13,7 @@ import { useDocuments } from '../hooks/useDocuments';
 import { usePayments } from '../hooks/usePayments';
 import { useMeetings } from '../hooks/useMeetings';
 import { useVisa } from '../hooks/useVisa';
+import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { getNawaRecords } from '../lib/api/nawa';
 import type { NawaRecord } from '../lib/api/nawa';
 
@@ -25,6 +26,10 @@ export const StudentDashboard: React.FC = () => {
   const { payments } = usePayments(user?.id);
   const { meetings } = useMeetings(user?.id);
   const { records: visaRecords } = useVisa(user?.id);
+  const { getWorkflowForCountry } = useCountryWorkflows();
+
+  const targetCountry = applications[0]?.universities?.country || 'Poland';
+  const targetWf = getWorkflowForCountry(targetCountry);
 
   const [nawaRecord, setNawaRecord] = React.useState<NawaRecord | null>(null);
 
@@ -139,7 +144,7 @@ export const StudentDashboard: React.FC = () => {
     { title: '1. Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },
     { title: '2. Mandatory Document Vault (Passport & Marksheets)', isDone: hasApprovedDocs, path: '/student/documents', tag: hasApprovedDocs ? 'Verified' : isDocsUnderReview ? 'Under Review' : 'Mandatory' },
     { title: '3. 1st Installment Fee Payment (₹15,000)', isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
-    { title: '4. NAWA Process — Apostille & Legalization Audit', isDone: isNawaApproved, path: '/student/documents', tag: isNawaApproved ? 'Approved' : isNawaSubmitted ? 'Submitted' : isNawaInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Locked' },
+    { title: `4. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isNawaApproved, path: '/student/documents', tag: isNawaApproved ? 'Approved' : isNawaSubmitted ? 'Submitted' : isNawaInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Locked' },
     { title: '5. University Selection & Course Application', isDone: isUniSelected, path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Action Needed' },
     { title: '6. Official Admission Offer Issued & Accepted', isDone: isOfferAccepted, path: '/student/offers', tag: isOfferAccepted ? 'Accepted' : hasOffer ? 'Offer Released' : 'Pending' },
     { title: '7. 2nd Installment Tuition Deposit & Visa Status', isDone: inst2Paid, path: '/student/payments', tag: inst2Paid ? `Cleared (${visaRecord?.status_label || 'Visa Ready'})` : 'Due' },
@@ -212,7 +217,7 @@ export const StudentDashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* NAWA Legalization Progress Card */}
+      {/* Country Legalization Progress Card */}
       {nawaRecord && (
         <motion.div variants={itemVariants}>
           <Card className="p-4 border border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-white to-slate-50 shadow-xs">
@@ -223,7 +228,7 @@ export const StudentDashboard: React.FC = () => {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-slate-900">NAWA Legalization & Sworn Translation Audit</span>
+                    <span className="text-xs font-black text-slate-900">{targetWf?.authority_badge || 'Qualification Legalization Audit'}</span>
                     <span className="px-2 py-0.5 rounded text-[9.5px] font-black bg-indigo-100 text-indigo-800 uppercase">
                       {nawaRecord.nawa_ref_no}
                     </span>
@@ -239,7 +244,7 @@ export const StudentDashboard: React.FC = () => {
                   onClick={() => navigate('/student/journey-tracker')}
                   className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-transform active:scale-95"
                 >
-                  View NAWA Tracking <ArrowRight className="w-3.5 h-3.5 inline ml-1" />
+                  View Workflow Tracking <ArrowRight className="w-3.5 h-3.5 inline ml-1" />
                 </button>
               </div>
             </div>
@@ -309,10 +314,10 @@ export const StudentDashboard: React.FC = () => {
 
         {/* Right Column: NAWA Status & Meetings */}
         <motion.div variants={itemVariants} className="space-y-6">
-          {/* NAWA Process Live Status Card */}
+          {/* Legalization & Verification Process Live Status Card */}
           <Card className="p-6 border border-slate-200/70 shadow-xs space-y-4">
             <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
-              <span>NAWA Evaluation Status</span>
+              <span>{targetWf?.authority_acronym ? `${targetWf.authority_acronym} Legalization Status` : 'Legalization Status'}</span>
               <span className={`text-[9.5px] font-black uppercase px-2 py-0.5 rounded-full border ${isNawaApproved
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 : isNawaSubmitted
@@ -330,25 +335,25 @@ export const StudentDashboard: React.FC = () => {
             <div className="p-4 rounded-xl border space-y-2 bg-slate-50 border-slate-100">
               <p className="text-xs font-black text-slate-900">
                 {isNawaApproved
-                  ? '✅ NAWA Apostille & Legalization Audit Approved'
+                  ? `✅ ${targetWf?.authority_acronym || 'Authority'} Legalization & Audit Approved`
                   : isNawaSubmitted
-                    ? '📩 Submitted to NAWA Agency for Apostille'
+                    ? `📩 Submitted to ${targetWf?.authority_acronym || 'Agency'} for Processing`
                     : isNawaInReview
-                      ? '⏳ NAWA Eligibility & Legalization Under Review'
+                      ? `⏳ ${targetWf?.authority_acronym || 'Legalization'} Eligibility & Audit Under Review`
                       : inst1Paid
-                        ? '⏳ NAWA Evaluation Initiated (Awaiting Admin Review)'
+                        ? `⏳ ${targetWf?.authority_acronym || 'Legalization'} Evaluation Initiated (Awaiting Review)`
                         : '🔒 1st Installment Payment Required'}
               </p>
               <p className="text-[11px] font-semibold text-slate-500 leading-relaxed">
                 {isNawaApproved
-                  ? 'Your educational documents and apostille legalization audit have been verified and approved.'
+                  ? `Your educational documents and ${targetWf?.authority_acronym || 'legalization'} audit have been verified and approved.`
                   : isNawaSubmitted
-                    ? 'Your files have been submitted to the Polish NAWA Evaluation Board for official equivalency verification.'
+                    ? `Your files have been submitted to ${targetWf?.authority_name || 'the evaluation board'} for official equivalency verification.`
                     : isNawaInReview
-                      ? 'FEREX admissions team is currently conducting your apostille legalization and eligibility audit.'
+                      ? `FEREX admissions team is currently conducting your ${targetWf?.country || 'destination'} qualification and eligibility audit.`
                       : inst1Paid
-                        ? '1st Installment cleared. NAWA process is now queued for review.'
-                        : 'Complete 1st Installment payment (₹15,000) to unlock NAWA process.'}
+                        ? `1st Installment cleared. ${targetWf?.authority_acronym || 'Legalization'} process is now queued for review.`
+                        : `Complete 1st Installment payment to unlock ${targetWf?.authority_acronym || 'Legalization'} process.`}
               </p>
               <Button size="sm" variant="outline" className="w-full mt-2 text-xs font-bold" onClick={() => navigate('/student/documents')}>
                 View Document Vault
