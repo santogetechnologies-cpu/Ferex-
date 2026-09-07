@@ -139,10 +139,12 @@ export const Payments: React.FC = () => {
   const configuredVfsFee = parseFeeNum(config.default_vfs_fee, 28000);
 
   // Exact Fee & Intake Config Installment Structure:
-  // 1st Installment: Registration & Legalization Audit Deposit (₹15,000)
+  // 1st Installment: Registration & Legalization Audit Deposit (Configured in Admin Fee Config)
   // 2nd Installment: Full University Tuition Fee (100% Selected Course Tuition Fee)
   // 3rd Installment: Agency Service & VFS Visa Clearance Fee (Configured in Admin Fee & Intake Config)
-  const inst1Amount = 15000;
+  const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || activeApp?.country || 'Poland';
+  const countryFeeObj = config.country_fees?.[targetCountry] || config.country_fees?.[targetCountry.replace('United Kingdom', 'UK').replace('United States', 'USA')];
+  const inst1Amount = countryFeeObj?.registration_fee_inr || config.advance_registration_fee_inr || 15000;
   const inst2Amount = courseTuitionFee;
   const inst3Amount = configuredAgencyFee + configuredVfsFee;
 
@@ -158,7 +160,7 @@ export const Payments: React.FC = () => {
       }
       // 2. Strict ordinal word matching (1st, 2nd, 3rd)
       const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
-      if (stageNum === 1) return text.includes('1st') || text.includes('stage 1') || text.includes('registration fee') || text.includes('audit deposit');
+      if (stageNum === 1) return text.includes('1st') || text.includes('stage 1') || text.includes('registration fee') || text.includes('advance') || text.includes('audit deposit');
       if (stageNum === 2) return text.includes('2nd') || text.includes('stage 2') || text.includes('tuition fee');
       if (stageNum === 3) return text.includes('3rd') || text.includes('stage 3') || text.includes('vfs') || text.includes('visa clearance');
       return false;
@@ -177,10 +179,10 @@ export const Payments: React.FC = () => {
     {
       id: 1,
       stageNum: 1,
-      title: '1st Installment — Registration Fee & Legalization Audit Deposit (₹15,000)',
+      title: `1st Installment — Advance Registration & Advisory Fee (₹${inst1Amount.toLocaleString('en-IN')})`,
       stageName: 'Initial Registration & Audit',
       amount: inst1Amount,
-      description: 'Registration fee, university choice allocation, portal onboarding, and document legalization audit. Unlocks university selection.',
+      description: `Advance advisory fee, country eligibility check (${targetCountry}), university choice allocation, and document legalization audit. Unlocks university selection.`,
       dueDateStr: 'Due Before University Application',
       status: p1Paid
         ? 'Paid'

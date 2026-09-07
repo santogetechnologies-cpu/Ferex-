@@ -31,7 +31,7 @@ export const Documents: React.FC = () => {
 
   // Target country resolution
   const targetCountry = useMemo(() => {
-    return applications[0]?.universities?.country || 'Poland';
+    return localStorage.getItem('ferex_student_target_country') || applications[0]?.universities?.country || applications[0]?.country || 'Poland';
   }, [applications]);
 
   const targetWf = useMemo(() => {

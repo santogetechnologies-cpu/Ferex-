@@ -6,13 +6,29 @@ import { useFeeConfig } from '../../hooks/useFeeConfig';
 export const AdminFeeConfig: React.FC = () => {
   const { config, updateConfig } = useFeeConfig();
 
-  const [agencyFee, setAgencyFee] = useState(config.default_agency_fee || '');
-  const [vfsFee, setVfsFee] = useState(config.default_vfs_fee || '');
+  const [agencyFee, setAgencyFee] = useState(config.default_agency_fee || '₹15,000');
+  const [vfsFee, setVfsFee] = useState(config.default_vfs_fee || '₹8,500');
+  const [advanceRegInr, setAdvanceRegInr] = useState(config.advance_registration_fee_inr ?? 15000);
+  const [advanceRegEur, setAdvanceRegEur] = useState(config.advance_registration_fee_eur ?? 150);
+
+  const [countryFees, setCountryFees] = useState<Record<string, { registration_fee_inr: number; registration_fee_eur: number; description: string }>>(
+    config.country_fees || {
+      'Poland': { registration_fee_inr: 15000, registration_fee_eur: 150, description: 'NAWA Legalization, University Shortlisting & Visa Advisory' },
+      'Germany': { registration_fee_inr: 20000, registration_fee_eur: 200, description: 'Uni-Assist Processing, APS Assistance & Blocked Account Setup' },
+      'UK': { registration_fee_inr: 25000, registration_fee_eur: 250, description: 'CAS Issuance, ATAS Guidance & UKVI Priority Visa Filing' },
+      'USA': { registration_fee_inr: 30000, registration_fee_eur: 320, description: 'I-20 Processing, SEVIS Guidance & Mock Visa Interview' },
+      'Canada': { registration_fee_inr: 25000, registration_fee_eur: 260, description: 'PAL Verification, LOA Processing & SDS File Prep' },
+      'France': { registration_fee_inr: 18000, registration_fee_eur: 190, description: 'Campus France EEF Dossier & Long Stay Student Visa' },
+      'Italy': { registration_fee_inr: 18000, registration_fee_eur: 190, description: 'Universitaly Pre-enrollment & CIMEA / DOV Assistance' },
+      'Hungary': { registration_fee_inr: 15000, registration_fee_eur: 150, description: 'Stipendium Hungaricum / University Direct Admission' },
+    }
+  );
+
   const [inst1Pct, setInst1Pct] = useState(config.installment_percentages?.installment_1 ?? 30);
   const [inst2Pct, setInst2Pct] = useState(config.installment_percentages?.installment_2 ?? 40);
   const [inst3Pct, setInst3Pct] = useState(config.installment_percentages?.installment_3 ?? 30);
 
-  const [intakes, setIntakes] = useState<string[]>(config.global_active_intakes || []);
+  const [intakes, setIntakes] = useState<string[]>(config.global_active_intakes || ['October 2026', 'February 2027', 'September 2027']);
   const [newIntakeInput, setNewIntakeInput] = useState('');
 
   const [sampleTuition, setSampleTuition] = useState('450000');
@@ -34,8 +50,19 @@ export const AdminFeeConfig: React.FC = () => {
     setNewIntakeInput('');
   };
 
-  const handleSaveAll = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCountryFeeChange = (country: string, inr: number, eur: number) => {
+    setCountryFees(prev => ({
+      ...prev,
+      [country]: {
+        ...prev[country],
+        registration_fee_inr: inr,
+        registration_fee_eur: eur,
+      }
+    }));
+  };
+
+  const handleSaveAll = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (totalPct !== 100) {
       showToast(`Warning: Total installment percentage must equal 100%. Current total: ${totalPct}%`);
       return;
@@ -45,6 +72,9 @@ export const AdminFeeConfig: React.FC = () => {
       currency: '₹',
       default_agency_fee: agencyFee.startsWith('₹') ? agencyFee : `₹${agencyFee}`,
       default_vfs_fee: vfsFee.startsWith('₹') ? vfsFee : `₹${vfsFee}`,
+      advance_registration_fee_inr: Number(advanceRegInr),
+      advance_registration_fee_eur: Number(advanceRegEur),
+      country_fees: countryFees,
       installment_percentages: {
         installment_1: Number(inst1Pct),
         installment_2: Number(inst2Pct),
@@ -53,7 +83,7 @@ export const AdminFeeConfig: React.FC = () => {
       global_active_intakes: intakes,
     });
 
-    showToast('Fee structure, INR currency, installment splits, and active intakes saved successfully!');
+    showToast('Advance registration fees, country overrides, INR splits, and active intakes saved successfully!');
   };
 
   // Sample calculations
@@ -103,10 +133,90 @@ export const AdminFeeConfig: React.FC = () => {
       <form onSubmit={handleSaveAll} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* LEFT COLUMN: Default Agency, VFS Fees & Intakes */}
         <div className="space-y-6">
-          {/* Section 1: Default Agency & Visa Fees in INR */}
+          {/* Section 1: Advance / Registration Service Fee Configuration */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-[#6A1B2E]" /> Mandatory Advance & Registration Fee
+              </h3>
+              <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Student Portal Enforced
+              </span>
+            </div>
+
+            <p className="text-xs font-semibold text-slate-500">
+              Set the exact advance advisory / registration amount that students must pay before submitting university applications.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-extrabold text-[#6A1B2E] uppercase tracking-wider mb-1">
+                  Advance Amount (₹ INR)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={advanceRegInr}
+                  onChange={(e) => setAdvanceRegInr(Number(e.target.value))}
+                  placeholder="15000"
+                  className="w-full h-10 px-3.5 bg-rose-50/40 border border-[#6A1B2E]/30 rounded-xl text-xs font-extrabold text-[#6A1B2E] focus:outline-none focus:border-[#6A1B2E]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
+                  Advance Amount (€ EUR)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={advanceRegEur}
+                  onChange={(e) => setAdvanceRegEur(Number(e.target.value))}
+                  placeholder="150"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100">
+              <p className="text-[11px] font-extrabold text-slate-700 mb-2">Country-Specific Registration & Advisory Fee Overrides:</p>
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {Object.entries(countryFees).map(([country, feeObj]) => (
+                  <div key={country} className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-2 text-xs">
+                    <div className="min-w-[90px]">
+                      <span className="font-extrabold text-slate-900 block">{country}</span>
+                      <span className="text-[9px] text-slate-400 font-semibold truncate block max-w-[130px]">{feeObj.description}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[10px] font-bold text-slate-400">₹</span>
+                        <input
+                          type="number"
+                          value={feeObj.registration_fee_inr}
+                          onChange={(e) => handleCountryFeeChange(country, Number(e.target.value), feeObj.registration_fee_eur)}
+                          className="w-18 h-7 text-center bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#6A1B2E]"
+                        />
+                      </div>
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[10px] font-bold text-slate-400">€</span>
+                        <input
+                          type="number"
+                          value={feeObj.registration_fee_eur}
+                          onChange={(e) => handleCountryFeeChange(country, feeObj.registration_fee_inr, Number(e.target.value))}
+                          className="w-14 h-7 text-center bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Default Agency & Visa Fees in INR */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
             <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <DollarSign className="w-4 h-4 text-[#6A1B2E]" /> Default Fees in INR (₹)
+              <DollarSign className="w-4 h-4 text-[#6A1B2E]" /> Additional Service & Embassy Fees
             </h3>
 
             <div className="space-y-4">

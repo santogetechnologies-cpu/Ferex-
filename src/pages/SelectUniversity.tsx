@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, ShieldCheck, Upload } from 'lucide-react';
+import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, ArrowRight, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUniversities } from '../hooks/useUniversities';
 import { useApplications } from '../hooks/useApplications';
@@ -8,16 +8,36 @@ import { usePayments } from '../hooks/usePayments';
 import { useDocuments } from '../hooks/useDocuments';
 import { useAuth } from '../contexts/AuthContext';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
+import { useFeeConfig } from '../hooks/useFeeConfig';
 import { Card } from '../components/Card';
+import { UnifiedPaymentModal } from '../components/UnifiedPaymentModal';
+
+const POPULAR_DESTINATIONS = [
+  { country: 'Poland', flag: '🇵🇱', authority: 'NAWA Legalization', badge: 'Fast Track Visa' },
+  { country: 'Germany', flag: '🇩🇪', authority: 'APS Certificate & Blocked A/c', badge: 'Tuition Free / Low Fee' },
+  { country: 'United Kingdom', flag: '🇬🇧', authority: 'CAS & UKVI Visa', badge: 'PSW Visa (2 Yrs)' },
+  { country: 'United States', flag: '🇺🇸', authority: 'I-20 & SEVIS Interview', badge: 'STEM OPT (3 Yrs)' },
+  { country: 'Canada', flag: '🇨🇦', authority: 'PAL & SDS Visa', badge: 'PGWP Eligible' },
+  { country: 'France', flag: '🇫🇷', authority: 'Campus France EEF', badge: 'Schengen Mobility' },
+  { country: 'Italy', flag: '🇮🇹', authority: 'Universitaly & CIMEA', badge: 'Regional Scholarships' },
+  { country: 'Hungary', flag: '🇭🇺', authority: 'EU Direct Admission', badge: 'Affordable Living' },
+  { country: 'Ireland', flag: '🇮🇪', authority: 'ILEP & Stamp 2 Visa', badge: 'Tech Hub Careers' },
+  { country: 'Finland', flag: '🇫🇮', authority: 'Study in Finland', badge: 'Innovation & Tech' },
+];
 
 export const SelectUniversity: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { universities } = useUniversities();
   const { addApp } = useApplications(user?.id);
-  const { payments } = usePayments(user?.id);
+  const { payments, refresh: refreshPayments } = usePayments(user?.id);
   const { documents } = useDocuments(user?.id);
   const { getWorkflowForCountry } = useCountryWorkflows();
+  const { config } = useFeeConfig();
+
+  // Get current active target country
+  const savedTargetCountry = localStorage.getItem('ferex_student_target_country') || 'All';
+  const [selectedCountry, setSelectedCountry] = useState(savedTargetCountry);
 
   // Check if mandatory documents (Passport & Marksheets/Transcripts) are uploaded
   const hasPassport = documents.some(d =>
@@ -36,23 +56,41 @@ export const SelectUniversity: React.FC = () => {
 
   const hasMandatoryDocs = (hasPassport && hasMarksheets) || documents.length >= 2;
 
-  // Check if 1st Installment (Registration & Application Fee) is paid
-  const inst1Paid = payments.some(p =>
-    (p.description?.includes('1st') || p.description?.includes('1') || p.payment_type?.includes('1st')) &&
-    (p.status === 'Paid' || p.status === 'Verified')
-  );
+  // Check if 1st Installment (Advance Registration Fee) is paid
+  const inst1Paid = payments.some(p => {
+    const desc = (String(p.description || '') + ' ' + String(p.title || '') + ' ' + String(p.payment_type || '')).toLowerCase();
+    const isStage1 = desc.includes('1st') || desc.includes('1') || desc.includes('registration') || desc.includes('advance') || p.stage_number === 1;
+    return isStage1 && (p.status === 'Paid' || p.status === 'Verified');
+  });
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState('All');
   const [savedUnis, setSavedUnis] = useState<string[]>([]);
   const [successToast, setSuccessToast] = useState('');
   const [drawerUni, setDrawerUni] = useState<any>(null);
 
+  // Payment Modal State
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
   // Apply Modal state
   const [applyUni, setApplyUni] = useState<any>(null);
   const [selectedCourse, setSelectedCourse] = useState('');
+  const [degreeLevel, setDegreeLevel] = useState("Bachelor's Degree");
   const [intake, setIntake] = useState('October 2026');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Calculate Advance Fee for chosen country or default
+  const effectiveCountryKey = selectedCountry === 'All' ? 'Poland' : selectedCountry;
+  const countryFeeConfig = config.country_fees?.[effectiveCountryKey] || config.country_fees?.[effectiveCountryKey.replace('United Kingdom', 'UK').replace('United States', 'USA')];
+  const requiredAdvanceInr = countryFeeConfig?.registration_fee_inr || config.advance_registration_fee_inr || 15000;
+  const requiredAdvanceEur = countryFeeConfig?.registration_fee_eur || config.advance_registration_fee_eur || 150;
+
+  const handleCountrySelect = (c: string) => {
+    setSelectedCountry(c);
+    if (c !== 'All') {
+      localStorage.setItem('ferex_student_target_country', c);
+      window.dispatchEvent(new Event('ferex_country_change'));
+    }
+  };
 
   const toggleSave = (id: string, name: string) => {
     if (savedUnis.includes(id)) {
@@ -72,12 +110,11 @@ export const SelectUniversity: React.FC = () => {
       return;
     }
     if (!inst1Paid) {
-      setSuccessToast('1st Installment Fee (₹15,000) required before applying. Please clear payment in Payments page.');
-      setTimeout(() => setSuccessToast(''), 3500);
+      setShowPaymentModal(true);
       return;
     }
     setApplyUni(uni);
-    setSelectedCourse(uni.programs?.[0] || 'Computer Science');
+    setSelectedCourse(uni.programs?.[0] || 'Computer Science & Engineering');
   };
 
   const handleApplySubmit = async (e: React.FormEvent) => {
@@ -88,7 +125,7 @@ export const SelectUniversity: React.FC = () => {
       return;
     }
     if (!inst1Paid) {
-      setSuccessToast('1st Installment Fee payment required to submit university application.');
+      setShowPaymentModal(true);
       return;
     }
     if (!applyUni || !user) return;
@@ -105,11 +142,17 @@ export const SelectUniversity: React.FC = () => {
         student_name: studentName,
         university_id: applyUni.id,
         university_name: applyUni.name,
-        program_name: selectedCourse || 'Higher Studies',
+        program_name: `${degreeLevel} - ${selectedCourse || 'Higher Studies'}`,
         intake: intake || 'October 2026',
         tuition_fee: rawTuition,
         course_fee: rawTuition
       });
+
+      // Save target country
+      if (applyUni.country) {
+        localStorage.setItem('ferex_student_target_country', applyUni.country);
+        window.dispatchEvent(new Event('ferex_country_change'));
+      }
 
       setApplyUni(null);
       setSuccessToast(`Application submitted successfully to ${applyUni.name}!`);
@@ -121,7 +164,7 @@ export const SelectUniversity: React.FC = () => {
     }
   };
 
-  const countries = ['All', ...Array.from(new Set(universities.map(u => u?.country).filter(Boolean)))];
+  const allCountryNames = ['All', ...Array.from(new Set(universities.map(u => u?.country).filter(Boolean)))];
 
   const filteredUnis = universities.filter(u => {
     if (!u) return false;
@@ -135,7 +178,7 @@ export const SelectUniversity: React.FC = () => {
                           cityStr.includes(query) ||
                           countryStr.includes(query) ||
                           (Array.isArray(u.programs) && u.programs.some(p => typeof p === 'string' && p.toLowerCase().includes(query)));
-    const matchesCountry = selectedCountry === 'All' || u.country === selectedCountry;
+    const matchesCountry = selectedCountry === 'All' || u.country?.toLowerCase() === selectedCountry.toLowerCase();
     return matchesSearch && matchesCountry;
   });
 
@@ -171,6 +214,110 @@ export const SelectUniversity: React.FC = () => {
         </div>
       </div>
 
+      {/* Destination Country Selection Hub */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-[#6A1B2E]" />
+            <h2 className="text-xs font-black uppercase text-slate-900 tracking-wider">
+              1. Choose Target Destination Country
+            </h2>
+          </div>
+          <span className="text-[11px] font-bold text-slate-500">
+            Selected: <strong className="text-[#6A1B2E] font-black">{selectedCountry === 'All' ? 'All Global Destinations' : selectedCountry}</strong>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+          <button
+            onClick={() => handleCountrySelect('All')}
+            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+              selectedCountry === 'All'
+                ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-sm'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+            }`}
+          >
+            <span className="text-sm block mb-0.5">🌍</span>
+            <span className="text-xs font-extrabold block">All Countries</span>
+            <span className={`text-[9px] block ${selectedCountry === 'All' ? 'text-white/80' : 'text-slate-400'}`}>
+              Browse Entire Catalog
+            </span>
+          </button>
+
+          {POPULAR_DESTINATIONS.map(d => {
+            const isSelected = selectedCountry.toLowerCase() === d.country.toLowerCase();
+            return (
+              <button
+                key={d.country}
+                onClick={() => handleCountrySelect(d.country)}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-sm'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-base">{d.flag}</span>
+                  {isSelected && <Check className="w-3.5 h-3.5 text-amber-300" />}
+                </div>
+                <span className="text-xs font-extrabold block truncate">{d.country}</span>
+                <span className={`text-[9px] font-bold block truncate ${isSelected ? 'text-amber-200' : 'text-slate-400'}`}>
+                  {d.authority}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Advance & Registration Fee Status Banner */}
+      <div className={`p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs ${
+        inst1Paid
+          ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+          : 'bg-gradient-to-r from-amber-50 via-rose-50/40 to-slate-50 border-amber-200 text-slate-900'
+      }`}>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            {inst1Paid ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold shadow-xs">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Registration & Advance Advisory Verified
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-extrabold shadow-xs">
+                <CreditCard className="w-3.5 h-3.5" /> Step 2: Advance Registration Required
+              </span>
+            )}
+            <span className="text-xs font-black text-slate-700">
+              Fee: <strong className="text-[#6A1B2E]">₹{requiredAdvanceInr.toLocaleString('en-IN')} (€{requiredAdvanceEur})</strong>
+            </span>
+          </div>
+          <p className="text-xs font-medium text-slate-600 max-w-2xl">
+            {inst1Paid
+              ? 'Your admission file is cleared. You can select your university course and submit formal applications.'
+              : `Covers eligibility audit, SOP/LOR drafting, university fee verification, and embassy visa file preparation for ${selectedCountry === 'All' ? 'European Universities' : selectedCountry}.`}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {!inst1Paid ? (
+            <button
+              onClick={() => setShowPaymentModal(true)}
+              className="h-10 px-5 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-xl shadow-md shadow-[#6A1B2E]/20 flex items-center gap-2 transition-all cursor-pointer"
+            >
+              <CreditCard className="w-4 h-4 text-amber-300" />
+              <span>Pay Advance Registration (₹{requiredAdvanceInr.toLocaleString('en-IN')})</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/student/payments')}
+              className="h-9 px-4 bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-xs"
+            >
+              <Check className="w-4 h-4" /> View Payment Receipt
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Filter & Search Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
         <div className="relative flex-1">
@@ -184,12 +331,12 @@ export const SelectUniversity: React.FC = () => {
           />
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto">
-          {countries.map(c => (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+          {allCountryNames.map(c => (
             <button
               key={c}
-              onClick={() => setSelectedCountry(c)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              onClick={() => handleCountrySelect(c)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 selectedCountry === c
                   ? 'bg-[#6A1B2E] text-white shadow-xs'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
@@ -470,6 +617,27 @@ export const SelectUniversity: React.FC = () => {
           );
         })()}
       </AnimatePresence>
+
+      {/* Unified Payment Modal for Advance Registration Settlement */}
+      <UnifiedPaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        division="education"
+        amount={requiredAdvanceInr}
+        currency="INR"
+        title="Advance Advisory & Registration Fee"
+        invoiceNo={`REG-ADV-${(user?.id || 'GUEST').slice(0, 5).toUpperCase()}-${Date.now().toString().slice(-4)}`}
+        purpose={`Advance Advisory & University Registration Fee for ${selectedCountry === 'All' ? 'European Universities' : selectedCountry}`}
+        payerName={profile?.full_name || user?.email?.split('@')[0] || 'Student Account'}
+        payerEmail={user?.email || 'student@ferex.com'}
+        studentId={user?.id}
+        onSuccess={() => {
+          setShowPaymentModal(false);
+          refreshPayments();
+          setSuccessToast('🎉 Advance Registration Fee paid and verified successfully! You can now apply to any university.');
+          window.dispatchEvent(new Event('ferex_payment_change'));
+        }}
+      />
     </div>
   );
 };

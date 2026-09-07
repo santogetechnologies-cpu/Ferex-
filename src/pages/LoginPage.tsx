@@ -409,7 +409,7 @@ export const LoginPage: React.FC = () => {
           >
             {/* Header with Tab Switcher */}
             <div className="text-center sm:text-left mb-6">
-              <div className="flex items-center justify-between gap-4 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <div className="p-1 bg-slate-100/90 rounded-2xl flex items-center gap-1 border border-slate-200/80 w-full sm:w-auto">
                   <button
                     type="button"
@@ -429,10 +429,63 @@ export const LoginPage: React.FC = () => {
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                       }`}
                   >
-                    <UserPlus className="w-3.5 h-3.5" /> Sign Up
+                    <UserPlus className="w-3.5 h-3.5" /> Create Student Account
+                  </button>
+                </div>
+
+                {/* Quick Portal Switcher */}
+                <div className="flex items-center gap-1.5 self-center sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin/login')}
+                    className="text-[11px] font-bold text-slate-500 hover:text-[#58051E] px-2.5 py-1 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200"
+                  >
+                    🏛️ Edu Admin Login →
                   </button>
                 </div>
               </div>
+
+              {/* Quick Demo Credentials Strip */}
+              {authMode === 'signin' && (
+                <div className="mb-4 p-3 bg-slate-50/90 rounded-2xl border border-slate-200/70 text-left">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">⚡ Quick One-Click Demo Access</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSignInEmail('student@ferex.com');
+                        setSignInPassword('student123');
+                      }}
+                      className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 shadow-2xs transition-colors flex items-center gap-1"
+                    >
+                      <span>👨‍🎓 Student:</span>
+                      <span className="text-[#58051E] font-black">student@ferex.com</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSignInEmail('admin@gmail.com');
+                        setSignInPassword('admin123');
+                      }}
+                      className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 shadow-2xs transition-colors flex items-center gap-1"
+                    >
+                      <span>🏛️ Edu Admin:</span>
+                      <span className="text-blue-700 font-black">admin@gmail.com</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSignInEmail('superadmin@gmail.com');
+                        setSignInPassword('super123');
+                      }}
+                      className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 shadow-2xs transition-colors flex items-center gap-1"
+                    >
+                      <span>👑 Superadmin:</span>
+                      <span className="text-purple-700 font-black">superadmin@gmail.com</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {prefilledUni && authMode === 'signup' && (
                 <div className="mb-3 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-2">
@@ -446,7 +499,7 @@ export const LoginPage: React.FC = () => {
               </h2>
               <p className="text-xs sm:text-sm font-semibold text-slate-500">
                 {authMode === 'signin'
-                  ? 'Access your university applications, NAWA legalizations, and VFS visa updates.'
+                  ? 'Access your university applications, NAWA legalizations, tuition payments, and VFS visa updates.'
                   : 'Start your European higher education journey with Ferex Education.'}
               </p>
             </div>

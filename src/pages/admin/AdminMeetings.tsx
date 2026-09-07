@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar as CalendarIcon, Video, Search, Trash2, CalendarCheck, AlertTriangle, X, Plus, Mic, MicOff, VideoOff, PhoneOff, Activity, CheckCircle2, List, BarChart3 } from 'lucide-react';
+import { Calendar as CalendarIcon, Video, Search, Trash2, CalendarCheck, AlertTriangle, X, Plus, Mic, MicOff, VideoOff, PhoneOff, Activity, CheckCircle2, List, BarChart3, ChevronLeft, ChevronRight, Clock, User, MapPin } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { useMeetings } from '../../hooks/useMeetings';
 import { computeEndTime } from '../../lib/api/meetings';
@@ -10,15 +10,58 @@ export const AdminMeetings: React.FC = () => {
   const { meetings: dbMeetings, changeStatus, deleteCall, loading, addMeeting } = useMeetings();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [advisorFilter, setAdvisorFilter] = useState('All');
   const [toastMessage, setToastMessage] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<'calendar' | 'control' | 'workload'>('calendar');
+
   // Local Date Helper to avoid UTC offset bugs
-  const getLocalDateString = () => {
-    const d = new Date();
+  const getLocalDateString = (d: Date = new Date()) => {
     const offset = d.getTimezoneOffset();
     const localDate = new Date(d.getTime() - offset * 60 * 1000);
     return localDate.toISOString().split('T')[0];
+  };
+
+  // Calendar States
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth()); // 0-indexed
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(getLocalDateString());
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const startDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
+
+  const handlePrevMonth = () => {
+    setCurrentMonth(prev => {
+      if (prev === 0) {
+        setCurrentYear(y => y - 1);
+        return 11;
+      }
+      return prev - 1;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth(prev => {
+      if (prev === 11) {
+        setCurrentYear(y => y + 1);
+        return 0;
+      }
+      return prev + 1;
+    });
+  };
+
+  const handleJumpToToday = () => {
+    const now = new Date();
+    setCurrentYear(now.getFullYear());
+    setCurrentMonth(now.getMonth());
+    setSelectedCalendarDate(getLocalDateString(now));
   };
 
   // Reschedule States
@@ -45,21 +88,29 @@ export const AdminMeetings: React.FC = () => {
   const [activeCallMeeting, setActiveCallMeeting] = useState<any | null>(null);
   const [micMuted, setMicMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
-  const [activeTab, setActiveTab] = useState<'control' | 'workload'>('control');
 
   React.useEffect(() => {
     getStudents().then(students => {
       setStudentsList(students);
-      if (students.length > 0) setSelectedStudentId(students[0].id);
+      if (students.length > 0 && !selectedStudentId) setSelectedStudentId(students[0].id);
     }).catch(() => { });
 
     getStaffMembers().then(staff => {
       if (staff && staff.length > 0) {
-        const names = staff.map(s => s.full_name || s.email.split('@')[0]);
-        setCounselorsList(names);
-        if (names.length > 0) setBookAdvisor(names[0]);
+        const names = staff.map(s => s.full_name || (s.email ? s.email.split('@')[0] : 'Advisor')).filter(Boolean);
+        const uniqueNames = Array.from(new Set(names));
+        setCounselorsList(uniqueNames);
+        if (uniqueNames.length > 0 && !bookAdvisor) setBookAdvisor(uniqueNames[0]);
+      } else {
+        const defaults = ['Sarah Jenkins', 'David Wilson', 'Elena Rostova', 'Academic Advisor'];
+        setCounselorsList(defaults);
+        if (!bookAdvisor) setBookAdvisor(defaults[0]);
       }
-    }).catch(() => { });
+    }).catch(() => {
+      const defaults = ['Sarah Jenkins', 'David Wilson', 'Elena Rostova', 'Academic Advisor'];
+      setCounselorsList(defaults);
+      if (!bookAdvisor) setBookAdvisor(defaults[0]);
+    });
   }, []);
 
   const showToast = (msg: string) => {
@@ -133,18 +184,30 @@ export const AdminMeetings: React.FC = () => {
     }
   };
 
-  // Process and filter meetings
-  const meetings = dbMeetings.map(m => ({
-    id: m.id,
-    subject: m.subject || 'Advisory Session',
-    studentName: (m as any).users?.full_name || 'Generic Student',
-    studentEmail: (m as any).users?.email || 'student@ferex.com',
-    date: new Date(m.scheduled_date || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-    time: `${m.start_time || '10:00 AM'} - ${m.end_time || '10:45 AM'}`,
-    advisor: m.advisor_name || 'Academic Advisor',
-    status: m.status || 'Scheduled',
-    meetingLink: m.meeting_link || 'https://meet.google.com/fer-exed-app',
-  }));
+  // Process and filter meetings with rich student resolution
+  const meetings = dbMeetings.map(m => {
+    const studentObj = studentsList.find(s => s.id === m.student_id) || (m as any).users;
+    const rawDate = m.scheduled_date || (m as any).created_at || getLocalDateString();
+    // Normalize date to YYYY-MM-DD
+    const isoDateStr = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate;
+
+    return {
+      id: m.id,
+      rawMeeting: m,
+      subject: m.subject || (m as any).title || 'Advisory Session',
+      studentId: m.student_id,
+      studentName: studentObj?.full_name || (m as any).student_name || (m as any).users?.full_name || 'Enrolled Student',
+      studentEmail: studentObj?.email || (m as any).student_email || (m as any).users?.email || 'student@ferex.com',
+      dateKey: isoDateStr,
+      date: new Date(rawDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      time: `${m.start_time || '10:00 AM'} - ${m.end_time || computeEndTime(m.start_time || '10:00 AM')}`,
+      startTime: m.start_time || '10:00 AM',
+      advisor: m.advisor_name || 'Academic Advisor',
+      status: m.status || 'Scheduled',
+      meetingLink: m.meeting_link || (m as any).meet_link || 'https://meet.google.com/fer-exed-app',
+      notes: m.notes || (m as any).description || '',
+    };
+  });
 
   const filteredMeetings = meetings.filter(m => {
     const matchesSearch =
@@ -153,19 +216,23 @@ export const AdminMeetings: React.FC = () => {
       m.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.advisor.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'All' || m.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesAdvisor = advisorFilter === 'All' || m.advisor === advisorFilter;
+    return matchesSearch && matchesStatus && matchesAdvisor;
   });
 
-  const activeCount = meetings.filter(m => ['Scheduled', 'Rescheduled'].includes(m.status)).length;
+  const activeCount = meetings.filter(m => ['Scheduled', 'Rescheduled', 'Confirmed'].includes(m.status)).length;
   const completedCount = meetings.filter(m => m.status === 'Completed').length;
   const cancelledCount = meetings.filter(m => m.status === 'Cancelled').length;
 
   const advisorWorkloads = counselorsList.map(advisorName => {
     const advisorMeetings = meetings.filter(m => m.advisor === advisorName);
-    const active = advisorMeetings.filter(m => ['Scheduled', 'Rescheduled'].includes(m.status)).length;
+    const active = advisorMeetings.filter(m => ['Scheduled', 'Rescheduled', 'Confirmed'].includes(m.status)).length;
     const completed = advisorMeetings.filter(m => m.status === 'Completed').length;
     return { name: advisorName, active, completed };
   });
+
+  // Selected Day Meetings for Calendar
+  const selectedDayMeetings = meetings.filter(m => m.dateKey === selectedCalendarDate);
 
   return (
     <div className="space-y-6 text-left relative min-h-[600px]">
@@ -191,17 +258,17 @@ export const AdminMeetings: React.FC = () => {
             <span className="w-8 h-8 rounded-lg bg-[#6A1B2E]/5 text-[#6A1B2E] flex items-center justify-center">
               <CalendarIcon className="w-5 h-5" />
             </span>
-            Meetings & Advisory Tracker
+            Meet Calendar & Advisory Tracker
           </h1>
           <p className="text-sm font-semibold text-slate-500">
-            Monitor, confirm, and update advisory sessions, SOP consultations, and visa mock interviews.
+            Interactive calendar schedule, cross-portal counseling bookings, and advisor capacity management.
           </p>
         </div>
 
         <button
           onClick={() => {
             setShowBookModal(true);
-            setBookDate(getLocalDateString());
+            setBookDate(selectedCalendarDate || getLocalDateString());
             setBookTime('10:00 AM');
           }}
           className="flex items-center gap-2 h-9.5 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] transition-all shadow-sm self-start md:self-auto"
@@ -246,11 +313,19 @@ export const AdminMeetings: React.FC = () => {
       {/* Tabs Selector */}
       <div className="flex items-center gap-4 border-b border-slate-200 pb-px">
         <button
+          onClick={() => setActiveTab('calendar')}
+          className={`pb-3.5 text-xs font-bold transition-all relative px-1 flex items-center gap-1.5 ${activeTab === 'calendar' ? 'text-[#6A1B2E]' : 'text-slate-400 hover:text-slate-600'
+            }`}
+        >
+          <CalendarIcon className="w-4 h-4" /> 📅 Meet Calendar
+          {activeTab === 'calendar' && <motion.div layoutId="meetingActiveTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#6A1B2E]" />}
+        </button>
+        <button
           onClick={() => setActiveTab('control')}
           className={`pb-3.5 text-xs font-bold transition-all relative px-1 flex items-center gap-1.5 ${activeTab === 'control' ? 'text-[#6A1B2E]' : 'text-slate-400 hover:text-slate-600'
             }`}
         >
-          <List className="w-4 h-4" /> Control Room (Detailed Log)
+          <List className="w-4 h-4" /> 📋 Consultation Records
           {activeTab === 'control' && <motion.div layoutId="meetingActiveTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#6A1B2E]" />}
         </button>
         <button
@@ -258,12 +333,338 @@ export const AdminMeetings: React.FC = () => {
           className={`pb-3.5 text-xs font-bold transition-all relative px-1 flex items-center gap-1.5 ${activeTab === 'workload' ? 'text-[#6A1B2E]' : 'text-slate-400 hover:text-slate-600'
             }`}
         >
-          <BarChart3 className="w-4 h-4" /> Advisor Workloads
+          <BarChart3 className="w-4 h-4" /> 📊 Advisor Workloads
           {activeTab === 'workload' && <motion.div layoutId="meetingActiveTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#6A1B2E]" />}
         </button>
       </div>
 
-      {activeTab === 'control' ? (
+      {/* TAB 1: MEET CALENDAR VIEW */}
+      {activeTab === 'calendar' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Calendar Month Grid */}
+          <div className="lg:col-span-8 space-y-4">
+            <Card className="p-6 select-none border border-slate-200/80 shadow-xs bg-white">
+              {/* Calendar Header Controls */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
+                    {monthNames[currentMonth]} {currentYear}
+                  </h3>
+                  <button
+                    onClick={handleJumpToToday}
+                    className="px-2.5 py-1 text-[11px] font-bold text-[#6A1B2E] bg-[#6A1B2E]/5 hover:bg-[#6A1B2E]/10 rounded-lg transition-colors border border-[#6A1B2E]/15"
+                  >
+                    Today
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* Advisor Filter Dropdown */}
+                  <select
+                    value={advisorFilter}
+                    onChange={(e) => setAdvisorFilter(e.target.value)}
+                    className="h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:border-[#6A1B2E]/40"
+                  >
+                    <option value="All">All Advisors</option>
+                    {counselorsList.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+
+                  <div className="flex items-center gap-1 border border-slate-200 rounded-lg p-0.5 bg-white">
+                    <button
+                      onClick={handlePrevMonth}
+                      className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500 transition-colors"
+                      title="Previous Month"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={handleNextMonth}
+                      className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500 transition-colors"
+                      title="Next Month"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Day of Week Headers */}
+              <div className="grid grid-cols-7 gap-1.5 text-center text-[10px] font-extrabold text-slate-400 uppercase mb-2">
+                <span className="text-red-400">Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+              </div>
+
+              {/* Calendar Grid Cells */}
+              <div className="grid grid-cols-7 gap-1.5">
+                {/* Empty cells before month starts */}
+                {Array.from({ length: startDayOfWeek }).map((_, idx) => (
+                  <div key={`empty-start-${idx}`} className="min-h-[85px] p-1.5 rounded-xl bg-slate-50/40 border border-transparent opacity-30" />
+                ))}
+
+                {/* Days of Month */}
+                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+                  const dayDate = new Date(currentYear, currentMonth, day);
+                  const dateKey = getLocalDateString(dayDate);
+                  const isToday = dateKey === getLocalDateString(new Date());
+                  const isSelected = dateKey === selectedCalendarDate;
+
+                  // Meetings on this day (subject to advisor filter)
+                  const dayMeetings = meetings.filter(m => {
+                    const matchDate = m.dateKey === dateKey;
+                    const matchAdv = advisorFilter === 'All' || m.advisor === advisorFilter;
+                    return matchDate && matchAdv;
+                  });
+
+                  return (
+                    <div
+                      key={day}
+                      onClick={() => setSelectedCalendarDate(dateKey)}
+                      className={`min-h-[85px] p-1.5 rounded-xl flex flex-col justify-between cursor-pointer transition-all border relative group ${
+                        isSelected
+                          ? 'border-[#6A1B2E] ring-2 ring-[#6A1B2E]/20 bg-[#6A1B2E]/5'
+                          : isToday
+                          ? 'border-blue-300 bg-blue-50/40 hover:border-blue-400'
+                          : dayMeetings.length > 0
+                          ? 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/70'
+                          : 'border-slate-100 hover:border-slate-200 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-xs font-black inline-flex items-center justify-center w-5 h-5 rounded-full ${
+                            isToday
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : isSelected
+                              ? 'bg-[#6A1B2E] text-white'
+                              : 'text-slate-700'
+                          }`}
+                        >
+                          {day}
+                        </span>
+                        {dayMeetings.length > 0 && (
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                            {dayMeetings.length}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Day meeting chips preview */}
+                      <div className="space-y-1 mt-1 overflow-hidden">
+                        {dayMeetings.slice(0, 2).map(m => {
+                          const isCancelled = m.status === 'Cancelled';
+                          const isCompleted = m.status === 'Completed';
+
+                          return (
+                            <div
+                              key={m.id}
+                              className={`text-[9px] font-bold truncate px-1.5 py-0.5 rounded-md border text-left ${
+                                isCancelled
+                                  ? 'bg-red-50 text-red-700 border-red-200 line-through'
+                                  : isCompleted
+                                  ? 'bg-slate-100 text-slate-600 border-slate-200'
+                                  : 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20'
+                              }`}
+                              title={`${m.startTime} - ${m.studentName} (${m.subject})`}
+                            >
+                              <span className="font-extrabold">{m.startTime.split(' ')[0]}</span> {m.studentName.split(' ')[0]}
+                            </div>
+                          );
+                        })}
+                        {dayMeetings.length > 2 && (
+                          <div className="text-[8px] font-bold text-slate-400 pl-1">
+                            +{dayMeetings.length - 2} more
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity text-right">
+                        <span className="text-[8px] font-extrabold text-[#6A1B2E]">+ slot</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          </div>
+
+          {/* Side Panel: Selected Day Agenda */}
+          <div className="lg:col-span-4 space-y-4">
+            <Card className="p-5 border border-slate-200/80 shadow-xs bg-white">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900">
+                    Day Schedule
+                  </h3>
+                  <p className="text-[11px] font-bold text-[#6A1B2E] mt-0.5">
+                    {new Date(selectedCalendarDate + 'T00:00:00').toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setShowBookModal(true);
+                    setBookDate(selectedCalendarDate);
+                    setBookTime('10:00 AM');
+                  }}
+                  className="h-7 px-2.5 bg-[#6A1B2E] hover:bg-[#521221] text-white text-[10px] font-bold rounded-lg transition-all flex items-center gap-1 shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Book Session
+                </button>
+              </div>
+
+              {selectedDayMeetings.length === 0 ? (
+                <div className="py-12 text-center text-slate-400">
+                  <CalendarIcon className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs font-bold text-slate-700">No Meetings on this Day</p>
+                  <p className="text-[11px] text-slate-400 mt-1 max-w-[200px] mx-auto">
+                    Click "Book Session" to schedule a 1-on-1 counseling slot for this date.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {selectedDayMeetings.map((meet) => {
+                    const isCompleted = meet.status === 'Completed';
+                    const isCancelled = meet.status === 'Cancelled';
+                    const isActive = ['Scheduled', 'Rescheduled', 'Confirmed'].includes(meet.status);
+
+                    return (
+                      <div
+                        key={meet.id}
+                        className={`p-3.5 rounded-xl border text-left space-y-2.5 transition-all ${
+                          isActive
+                            ? 'bg-slate-50/70 border-slate-200'
+                            : isCompleted
+                            ? 'bg-slate-50/40 border-slate-200 opacity-80'
+                            : 'bg-red-50/30 border-red-100 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-extrabold text-slate-900 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            {meet.time}
+                          </span>
+                          <span
+                            className={`text-[8px] uppercase font-extrabold tracking-wider px-2 py-0.5 border rounded-full ${
+                              meet.status === 'Scheduled'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : meet.status === 'Rescheduled'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : meet.status === 'Completed'
+                                ? 'bg-slate-100 text-slate-600 border-slate-200'
+                                : 'bg-red-50 text-red-700 border-red-200'
+                            }`}
+                          >
+                            {meet.status}
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="text-xs font-black text-slate-900 leading-snug">{meet.subject}</h4>
+                          <p className="text-[11px] font-bold text-slate-700 flex items-center gap-1 mt-1">
+                            <User className="w-3 h-3 text-slate-400" />
+                            {meet.studentName}
+                            <span className="text-[10px] font-semibold text-slate-400">({meet.studentEmail})</span>
+                          </p>
+                          <p className="text-[10px] font-semibold text-slate-500 mt-0.5">
+                            Advisor: <strong className="text-slate-700">{meet.advisor}</strong>
+                          </p>
+                        </div>
+
+                        {meet.meetingLink.startsWith('http') ? (
+                          <div className="text-[10px] text-blue-600 font-bold flex items-center gap-1">
+                            <Video className="w-3 h-3 text-blue-500" />
+                            Online Video Call
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-amber-700 font-bold flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-amber-600" />
+                            {meet.meetingLink}
+                          </div>
+                        )}
+
+                        {meet.notes && (
+                          <p className="text-[10px] text-slate-400 italic bg-white p-2 rounded-lg border border-slate-100">
+                            "{meet.notes}"
+                          </p>
+                        )}
+
+                        {/* Action buttons */}
+                        <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-1.5">
+                          {isActive && meet.meetingLink.startsWith('http') && (
+                            <button
+                              onClick={() => {
+                                window.open(meet.meetingLink, '_blank');
+                                setActiveCallMeeting(meet);
+                              }}
+                              className="h-7 px-2.5 bg-[#6A1B2E] hover:bg-[#521221] text-white text-[10px] font-bold rounded-lg shadow-xs flex items-center gap-1"
+                            >
+                              <Video className="w-3 h-3" /> Join
+                            </button>
+                          )}
+
+                          {isActive && (
+                            <button
+                              onClick={() => {
+                                setRescheduleMtgId(meet.id);
+                                setNewDate(meet.dateKey || getLocalDateString());
+                                setNewTime(meet.startTime || '10:00 AM');
+                              }}
+                              className="h-7 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg"
+                            >
+                              Reschedule
+                            </button>
+                          )}
+
+                          {meet.status === 'Rescheduled' && (
+                            <button
+                              onClick={() => handleStatusChange(meet.id, 'Completed')}
+                              className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg"
+                            >
+                              Complete
+                            </button>
+                          )}
+
+                          {isActive && (
+                            <button
+                              onClick={() => handleStatusChange(meet.id, 'Cancelled')}
+                              className="h-7 px-2 text-red-600 hover:bg-red-50 text-[10px] font-bold rounded-lg border border-red-100"
+                            >
+                              Cancel
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => setDeleteId(meet.id)}
+                            className="p-1 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors ml-auto"
+                            title="Delete record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: DETAILED CONSULTATION RECORDS TABLE */}
+      {activeTab === 'control' && (
         <>
           {/* Filter and Search Bar */}
           <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 border border-slate-200/80 rounded-2xl shadow-xs">
@@ -277,7 +678,7 @@ export const AdminMeetings: React.FC = () => {
                 className="w-full h-9.5 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40 focus:bg-white transition-all placeholder:text-slate-400"
               />
             </div>
-            <div className="flex items-center gap-1.5 w-full sm:w-auto self-stretch">
+            <div className="flex items-center gap-1.5 w-full sm:w-auto self-stretch overflow-x-auto pb-1 sm:pb-0">
               {['All', 'Scheduled', 'Rescheduled', 'Completed', 'Cancelled'].map((status) => (
                 <button
                   key={status}
@@ -350,8 +751,8 @@ export const AdminMeetings: React.FC = () => {
                                 <button
                                   onClick={() => {
                                     setRescheduleMtgId(meet.id);
-                                    setNewDate(getLocalDateString());
-                                    setNewTime('10:00 AM');
+                                    setNewDate(meet.dateKey || getLocalDateString());
+                                    setNewTime(meet.startTime || '10:00 AM');
                                   }}
                                   className="h-7 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg shadow-sm transition-all"
                                 >
@@ -403,8 +804,10 @@ export const AdminMeetings: React.FC = () => {
             </div>
           )}
         </>
-      ) : (
-        /* Advisor Workloads Tab Grid */
+      )}
+
+      {/* TAB 3: ADVISOR WORKLOADS */}
+      {activeTab === 'workload' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
           {advisorWorkloads.map(adv => (
             <Card key={adv.name} className="p-5 text-left border border-slate-200/80 bg-white shadow-xs">

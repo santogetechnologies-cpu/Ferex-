@@ -27,28 +27,43 @@ export function useNotifications(userId?: string) {
 
     if (!userId) return;
 
-    // Realtime notifications subscription
-    const channel = supabase
-      .channel(`realtime_notifs_${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          fetchNotifications();
+    // Realtime notifications subscription safely managed
+    let channel: any = null;
+    try {
+      const channelId = `realtime_notifs_${userId}_${Math.random().toString(36).substring(2, 9)}`;
+      channel = supabase
+        .channel(channelId)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userId}`,
+          },
+          () => {
+            fetchNotifications();
+          }
+        );
+      
+      channel.subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') {
+          // successfully subscribed
         }
-      )
-      .subscribe();
+      });
+    } catch (err) {
+      console.warn('Realtime notifications subscription skipped:', err);
+    }
 
     const handleLocalEvent = () => fetchNotifications();
     window.addEventListener('ferex_notification_change', handleLocalEvent);
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch (e) {}
+      }
       window.removeEventListener('ferex_notification_change', handleLocalEvent);
     };
   }, [fetchNotifications, userId]);
