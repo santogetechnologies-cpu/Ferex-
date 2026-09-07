@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, CreditCard, ShieldCheck, TrendingUp, ArrowUpRight,
-  ChevronRight, CheckCircle2, RefreshCw, Shield,
+  RefreshCw, Shield,
   Activity, Globe, Snowflake, Monitor, GraduationCap,
-  Calendar, Download, Layers, UserCheck
+  Calendar, Download, Layers, UserCheck, CheckCircle2
 } from 'lucide-react';
 import { Card } from '../../components/Card';
-import { getCentralEnterpriseMetrics, type CentralEnterpriseStats } from '../../lib/api/central';
+import { getCentralEnterpriseMetrics, getCentralLiveActivities, type CentralEnterpriseStats, type CentralActivityItem } from '../../lib/api/central';
 
 type DateFilterType = 'today' | '7days' | '1month' | 'custom';
 
@@ -53,20 +53,22 @@ export const CentralDashboard: React.FC = () => {
   // Active chart division filter
   const [selectedChartDivision, setSelectedChartDivision] = useState<'all' | 'education' | 'trade' | 'rimi' | 'digital'>('all');
 
-  // Base metrics from API / DB
+  // Base metrics strictly initialized to 0 for a completely clean/fresh environment
   const [baseMetrics, setBaseMetrics] = useState<CentralEnterpriseStats>({
-    educationStudents: 1480,
-    educationApplications: 142,
-    educationRevenueInr: 48200000,
-    digitalClients: 38,
-    digitalProjects: 14,
-    digitalRevenueInr: 1950000,
-    tradeShipments: 24,
-    tradeRevenueEur: 120000,
-    rimiOrders: 186,
-    rimiRevenueInr: 3850000,
-    staffCount: 12,
+    educationStudents: 0,
+    educationApplications: 0,
+    educationRevenueInr: 0,
+    digitalClients: 0,
+    digitalProjects: 0,
+    digitalRevenueInr: 0,
+    tradeShipments: 0,
+    tradeRevenueEur: 0,
+    rimiOrders: 0,
+    rimiRevenueInr: 0,
+    staffCount: 0,
   });
+
+  const [activityDesk, setActivityDesk] = useState<CentralActivityItem[]>([]);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -76,23 +78,17 @@ export const CentralDashboard: React.FC = () => {
   const loadMetrics = useCallback(async () => {
     setIsSyncing(true);
     try {
-      const data = await getCentralEnterpriseMetrics();
+      const [data, acts] = await Promise.all([
+        getCentralEnterpriseMetrics(),
+        getCentralLiveActivities()
+      ]);
       if (data) {
-        setBaseMetrics(prev => ({
-          educationStudents: data.educationStudents || prev.educationStudents || 1480,
-          educationApplications: data.educationApplications || prev.educationApplications || 142,
-          educationRevenueInr: data.educationRevenueInr || prev.educationRevenueInr || 48200000,
-          digitalClients: data.digitalClients || prev.digitalClients || 38,
-          digitalProjects: data.digitalProjects || prev.digitalProjects || 14,
-          digitalRevenueInr: data.digitalRevenueInr || prev.digitalRevenueInr || 1950000,
-          tradeShipments: data.tradeShipments || prev.tradeShipments || 24,
-          tradeRevenueEur: data.tradeRevenueEur || prev.tradeRevenueEur || 120000,
-          rimiOrders: data.rimiOrders || prev.rimiOrders || 186,
-          rimiRevenueInr: data.rimiRevenueInr || prev.rimiRevenueInr || 3850000,
-          staffCount: data.staffCount || prev.staffCount || 12,
-        }));
-        setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        setBaseMetrics(data);
       }
+      if (acts) {
+        setActivityDesk(acts);
+      }
+      setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch {
       setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } finally {
@@ -106,18 +102,18 @@ export const CentralDashboard: React.FC = () => {
 
   const handleRefreshSync = () => {
     loadMetrics();
-    showToastMsg('Consolidated 4-App live metrics refreshed from database');
+    showToastMsg('Consolidated live metrics synchronized from database');
   };
 
   // Date Multiplier calculation for interactive dynamic filtering
   const filterMultiplier = useMemo(() => {
     switch (dateFilter) {
       case 'today':
-        return 0.045; // ~1 day fraction of volume
+        return 0.045;
       case '7days':
-        return 0.28; // ~7 days fraction of volume
+        return 0.28;
       case '1month':
-        return 1.0; // 30 days standard volume
+        return 1.0;
       case 'custom': {
         const start = new Date(customStartDate).getTime();
         const end = new Date(customEndDate).getTime();
@@ -148,6 +144,7 @@ export const CentralDashboard: React.FC = () => {
   const USD_TO_INR = 86;
 
   const formatCurrency = useCallback((inrAmount: number) => {
+    if (!inrAmount || inrAmount === 0) return currency === 'EUR' ? '€0' : currency === 'USD' ? '$0' : '₹0';
     if (currency === 'INR') {
       if (inrAmount >= 10000000) {
         return `₹${(inrAmount / 10000000).toFixed(2)} Cr`;
@@ -171,10 +168,10 @@ export const CentralDashboard: React.FC = () => {
 
   // Consolidated Divisions Data Calculation
   const divisionsData: DivisionFinancials[] = useMemo(() => {
-    const eduInr = baseMetrics.educationRevenueInr * filterMultiplier;
-    const tradeInr = (baseMetrics.tradeRevenueEur * EUR_TO_INR) * filterMultiplier;
-    const rimiInr = baseMetrics.rimiRevenueInr * filterMultiplier;
-    const digInr = baseMetrics.digitalRevenueInr * filterMultiplier;
+    const eduInr = (baseMetrics.educationRevenueInr || 0) * filterMultiplier;
+    const tradeInr = ((baseMetrics.tradeRevenueEur || 0) * EUR_TO_INR) * filterMultiplier;
+    const rimiInr = (baseMetrics.rimiRevenueInr || 0) * filterMultiplier;
+    const digInr = (baseMetrics.digitalRevenueInr || 0) * filterMultiplier;
 
     return [
       {
@@ -188,9 +185,9 @@ export const CentralDashboard: React.FC = () => {
         route: '/admin/dashboard',
         revenueInr: eduInr,
         revenueFormatted: formatCurrency(eduInr),
-        originalCurrency: `₹${(eduInr / 100000).toFixed(1)} L`,
-        growth: '+22.4%',
-        transactionsCount: Math.max(1, Math.round(148 * filterMultiplier)),
+        originalCurrency: formatCurrency(eduInr),
+        growth: baseMetrics.educationRevenueInr > 0 ? '+100%' : '0%',
+        transactionsCount: baseMetrics.educationApplications,
         keyMetricLabel: 'Active Enrolled Students',
         keyMetricValue: `${baseMetrics.educationStudents.toLocaleString()} Students`,
         status: 'Optimal',
@@ -209,11 +206,11 @@ export const CentralDashboard: React.FC = () => {
         route: '/trade/dashboard',
         revenueInr: tradeInr,
         revenueFormatted: formatCurrency(tradeInr),
-        originalCurrency: `€${Math.round(baseMetrics.tradeRevenueEur * filterMultiplier).toLocaleString()} EUR`,
-        growth: '+18.6%',
-        transactionsCount: Math.max(1, Math.round(34 * filterMultiplier)),
-        keyMetricLabel: 'Cargo in Transit / LCs',
-        keyMetricValue: `${baseMetrics.tradeShipments} Active Vessels`,
+        originalCurrency: `€${Math.round((baseMetrics.tradeRevenueEur || 0) * filterMultiplier).toLocaleString()} EUR`,
+        growth: baseMetrics.tradeRevenueEur > 0 ? '+100%' : '0%',
+        transactionsCount: baseMetrics.tradeShipments,
+        keyMetricLabel: 'Active Cargo Shipments',
+        keyMetricValue: `${baseMetrics.tradeShipments} Shipments`,
         status: 'Operational',
         statusColor: 'text-indigo-600 bg-indigo-50 border-indigo-200',
         desc: 'Letters of Credit, Bill of Lading, customs clearance & multi-currency freight invoices.',
@@ -230,11 +227,11 @@ export const CentralDashboard: React.FC = () => {
         route: '/rimi/dashboard',
         revenueInr: rimiInr,
         revenueFormatted: formatCurrency(rimiInr),
-        originalCurrency: `₹${(rimiInr / 100000).toFixed(1)} L`,
-        growth: '+14.2%',
-        transactionsCount: Math.max(1, Math.round(baseMetrics.rimiOrders * filterMultiplier)),
-        keyMetricLabel: 'Active Warehouses & Hubs',
-        keyMetricValue: '12 Cold Hubs • 48 Fleet Units',
+        originalCurrency: formatCurrency(rimiInr),
+        growth: baseMetrics.rimiRevenueInr > 0 ? '+100%' : '0%',
+        transactionsCount: baseMetrics.rimiOrders,
+        keyMetricLabel: 'Active Sales Orders',
+        keyMetricValue: `${baseMetrics.rimiOrders} Orders`,
         status: 'Active',
         statusColor: 'text-cyan-600 bg-cyan-50 border-cyan-200',
         desc: 'Cold storage inventory, batch lifecycle tracking, retail distributor billing & cash collections.',
@@ -251,11 +248,11 @@ export const CentralDashboard: React.FC = () => {
         route: '/digital/dashboard',
         revenueInr: digInr,
         revenueFormatted: formatCurrency(digInr),
-        originalCurrency: `₹${(digInr / 100000).toFixed(1)} L`,
-        growth: '+28.9%',
-        transactionsCount: Math.max(1, Math.round(28 * filterMultiplier)),
+        originalCurrency: formatCurrency(digInr),
+        growth: baseMetrics.digitalRevenueInr > 0 ? '+100%' : '0%',
+        transactionsCount: baseMetrics.digitalProjects,
         keyMetricLabel: 'Active Client Retainers',
-        keyMetricValue: `${baseMetrics.digitalClients} Accounts • ${baseMetrics.digitalProjects} Sprints`,
+        keyMetricValue: `${baseMetrics.digitalClients} Accounts • ${baseMetrics.digitalProjects} Projects`,
         status: 'Optimal',
         statusColor: 'text-emerald-600 bg-emerald-50 border-emerald-200',
         desc: 'Custom software sprints, client milestone contracts, DevOps pipelines & SEO retainers.',
@@ -272,54 +269,6 @@ export const CentralDashboard: React.FC = () => {
   const totalTransactionsCount = useMemo(() => {
     return divisionsData.reduce((acc, d) => acc + d.transactionsCount, 0);
   }, [divisionsData]);
-
-  // Unified Cross-App Activity & Approvals Desk
-  const [activityDesk, setActivityDesk] = useState([
-    {
-      id: 'ACT-901',
-      division: 'Trade ERP',
-      divisionBadge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-      title: 'Letter of Credit EUR 120,000 Verified',
-      subtitle: 'Maersk Line Hamburg Port shipment clearance',
-      time: '12m ago',
-      amount: '€120,000',
-      status: 'Action Required',
-      canApprove: true,
-    },
-    {
-      id: 'ACT-902',
-      division: 'Education',
-      divisionBadge: 'bg-rose-50 text-rose-700 border-rose-200',
-      title: 'Warsaw University Tuition Wire Received',
-      subtitle: 'Batch Autumn 2026 fee clearance for 12 students',
-      time: '34m ago',
-      amount: '₹4,80,000',
-      status: 'Action Required',
-      canApprove: true,
-    },
-    {
-      id: 'ACT-903',
-      division: 'Rimi Frozen',
-      divisionBadge: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-      title: 'Batch Dispatch #8492 to North Warehouse Hub',
-      subtitle: 'Cold chain temperature verified (-18°C compliant)',
-      time: '1h ago',
-      amount: '₹2,45,000',
-      status: 'Cleared',
-      canApprove: false,
-    },
-    {
-      id: 'ACT-904',
-      division: 'Digital Agency',
-      divisionBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      title: 'Nexus FinTech Mobile App Milestone 3 Captured',
-      subtitle: 'Sprint deliverable approved and deployed to production',
-      time: '2h ago',
-      amount: '₹1,50,000',
-      status: 'Action Required',
-      canApprove: true,
-    },
-  ]);
 
   const handleApproveActivity = (id: string, title: string) => {
     setActivityDesk(prev =>
@@ -551,7 +500,7 @@ export const CentralDashboard: React.FC = () => {
                   <CreditCard className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" /> +24.8% YoY
+                  <TrendingUp className="w-3 h-3" /> Live
                 </span>
               </div>
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
@@ -589,7 +538,7 @@ export const CentralDashboard: React.FC = () => {
                 Total Active Enterprise Accounts
               </span>
               <div className="text-2xl lg:text-3xl font-black text-slate-900 leading-tight">
-                {(baseMetrics.educationStudents + baseMetrics.digitalClients + 42).toLocaleString()}
+                {(baseMetrics.educationStudents + baseMetrics.digitalClients + baseMetrics.staffCount).toLocaleString()}
               </div>
             </div>
 
@@ -598,19 +547,19 @@ export const CentralDashboard: React.FC = () => {
                 Students + Partners + Clients
               </span>
               <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
-                99.8% Active
+                Live Directory
               </span>
             </div>
           </Card>
         </motion.div>
 
-        {/* Card 3: 4 App Service Health & Uptime */}
+        {/* Card 3: Cloud Infrastructure & Database Telemetry */}
         <motion.div variants={itemVariants}>
           <Card className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between h-full">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center">
-                  <ShieldCheck className="w-5 h-5" />
+                  <Activity className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                   99.98% SLA
@@ -619,7 +568,7 @@ export const CentralDashboard: React.FC = () => {
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
                 Infrastructure Health Status
               </span>
-              <div className="text-2xl lg:text-3xl font-black text-emerald-700 leading-tight">
+              <div className="text-2xl lg:text-3xl font-black text-slate-900 leading-tight">
                 All Systems Normal
               </div>
             </div>
@@ -635,17 +584,17 @@ export const CentralDashboard: React.FC = () => {
           </Card>
         </motion.div>
 
-        {/* Card 4: Executive Division Governance */}
+        {/* Card 4: Executive Super Admin Control */}
         <motion.div variants={itemVariants}>
-          <Card className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between h-full bg-gradient-to-br from-white to-amber-50/30">
+          <Card className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between h-full bg-gradient-to-br from-[#6A1B2E]/5 to-transparent">
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center">
-                  <Shield className="w-5 h-5" />
+                <div className="w-11 h-11 rounded-2xl bg-[#6A1B2E]/10 border border-[#6A1B2E]/20 text-[#6A1B2E] flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
                 <button
                   onClick={() => navigate('/central/admins')}
-                  className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-amber-100/80 text-amber-900 border border-amber-300 hover:bg-amber-200 transition-colors cursor-pointer"
+                  className="text-[10px] font-black text-[#6A1B2E] hover:underline cursor-pointer flex items-center gap-1"
                 >
                   Manage Admins →
                 </button>
@@ -654,7 +603,7 @@ export const CentralDashboard: React.FC = () => {
                 Division Admins & Roles
               </span>
               <div className="text-2xl lg:text-3xl font-black text-slate-900 leading-tight">
-                {baseMetrics.staffCount} Admins Active
+                {Math.max(1, baseMetrics.staffCount)} Admins Active
               </div>
             </div>
 
@@ -662,88 +611,94 @@ export const CentralDashboard: React.FC = () => {
               <span className="text-[10px] font-bold text-slate-500">
                 Role-Based Access Control
               </span>
-              <span className="text-[10px] font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] font-bold text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded-md">
                 4 Portals Protected
               </span>
             </div>
           </Card>
         </motion.div>
-
       </div>
 
-      {/* 4. CONSOLIDATED 4-APP STATUS & REVENUE BREAKDOWN CARDS */}
+      {/* 4. 4 SUBSIDIARY APPLICATIONS STATUS & METRICS GRID */}
       <motion.div variants={itemVariants} className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
           <div>
-            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-              <Layers className="w-4 h-4 text-[#6A1B2E]" /> 4 Subsidiary Enterprise Applications — Status & Performance
+            <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+              <Layers className="w-5 h-5 text-[#6A1B2E]" /> 4 Subsidiary Enterprise Applications — Status & Performance
             </h2>
-            <p className="text-xs font-semibold text-slate-400 mt-0.5">
-              Metrics calculated for timeframe: <strong className="text-slate-700 font-bold">{dateRangeLabel}</strong>
+            <p className="text-xs text-slate-500 font-medium">
+              Metrics calculated for timeframe: <strong className="text-slate-800">{dateRangeLabel}</strong>
             </p>
           </div>
+
           <button
             onClick={() => navigate('/central/admins')}
-            className="text-xs font-black text-[#6A1B2E] hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+            className="text-xs font-bold text-[#6A1B2E] bg-[#6A1B2E]/10 hover:bg-[#6A1B2E]/20 px-3 py-1.5 rounded-xl border border-[#6A1B2E]/20 transition-all cursor-pointer self-start sm:self-auto"
           >
-            Provision Division Logins <ChevronRight className="w-3.5 h-3.5" />
+            Provision Division Logins
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {divisionsData.map((div, idx) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {divisionsData.map((div) => {
             const Icon = div.icon;
-            const revenueSharePercent = grandTotalRevenueInr > 0 ? Math.round((div.revenueInr / grandTotalRevenueInr) * 100) : 25;
+            const revenueShare = grandTotalRevenueInr > 0
+              ? Math.round((div.revenueInr / grandTotalRevenueInr) * 100)
+              : 0;
 
             return (
               <Card
-                key={idx}
-                className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg transition-all flex flex-col justify-between group h-full bg-white relative overflow-hidden"
+                key={div.name}
+                className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg transition-all flex flex-col justify-between group"
               >
-                <div>
-                  {/* Division Header */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${div.bgLight} ${div.borderLight} ${div.color} group-hover:scale-105 transition-transform`}>
+                <div className="space-y-4">
+                  
+                  {/* Top Bar: Icon & Status Badge */}
+                  <div className="flex items-center justify-between">
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center border ${div.bgLight} ${div.borderLight} ${div.color}`}>
                       <Icon className="w-5 h-5" />
                     </div>
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${div.statusColor}`}>
-                      🟢 {div.status}
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${div.statusColor} flex items-center gap-1`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" /> {div.status}
                     </span>
                   </div>
 
-                  <h3 className="text-base font-black text-slate-900 leading-snug">{div.name}</h3>
-                  <span className={`inline-block text-[9.5px] font-black px-2 py-0.5 rounded-md border mt-1 mb-2 ${div.badgeColor}`}>
-                    {div.badge}
-                  </span>
-                  
-                  <p className="text-xs text-slate-600 font-medium mb-3 line-clamp-2 leading-relaxed">
-                    {div.desc}
-                  </p>
+                  {/* Division Title & Tagline */}
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 group-hover:text-[#6A1B2E] transition-colors">
+                      {div.name}
+                    </h3>
+                    <span className={`inline-block text-[9.5px] font-bold px-2 py-0.5 rounded-md border mt-1 ${div.badgeColor}`}>
+                      {div.badge}
+                    </span>
+                    <p className="text-xs text-slate-500 font-medium line-clamp-2 mt-2 leading-relaxed">
+                      {div.desc}
+                    </p>
+                  </div>
 
-                  {/* Financial Stats Block */}
-                  <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-100 space-y-2 mb-3">
+                  {/* Revenue Volume Metrics */}
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Division Revenue</span>
-                      <span className="text-xs font-black text-slate-900">{div.revenueFormatted}</span>
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                        Division Revenue
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-500">
+                        Contribution Share
+                      </span>
                     </div>
 
-                    {/* Progress Bar for Revenue Share */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
-                        <span>Contribution Share</span>
-                        <span>{revenueSharePercent}%</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[#6A1B2E] rounded-full transition-all duration-500"
-                          style={{ width: `${Math.max(5, revenueSharePercent)}%` }}
-                        />
-                      </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xl font-black text-slate-900">
+                        {div.revenueFormatted}
+                      </span>
+                      <span className="text-xs font-black text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded-md">
+                        {revenueShare}%
+                      </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] font-extrabold text-slate-500 pt-1 border-t border-slate-200/50">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 pt-1 border-t border-slate-200/60">
                       <span>{div.transactionsCount} Transactions</span>
-                      <span className="text-emerald-700 font-bold">{div.growth}</span>
+                      <span className="text-emerald-600 font-extrabold">{div.growth}</span>
                     </div>
                   </div>
 
@@ -773,7 +728,7 @@ export const CentralDashboard: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* 5. MULTI-DIVIDIONAL REVENUE ANALYTICS & REVENUE VELOCITY CHART */}
+      {/* 5. MULTI-DIVISIONAL REVENUE ANALYTICS & REVENUE VELOCITY CHART */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left 2 Columns: Multi-Division Interactive Chart */}
@@ -827,44 +782,35 @@ export const CentralDashboard: React.FC = () => {
                 <line x1="0" y1="40" x2="600" y2="40" stroke="#f1f5f9" strokeWidth="1" />
                 <line x1="0" y1="90" x2="600" y2="90" stroke="#f1f5f9" strokeWidth="1" />
                 <line x1="0" y1="140" x2="600" y2="140" stroke="#f1f5f9" strokeWidth="1" />
+                <line x1="0" y1="180" x2="600" y2="180" stroke="#e2e8f0" strokeWidth="1.5" />
 
-                {/* Primary Trend Area & Curve */}
-                <path
-                  d="M 0 170 Q 120 140, 220 110 T 420 50 T 600 30 L 600 200 L 0 200 Z"
-                  fill="url(#central-chart-grad)"
-                />
-                <path
-                  d="M 0 170 Q 120 140, 220 110 T 420 50 T 600 30"
-                  fill="none"
-                  stroke="#6A1B2E"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                />
-
-                {/* Secondary division indicator lines */}
-                <path
-                  d="M 0 185 Q 150 160, 300 130 T 600 90"
-                  fill="none"
-                  stroke="#4f46e5"
-                  strokeWidth="2"
-                  strokeDasharray="4 4"
-                />
-                <path
-                  d="M 0 190 Q 150 175, 300 155 T 600 135"
-                  fill="none"
-                  stroke="#0891b2"
-                  strokeWidth="1.5"
-                  strokeDasharray="3 3"
-                />
-
-                {/* Highlight Points */}
-                <circle cx="220" cy="110" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
-                <circle cx="420" cy="50" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
-                <circle cx="600" cy="30" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
+                {grandTotalRevenueInr > 0 ? (
+                  <>
+                    <path
+                      d="M 0 170 Q 120 140, 220 110 T 420 50 T 600 30 L 600 180 L 0 180 Z"
+                      fill="url(#central-chart-grad)"
+                    />
+                    <path
+                      d="M 0 170 Q 120 140, 220 110 T 420 50 T 600 30"
+                      fill="none"
+                      stroke="#6A1B2E"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="220" cy="110" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
+                    <circle cx="420" cy="50" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
+                    <circle cx="600" cy="30" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
+                  </>
+                ) : (
+                  <>
+                    <line x1="0" y1="180" x2="600" y2="180" stroke="#6A1B2E" strokeWidth="2" strokeDasharray="6 6" />
+                    <circle cx="300" cy="180" r="4" fill="#6A1B2E" />
+                  </>
+                )}
               </svg>
 
               <div className="absolute top-[20px] right-[40px] bg-slate-900 text-white text-[9.5px] font-bold px-3 py-1 rounded-lg shadow-md pointer-events-none select-none border border-slate-700">
-                Peak Velocity: {formatCurrency(grandTotalRevenueInr * 0.42)}
+                Peak Velocity: {formatCurrency(grandTotalRevenueInr > 0 ? grandTotalRevenueInr * 0.42 : 0)}
               </div>
             </div>
 
@@ -892,51 +838,67 @@ export const CentralDashboard: React.FC = () => {
               </div>
 
               <div className="space-y-3 max-h-[380px] overflow-y-auto scrollbar-thin pr-1">
-                {activityDesk.map((act) => (
-                  <div key={act.id} className="p-3 bg-slate-50/80 rounded-xl border border-slate-100 space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border ${act.divisionBadge}`}>
-                          {act.division}
-                        </span>
-                        <h4 className="text-xs font-black text-slate-900 mt-1">{act.title}</h4>
-                        <p className="text-[10px] font-semibold text-slate-400">{act.subtitle}</p>
+                {activityDesk.length > 0 ? (
+                  activityDesk.map((act) => (
+                    <div key={act.id} className="p-3 bg-slate-50/80 rounded-xl border border-slate-100 space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border ${act.divisionBadge}`}>
+                            {act.division}
+                          </span>
+                          <h4 className="text-xs font-black text-slate-900 mt-1">
+                            {act.title}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            {act.subtitle}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-black text-slate-900 block">
+                            {act.amount}
+                          </span>
+                          <span className="text-[9.5px] font-semibold text-slate-400">
+                            {act.time}
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-xs font-black text-slate-900 block">{act.amount}</span>
-                        <span className="text-[9px] font-semibold text-slate-400">{act.time}</span>
-                      </div>
-                    </div>
 
-                    {act.canApprove ? (
-                      <button
-                        onClick={() => handleApproveActivity(act.id, act.title)}
-                        className="w-full h-7 bg-[#6A1B2E] hover:bg-[#521221] text-white text-[10.5px] font-black rounded-lg transition-colors shadow-xs cursor-pointer"
-                      >
-                        Authorize Settlement
-                      </button>
-                    ) : (
-                      <div className="w-full h-6 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-emerald-200">
-                        <CheckCircle2 className="w-3 h-3" /> Settlement Cleared
-                      </div>
-                    )}
+                      {act.canApprove ? (
+                        <button
+                          onClick={() => handleApproveActivity(act.id, act.title)}
+                          className="w-full h-7 rounded-lg bg-[#6A1B2E] hover:bg-[#521221] text-white text-[10px] font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1"
+                        >
+                          Authorize Settlement
+                        </button>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 py-1 rounded-lg border border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3" /> Settlement Cleared
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-8 text-center bg-slate-50/60 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
+                    <p className="text-xs font-black text-slate-800">All Systems Synchronized</p>
+                    <p className="text-[11px] font-medium text-slate-400">
+                      No pending cross-app settlements or alerts in current cycle.
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
-            {/* Quick Link to Admins */}
             <div className="pt-4 border-t border-slate-100 mt-4">
               <button
                 onClick={() => navigate('/central/roles')}
-                className="w-full h-8.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full h-8.5 rounded-xl border border-slate-200 hover:border-slate-300 text-xs font-black text-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <UserCheck className="w-3.5 h-3.5" /> Inspect 4-App Permissions Matrix
+                <UserCheck className="w-3.5 h-3.5 text-[#6A1B2E]" /> Inspect 4-App Permissions Matrix
               </button>
             </div>
           </Card>
         </motion.div>
-
       </div>
     </motion.div>
   );

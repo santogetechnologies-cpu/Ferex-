@@ -7,305 +7,8 @@ function triggerLocalSync(eventName: string) {
   }
 }
 
-// ─── Seed Guard Helpers ──────────────────────────────────────────────────────
-// These prevent mock/default data from resurrecting after the user deletes it.
-// On first launch, data is seeded into BOTH localStorage and Supabase.
-// After that, an empty Supabase result is treated as "user deleted everything".
-function isSeeded(entity: string): boolean {
-  try { return localStorage.getItem('ferex_dig_seeded_' + entity) === 'true'; } catch { return false; }
-}
-function markSeeded(entity: string): void {
-  try { localStorage.setItem('ferex_dig_seeded_' + entity, 'true'); } catch {}
-}
-
-// ─── Default Real-World Seed Data ───────────────────────────────────────────
-const DEFAULT_CLIENTS = [
-  {
-    id: 'cli-dig-nexus',
-    company_name: 'Nexus FinTech Global',
-    name: 'Nexus FinTech Global',
-    contact_person: 'Ananya Deshmukh',
-    email: 'ananya@nexusfintech.io',
-    phone: '+91 98201 44552',
-    industry: 'FinTech & Banking',
-    client_type: 'FinTech & Banking',
-    city: 'Mumbai',
-    status: 'Active',
-    total_revenue: 1450000,
-    created_at: '2026-08-01T10:00:00Z',
-    updated_at: '2026-09-01T10:00:00Z',
-  },
-  {
-    id: 'cli-dig-starlight',
-    company_name: 'Starlight E-Commerce Brands',
-    name: 'Starlight E-Commerce Brands',
-    contact_person: 'Vikram Mehta',
-    email: 'vikram@starlightbrands.in',
-    phone: '+91 98334 11223',
-    industry: 'D2C Retail & Brands',
-    client_type: 'D2C Retail & Brands',
-    city: 'Bengaluru',
-    status: 'Active',
-    total_revenue: 680000,
-    created_at: '2026-08-05T11:00:00Z',
-    updated_at: '2026-09-02T11:00:00Z',
-  },
-  {
-    id: 'cli-dig-aerocloud',
-    company_name: 'AeroCloud Global SaaS',
-    name: 'AeroCloud Global SaaS',
-    contact_person: 'Sarah Jenkins',
-    email: 'sarah.j@aerocloud.io',
-    phone: '+1 (415) 890-2341',
-    industry: 'Enterprise Cloud SaaS',
-    client_type: 'Enterprise Cloud SaaS',
-    city: 'San Francisco / Gurugram',
-    status: 'Active',
-    total_revenue: 790000,
-    created_at: '2026-08-10T09:30:00Z',
-    updated_at: '2026-09-03T09:30:00Z',
-  },
-  {
-    id: 'cli-dig-tatadigital',
-    company_name: 'Tata Digital & Mobility Labs',
-    name: 'Tata Digital & Mobility Labs',
-    contact_person: 'Rajesh Verma',
-    email: 'r.verma@tatadigital.com',
-    phone: '+91 98110 55667',
-    industry: 'Automotive AI & Mobility',
-    client_type: 'Automotive AI & Mobility',
-    city: 'Pune',
-    status: 'Active',
-    total_revenue: 1850000,
-    created_at: '2026-08-15T14:00:00Z',
-    updated_at: '2026-09-04T08:00:00Z',
-  },
-];
-
-const DEFAULT_PROJECTS = [
-  {
-    id: 'proj-dig-nexus',
-    client_id: 'cli-dig-nexus',
-    client: DEFAULT_CLIENTS[0],
-    title: 'Nexus NeoBanking Web & Mobile Platform',
-    service_category: 'Web & App Development',
-    status: 'In Progress',
-    budget: 1450000,
-    progress: 68,
-    deadline: '2026-10-15',
-    lead_developer: 'Kavita Iyer',
-    notes: 'React Native & Next.js core architecture with PCI-DSS compliant banking gateway.',
-    created_at: '2026-08-01T12:00:00Z',
-    updated_at: '2026-09-03T16:00:00Z',
-  },
-  {
-    id: 'proj-dig-starlight',
-    client_id: 'cli-dig-starlight',
-    client: DEFAULT_CLIENTS[1],
-    title: 'Starlight Multi-Brand Design System & UI/UX',
-    service_category: 'UI/UX Design',
-    status: 'In Progress',
-    budget: 680000,
-    progress: 45,
-    deadline: '2026-09-30',
-    lead_developer: 'Sameer Sen',
-    notes: 'Figma component tokens, dark mode design system, and multi-tenant Shopify storefront.',
-    created_at: '2026-08-06T10:00:00Z',
-    updated_at: '2026-09-02T15:00:00Z',
-  },
-  {
-    id: 'proj-dig-aerocloud',
-    client_id: 'cli-dig-aerocloud',
-    client: DEFAULT_CLIENTS[2],
-    title: 'AeroCloud Global SEO & Growth Marketing',
-    service_category: 'SEO & Performance',
-    status: 'In Progress',
-    budget: 790000,
-    progress: 80,
-    deadline: '2026-10-05',
-    lead_developer: 'Pooja Hegde',
-    notes: 'Technical SEO overhaul, programmatic landing pages, and international SERP rankings.',
-    created_at: '2026-08-11T11:00:00Z',
-    updated_at: '2026-09-03T11:00:00Z',
-  },
-  {
-    id: 'proj-dig-tatamobility',
-    client_id: 'cli-dig-tatadigital',
-    client: DEFAULT_CLIENTS[3],
-    title: 'Tata Mobility Connected Fleet Analytics',
-    service_category: 'Web & App Development',
-    status: 'In Progress',
-    budget: 1850000,
-    progress: 30,
-    deadline: '2026-11-20',
-    lead_developer: 'Rohan Joshi',
-    notes: 'IoT telemetry pipeline, driver scoring algorithm, and live WebGL map tracker.',
-    created_at: '2026-08-16T14:30:00Z',
-    updated_at: '2026-09-04T09:00:00Z',
-  },
-];
-
-const DEFAULT_TASKS = [
-  {
-    id: 'task-dig-01',
-    project_id: 'proj-dig-nexus',
-    project: DEFAULT_PROJECTS[0],
-    title: 'Architect OAuth2.0 & Multi-Tenant RBAC Security Module',
-    priority: 'High',
-    status: 'In Progress',
-    due_date: '2026-09-08',
-    assigned_to_name: 'Kavita Iyer',
-    created_at: '2026-08-20T10:00:00Z',
-    updated_at: '2026-09-03T10:00:00Z',
-  },
-  {
-    id: 'task-dig-02',
-    project_id: 'proj-dig-starlight',
-    project: DEFAULT_PROJECTS[1],
-    title: 'Deliver Interactive Design Token Components & Figma Export',
-    priority: 'Medium',
-    status: 'Review',
-    due_date: '2026-09-07',
-    assigned_to_name: 'Sameer Sen',
-    created_at: '2026-08-22T11:00:00Z',
-    updated_at: '2026-09-02T16:00:00Z',
-  },
-  {
-    id: 'task-dig-03',
-    project_id: 'proj-dig-aerocloud',
-    project: DEFAULT_PROJECTS[2],
-    title: 'Core Web Vitals Optimization & High-Domain Authority Backlinks',
-    priority: 'High',
-    status: 'In Progress',
-    due_date: '2026-09-10',
-    assigned_to_name: 'Pooja Hegde',
-    created_at: '2026-08-25T09:00:00Z',
-    updated_at: '2026-09-03T14:00:00Z',
-  },
-  {
-    id: 'task-dig-04',
-    project_id: 'proj-dig-tatamobility',
-    project: DEFAULT_PROJECTS[3],
-    title: 'Implement Realtime WebSocket Fleet Telemetry Ingestion API',
-    priority: 'High',
-    status: 'To Do',
-    due_date: '2026-09-12',
-    assigned_to_name: 'Rohan Joshi',
-    created_at: '2026-08-28T15:00:00Z',
-    updated_at: '2026-09-04T08:30:00Z',
-  },
-  {
-    id: 'task-dig-05',
-    project_id: 'proj-dig-nexus',
-    project: DEFAULT_PROJECTS[0],
-    title: 'Staging Penetration Testing & OWASP Top 10 Audit',
-    priority: 'Medium',
-    status: 'To Do',
-    due_date: '2026-09-15',
-    assigned_to_name: 'Kavita Iyer',
-    created_at: '2026-08-29T10:00:00Z',
-    updated_at: '2026-09-01T10:00:00Z',
-  },
-  {
-    id: 'task-dig-06',
-    project_id: 'proj-dig-starlight',
-    project: DEFAULT_PROJECTS[1],
-    title: 'E-Commerce Checkout Cart Conversion Funnel Redesign',
-    priority: 'Low',
-    status: 'Done',
-    due_date: '2026-09-01',
-    assigned_to_name: 'Sameer Sen',
-    created_at: '2026-08-15T12:00:00Z',
-    updated_at: '2026-09-01T18:00:00Z',
-  },
-];
-
-const DEFAULT_INVOICES = [
-  {
-    id: 'inv-dig-01',
-    client_id: 'cli-dig-nexus',
-    client: DEFAULT_CLIENTS[0],
-    project_id: 'proj-dig-nexus',
-    project: DEFAULT_PROJECTS[0],
-    invoice_no: 'INV-DIG-8841',
-    amount: 725000,
-    tax_amount: 130500,
-    currency: 'INR',
-    status: 'Paid',
-    due_date: '2026-08-30',
-    issued_at: '2026-08-15T10:00:00Z',
-    paid_at: '2026-08-28T14:00:00Z',
-    created_at: '2026-08-15T10:00:00Z',
-  },
-  {
-    id: 'inv-dig-02',
-    client_id: 'cli-dig-starlight',
-    client: DEFAULT_CLIENTS[1],
-    project_id: 'proj-dig-starlight',
-    project: DEFAULT_PROJECTS[1],
-    invoice_no: 'INV-DIG-8842',
-    amount: 340000,
-    tax_amount: 61200,
-    currency: 'INR',
-    status: 'Paid',
-    due_date: '2026-08-28',
-    issued_at: '2026-08-12T11:00:00Z',
-    paid_at: '2026-08-26T16:00:00Z',
-    created_at: '2026-08-12T11:00:00Z',
-  },
-  {
-    id: 'inv-dig-03',
-    client_id: 'cli-dig-nexus',
-    client: DEFAULT_CLIENTS[0],
-    project_id: 'proj-dig-nexus',
-    project: DEFAULT_PROJECTS[0],
-    invoice_no: 'INV-DIG-8843',
-    amount: 725000,
-    tax_amount: 130500,
-    currency: 'INR',
-    status: 'Sent',
-    due_date: '2026-09-25',
-    issued_at: '2026-09-01T10:00:00Z',
-    paid_at: null,
-    created_at: '2026-09-01T10:00:00Z',
-  },
-  {
-    id: 'inv-dig-04',
-    client_id: 'cli-dig-aerocloud',
-    client: DEFAULT_CLIENTS[2],
-    project_id: 'proj-dig-aerocloud',
-    project: DEFAULT_PROJECTS[2],
-    invoice_no: 'INV-DIG-8844',
-    amount: 395000,
-    tax_amount: 71100,
-    currency: 'INR',
-    status: 'Sent',
-    due_date: '2026-09-20',
-    issued_at: '2026-09-02T11:00:00Z',
-    paid_at: null,
-    created_at: '2026-09-02T11:00:00Z',
-  },
-  {
-    id: 'inv-dig-05',
-    client_id: 'cli-dig-tatadigital',
-    client: DEFAULT_CLIENTS[3],
-    project_id: 'proj-dig-tatamobility',
-    project: DEFAULT_PROJECTS[3],
-    invoice_no: 'INV-DIG-8845',
-    amount: 925000,
-    tax_amount: 166500,
-    currency: 'INR',
-    status: 'Draft',
-    due_date: '2026-10-10',
-    issued_at: '2026-09-03T12:00:00Z',
-    paid_at: null,
-    created_at: '2026-09-03T12:00:00Z',
-  },
-];
-
 // ─── Digital Clients ────────────────────────────────────────────────────────
 export async function getDigitalClients() {
-  const seeded = isSeeded('clients');
   try {
     const { data, error } = await supabase
       .from('digital_clients')
@@ -313,34 +16,21 @@ export async function getDigitalClients() {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      if (data.length > 0) {
-        try { localStorage.setItem('ferex_digital_clients', JSON.stringify(data)); } catch {}
-        if (!seeded) markSeeded('clients');
-        return data;
-      } else if (seeded) {
-        // Seeded before but Supabase is empty → user deleted all records, respect it
-        try { localStorage.setItem('ferex_digital_clients', JSON.stringify([])); } catch {}
-        return [];
-      }
+      try { localStorage.setItem('ferex_digital_clients', JSON.stringify(data)); } catch {}
+      return data;
     }
 
-    // Supabase unavailable → use local cache (trust it even if empty[])
     const local = localStorage.getItem('ferex_digital_clients');
     if (local !== null) {
       try { return JSON.parse(local); } catch {}
     }
-
-    // First-ever load: seed into Supabase + localStorage, mark seeded
-    markSeeded('clients');
-    try { localStorage.setItem('ferex_digital_clients', JSON.stringify(DEFAULT_CLIENTS)); } catch {}
-    try { await supabase.from('digital_clients').insert(DEFAULT_CLIENTS); } catch {}
-    return DEFAULT_CLIENTS;
+    return [];
   } catch {
     const local = localStorage.getItem('ferex_digital_clients');
     if (local !== null) {
       try { return JSON.parse(local); } catch {}
     }
-    return seeded ? [] : DEFAULT_CLIENTS;
+    return [];
   }
 }
 
@@ -360,8 +50,8 @@ export async function createDigitalClient(client: {
     company_name: client.company_name || client.name || 'Enterprise Client',
     contact_person: client.contact_person,
     email: client.email,
-    phone: client.phone || '+91 98190 33445',
-    industry: client.industry || client.client_type || 'Technology & Fintech',
+    phone: client.phone || '',
+    industry: client.industry || client.client_type || 'Technology',
     status: client.status || 'Active',
     total_revenue: 0.00,
     created_at: new Date().toISOString(),
@@ -397,7 +87,6 @@ export async function deleteDigitalClient(id: string) {
 // ─── Digital Leads ──────────────────────────────────────────────────────────
 export async function getDigitalLeads() {
   const clients = await getDigitalClients();
-  // Return actual leads from DB; never fall back to hardcoded mock leads
   return clients.filter((c: any) => c.status === 'Lead');
 }
 
@@ -417,7 +106,6 @@ export async function createDigitalLead(lead: {
 
 // ─── Digital Projects ───────────────────────────────────────────────────────
 export async function getDigitalProjects(category?: string) {
-  const seeded = isSeeded('projects');
   try {
     let query = supabase.from('digital_projects').select('*, client:digital_clients(*)').order('created_at', { ascending: false });
     if (category && category !== 'All') {
@@ -425,15 +113,9 @@ export async function getDigitalProjects(category?: string) {
     }
     const { data, error } = await query;
     if (!error && data) {
-      if (data.length > 0) {
-        try { localStorage.setItem('ferex_digital_projects', JSON.stringify(data)); } catch {}
-        if (!seeded) markSeeded('projects');
-        if (category && category !== 'All') return data.filter((p: any) => p.service_category === category);
-        return data;
-      } else if (seeded) {
-        try { localStorage.setItem('ferex_digital_projects', JSON.stringify([])); } catch {}
-        return [];
-      }
+      try { localStorage.setItem('ferex_digital_projects', JSON.stringify(data)); } catch {}
+      if (category && category !== 'All') return data.filter((p: any) => p.service_category === category);
+      return data;
     }
 
     const local = localStorage.getItem('ferex_digital_projects');
@@ -444,13 +126,7 @@ export async function getDigitalProjects(category?: string) {
         return parsed;
       } catch {}
     }
-
-    // First-ever load: seed into Supabase + localStorage, mark seeded
-    markSeeded('projects');
-    try { localStorage.setItem('ferex_digital_projects', JSON.stringify(DEFAULT_PROJECTS)); } catch {}
-    try { await supabase.from('digital_projects').insert(DEFAULT_PROJECTS.map(p => ({ ...p, client: undefined }))); } catch {}
-    if (category && category !== 'All') return DEFAULT_PROJECTS.filter((p: any) => p.service_category === category);
-    return DEFAULT_PROJECTS;
+    return [];
   } catch {
     const local = localStorage.getItem('ferex_digital_projects');
     if (local !== null) {
@@ -460,7 +136,7 @@ export async function getDigitalProjects(category?: string) {
         return parsed;
       } catch {}
     }
-    return seeded ? [] : DEFAULT_PROJECTS;
+    return [];
   }
 }
 
@@ -479,33 +155,27 @@ export async function createDigitalProject(project: {
   let clientObj = clients.find((c: any) => c.id === project.client_id || c.company_name === project.client_name);
   let clientId = project.client_id || clientObj?.id;
 
-  if (!clientId) {
-    if (clients.length > 0) {
-      clientId = clients[0].id;
-      clientObj = clients[0];
-    } else {
-      const created = await createDigitalClient({
-        company_name: project.client_name || 'Nexus FinTech Global',
-        contact_person: 'Ananya Deshmukh',
-        email: 'ananya@nexusfintech.io'
-      });
-      clientId = created.id;
-      clientObj = created;
-    }
+  if (!clientId && project.client_name) {
+    const created = await createDigitalClient({
+      company_name: project.client_name,
+      contact_person: 'Client Contact',
+      email: `contact@${project.client_name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
+    });
+    clientId = created.id;
+    clientObj = created;
   }
 
   const payload = {
     id: generateUUID(),
-    client_id: clientId,
+    client_id: clientId || null,
     client: clientObj || { company_name: project.client_name || 'Enterprise Client' },
     title: project.title,
-    service_category: project.service_category || 'Web & App Development',
+    service_category: project.service_category || 'Web Development',
     status: project.status || 'In Progress',
-    budget: Number(project.budget) || 250000,
+    budget: Number(project.budget) || 0,
     progress: Number(project.progress) || 0,
     deadline: project.deadline || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    lead_developer: project.lead_developer || 'Kavita Iyer',
-    notes: '',
+    lead_developer: project.lead_developer || 'Unassigned',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -513,7 +183,10 @@ export async function createDigitalProject(project: {
   const current = await getDigitalProjects();
   const updated = [payload, ...current];
   try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_projects').insert(payload); } catch {}
+  try {
+    const { client, ...dbPayload } = payload;
+    await supabase.from('digital_projects').insert(dbPayload);
+  } catch {}
   triggerLocalSync('ferex_digital_projects_change');
   return payload;
 }
@@ -522,7 +195,10 @@ export async function updateDigitalProject(id: string, updates: any) {
   const current = await getDigitalProjects();
   const updated = current.map((p: any) => p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p);
   try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_projects').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id); } catch {}
+  try {
+    const { client, ...dbUpdates } = updates;
+    await supabase.from('digital_projects').update({ ...dbUpdates, updated_at: new Date().toISOString() }).eq('id', id);
+  } catch {}
   triggerLocalSync('ferex_digital_projects_change');
   return updated.find((p: any) => p.id === id) || { id, ...updates };
 }
@@ -538,7 +214,6 @@ export async function deleteDigitalProject(id: string) {
 
 // ─── Digital Tasks ──────────────────────────────────────────────────────────
 export async function getDigitalTasks(projectId?: string) {
-  const seeded = isSeeded('tasks');
   try {
     let query = supabase.from('digital_tasks').select('*, project:digital_projects(*)').order('created_at', { ascending: false });
     if (projectId) {
@@ -546,15 +221,9 @@ export async function getDigitalTasks(projectId?: string) {
     }
     const { data, error } = await query;
     if (!error && data) {
-      if (data.length > 0) {
-        try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(data)); } catch {}
-        if (!seeded) markSeeded('tasks');
-        if (projectId) return data.filter((t: any) => t.project_id === projectId);
-        return data;
-      } else if (seeded) {
-        try { localStorage.setItem('ferex_digital_tasks', JSON.stringify([])); } catch {}
-        return [];
-      }
+      try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(data)); } catch {}
+      if (projectId) return data.filter((t: any) => t.project_id === projectId);
+      return data;
     }
 
     const local = localStorage.getItem('ferex_digital_tasks');
@@ -565,13 +234,7 @@ export async function getDigitalTasks(projectId?: string) {
         return parsed;
       } catch {}
     }
-
-    // First-ever load: seed into Supabase + localStorage, mark seeded
-    markSeeded('tasks');
-    try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(DEFAULT_TASKS)); } catch {}
-    try { await supabase.from('digital_tasks').insert(DEFAULT_TASKS.map(t => ({ ...t, project: undefined }))); } catch {}
-    if (projectId) return DEFAULT_TASKS.filter((t: any) => t.project_id === projectId);
-    return DEFAULT_TASKS;
+    return [];
   } catch {
     const local = localStorage.getItem('ferex_digital_tasks');
     if (local !== null) {
@@ -581,42 +244,27 @@ export async function getDigitalTasks(projectId?: string) {
         return parsed;
       } catch {}
     }
-    return seeded ? [] : DEFAULT_TASKS;
+    return [];
   }
 }
 
 export async function createDigitalTask(task: {
   project_id?: string;
+  project_title?: string;
   title: string;
   priority?: string;
   status?: string;
   due_date?: string;
   assigned_to_name?: string;
 }) {
-  const projects = await getDigitalProjects();
-  let projObj = projects.find((p: any) => p.id === task.project_id);
-  let projId = task.project_id || projObj?.id;
-
-  if (!projId) {
-    if (projects.length > 0) {
-      projId = projects[0].id;
-      projObj = projects[0];
-    } else {
-      const created = await createDigitalProject({ title: 'Nexus Web Platform' });
-      projId = created.id;
-      projObj = created;
-    }
-  }
-
   const payload = {
     id: generateUUID(),
-    project_id: projId,
-    project: projObj || { title: 'Project Deliverable' },
+    project_id: task.project_id || null,
     title: task.title,
     priority: task.priority || 'Medium',
     status: task.status || 'To Do',
     due_date: task.due_date || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    assigned_to_name: task.assigned_to_name || 'Kavita Iyer',
+    assigned_to_name: task.assigned_to_name || 'Engineering Team',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -624,18 +272,24 @@ export async function createDigitalTask(task: {
   const current = await getDigitalTasks();
   const updated = [payload, ...current];
   try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_tasks').insert(payload); } catch {}
+  try {
+    const { project, ...dbPayload } = payload as any;
+    await supabase.from('digital_tasks').insert(dbPayload);
+  } catch {}
   triggerLocalSync('ferex_digital_tasks_change');
   return payload;
 }
 
-export async function updateDigitalTaskStatus(id: string, status: string) {
+export async function updateDigitalTask(id: string, updates: any) {
   const current = await getDigitalTasks();
-  const updated = current.map((t: any) => t.id === id ? { ...t, status, updated_at: new Date().toISOString() } : t);
+  const updated = current.map((t: any) => t.id === id ? { ...t, ...updates, updated_at: new Date().toISOString() } : t);
   try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_tasks').update({ status, updated_at: new Date().toISOString() }).eq('id', id); } catch {}
+  try {
+    const { project, ...dbUpdates } = updates;
+    await supabase.from('digital_tasks').update({ ...dbUpdates, updated_at: new Date().toISOString() }).eq('id', id);
+  } catch {}
   triggerLocalSync('ferex_digital_tasks_change');
-  return updated.find((t: any) => t.id === id) || { id, status };
+  return updated.find((t: any) => t.id === id) || { id, ...updates };
 }
 
 export async function deleteDigitalTask(id: string) {
@@ -647,102 +301,137 @@ export async function deleteDigitalTask(id: string) {
   return true;
 }
 
-// ─── Digital Invoices & Payments ────────────────────────────────────────────
-export async function getDigitalInvoices() {
-  const seeded = isSeeded('invoices');
-  try {
-    const { data, error } = await supabase
-      .from('digital_invoices')
-      .select('*, client:digital_clients(*), project:digital_projects(*)')
-      .order('issued_at', { ascending: false });
+// ─── Digital Sprints ────────────────────────────────────────────────────────
+export async function getDigitalSprints() {
+  const saved = localStorage.getItem('ferex_digital_sprints');
+  if (saved) {
+    try { return JSON.parse(saved); } catch {}
+  }
+  return [];
+}
 
+export async function createDigitalSprint(sprint: {
+  name: string;
+  project_id?: string;
+  start_date: string;
+  end_date: string;
+  status?: string;
+}) {
+  const current = await getDigitalSprints();
+  const created = {
+    id: `SPR-${Date.now().toString().slice(-4)}`,
+    ...sprint,
+    status: sprint.status || 'Active',
+    completed_points: 0,
+    total_points: 40,
+    created_at: new Date().toISOString(),
+  };
+  const updated = [created, ...current];
+  localStorage.setItem('ferex_digital_sprints', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_sprints_change');
+  return created;
+}
+
+export async function updateDigitalSprint(id: string, updates: any) {
+  const current = await getDigitalSprints();
+  const updated = current.map((s: any) => s.id === id ? { ...s, ...updates } : s);
+  localStorage.setItem('ferex_digital_sprints', JSON.stringify(updated));
+  triggerLocalSync('ferex_digital_sprints_change');
+  return updated.find((s: any) => s.id === id) || { id, ...updates };
+}
+
+// ─── Digital Invoices ───────────────────────────────────────────────────────
+export async function getDigitalInvoices(clientId?: string) {
+  try {
+    let query = supabase.from('digital_invoices').select('*, client:digital_clients(*), project:digital_projects(*)').order('created_at', { ascending: false });
+    if (clientId) {
+      query = query.eq('client_id', clientId);
+    }
+    const { data, error } = await query;
     if (!error && data) {
-      if (data.length > 0) {
-        try { localStorage.setItem('ferex_digital_invoices', JSON.stringify(data)); } catch {}
-        if (!seeded) markSeeded('invoices');
-        return data;
-      } else if (seeded) {
-        try { localStorage.setItem('ferex_digital_invoices', JSON.stringify([])); } catch {}
-        return [];
-      }
+      try { localStorage.setItem('ferex_digital_invoices', JSON.stringify(data)); } catch {}
+      if (clientId) return data.filter((i: any) => i.client_id === clientId);
+      return data;
     }
 
     const local = localStorage.getItem('ferex_digital_invoices');
     if (local !== null) {
-      try { return JSON.parse(local); } catch {}
+      try {
+        const parsed = JSON.parse(local);
+        if (clientId) return parsed.filter((i: any) => i.client_id === clientId);
+        return parsed;
+      } catch {}
     }
-
-    // First-ever load: seed into Supabase + localStorage, mark seeded
-    markSeeded('invoices');
-    try { localStorage.setItem('ferex_digital_invoices', JSON.stringify(DEFAULT_INVOICES)); } catch {}
-    try {
-      await supabase.from('digital_invoices').insert(
-        DEFAULT_INVOICES.map(i => ({ ...i, client: undefined, project: undefined }))
-      );
-    } catch {}
-    return DEFAULT_INVOICES;
+    return [];
   } catch {
     const local = localStorage.getItem('ferex_digital_invoices');
     if (local !== null) {
-      try { return JSON.parse(local); } catch {}
+      try {
+        const parsed = JSON.parse(local);
+        if (clientId) return parsed.filter((i: any) => i.client_id === clientId);
+        return parsed;
+      } catch {}
     }
-    return seeded ? [] : DEFAULT_INVOICES;
+    return [];
   }
 }
 
-export async function createDigitalInvoice(inv: {
+export async function createDigitalInvoice(invoice: {
   client_id?: string;
-  project_id?: string;
   client_name?: string;
+  project_id?: string;
   invoice_no?: string;
   amount: number;
   tax_amount?: number;
   due_date?: string;
   status?: string;
+  notes?: string;
 }) {
   const clients = await getDigitalClients();
-  const projects = await getDigitalProjects();
+  let clientObj = clients.find((c: any) => c.id === invoice.client_id || c.company_name === invoice.client_name);
+  let clientId = invoice.client_id || clientObj?.id;
 
-  let clientObj = clients.find((c: any) => c.id === inv.client_id || c.company_name === inv.client_name);
-  let clientId = inv.client_id || clientObj?.id;
-  if (!clientId && clients.length > 0) {
-    clientId = clients[0].id;
-    clientObj = clients[0];
-  }
-
-  let projObj = projects.find((p: any) => p.id === inv.project_id);
+  const invNo = invoice.invoice_no || `INV-DIG-${Math.floor(1000 + Math.random() * 9000)}`;
+  const amt = Number(invoice.amount) || 0;
+  const taxAmt = invoice.tax_amount !== undefined ? Number(invoice.tax_amount) : Math.round(amt * 0.18);
 
   const payload = {
     id: generateUUID(),
-    client_id: clientId,
-    client: clientObj || { company_name: inv.client_name || 'Enterprise Client' },
-    project_id: inv.project_id || null,
-    project: projObj || null,
-    invoice_no: inv.invoice_no || `INV-DIG-${Math.floor(1000 + Math.random() * 9000)}`,
-    amount: Number(inv.amount) || 150000,
-    tax_amount: Number(inv.tax_amount) || Math.round((Number(inv.amount) || 150000) * 0.18),
+    client_id: clientId || null,
+    client: clientObj || { company_name: invoice.client_name || 'Enterprise Client' },
+    project_id: invoice.project_id || null,
+    invoice_no: invNo,
+    amount: amt,
+    tax_amount: taxAmt,
     currency: 'INR',
-    status: inv.status || 'Sent',
-    due_date: inv.due_date || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+    status: invoice.status || 'Sent',
+    due_date: invoice.due_date || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
     issued_at: new Date().toISOString(),
+    paid_at: invoice.status === 'Paid' ? new Date().toISOString() : null,
     created_at: new Date().toISOString(),
   };
 
   const current = await getDigitalInvoices();
   const updated = [payload, ...current];
   try { localStorage.setItem('ferex_digital_invoices', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_invoices').insert(payload); } catch {}
+  try {
+    const { client, project, ...dbPayload } = payload as any;
+    await supabase.from('digital_invoices').insert(dbPayload);
+  } catch {}
   triggerLocalSync('ferex_digital_invoices_change');
   return payload;
 }
 
-export async function updateDigitalInvoiceStatus(id: string, status: string) {
+export async function updateDigitalInvoice(id: string, updates: any) {
   const current = await getDigitalInvoices();
-  const updated = current.map((i: any) => i.id === id ? { ...i, status, paid_at: status === 'Paid' ? new Date().toISOString() : null } : i);
+  const updated = current.map((i: any) => i.id === id ? { ...i, ...updates } : i);
   try { localStorage.setItem('ferex_digital_invoices', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_invoices').update({ status, paid_at: status === 'Paid' ? new Date().toISOString() : null }).eq('id', id); } catch {}
+  try {
+    const { client, project, ...dbUpdates } = updates;
+    await supabase.from('digital_invoices').update(dbUpdates).eq('id', id);
+  } catch {}
   triggerLocalSync('ferex_digital_invoices_change');
-  return updated.find((i: any) => i.id === id) || { id, status };
+  return updated.find((i: any) => i.id === id) || { id, ...updates };
 }
 
 export async function deleteDigitalInvoice(id: string) {
@@ -754,46 +443,31 @@ export async function deleteDigitalInvoice(id: string) {
   return true;
 }
 
-export async function getDigitalPayments() {
-  return getDigitalInvoices();
-}
-
 // ─── Digital Expenses ───────────────────────────────────────────────────────
 export async function getDigitalExpenses() {
-  const seeded = isSeeded('expenses');
   const saved = localStorage.getItem('ferex_digital_expenses');
-  if (saved !== null) {
-    try {
-      return JSON.parse(saved);
-    } catch {}
+  if (saved) {
+    try { return JSON.parse(saved); } catch {}
   }
-  if (seeded) return [];
-  markSeeded('expenses');
-  const defaultExpenses = [
-    { id: 'EXP-101', title: 'AWS Cloud Infrastructure Cluster', category: 'Cloud Infrastructure', amount: 84500, date: '2026-09-01', vendor: 'Amazon Web Services', status: 'Settled' },
-    { id: 'EXP-102', title: 'Figma Organization & Adobe Suite Licenses', category: 'Software Tools', amount: 42000, date: '2026-08-28', vendor: 'Adobe Systems', status: 'Settled' },
-    { id: 'EXP-103', title: 'Google Ads & Meta Campaign Spend', category: 'Ad Spend', amount: 165000, date: '2026-08-25', vendor: 'Google Ads', status: 'Settled' },
-  ];
-  try { localStorage.setItem('ferex_digital_expenses', JSON.stringify(defaultExpenses)); } catch {}
-  return defaultExpenses;
+  return [];
 }
 
 export async function createDigitalExpense(expense: {
   title: string;
   category: string;
   amount: number;
+  project_id?: string;
   vendor?: string;
   date?: string;
 }) {
   const current = await getDigitalExpenses();
   const created = {
-    id: `EXP-${Math.floor(104 + Math.random() * 900)}`,
-    title: expense.title,
-    category: expense.category,
-    amount: Number(expense.amount),
-    vendor: expense.vendor || 'Agency Vendor',
+    id: `EXP-DIG-${Date.now().toString().slice(-4)}`,
+    ...expense,
+    amount: Number(expense.amount) || 0,
     date: expense.date || new Date().toISOString().split('T')[0],
-    status: 'Settled'
+    status: 'Approved',
+    created_at: new Date().toISOString(),
   };
   const updated = [created, ...current];
   localStorage.setItem('ferex_digital_expenses', JSON.stringify(updated));
@@ -811,23 +485,11 @@ export async function deleteDigitalExpense(id: string) {
 
 // ─── Digital Employees ──────────────────────────────────────────────────────
 export async function getDigitalEmployees() {
-  const seeded = isSeeded('employees');
   const saved = localStorage.getItem('ferex_digital_employees');
-  if (saved !== null) {
-    try {
-      return JSON.parse(saved);
-    } catch {}
+  if (saved) {
+    try { return JSON.parse(saved); } catch {}
   }
-  if (seeded) return [];
-  markSeeded('employees');
-  const defaultEmployees = [
-    { id: 'EMP-01', name: 'Kavita Iyer', role: 'Principal Fullstack Architect', department: 'Engineering', email: 'k.iyer@ferex.digital', status: 'Active', projectsCount: 4 },
-    { id: 'EMP-02', name: 'Sameer Sen', role: 'Lead Product Designer (UI/UX)', department: 'Design', email: 'sameer@ferex.digital', status: 'Active', projectsCount: 3 },
-    { id: 'EMP-03', name: 'Pooja Hegde', role: 'Senior SEO & Growth Strategist', department: 'Marketing', email: 'pooja.h@ferex.digital', status: 'Active', projectsCount: 5 },
-    { id: 'EMP-04', name: 'Rohan Joshi', role: 'Mobile Flutter Engineer', department: 'Engineering', email: 'r.joshi@ferex.digital', status: 'Active', projectsCount: 2 },
-  ];
-  try { localStorage.setItem('ferex_digital_employees', JSON.stringify(defaultEmployees)); } catch {}
-  return defaultEmployees;
+  return [];
 }
 
 export async function createDigitalEmployee(emp: {
@@ -845,9 +507,9 @@ export async function createDigitalEmployee(emp: {
   const created = {
     id: `EMP-${Math.floor(10 + Math.random() * 90)}`,
     status: 'Active',
-    projectsCount: emp.projects || 1,
+    projectsCount: emp.projects || 0,
     ...emp,
-    rating: emp.rating ?? 4.8,
+    rating: emp.rating ?? 5.0,
   };
   const updated = [created, ...current];
   localStorage.setItem('ferex_digital_employees', JSON.stringify(updated));
@@ -855,18 +517,7 @@ export async function createDigitalEmployee(emp: {
   return created;
 }
 
-export async function updateDigitalEmployee(id: string, updates: Partial<{
-  name: string;
-  role: string;
-  department: string;
-  email: string;
-  status: string;
-  projectsCount: number;
-  rating?: number;
-  kpiScore?: number;
-  feedback?: string;
-  tasks?: number;
-}>) {
+export async function updateDigitalEmployee(id: string, updates: any) {
   const current = await getDigitalEmployees();
   const updated = current.map((e: any) => e.id === id ? { ...e, ...updates } : e);
   localStorage.setItem('ferex_digital_employees', JSON.stringify(updated));
@@ -884,22 +535,11 @@ export async function deleteDigitalEmployee(id: string) {
 
 // ─── Digital Attendance & HR ────────────────────────────────────────────────
 export async function getDigitalAttendance() {
-  const seeded = isSeeded('attendance');
   const saved = localStorage.getItem('ferex_digital_attendance');
-  if (saved !== null) {
-    try {
-      return JSON.parse(saved);
-    } catch {}
+  if (saved) {
+    try { return JSON.parse(saved); } catch {}
   }
-  if (seeded) return [];
-  markSeeded('attendance');
-  const defaultAttendance = [
-    { id: 'ATT-01', employee: 'Kavita Iyer', date: '2026-09-03', status: 'Present', checkIn: '09:15 AM', checkOut: '06:30 PM' },
-    { id: 'ATT-02', employee: 'Sameer Sen', date: '2026-09-03', status: 'Present', checkIn: '09:30 AM', checkOut: '06:00 PM' },
-    { id: 'ATT-03', employee: 'Pooja Hegde', date: '2026-09-03', status: 'Present', checkIn: '09:00 AM', checkOut: '05:45 PM' },
-  ];
-  try { localStorage.setItem('ferex_digital_attendance', JSON.stringify(defaultAttendance)); } catch {}
-  return defaultAttendance;
+  return [];
 }
 
 export async function recordDigitalAttendance(record: any) {
@@ -917,21 +557,11 @@ export async function recordDigitalAttendance(record: any) {
 
 // ─── Digital Meetings ───────────────────────────────────────────────────────
 export async function getDigitalMeetings() {
-  const seeded = isSeeded('meetings');
   const saved = localStorage.getItem('ferex_digital_meetings');
-  if (saved !== null) {
-    try {
-      return JSON.parse(saved);
-    } catch {}
+  if (saved) {
+    try { return JSON.parse(saved); } catch {}
   }
-  if (seeded) return [];
-  markSeeded('meetings');
-  const defaultMeetings = [
-    { id: 'MTG-01', title: 'Nexus FinTech Sprint Architecture Review', client: 'Nexus FinTech Global', time: 'Today, 03:00 PM', link: 'https://meet.google.com/fer-dig-arch', status: 'Scheduled' },
-    { id: 'MTG-02', title: 'Starlight Brands UI/UX Design Approval', client: 'Starlight E-Commerce Brands', time: 'Tomorrow, 11:30 AM', link: 'https://meet.google.com/fer-dig-uiux', status: 'Scheduled' },
-  ];
-  try { localStorage.setItem('ferex_digital_meetings', JSON.stringify(defaultMeetings)); } catch {}
-  return defaultMeetings;
+  return [];
 }
 
 export async function createDigitalMeeting(mtg: {
@@ -946,7 +576,7 @@ export async function createDigitalMeeting(mtg: {
     title: mtg.title,
     client: mtg.client,
     time: mtg.time,
-    link: mtg.link || 'https://meet.google.com/fer-dig-conf',
+    link: mtg.link || 'https://meet.google.com',
     status: 'Scheduled'
   };
   const updated = [created, ...current];
@@ -963,7 +593,7 @@ export async function deleteDigitalMeeting(id: string) {
   return true;
 }
 
-// ─── Digital Messages & Notifications ───────────────────────────────────────
+// ─── Digital Messages ───────────────────────────────────────────────────────
 export async function getDigitalMessages(conversationId: string = '1') {
   try {
     const { data, error } = await supabase
@@ -997,92 +627,27 @@ export async function sendDigitalMessage(msg: {
     created_at: new Date().toISOString(),
   };
 
-  const { data } = await supabase.from('trade_messages').insert(payload).select();
-  triggerLocalSync('ferex_digital_messages_change');
-  return data?.[0] || payload;
-}
-
-export async function getDigitalNotifications() {
-  const local = localStorage.getItem('ferex_digital_notifications');
-  let localList: any[] = [];
-  if (local) {
-    try { localList = JSON.parse(local); } catch {}
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('digital_notifications')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!error && Array.isArray(data) && data.length > 0) {
-      const map = new Map<string, any>();
-      data.forEach((item: any) => map.set(item.id, item));
-      localList.forEach((item: any) => { if (!map.has(item.id)) map.set(item.id, item); });
-      const merged = Array.from(map.values());
-      try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(merged)); } catch {}
-      return merged;
-    }
+    const { data } = await supabase.from('trade_messages').insert(payload).select();
+    if (data && data.length > 0) return data[0];
   } catch {}
-
-  if (localList.length > 0) return localList;
-
-  const defaultNotifs = [
-    { id: 'NTF-001', title: 'Invoice Paid', description: 'Nexus FinTech Global settled Tax Invoice #INV-DIG-8810 (₹4,50,000 via RTGS).', category: 'Finance', is_read: false, created_at: new Date(Date.now() - 2 * 3600000).toISOString() },
-    { id: 'NTF-002', title: 'Sprint Milestone Completed', description: 'Starlight E-Commerce Design System approved for production build.', category: 'Projects', is_read: false, created_at: new Date(Date.now() - 4 * 3600000).toISOString() },
-    { id: 'NTF-003', title: 'AWS Cloud Alert', description: 'Production cluster utilization steady at 38%. Zero downtime.', category: 'DevOps', is_read: true, created_at: new Date(Date.now() - 24 * 3600000).toISOString() },
-  ];
-  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(defaultNotifs)); } catch {}
-  return defaultNotifs;
-}
-
-export async function createDigitalNotification(notif: {
-  title: string;
-  description: string;
-  category?: string;
-}) {
-  const payload = {
-    id: generateUUID(),
-    title: notif.title,
-    message: notif.description,
-    description: notif.description,
-    type: 'info',
-    category: notif.category || 'Digital',
-    is_read: false,
-    created_at: new Date().toISOString(),
-  };
-
-  const current = await getDigitalNotifications();
-  const updated = [payload, ...current];
-  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_notifications').insert(payload); } catch {}
-  triggerLocalSync('ferex_digital_notifications_change');
   return payload;
 }
 
-export async function markDigitalNotificationRead(id: string) {
-  const current = await getDigitalNotifications();
-  const updated = current.map(n => n.id === id ? { ...n, is_read: true } : n);
-  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_notifications').update({ is_read: true }).eq('id', id); } catch {}
-  triggerLocalSync('ferex_digital_notifications_change');
-  return true;
-}
-
-// ─── Digital Dashboard Stats Aggregator ─────────────────────────────────────
+// ─── Digital Dashboard Stats ────────────────────────────────────────────────
 export async function getDigitalDashboardStats() {
   try {
-    const [clients, projects, invoices, tasks] = await Promise.all([
+    const [clients, projects, tasks, invoices] = await Promise.all([
       getDigitalClients(),
       getDigitalProjects(),
-      getDigitalInvoices(),
       getDigitalTasks(),
+      getDigitalInvoices(),
     ]);
 
-    const activeProjects = projects.filter((p: any) => p.status !== 'Completed' && p.status !== 'Archived');
-    const totalPipelineBudget = projects.reduce((sum: number, p: any) => sum + (Number(p.budget) || 0), 0);
-    const paidInvoices = invoices.filter((i: any) => i.status === 'Paid');
-    const totalCollected = paidInvoices.reduce((sum: number, i: any) => sum + (Number(i.amount) || 0), 0);
+    const activeClients = clients.filter((c: any) => c.status === 'Active');
+    const activeProjects = projects.filter((p: any) => p.status === 'In Progress');
+    const totalPipeline = projects.reduce((sum: number, p: any) => sum + (Number(p.budget) || 0), 0);
+    const totalCollected = invoices.filter((i: any) => i.status === 'Paid').reduce((sum: number, i: any) => sum + (Number(i.amount) || 0), 0);
     const pendingTasks = tasks.filter((t: any) => t.status !== 'Done');
 
     const formatInr = (amt: number) => {
@@ -1093,21 +658,21 @@ export async function getDigitalDashboardStats() {
     };
 
     return {
-      activeClientsCount: clients.filter((c: any) => c.status !== 'Archived').length,
+      activeClientsCount: activeClients.length,
       activeProjectsCount: activeProjects.length,
       totalProjectsCount: projects.length,
-      totalPipelineValueStr: formatInr(totalPipelineBudget),
+      totalPipelineValueStr: formatInr(totalPipeline),
       totalCollectedStr: formatInr(totalCollected),
       pendingTasksCount: pendingTasks.length,
     };
   } catch {
     return {
-      activeClientsCount: 4,
-      activeProjectsCount: 4,
-      totalProjectsCount: 4,
-      totalPipelineValueStr: '₹47.70 Lakhs',
-      totalCollectedStr: '₹10.65 Lakhs',
-      pendingTasksCount: 5,
+      activeClientsCount: 0,
+      activeProjectsCount: 0,
+      totalProjectsCount: 0,
+      totalPipelineValueStr: '₹0',
+      totalCollectedStr: '₹0',
+      pendingTasksCount: 0,
     };
   }
 }
@@ -1147,7 +712,6 @@ export async function provisionDigitalClientLogin(client: {
     provisionedAt: new Date().toISOString(),
   };
 
-  // 1. Save to local storage for persistent mock/fallback lookup
   localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
     email: cleanEmail,
     password: tempPassword,
@@ -1159,7 +723,6 @@ export async function provisionDigitalClientLogin(client: {
   }));
   localStorage.setItem(`ferex_digital_client_cred_${client.id}`, JSON.stringify(credentialPayload));
 
-  // 2. Persist to Supabase users table if available
   try {
     await supabase.from('users').upsert({
       email: cleanEmail,
@@ -1236,7 +799,6 @@ export async function createDigitalMultiProjectInvoice(payload: {
       created_at: invoiceRecord.created_at,
     }).select();
     
-    // Save detailed items in localStorage for instant retrieval
     const multiSaved = localStorage.getItem('ferex_digital_multi_invoices') || '{}';
     try {
       const map = JSON.parse(multiSaved);
@@ -1280,72 +842,9 @@ export interface DigitalAsset {
 export async function getDigitalAssets(): Promise<DigitalAsset[]> {
   const saved = localStorage.getItem('ferex_digital_assets');
   if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch {}
+    try { return JSON.parse(saved); } catch {}
   }
-  const defaultAssets: DigitalAsset[] = [
-    {
-      id: 'AST-DIG-01',
-      name: 'AWS Elastic Kubernetes (EKS Production Cluster)',
-      type: 'Cloud Infrastructure',
-      provider: 'Amazon Web Services',
-      cost_per_month_inr: 88500,
-      renewal_date: '2026-10-01',
-      status: 'Active',
-      assigned_to_project: 'Nexus FinTech Platform',
-      assigned_team_lead: 'Kavita Iyer',
-      license_seats: 12
-    },
-    {
-      id: 'AST-DIG-02',
-      name: 'Figma Enterprise Organization Workspace',
-      type: 'Design & Dev Tools',
-      provider: 'Figma Inc.',
-      cost_per_month_inr: 32000,
-      renewal_date: '2026-09-28',
-      status: 'Active',
-      assigned_to_project: 'Global Design System',
-      assigned_team_lead: 'Sameer Sen',
-      license_seats: 25
-    },
-    {
-      id: 'AST-DIG-03',
-      name: 'Cloudflare Enterprise SSL & DDoS Shield',
-      type: 'SSL & Security',
-      provider: 'Cloudflare Inc.',
-      cost_per_month_inr: 21500,
-      renewal_date: '2026-09-15',
-      status: 'Expiring Soon',
-      assigned_to_project: 'All Active Client Portals',
-      assigned_team_lead: 'Rohan Joshi',
-    },
-    {
-      id: 'AST-DIG-04',
-      name: 'OpenAI GPT-4o Enterprise API Gateway',
-      type: 'API Gateway',
-      provider: 'OpenAI LLC',
-      cost_per_month_inr: 54000,
-      renewal_date: '2026-10-05',
-      status: 'Active',
-      assigned_to_project: 'AI Copilot & Workflow Engines',
-      assigned_team_lead: 'Kavita Iyer',
-    },
-    {
-      id: 'AST-DIG-05',
-      name: 'GitHub Enterprise & Copilot Business Seats',
-      type: 'SaaS License',
-      provider: 'GitHub Inc.',
-      cost_per_month_inr: 18000,
-      renewal_date: '2026-11-01',
-      status: 'Active',
-      assigned_to_project: 'Core Engineering',
-      assigned_team_lead: 'Kavita Iyer',
-      license_seats: 18
-    }
-  ];
-  try { localStorage.setItem('ferex_digital_assets', JSON.stringify(defaultAssets)); } catch {}
-  return defaultAssets;
+  return [];
 }
 
 export async function createDigitalAsset(asset: Partial<DigitalAsset>): Promise<DigitalAsset> {
@@ -1355,7 +854,7 @@ export async function createDigitalAsset(asset: Partial<DigitalAsset>): Promise<
     name: asset.name || 'Cloud Asset / License',
     type: asset.type || 'SaaS License',
     provider: asset.provider || 'SaaS Provider',
-    cost_per_month_inr: Number(asset.cost_per_month_inr) || 12000,
+    cost_per_month_inr: Number(asset.cost_per_month_inr) || 0,
     renewal_date: asset.renewal_date || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
     status: asset.status || 'Active',
     assigned_to_project: asset.assigned_to_project || 'Internal Core',
@@ -1396,6 +895,3 @@ export async function getDigitalAssetCostSummary() {
     totalAssetsCount: assets.length
   };
 }
-
-
-

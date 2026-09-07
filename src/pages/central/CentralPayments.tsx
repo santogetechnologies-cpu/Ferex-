@@ -51,6 +51,7 @@ export const CentralPayments: React.FC = () => {
       // Education Payments
       if (eduRes.data && Array.isArray(eduRes.data)) {
         eduRes.data.forEach((p: any) => {
+          const amt = Number(p.amount) || 0;
           txns.push({
             id: p.id || `TXN-ED-${Math.floor(1000 + Math.random() * 9000)}`,
             division: 'Education',
@@ -58,9 +59,9 @@ export const CentralPayments: React.FC = () => {
             divisionIcon: GraduationCap,
             client: p.student_name || p.user_id || 'Student Applicant',
             description: p.purpose || 'Tuition / Processing Fee Wire',
-            amount: Number(p.amount) || 45000,
+            amount: amt,
             currency: 'INR',
-            amountFormatted: `₹${Number(p.amount || 45000).toLocaleString('en-IN')}`,
+            amountFormatted: `₹${amt.toLocaleString('en-IN')}`,
             method: p.payment_method || 'Bank Wire',
             date: p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Recent',
             status: p.status === 'Paid' ? 'Verified' : 'Pending',
@@ -74,22 +75,22 @@ export const CentralPayments: React.FC = () => {
       if (Array.isArray(tradeData)) {
         tradeData.forEach((t: any) => {
           const isEur = t.currency === 'EUR' || String(t.amount).includes('€');
-          const amt = Number(t.amount) || 120000;
+          const amt = Number(t.amount) || 0;
           txns.push({
             id: t.id || `TXN-TR-${Math.floor(1000 + Math.random() * 9000)}`,
             division: 'Trade',
             divisionBadge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
             divisionIcon: Globe,
-            client: t.beneficiary || 'Global Port & Trade Logistics',
+            client: t.beneficiary || t.partner_entity || 'Global Port & Trade Logistics',
             description: t.description || `Letter of Credit / Freight Wire (${t.payment_type || 'LC MT700'})`,
             amount: isEur ? amt * 90 : amt,
             currency: isEur ? 'EUR' : 'INR',
             amountFormatted: isEur ? `€${amt.toLocaleString()} (~₹${((amt * 90) / 100000).toFixed(1)} L)` : `₹${amt.toLocaleString('en-IN')}`,
             method: t.payment_type || 'SWIFT Wire',
-            date: t.payment_date || (t.created_at ? new Date(t.created_at).toLocaleDateString() : 'Recent'),
+            date: t.payment_date || t.settlement_date || (t.created_at ? new Date(t.created_at).toLocaleDateString() : 'Recent'),
             status: t.status === 'Completed' || t.status === 'Settled' ? 'Settled' : 'Pending',
             statusBadge: t.status === 'Completed' || t.status === 'Settled' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-700 border-amber-200',
-            refNo: t.swift_reference || `LC-REF-${t.id?.slice(0, 6)}`,
+            refNo: t.transaction_ref || t.swift_reference || `LC-REF-${t.id?.slice(0, 6)}`,
           });
         });
       }
@@ -97,13 +98,13 @@ export const CentralPayments: React.FC = () => {
       // Rimi Orders
       if (Array.isArray(rimiData)) {
         rimiData.forEach((r: any) => {
-          const amt = Number(r.total_amount) || 280000;
+          const amt = Number(r.total_amount) || 0;
           txns.push({
             id: r.id || `TXN-RM-${Math.floor(1000 + Math.random() * 9000)}`,
             division: 'Rimi',
             divisionBadge: 'bg-cyan-50 text-cyan-700 border-cyan-200',
             divisionIcon: Snowflake,
-            client: r.distributor?.business_name || 'Retail Wholesale Partner',
+            client: r.distributor?.business_name || r.customer_name || 'Retail Wholesale Partner',
             description: `Cold Chain Dispatch Order #${r.order_no || 'FMCG-BATCH'}`,
             amount: amt,
             currency: 'INR',
@@ -120,7 +121,7 @@ export const CentralPayments: React.FC = () => {
       // Digital Invoices
       if (Array.isArray(digData)) {
         digData.forEach((d: any) => {
-          const amt = Number(d.amount) || 150000;
+          const amt = Number(d.amount) || 0;
           txns.push({
             id: d.id || `TXN-DG-${Math.floor(1000 + Math.random() * 9000)}`,
             division: 'Digital',
@@ -132,7 +133,7 @@ export const CentralPayments: React.FC = () => {
             currency: 'INR',
             amountFormatted: `₹${amt.toLocaleString('en-IN')}`,
             method: 'Razorpay / Bank Wire',
-            date: d.issue_date || (d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Recent'),
+            date: d.issued_at || (d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Recent'),
             status: d.status === 'Paid' ? 'Verified' : 'Pending',
             statusBadge: d.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
             refNo: d.invoice_no || `INV-DIG-${d.id?.slice(0, 6)}`,

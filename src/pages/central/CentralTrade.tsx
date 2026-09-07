@@ -57,10 +57,10 @@ export const CentralTrade: React.FC = () => {
   }, [loadData]);
 
   // Aggregate Metrics
-  const totalShipmentValueEur = shipments.reduce((sum, s) => sum + (Number(s.cargo_weight_kg || 24500) * 4.5), 0);
+  const totalShipmentValueEur = shipments.reduce((sum, s) => sum + Number(s.cargo_value || (Number(s.cargo_weight_kg || 0) * 4.5)), 0);
   const inTransitCount = shipments.filter(s => (s.status || s.shipment_status) === 'In Transit').length;
   const verifiedDocsCount = documents.length;
-  const totalLcsValueEur = lcs.reduce((sum, l) => sum + (Number(l.amount || 120000)), 0);
+  const totalLcsValueEur = lcs.reduce((sum, l) => sum + (Number(l.amount || 0)), 0);
 
   const handleUpdateShipmentStage = async (shipment: any, newStage: string) => {
     // Send automated email to buyer
