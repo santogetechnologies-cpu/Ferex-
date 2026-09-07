@@ -536,7 +536,6 @@ export const AdminMeetings: React.FC = () => {
                 <div className="space-y-3">
                   {selectedDayMeetings.map((meet) => {
                     const isCompleted = meet.status === 'Completed';
-                    const isCancelled = meet.status === 'Cancelled';
                     const isActive = ['Scheduled', 'Rescheduled', 'Confirmed'].includes(meet.status);
 
                     return (

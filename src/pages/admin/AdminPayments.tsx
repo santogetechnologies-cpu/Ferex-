@@ -679,8 +679,8 @@ export const AdminPayments: React.FC = () => {
                     <Plus className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-slate-900">Record Offline / Manual Payment</h3>
-                    <p className="text-[10px] text-slate-400 font-semibold">Log bank wire, cash, or offline fee clearance</p>
+                    <h3 className="text-sm font-black text-slate-900">Record Payment (Offline & Online)</h3>
+                    <p className="text-[10px] text-slate-400 font-semibold">Log cash voucher, cheque/DD, bank wire, or online payment</p>
                   </div>
                 </div>
                 <button onClick={() => setShowManualModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
@@ -699,7 +699,7 @@ export const AdminPayments: React.FC = () => {
                         }
                       }
                     }}
-                    className="w-full h-9 px-3 mb-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    className="w-full h-9 px-3 mb-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
                   >
                     <option value="">-- Choose Existing Student (Optional) --</option>
                     {students.map((s) => (
@@ -720,13 +720,14 @@ export const AdminPayments: React.FC = () => {
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Payment Method</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Payment Method *</label>
                     <select value={manualMethod} onChange={e => setManualMethod(e.target.value)}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none">
-                      <option value="Bank Wire Transfer">Bank Wire Transfer</option>
-                      <option value="UPI / GPay / PhonePe">UPI / GPay / PhonePe</option>
-                      <option value="Cash Deposit">Cash Deposit</option>
-                      <option value="Credit / Debit Card">Credit / Debit Card</option>
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer">
+                      <option value="Cash Payment (Counter Voucher)">Cash Payment (Counter Voucher)</option>
+                      <option value="Cheque / Demand Draft (DD)">Cheque / Demand Draft (DD)</option>
+                      <option value="Bank Wire Transfer (NEFT/RTGS/IMPS)">Bank Wire Transfer (NEFT/RTGS/IMPS)</option>
+                      <option value="UPI / Instant QR">UPI / Instant QR</option>
+                      <option value="Stripe / Card Payment">Stripe / Card Payment</option>
                     </select>
                   </div>
                 </div>
@@ -734,21 +735,23 @@ export const AdminPayments: React.FC = () => {
                 <div>
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Fee Description / Title</label>
                   <input type="text" value={manualTitle} onChange={e => setManualTitle(e.target.value)}
-                    placeholder="e.g. 1st Installment Fee Clearance"
+                    placeholder="e.g. 1st Installment Registration Fee"
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Transaction / UTR No</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                      {manualMethod.includes('Cash') ? 'Voucher / Receipt Ref' : manualMethod.includes('Cheque') ? 'Cheque / DD No' : 'UTR / Wire Ref No'}
+                    </label>
                     <input type="text" value={manualUtr} onChange={e => setManualUtr(e.target.value)}
-                      placeholder="e.g. HDFC129038102"
+                      placeholder={manualMethod.includes('Cash') ? 'e.g. CSH-VCH-8901' : manualMethod.includes('Cheque') ? 'e.g. CHQ-004812' : 'e.g. HDFC129038102'}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:outline-none" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Initial Status</label>
                     <select value={manualStatus} onChange={e => setManualStatus(e.target.value as any)}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none">
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none cursor-pointer">
                       <option value="Paid">Verified & Paid</option>
                       <option value="Pending">Pending Verification</option>
                     </select>
@@ -757,9 +760,9 @@ export const AdminPayments: React.FC = () => {
 
                 <div className="flex gap-2 pt-2 border-t border-slate-100">
                   <button type="button" onClick={() => setShowManualModal(false)}
-                    className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
+                    className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
                   <button type="submit" disabled={isProcessing === 'manual'}
-                    className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-black rounded-xl hover:bg-[#521221] shadow-sm">
+                    className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-black rounded-xl hover:bg-[#521221] shadow-sm cursor-pointer disabled:opacity-50">
                     {isProcessing === 'manual' ? 'Saving...' : 'Record Payment'}
                   </button>
                 </div>

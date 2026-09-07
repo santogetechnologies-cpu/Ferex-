@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Save, Sparkles, X, Plus, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Save, Sparkles, X, Plus, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { useStudents } from '../../hooks/useStudents';
@@ -153,7 +153,6 @@ export const AdminVisaTracker: React.FC = () => {
           console.warn('Failed to auto-update student application to Approved:', e);
         }
       } else {
-        // Auto update application status to 'Visa Processing'
         await autoSetVisaProcessing(selectedStudentId);
       }
     } catch (err: any) {
@@ -192,7 +191,6 @@ export const AdminVisaTracker: React.FC = () => {
         notes: 'VFS Process initiated by Admin. Appointment slot allocated.',
       });
 
-      // Auto update application status in Supabase to 'Visa Processing'
       await autoSetVisaProcessing(initiateStudentId);
 
       showToast(`🎉 VFS process initiated for ${sName}! Application status updated to Visa Processing.`);
@@ -244,6 +242,59 @@ export const AdminVisaTracker: React.FC = () => {
   const activeStudent = students.find(s => s.id === selectedStudentId);
   const activeStudentName = activeStudent?.full_name || activeStudent?.email?.split('@')[0] || 'Student';
 
+  // Build unified roster merging all students and existing records
+  const enrolledStudentIds = new Set(students.map(s => s.id));
+  const studentRows = students.map(st => {
+    const sName = st.full_name || st.email?.split('@')[0] || 'Student';
+    const rec = records.find(r => r.student_id === st.id || (r.student_name && r.student_name.toLowerCase() === sName.toLowerCase()));
+    const decision = rec?.decision_outcome ||
+      (rec?.status_label?.toLowerCase().includes('approv') ? 'Approved' :
+       rec?.status_label?.toLowerCase().includes('reject') || rec?.status_label?.toLowerCase().includes('refus') ? 'Rejected' : 'Pending');
+
+    return {
+      key: `std-${st.id}`,
+      student_id: st.id,
+      student_name: sName,
+      email: st.email,
+      vfs_ref_no: rec?.vfs_ref_no || '',
+      embassy_name: rec?.embassy_name || 'Embassy of Poland, New Delhi',
+      assigned_counselor: st.assigned_counselor || (rec as any)?.assigned_counselor || 'Admin',
+      current_stage: rec?.current_stage || 0,
+      status_label: rec?.status_label || 'Not Initiated',
+      decision_outcome: decision,
+      hasRecord: Boolean(rec),
+    };
+  });
+
+  // Include any extra historical records not in students list
+  const extraRecords = records
+    .filter(r => r.student_id && !enrolledStudentIds.has(r.student_id))
+    .map(r => ({
+      key: `rec-${r.id}`,
+      student_id: r.student_id,
+      student_name: r.student_name || 'Student',
+      email: '',
+      vfs_ref_no: r.vfs_ref_no || '',
+      embassy_name: r.embassy_name || 'Embassy of Poland',
+      assigned_counselor: (r as any).assigned_counselor || 'Admin',
+      current_stage: r.current_stage || 1,
+      status_label: r.status_label || 'VFS Processing',
+      decision_outcome: r.decision_outcome || 'Pending',
+      hasRecord: true,
+    }));
+
+  const allDisplayRows = [...studentRows, ...extraRecords].filter(row => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      row.student_name.toLowerCase().includes(q) ||
+      row.vfs_ref_no.toLowerCase().includes(q) ||
+      row.embassy_name.toLowerCase().includes(q) ||
+      row.status_label.toLowerCase().includes(q) ||
+      row.email.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="space-y-6 text-left relative min-h-[600px]">
       {/* Toast */}
@@ -277,14 +328,17 @@ export const AdminVisaTracker: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => refresh()}
-            className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500 transition-colors"
+            className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500 transition-colors cursor-pointer"
             title="Refresh Live Data"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <Button
-            onClick={() => setShowInitiateModal(true)}
-            className="bg-[#6A1B2E] text-white hover:bg-[#521221] font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm"
+            onClick={() => {
+              setInitiateStudentId(students[0]?.id || '');
+              setShowInitiateModal(true);
+            }}
+            className="bg-[#6A1B2E] text-white hover:bg-[#521221] font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Initiate VFS Process
           </Button>
@@ -318,7 +372,7 @@ export const AdminVisaTracker: React.FC = () => {
                     <p className="text-[10.5px] text-slate-400 font-semibold">Start VFS Global visa filing for an enrolled student</p>
                   </div>
                 </div>
-                <button onClick={() => setShowInitiateModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400">
+                <button onClick={() => setShowInitiateModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -332,7 +386,7 @@ export const AdminVisaTracker: React.FC = () => {
                     required
                     value={initiateStudentId}
                     onChange={(e) => setInitiateStudentId(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E] cursor-pointer"
                   >
                     <option value="">-- Choose Student --</option>
                     {students.map((s) => (
@@ -354,14 +408,14 @@ export const AdminVisaTracker: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowInitiateModal(false)}
-                    className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50"
+                    className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-black rounded-xl hover:bg-[#521221] shadow-xs"
+                    className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-black rounded-xl hover:bg-[#521221] shadow-xs cursor-pointer disabled:opacity-50"
                   >
                     {isSaving ? 'Processing...' : 'Start VFS Tracking'}
                   </button>
@@ -374,7 +428,7 @@ export const AdminVisaTracker: React.FC = () => {
 
       {/* Edit Form Drawer for Selected Student */}
       <AnimatePresence>
-        {activeStudent && (
+        {selectedStudentId && (
           <>
             {/* Backdrop Overlay */}
             <motion.div
@@ -397,7 +451,7 @@ export const AdminVisaTracker: React.FC = () => {
               <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
                   <h3 className="text-base font-black text-slate-950">VFS Status Config: {activeStudentName}</h3>
-                  <span className="text-xs font-semibold text-slate-400">Registered Account: {activeStudent.email}</span>
+                  <span className="text-xs font-semibold text-slate-400">Registered Account: {activeStudent?.email || 'Student Record'}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   {decisionOutcome === 'Rejected' && (
@@ -405,14 +459,14 @@ export const AdminVisaTracker: React.FC = () => {
                       type="button"
                       size="sm"
                       onClick={handleAdminResetToStage2}
-                      className="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-[11px] px-3 py-1.5 rounded-lg shadow-xs"
+                      className="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-[11px] px-3 py-1.5 rounded-lg shadow-xs cursor-pointer"
                     >
                       🔄 Re-appeal (Reset to Stage 2)
                     </Button>
                   )}
                   <button
                     onClick={() => setSelectedStudentId('')}
-                    className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -449,7 +503,7 @@ export const AdminVisaTracker: React.FC = () => {
                                 setDecisionOutcome('Pending');
                               }
                             }}
-                            className={`py-2 px-2.5 rounded-xl text-[10px] font-black border transition-all text-center flex items-center justify-center min-h-[44px] ${
+                            className={`py-2 px-2.5 rounded-xl text-[10px] font-black border transition-all text-center flex items-center justify-center min-h-[44px] cursor-pointer ${
                               isActive
                                 ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-sm scale-[1.02]'
                                 : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
@@ -468,7 +522,7 @@ export const AdminVisaTracker: React.FC = () => {
                       <select
                         value={currentStage}
                         onChange={(e) => setCurrentStage(Number(e.target.value))}
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40 cursor-pointer"
                       >
                         <option value={1}>Stage 1 — Documents Ready</option>
                         <option value={2}>Stage 2 — Visa File Prepared</option>
@@ -494,7 +548,7 @@ export const AdminVisaTracker: React.FC = () => {
                             setCurrentStage(6);
                           }
                         }}
-                        className={`w-full h-10 px-3 border rounded-xl text-xs font-black focus:outline-none ${
+                        className={`w-full h-10 px-3 border rounded-xl text-xs font-black focus:outline-none cursor-pointer ${
                           decisionOutcome === 'Approved'
                             ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
                             : decisionOutcome === 'Rejected'
@@ -517,7 +571,7 @@ export const AdminVisaTracker: React.FC = () => {
                         value={vfsRefNo}
                         onChange={(e) => setVfsRefNo(e.target.value)}
                         placeholder="e.g. POL/DEL/26/0812/01"
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
                       />
                     </div>
 
@@ -527,7 +581,7 @@ export const AdminVisaTracker: React.FC = () => {
                         type="date"
                         value={appointmentDate}
                         onChange={(e) => setAppointmentDate(e.target.value)}
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
                       />
                     </div>
                   </div>
@@ -539,7 +593,7 @@ export const AdminVisaTracker: React.FC = () => {
                         type="text"
                         value={embassyName}
                         onChange={(e) => setEmbassyName(e.target.value)}
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
                       />
                     </div>
 
@@ -549,7 +603,7 @@ export const AdminVisaTracker: React.FC = () => {
                         type="text"
                         value={vfsCenter}
                         onChange={(e) => setVfsCenter(e.target.value)}
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
                       />
                     </div>
                   </div>
@@ -561,7 +615,7 @@ export const AdminVisaTracker: React.FC = () => {
                         type="text"
                         value={passportNo}
                         onChange={(e) => setPassportNo(e.target.value)}
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
                       />
                     </div>
 
@@ -591,7 +645,7 @@ export const AdminVisaTracker: React.FC = () => {
                       onChange={(e) => setNotes(e.target.value)}
                       rows={4}
                       placeholder="Add notes for student..."
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
                     />
                   </div>
 
@@ -600,14 +654,14 @@ export const AdminVisaTracker: React.FC = () => {
                       type="button"
                       variant="outline"
                       onClick={() => setSelectedStudentId('')}
-                      className="h-10 text-xs font-bold px-4"
+                      className="h-10 text-xs font-bold px-4 cursor-pointer"
                     >
                       Cancel
                     </Button>
                     <Button
                       type="submit"
                       disabled={isSaving}
-                      className="h-10 bg-[#6A1B2E] text-white hover:bg-[#521221] font-bold text-xs px-5"
+                      className="h-10 bg-[#6A1B2E] text-white hover:bg-[#521221] font-bold text-xs px-5 cursor-pointer disabled:opacity-50"
                     >
                       <Save className="w-4 h-4 mr-1.5" /> {isSaving ? 'Saving...' : 'Save VFS Status'}
                     </Button>
@@ -620,7 +674,7 @@ export const AdminVisaTracker: React.FC = () => {
       </AnimatePresence>
 
       {/* VFS Status Summary Directory */}
-      <Card className="p-6 border border-slate-200/80 bg-white">
+      <Card className="p-6 border border-slate-200/80 bg-white shadow-xs">
         <div className="border-b border-slate-100 pb-4 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">All Students VFS Visa Statuses</h2>
@@ -652,73 +706,64 @@ export const AdminVisaTracker: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {records.filter(rec =>
-                !searchQuery ||
-                rec.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                rec.vfs_ref_no?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                rec.embassy_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                rec.status_label?.toLowerCase().includes(searchQuery.toLowerCase())
-              ).length === 0 ? (
+              {allDisplayRows.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-8 text-center text-slate-400 font-bold">
-                    No matching VFS Visa records found. Click "+ Initiate VFS Process" to start VFS tracking for a student.
+                    No matching students or VFS Visa records found. Click "+ Initiate VFS Process" to start VFS tracking for a student.
                   </td>
                 </tr>
               ) : (
-                records.filter(rec =>
-                  !searchQuery ||
-                  rec.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  rec.vfs_ref_no?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  rec.embassy_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  rec.status_label?.toLowerCase().includes(searchQuery.toLowerCase())
-                ).map((rec) => {
-                  const decision = rec.decision_outcome ||
-                    (rec.status_label?.toLowerCase().includes('approv') ? 'Approved' :
-                     rec.status_label?.toLowerCase().includes('reject') || rec.status_label?.toLowerCase().includes('refus') ? 'Rejected' : 'Pending');
-
+                allDisplayRows.map((row) => {
                   return (
-                    <tr key={rec.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-all font-semibold">
-                      <td className="py-3.5 px-4 text-slate-950 font-black">
-                        {rec.student_name}
+                    <tr key={row.key} className="border-b border-slate-100 hover:bg-slate-50/60 transition-all font-semibold">
+                      <td className="py-3.5 px-4 text-slate-950">
+                        <span className="font-black text-slate-950 block">{row.student_name}</span>
+                        {row.email && <span className="text-[10px] text-slate-400 font-mono">{row.email}</span>}
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className="font-mono text-[11px] text-slate-600 bg-slate-50/80 px-2.5 py-1 rounded-lg">
-                          {rec.vfs_ref_no || 'Pending'}
-                        </span>
+                        {row.vfs_ref_no ? (
+                          <span className="font-mono text-[11px] text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 font-bold">
+                            {row.vfs_ref_no}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 italic">Not Assigned</span>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 text-slate-500 max-w-[180px] truncate">
-                        {rec.embassy_name}
+                        {row.embassy_name}
                       </td>
                       <td className="py-3.5 px-4 text-slate-700 font-bold max-w-[160px] truncate">
-                        {(rec as any).assigned_counselor || (rec as any).counselor || 'Admin'}
+                        {row.assigned_counselor}
                       </td>
                       <td className="py-3.5 px-4 text-center font-bold text-slate-800">
-                        Stage {rec.current_stage || 1} of 6
+                        {row.current_stage > 0 ? `Stage ${row.current_stage} of 8` : '—'}
                       </td>
                       <td className="py-3.5 px-4 text-[#6A1B2E] font-extrabold">
-                        {rec.status_label}
+                        {row.status_label}
                       </td>
                       <td className="py-3.5 px-4">
                         <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
-                          decision === 'Approved'
+                          row.decision_outcome === 'Approved'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            : decision === 'Rejected'
+                            : row.decision_outcome === 'Rejected'
                             ? 'bg-red-50 text-red-800 border-red-200'
-                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                            : row.hasRecord
+                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                            : 'bg-slate-50 text-slate-500 border-slate-200'
                         }`}>
-                          {decision}
+                          {row.hasRecord ? row.decision_outcome : 'Not Initiated'}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant={row.hasRecord ? 'outline' : 'primary'}
                           onClick={() => {
-                            if (rec.student_id) setSelectedStudentId(rec.student_id);
+                            if (row.student_id) setSelectedStudentId(row.student_id);
                           }}
-                          className="h-8 font-black text-[10px]"
+                          className={`h-8 font-black text-[10px] cursor-pointer ${!row.hasRecord ? 'bg-[#6A1B2E] text-white hover:bg-[#521221]' : ''}`}
                         >
-                          Select & Edit
+                          {row.hasRecord ? 'Configure & Edit' : 'Initiate VFS'}
                         </Button>
                       </td>
                     </tr>

@@ -142,7 +142,7 @@ export const Payments: React.FC = () => {
   // 1st Installment: Registration & Legalization Audit Deposit (Configured in Admin Fee Config)
   // 2nd Installment: Full University Tuition Fee (100% Selected Course Tuition Fee)
   // 3rd Installment: Agency Service & VFS Visa Clearance Fee (Configured in Admin Fee & Intake Config)
-  const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || activeApp?.country || 'Poland';
+  const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || (activeApp as any)?.country || 'Poland';
   const countryFeeObj = config.country_fees?.[targetCountry] || config.country_fees?.[targetCountry.replace('United Kingdom', 'UK').replace('United States', 'USA')];
   const inst1Amount = countryFeeObj?.registration_fee_inr || config.advance_registration_fee_inr || 15000;
   const inst2Amount = courseTuitionFee;

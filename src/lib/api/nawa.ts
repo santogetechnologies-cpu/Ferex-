@@ -19,8 +19,26 @@ export interface NawaRecord {
   updated_at?: string;
 }
 
+const NAWA_STORAGE_KEY = 'ferex_nawa_records';
+
+function getLocalNawaRecords(): NawaRecord[] {
+  try {
+    const raw = localStorage.getItem(NAWA_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalNawaRecords(records: NawaRecord[]) {
+  try {
+    localStorage.setItem(NAWA_STORAGE_KEY, JSON.stringify(records));
+  } catch {}
+}
+
 // ─── Query NAWA records directly from nawa_records table in Supabase ─────────────────
 export async function getNawaRecords(studentId?: string): Promise<NawaRecord[]> {
+  const local = getLocalNawaRecords();
   try {
     let query = supabase
       .from('nawa_records')
@@ -33,15 +51,27 @@ export async function getNawaRecords(studentId?: string): Promise<NawaRecord[]> 
 
     const { data, error } = await query;
 
-    if (error) {
-      console.warn('[getNawaRecords Notice]:', error.message);
-      return [];
+    if (error || !data || data.length === 0) {
+      if (studentId) {
+        return local.filter(r => r.student_id === studentId);
+      }
+      return local;
     }
 
-    return (data ?? []) as NawaRecord[];
+    // Merge Supabase records with any locally stored ones
+    const dbRecs = (data ?? []) as NawaRecord[];
+    const dbIds = new Set(dbRecs.map(r => r.id));
+    const merged = [...dbRecs, ...local.filter(r => !dbIds.has(r.id))];
+
+    if (studentId) {
+      return merged.filter(r => r.student_id === studentId);
+    }
+    return merged;
   } catch (err) {
-    console.error('[getNawaRecords Error]:', err);
-    return [];
+    if (studentId) {
+      return local.filter(r => r.student_id === studentId);
+    }
+    return local;
   }
 }
 
@@ -73,12 +103,19 @@ export async function createNawaApplication(payload: {
     updated_at: now
   };
 
+  // 1. Save to localStorage immediately
+  const local = getLocalNawaRecords();
+  local.unshift(record);
+  saveLocalNawaRecords(local);
+
+  // 2. Save to Supabase
   try {
     await supabase.from('nawa_records').insert(record);
   } catch (e) {
     console.warn('[createNawaRecord insert notice]:', e);
   }
 
+  // 3. Create Notification
   try {
     await createNotification({
       user_id: payload.student_id,
@@ -117,6 +154,17 @@ export async function updateNawaStep(
     updated_at: now
   };
 
+  // 1. Update localStorage
+  const local = getLocalNawaRecords();
+  const updatedLocal = local.map(r => {
+    if (r.id === id || r.id === cleanId || r.student_id === cleanId) {
+      return { ...r, ...updatedPayload };
+    }
+    return r;
+  });
+  saveLocalNawaRecords(updatedLocal);
+
+  // 2. Update Supabase
   try {
     await supabase
       .from('nawa_records')
@@ -161,6 +209,10 @@ export async function updateNawaStep(
 // ─── Delete NAWA record from nawa_records table ──────────────────────────────
 export async function deleteNawaRecord(id: string): Promise<void> {
   const cleanId = id.replace('nawa-app-', '').replace('nawa-std-', '');
+
+  const local = getLocalNawaRecords();
+  const filtered = local.filter(r => r.id !== id && r.id !== cleanId && r.student_id !== cleanId);
+  saveLocalNawaRecords(filtered);
 
   try {
     await supabase.from('nawa_records').delete().or(`id.eq.${cleanId},student_id.eq.${cleanId},id.eq.${id}`);

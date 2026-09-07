@@ -30,7 +30,7 @@ export const StudentDashboard: React.FC = () => {
   const { records: visaRecords } = useVisa(user?.id);
   const { getWorkflowForCountry } = useCountryWorkflows();
 
-  const targetCountry = localStorage.getItem('ferex_student_target_country') || applications[0]?.universities?.country || applications[0]?.country || 'Poland';
+  const targetCountry = localStorage.getItem('ferex_student_target_country') || applications[0]?.universities?.country || (applications[0] as any)?.country || 'Poland';
   const targetWf = getWorkflowForCountry(targetCountry);
 
   const [nawaRecord, setNawaRecord] = React.useState<NawaRecord | null>(null);

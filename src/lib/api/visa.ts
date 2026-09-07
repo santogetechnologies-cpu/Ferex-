@@ -18,7 +18,25 @@ export interface VisaTrackingRecord {
   updated_at: string;
 }
 
+const VISA_STORAGE_KEY = 'ferex_visa_records';
+
+function getLocalVisaRecords(): VisaTrackingRecord[] {
+  try {
+    const raw = localStorage.getItem(VISA_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalVisaRecords(records: VisaTrackingRecord[]) {
+  try {
+    localStorage.setItem(VISA_STORAGE_KEY, JSON.stringify(records));
+  } catch {}
+}
+
 export async function getVisaRecords(studentId?: string): Promise<VisaTrackingRecord[]> {
+  const local = getLocalVisaRecords();
   try {
     let query = supabase.from('visa_tracking').select('*').order('updated_at', { ascending: false });
     if (studentId) {
@@ -27,12 +45,14 @@ export async function getVisaRecords(studentId?: string): Promise<VisaTrackingRe
 
     const { data, error } = await query;
 
-    if (error) {
-      console.warn('[getVisaRecords Notice]:', error.message);
-      return [];
+    if (error || !data || data.length === 0) {
+      if (studentId) {
+        return local.filter(r => r.student_id === studentId);
+      }
+      return local;
     }
 
-    const records = (data ?? []).map((r: any) => {
+    const dbRecs = (data ?? []).map((r: any) => {
       const statusLower = String(r.status_label || r.status || '').toLowerCase();
       const outcome = r.decision_outcome ||
         (statusLower.includes('approv') ? 'Approved' :
@@ -56,10 +76,18 @@ export async function getVisaRecords(studentId?: string): Promise<VisaTrackingRe
       };
     });
 
-    return records;
+    const dbIds = new Set(dbRecs.map(r => r.id));
+    const merged = [...dbRecs, ...local.filter(r => !dbIds.has(r.id))];
+
+    if (studentId) {
+      return merged.filter(r => r.student_id === studentId);
+    }
+    return merged;
   } catch (err) {
-    console.error('[getVisaRecords Error]:', err);
-    return [];
+    if (studentId) {
+      return local.filter(r => r.student_id === studentId);
+    }
+    return local;
   }
 }
 
@@ -106,28 +134,10 @@ export async function updateVisaStatus(
     cleanPayload.status_label = 'Visa Application Refused by Embassy';
   }
 
-  // Try update existing row by ID
-  if (id && isValidUuid(id)) {
-    try {
-      const { data, error } = await supabase
-        .from('visa_tracking')
-        .update(cleanPayload)
-        .eq('id', id)
-        .select('*');
-
-      if (!error && data && data.length > 0) {
-        const updated = { ...data[0], decision_outcome: updates.decision_outcome } as VisaTrackingRecord;
-        window.dispatchEvent(new Event('ferex_visa_change'));
-        return updated;
-      }
-    } catch (e) {}
-  }
-
-  // Fallback upsert new row
   const validId = (id && isValidUuid(id)) ? id : generateUUID();
-  const upsertPayload = {
+  const upsertPayload: VisaTrackingRecord = {
     id: validId,
-    student_id: (updates.student_id && isValidUuid(updates.student_id)) ? updates.student_id : null,
+    student_id: (updates.student_id && isValidUuid(updates.student_id)) ? updates.student_id : (updates.student_id || validId),
     student_name: updates.student_name || 'Student',
     vfs_ref_no: updates.vfs_ref_no || 'VFS-POL-2026',
     embassy_name: updates.embassy_name || 'Embassy of Poland',
@@ -137,10 +147,22 @@ export async function updateVisaStatus(
     courier_tracking_no: updates.courier_tracking_no || 'BLUEDART-89041256',
     current_stage: Number(updates.current_stage) || 1,
     status_label: cleanPayload.status_label || 'VFS Processing',
+    decision_outcome: updates.decision_outcome || 'Pending',
     notes: updates.notes || 'VFS tracking updated.',
     updated_at: new Date().toISOString(),
   };
 
+  // 1. Save to local storage
+  const local = getLocalVisaRecords();
+  const existingIdx = local.findIndex(r => r.id === validId || r.student_id === upsertPayload.student_id);
+  if (existingIdx >= 0) {
+    local[existingIdx] = { ...local[existingIdx], ...upsertPayload };
+  } else {
+    local.unshift(upsertPayload);
+  }
+  saveLocalVisaRecords(local);
+
+  // 2. Try update existing row in Supabase
   try {
     const { data: upsData, error: upsErr } = await supabase.from('visa_tracking').upsert(upsertPayload).select('*');
     if (!upsErr && upsData && upsData.length > 0) {
@@ -150,22 +172,20 @@ export async function updateVisaStatus(
     }
   } catch (e) {}
 
-  const finalResult = { ...upsertPayload, decision_outcome: updates.decision_outcome } as VisaTrackingRecord;
-
-  if (finalResult.student_id) {
+  if (upsertPayload.student_id) {
     try {
       const { createNotification } = await import('./notifications');
-      const isApproved = updates.decision_outcome === 'Approved' || String(finalResult.status_label).toLowerCase().includes('approved');
-      const isRejected = updates.decision_outcome === 'Rejected' || String(finalResult.status_label).toLowerCase().includes('refus');
+      const isApproved = updates.decision_outcome === 'Approved' || String(upsertPayload.status_label).toLowerCase().includes('approved');
+      const isRejected = updates.decision_outcome === 'Rejected' || String(upsertPayload.status_label).toLowerCase().includes('refus');
 
       await createNotification({
-        user_id: finalResult.student_id,
+        user_id: upsertPayload.student_id,
         title: isApproved ? '🎉 Visa Approved & Stamped!' : isRejected ? '⚠️ Visa Decision Update' : '🛡️ VFS Visa Tracking Updated',
         body: isApproved
           ? 'Your Poland National Student D-Visa has been officially approved & stamped by the Embassy!'
           : isRejected
           ? 'Your visa application verdict has been updated to Refused by Embassy.'
-          : `Your VFS Visa status: ${finalResult.status_label || 'Processing'} (Stage ${finalResult.current_stage || 1}).`,
+          : `Your VFS Visa status: ${upsertPayload.status_label || 'Processing'} (Stage ${upsertPayload.current_stage || 1}).`,
         category: 'VFS Visa'
       });
     } catch (e) {}
@@ -173,7 +193,7 @@ export async function updateVisaStatus(
 
   window.dispatchEvent(new Event('ferex_visa_change'));
   window.dispatchEvent(new Event('ferex_notification_change'));
-  return finalResult;
+  return upsertPayload;
 }
 
 export const updateVisaRecord = updateVisaStatus;

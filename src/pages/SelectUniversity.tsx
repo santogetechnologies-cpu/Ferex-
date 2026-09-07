@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, ArrowRight, Check } from 'lucide-react';
+import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUniversities } from '../hooks/useUniversities';
 import { useApplications } from '../hooks/useApplications';
@@ -59,7 +59,7 @@ export const SelectUniversity: React.FC = () => {
   // Check if 1st Installment (Advance Registration Fee) is paid
   const inst1Paid = payments.some(p => {
     const desc = (String(p.description || '') + ' ' + String(p.title || '') + ' ' + String(p.payment_type || '')).toLowerCase();
-    const isStage1 = desc.includes('1st') || desc.includes('1') || desc.includes('registration') || desc.includes('advance') || p.stage_number === 1;
+    const isStage1 = desc.includes('1st') || desc.includes('1') || desc.includes('registration') || desc.includes('advance') || (p as any).stage_number === 1;
     return isStage1 && (p.status === 'Paid' || p.status === 'Verified');
   });
 
@@ -564,8 +564,42 @@ export const SelectUniversity: React.FC = () => {
                 </div>
 
                 <form onSubmit={handleApplySubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Degree Level</label>
+                      <select
+                        value={degreeLevel}
+                        onChange={(e) => setDegreeLevel(e.target.value)}
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
+                      >
+                        <option value="Bachelor's Degree">Bachelor's Degree (3-4 Yrs)</option>
+                        <option value="Master's Degree">Master's Degree (1.5-2 Yrs)</option>
+                        <option value="Doctorate / PhD">Doctorate / PhD (3-4 Yrs)</option>
+                        <option value="Undergraduate Diploma">Undergraduate Diploma (1-2 Yrs)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Select Admission Intake</label>
+                      <select
+                        value={intake}
+                        onChange={(e) => setIntake(e.target.value)}
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
+                      >
+                        {(applyUni.intakes && applyUni.intakes.length > 0) ? (
+                          applyUni.intakes.map((i: string) => <option key={i} value={i}>{i}</option>)
+                        ) : (
+                          <>
+                            <option value="October 2026">October 2026 (Fall Semester)</option>
+                            <option value="February 2027">February 2027 (Spring Semester)</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Select Degree Program</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Select Program / Major</label>
                     <select
                       value={selectedCourse}
                       onChange={(e) => setSelectedCourse(e.target.value)}
@@ -574,24 +608,6 @@ export const SelectUniversity: React.FC = () => {
                       {applyUni.programs?.map((prog: string) => (
                         <option key={prog} value={prog}>{prog}</option>
                       ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Select Admission Intake</label>
-                    <select
-                      value={intake}
-                      onChange={(e) => setIntake(e.target.value)}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
-                    >
-                      {(applyUni.intakes && applyUni.intakes.length > 0) ? (
-                        applyUni.intakes.map((i: string) => <option key={i} value={i}>{i}</option>)
-                      ) : (
-                        <>
-                          <option value="October 2026">October 2026 (Fall Semester)</option>
-                          <option value="February 2027">February 2027 (Spring Semester)</option>
-                        </>
-                      )}
                     </select>
                   </div>
 

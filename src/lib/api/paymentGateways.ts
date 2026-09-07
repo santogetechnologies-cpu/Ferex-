@@ -159,13 +159,12 @@ export function generateQrCodeImageUrl(content: string, size = 250): string {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=8&data=${encoded}`;
 }
 
-// Record unified payment transaction across tables & generate official receipt
 export interface UnifiedPaymentPayload {
   division: 'education' | 'digital' | 'rimi' | 'trade';
   amount: number;
   currency: string;
-  paymentMethod: 'Stripe' | 'UPI';
-  gatewayRef: string; // Stripe PaymentIntent ID or UPI UTR
+  paymentMethod: 'Stripe' | 'UPI' | 'Bank Wire' | 'Cheque' | 'Cash';
+  gatewayRef: string; // Stripe PaymentIntent ID, UPI UTR, Cheque No, Wire Ref, or Cash Voucher No
   receiptNumber: string;
   studentId?: string;
   studentName?: string;
@@ -179,10 +178,29 @@ export interface UnifiedPaymentPayload {
   metadata?: Record<string, any>;
 }
 
+export const FEREX_OFFICIAL_BANK_ACCOUNTS = {
+  inr: {
+    beneficiaryName: 'FEREX VENTURES PRIVATE LIMITED',
+    bankName: 'ICICI BANK LIMITED',
+    accountNumber: '000205034891',
+    ifscCode: 'ICIC0000002',
+    accountType: 'Current Account',
+    branch: 'Kochi Infopark / Bangalore Corporate Center',
+  },
+  forex: {
+    beneficiaryName: 'FEREX VENTURES PRIVATE LIMITED',
+    bankName: 'ICICI BANK LIMITED',
+    accountNumber: '000205034891',
+    swiftCode: 'ICICINBBXXX',
+    currency: 'EUR / USD / GBP',
+    branch: 'International Banking Division, Mumbai',
+  },
+};
+
 export async function recordUnifiedPayment(payload: UnifiedPaymentPayload) {
   const now = new Date().toISOString();
   const txRecord = {
-    id: `tx_${payload.paymentMethod.toLowerCase()}_${Date.now()}`,
+    id: `tx_${payload.paymentMethod.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
     ...payload,
     status: 'Paid',
     paid_at: now,
@@ -191,6 +209,13 @@ export async function recordUnifiedPayment(payload: UnifiedPaymentPayload) {
 
   // 1. Division-specific record keeping in Supabase & LocalStorage
   if (payload.division === 'education') {
+    const methodDisplay =
+      payload.paymentMethod === 'Stripe' ? 'Stripe (Card / 3DS)' :
+      payload.paymentMethod === 'UPI' ? 'UPI (Instant QR / UTR)' :
+      payload.paymentMethod === 'Bank Wire' ? 'Bank Wire Transfer (NEFT/RTGS/IMPS)' :
+      payload.paymentMethod === 'Cheque' ? 'Cheque / Demand Draft' :
+      'Cash Payment (Counter Voucher)';
+
     try {
       await supabase.from('payments').insert([
         {
@@ -198,7 +223,7 @@ export async function recordUnifiedPayment(payload: UnifiedPaymentPayload) {
           amount: payload.amount,
           currency: payload.currency,
           purpose: payload.purpose,
-          payment_method: payload.paymentMethod === 'Stripe' ? 'Stripe (Card / 3DS)' : 'UPI (Instant QR / UTR)',
+          payment_method: methodDisplay,
           status: 'Paid',
           reference_number: payload.gatewayRef,
           receipt_number: payload.receiptNumber,

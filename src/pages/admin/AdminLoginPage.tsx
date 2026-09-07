@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, AlertCircle, CheckCircle2, ShieldCheck, ArrowLeft, GraduationCap } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, CheckCircle2, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { Logo } from '../../components/Logo';
 import { useAuth } from '../../contexts/AuthContext';
 import { getDashboardRoute, getPortalLabel } from '../../lib/roleRouter';
