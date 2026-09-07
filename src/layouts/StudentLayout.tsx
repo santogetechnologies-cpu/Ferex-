@@ -406,13 +406,15 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                           is_read: true,
                           created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
                         },
-                      ]).slice(0, 5).map((n: any) => {
+                      ]).slice(0, 6).map((n: any) => {
                         const routes: Record<string, string> = {
-                          'Offer Letter': '/student/documents',
-                          'Application': '/student/journey',
+                          'Offer Letter': '/student/offers',
+                          'Application': '/student/journey-tracker',
                           'Payment': '/student/payments',
-                          'VFS Visa': '/student/visa',
+                          'VFS Visa': '/student/visa-tracker',
                           'Counselor Session': '/student/meetings',
+                          'Document': '/student/documents',
+                          'Pre-Departure': '/student/pre-departure',
                           'Support': '/student/support',
                         };
                         const targetRoute = routes[n.category] || '/student/notifications';
@@ -425,18 +427,28 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                               setShowNotifications(false);
                               navigate(targetRoute);
                             }}
-                            className={`p-2.5 rounded-xl transition-all cursor-pointer border ${
-                              !n.is_read ? 'bg-amber-50/50 border-amber-200/70 hover:bg-amber-100/50' : 'bg-white hover:bg-slate-50 border-transparent hover:border-slate-100'
+                            className={`p-2.5 rounded-xl transition-all cursor-pointer border group ${
+                              !n.is_read ? 'bg-amber-50/60 border-amber-200/80 hover:bg-amber-100/60' : 'bg-white hover:bg-slate-50 border-slate-100'
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <p className="text-xs font-bold text-slate-900 truncate">{n.title}</p>
-                              {!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />}
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-slate-100 text-slate-700 rounded border border-slate-200 shrink-0">
+                                  {n.category || 'Alert'}
+                                </span>
+                                <p className="text-xs font-bold text-slate-900 truncate">{n.title}</p>
+                              </div>
+                              {!n.is_read && <span className="w-2 h-2 rounded-full bg-[#6A1B2E] shrink-0" />}
                             </div>
-                            <p className="text-[10.5px] font-semibold text-slate-500 mt-0.5 line-clamp-2">{n.body}</p>
-                            <span className="text-[9px] font-bold text-slate-400 mt-1 block">
-                              {new Date(n.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                            <p className="text-[10.5px] font-semibold text-slate-500 mt-1 line-clamp-2">{n.body}</p>
+                            <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-slate-100/60">
+                              <span className="text-[9px] font-bold text-slate-400">
+                                {new Date(n.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <span className="text-[9.5px] font-extrabold text-[#6A1B2E] group-hover:underline flex items-center gap-0.5">
+                                Open →
+                              </span>
+                            </div>
                           </div>
                         );
                       })}
