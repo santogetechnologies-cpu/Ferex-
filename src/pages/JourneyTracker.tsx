@@ -24,7 +24,7 @@ export const JourneyTracker: React.FC = () => {
   const isProfileDone = Boolean(profile?.full_name);
 
   const activeApp = applications[0];
-  const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || activeApp?.country || 'Poland';
+  const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || (activeApp as any)?.country || 'Poland';
   const targetUniversity = activeApp?.university_name || (targetCountry === 'Poland' ? 'Warsaw University of Technology' : `${targetCountry} Partner University`);
 
   // Verification helper states

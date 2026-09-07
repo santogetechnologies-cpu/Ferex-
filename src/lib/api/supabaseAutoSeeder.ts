@@ -12,7 +12,7 @@ export async function autoSeedAllDataToSupabase() {
       key: 'fee_config',
       value: feeConfig,
       updated_at: new Date().toISOString()
-    }).catch(() => {});
+    });
   } catch (err: any) {
     // Silent fail - offline or RLS protected
   }
