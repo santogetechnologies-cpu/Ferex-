@@ -17,11 +17,6 @@ export const AdminLoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleFillDemo = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setError('');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,29 +177,6 @@ export const AdminLoginPage: React.FC = () => {
                 ) : 'Sign In to Admin Panel'}
               </button>
             </form>
-
-            {/* Quick Demo Credentials */}
-            <div className="mt-5 p-3 bg-slate-50 rounded-2xl border border-slate-200/80 text-left">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">⚡ Quick One-Click Access</p>
-              <div className="space-y-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleFillDemo('admin@gmail.com', 'admin123')}
-                  className="w-full text-left p-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
-                >
-                  <span className="text-xs font-bold text-slate-800 block">🏛️ Education Admin</span>
-                  <span className="text-[10px] font-semibold text-slate-400">admin@gmail.com • admin123</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleFillDemo('superadmin@gmail.com', 'super123')}
-                  className="w-full text-left p-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
-                >
-                  <span className="text-xs font-bold text-slate-800 block">👑 Central Superadmin</span>
-                  <span className="text-[10px] font-semibold text-slate-400">superadmin@gmail.com • super123</span>
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
