@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CreditCard, QrCode, ShieldCheck, CheckCircle2, Copy, Check,
-  Lock, Download, X, Clock, Landmark, FileText, Banknote, Building2
+  Lock, Download, X, Clock, Landmark, FileText, Banknote
 } from 'lucide-react';
 import { Button } from './Button';
 import {
