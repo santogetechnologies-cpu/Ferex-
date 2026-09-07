@@ -128,6 +128,7 @@ export async function ensureStudentApplication(studentId: string, studentName: s
     const newId = generateUUID();
     const placeholderUnivId = generateUUID();
 
+    const now = new Date().toISOString();
     const appObj: Application = {
       id: newId,
       student_id: studentId,
@@ -139,8 +140,9 @@ export async function ensureStudentApplication(studentId: string, studentName: s
       intake: 'TBD',
       status: 'NAWA Review',
       notes: 'Auto-enrolled on document submission. Awaiting NAWA apostille & legalization audit.',
-      applied_date: new Date().toISOString(),
-      created_at: new Date().toISOString(),
+      applied_date: now,
+      created_at: now,
+      updated_at: now,
     };
 
     const local = getLocalApplications();

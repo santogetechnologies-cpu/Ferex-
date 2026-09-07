@@ -68,14 +68,14 @@ export interface Application {
   university_id: string;
   course: string;
   status: 'Draft' | 'Submitted' | 'NAWA Review' | 'NAWA Submitted' | 'NAWA Approved' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Approved' | 'Enrolled' | 'Closed' | 'Rejected' | 'Withdrawn';
-  applied_date: string;
-  notes: string;
+  applied_date?: string;
+  notes?: string;
   offer_letter_url?: string;
   final_acceptance_url?: string;
   tuition_fee?: string | number;
   course_fee?: string | number;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   student_name?: string;
   university_name?: string;
   program_name?: string;
