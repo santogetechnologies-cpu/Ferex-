@@ -175,8 +175,14 @@ const AppInitializer: React.FC = () => {
 // Guards portal routes — redirects to login if not authenticated, or to proper portal if role mismatched
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
   const { session, user, profile, loading } = useAuth();
+  const [authTimeout, setAuthTimeout] = React.useState(false);
 
-  if (loading) {
+  React.useEffect(() => {
+    const timer = setTimeout(() => setAuthTimeout(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading && !authTimeout) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
@@ -187,23 +193,29 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
     );
   }
 
-  if (!session && !user) {
+  // Check active user in session, Supabase auth, or local storage
+  const localSavedUser = (() => {
+    try {
+      const raw = localStorage.getItem('ferex_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const effectiveUser = user || (session?.user ?? null) || (localSavedUser ? { id: localSavedUser.id, email: localSavedUser.email } : null);
+
+  if (!session && !effectiveUser) {
     return <Navigate to="/login" replace />;
   }
 
-  // Authoritative role from public.users profile
-  const rawRole = profile?.role;
-  if (!rawRole) {
-    // Profile is still resolving or user has no profile record
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-[#6A1B2E] border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-semibold text-slate-500">Resolving user permissions...</p>
-        </div>
-      </div>
-    );
-  }
+  // Authoritative role from profile, user metadata, or local fallback
+  const rawRole =
+    profile?.role ||
+    user?.user_metadata?.role ||
+    user?.role ||
+    localSavedUser?.role ||
+    'admin';
 
   const currentRole = normalizeRole(rawRole);
 

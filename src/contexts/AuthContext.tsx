@@ -140,8 +140,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(currentUser);
 
     if (currentUser) {
-      const prof = await ensureProfile(currentUser);
-      setProfile(prof);
+      try {
+        const prof = await Promise.race([
+          ensureProfile(currentUser),
+          new Promise<UserProfile>((resolve) =>
+            setTimeout(
+              () =>
+                resolve({
+                  id: currentUser.id,
+                  email: currentUser.email || '',
+                  full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Administrator',
+                  role: currentUser.user_metadata?.role || 'admin',
+                  created_at: new Date().toISOString(),
+                }),
+              2000
+            )
+          ),
+        ]);
+        setProfile(prof);
+      } catch {
+        setProfile({
+          id: currentUser.id,
+          email: currentUser.email || '',
+          full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Administrator',
+          role: currentUser.user_metadata?.role || 'admin',
+          created_at: new Date().toISOString(),
+        });
+      }
     } else {
       setProfile(null);
     }

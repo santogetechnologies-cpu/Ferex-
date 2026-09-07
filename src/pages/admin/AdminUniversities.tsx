@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Plus, Building2, MapPin, Trash2, X, CheckCircle2, Edit2,
-  Calendar, Eye, Globe
+  Calendar, Eye, Globe, Upload, Image as ImageIcon, RefreshCw
 } from 'lucide-react';
 import { useUniversities } from '../../hooks/useUniversities';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
+import { uploadFileToBucket } from '../../lib/storage';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../../lib/types';
 
 export function formatFeeEURandINR(feeStr?: string): string {
@@ -144,6 +145,64 @@ export const AdminUniversities: React.FC = () => {
   const [tuition, setTuition] = useState('€3,200 / yr');
   const [livingCostMonthly, setLivingCostMonthly] = useState('€350 - €500 / mo');
   const [nawaRequired, setNawaRequired] = useState(true);
+
+  // Picture upload state & file input ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+
+  const PRESET_CAMPUS_IMAGES = [
+    { label: 'Tech & Engineering', url: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80' },
+    { label: 'Historic Quad', url: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80' },
+    { label: 'Medical & Science', url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=800&q=80' },
+    { label: 'Business & Management', url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80' },
+    { label: 'Modern Campus', url: 'https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=800&q=80' },
+  ];
+
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Please upload a valid image file (JPG, PNG, WebP).');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Image file size must be under 10MB.');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      const res = await uploadFileToBucket('digital-assets', file, `uni_${Date.now()}`);
+      if (res.url) {
+        setImageUrl(res.url);
+        showToast('🎉 University cover picture uploaded successfully!');
+      } else {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            setImageUrl(reader.result);
+            showToast('University picture loaded!');
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err: any) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setImageUrl(reader.result);
+          showToast('University picture loaded locally!');
+        }
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setUploadingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
 
   // Intakes state
   const [selectedIntakes, setSelectedIntakes] = useState<string[]>(['October 2026', 'February 2027']);
@@ -956,15 +1015,130 @@ export const AdminUniversities: React.FC = () => {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Cover Image URL</label>
+                    {/* University Picture / Cover Upload Section */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+                          University Cover Picture
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowUrlInput(!showUrlInput)}
+                          className="text-[10px] font-bold text-[#6A1B2E] hover:underline"
+                        >
+                          {showUrlInput ? 'Hide URL input' : 'Paste custom image URL'}
+                        </button>
+                      </div>
+
+                      {/* Hidden File Input */}
                       <input
-                        type="text"
-                        value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
-                        placeholder="https://images.unsplash.com/..."
-                        className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/png, image/jpeg, image/webp, image/jpg"
+                        onChange={handleImageFileUpload}
+                        className="hidden"
                       />
+
+                      {/* Live Preview & Upload Dropzone */}
+                      {imageUrl ? (
+                        <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 group">
+                          <img
+                            src={imageUrl}
+                            alt="University Campus Preview"
+                            className="w-full h-36 object-cover opacity-90 group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end justify-between p-3.5">
+                            <div className="text-white">
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider bg-emerald-600/90 px-2 py-0.5 rounded text-white flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Active Picture Preview
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploadingImage}
+                                className="px-3 py-1.5 bg-white/90 hover:bg-white text-slate-900 rounded-xl text-xs font-bold shadow-md flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <Upload className="w-3.5 h-3.5 text-[#6A1B2E]" />
+                                {uploadingImage ? 'Uploading...' : 'Change Picture'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setImageUrl('')}
+                                className="p-1.5 bg-red-600/90 hover:bg-red-600 text-white rounded-xl shadow-md transition-colors"
+                                title="Remove Image"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          className="border-2 border-dashed border-slate-300 hover:border-[#6A1B2E] bg-slate-50/70 hover:bg-slate-50 rounded-2xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
+                        >
+                          <div className="w-12 h-12 rounded-2xl bg-[#6A1B2E]/10 group-hover:bg-[#6A1B2E] text-[#6A1B2E] group-hover:text-white flex items-center justify-center transition-colors">
+                            {uploadingImage ? (
+                              <RefreshCw className="w-6 h-6 animate-spin" />
+                            ) : (
+                              <Upload className="w-6 h-6" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-slate-800">
+                              {uploadingImage ? 'Uploading image...' : 'Click to Upload University Picture from Computer'}
+                            </p>
+                            <p className="text-[10px] font-semibold text-slate-400 mt-0.5">
+                              Supports PNG, JPG, JPEG, WEBP up to 10MB
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={uploadingImage}
+                            className="mt-1 px-4 py-1.5 bg-[#6A1B2E] hover:bg-[#521221] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5"
+                          >
+                            <ImageIcon className="w-3.5 h-3.5" /> Choose Picture File
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Curated Preset Quick Select */}
+                      <div className="pt-1">
+                        <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block mb-1.5">
+                          Or Select Curated Campus Photo:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {PRESET_CAMPUS_IMAGES.map((preset) => (
+                            <button
+                              key={preset.label}
+                              type="button"
+                              onClick={() => setImageUrl(preset.url)}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                imageUrl === preset.url
+                                  ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Optional Direct URL Input */}
+                      {showUrlInput && (
+                        <div className="pt-1">
+                          <input
+                            type="text"
+                            value={imageUrl}
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            placeholder="https://images.unsplash.com/photo-..."
+                            className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -1167,6 +1341,16 @@ export const AdminUniversities: React.FC = () => {
                 </div>
                 <button onClick={() => setViewUniversity(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
               </div>
+
+              {viewUniversity.image_url && (
+                <div className="h-32 rounded-xl overflow-hidden relative">
+                  <img src={viewUniversity.image_url} alt={viewUniversity.name} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <span className="absolute bottom-2 left-2.5 px-2 py-0.5 bg-[#6A1B2E] text-amber-300 rounded text-[10px] font-black">
+                    {viewUniversity.badge || 'Top Choice'}
+                  </span>
+                </div>
+              )}
 
               <div className="space-y-3 text-xs">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">

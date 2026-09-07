@@ -50,11 +50,13 @@ export const AdminDashboard: React.FC = () => {
 
 
   // Dynamic application pipeline calculation
-  const totalApps = dbApps.length || 1;
-  const submittedCount = dbApps.filter(a => a.status === 'Submitted').length;
-  const reviewCount = dbApps.filter(a => a.status === 'Under Review').length;
-  const offerCount = dbApps.filter(a => a.status === 'Offer Issued' || a.status === 'Accepted' || a.status === 'Final Acceptance Issued').length;
-  const rejectedCount = dbApps.filter(a => a.status === 'Rejected').length;
+  const safeApps = dbApps || [];
+  const safeStudents = dbStudents || [];
+  const totalApps = safeApps.length || 1;
+  const submittedCount = safeApps.filter(a => a.status === 'Submitted').length;
+  const reviewCount = safeApps.filter(a => a.status === 'Under Review').length;
+  const offerCount = safeApps.filter(a => a.status === 'Offer Issued' || a.status === 'Accepted' || a.status === 'Final Acceptance Issued').length;
+  const rejectedCount = safeApps.filter(a => a.status === 'Rejected').length;
 
   const appStatusData = [
     { label: 'Submitted (Pending Review)', value: submittedCount, color: 'bg-blue-500', pct: Math.round((submittedCount / totalApps) * 100) },
@@ -187,10 +189,10 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             <div className="space-y-3.5">
-              {dbStudents.length === 0 ? (
+              {safeStudents.length === 0 ? (
                 <p className="text-xs text-slate-400 font-semibold py-4 text-center">No recent platform activities recorded.</p>
               ) : (
-                dbStudents.slice(0, 4).map((s, idx) => (
+                safeStudents.slice(0, 4).map((s, idx) => (
                   <div key={idx} onClick={() => navigate('/admin/students')} className="flex gap-3 items-start group cursor-pointer hover:bg-slate-50 p-1.5 rounded-xl transition-colors">
                     <div className="w-2 h-2 rounded-full shrink-0 mt-1.5 ring-4 bg-emerald-500 ring-emerald-50" />
                     <div>

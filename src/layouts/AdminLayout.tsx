@@ -75,7 +75,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   }, []);
 
   const hasUnreadCategory = (categoryName: string) => {
-    return notifications.some(
+    return (notifications || []).some(
       (n: any) => !n.is_read && (
         n.category?.toLowerCase().includes(categoryName.toLowerCase()) ||
         n.title?.toLowerCase().includes(categoryName.toLowerCase()) ||
@@ -93,7 +93,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const active = baseMenuItems.find(m => location.pathname === m.path)?.name || 'Dashboard';
   const adminName = profile?.full_name || 'System Admin';
   const adminEmail = profile?.email || user?.email || 'admin@ferex.com';
-  const unreadNotifs = notifications.filter(n => !n.is_read);
+  const unreadNotifs = (notifications || []).filter(n => !n.is_read);
   const totalUnreadCount = unreadNotifs.length + pendingPaymentsCount;
 
   const menuItems = baseMenuItems.map(item => {
