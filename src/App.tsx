@@ -163,7 +163,7 @@ const AppInitializer: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
-    autoSeedAllDataToSupabase();
+    autoSeedAllDataToSupabase().catch(() => {});
 
     if (location.pathname === '/' || location.pathname === '') {
       navigate('/', { replace: true });
