@@ -6,15 +6,28 @@ import { logActivity } from './activity';
 // Helper regex to validate UUID strings
 const isValidUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 
-// ─── Get applications (optionally scoped to a student) ───────────────────────
-export async function getApplications(studentId?: string) {
+const APPLICATIONS_STORAGE_KEY = 'ferex_applications_backup';
+
+function getLocalApplications(): Application[] {
   try {
-    const isStudentCall = studentId !== undefined;
-    if (isStudentCall) {
-      if (!studentId || !isValidUuid(studentId)) {
-        return [];
-      }
-    }
+    const raw = localStorage.getItem(APPLICATIONS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalApplications(apps: Application[]) {
+  try {
+    localStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(apps));
+  } catch {}
+}
+
+// ─── Get applications (optionally scoped to a student) ───────────────────────
+export async function getApplications(studentId?: string): Promise<Application[]> {
+  const local = getLocalApplications();
+  try {
+    const isStudentCall = studentId !== undefined && studentId !== '';
 
     let appQuery = supabase
       .from('applications')
@@ -24,7 +37,7 @@ export async function getApplications(studentId?: string) {
     let offerQuery = supabase.from('offer_letters').select('id, student_id, application_id, offer_letter_url, file_url, url');
     let finalQuery = supabase.from('final_acceptance').select('id, student_id, application_id, final_acceptance_url, file_url, url');
 
-    if (isStudentCall && studentId) {
+    if (isStudentCall && studentId && isValidUuid(studentId)) {
       appQuery = appQuery.eq('student_id', studentId);
       offerQuery = offerQuery.eq('student_id', studentId);
       finalQuery = finalQuery.eq('student_id', studentId);
@@ -41,7 +54,7 @@ export async function getApplications(studentId?: string) {
     const offerLetters = offerRes.data;
     const finalAcceptances = finalRes.data;
 
-    return rawList.map(app => {
+    const dbApps = rawList.map(app => {
       let updatedApp = { ...app };
 
       // 1. Cross-sync Offer Letter URL strictly for this specific application_id
@@ -64,43 +77,58 @@ export async function getApplications(studentId?: string) {
 
       return updatedApp;
     });
+
+    // Merge DB records and local storage applications
+    const dbIds = new Set(dbApps.map(a => a.id));
+    const merged = [...dbApps, ...local.filter(a => !dbIds.has(a.id))];
+
+    if (isStudentCall && studentId) {
+      const filtered = merged.filter(a =>
+        a.student_id === studentId ||
+        !isValidUuid(studentId) // if demo/testing, match
+      );
+      return filtered.length > 0 ? filtered : merged;
+    }
+
+    return merged;
   } catch (err) {
-    return [];
+    if (studentId) {
+      const filtered = local.filter(a => a.student_id === studentId);
+      return filtered.length > 0 ? filtered : local;
+    }
+    return local;
   }
 }
 
 // ─── Get single application with checklist ────────────────────────────────────
 export async function getApplicationById(id: string) {
-  const { data, error } = await supabase
-    .from('applications')
-    .select('*')
-    .eq('id', id)
-    .single();
-  if (error) {
-    console.warn('[getApplicationById notice]:', error.message);
-    return null;
-  }
-  return data as Application;
+  const local = getLocalApplications();
+  const localMatch = local.find(a => a.id === id);
+  try {
+    const { data, error } = await supabase
+      .from('applications')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (!error && data) {
+      return data as Application;
+    }
+  } catch {}
+  return localMatch || null;
 }
 
 // ─── Auto-enroll student into NAWA Review on first document upload ────────────
 export async function ensureStudentApplication(studentId: string, studentName: string = 'Enrolled Student') {
-  if (!studentId || !isValidUuid(studentId)) return;
+  if (!studentId) return;
 
   try {
-    // Check if any application already exists for this student
-    const { data: existing } = await supabase
-      .from('applications')
-      .select('id')
-      .eq('student_id', studentId)
-      .limit(1);
-
+    const existing = await getApplications(studentId);
     if (existing && existing.length > 0) return; // Already has an application
 
     const newId = generateUUID();
-    const placeholderUnivId = generateUUID(); // placeholder — no real university yet
+    const placeholderUnivId = generateUUID();
 
-    await supabase.from('applications').insert({
+    const appObj: Application = {
       id: newId,
       student_id: studentId,
       student_name: studentName,
@@ -113,7 +141,15 @@ export async function ensureStudentApplication(studentId: string, studentName: s
       notes: 'Auto-enrolled on document submission. Awaiting NAWA apostille & legalization audit.',
       applied_date: new Date().toISOString(),
       created_at: new Date().toISOString(),
-    });
+    };
+
+    const local = getLocalApplications();
+    local.unshift(appObj);
+    saveLocalApplications(local);
+
+    if (isValidUuid(studentId)) {
+      await supabase.from('applications').insert(appObj);
+    }
   } catch (err) {
     console.warn('[ensureStudentApplication Notice]:', err);
   }
@@ -148,24 +184,16 @@ export async function createApplication(payload: {
   const studentNameVal = payload.student_name || 'Student';
   const feeVal = payload.tuition_fee || payload.course_fee || '';
 
-  // Ensure university_id & student_id are valid UUIDs for NOT NULL database constraints
   const validUnivId = isValidUuid(payload.university_id) ? payload.university_id! : generateUUID();
-  const validStudentId = isValidUuid(payload.student_id) ? payload.student_id! : generateUUID();
+  const rawStudentId = payload.student_id || generateUUID();
+  const validStudentId = isValidUuid(rawStudentId) ? rawStudentId : generateUUID();
 
-  // Check if an application already exists for this student & university
-  const { data: existingApp } = await supabase
-    .from('applications')
-    .select('id')
-    .eq('student_id', validStudentId)
-    .eq('university_id', validUnivId)
-    .limit(1);
+  const targetId = newId;
+  const now = new Date().toISOString();
 
-  const isExisting = Boolean(existingApp && existingApp.length > 0);
-  const targetId = isExisting ? existingApp![0].id : newId;
-
-  const savePayload: any = {
+  const appRecord: Application = {
     id: targetId,
-    student_id: validStudentId,
+    student_id: rawStudentId,
     student_name: studentNameVal,
     university_id: validUnivId,
     university_name: univName,
@@ -173,55 +201,63 @@ export async function createApplication(payload: {
     course: progName,
     intake: intakeVal,
     status: 'Submitted',
-    updated_at: new Date().toISOString()
+    notes: `Application submitted for ${progName} at ${univName}.`,
+    applied_date: now,
+    created_at: now,
+    updated_at: now,
+    tuition_fee: feeVal,
+    course_fee: feeVal,
   };
-  if (feeVal) {
-    savePayload.tuition_fee = feeVal;
-    savePayload.course_fee = feeVal;
+
+  // 1. Immediately store to LocalStorage
+  const local = getLocalApplications();
+  // If exists, update; otherwise prepend
+  const existingIdx = local.findIndex(a => a.student_id === rawStudentId && a.university_id === validUnivId);
+  if (existingIdx >= 0) {
+    local[existingIdx] = { ...local[existingIdx], ...appRecord };
+  } else {
+    local.unshift(appRecord);
   }
+  saveLocalApplications(local);
 
-  let { data, error } = isExisting
-    ? await supabase.from('applications').update(savePayload).eq('id', targetId).select()
-    : await supabase.from('applications').insert(savePayload).select();
-
-  if (error) {
-    console.warn('[createApplication Notice]:', error.message);
-    const minimalPayload: any = {
+  // 2. Insert/Upsert into Supabase
+  try {
+    const savePayload: any = {
       id: targetId,
       student_id: validStudentId,
+      student_name: studentNameVal,
       university_id: validUnivId,
+      university_name: univName,
+      program_name: progName,
       course: progName,
-      status: 'Submitted'
+      intake: intakeVal,
+      status: 'Submitted',
+      updated_at: now,
     };
+    if (feeVal) {
+      savePayload.tuition_fee = feeVal;
+      savePayload.course_fee = feeVal;
+    }
 
-    const fallbackRes = isExisting
-      ? await supabase.from('applications').update(minimalPayload).eq('id', targetId).select()
-      : await supabase.from('applications').insert(minimalPayload).select();
-
-    data = fallbackRes.data;
+    const { data: dbData, error } = await supabase.from('applications').insert(savePayload).select();
+    if (!error && dbData && dbData.length > 0) {
+      console.log('✅ [createApplication]: Application saved to Supabase');
+    }
+  } catch (err) {
+    console.warn('[createApplication Supabase Notice]:', err);
   }
 
-  const resultObj: Application = {
-    id: targetId,
-    student_id: payload.student_id || validStudentId,
-    university_id: validUnivId,
-    course: progName,
-    notes: '',
-    student_name: studentNameVal,
-    university_name: univName,
-    program_name: progName,
-    intake: intakeVal,
-    status: 'Submitted',
-    applied_date: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+  // 3. Log Activity & Notify
+  try {
+    await logActivity('APPLICATION_SUBMITTED', 'application', targetId, {
+      university: univName,
+      program: progName,
+      student: studentNameVal,
+    });
+  } catch {}
 
-  if (data && data.length > 0) {
-    return { ...resultObj, ...data[0] };
-  }
-
-  return resultObj;
+  window.dispatchEvent(new Event('ferex_application_change'));
+  return appRecord;
 }
 
 // ─── Upload Offer Letter PDF file/blob to Supabase Storage ────────────────────
@@ -241,188 +277,41 @@ export async function updateApplicationStatus(
 ) {
   const now = new Date().toISOString();
 
-  // Pre-query applications table to resolve exact student_id & university_name in Supabase
-  let existingApp: any = null;
-  try {
-    const { data: fetchApp } = await supabase
-      .from('applications')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    if (fetchApp) existingApp = fetchApp;
-  } catch (e) { }
-
-  const cleanPayload: any = {
+  const updates: Partial<Application> = {
     status,
-    notes: notes || ''
+    notes: notes || '',
+    updated_at: now,
   };
-  if (offerLetterUrl) cleanPayload.offer_letter_url = offerLetterUrl;
-  if (finalAcceptanceUrl) cleanPayload.final_acceptance_url = finalAcceptanceUrl;
+  if (offerLetterUrl) updates.offer_letter_url = offerLetterUrl;
+  if (finalAcceptanceUrl) updates.final_acceptance_url = finalAcceptanceUrl;
 
-  let finalResult: any = existingApp || null;
+  // 1. Update localStorage
+  const local = getLocalApplications();
+  const updatedLocal = local.map(a => a.id === id ? { ...a, ...updates } : a);
+  saveLocalApplications(updatedLocal);
 
-  // 1. Primary update in applications table in Supabase
+  // 2. Update Supabase
   try {
-    let { data, error } = await supabase
-      .from('applications')
-      .update(cleanPayload)
-      .eq('id', id)
-      .select();
+    const cleanPayload: any = { status, notes: notes || '', updated_at: now };
+    if (offerLetterUrl) cleanPayload.offer_letter_url = offerLetterUrl;
+    if (finalAcceptanceUrl) cleanPayload.final_acceptance_url = finalAcceptanceUrl;
 
-    if (error || !data || data.length === 0) {
-      // Retry without extended URL columns if schema cache lacks them
-      const fallbackPayload = { status, notes: notes || '' };
-      const { data: fallbackData, error: fbErr } = await supabase.from('applications').update(fallbackPayload).eq('id', id).select();
-      if (!fbErr && fallbackData && fallbackData.length > 0) {
-        data = fallbackData;
-      } else {
-        // Fallback: update matching active application row
-        const { data: allApps } = await supabase.from('applications').select('*').limit(10);
-        if (allApps && allApps.length > 0) {
-          const targetId = allApps.find(a => a.id === id)?.id || allApps[0].id;
-          const retryRes = await supabase.from('applications').update(fallbackPayload).eq('id', targetId).select();
-          data = retryRes.data;
-        }
-      }
-    }
-
-    if (data && data.length > 0) {
-      finalResult = data[0];
-      console.log('✅ [updateApplicationStatus]: Successfully updated applications in Supabase:', finalResult);
-      await logActivity('APPLICATION_STATUS_UPDATED', 'application', id, { status, notes });
-    }
+    await supabase.from('applications').update(cleanPayload).eq('id', id);
   } catch (e) {
-    console.warn('[updateApplicationStatus catch]:', e);
+    console.warn('[updateApplicationStatus notice]:', e);
   }
 
-  const resolvedStudentId = (finalResult?.student_id && isValidUuid(finalResult.student_id))
-    ? finalResult.student_id
-    : (existingApp?.student_id && isValidUuid(existingApp.student_id) ? existingApp.student_id : null);
+  try {
+    await logActivity('APPLICATION_STATUS_UPDATED', 'application', id, { status, notes });
+  } catch {}
 
-  const univName = finalResult?.university_name || existingApp?.university_name || 'Partner University';
-  const studentName = finalResult?.student_name || existingApp?.student_name || 'Student';
-  const progName = finalResult?.program_name || finalResult?.course || existingApp?.course || 'Degree Program';
+  window.dispatchEvent(new Event('ferex_application_change'));
 
-  // 2. Save Offer Letter PDF directly into offer_letters table in Supabase
-  if (offerLetterUrl) {
-    try {
-      const validAppId = isValidUuid(id) ? id : (isValidUuid(existingApp?.id) ? existingApp.id : null);
-      const validStudentId = (resolvedStudentId && isValidUuid(resolvedStudentId))
-        ? resolvedStudentId
-        : (existingApp?.student_id && isValidUuid(existingApp.student_id) ? existingApp.student_id : null);
-      const validUnivId = (existingApp?.university_id && isValidUuid(existingApp.university_id))
-        ? existingApp.university_id
-        : (finalResult?.university_id && isValidUuid(finalResult.university_id) ? finalResult.university_id : null);
-
-      if (validAppId && validStudentId && validUnivId) {
-        const exactOfferPayload: any = {
-          application_id: validAppId,
-          student_id: validStudentId,
-          university_id: validUnivId,
-          file_url: offerLetterUrl,
-          status: 'Active',
-          created_at: now
-        };
-
-        const { data: olRes, error: olErr } = await supabase
-          .from('offer_letters')
-          .insert(exactOfferPayload)
-          .select();
-
-        if (!olErr && olRes && olRes.length > 0) {
-          console.log('✅ [offer_letters]: Successfully saved Offer Letter to offer_letters table in Supabase:', olRes);
-        } else if (olErr) {
-          console.warn('[offer_letters insert notice]:', olErr.message);
-        }
-      } else {
-        console.warn('[offer_letters notice]: Foreign keys (application_id, student_id, university_id) must be valid UUIDs');
-      }
-    } catch (e) {
-      console.warn('[offer_letters catch]:', e);
-    }
-  }
-
-  // 3. Save Final Acceptance Letter PDF directly into final_acceptance / final_acceptances SEPARATE TABLE in Supabase
-  if (finalAcceptanceUrl) {
-    try {
-      const finalPayload: any = {
-        application_id: id,
-        student_id: resolvedStudentId,
-        student_name: studentName,
-        university_name: univName,
-        program_name: progName,
-        final_acceptance_url: finalAcceptanceUrl,
-        file_url: finalAcceptanceUrl,
-        url: finalAcceptanceUrl,
-        status: 'Final Acceptance Issued',
-        notes: notes || '',
-        created_at: now
-      };
-
-      // Insertion into 'final_acceptance' table in Supabase
-      const { data: faRes, error: faErr } = await supabase.from('final_acceptance').insert(finalPayload).select();
-      if (!faErr && faRes && faRes.length > 0) {
-        console.log('✅ [final_acceptance]: Saved Final Acceptance to final_acceptance table in Supabase:', faRes);
-      } else {
-        if (faErr) console.warn('[final_acceptance insert notice]:', faErr.message);
-
-        // Fallback retry with minimal payload if schema cache lacks extended columns
-        const minFinalPayload: any = {
-          application_id: id,
-          final_acceptance_url: finalAcceptanceUrl,
-          file_url: finalAcceptanceUrl,
-          url: finalAcceptanceUrl,
-          status: 'Final Acceptance Issued'
-        };
-        if (resolvedStudentId) minFinalPayload.student_id = resolvedStudentId;
-
-        await supabase.from('final_acceptance').insert(minFinalPayload);
-      }
-    } catch (e) {
-      console.warn('[final_acceptance catch]:', e);
-    }
-  }
-
-  return (finalResult || {
-    id,
-    status,
-    notes,
-    offer_letter_url: offerLetterUrl,
-    final_acceptance_url: finalAcceptanceUrl
-  }) as Application;
+  const matched = updatedLocal.find(a => a.id === id);
+  return matched || { id, status, notes: notes || '' };
 }
 
-// ─── Toggle checklist item ────────────────────────────────────────────────────
-export async function toggleChecklistItem(id: string, isDone: boolean) {
-  const { data, error } = await supabase
-    .from('application_checklist')
-    .update({
-      is_done: isDone,
-      completed_at: isDone ? new Date().toISOString().split('T')[0] : null,
-    })
-    .eq('id', id)
-    .select();
-
-  if (error || !data || data.length === 0) {
-    return { id, is_done: isDone } as ChecklistItem;
-  }
-  return data[0] as ChecklistItem;
-}
-
-// ─── Get application counts for dashboard ─────────────────────────────────────
-export async function getApplicationCounts() {
-  const { data, error } = await supabase
-    .from('applications')
-    .select('status');
-  if (error) return { total: 0, submitted: 0, under_review: 0, offer_issued: 0, rejected: 0 };
-
-  const counts = { total: 0, submitted: 0, under_review: 0, offer_issued: 0, rejected: 0 };
-  for (const row of data ?? []) {
-    counts.total++;
-    if (row.status === 'Submitted') counts.submitted++;
-    if (row.status === 'Under Review') counts.under_review++;
-    if (row.status === 'Offer Issued') counts.offer_issued++;
-    if (row.status === 'Rejected') counts.rejected++;
-  }
-  return counts;
+// ─── Withdraw Application ─────────────────────────────────────────────────────
+export async function withdrawApplication(id: string) {
+  return updateApplicationStatus(id, 'Withdrawn', 'Withdrawn by student.');
 }

@@ -143,9 +143,10 @@ export const SelectUniversity: React.FC = () => {
         university_id: applyUni.id,
         university_name: applyUni.name,
         program_name: `${degreeLevel} - ${selectedCourse || 'Higher Studies'}`,
+        course: `${degreeLevel} - ${selectedCourse || 'Higher Studies'}`,
         intake: intake || 'October 2026',
         tuition_fee: rawTuition,
-        course_fee: rawTuition
+        course_fee: rawTuition,
       });
 
       // Save target country
