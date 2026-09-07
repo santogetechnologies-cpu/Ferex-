@@ -146,7 +146,7 @@ export const AdminUniversities: React.FC = () => {
   const [nawaRequired, setNawaRequired] = useState(true);
 
   // Intakes state
-  const [selectedIntakes] = useState<string[]>(['October 2026', 'February 2027']);
+  const [selectedIntakes, setSelectedIntakes] = useState<string[]>(['October 2026', 'February 2027']);
 
   // Course programs fee structure list state
   const [courseProgramsList, setCourseProgramsList] = useState<CourseProgram[]>([]);
@@ -280,7 +280,6 @@ export const AdminUniversities: React.FC = () => {
     setLivingCostMonthly('€350 - €500 / mo');
     setNawaRequired(true);
     setSelectedIntakes(['October 2026', 'February 2027']);
-    setCustomIntakeInput('');
     setUniversityFee('€3,200 / yr');
     setVfsFee(config.default_vfs_fee || '₹15,000');
     setAgencyFee(config.default_agency_fee || '₹25,000');
