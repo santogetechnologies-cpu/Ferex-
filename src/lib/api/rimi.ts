@@ -323,6 +323,9 @@ export async function createRimiSalesOrder(order: {
   payment_status?: string;
   order_status?: string;
   items_count?: number;
+  items?: any[];
+  items_summary?: any;
+  delivery_date?: string;
 }) {
   const distributors = await getRimiDistributors();
   const dist = distributors.find((d: any) => d.id === order.distributor_id || d.business_name === order.customer_name);
@@ -362,6 +365,8 @@ export async function updateRimiSalesOrderStatus(id: string, order_status: strin
   triggerLocalSync('ferex_rimi_sales_orders_change');
   return { id, order_status };
 }
+
+export const updateRimiOrderStatus = updateRimiSalesOrderStatus;
 
 export async function deleteRimiSalesOrder(id: string) {
   const current = await getRimiSalesOrders();
@@ -647,10 +652,11 @@ export async function createRimiCollection(col: {
   payment_method?: string;
   payment_date?: string;
   status?: string;
+  reference_no?: string;
 }) {
   const payload = {
     id: generateUUID(),
-    reference_no: `REF-${Math.floor(10000 + Math.random() * 90000)}`,
+    reference_no: col.reference_no || `REF-${Math.floor(10000 + Math.random() * 90000)}`,
     distributor_id: col.distributor_id || null,
     customer_name: col.customer_name,
     amount: Number(col.amount) || 0,
@@ -667,6 +673,8 @@ export async function createRimiCollection(col: {
   triggerLocalSync('ferex_rimi_collections_change');
   return payload;
 }
+
+export const getRimiPayments = getRimiCollections;
 
 export async function updateRimiCollectionStatus(id: string, status: string) {
   const current = await getRimiCollections();
@@ -848,7 +856,7 @@ export async function createRimiNotification(notif: {
 
 export async function markRimiNotificationRead(id: string) {
   const current = await getRimiNotifications();
-  const updated = current.map(n => n.id === id ? { ...n, is_read: true } : n);
+  const updated = current.map((n: any) => n.id === id ? { ...n, is_read: true } : n);
   try { localStorage.setItem('ferex_rimi_notifications', JSON.stringify(updated)); } catch {}
   try { await supabase.from('rimi_notifications').update({ is_read: true }).eq('id', id); } catch {}
   triggerLocalSync('ferex_rimi_notifications_change');

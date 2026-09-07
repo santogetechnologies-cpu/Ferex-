@@ -292,6 +292,10 @@ export async function updateDigitalTask(id: string, updates: any) {
   return updated.find((t: any) => t.id === id) || { id, ...updates };
 }
 
+export async function updateDigitalTaskStatus(id: string, status: string) {
+  return updateDigitalTask(id, { status });
+}
+
 export async function deleteDigitalTask(id: string) {
   const current = await getDigitalTasks();
   const updated = current.filter((t: any) => t.id !== id);
@@ -432,6 +436,10 @@ export async function updateDigitalInvoice(id: string, updates: any) {
   } catch {}
   triggerLocalSync('ferex_digital_invoices_change');
   return updated.find((i: any) => i.id === id) || { id, ...updates };
+}
+
+export async function updateDigitalInvoiceStatus(id: string, status: string) {
+  return updateDigitalInvoice(id, { status, paid_at: status === 'Paid' ? new Date().toISOString() : null });
 }
 
 export async function deleteDigitalInvoice(id: string) {
@@ -894,4 +902,64 @@ export async function getDigitalAssetCostSummary() {
     activeCount,
     totalAssetsCount: assets.length
   };
+}
+
+// ─── Digital Notifications ───────────────────────────────────────────────────
+export async function getDigitalNotifications() {
+  try {
+    const { data, error } = await supabase
+      .from('digital_notifications')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && Array.isArray(data)) {
+      try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(data)); } catch {}
+      return data;
+    }
+
+    const local = localStorage.getItem('ferex_digital_notifications');
+    if (local !== null) {
+      try { return JSON.parse(local); } catch {}
+    }
+    return [];
+  } catch {
+    const local = localStorage.getItem('ferex_digital_notifications');
+    if (local !== null) {
+      try { return JSON.parse(local); } catch {}
+    }
+    return [];
+  }
+}
+
+export async function createDigitalNotification(notif: {
+  title: string;
+  message: string;
+  type?: string;
+  link?: string;
+}) {
+  const payload = {
+    id: generateUUID(),
+    title: notif.title,
+    message: notif.message,
+    type: notif.type || 'info',
+    link: notif.link || '',
+    is_read: false,
+    created_at: new Date().toISOString(),
+  };
+
+  const current = await getDigitalNotifications();
+  const updated = [payload, ...current];
+  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_notifications').insert(payload); } catch {}
+  triggerLocalSync('ferex_digital_notifications_change');
+  return payload;
+}
+
+export async function markDigitalNotificationRead(id: string) {
+  const current = await getDigitalNotifications();
+  const updated = current.map((n: any) => n.id === id ? { ...n, is_read: true } : n);
+  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_notifications').update({ is_read: true }).eq('id', id); } catch {}
+  triggerLocalSync('ferex_digital_notifications_change');
+  return true;
 }

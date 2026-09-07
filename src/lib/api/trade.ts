@@ -557,6 +557,17 @@ export async function createTradeCertificate(cert: {
   return payload;
 }
 
+export async function updateTradeCertificateStatus(id: string, status: string) {
+  const current = await getTradeCertificates();
+  const updated = current.map((c: any) => (c.id === id || c.certificate_no === id) ? { ...c, status, updated_at: new Date().toISOString() } : c);
+  try { localStorage.setItem('ferex_trade_certs', JSON.stringify(updated)); } catch {}
+  try {
+    await supabase.from('trade_certificates').update({ status, updated_at: new Date().toISOString() }).or(`id.eq.${id},certificate_no.eq.${id}`);
+  } catch {}
+  window.dispatchEvent(new Event('ferex_trade_certs_change'));
+  return { id, status };
+}
+
 export async function deleteTradeCertificate(id: string) {
   const current = await getTradeCertificates();
   const filtered = current.filter((item: any) => item.id !== id && item.certificate_no !== id);
@@ -601,6 +612,7 @@ export async function createTradePayment(pay: {
   currency?: string;
   payment_type?: string;
   status?: string;
+  settlement_date?: string;
 }) {
   const newId = generateUUID();
   const payload = {
@@ -612,7 +624,7 @@ export async function createTradePayment(pay: {
     currency: pay.currency || 'INR',
     payment_type: pay.payment_type || 'SWIFT Wire Transfer',
     status: pay.status || 'Completed',
-    settlement_date: new Date().toISOString().split('T')[0],
+    settlement_date: pay.settlement_date || new Date().toISOString().split('T')[0],
     created_at: new Date().toISOString(),
   };
 
@@ -622,6 +634,17 @@ export async function createTradePayment(pay: {
   try { await supabase.from('trade_payments').insert(payload); } catch {}
   window.dispatchEvent(new Event('ferex_trade_payments_change'));
   return payload;
+}
+
+export async function updateTradePaymentStatus(id: string, status: string) {
+  const current = await getTradePayments();
+  const updated = current.map((p: any) => (p.id === id || p.transaction_ref === id) ? { ...p, status, updated_at: new Date().toISOString() } : p);
+  try { localStorage.setItem('ferex_trade_payments', JSON.stringify(updated)); } catch {}
+  try {
+    await supabase.from('trade_payments').update({ status, updated_at: new Date().toISOString() }).or(`id.eq.${id},transaction_ref.eq.${id}`);
+  } catch {}
+  window.dispatchEvent(new Event('ferex_trade_payments_change'));
+  return { id, status };
 }
 
 export async function deleteTradePayment(id: string) {
