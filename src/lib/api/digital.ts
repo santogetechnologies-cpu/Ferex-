@@ -933,15 +933,17 @@ export async function getDigitalNotifications() {
 
 export async function createDigitalNotification(notif: {
   title: string;
-  message: string;
+  message?: string;
+  description?: string;
   type?: string;
+  category?: string;
   link?: string;
 }) {
   const payload = {
     id: generateUUID(),
     title: notif.title,
-    message: notif.message,
-    type: notif.type || 'info',
+    message: notif.message || notif.description || '',
+    type: notif.type || notif.category || 'info',
     link: notif.link || '',
     is_read: false,
     created_at: new Date().toISOString(),

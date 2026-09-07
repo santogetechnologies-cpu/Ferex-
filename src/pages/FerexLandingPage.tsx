@@ -1,15 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-  GraduationCap, Building2, ShieldCheck, ArrowRight,
-  FileCheck, Plane, HelpCircle, LogIn, LogOut, ChevronDown, Mail, Phone, MapPin,
-  User, Users, Clock, Calculator, Search, Award, Globe,
-  Check, ArrowUpRight, Compass, Sparkles, CheckCircle2, ChevronRight, Star
+  Building2, ShieldCheck, ArrowRight, LogIn, LogOut, ChevronDown, MapPin,
+  User, Calculator, Search, Check, ArrowUpRight, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUniversities } from '../hooks/useUniversities';
-import { useSystemConfig } from '../hooks/useSystemConfig';
 import { getDashboardRoute } from '../lib/roleRouter';
 import type { University } from '../lib/types';
 import { Logo, FerexVectorMark } from '../components/Logo';
@@ -62,11 +58,9 @@ export const FerexLandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, session, profile, signOut } = useAuth();
   const { universities } = useUniversities();
-  const { config } = useSystemConfig();
 
   // Filters & State
   const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>('All');
-  const [activeCategory, setActiveCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
 
@@ -788,7 +782,7 @@ export const FerexLandingPage: React.FC = () => {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-slate-500 font-semibold">Flagship Intakes:</span>
-                        <span className="font-bold text-slate-700">{uni.intake || 'Autumn 2026 / Spring 2027'}</span>
+                        <span className="font-bold text-slate-700">{uni.intakes || (uni as any).intake || 'Autumn 2026 / Spring 2027'}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-slate-500 font-semibold">NAWA Legalization:</span>

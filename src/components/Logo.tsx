@@ -1,11 +1,13 @@
 import React from 'react';
-import ferexLogoImg from '../assets/ferex-logo.png';
 
-interface LogoProps {
+export interface LogoProps {
   className?: string;
   variant?: 'full' | 'compact' | 'icon' | 'badge' | 'white' | 'dark';
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   showSubtitle?: boolean;
+  subtitle?: string;
+  color?: string;
+  align?: 'left' | 'center' | 'right' | string;
 }
 
 export const Logo: React.FC<LogoProps> = ({
@@ -13,7 +15,13 @@ export const Logo: React.FC<LogoProps> = ({
   variant = 'full',
   size = 'md',
   showSubtitle = true,
+  subtitle = 'EDUCATION',
+  color,
+  align = 'left',
 }) => {
+  const isWhite = variant === 'white' || color === 'white';
+  const effectiveColor = isWhite ? '#ffffff' : '#58051E';
+
   // If variant is 'badge', render the signature burgundy rounded brand tile
   if (variant === 'badge') {
     const badgePadding = {
@@ -37,7 +45,7 @@ export const Logo: React.FC<LogoProps> = ({
             <span className={`tracking-[0.25em] font-sans font-bold uppercase block text-white/90 ${
               size === 'xs' ? 'text-[6px] mt-0.5' : size === 'sm' ? 'text-[7.5px] mt-0.5' : size === 'md' ? 'text-[9px] mt-1' : size === 'lg' ? 'text-xs mt-1' : 'text-sm mt-1.5'
             }`}>
-              EDUCATION
+              {subtitle}
             </span>
           )}
         </div>
@@ -49,15 +57,14 @@ export const Logo: React.FC<LogoProps> = ({
   if (variant === 'icon') {
     return (
       <div className={`inline-flex items-center justify-center select-none ${className}`}>
-        <FerexVectorMark color="#58051E" size={size} />
+        <FerexVectorMark color={effectiveColor} size={size} />
       </div>
     );
   }
 
-  const isWhite = variant === 'white';
   const textColor = isWhite ? 'text-white' : 'text-[#58051E]';
   const subtitleColor = isWhite ? 'text-white/80' : 'text-[#58051E]/90';
-  const iconColor = isWhite ? '#ffffff' : '#58051E';
+  const iconColor = effectiveColor;
 
   const ferexSizeClass = {
     xs: 'text-xs',
@@ -75,6 +82,8 @@ export const Logo: React.FC<LogoProps> = ({
     xl: 'text-sm tracking-[0.3em]',
   }[size];
 
+  const alignClass = align === 'center' ? 'items-center text-center' : 'items-start text-left';
+
   return (
     <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
       {/* Signature Graduation Cap Emblem */}
@@ -83,13 +92,13 @@ export const Logo: React.FC<LogoProps> = ({
       </div>
 
       {/* Typography */}
-      <div className="flex flex-col justify-center leading-none">
+      <div className={`flex flex-col justify-center leading-none ${alignClass}`}>
         <span className={`font-serif font-black uppercase tracking-wider ${textColor} ${ferexSizeClass}`}>
           FEREX
         </span>
         {showSubtitle && (
           <span className={`font-sans font-extrabold uppercase mt-0.5 ${subtitleColor} ${eduSizeClass}`}>
-            EDUCATION
+            {subtitle}
           </span>
         )}
       </div>
