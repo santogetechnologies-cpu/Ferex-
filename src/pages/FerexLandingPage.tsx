@@ -61,6 +61,7 @@ export const FerexLandingPage: React.FC = () => {
 
   // Filters & State
   const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>('All');
+  const [activeCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
 

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Plus, Building2, MapPin, Trash2, X, CheckCircle2, Edit2,
-  Calendar, Eye, GraduationCap, Shield, Globe, Clock, DollarSign
+  Calendar, Eye, Globe
 } from 'lucide-react';
 import { useUniversities } from '../../hooks/useUniversities';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
@@ -146,8 +146,7 @@ export const AdminUniversities: React.FC = () => {
   const [nawaRequired, setNawaRequired] = useState(true);
 
   // Intakes state
-  const [selectedIntakes, setSelectedIntakes] = useState<string[]>(['October 2026', 'February 2027']);
-  const [customIntakeInput, setCustomIntakeInput] = useState('');
+  const [selectedIntakes] = useState<string[]>(['October 2026', 'February 2027']);
 
   // Course programs fee structure list state
   const [courseProgramsList, setCourseProgramsList] = useState<CourseProgram[]>([]);
@@ -219,14 +218,7 @@ export const AdminUniversities: React.FC = () => {
     showToast(`Country "${cName}" removed.`);
   };
 
-  const handleAddCustomIntake = () => {
-    if (!customIntakeInput.trim()) return;
-    const val = customIntakeInput.trim();
-    if (!selectedIntakes.includes(val)) {
-      setSelectedIntakes(prev => [...prev, val]);
-    }
-    setCustomIntakeInput('');
-  };
+
 
   const handleAddCourseProgram = () => {
     const nextId = 'c_' + Date.now();
@@ -354,10 +346,11 @@ export const AdminUniversities: React.FC = () => {
 
     try {
       const parsedPrograms = courseProgramsList.map(c => c.name);
-      const payload: Partial<University> = {
+      const targetCountry = isCustomCountry ? (customCountryInput.trim() || 'Europe') : country;
+      const payload = {
         name: name.trim(),
+        country: targetCountry || 'Poland',
         city: city.trim() || 'Capital Campus',
-        country: isCustomCountry ? (customCountryInput.trim() || 'Europe') : country,
         badge: badge.trim() || 'Top Choice',
         category: category.trim() || 'Engineering',
         image_url: imageUrl.trim() || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80',
@@ -732,6 +725,13 @@ export const AdminUniversities: React.FC = () => {
                         className="px-2.5 py-1 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-lg transition-colors"
                       >
                         + Add Uni
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCountry(c.name)}
+                        title="Remove Country"
+                        className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>

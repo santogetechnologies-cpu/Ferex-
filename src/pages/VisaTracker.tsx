@@ -37,7 +37,6 @@ export const VisaTracker: React.FC = () => {
   };
 
   const inst2Paid = payments.some(p => checkPaymentStage(p, 2) && (p.status === 'Paid' || p.status === 'Verified'));
-  const inst3Paid = payments.some(p => checkPaymentStage(p, 3) && (p.status === 'Paid' || p.status === 'Verified'));
 
   // Final Acceptance Letter check
   const hasFinalAcceptanceDoc = documents.some(d =>

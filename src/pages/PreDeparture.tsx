@@ -9,7 +9,6 @@ import { Card } from '../components/Card';
 import { useAuth } from '../contexts/AuthContext';
 import { useVisa } from '../hooks/useVisa';
 import { useApplications } from '../hooks/useApplications';
-import { usePayments } from '../hooks/usePayments';
 import { getPreDepartureRecords } from '../lib/api/preDeparture';
 import type { PreDepartureRecord } from '../lib/api/preDeparture';
 
@@ -17,16 +16,9 @@ export const PreDeparture: React.FC = () => {
   const { user, profile } = useAuth();
   const { records: visaRecords } = useVisa(user?.id);
   const { applications } = useApplications(user?.id);
-  const { payments } = usePayments(user?.id);
 
   const activeApp = applications[0];
   const targetUniversity = activeApp?.university_name || 'European Partner University';
-
-  // Check 3rd installment payment
-  const inst3Paid = payments.some(p =>
-    ((p as any).stage_number === 3 || p.description?.includes('3rd') || p.payment_type?.includes('3rd')) &&
-    (p.status === 'Paid' || p.status === 'Verified')
-  );
 
   const visaRecord = visaRecords.find(r => r.student_id === user?.id || r.id === user?.id) || null;
   const isVisaApproved = (visaRecord?.decision_outcome === 'Approved') || String(visaRecord?.status_label).toLowerCase().includes('approved');

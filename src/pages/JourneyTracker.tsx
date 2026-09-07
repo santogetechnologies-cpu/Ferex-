@@ -1,17 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Compass, CheckCircle2, Clock, ArrowRight, ShieldCheck,
-  Plane, GraduationCap, FileText, Target, Sparkles, Building,
-  CreditCard, Calendar, User, PhoneCall, ExternalLink, HelpCircle
+  Compass, CheckCircle2, ArrowRight, ShieldCheck,
+  Plane, GraduationCap, Sparkles, Building, User
 } from 'lucide-react';
 import { Card } from '../components/Card';
-import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { useApplications } from '../hooks/useApplications';
 import { useDocuments } from '../hooks/useDocuments';
-import { usePayments } from '../hooks/usePayments';
 import { useVisa } from '../hooks/useVisa';
 
 export const JourneyTracker: React.FC = () => {
@@ -19,7 +15,6 @@ export const JourneyTracker: React.FC = () => {
   const { user, profile } = useAuth();
   const { applications } = useApplications(user?.id);
   const { documents } = useDocuments(user?.id);
-  const { payments } = usePayments(user?.id);
   const { records: visaRecords } = useVisa(user?.id);
 
   // Active tracker tab: 'university' (🟦), 'visa' (🟨), 'travel' (🟩)
@@ -475,7 +470,7 @@ export const JourneyTracker: React.FC = () => {
 
         {/* Sequential Stages Grid */}
         <div className="space-y-3">
-          {activeStageList.map((stage, idx) => {
+          {activeStageList.map((stage) => {
             const isCompleted = stage.status === 'completed';
             const isCurrent = stage.status === 'current' || stage.status === 'in_progress';
 
