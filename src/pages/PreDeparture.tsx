@@ -65,16 +65,50 @@ export const PreDeparture: React.FC = () => {
     return () => window.removeEventListener('ferex_pre_departure_change', fetchRecord);
   }, [user?.id, user?.email, profile?.full_name]);
 
+  const activeDepRecord = depRecord || {
+    student_id: user?.id || 'demo-student',
+    student_name: profile?.full_name || user?.email?.split('@')[0] || 'Student',
+    student_email: user?.email || '',
+    university_name: targetUniversity,
+    airline: 'Lufthansa / LOT Polish Airlines (Scheduled upon clearance)',
+    flight_no: 'Awaiting Flight Allotment',
+    departure_date: 'Oct 2026 (Tentative)',
+    arrival_date: 'Oct 2026 (Tentative)',
+    arrival_city: 'European Chopin Airport (WAW)',
+    dorm_name: 'University Student Residence Hall',
+    dorm_address: 'Campus Dormitory Block, University Campus',
+    room_no: 'Room Allocation In Progress',
+    pickup_driver: 'FEREX International Concierge Officer',
+    pickup_contact: '+48 22 552 0999',
+    pickup_details: 'Airport welcome officer holding FEREX student banner at Arrivals terminal.',
+    clearance_status: isVisaApproved ? 'Clearance Granted' : 'Pending Verification',
+    notes: 'Pre-departure arrival orientation & housing packet.'
+  };
+
   const checklistItems = [
-    { title: 'Valid Passport & Original Visa Stamping', done: isVisaApproved },
-    { title: '3rd Installment & Pre-Departure Service Clearance', done: inst3Paid },
-    { title: 'Original University Final Acceptance Letter & NAWA Certificate', done: true },
-    { title: 'Confirmed Flight Ticket & Airline Boarding Pass', done: Boolean(depRecord?.flight_no && !depRecord.flight_no.includes('Awaiting')) },
-    { title: 'University Dormitory Housing Allotment Letter', done: Boolean(depRecord?.dorm_name && !depRecord.dorm_name.includes('Pending')) },
-    { title: 'European Travel Medical Insurance Coverage', done: true },
+    { id: 'c1', title: '1. Valid Passport & Original Visa Stamping', desc: 'Valid travel passport with official entry visa sticker.', done: isVisaApproved },
+    { id: 'c2', title: '2. Flight Planning & Confirmed Airline Ticket', desc: 'Booked direct or connecting flight tickets with baggage allowance.', done: Boolean(depRecord?.flight_no && !depRecord.flight_no.includes('Awaiting')) },
+    { id: 'c3', title: '3. University Dormitory & Accommodation Allotment', desc: 'Confirmed university residence or approved private housing agreement.', done: Boolean(depRecord?.dorm_name && !depRecord.dorm_name.includes('Pending')) },
+    { id: 'c4', title: '4. European Travel Medical Insurance Coverage', desc: 'Minimum €30,000 Schengen travel health insurance policy.', done: true },
+    { id: 'c5', title: '5. Airport Pickup & Concierge Arrival Support', desc: 'Assigned student welfare driver & airport arrival rendezvous.', done: Boolean(depRecord?.pickup_driver) },
+    { id: 'c6', title: '6. Student Travels & Boarding Verification', desc: 'Boarding pass checked in and currency card ready.', done: false },
+    { id: 'c7', title: '7. Arrival Confirmed & Welfare Check-in', desc: 'Safe landing at destination airport and dormitory keys collected.', done: depRecord?.clearance_status === 'Departed' },
+    { id: 'c8', title: '8. University Reporting & In-Person Registration', desc: 'Dean office orientation, student ID card issuance, and enrollment stamp.', done: false },
+    { id: 'c9', title: '9. Post-Arrival Support & Resident Card (TRC) Briefing', desc: 'Local SIM card, bank account opening, and temporary residence permit guidance.', done: false },
   ];
 
-  const completedChecklistCount = checklistItems.filter(i => i.done).length;
+  const [checkedMap, setCheckedMap] = useState<Record<string, boolean>>({});
+
+  const toggleCheck = (id: string) => {
+    setCheckedMap(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const isItemDone = (item: typeof checklistItems[0]) => {
+    if (checkedMap[item.id] !== undefined) return checkedMap[item.id];
+    return item.done;
+  };
+
+  const completedChecklistCount = checklistItems.filter(i => isItemDone(i)).length;
 
   return (
     <div className="space-y-6 text-left relative min-h-[600px] pb-10">
@@ -85,25 +119,25 @@ export const PreDeparture: React.FC = () => {
         </div>
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-black text-amber-300 border border-white/15 mb-3">
-            <Sparkles className="w-3.5 h-3.5" /> Post Travel (Stage 12)
+            <Sparkles className="w-3.5 h-3.5" /> Travel Tracker & Arrival Pipeline
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
-            Post Travel Briefing & Campus Arrival
+            Travel, Campus Arrival & Post-Arrival Support
           </h1>
           <p className="text-xs md:text-sm font-medium text-slate-200 mt-2 leading-relaxed">
-            Access your confirmed flight itinerary, university dormitory room keys, Warsaw airport concierge pickup, and campus arrival checklist.
+            Manage your confirmed flight itinerary, university dormitory housing, airport concierge pickup, and complete the 9-stage campus arrival checklist.
           </p>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <span className={`px-4 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border ${
-              depRecord?.clearance_status === 'Clearance Granted' || depRecord?.clearance_status === 'Departed'
+              activeDepRecord.clearance_status === 'Clearance Granted' || activeDepRecord.clearance_status === 'Departed'
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                 : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
             }`}>
-              <CheckCircle2 className="w-4 h-4" /> {depRecord?.clearance_status || 'Pending Verification'}
+              <CheckCircle2 className="w-4 h-4" /> {activeDepRecord.clearance_status}
             </span>
             <span className="text-xs font-bold text-slate-200 bg-white/10 px-4 py-1.5 rounded-xl border border-white/15 flex items-center gap-1.5">
-              <Building className="w-3.5 h-3.5 text-amber-300" /> Target: {depRecord?.university_name || targetUniversity}
+              <Building className="w-3.5 h-3.5 text-amber-300" /> Target: {activeDepRecord.university_name || targetUniversity}
             </span>
           </div>
         </div>
@@ -119,7 +153,7 @@ export const PreDeparture: React.FC = () => {
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <Plane className="w-4 h-4" /> Departure Flight & Pickup
+          <Plane className="w-4 h-4" /> Flight & Airport Pickup
         </button>
         <button
           onClick={() => setActiveTab('dorm')}
@@ -156,16 +190,8 @@ export const PreDeparture: React.FC = () => {
       {loading ? (
         <div className="py-16 text-center text-xs font-bold text-slate-400 animate-pulse space-y-2">
           <Clock className="w-8 h-8 mx-auto text-slate-300" />
-          <p>Fetching Pre-Departure packet from database...</p>
+          <p>Loading Travel & Pre-Departure packet...</p>
         </div>
-      ) : !depRecord ? (
-        <Card className="p-10 text-center border border-amber-200/90 bg-amber-50/40 space-y-3">
-          <Clock className="w-12 h-12 text-amber-600 mx-auto" />
-          <h3 className="text-base font-extrabold text-amber-950">Pre-Departure Packet Pending Clearance</h3>
-          <p className="text-xs font-medium text-amber-800 max-w-md mx-auto leading-relaxed">
-            Your Pre-Departure Flight & Housing packet will be issued by Admin once Stage 11 (VFS Visa Approval & 3rd Installment) is verified.
-          </p>
-        </Card>
       ) : (
         <AnimatePresence mode="wait">
           {activeTab === 'overview' && (
@@ -191,27 +217,27 @@ export const PreDeparture: React.FC = () => {
                 <div className="space-y-3 text-xs font-semibold">
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <span className="text-slate-500 font-medium">Airline Carrier:</span>
-                    <span className="font-extrabold text-slate-900">{depRecord.airline || 'Awaiting Confirmation'}</span>
+                    <span className="font-extrabold text-slate-900">{activeDepRecord.airline}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <span className="text-slate-500 font-medium">Flight Number:</span>
-                    <span className="font-extrabold text-slate-900 bg-slate-200/70 px-2.5 py-0.5 rounded-lg text-xs">{depRecord.flight_no || 'Awaiting Booking'}</span>
+                    <span className="font-extrabold text-slate-900 bg-slate-200/70 px-2.5 py-0.5 rounded-lg text-xs">{activeDepRecord.flight_no}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <span className="text-slate-500 font-medium">Departure Date:</span>
                     <span className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-[#6A1B2E]" /> {depRecord.departure_date || 'To Be Scheduled'}
+                      <Calendar className="w-3.5 h-3.5 text-[#6A1B2E]" /> {activeDepRecord.departure_date}
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <span className="text-slate-500 font-medium">Arrival Date:</span>
                     <span className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-emerald-600" /> {depRecord.arrival_date || 'To Be Scheduled'}
+                      <Calendar className="w-3.5 h-3.5 text-emerald-600" /> {activeDepRecord.arrival_date}
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <span className="text-slate-500 font-medium">Destination Airport:</span>
-                    <span className="font-extrabold text-slate-900">{depRecord.arrival_city || 'European Chopin Airport'}</span>
+                    <span className="font-extrabold text-slate-900">{activeDepRecord.arrival_city}</span>
                   </div>
                 </div>
               </Card>
@@ -224,28 +250,28 @@ export const PreDeparture: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-extrabold text-slate-900">Airport Pickup & Concierge</h3>
-                    <p className="text-[11px] font-semibold text-slate-400">European Welcome Representative</p>
+                    <p className="text-[11px] font-semibold text-slate-400">Destination Welcome Representative</p>
                   </div>
                 </div>
 
                 <div className="space-y-3 text-xs font-semibold">
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <span className="text-slate-500 font-medium">Pickup Driver / Lead:</span>
-                    <span className="font-extrabold text-slate-900">{depRecord.pickup_driver || 'FEREX Student Concierge Lead'}</span>
+                    <span className="font-extrabold text-slate-900">{activeDepRecord.pickup_driver}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <span className="text-slate-500 font-medium">Hotline Contact:</span>
                     <a
-                      href={`tel:${depRecord.pickup_contact || '+48225520999'}`}
+                      href={`tel:${activeDepRecord.pickup_contact || '+48225520999'}`}
                       className="font-extrabold text-[#6A1B2E] hover:underline flex items-center gap-1"
                     >
-                      <PhoneCall className="w-3.5 h-3.5" /> {depRecord.pickup_contact || '+48 22 552 0999'}
+                      <PhoneCall className="w-3.5 h-3.5" /> {activeDepRecord.pickup_contact || '+48 22 552 0999'}
                     </a>
                   </div>
-                  {depRecord.pickup_details && (
+                  {activeDepRecord.pickup_details && (
                     <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-1">
                       <span className="text-amber-800 text-[10px] uppercase font-black tracking-wider block">Pickup Meeting Instructions</span>
-                      <p className="font-bold text-amber-950 text-xs leading-relaxed">{depRecord.pickup_details}</p>
+                      <p className="font-bold text-amber-950 text-xs leading-relaxed">{activeDepRecord.pickup_details}</p>
                     </div>
                   )}
                 </div>
@@ -274,22 +300,22 @@ export const PreDeparture: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1">
                     <span className="text-slate-400 text-[10px] uppercase font-black tracking-wider block">Residence Hall</span>
-                    <span className="font-extrabold text-slate-900 text-sm block">{depRecord.dorm_name || 'Pending Allotment'}</span>
+                    <span className="font-extrabold text-slate-900 text-sm block">{activeDepRecord.dorm_name}</span>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1">
                     <span className="text-slate-400 text-[10px] uppercase font-black tracking-wider block">Room / Block Number</span>
-                    <span className="font-extrabold text-purple-700 text-sm block">{depRecord.room_no || 'Pending Assignment'}</span>
+                    <span className="font-extrabold text-purple-700 text-sm block">{activeDepRecord.room_no}</span>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1">
                     <span className="text-slate-400 text-[10px] uppercase font-black tracking-wider block">Address of Stay</span>
-                    <span className="font-extrabold text-slate-900 text-xs block leading-relaxed">{depRecord.dorm_address || 'On-Campus Student Dorms'}</span>
+                    <span className="font-extrabold text-slate-900 text-xs block leading-relaxed">{activeDepRecord.dorm_address}</span>
                   </div>
                 </div>
 
-                {depRecord.dorm_address && (
+                {activeDepRecord.dorm_address && (
                   <div className="pt-2">
                     <a
-                      href={`https://maps.google.com/?q=${encodeURIComponent(depRecord.dorm_address)}`}
+                      href={`https://maps.google.com/?q=${encodeURIComponent(activeDepRecord.dorm_address)}`}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-xl text-xs font-bold transition-all border border-purple-200"
@@ -312,8 +338,8 @@ export const PreDeparture: React.FC = () => {
               <Card className="p-6 border border-slate-200/80 bg-white space-y-4 shadow-xs">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                   <div>
-                    <h3 className="text-sm font-extrabold text-slate-900">Pre-Departure Mandatory Verification Checklist</h3>
-                    <p className="text-xs font-medium text-slate-400 mt-0.5">Ensure all physical document packets are ready prior to airport departure.</p>
+                    <h3 className="text-sm font-extrabold text-slate-900">Travel & Campus Arrival 9-Stage Checklist</h3>
+                    <p className="text-xs font-medium text-slate-400 mt-0.5">Click any stage to toggle your arrival readiness verification.</p>
                   </div>
                   <span className="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-black rounded-full">
                     {completedChecklistCount} / {checklistItems.length} Verified
@@ -321,26 +347,33 @@ export const PreDeparture: React.FC = () => {
                 </div>
 
                 <div className="space-y-2.5">
-                  {checklistItems.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-bold transition-all ${
-                        item.done
-                          ? 'bg-emerald-50/70 text-emerald-950 border-emerald-200/80'
-                          : 'bg-slate-50 text-slate-600 border-slate-200/80'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <CheckCircle2 className={`w-4 h-4 shrink-0 ${item.done ? 'text-emerald-600' : 'text-slate-400'}`} />
-                        <span>{item.title}</span>
+                  {checklistItems.map((item) => {
+                    const done = isItemDone(item);
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => toggleCheck(item.id)}
+                        className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
+                          done
+                            ? 'bg-emerald-50/80 text-emerald-950 border-emerald-200/90'
+                            : 'bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <CheckCircle2 className={`w-5 h-5 shrink-0 mt-0.5 ${done ? 'text-emerald-600 fill-emerald-100' : 'text-slate-300'}`} />
+                          <div>
+                            <span className="text-xs font-black block">{item.title}</span>
+                            <p className="text-[11px] font-medium text-slate-500 mt-0.5">{item.desc}</p>
+                          </div>
+                        </div>
+                        <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg border shrink-0 ${
+                          done ? 'bg-emerald-200/80 text-emerald-950 border-emerald-300' : 'bg-slate-200 text-slate-600 border-slate-300'
+                        }`}>
+                          {done ? 'Verified' : 'Click to Verify'}
+                        </span>
                       </div>
-                      <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-lg border ${
-                        item.done ? 'bg-emerald-200/80 text-emerald-950 border-emerald-300' : 'bg-slate-200 text-slate-600 border-slate-300'
-                      }`}>
-                        {item.done ? 'Verified' : 'Pending'}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </Card>
             </motion.div>
@@ -361,10 +394,10 @@ export const PreDeparture: React.FC = () => {
                       <PhoneCall className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-extrabold text-slate-900">Warsaw Student Welfare Coordinator</h4>
-                      <p className="text-slate-500 mt-1">{depRecord.pickup_contact || '+48 22 552 0999'} | support.poland@ferex.com</p>
+                      <h4 className="font-extrabold text-slate-900">Student Welfare Coordinator</h4>
+                      <p className="text-slate-500 mt-1">{activeDepRecord.pickup_contact || '+48 22 552 0999'} | support@ferex.com</p>
                       <a
-                        href={`tel:${depRecord.pickup_contact || '+48225520999'}`}
+                        href={`tel:${activeDepRecord.pickup_contact || '+48225520999'}`}
                         className="inline-flex items-center gap-1.5 text-xs font-black text-[#6A1B2E] mt-2 hover:underline"
                       >
                         <PhoneCall className="w-3.5 h-3.5" /> Call Hotline Now
@@ -378,7 +411,7 @@ export const PreDeparture: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-extrabold text-slate-900">Embassy & Consular Assistance Desk</h4>
-                      <p className="text-slate-500 mt-1">Emergency Student Protocol Desk Warsaw, Poland</p>
+                      <p className="text-slate-500 mt-1">Emergency Student Protocol Desk Europe</p>
                       <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 mt-2">
                         <CheckCircle2 className="w-3.5 h-3.5" /> 24/7 Consular Support Available
                       </span>

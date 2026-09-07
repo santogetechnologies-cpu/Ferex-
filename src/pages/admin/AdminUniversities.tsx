@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Plus, Building2, MapPin, Trash2, X, CheckCircle2, Edit2,
-  Calendar, ChevronRight, Eye, GraduationCap, Shield
+  Calendar, Eye, GraduationCap, Shield, Globe, Clock, DollarSign
 } from 'lucide-react';
 import { useUniversities } from '../../hooks/useUniversities';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
@@ -38,24 +38,85 @@ export function formatFeeEURandINR(feeStr?: string): string {
   return `€${amount.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
 }
 
-const PRESET_COUNTRIES = [
-  'Poland',
-  'Germany',
-  'Czech Republic',
-  'Italy',
-  'Spain',
-  'France',
-  'Lithuania',
-  'Hungary',
-  'Austria',
-  'Netherlands',
-  'United Kingdom',
-  'United States'
+export interface CountryItem {
+  name: string;
+  code: string;
+  flag: string;
+  currency: string;
+  authority: string;
+  acronym: string;
+  processing: string;
+  fee: string;
+  isCustom?: boolean;
+}
+
+export const INITIAL_COUNTRIES: CountryItem[] = [
+  { name: 'Poland', code: 'PL', flag: '🇵🇱', currency: 'EUR', authority: 'NAWA Polish National Agency', acronym: 'NAWA', processing: '15-30 Days', fee: '€50' },
+  { name: 'Germany', code: 'DE', flag: '🇩🇪', currency: 'EUR', authority: 'APS German Academic Evaluation', acronym: 'APS', processing: '30-45 Days', fee: '€100' },
+  { name: 'Italy', code: 'IT', flag: '🇮🇹', currency: 'EUR', authority: 'CIMEA / Universitaly', acronym: 'CIMEA', processing: '20-30 Days', fee: '€80' },
+  { name: 'Czech Republic', code: 'CZ', flag: '🇨🇿', currency: 'EUR', authority: 'Nostrification Council', acronym: 'Nostrification', processing: '20-40 Days', fee: '€60' },
+  { name: 'France', code: 'FR', flag: '🇫🇷', currency: 'EUR', authority: 'Campus France EEF', acronym: 'Campus France', processing: '15-25 Days', fee: '€75' },
+  { name: 'Spain', code: 'ES', flag: '🇪🇸', currency: 'EUR', authority: 'UNEDasiss Accreditation', acronym: 'UNEDasiss', processing: '20-35 Days', fee: '€85' },
+  { name: 'United Kingdom', code: 'GB', flag: '🇬🇧', currency: 'GBP', authority: 'UKVI / CAS Verification', acronym: 'UKVI', processing: '15-20 Days', fee: '£350' },
+  { name: 'United States', code: 'US', flag: '🇺🇸', currency: 'USD', authority: 'SEVIS / I-20 Compliance', acronym: 'SEVIS', processing: '10-20 Days', fee: '$350' },
+  { name: 'Canada', code: 'CA', flag: '🇨🇦', currency: 'CAD', authority: 'IRCC / PAL Attestation', acronym: 'IRCC', processing: '30-60 Days', fee: '$150' },
+  { name: 'Australia', code: 'AU', flag: '🇦🇺', currency: 'AUD', authority: 'PRISMS / CoE Confirmation', acronym: 'PRISMS', processing: '20-40 Days', fee: '$710' },
+  { name: 'Ireland', code: 'IE', flag: '🇮🇪', currency: 'EUR', authority: 'ILEP Academic Approval', acronym: 'ILEP', processing: '20-30 Days', fee: '€60' },
+  { name: 'Netherlands', code: 'NL', flag: '🇳🇱', currency: 'EUR', authority: 'IND Resident Entry Review', acronym: 'IND', processing: '15-30 Days', fee: '€210' },
+  { name: 'Austria', code: 'AT', flag: '🇦🇹', currency: 'EUR', authority: 'Austrian Federal Ministry', acronym: 'BMBWF', processing: '20-35 Days', fee: '€90' },
+  { name: 'Switzerland', code: 'CH', flag: '🇨🇭', currency: 'CHF', authority: 'Swiss Cantonal Authority', acronym: 'SEM', processing: '30-60 Days', fee: 'CHF 150' },
+  { name: 'Sweden', code: 'SE', flag: '🇸🇪', currency: 'SEK', authority: 'Swedish Migration Agency', acronym: 'Migrationsverket', processing: '30-50 Days', fee: 'SEK 1500' },
+  { name: 'Finland', code: 'FI', flag: '🇫🇮', currency: 'EUR', authority: 'Finnish Immigration Service', acronym: 'Migri', processing: '20-40 Days', fee: '€350' },
+  { name: 'Denmark', code: 'DK', flag: '🇩🇰', currency: 'DKK', authority: 'Danish Agency SIRI', acronym: 'SIRI', processing: '25-45 Days', fee: 'DKK 2110' },
+  { name: 'Norway', code: 'NO', flag: '🇳🇴', currency: 'NOK', authority: 'Norwegian UDI Directorate', acronym: 'UDI', processing: '30-60 Days', fee: 'NOK 5900' },
+  { name: 'Hungary', code: 'HU', flag: '🇭🇺', currency: 'EUR', authority: 'Hungarian Educational Authority', acronym: 'OFI', processing: '15-30 Days', fee: '€50' },
+  { name: 'Latvia', code: 'LV', flag: '🇱🇻', currency: 'EUR', authority: 'Academic Information Centre', acronym: 'AIC', processing: '20-30 Days', fee: '€40' },
+  { name: 'Lithuania', code: 'LT', flag: '🇱🇹', currency: 'EUR', authority: 'SKVC Quality Assessment Centre', acronym: 'SKVC', processing: '20-30 Days', fee: '€45' },
+  { name: 'Cyprus', code: 'CY', flag: '🇨🇾', currency: 'EUR', authority: 'Cyprus KYSATS Council', acronym: 'KYSATS', processing: '15-25 Days', fee: '€50' },
+  { name: 'Malta', code: 'MT', flag: '🇲🇹', currency: 'EUR', authority: 'Malta MFHEA Authority', acronym: 'MFHEA', processing: '15-30 Days', fee: '€60' },
+  { name: 'Belgium', code: 'BE', flag: '🇧🇪', currency: 'EUR', authority: 'NARIC Flanders & Wallonia', acronym: 'NARIC', processing: '30-50 Days', fee: '€100' },
+  { name: 'Portugal', code: 'PT', flag: '🇵🇹', currency: 'EUR', authority: 'DGES Higher Education Council', acronym: 'DGES', processing: '20-40 Days', fee: '€55' },
+  { name: 'Greece', code: 'GR', flag: '🇬🇷', currency: 'EUR', authority: 'DOATAP Hellenic NARIC', acronym: 'DOATAP', processing: '25-45 Days', fee: '€65' },
+  { name: 'Romania', code: 'RO', flag: '🇷🇴', currency: 'EUR', authority: 'CNRED Ministry of Education', acronym: 'CNRED', processing: '20-35 Days', fee: '€45' },
+  { name: 'Bulgaria', code: 'BG', flag: '🇧🇬', currency: 'EUR', authority: 'NACID Information Center', acronym: 'NACID', processing: '20-35 Days', fee: '€40' },
+  { name: 'Georgia', code: 'GE', flag: '🇬🇪', currency: 'USD', authority: 'NCEQE National Center', acronym: 'NCEQE', processing: '15-25 Days', fee: '$50' },
+  { name: 'United Arab Emirates', code: 'AE', flag: '🇦🇪', currency: 'AED', authority: 'KHDA / MoE Clearance', acronym: 'KHDA', processing: '10-20 Days', fee: 'AED 500' },
+  { name: 'Singapore', code: 'SG', flag: '🇸🇬', currency: 'SGD', authority: 'ICA Student Pass Division', acronym: 'ICA', processing: '14-21 Days', fee: 'SGD 90' },
+  { name: 'Malaysia', code: 'MY', flag: '🇲🇾', currency: 'MYR', authority: 'Education Malaysia EMGS', acronym: 'EMGS', processing: '20-35 Days', fee: 'MYR 1200' },
+  { name: 'New Zealand', code: 'NZ', flag: '🇳🇿', currency: 'NZD', authority: 'NZQA Qualification Authority', acronym: 'NZQA', processing: '25-45 Days', fee: 'NZD 375' },
+  { name: 'Japan', code: 'JP', flag: '🇯🇵', currency: 'JPY', authority: 'Immigration Services MOFA COE', acronym: 'MOFA', processing: '30-60 Days', fee: '¥4,000' },
+  { name: 'South Korea', code: 'KR', flag: '🇰🇷', currency: 'KRW', authority: 'NIIED National Institute', acronym: 'NIIED', processing: '20-40 Days', fee: '₩60,000' },
 ];
 
 export const AdminUniversities: React.FC = () => {
   const { universities, loading, addUniversity, updateUniversity, removeUniversity } = useUniversities();
   const { config } = useFeeConfig();
+
+  // Top view tab: 'universities' or 'countries'
+  const [activeMainTab, setActiveMainTab] = useState<'universities' | 'countries'>('universities');
+
+  // Country registry state (initial + custom from localStorage)
+  const [countryList, setCountryList] = useState<CountryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('ferex_registered_countries');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_COUNTRIES;
+  });
+
+  // Add Country modal state
+  const [showAddCountryModal, setShowAddCountryModal] = useState(false);
+  const [newCountryName, setNewCountryName] = useState('');
+  const [newCountryCode, setNewCountryCode] = useState('');
+  const [newCountryFlag, setNewCountryFlag] = useState('🌍');
+  const [newCountryCurrency, setNewCountryCurrency] = useState('EUR');
+  const [newCountryAuthority, setNewCountryAuthority] = useState('');
+  const [newCountryAcronym, setNewCountryAcronym] = useState('');
+  const [newCountryProcessing, setNewCountryProcessing] = useState('15-30 Days');
+  const [newCountryFee, setNewCountryFee] = useState('€50');
 
   const [search, setSearch] = useState('');
   const [countryFilter, setCountryFilter] = useState('All');
@@ -65,10 +126,10 @@ export const AdminUniversities: React.FC = () => {
   const [toast, setToast] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Modal active tab
+  // Modal active tab for university form
   const [activeFormTab, setActiveFormTab] = useState<'general' | 'courses' | 'fees' | 'installments' | 'semesters'>('general');
 
-  // Form states
+  // Form states for university
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('Poland');
@@ -102,10 +163,61 @@ export const AdminUniversities: React.FC = () => {
   // Semester details state
   const [semestersList, setSemestersList] = useState<CourseSemester[]>([]);
 
-  // Collect all unique countries from existing list + presets
-  const availableCountries = Array.from(
-    new Set([...PRESET_COUNTRIES, ...universities.map(u => u?.country).filter(Boolean)])
+  // Collect all unique countries
+  const availableCountryNames = Array.from(
+    new Set([...countryList.map(c => c.name), ...universities.map(u => u?.country).filter(Boolean)])
   );
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
+
+  const handleAddCountrySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCountryName.trim()) return;
+
+    const trimmed = newCountryName.trim();
+    if (countryList.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
+      showToast(`Country "${trimmed}" is already registered.`);
+      return;
+    }
+
+    const newCountry: CountryItem = {
+      name: trimmed,
+      code: newCountryCode.trim().toUpperCase() || trimmed.substring(0, 2).toUpperCase(),
+      flag: newCountryFlag.trim() || '🌍',
+      currency: newCountryCurrency.trim() || 'EUR',
+      authority: newCountryAuthority.trim() || `${trimmed} Higher Education Ministry`,
+      acronym: newCountryAcronym.trim() || trimmed.substring(0, 4).toUpperCase(),
+      processing: newCountryProcessing.trim() || '20-30 Days',
+      fee: newCountryFee.trim() || '€50',
+      isCustom: true,
+    };
+
+    const updated = [newCountry, ...countryList];
+    setCountryList(updated);
+    try {
+      localStorage.setItem('ferex_registered_countries', JSON.stringify(updated));
+    } catch {}
+
+    setShowAddCountryModal(false);
+    setNewCountryName('');
+    setNewCountryCode('');
+    setNewCountryAuthority('');
+    setNewCountryAcronym('');
+    showToast(`🎉 Country "${trimmed}" added successfully!`);
+  };
+
+  const handleDeleteCountry = (cName: string) => {
+    if (!window.confirm(`Are you sure you want to remove country "${cName}"?`)) return;
+    const updated = countryList.filter(c => c.name !== cName);
+    setCountryList(updated);
+    try {
+      localStorage.setItem('ferex_registered_countries', JSON.stringify(updated));
+    } catch {}
+    showToast(`Country "${cName}" removed.`);
+  };
 
   const handleAddCustomIntake = () => {
     if (!customIntakeInput.trim()) return;
@@ -159,12 +271,11 @@ export const AdminUniversities: React.FC = () => {
     setInstallmentsList(prev => prev.filter((_, i) => i !== index));
   };
 
-
   const resetForm = () => {
     setEditingId(null);
     setName('');
     setCity('');
-    setCountry('Poland');
+    setCountry(availableCountryNames[0] || 'Poland');
     setIsCustomCountry(false);
     setCustomCountryInput('');
     setBadge('Top Choice');
@@ -185,13 +296,16 @@ export const AdminUniversities: React.FC = () => {
       { id: 'cp-1', name: 'B.Sc Computer Science & Engineering', degree_level: 'Bachelor', tuition_fee: '€3,000 / yr', duration: '3.5 Years' },
       { id: 'cp-2', name: 'M.Sc Artificial Intelligence & Data Systems', degree_level: 'Master', tuition_fee: '€3,500 / yr', duration: '2 Years' }
     ]);
-    setInstallmentsList([]);
-    setSemestersList([]);
+    installmentsList.length > 0 && setInstallmentsList([]);
+    semestersList.length > 0 && setSemestersList([]);
     setActiveFormTab('general');
   };
 
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = (presetCountry?: string) => {
     resetForm();
+    if (presetCountry) {
+      setCountry(presetCountry);
+    }
     setShowAddModal(true);
   };
 
@@ -199,17 +313,7 @@ export const AdminUniversities: React.FC = () => {
     setEditingId(u.id);
     setName(u.name);
     setCity(u.city || '');
-    
-    if (availableCountries.includes(u.country)) {
-      setCountry(u.country);
-      setIsCustomCountry(false);
-      setCustomCountryInput('');
-    } else {
-      setCountry(u.country);
-      setIsCustomCountry(true);
-      setCustomCountryInput(u.country);
-    }
-
+    setCountry(u.country);
     setBadge(u.badge || 'Top Choice');
     setCategory(u.category || 'Engineering');
     setImageUrl(u.image_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80');
@@ -244,28 +348,20 @@ export const AdminUniversities: React.FC = () => {
     setShowAddModal(true);
   };
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
-  };
-
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const resolvedCountry = isCustomCountry ? (customCountryInput.trim() || 'Europe') : country;
-
     try {
       const parsedPrograms = courseProgramsList.map(c => c.name);
-
-      const payload = {
+      const payload: Partial<University> = {
         name: name.trim(),
-        city: city.trim() || 'Main Campus',
-        country: resolvedCountry,
-        badge,
-        category,
+        city: city.trim() || 'Capital Campus',
+        country: isCustomCountry ? (customCountryInput.trim() || 'Europe') : country,
+        badge: badge.trim() || 'Top Choice',
+        category: category.trim() || 'Engineering',
         image_url: imageUrl.trim() || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80',
-        description: description.trim() || `${name} is an accredited European institution offering English-taught degrees.`,
+        description: description.trim() || `${name} offers accredited degree programs with global post-study work opportunities.`,
         rating: parseFloat(rating) || 4.8,
         ranking: parseInt(ranking) || 100,
         tuition_range: tuition.trim() || universityFee,
@@ -286,7 +382,7 @@ export const AdminUniversities: React.FC = () => {
         showToast(`University "${name}" updated successfully!`);
       } else {
         await addUniversity(payload);
-        showToast(`University "${name}" created and published to Landing Page!`);
+        showToast(`University "${name}" created and published!`);
       }
 
       setShowAddModal(false);
@@ -307,8 +403,8 @@ export const AdminUniversities: React.FC = () => {
     }
   };
 
-  // Filter logic
-  const filtered = universities.filter(u => {
+  // Filter logic for universities
+  const filteredUniversities = universities.filter(u => {
     if (!u) return false;
     const nameStr = (u.name || '').toLowerCase();
     const cityStr = (u.city || '').toLowerCase();
@@ -320,7 +416,11 @@ export const AdminUniversities: React.FC = () => {
     return matchesSearch && matchesCountry;
   });
 
-  const countriesList = Array.from(new Set(universities.map(u => u?.country).filter(Boolean)));
+  // Filter logic for countries
+  const filteredCountries = countryList.filter(c => {
+    const q = search.toLowerCase().trim();
+    return !q || c.name.toLowerCase().includes(q) || c.authority.toLowerCase().includes(q) || c.acronym.toLowerCase().includes(q);
+  });
 
   return (
     <div className="space-y-6 relative text-left">
@@ -337,565 +437,595 @@ export const AdminUniversities: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl font-black text-slate-900 tracking-tight">University & Destination Management</h1>
             <span className="text-[10.5px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-md border border-amber-300/80">
-              Live Public Sync
+              Live Global Catalog
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-400 mt-1">
-            SuperAdmin controls: Add custom countries, configure universities, tuition in EUR/INR, course programs, living costs, and landing page visibility.
+            Separately manage registered destination countries and partner universities with multi-currency fees & course programs.
           </p>
         </div>
 
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowAddCountryModal(true)}
+            className="flex items-center gap-1.5 h-9.5 px-3.5 bg-slate-900 rounded-xl text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
+          >
+            <Globe className="w-3.5 h-3.5 text-amber-300" /> Add Country
+          </button>
+          <button
+            onClick={() => handleOpenAddModal()}
+            className="flex items-center gap-1.5 h-9.5 px-4 bg-[#6A1B2E] rounded-xl text-xs font-bold text-white hover:bg-[#521221] active:scale-98 transition-all shadow-md shadow-[#6A1B2E]/20 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" /> Add University
+          </button>
+        </div>
+      </div>
+
+      {/* Top Module Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2">
         <button
-          onClick={handleOpenAddModal}
-          className="flex items-center gap-2 h-9.5 px-4 bg-[#6A1B2E] rounded-xl text-xs font-bold text-white hover:bg-[#521221] active:scale-98 transition-all shadow-md shadow-[#6A1B2E]/20 self-start sm:self-auto cursor-pointer"
+          onClick={() => setActiveMainTab('universities')}
+          className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all flex items-center gap-2 ${
+            activeMainTab === 'universities'
+              ? 'bg-[#6A1B2E] text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
         >
-          <Plus className="w-4 h-4" /> Add Country & University
+          <Building2 className="w-4 h-4" /> Universities ({universities.length})
+        </button>
+        <button
+          onClick={() => setActiveMainTab('countries')}
+          className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all flex items-center gap-2 ${
+            activeMainTab === 'countries'
+              ? 'bg-[#6A1B2E] text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Globe className="w-4 h-4 text-emerald-600" /> Countries & Legalization ({countryList.length})
         </button>
       </div>
 
-      {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by university name, city, or country..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-          />
-        </div>
+      {/* TAB 1: UNIVERSITIES MANAGEMENT */}
+      {activeMainTab === 'universities' && (
+        <div className="space-y-4">
+          {/* Filters & Search */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by university name, city, or country..."
+                className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+              />
+            </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Country:</span>
-          <select
-            value={countryFilter}
-            onChange={(e) => setCountryFilter(e.target.value)}
-            className="h-9 px-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
-          >
-            <option value="All">All Destinations ({universities.length})</option>
-            {countriesList.map(c => (
-              <option key={c} value={c}>{c} ({universities.filter(u => u.country === c).length})</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Universities Grid */}
-      {loading ? (
-        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading dynamic university catalog...</div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
-          <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-sm font-black text-slate-800">No Universities Found</h3>
-          <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto">
-            No active universities match your search. Click "Add Country & University" above to publish a new European partner institution.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map(u => {
-            const displayIntakes = u.intakes || ['October 2026', 'February 2027'];
-
-            return (
-              <motion.div
-                key={u.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between group text-left"
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Country:</span>
+              <select
+                value={countryFilter}
+                onChange={(e) => setCountryFilter(e.target.value)}
+                className="h-9 px-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 focus:outline-none max-w-xs"
               >
-                <div>
-                  {/* Card Image Banner */}
-                  <div className="h-32 relative overflow-hidden bg-slate-900">
-                    <img
-                      src={u.image_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=600&q=80'}
-                      alt={u.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
-                    
-                    <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#6A1B2E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/40 shadow-xs">
-                      {u.badge || 'Top Choice'}
-                    </span>
+                <option value="All">All Countries ({universities.length})</option>
+                {availableCountryNames.map(c => {
+                  const count = universities.filter(u => u.country === c).length;
+                  return (
+                    <option key={c} value={c}>
+                      {c} {count > 0 ? `(${count})` : ''}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
 
-                    <div className="absolute bottom-2 left-3 text-white">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300 bg-black/40 px-2 py-0.5 rounded">
-                        {u.category || 'Engineering'}
-                      </span>
-                    </div>
-                  </div>
+          {/* Universities Grid */}
+          {loading ? (
+            <div className="py-16 text-center text-xs font-bold text-slate-400">Loading university catalog...</div>
+          ) : filteredUniversities.length === 0 ? (
+            <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
+              <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-sm font-black text-slate-800">No Universities Found</h3>
+              <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto mb-4">
+                No institutions match the current search or country filter.
+              </p>
+              <button
+                onClick={() => handleOpenAddModal(countryFilter !== 'All' ? countryFilter : undefined)}
+                className="px-4 py-2 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221]"
+              >
+                + Add University to {countryFilter !== 'All' ? countryFilter : 'Catalog'}
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredUniversities.map(u => {
+                const displayIntakes = u.intakes || ['October 2026', 'February 2027'];
 
-                  <div className="p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h3 className="text-sm font-black text-slate-900 leading-snug group-hover:text-[#6A1B2E] transition-colors">
-                          {u.name}
-                        </h3>
-                        <p className="text-[11px] font-semibold text-slate-400 flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
-                          {u.city ? `${u.city}, ${u.country}` : u.country}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={() => handleOpenEditModal(u)}
-                          title="Edit University, Country, Fees & Courses"
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setViewUniversity(u)}
-                          title="View Details"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-[#6A1B2E]/5 transition-colors cursor-pointer"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteId(u.id)}
-                          title="Remove University"
-                          className="p-1.5 rounded-lg text-slate-300 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Intakes Row */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      {displayIntakes.map(intake => (
-                        <span key={intake} className="text-[9.5px] font-extrabold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200/60">
-                          {intake}
+                return (
+                  <motion.div
+                    key={u.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between group text-left"
+                  >
+                    <div>
+                      {/* Card Image Banner */}
+                      <div className="h-32 relative overflow-hidden bg-slate-900">
+                        <img
+                          src={u.image_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=600&q=80'}
+                          alt={u.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                        
+                        <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#6A1B2E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/40 shadow-xs">
+                          {u.badge || 'Top Choice'}
                         </span>
-                      ))}
-                    </div>
 
-                    {/* Fee Breakdown Matrix */}
-                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1.5 text-xs font-semibold">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 shrink-0">Tuition Fee:</span>
-                        <span className="font-black text-slate-900 text-right text-[11px] bg-white px-2 py-0.5 rounded-md border border-slate-200/80 shrink-0">
-                          {formatFeeEURandINR(u.tuition_range || u.university_fee || u.course_programs?.[0]?.tuition_fee)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 shrink-0">Living Cost:</span>
-                        <span className="font-extrabold text-slate-700 text-right text-[10.5px]">
-                          {u.living_cost_monthly || '€350 - €500 / mo'}
-                        </span>
-                      </div>
-                      {u.nawa_required && (
-                        <div className="flex items-center gap-1 text-[10px] text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                          <Shield className="w-3 h-3 text-amber-600" /> NAWA Legalization Required
+                        <div className="absolute bottom-2 left-3 text-white">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300 bg-black/40 px-2 py-0.5 rounded">
+                            {u.category || 'Engineering'}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                      </div>
 
-                <div className="p-4 pt-0 flex items-center justify-between border-t border-slate-100 mt-2">
-                  <button
-                    onClick={() => setViewUniversity(u)}
-                    className="text-xs font-bold text-[#6A1B2E] hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    View Details & Programs <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleOpenEditModal(u)}
-                    className="text-[10.5px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
-                  >
-                    Configure Fees
-                  </button>
-                </div>
-              </motion.div>
-            );
-          })}
+                      <div className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h3 className="text-sm font-black text-slate-900 leading-snug group-hover:text-[#6A1B2E] transition-colors">
+                              {u.name}
+                            </h3>
+                            <p className="text-[11px] font-semibold text-slate-400 flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
+                              {u.city ? `${u.city}, ${u.country}` : u.country}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => handleOpenEditModal(u)}
+                              title="Edit University"
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setViewUniversity(u)}
+                              title="View Details"
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteId(u.id)}
+                              title="Delete University"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Tuition & Cost Banner */}
+                        <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 font-medium">Tuition Fee:</span>
+                            <span className="font-extrabold text-[#6A1B2E]">
+                              {formatFeeEURandINR(u.tuition_range || u.university_fee)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 font-medium">Living Cost:</span>
+                            <span className="font-bold text-slate-700">{u.living_cost_monthly || '€350 - €500 / mo'}</span>
+                          </div>
+                        </div>
+
+                        {/* Intakes */}
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 flex-wrap">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="text-slate-400">Intakes:</span>
+                          {displayIntakes.map(intk => (
+                            <span key={intk} className="px-1.5 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-700">
+                              {intk}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="px-4 py-2.5 bg-slate-50/60 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-slate-500">
+                        {u.course_programs?.length || u.programs?.length || 2} Degree Programs
+                      </span>
+                      <button
+                        onClick={() => handleOpenEditModal(u)}
+                        className="font-extrabold text-[#6A1B2E] hover:underline flex items-center gap-1"
+                      >
+                        Manage Programs & Fees →
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
-      {/* View University Drawer */}
+      {/* TAB 2: COUNTRIES & LEGALIZATION WORKFLOWS */}
+      {activeMainTab === 'countries' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search registered countries, legalization authorities, or acronyms..."
+                className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+              />
+            </div>
+            <button
+              onClick={() => setShowAddCountryModal(true)}
+              className="h-9 px-4 bg-[#6A1B2E] text-white rounded-xl text-xs font-bold hover:bg-[#521221] flex items-center gap-1.5 shadow-xs"
+            >
+              <Plus className="w-4 h-4" /> Add New Country
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredCountries.map((c) => {
+              const count = universities.filter(u => u.country.toLowerCase() === c.name.toLowerCase()).length;
+
+              return (
+                <div key={c.name} className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-2xl">{c.flag}</span>
+                        <div>
+                          <h3 className="text-sm font-black text-slate-900">{c.name}</h3>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">ISO: {c.code} • {c.currency}</span>
+                        </div>
+                      </div>
+
+                      <span className="px-2 py-0.5 bg-[#6A1B2E]/10 text-[#6A1B2E] rounded-md text-[10px] font-extrabold border border-[#6A1B2E]/20">
+                        {c.acronym}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-xs p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Legalization Authority:</span>
+                        <span className="font-bold text-slate-800 text-xs">{c.authority}</span>
+                      </div>
+                      <div className="flex justify-between pt-1">
+                        <span className="text-slate-500 font-medium">Processing Time:</span>
+                        <span className="font-bold text-emerald-700">{c.processing}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 font-medium">Govt / Legal Fee:</span>
+                        <span className="font-bold text-slate-800">{c.fee}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between mt-4">
+                    <span className="text-xs font-bold text-slate-600">
+                      {count} {count === 1 ? 'University' : 'Universities'}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setCountryFilter(c.name);
+                          setActiveMainTab('universities');
+                        }}
+                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors"
+                      >
+                        View Universities
+                      </button>
+                      <button
+                        onClick={() => handleOpenAddModal(c.name)}
+                        className="px-2.5 py-1 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-lg transition-colors"
+                      >
+                        + Add Uni
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ADD COUNTRY MODAL */}
       <AnimatePresence>
-        {viewUniversity && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-50" onClick={() => setViewUniversity(null)} />
-            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 w-full md:w-[560px] bg-white shadow-2xl z-50 flex flex-col border-l border-slate-100 text-left">
-              
-              {/* Header */}
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#6A1B2E] text-white font-black flex items-center justify-center text-sm shadow-sm">
-                    {viewUniversity.name[0]}
+        {showAddCountryModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setShowAddCountryModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-[#6A1B2E]" />
+                  <h3 className="text-base font-black text-slate-900">Register New Destination Country</h3>
+                </div>
+                <button onClick={() => setShowAddCountryModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
+              </div>
+
+              <form onSubmit={handleAddCountrySubmit} className="space-y-3.5">
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Country Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={newCountryName}
+                    onChange={(e) => setNewCountryName(e.target.value)}
+                    placeholder="e.g. Switzerland"
+                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Flag Emoji</label>
+                    <input
+                      type="text"
+                      value={newCountryFlag}
+                      onChange={(e) => setNewCountryFlag(e.target.value)}
+                      placeholder="🇨🇭"
+                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-center focus:outline-none"
+                    />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-slate-900">{viewUniversity.name}</h3>
-                    <p className="text-xs font-semibold text-slate-400">{viewUniversity.city}, {viewUniversity.country}</p>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Country Code</label>
+                    <input
+                      type="text"
+                      value={newCountryCode}
+                      onChange={(e) => setNewCountryCode(e.target.value)}
+                      placeholder="CH"
+                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Currency</label>
+                    <input
+                      type="text"
+                      value={newCountryCurrency}
+                      onChange={(e) => setNewCountryCurrency(e.target.value)}
+                      placeholder="CHF"
+                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase focus:outline-none"
+                    />
                   </div>
                 </div>
-                <button onClick={() => setViewUniversity(null)} className="p-1.5 rounded-full hover:bg-slate-200/60 text-slate-400">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-5 text-left">
-                {/* Image Banner */}
-                {viewUniversity.image_url && (
-                  <div className="h-44 rounded-2xl overflow-hidden relative shadow-md">
-                    <img src={viewUniversity.image_url} alt={viewUniversity.name} className="w-full h-full object-cover" />
-                    <span className="absolute top-3 right-3 text-[10px] font-black bg-[#6A1B2E] text-amber-300 px-3 py-1 rounded-full shadow-md">
-                      {viewUniversity.badge || 'Accredited'}
-                    </span>
-                  </div>
-                )}
-
-                {/* Description */}
-                {viewUniversity.description && (
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/70 text-xs font-semibold text-slate-700 leading-relaxed">
-                    {viewUniversity.description}
-                  </div>
-                )}
-
-                {/* Course Programs & Tuition */}
                 <div>
-                  <h4 className="text-xs font-extrabold uppercase text-slate-400 tracking-wider mb-2 flex items-center gap-1.5">
-                    <GraduationCap className="w-3.5 h-3.5 text-[#6A1B2E]" /> Course Programs & Tuition Fees
-                  </h4>
-                  <div className="space-y-2">
-                    {(viewUniversity.course_programs || []).map((prog, idx) => (
-                      <div key={idx} className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-bold text-slate-900">{prog.name}</p>
-                          <p className="text-[10px] font-semibold text-slate-400">{prog.degree_level} • {prog.duration || '2 Years'}</p>
-                        </div>
-                        <span className="text-xs font-black text-[#6A1B2E] bg-[#6A1B2E]/5 px-2.5 py-1 rounded-lg border border-[#6A1B2E]/20">
-                          {formatFeeEURandINR(prog.tuition_fee)}
-                        </span>
-                      </div>
-                    ))}
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Legalization Body / Agency</label>
+                  <input
+                    type="text"
+                    value={newCountryAuthority}
+                    onChange={(e) => setNewCountryAuthority(e.target.value)}
+                    placeholder="e.g. State Secretariat for Education (SERI)"
+                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Acronym</label>
+                    <input
+                      type="text"
+                      value={newCountryAcronym}
+                      onChange={(e) => setNewCountryAcronym(e.target.value)}
+                      placeholder="SERI"
+                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Processing Time</label>
+                    <input
+                      type="text"
+                      value={newCountryProcessing}
+                      onChange={(e) => setNewCountryProcessing(e.target.value)}
+                      placeholder="20-35 Days"
+                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Authority Fee</label>
+                    <input
+                      type="text"
+                      value={newCountryFee}
+                      onChange={(e) => setNewCountryFee(e.target.value)}
+                      placeholder="€80"
+                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                    />
                   </div>
                 </div>
 
-                {/* Cost of Living */}
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-900 flex justify-between items-center">
-                  <span>Estimated Monthly Living Expenses:</span>
-                  <span className="font-black text-emerald-800">{viewUniversity.living_cost_monthly || '€350 - €500 / mo'}</span>
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button type="button" onClick={() => setShowAddCountryModal(false)} className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
+                  <button type="submit" className="h-9 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221]">Register Country</button>
                 </div>
-              </div>
-
-              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex gap-3">
-                <button
-                  onClick={() => {
-                    const uni = viewUniversity;
-                    setViewUniversity(null);
-                    handleOpenEditModal(uni);
-                  }}
-                  className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221]"
-                >
-                  Edit University & Fees
-                </button>
-                <button onClick={() => setViewUniversity(null)} className="h-9 px-4 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-100">
-                  Close
-                </button>
-              </div>
+              </form>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
 
-      {/* Comprehensive Add / Edit University, Country & Fees Modal */}
+      {/* ADD / EDIT UNIVERSITY MODAL */}
       <AnimatePresence>
         {showAddModal && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
-              onClick={() => setShowAddModal(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left"
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs" onClick={() => setShowAddModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-3xl p-6 w-full max-w-2xl shadow-2xl border border-slate-100 z-10 text-left space-y-4 max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
-                  <h3 className="text-sm font-extrabold text-slate-900">
-                    {editingId ? 'Edit European Partner Institution & Fees' : 'Add European Country & University'}
+                  <h3 className="text-base font-black text-slate-900">
+                    {editingId ? 'Edit University Details & Programs' : 'Add New Partner University'}
                   </h3>
-                  <p className="text-[10.5px] font-semibold text-slate-400 mt-0.5">
-                    Configure country destination, programs, tuition in EUR/INR, and live public landing page display.
-                  </p>
+                  <p className="text-xs text-slate-400">Configure university profile, course programs, and fee milestones</p>
                 </div>
-                <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400">
-                  <X className="w-4 h-4" />
-                </button>
+                <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5" /></button>
               </div>
 
-              {/* Modal Navigation Tabs */}
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4 overflow-x-auto">
+              {/* Form Tab switcher */}
+              <div className="flex items-center gap-1.5 border-b border-slate-100 pb-2">
                 {[
-                  { id: 'general', label: '1. Destination & Campus' },
-                  { id: 'courses', label: '2. Degree Programs & Fees' },
-                  { id: 'fees', label: '3. Cost Breakdown & VFS' },
+                  { id: 'general', label: '1. General Info' },
+                  { id: 'courses', label: `2. Course Programs (${courseProgramsList.length})` },
+                  { id: 'fees', label: '3. Fees & Invoicing' },
                   { id: 'installments', label: '4. Installment Stages' },
-                ].map(tab => (
+                ].map(t => (
                   <button
-                    key={tab.id}
+                    key={t.id}
                     type="button"
-                    onClick={() => setActiveFormTab(tab.id as any)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                      activeFormTab === tab.id
-                        ? 'bg-[#6A1B2E] text-white shadow-xs'
-                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
+                    onClick={() => setActiveFormTab(t.id as any)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                      activeFormTab === t.id ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
-                    {tab.label}
+                    {t.label}
                   </button>
                 ))}
               </div>
 
-              <form onSubmit={handleFormSubmit} className="space-y-4">
-                {/* TAB 1: Destination & Campus */}
+              <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto pr-1 space-y-4">
                 {activeFormTab === 'general' && (
-                  <div className="space-y-4">
+                  <div className="space-y-3.5">
                     <div>
-                      <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                        University Name *
-                      </label>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">University Name</label>
                       <input
-                        required
                         type="text"
+                        required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="e.g. Warsaw University of Technology"
-                        className="w-full h-9.5 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                        className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                          City / Campus *
-                        </label>
-                        <input
-                          required
-                          type="text"
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          placeholder="e.g. Warsaw or Krakow"
-                          className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                            Country / Destination *
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => setIsCustomCountry(!isCustomCountry)}
-                            className="text-[10px] font-bold text-[#6A1B2E] hover:underline"
-                          >
-                            {isCustomCountry ? '← Select from list' : '+ Add Custom Country'}
-                          </button>
-                        </div>
-                        
-                        {isCustomCountry ? (
-                          <input
-                            required
-                            type="text"
-                            value={customCountryInput}
-                            onChange={(e) => setCustomCountryInput(e.target.value)}
-                            placeholder="Enter Country (e.g. Switzerland)..."
-                            className="w-full h-9 px-3 bg-slate-50 border border-[#6A1B2E]/40 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
-                          />
-                        ) : (
-                          <select
-                            value={country}
-                            onChange={(e) => setCountry(e.target.value)}
-                            className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                          >
-                            {availableCountries.map(c => (
-                              <option key={c} value={c}>{c}</option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                          Academic Category
-                        </label>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Country</label>
                         <select
-                          value={category}
-                          onChange={(e) => setCategory(e.target.value)}
-                          className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                          value={country}
+                          onChange={(e) => setCountry(e.target.value)}
+                          className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                         >
-                          <option value="Engineering">Engineering</option>
-                          <option value="Business">Business</option>
-                          <option value="IT & CS">IT & CS</option>
-                          <option value="Humanities">Humanities</option>
-                          <option value="Medicine">Medicine</option>
-                          <option value="General">General / Multi-Disciplinary</option>
+                          {availableCountryNames.map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
                         </select>
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                          Highlight Badge
-                        </label>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Campus City</label>
+                        <input
+                          type="text"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          placeholder="e.g. Warsaw"
+                          className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Badge Tag</label>
                         <input
                           type="text"
                           value={badge}
                           onChange={(e) => setBadge(e.target.value)}
-                          placeholder="e.g. Top Choice, AACSB, Research Hub"
-                          className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                          placeholder="e.g. Top Choice / NAWA Verified"
+                          className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Category Domain</label>
+                        <input
+                          type="text"
+                          value={category}
+                          onChange={(e) => setCategory(e.target.value)}
+                          placeholder="e.g. Engineering & IT"
+                          className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                        Campus Photo / Image URL
-                      </label>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Cover Image URL</label>
                       <input
-                        type="url"
+                        type="text"
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}
                         placeholder="https://images.unsplash.com/..."
-                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                        className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                        Short Institution Bio / Description
-                      </label>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Description</label>
                       <textarea
                         rows={2}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Overview of English taught programs, campus location, and European ranking..."
-                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none resize-none"
+                        placeholder="Brief summary of academic rankings and campus life..."
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
                       />
-                    </div>
-
-                    <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
-                      <input
-                        type="checkbox"
-                        id="nawaReq"
-                        checked={nawaRequired}
-                        onChange={(e) => setNawaRequired(e.target.checked)}
-                        className="w-4 h-4 text-[#6A1B2E] rounded accent-[#6A1B2E]"
-                      />
-                      <label htmlFor="nawaReq" className="text-xs font-bold text-amber-900 cursor-pointer">
-                        NAWA Legalization / Polish Ministry Qualification Audit Required
-                      </label>
-                    </div>
-
-                    {/* Intakes Selection */}
-                    <div>
-                      <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
-                        Admissions Intakes
-                      </label>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {selectedIntakes.map(intake => (
-                          <div
-                            key={intake}
-                            className="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-[#6A1B2E] text-white flex items-center gap-1.5"
-                          >
-                            <span>✓ {intake}</span>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedIntakes(prev => prev.filter(i => i !== intake))}
-                              className="w-3.5 h-3.5 rounded-full bg-white/20 hover:bg-red-500 text-white flex items-center justify-center transition-colors"
-                            >
-                              <X className="w-2.5 h-2.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={customIntakeInput}
-                          onChange={(e) => setCustomIntakeInput(e.target.value)}
-                          placeholder="Add custom intake (e.g. October 2026, February 2027)..."
-                          className="flex-1 h-8 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAddCustomIntake}
-                          className="h-8 px-3 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800"
-                        >
-                          Add
-                        </button>
-                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* TAB 2: Courses & Tuition Fees */}
                 {activeFormTab === 'courses' && (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-slate-500">
-                        Add degree courses with specific annual tuition fees. Used directly in the Landing Page Fee Calculator!
-                      </p>
+                      <p className="text-xs font-bold text-slate-600">Offered Degree Programs & Tuition</p>
                       <button
                         type="button"
                         onClick={handleAddCourseProgram}
-                        className="h-8 px-3 bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center gap-1 hover:bg-slate-800"
+                        className="px-3 py-1.5 bg-[#6A1B2E] text-white text-xs font-bold rounded-lg hover:bg-[#521221] flex items-center gap-1"
                       >
-                        <Plus className="w-3.5 h-3.5" /> Add Degree Program
+                        <Plus className="w-3.5 h-3.5" /> Add Program
                       </button>
                     </div>
 
-                    <div className="space-y-3">
-                      {courseProgramsList.map((course, index) => (
-                        <div key={course.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                    <div className="space-y-2.5">
+                      {courseProgramsList.map((cp, idx) => (
+                        <div key={cp.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-extrabold text-slate-400 uppercase">Program #{index + 1}</span>
-                            {courseProgramsList.length > 1 && (
-                              <button type="button" onClick={() => handleRemoveCourseProgram(index)} className="text-slate-400 hover:text-red-600">
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                            <span className="text-[10px] font-extrabold uppercase text-slate-400">Program #{idx + 1}</span>
+                            <button type="button" onClick={() => handleRemoveCourseProgram(idx)} className="text-slate-400 hover:text-red-600">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                             <input
                               type="text"
-                              value={course.name}
-                              onChange={(e) => handleUpdateCourseProgram(index, 'name', e.target.value)}
-                              placeholder="Course Name (e.g. B.Sc Data Science)"
-                              className="h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                              value={cp.name}
+                              onChange={(e) => handleUpdateCourseProgram(idx, 'name', e.target.value)}
+                              placeholder="Course Program Name"
+                              className="h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold sm:col-span-2"
                             />
                             <select
-                              value={course.degree_level}
-                              onChange={(e) => handleUpdateCourseProgram(index, 'degree_level', e.target.value)}
+                              value={cp.degree_level}
+                              onChange={(e) => handleUpdateCourseProgram(idx, 'degree_level', e.target.value as any)}
                               className="h-8.5 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
                             >
-                              <option value="Bachelor">Bachelor Degree</option>
-                              <option value="Master">Master Degree</option>
+                              <option value="Bachelor">Bachelor (B.Sc / BA)</option>
+                              <option value="Master">Master (M.Sc / MA / MBA)</option>
+                              <option value="Doctorate">Doctorate / PhD</option>
                               <option value="Diploma">Diploma / Foundation</option>
-                              <option value="PhD">Doctorate / PhD</option>
                             </select>
                             <input
                               type="text"
-                              value={course.tuition_fee}
-                              onChange={(e) => handleUpdateCourseProgram(index, 'tuition_fee', e.target.value)}
-                              placeholder="Fee (e.g. €3,200 / yr)"
+                              value={cp.tuition_fee}
+                              onChange={(e) => handleUpdateCourseProgram(idx, 'tuition_fee', e.target.value)}
+                              placeholder="€3,500 / yr"
                               className="h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
                             />
                           </div>
@@ -905,84 +1035,71 @@ export const AdminUniversities: React.FC = () => {
                   </div>
                 )}
 
-                {/* TAB 3: Cost Breakdown & VFS */}
                 {activeFormTab === 'fees' && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-3.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                          Default Annual Tuition Range
-                        </label>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">University Tuition Fee</label>
                         <input
                           type="text"
-                          value={tuition}
-                          onChange={(e) => setTuition(e.target.value)}
-                          placeholder="e.g. €3,000 - €4,500 / yr"
-                          className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                          value={universityFee}
+                          onChange={(e) => setUniversityFee(e.target.value)}
+                          placeholder="€3,200 / yr"
+                          className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                         />
+                        <p className="text-[10px] font-semibold text-slate-400 mt-1">{formatFeeEURandINR(universityFee)}</p>
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                          Estimated Monthly Living Cost
-                        </label>
-                        <input
-                          type="text"
-                          value={livingCostMonthly}
-                          onChange={(e) => setLivingCostMonthly(e.target.value)}
-                          placeholder="e.g. €350 - €500 / mo"
-                          className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                          VFS Visa Fee
-                        </label>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">VFS / Visa Gov Fee</label>
                         <input
                           type="text"
                           value={vfsFee}
                           onChange={(e) => setVfsFee(e.target.value)}
-                          placeholder="e.g. ₹15,000"
-                          className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                          placeholder="₹15,000"
+                          className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                          Agency / Processing Fee
-                        </label>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Agency Processing Fee</label>
                         <input
                           type="text"
                           value={agencyFee}
                           onChange={(e) => setAgencyFee(e.target.value)}
-                          placeholder="e.g. ₹25,000"
-                          className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                          placeholder="₹25,000"
+                          className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Monthly Living Cost Estimate</label>
+                      <input
+                        type="text"
+                        value={livingCostMonthly}
+                        onChange={(e) => setLivingCostMonthly(e.target.value)}
+                        placeholder="€350 - €500 / mo"
+                        className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                      />
                     </div>
                   </div>
                 )}
 
-                {/* TAB 4: Installment Stages */}
                 {activeFormTab === 'installments' && (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-slate-500">
-                        Configure milestones and stage payment installments for students.
-                      </p>
+                      <p className="text-xs font-bold text-slate-600">Custom Payment Milestones / Installments</p>
                       <button
                         type="button"
                         onClick={handleAddInstallment}
-                        className="h-8 px-3 bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center gap-1 hover:bg-slate-800"
+                        className="px-3 py-1.5 bg-[#6A1B2E] text-white text-xs font-bold rounded-lg hover:bg-[#521221] flex items-center gap-1"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Milestone
                       </button>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                       {installmentsList.length === 0 ? (
                         <div className="p-6 text-center text-xs font-semibold text-slate-400 border border-dashed border-slate-200 rounded-xl">
                           No custom installment stages defined. Standard 3-stage fee distribution will apply.
@@ -1008,14 +1125,14 @@ export const AdminUniversities: React.FC = () => {
                                 type="text"
                                 value={inst.due_stage}
                                 onChange={(e) => handleUpdateInstallment(index, 'due_stage', e.target.value)}
-                                placeholder="Due Event / Stage"
+                                placeholder="Due Event"
                                 className="h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
                               />
                               <input
                                 type="text"
                                 value={inst.amount}
                                 onChange={(e) => handleUpdateInstallment(index, 'amount', e.target.value)}
-                                placeholder="Amount (e.g. €1,000)"
+                                placeholder="Amount (€1,000)"
                                 className="h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
                               />
                             </div>
@@ -1026,32 +1143,64 @@ export const AdminUniversities: React.FC = () => {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddModal(false)}
-                    className="h-9.5 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="submit"
-                    className="h-9.5 px-6 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] shadow-md shadow-[#6A1B2E]/20 cursor-pointer"
-                  >
-                    {editingId ? 'Save & Sync Live' : 'Publish to Portal & Landing Page'}
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button type="button" onClick={() => setShowAddModal(false)} className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
+                  <button type="submit" className="h-9 px-6 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221]">
+                    {editingId ? 'Save Changes' : 'Publish University'}
                   </button>
                 </div>
               </form>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Modal */}
+      {/* VIEW UNIVERSITY DRAWER */}
+      <AnimatePresence>
+        {viewUniversity && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setViewUniversity(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-base font-black text-slate-900">{viewUniversity.name}</h3>
+                  <p className="text-xs font-semibold text-slate-400">{viewUniversity.city}, {viewUniversity.country}</p>
+                </div>
+                <button onClick={() => setViewUniversity(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+                  <div className="flex justify-between"><span>Annual Tuition:</span><span className="font-bold text-[#6A1B2E]">{formatFeeEURandINR(viewUniversity.university_fee || viewUniversity.tuition_range)}</span></div>
+                  <div className="flex justify-between"><span>VFS Govt Fee:</span><span className="font-bold text-slate-800">{viewUniversity.vfs_fee || '₹15,000'}</span></div>
+                  <div className="flex justify-between"><span>Agency Fee:</span><span className="font-bold text-slate-800">{viewUniversity.agency_fee || '₹25,000'}</span></div>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-slate-800 uppercase text-[10px] text-slate-400 mb-1">Degree Programs</h4>
+                  <div className="space-y-1">
+                    {(viewUniversity.course_programs || viewUniversity.programs || []).map((p: any, idx: number) => (
+                      <div key={idx} className="p-2 bg-slate-50 rounded-lg flex justify-between font-semibold">
+                        <span>{typeof p === 'string' ? p : p.name}</span>
+                        {typeof p !== 'string' && <span className="text-[#6A1B2E] font-bold">{p.tuition_fee}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button onClick={() => setViewUniversity(null)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl">Close</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DELETE UNIVERSITY CONFIRMATION */}
       <AnimatePresence>
         {deleteId && (
-          <>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50" onClick={() => setDeleteId(null)} />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
               <div className="flex items-center gap-3 mb-3">
@@ -1061,14 +1210,14 @@ export const AdminUniversities: React.FC = () => {
                 <h3 className="text-sm font-extrabold text-slate-900">Remove University?</h3>
               </div>
               <p className="text-xs font-semibold text-slate-500 mb-5">
-                This will remove this university from both the portal and the public landing page.
+                This will remove this university from both the portal and public views.
               </p>
               <div className="flex gap-3">
-                <button onClick={() => setDeleteId(null)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
-                <button onClick={handleDelete} className="flex-1 h-9 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 cursor-pointer">Delete</button>
+                <button onClick={() => setDeleteId(null)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
+                <button onClick={handleDelete} className="flex-1 h-9 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700">Delete</button>
               </div>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
     </div>

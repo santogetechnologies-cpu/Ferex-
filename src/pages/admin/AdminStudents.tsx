@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, Plus, UserPlus } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
 import { getStaffMembers } from '../../lib/api/students';
+import { ensureStudentApplication } from '../../lib/api/applications';
 import type { UserProfile } from '../../lib/types';
 
 interface StudentItem {
@@ -23,10 +24,21 @@ interface StudentItem {
 }
 
 export const AdminStudents: React.FC = () => {
-  const { students: dbStudents, removeStudent, editStudent: updateDbStudent } = useStudents();
+  const { students: dbStudents, removeStudent, editStudent: updateDbStudent, addStudent } = useStudents();
   const { applications: dbApps } = useApplications();
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [staffMembers, setStaffMembers] = useState<UserProfile[]>([]);
+
+  // Add Student Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addEmail, setAddEmail] = useState('');
+  const [addPhone, setAddPhone] = useState('');
+  const [addUniversity, setAddUniversity] = useState('Warsaw University of Technology');
+  const [addCourse, setAddCourse] = useState('B.Sc Computer Science & Engineering');
+  const [addCounselor, setAddCounselor] = useState('Admin Counselor');
+  const [addIntake, setAddIntake] = useState('October 2026');
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
 
   useEffect(() => {
     getStaffMembers().then(setStaffMembers).catch(() => {});
@@ -188,6 +200,39 @@ export const AdminStudents: React.FC = () => {
     }
   };
 
+  const handleAddStudentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addName.trim() || !addEmail.trim()) {
+      showToast('Student name and email are required.');
+      return;
+    }
+
+    try {
+      setIsSubmittingAdd(true);
+      const created = await addStudent({
+        full_name: addName.trim(),
+        email: addEmail.trim(),
+        phone: addPhone.trim() || '',
+        assigned_counselor: addCounselor || 'Admin Counselor'
+      });
+
+      // Auto-create base application
+      try {
+        await ensureStudentApplication(created.id, addName.trim());
+      } catch (e) {}
+
+      setShowAddModal(false);
+      setAddName('');
+      setAddEmail('');
+      setAddPhone('');
+      showToast(`🎉 Student ${addName} added successfully!`);
+    } catch (err: any) {
+      showToast(`Error adding student: ${err.message || 'Failed'}`);
+    } finally {
+      setIsSubmittingAdd(false);
+    }
+  };
+
   const filtered = students.filter(s =>
     (statusFilter === 'All' || s.status === statusFilter) &&
     (s.name.toLowerCase().includes(search.toLowerCase()) || s.id.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase()))
@@ -205,11 +250,18 @@ export const AdminStudents: React.FC = () => {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Students</h1>
+          <h1 className="text-xl font-extrabold text-slate-900">Student Directory & Enrollments</h1>
           <p className="text-xs font-semibold text-slate-400 mt-0.5">{students.length} total students enrolled</p>
         </div>
+
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-1.5 h-9.5 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] active:scale-98 transition-all shadow-md shadow-[#6A1B2E]/20 cursor-pointer"
+        >
+          <UserPlus className="w-4 h-4" /> Add Student
+        </button>
       </div>
 
       {/* Search + Filter Header */}
@@ -441,27 +493,131 @@ export const AdminStudents: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Delete Confirm */}
+      {/* Add Student Modal */}
       <AnimatePresence>
-        {deleteId && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50" onClick={() => setDeleteId(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center"><Trash2 className="w-5 h-5 text-red-500" /></div>
-                <h3 className="text-sm font-extrabold text-slate-900">Remove Student?</h3>
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setShowAddModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-[#6A1B2E]" />
+                  <h3 className="text-base font-black text-slate-900">Add New Student Profile</h3>
+                </div>
+                <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
               </div>
-              <p className="text-xs font-semibold text-slate-500 mb-5">This will permanently remove this student record.</p>
-              <div className="flex gap-3">
-                <button onClick={() => setDeleteId(null)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
-                <button onClick={handleDelete} className="flex-1 h-9 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700">Delete</button>
-              </div>
+
+              <form onSubmit={handleAddStudentSubmit} className="space-y-3.5">
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={addName}
+                    onChange={(e) => setAddName(e.target.value)}
+                    placeholder="e.g. Sneakha S.R"
+                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Email Address *</label>
+                    <input
+                      type="email"
+                      required
+                      value={addEmail}
+                      onChange={(e) => setAddEmail(e.target.value)}
+                      placeholder="e.g. student@gmail.com"
+                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Phone Number</label>
+                    <input
+                      type="text"
+                      value={addPhone}
+                      onChange={(e) => setAddPhone(e.target.value)}
+                      placeholder="+91 98765 43210"
+                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Target University</label>
+                  <input
+                    type="text"
+                    value={addUniversity}
+                    onChange={(e) => setAddUniversity(e.target.value)}
+                    placeholder="e.g. Warsaw University of Technology"
+                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Program / Course</label>
+                    <input
+                      type="text"
+                      value={addCourse}
+                      onChange={(e) => setAddCourse(e.target.value)}
+                      placeholder="B.Sc Computer Science"
+                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Target Intake</label>
+                    <select
+                      value={addIntake}
+                      onChange={(e) => setAddIntake(e.target.value)}
+                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                    >
+                      <option value="October 2026">October 2026</option>
+                      <option value="February 2027">February 2027</option>
+                      <option value="October 2027">October 2027</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Assigned Counselor</label>
+                  <select
+                    value={addCounselor}
+                    onChange={(e) => setAddCounselor(e.target.value)}
+                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                  >
+                    <option value="Admin Counselor">Admin Counselor (Default)</option>
+                    {staffMembers.map(s => {
+                      const label = `${s.full_name || s.email} (${s.department?.split(':')[1] || s.role})`;
+                      return <option key={s.id} value={s.full_name || s.email}>{label}</option>;
+                    })}
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingAdd}
+                    className="h-9 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] shadow-xs"
+                  >
+                    {isSubmittingAdd ? 'Adding Student...' : 'Create Student Profile'}
+                  </button>
+                </div>
+              </form>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
-
-
     </div>
   );
 };

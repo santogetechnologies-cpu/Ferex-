@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Notification } from '../lib/types';
-import { createNotification, deleteNotification, clearAllNotifications } from '../lib/api/notifications';
+import { getNotifications, createNotification, deleteNotification, clearAllNotifications } from '../lib/api/notifications';
 
 export function useNotifications(userId?: string) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -12,21 +12,9 @@ export function useNotifications(userId?: string) {
     try {
       setLoading(true);
       setError(null);
-      if (!userId) {
-        setNotifications([]);
-        setLoading(false);
-        return;
-      }
-      const { data, error: fetchErr } = await supabase
-        .from('notifications')
-        .select('id, user_id, title, body, category, is_read, created_at, link')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (fetchErr) throw fetchErr;
-
-      setNotifications((data ?? []) as Notification[]);
+      const effectiveId = userId || 'STUDENT_GUEST';
+      const data = await getNotifications(effectiveId);
+      setNotifications(data || []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch notifications');
     } finally {

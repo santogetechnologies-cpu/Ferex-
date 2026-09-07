@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Compass, CheckCircle2, Clock, ArrowRight, XCircle, Globe } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Compass, CheckCircle2, Clock, ArrowRight, ShieldCheck,
+  Plane, GraduationCap, FileText, Target, Sparkles, Building,
+  CreditCard, Calendar, User, PhoneCall, ExternalLink, HelpCircle
+} from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,9 +13,6 @@ import { useApplications } from '../hooks/useApplications';
 import { useDocuments } from '../hooks/useDocuments';
 import { usePayments } from '../hooks/usePayments';
 import { useVisa } from '../hooks/useVisa';
-import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
-import { getNawaRecords } from '../lib/api/nawa';
-import type { NawaRecord } from '../lib/api/nawa';
 
 export const JourneyTracker: React.FC = () => {
   const navigate = useNavigate();
@@ -20,105 +21,32 @@ export const JourneyTracker: React.FC = () => {
   const { documents } = useDocuments(user?.id);
   const { payments } = usePayments(user?.id);
   const { records: visaRecords } = useVisa(user?.id);
-  const { workflows, getWorkflowForCountry } = useCountryWorkflows();
 
-  const [nawaRecord, setNawaRecord] = useState<NawaRecord | null>(null);
-
-  // Determine student target country and workflow
-  const activeApp = applications[0];
-  const targetCountry = useMemo(() => {
-    if (activeApp?.universities?.country) return activeApp.universities.country;
-    if (activeApp?.university_name) {
-      const uName = activeApp.university_name.toLowerCase();
-      if (uName.includes('germany') || uName.includes('munich') || uName.includes('tum')) return 'Germany';
-      if (uName.includes('italy') || uName.includes('rome') || uName.includes('sapienza')) return 'Italy';
-      if (uName.includes('czech') || uName.includes('charles') || uName.includes('prague')) return 'Czech Republic';
-      if (uName.includes('france') || uName.includes('paris')) return 'France';
-      if (uName.includes('spain') || uName.includes('madrid') || uName.includes('barcelona')) return 'Spain';
-    }
-    if (nawaRecord?.document_type) {
-      for (const wf of workflows) {
-        if (nawaRecord.document_type.toLowerCase().includes(wf.country.toLowerCase()) || nawaRecord.document_type.toLowerCase().includes(wf.authority_acronym.toLowerCase())) {
-          return wf.country;
-        }
-      }
-    }
-    return 'Poland';
-  }, [activeApp, nawaRecord, workflows]);
-
-  const targetWorkflow = useMemo(() => {
-    return getWorkflowForCountry(targetCountry);
-  }, [targetCountry, getWorkflowForCountry]);
-
-  useEffect(() => {
-    const fetchNawa = () => {
-      getNawaRecords(user?.id).then(recs => {
-        const myRec = recs.find(r => r.student_id === user?.id || (user?.email && r.student_email === user.email) || r.id === user?.id);
-        if (myRec) setNawaRecord(myRec);
-      });
-    };
-
-    fetchNawa();
-    window.addEventListener('ferex_nawa_change', fetchNawa);
-    window.addEventListener('ferex_application_change', fetchNawa);
-    return () => {
-      window.removeEventListener('ferex_nawa_change', fetchNawa);
-      window.removeEventListener('ferex_application_change', fetchNawa);
-    };
-  }, [user?.id, user?.email]);
+  // Active tracker tab: 'university' (🟦), 'visa' (🟨), 'travel' (🟩)
+  const [activeTracker, setActiveTracker] = useState<'university' | 'visa' | 'travel'>('university');
 
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
   const isProfileDone = Boolean(profile?.full_name);
 
+  const activeApp = applications[0];
+  const targetUniversity = activeApp?.university_name || 'Warsaw University of Technology';
+  const targetCountry = activeApp?.universities?.country || 'Poland';
+
+  // Verification helper states
   const hasUploadedDocs = documents.length > 0;
-  const approvedDocsCount = documents.filter(d => (d.status as string) === 'Approved' || (d.status as string) === 'Verified' || (d.status as string) === 'Passed').length;
-  const hasApprovedDocs = documents.length >= 2 && approvedDocsCount === documents.length;
-  const isDocsUnderReview = hasUploadedDocs && !hasApprovedDocs;
+  const approvedDocsCount = documents.filter(d => (d.status as string) === 'Approved' || (d.status as string) === 'Verified').length;
+  const hasApprovedDocs = documents.length >= 2 && approvedDocsCount >= 2;
 
-  const checkPaymentStage = (p: any, stageNum: number) => {
-    if (p.stage_number !== undefined && p.stage_number !== null) {
-      return Number(p.stage_number) === stageNum;
-    }
-    const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
-    if (stageNum === 1) return text.includes('1st') || text.includes('stage 1') || text.includes('registration fee') || text.includes('audit deposit');
-    if (stageNum === 2) return text.includes('2nd') || text.includes('stage 2') || text.includes('tuition fee');
-    if (stageNum === 3) return text.includes('3rd') || text.includes('stage 3') || text.includes('vfs') || text.includes('visa clearance');
-    return false;
-  };
-
-  const inst1Paid = payments.some(p => checkPaymentStage(p, 1) && (p.status === 'Paid' || p.status === 'Verified'));
-  const inst2Paid = payments.some(p => checkPaymentStage(p, 2) && (p.status === 'Paid' || p.status === 'Verified'));
-  const inst3Paid = payments.some(p => checkPaymentStage(p, 3) && (p.status === 'Paid' || p.status === 'Verified'));
-
-  const hasApp = applications.length > 0;
   const hasOffer = applications.some(a =>
     (a.status as string) === 'Offer Issued' ||
     (a.status as string) === 'Accepted' ||
     (a.status as string) === 'Final Acceptance Issued' ||
-    (a.status as string) === 'Visa Processing' ||
-    (a.status as string) === 'Visa Approved' ||
-    (a.status as string) === 'Approved' ||
     Boolean(a.offer_letter_url)
   );
 
   const isOfferAccepted = applications.some(a =>
     (a.status as string) === 'Accepted' ||
     (a.status as string) === 'Final Acceptance Issued' ||
-    (a.status as string) === 'Visa Processing' ||
-    (a.status as string) === 'Visa Approved' ||
-    (a.status as string) === 'Approved' ||
-    Boolean(a.final_acceptance_url)
-  );
-
-  const hasFinalAcceptanceDoc = documents.some(d =>
-    d.file_name.toLowerCase().includes('final_acceptance') ||
-    d.file_name.toLowerCase().includes('final acceptance') ||
-    d.reviewer_notes?.toLowerCase().includes('final acceptance')
-  );
-
-  const isFinalAcceptanceIssued = hasFinalAcceptanceDoc || applications.some(a =>
-    (a.status as string) === 'Final Acceptance Issued' ||
-    (a.status as string) === 'Enrolled' ||
     Boolean(a.final_acceptance_url)
   );
 
@@ -127,326 +55,483 @@ export const JourneyTracker: React.FC = () => {
     (r.student_name && studentName.toLowerCase().includes(r.student_name.toLowerCase()))
   );
 
-  const visaStatusStr = String(visaRecord?.status_label || (visaRecord as any)?.visa_status || '').toLowerCase();
-  const currentStageNum = visaRecord?.current_stage || 0;
-
   const rawOutcome = (visaRecord as any)?.decision_outcome ||
-    (visaStatusStr.includes('approv') ? 'Approved' :
-      visaStatusStr.includes('reject') || visaStatusStr.includes('refus') ? 'Rejected' : 'Pending');
+    (visaRecord?.status_label?.toLowerCase().includes('approv') ? 'Approved' : 'Pending');
+  const isVisaApproved = rawOutcome === 'Approved';
 
-  const isVisaFiled = currentStageNum >= 2 || visaStatusStr.includes('filed') || visaStatusStr.includes('subm') || rawOutcome === 'Approved' || rawOutcome === 'Rejected';
-  const isVisaApproved = currentStageNum >= 6 && rawOutcome === 'Approved';
-  const isVisaRejected = currentStageNum >= 6 && rawOutcome === 'Rejected';
-
-  const maxAuthSteps = targetWorkflow.stages?.length || 5;
-
-  const steps = [
+  // 🟦 TRACKER 1: University Application (8 Stages)
+  const universityStages = [
     {
-      id: 1,
-      name: '1. Profile & Student Registration',
+      id: 'u1',
+      num: 1,
+      title: 'Lead',
       status: isProfileDone ? 'completed' : 'current',
-      date: isProfileDone ? 'Completed' : 'Action Needed',
-      desc: 'Fill out personal information, passport details, and contact address.',
-      detail: isProfileDone ? `${studentName} profile registered.` : 'Complete profile details in settings.',
-      path: '/student/profile'
+      desc: 'Student profile created and initial academic inquiry logged into FEREX.',
+      actionLabel: isProfileDone ? 'View Profile' : 'Complete Profile',
+      actionRoute: '/student/profile',
     },
     {
-      id: 2,
-      name: `2. Mandatory Document Vault (${targetWorkflow.country} Checklist)`,
-      status: hasApprovedDocs ? 'completed' : isDocsUnderReview ? 'current' : isProfileDone ? 'current' : 'pending',
-      date: hasApprovedDocs ? '✓ Uploaded & Verified' : isDocsUnderReview ? '⏳ Under Admin Review' : 'Mandatory Step',
-      desc: `Upload passport scans, academic transcripts, and credentials required for ${targetWorkflow.country}.`,
-      detail: hasApprovedDocs
-        ? `${approvedDocsCount} document file(s) verified & approved in vault.`
-        : isDocsUnderReview
-          ? `⏳ ${documents.length} document file(s) uploaded — awaiting Admin verification.`
-          : `🔒 Mandatory: Upload documents to unlock ${targetWorkflow.authority_acronym} Legalization & University Selection.`,
-      path: '/student/documents'
+      id: 'u2',
+      num: 2,
+      title: 'Counselling',
+      status: isProfileDone ? 'completed' : 'upcoming',
+      desc: 'One-on-one session with dedicated European education counsellor.',
+      actionLabel: 'Schedule Session',
+      actionRoute: '/student/meetings',
     },
     {
-      id: 3,
-      name: '3. 1st Installment Fee Payment (₹15,000)',
-      status: inst1Paid ? 'completed' : (hasApprovedDocs || isDocsUnderReview) ? 'current' : 'pending',
-      date: inst1Paid ? 'Paid & Verified' : `Due Before ${targetWorkflow.authority_acronym} Process`,
-      desc: `Pay registration, university matching, and ${targetWorkflow.authority_acronym} legalization audit fee.`,
-      detail: inst1Paid ? `1st Installment cleared! ${targetWorkflow.authority_acronym} process is now initiated.` : `Submit 1st Installment payment proof to unlock ${targetWorkflow.authority_acronym} legal audit.`,
-      path: '/student/payments'
+      id: 'u3',
+      num: 3,
+      title: 'University Shortlisted',
+      status: activeApp ? 'completed' : (isProfileDone ? 'current' : 'upcoming'),
+      desc: 'Target universities and accredited degree programs selected.',
+      actionLabel: activeApp ? 'View Shortlist' : 'Select University',
+      actionRoute: '/student/select-university',
     },
     {
-      id: 4,
-      name: `4. ${targetWorkflow.authority_acronym} Process — ${targetWorkflow.country} Legalization & Audit`,
-      status: (() => {
-        const hasApprovedApp = applications.some(a => String(a.status || '').toLowerCase().includes('approved'));
-        if (nawaRecord?.status === 'Approved' || (nawaRecord?.current_step ?? 0) >= maxAuthSteps || hasApprovedApp) return 'completed';
-        const activeAppRec = applications.find(a => String(a.status || '').toLowerCase().includes('review') || String(a.status || '').toLowerCase().includes('step'));
-        if (nawaRecord || activeAppRec) return 'current';
-        if (!inst1Paid && applications.length === 0) return 'pending';
-        return 'current';
-      })(),
-      date: (() => {
-        const hasApprovedApp = applications.some(a => String(a.status || '').toLowerCase().includes('approved'));
-        if (nawaRecord?.status === 'Approved' || (nawaRecord?.current_step ?? 0) >= maxAuthSteps || hasApprovedApp) return `✓ ${targetWorkflow.authority_acronym} Approved`;
-        if (nawaRecord) return `Step ${nawaRecord.current_step} of ${maxAuthSteps} — ${nawaRecord.status}`;
-        if (!inst1Paid) return '🔒 Requires 1st Installment';
-        return 'Initiated';
-      })(),
-      desc: `FEREX initiates ${targetWorkflow.authority_name} qualification verification, sworn translations, and comparability certificates.`,
-      detail: (() => {
-        if (nawaRecord?.status === 'Approved' || (nawaRecord?.current_step ?? 0) >= maxAuthSteps) {
-          return `✅ ${targetWorkflow.authority_name} approved and certificate granted!`;
-        }
-        if (nawaRecord) {
-          return `Ref: ${nawaRecord.nawa_ref_no} | Step ${nawaRecord.current_step} of ${maxAuthSteps}: ${nawaRecord.notes || 'In sworn translation & audit'}`;
-        }
-        if (!inst1Paid) return `🔒 Locked — Complete 1st Installment payment to initiate ${targetWorkflow.authority_acronym} process.`;
-        return `${targetWorkflow.authority_acronym} audit initiated for ${targetWorkflow.country}. FEREX team will update status.`;
-      })(),
-      path: '/student/documents'
+      id: 'u4',
+      num: 4,
+      title: 'Application Prepared',
+      status: hasApprovedDocs ? 'completed' : (hasUploadedDocs ? 'in_progress' : (activeApp ? 'current' : 'upcoming')),
+      desc: 'Academic transcripts, SOP, and passport verified in Document Vault.',
+      actionLabel: 'Document Vault',
+      actionRoute: '/student/documents',
     },
     {
-      id: 5,
-      name: `5. University Selection & Course Application (${targetWorkflow.country})`,
-      status: hasApp ? 'completed' : inst1Paid ? 'current' : 'pending',
-      date: hasApp ? 'Submitted' : 'Action Needed',
-      desc: `Select target ${targetWorkflow.country} partner university courses and submit application.`,
-      detail: hasApp ? `${applications.length} application(s) active for ${applications[0]?.university_name && applications[0]?.university_name !== 'Pending University Selection' ? applications[0].university_name : 'applied university'}.` : 'Explore university catalog and apply for target course.',
-      path: '/student/select-university'
+      id: 'u5',
+      num: 5,
+      title: 'Application Submitted',
+      status: activeApp ? 'completed' : 'upcoming',
+      desc: 'Formal application dossier submitted to University Admissions Department.',
+      actionLabel: 'View Applications',
+      actionRoute: '/student/applications',
     },
     {
-      id: 6,
-      name: '6. Official Admission Offer Issued & Accepted',
-      status: isOfferAccepted ? 'completed' : hasOffer ? 'current' : 'pending',
-      date: isOfferAccepted ? 'Offer Accepted' : hasOffer ? 'Offer Released' : 'Pending Review',
-      desc: 'Review official university admission offer letter PDF and accept offer.',
-      detail: isOfferAccepted
-        ? 'Official Admission Offer Accepted!'
-        : hasOffer
-          ? '🎉 Admission Offer Letter issued by university! Action needed.'
-          : 'Awaiting university admissions decision.',
-      path: '/student/offers'
+      id: 'u6',
+      num: 6,
+      title: 'University Review',
+      status: hasOffer ? 'completed' : (activeApp ? 'current' : 'upcoming'),
+      desc: 'University Admissions Committee & Faculty Board evaluating qualifications.',
+      actionLabel: 'Check Status',
+      actionRoute: '/student/applications',
     },
     {
-      id: 7,
-      name: '7. 2nd Installment Tuition Deposit Fee & Visa Filing Status',
-      status: inst2Paid ? 'completed' : isOfferAccepted ? 'current' : 'pending',
-      date: inst2Paid ? 'Cleared & Visa Ready' : 'Due After Offer',
-      desc: 'Pay university tuition deposit installment to secure enrollment seat & authorize visa filing.',
-      detail: inst2Paid
-        ? `2nd Installment tuition deposit cleared! Live Visa status: ${visaRecord?.status_label || 'Ready for Filing'}.`
-        : 'Submit 2nd Installment payment proof in payments portal.',
-      path: '/student/payments'
+      id: 'u7',
+      num: 7,
+      title: 'Conditional/Unconditional Offer',
+      status: hasOffer ? 'completed' : 'upcoming',
+      desc: 'Official University Offer Letter issued with tuition breakdown.',
+      actionLabel: hasOffer ? 'Review Offer Letter' : 'Awaiting Release',
+      actionRoute: '/student/offers',
     },
     {
-      id: 8,
-      name: `8. Final Acceptance & Matriculation Certificate (${targetWorkflow.country})`,
-      status: isFinalAcceptanceIssued ? 'completed' : inst2Paid ? 'current' : 'pending',
-      date: isFinalAcceptanceIssued ? '✓ Released by University' : inst2Paid ? '⏳ Awaiting University Release' : 'Pending Deposit',
-      desc: `Official Final Acceptance Certificate released by European University upon tuition deposit, mandatory for visa filing.`,
-      detail: isFinalAcceptanceIssued
-        ? '🎉 Official Final Acceptance Letter released! You may now proceed to Visa Application.'
-        : inst2Paid
-          ? '⏳ Tuition deposit verified! Admissions team is processing your Final Acceptance Letter.'
-          : 'Clear 2nd Installment tuition deposit to issue Final Acceptance Letter.',
-      path: '/student/offers'
+      id: 'u8',
+      num: 8,
+      title: 'Admission Confirmed',
+      status: isOfferAccepted ? 'completed' : (hasOffer ? 'current' : 'upcoming'),
+      desc: 'Offer accepted, 1st tuition installment settled & Final Acceptance issued.',
+      actionLabel: isOfferAccepted ? 'Download Acceptance' : 'Accept & Confirm',
+      actionRoute: '/student/offers',
     },
-    {
-      id: 9,
-      name: `9. ${targetWorkflow.visa_procedures?.appointment_channel || 'VFS Embassy'} Visa Filing`,
-      status: isVisaFiled ? 'completed' : isFinalAcceptanceIssued ? 'current' : 'pending',
-      date: isVisaFiled ? 'Visa File Submitted' : 'Pending Filing',
-      desc: `Book appointment slot and submit physical visa file at consular desk (${targetWorkflow.visa_procedures?.visa_type || 'National D Visa'}).`,
-      detail: isVisaFiled
-        ? `Visa File Submitted! Reference: ${(visaRecord as any)?.tracking_number || 'VFS-84920'}`
-        : 'Prepare appointment file & checklist.',
-      path: '/student/visa-tracker'
-    },
-    {
-      id: 10,
-      name: '10. Embassy Visa Decision (Approved / Stamped)',
-      status: isVisaApproved ? 'completed' : isVisaRejected ? 'rejected' : isVisaFiled ? 'current' : 'pending',
-      date: isVisaApproved ? 'Visa Approved & Stamped' : isVisaRejected ? 'Visa Decision Declined' : 'Under Embassy Review',
-      desc: 'Embassy consular officer evaluation and visa decision stamping.',
-      detail: isVisaApproved
-        ? '🎉 National Student Visa Granted & Stamped!'
-        : isVisaRejected
-          ? '❌ Visa Application Declined by Embassy. Contact counselor for appeal.'
-          : isVisaFiled
-            ? 'Consular evaluation in progress at Embassy desk.'
-            : 'Awaiting visa file submission.',
-      path: '/student/visa-tracker'
-    },
-    {
-      id: 11,
-      name: '11. 3rd Installment & Pre-Departure Clearance',
-      status: inst3Paid ? 'completed' : isVisaApproved ? 'current' : 'pending',
-      date: inst3Paid ? 'Cleared & Paid' : 'Due Before Departure',
-      desc: 'Clear final service fee installment and receive pre-departure briefing packet.',
-      detail: inst3Paid ? '3rd Installment cleared!' : 'Submit 3rd Installment payment proof to receive departure packet.',
-      path: '/student/payments'
-    },
-    {
-      id: 12,
-      name: `12. Arrival in ${targetWorkflow.country} — Campus Onboarding & Dorm Check-in`,
-      status: inst3Paid && isVisaApproved ? 'completed' : 'pending',
-      date: inst3Paid && isVisaApproved ? 'Journey Complete' : 'Final Milestone',
-      desc: 'Flight ticket booking, university dorm room key handover, and local residence permit onboarding.',
-      detail: inst3Paid && isVisaApproved ? `🎉 Student Journey Fully Completed! Welcome to ${targetWorkflow.country}.` : 'Complete previous stages to unlock flight departure.',
-      path: '/student/pre-departure'
-    }
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.05, duration: 0.3 } }
-  };
+  // 🟨 TRACKER 2: Visa Application (8 Stages)
+  const visaStages = [
+    {
+      id: 'v1',
+      num: 1,
+      title: 'Documents Ready',
+      status: isOfferAccepted ? 'completed' : (hasApprovedDocs ? 'in_progress' : 'upcoming'),
+      desc: 'Final Acceptance Letter, financial proofs, and apostilles gathered.',
+      actionLabel: 'Check Vault',
+      actionRoute: '/student/documents',
+    },
+    {
+      id: 'v2',
+      num: 2,
+      title: 'Visa File Prepared',
+      status: isOfferAccepted ? 'completed' : 'upcoming',
+      desc: 'National visa application dossier, cover letter & insurance prepared.',
+      actionLabel: 'View Visa File',
+      actionRoute: '/student/visa-tracker',
+    },
+    {
+      id: 'v3',
+      num: 3,
+      title: 'VFS Appointment Booked',
+      status: (visaRecord?.current_stage && visaRecord.current_stage >= 1) ? 'completed' : (isOfferAccepted ? 'current' : 'upcoming'),
+      desc: 'Appointment slot confirmed at VFS Global Visa Application Center.',
+      actionLabel: 'Appointment Details',
+      actionRoute: '/student/visa-tracker',
+    },
+    {
+      id: 'v4',
+      num: 4,
+      title: 'VFS Submitted',
+      status: (visaRecord?.current_stage && visaRecord.current_stage >= 2) ? 'completed' : 'upcoming',
+      desc: 'Physical passport, original documents & biometric submission completed.',
+      actionLabel: 'Submission Receipt',
+      actionRoute: '/student/visa-tracker',
+    },
+    {
+      id: 'v5',
+      num: 5,
+      title: 'Consular Processing',
+      status: (visaRecord?.current_stage && visaRecord.current_stage >= 3) ? 'completed' : 'upcoming',
+      desc: 'Consular Embassy department evaluating visa application.',
+      actionLabel: 'Consular Status',
+      actionRoute: '/student/visa-tracker',
+    },
+    {
+      id: 'v6',
+      num: 6,
+      title: 'Decision Made',
+      status: (visaRecord?.current_stage && visaRecord.current_stage >= 4) ? 'completed' : 'upcoming',
+      desc: 'Embassy evaluation finalized and sealed in confidential envelope.',
+      actionLabel: 'View Status',
+      actionRoute: '/student/visa-tracker',
+    },
+    {
+      id: 'v7',
+      num: 7,
+      title: 'Passport Return',
+      status: (visaRecord?.current_stage && visaRecord.current_stage >= 5) ? 'completed' : 'upcoming',
+      desc: 'Passport dispatched via secure courier to applicant collection point.',
+      actionLabel: 'Track Courier',
+      actionRoute: '/student/visa-tracker',
+    },
+    {
+      id: 'v8',
+      num: 8,
+      title: 'Visa Result Confirmed',
+      status: isVisaApproved ? 'completed' : ((visaRecord?.current_stage && visaRecord.current_stage >= 6) ? 'completed' : 'upcoming'),
+      desc: 'Passport delivered in hand & official Schengen / National visa verified.',
+      actionLabel: isVisaApproved ? 'Visa Confirmed 🎉' : 'Awaiting Delivery',
+      actionRoute: '/student/visa-tracker',
+    },
+  ];
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 12 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' as const } }
-  };
+  // 🟩 TRACKER 3: Travel (9 Stages)
+  const travelStages = [
+    {
+      id: 't1',
+      num: 1,
+      title: 'Visa Approved',
+      status: isVisaApproved ? 'completed' : 'upcoming',
+      desc: 'Entry visa stamping granted and pre-departure protocol initiated.',
+      actionLabel: 'View Visa Grant',
+      actionRoute: '/student/visa-tracker',
+    },
+    {
+      id: 't2',
+      num: 2,
+      title: 'Flight Planning',
+      status: isVisaApproved ? 'completed' : 'upcoming',
+      desc: 'Flight routes scheduled & international airline tickets booked.',
+      actionLabel: 'Flight Itinerary',
+      actionRoute: '/student/pre-departure',
+    },
+    {
+      id: 't3',
+      num: 3,
+      title: 'Accommodation',
+      status: isVisaApproved ? 'completed' : 'upcoming',
+      desc: 'University campus dormitory room or student residence allotment confirmed.',
+      actionLabel: 'Dorm Allotment',
+      actionRoute: '/student/pre-departure',
+    },
+    {
+      id: 't4',
+      num: 4,
+      title: 'Travel Insurance',
+      status: 'completed',
+      desc: 'Comprehensive European health & emergency travel medical coverage active.',
+      actionLabel: 'Policy Certificate',
+      actionRoute: '/student/documents',
+    },
+    {
+      id: 't5',
+      num: 5,
+      title: 'Airport/Travel Support',
+      status: isVisaApproved ? 'completed' : 'upcoming',
+      desc: 'Airport concierge team & dedicated student welfare driver allocated.',
+      actionLabel: 'Pickup Contacts',
+      actionRoute: '/student/pre-departure',
+    },
+    {
+      id: 't6',
+      num: 6,
+      title: 'Student Travels',
+      status: isVisaApproved ? 'in_progress' : 'upcoming',
+      desc: 'Boarding pass check-in, international transit, and customs arrival.',
+      actionLabel: 'Travel Guide',
+      actionRoute: '/student/pre-departure',
+    },
+    {
+      id: 't7',
+      num: 7,
+      title: 'Arrival Confirmed',
+      status: 'upcoming',
+      desc: 'Safe touchdown at destination airport & dormitory room keys collected.',
+      actionLabel: 'Arrival Checklist',
+      actionRoute: '/student/pre-departure',
+    },
+    {
+      id: 't8',
+      num: 8,
+      title: 'University Reporting',
+      status: 'upcoming',
+      desc: 'Dean office in-person registration, student ID card issuance & orientation.',
+      actionLabel: 'Campus Checklist',
+      actionRoute: '/student/pre-departure',
+    },
+    {
+      id: 't9',
+      num: 9,
+      title: 'Post-Arrival Support',
+      status: 'upcoming',
+      desc: 'Local SIM card, bank account opening, and Temporary Residence Card (TRC) assistance.',
+      actionLabel: 'Welfare Coordinator',
+      actionRoute: '/student/pre-departure',
+    },
+  ];
+
+  // Calculate completion percentages
+  const getCompletedCount = (stages: any[]) => stages.filter(s => s.status === 'completed').length;
+  const uniCompleted = getCompletedCount(universityStages);
+  const visaCompleted = getCompletedCount(visaStages);
+  const travelCompleted = getCompletedCount(travelStages);
+
+  const activeStageList =
+    activeTracker === 'university' ? universityStages :
+    activeTracker === 'visa' ? visaStages : travelStages;
+
+  const activeCompleted = getCompletedCount(activeStageList);
+  const activePercent = Math.round((activeCompleted / activeStageList.length) * 100);
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6 text-left"
-    >
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-8 h-8 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center border border-[#6A1B2E]/20">
-              <Compass className="w-5 h-5" />
-            </span>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Student Journey Roadmap & Checklist
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm font-semibold text-slate-500">
-            Tailored European pathway for <strong className="text-[#6A1B2E]">{targetWorkflow.country}</strong> via <strong className="text-slate-800">{targetWorkflow.authority_name}</strong>.
-          </p>
+    <div className="space-y-6 text-left relative min-h-[600px] pb-10">
+      {/* Header Banner */}
+      <div className="p-6 md:p-8 bg-gradient-to-r from-slate-900 via-wine-950 to-[#6A1B2E] text-white rounded-3xl shadow-xl border border-slate-800 relative overflow-hidden">
+        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 opacity-10 pointer-events-none">
+          <Compass className="w-96 h-96 text-white" />
         </div>
-
-        {/* Target Country Badge */}
-        <div className="p-2.5 bg-white border border-slate-200 rounded-2xl shadow-xs flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-[#6A1B2E] text-white font-bold flex items-center justify-center text-xs">
-            <Globe className="w-4 h-4" />
+        <div className="relative z-10 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-black text-amber-300 border border-white/15 mb-3">
+            <Sparkles className="w-3.5 h-3.5" /> 3-Stage Lifecycle Tracker
           </div>
-          <div>
-            <div className="text-[10px] font-black uppercase text-slate-400">Target Destination</div>
-            <div className="text-xs font-black text-slate-900">{targetWorkflow.country} • {targetWorkflow.authority_acronym}</div>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
+            Student Journey & Milestone Tracker
+          </h1>
+          <p className="text-xs md:text-sm font-medium text-slate-200 mt-2 leading-relaxed">
+            Track your progress across the 3 sequential pillars: University Application, Visa Application, and Travel & Arrival Support.
+          </p>
+
+          <div className="mt-5 flex items-center gap-3 flex-wrap text-xs font-bold text-slate-300">
+            <span className="bg-white/10 px-3 py-1.5 rounded-xl border border-white/15 flex items-center gap-1.5">
+              <Building className="w-3.5 h-3.5 text-amber-300" /> {targetUniversity} ({targetCountry})
+            </span>
+            <span className="bg-white/10 px-3 py-1.5 rounded-xl border border-white/15 flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-emerald-400" /> Student: {studentName}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Dynamic Legalization Authority Status Banner */}
-      <Card className="p-4 border-2 border-[#6A1B2E]/20 bg-gradient-to-r from-[#6A1B2E]/5 via-white to-amber-50/40 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-[#6A1B2E] text-white tracking-wider">
-                {targetWorkflow.authority_badge}
+      {/* 3 TRACKERS SELECTOR CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* 🟦 TRACKER 1 */}
+        <div
+          onClick={() => setActiveTracker('university')}
+          className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${
+            activeTracker === 'university'
+              ? 'bg-blue-50/90 border-blue-400 shadow-md ring-2 ring-blue-500/20'
+              : 'bg-white border-slate-200/80 hover:border-slate-300 hover:shadow-xs'
+          }`}
+        >
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-500 text-white flex items-center justify-center font-black">
+                <GraduationCap className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                🟦 Tracker 1
               </span>
-              {nawaRecord?.nawa_ref_no && (
-                <span className="text-xs font-mono font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
-                  {nawaRecord.nawa_ref_no}
-                </span>
-              )}
             </div>
-            <h3 className="text-sm font-black text-slate-900">
-              {targetWorkflow.authority_name}
-            </h3>
-            <p className="text-xs font-semibold text-slate-500">
-              {targetWorkflow.authority_description}
+            <h3 className="text-sm font-black text-slate-900">University Application</h3>
+            <p className="text-[11px] font-semibold text-slate-500 mt-1">
+              Lead ➔ Counselling ➔ Shortlist ➔ Submit ➔ Offer ➔ Acceptance
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {targetWorkflow.stages?.slice(0, 5).map((st) => {
-              const currentStep = nawaRecord?.current_step || 1;
-              const isApproved = nawaRecord?.status === 'Approved';
-              const stepPassed = isApproved || currentStep >= st.step_number;
-
-              return (
-                <div key={st.step_number} className="flex items-center gap-1.5" title={st.title}>
-                  <div className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center border transition-all ${
-                    stepPassed
-                      ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-xs'
-                      : 'bg-slate-100 text-slate-400 border-slate-200'
-                  }`}>
-                    {stepPassed ? '✓' : st.step_number}
-                  </div>
-                  {st.step_number < Math.min(5, targetWorkflow.stages.length) && (
-                    <div className={`w-2.5 h-0.5 ${stepPassed ? 'bg-[#6A1B2E]' : 'bg-slate-200'}`} />
-                  )}
-                </div>
-              );
-            })}
+          <div className="mt-4 pt-3 border-t border-slate-200/60">
+            <div className="flex justify-between text-xs font-bold mb-1">
+              <span className="text-slate-500">Progress</span>
+              <span className="text-blue-700">{uniCompleted} / {universityStages.length} Stages</span>
+            </div>
+            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-600 rounded-full transition-all duration-500" style={{ width: `${(uniCompleted / universityStages.length) * 100}%` }} />
+            </div>
           </div>
         </div>
-      </Card>
 
-      {/* Vertical Steps Checklist */}
-      <div className="space-y-3.5">
-        {steps.map((step) => {
-          const isDone = step.status === 'completed';
-          const isCurrent = step.status === 'current';
-          const isRejected = step.status === 'rejected';
+        {/* 🟨 TRACKER 2 */}
+        <div
+          onClick={() => setActiveTracker('visa')}
+          className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${
+            activeTracker === 'visa'
+              ? 'bg-amber-50/90 border-amber-400 shadow-md ring-2 ring-amber-500/20'
+              : 'bg-white border-slate-200/80 hover:border-slate-300 hover:shadow-xs'
+          }`}
+        >
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+                🟨 Tracker 2
+              </span>
+            </div>
+            <h3 className="text-sm font-black text-slate-900">Visa Application</h3>
+            <p className="text-[11px] font-semibold text-slate-500 mt-1">
+              Docs ➔ File Prep ➔ VFS Slot ➔ Submit ➔ Embassy ➔ Visa Result
+            </p>
+          </div>
 
-          return (
-            <motion.div key={step.id} variants={itemVariants}>
-              <Card className={`p-4 border transition-all ${isDone
-                  ? 'border-slate-200/80 bg-white'
-                  : isRejected
-                    ? 'border-red-200 bg-red-50/40 shadow-xs'
-                    : isCurrent
-                      ? 'border-[#6A1B2E]/40 bg-[#6A1B2E]/5 shadow-xs'
-                      : 'border-slate-100 bg-slate-50/50'
-                }`}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-start sm:items-center gap-3.5">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-bold text-xs ${isDone
-                        ? 'bg-emerald-500 text-white'
-                        : isRejected
-                          ? 'bg-red-600 text-white'
-                          : isCurrent
-                            ? 'bg-[#6A1B2E] text-white ring-4 ring-[#6A1B2E]/10 animate-pulse'
-                            : 'bg-slate-200 text-slate-500'
-                      }`}>
-                      {isDone ? <CheckCircle2 className="w-4 h-4" /> : isRejected ? <XCircle className="w-4 h-4" /> : isCurrent ? <Clock className="w-3.5 h-3.5" /> : step.id}
-                    </div>
+          <div className="mt-4 pt-3 border-t border-slate-200/60">
+            <div className="flex justify-between text-xs font-bold mb-1">
+              <span className="text-slate-500">Progress</span>
+              <span className="text-amber-800">{visaCompleted} / {visaStages.length} Stages</span>
+            </div>
+            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${(visaCompleted / visaStages.length) * 100}%` }} />
+            </div>
+          </div>
+        </div>
 
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                        <h3 className="text-xs sm:text-sm font-black text-slate-900">{step.name}</h3>
-                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase border ${isDone
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : isRejected
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : isCurrent
-                                ? 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20'
-                                : 'bg-slate-100 text-slate-400 border-slate-200'
-                          }`}>
-                          {step.date}
-                        </span>
-                      </div>
-                      <p className="text-xs font-semibold text-slate-500">{step.desc}</p>
-                      <p className="text-[10.5px] font-bold text-[#6A1B2E] bg-white/70 px-2.5 py-1 rounded-lg border border-slate-200/60 mt-1.5 inline-block">
-                        {step.detail}
-                      </p>
-                    </div>
+        {/* 🟩 TRACKER 3 */}
+        <div
+          onClick={() => setActiveTracker('travel')}
+          className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${
+            activeTracker === 'travel'
+              ? 'bg-emerald-50/90 border-emerald-400 shadow-md ring-2 ring-emerald-500/20'
+              : 'bg-white border-slate-200/80 hover:border-slate-300 hover:shadow-xs'
+          }`}
+        >
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">
+                <Plane className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                🟩 Tracker 3
+              </span>
+            </div>
+            <h3 className="text-sm font-black text-slate-900">Travel & Arrival</h3>
+            <p className="text-[11px] font-semibold text-slate-500 mt-1">
+              Visa Grant ➔ Flights ➔ Dorm ➔ Airport Pickup ➔ Campus Arrival
+            </p>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-200/60">
+            <div className="flex justify-between text-xs font-bold mb-1">
+              <span className="text-slate-500">Progress</span>
+              <span className="text-emerald-800">{travelCompleted} / {travelStages.length} Stages</span>
+            </div>
+            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-600 rounded-full transition-all duration-500" style={{ width: `${(travelCompleted / travelStages.length) * 100}%` }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ACTIVE TRACKER ROADMAP LIST */}
+      <Card className="p-6 md:p-8 bg-white border border-slate-200/80 rounded-3xl shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`w-3 h-3 rounded-full ${
+                activeTracker === 'university' ? 'bg-blue-600' :
+                activeTracker === 'visa' ? 'bg-amber-500' : 'bg-emerald-600'
+              }`} />
+              <h2 className="text-lg font-black text-slate-900">
+                {activeTracker === 'university' && '🟦 University Application Pipeline'}
+                {activeTracker === 'visa' && '🟨 Visa Application Pipeline'}
+                {activeTracker === 'travel' && '🟩 Travel & Post-Arrival Pipeline'}
+              </h2>
+            </div>
+            <p className="text-xs font-semibold text-slate-400 mt-0.5">
+              Stage by stage breakdown in sequential order.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-extrabold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl">
+              {activeCompleted} of {activeStageList.length} Stages Completed ({activePercent}%)
+            </span>
+          </div>
+        </div>
+
+        {/* Sequential Stages Grid */}
+        <div className="space-y-3">
+          {activeStageList.map((stage, idx) => {
+            const isCompleted = stage.status === 'completed';
+            const isCurrent = stage.status === 'current' || stage.status === 'in_progress';
+
+            const badgeColor =
+              isCompleted ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+              isCurrent ? 'bg-amber-50 text-amber-800 border-amber-200 animate-pulse' :
+              'bg-slate-50 text-slate-500 border-slate-200';
+
+            return (
+              <div
+                key={stage.id}
+                className={`p-4 md:p-5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                  isCompleted ? 'bg-emerald-50/40 border-emerald-200/80' :
+                  isCurrent ? 'bg-white border-amber-300 shadow-sm ring-1 ring-amber-400/30' :
+                  'bg-slate-50/60 border-slate-200/60 opacity-80'
+                }`}
+              >
+                <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0 text-xs border ${
+                    isCompleted ? 'bg-emerald-600 text-white border-emerald-700' :
+                    isCurrent ? 'bg-amber-500 text-white border-amber-600' :
+                    'bg-slate-200 text-slate-600 border-slate-300'
+                  }`}>
+                    {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : stage.num}
                   </div>
 
-                  <Button size="sm" variant="outline" className="shrink-0 text-xs font-bold self-end sm:self-center cursor-pointer" onClick={() => navigate(step.path)}>
-                    Proceed <ArrowRight className="w-3 h-3 ml-1" />
-                  </Button>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm font-black text-slate-900">{stage.title}</h4>
+                      <span className={`text-[9.5px] font-black uppercase px-2 py-0.5 rounded-md border ${badgeColor}`}>
+                        {isCompleted ? 'Completed' : isCurrent ? 'In Progress' : 'Pending'}
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-500 mt-1 leading-relaxed">
+                      {stage.desc}
+                    </p>
+                  </div>
                 </div>
-              </Card>
-            </motion.div>
-          );
-        })}
-      </div>
-    </motion.div>
+
+                <div className="shrink-0 flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    onClick={() => navigate(stage.actionRoute)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer ${
+                      isCompleted ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' :
+                      isCurrent ? 'bg-[#6A1B2E] text-white hover:bg-[#521221]' :
+                      'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {stage.actionLabel} <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </div>
   );
 };

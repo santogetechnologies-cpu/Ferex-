@@ -2,6 +2,49 @@ import { supabase } from '../supabase';
 import type { Notification } from '../types';
 import { generateUUID } from '../../utils/uuid';
 
+const DEFAULT_STUDENT_NOTIFICATIONS = (userId: string): Notification[] => [
+  {
+    id: `notif-welcome-${userId}`,
+    user_id: userId,
+    title: '🎓 Welcome to FEREX International Student Portal',
+    body: 'Your international student portal is active. You can now track your university applications, legalizations, VFS visa filing, and pre-departure arrangements.',
+    category: 'System',
+    is_read: false,
+    link: '/student/dashboard',
+    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+  },
+  {
+    id: `notif-nawa-${userId}`,
+    user_id: userId,
+    title: '📑 Document Legalization & Compliance Check',
+    body: 'Please make sure all mandatory academic transcripts and passport color scans are uploaded to your Document Vault for verification.',
+    category: 'Document',
+    is_read: false,
+    link: '/student/documents',
+    created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+  },
+  {
+    id: `notif-app-${userId}`,
+    user_id: userId,
+    title: '🏛️ University Application Tracker Active',
+    body: 'Track your university shortlisting, application preparation, and unconditional offer letters in real-time under Journey Tracker.',
+    category: 'Application',
+    is_read: false,
+    link: '/student/journey-tracker',
+    created_at: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
+  },
+  {
+    id: `notif-vfs-${userId}`,
+    user_id: userId,
+    title: '🛡️ VFS Visa Processing & Checklist Ready',
+    body: 'Review the VFS Global Visa roadmap and required embassy documents in your dedicated Visa Tracker.',
+    category: 'VFS Visa',
+    is_read: true,
+    link: '/student/visa-tracker',
+    created_at: new Date(Date.now() - 1000 * 60 * 1440).toISOString(),
+  },
+];
+
 export async function getNotifications(userId: string): Promise<Notification[]> {
   try {
     const { data, error } = await supabase
@@ -31,20 +74,25 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
     if (local) {
       try {
         const parsed = JSON.parse(local);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {}
     }
 
-    return [];
+    // Default notifications for active student experience
+    const defaults = DEFAULT_STUDENT_NOTIFICATIONS(userId);
+    try {
+      localStorage.setItem(`ferex_notifications_${userId}`, JSON.stringify(defaults));
+    } catch (e) {}
+    return defaults;
   } catch (err) {
     const local = localStorage.getItem(`ferex_notifications_${userId}`);
     if (local) {
       try {
         const parsed = JSON.parse(local);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {}
     }
-    return [];
+    return DEFAULT_STUDENT_NOTIFICATIONS(userId);
   }
 }
 

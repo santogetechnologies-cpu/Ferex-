@@ -47,12 +47,15 @@ export const Documents: React.FC = () => {
     date: new Date(d.uploaded_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
     status: d.status,
     reviewerNotes: d.reviewer_notes || '',
+    url: d.file_url || '',
   }));
 
   // Input states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [previewDoc, setPreviewDoc] = useState<any | null>(null);
+  const [resolvedPreviewUrl, setResolvedPreviewUrl] = useState<string>('');
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [reuploadTargetDocId, setReuploadTargetDocId] = useState<string | null>(null);
   const [uploadName, setUploadName] = useState('');
@@ -81,6 +84,27 @@ export const Documents: React.FC = () => {
 
     return matchesSearch && matchesStatus;
   });
+
+  const handleOpenPreview = async (doc: any) => {
+    setPreviewDoc(doc);
+    setResolvedPreviewUrl('');
+    if (doc.url) {
+      setPreviewLoading(true);
+      try {
+        if (doc.url.startsWith('blob:') || doc.url.startsWith('data:') || doc.url.startsWith('http')) {
+          setResolvedPreviewUrl(doc.url);
+        } else {
+          const { getSignedFileUrl } = await import('../lib/storage');
+          const signed = await getSignedFileUrl('student-documents', doc.url);
+          setResolvedPreviewUrl(signed || doc.url);
+        }
+      } catch (err) {
+        setResolvedPreviewUrl(doc.url);
+      } finally {
+        setPreviewLoading(false);
+      }
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -379,7 +403,7 @@ export const Documents: React.FC = () => {
 
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 mt-4">
                   <button
-                    onClick={() => setPreviewDoc(doc)}
+                    onClick={() => handleOpenPreview(doc)}
                     className="flex items-center gap-1.5 text-xs font-bold text-[#6A1B2E] hover:underline"
                   >
                     <Eye className="w-3.5 h-3.5" /> Preview
@@ -498,44 +522,74 @@ export const Documents: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Preview Modal */}
+      {/* Interactive Document Preview Modal */}
       <AnimatePresence>
         {previewDoc && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setPreviewDoc(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left space-y-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" onClick={() => setPreviewDoc(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-5 sm:p-6 w-full max-w-3xl shadow-2xl border border-slate-100 z-10 text-left space-y-4 max-h-[90vh] flex flex-col">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900">{previewDoc.name}</h3>
-                  <p className="text-xs font-semibold text-[#6A1B2E]">{previewDoc.type}</p>
+                <div className="min-w-0 flex-1 pr-3">
+                  <h3 className="text-base font-black text-slate-900 truncate">{previewDoc.name}</h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs font-semibold text-[#6A1B2E]">{previewDoc.type}</span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-xs font-medium text-slate-500">{previewDoc.size}</span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-xs font-bold text-slate-700">{previewDoc.status}</span>
+                  </div>
                 </div>
-                <button onClick={() => setPreviewDoc(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
+                <button onClick={() => setPreviewDoc(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 shrink-0"><X className="w-5 h-5" /></button>
               </div>
 
-              <div className="p-8 bg-slate-50 border border-slate-200/70 rounded-2xl text-center space-y-3">
-                <FileText className="w-14 h-14 text-[#6A1B2E] mx-auto opacity-90" />
-                <p className="text-xs font-bold text-slate-700">Official Document Record Verified</p>
-                <div className="inline-block px-3 py-1 bg-white rounded-lg border text-xs font-extrabold text-slate-800 shadow-2xs">
-                  Status: {previewDoc.status}
-                </div>
-                {previewDoc.url && (
-                  <div className="pt-2">
-                    <button
-                      onClick={async () => {
-                        const { getSignedFileUrl } = await import('../lib/storage');
-                        const signed = await getSignedFileUrl('student-documents', previewDoc.url || '');
-                        if (signed) window.open(signed, '_blank');
-                      }}
-                      className="px-4 py-2 bg-[#6A1B2E] text-white text-xs font-extrabold rounded-xl hover:bg-[#521221] transition-all inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> Open / Download File
-                    </button>
+              {/* Document Preview Content Frame */}
+              <div className="flex-1 min-h-[320px] max-h-[550px] overflow-hidden rounded-xl border border-slate-200 bg-slate-50 relative flex flex-col items-center justify-center">
+                {previewLoading ? (
+                  <div className="py-12 text-center text-xs font-bold text-slate-400">Loading document preview...</div>
+                ) : resolvedPreviewUrl ? (
+                  resolvedPreviewUrl.match(/\.(jpg|jpeg|png|webp|gif)($|\?)/i) || resolvedPreviewUrl.startsWith('data:image') ? (
+                    <div className="w-full h-full overflow-auto flex items-center justify-center p-2 bg-slate-900/5">
+                      <img src={resolvedPreviewUrl} alt={previewDoc.name} className="max-w-full max-h-[500px] object-contain rounded-lg shadow-sm" />
+                    </div>
+                  ) : (
+                    <iframe
+                      src={resolvedPreviewUrl}
+                      title={previewDoc.name}
+                      className="w-full h-full min-h-[420px] border-0 rounded-xl bg-white"
+                    />
+                  )
+                ) : (
+                  <div className="p-8 text-center space-y-3">
+                    <FileText className="w-16 h-16 text-[#6A1B2E]/60 mx-auto" />
+                    <p className="text-sm font-bold text-slate-800">Compliance Document File Registered</p>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      This document is securely verified and logged under your FEREX compliance record.
+                    </p>
+                    <div className="inline-block px-3 py-1 bg-white rounded-lg border text-xs font-extrabold text-slate-800 shadow-2xs">
+                      Status: {previewDoc.status}
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center justify-end">
-                <Button size="sm" onClick={() => setPreviewDoc(null)}>Close Preview</Button>
+              {/* Footer Actions */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 flex-wrap gap-2">
+                <div className="text-xs text-slate-500 font-semibold">
+                  Uploaded on: <span className="font-bold text-slate-800">{previewDoc.date}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {resolvedPreviewUrl && (
+                    <a
+                      href={resolvedPreviewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 bg-[#6A1B2E] text-white text-xs font-extrabold rounded-xl hover:bg-[#521221] transition-all inline-flex items-center gap-1.5 shadow-xs"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Open in Full Tab / Download
+                    </a>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => setPreviewDoc(null)}>Close</Button>
+                </div>
               </div>
             </motion.div>
           </div>

@@ -99,12 +99,14 @@ export const AdminVisaTracker: React.FC = () => {
     const sName = studentObj?.full_name || studentObj?.email?.split('@')[0] || 'Student';
 
     const stagesMap: Record<number, string> = {
-      1: 'VFS Appointment Booked',
-      2: 'Documents Submitted at VFS',
-      3: 'Under Verification at Embassy',
-      4: 'Visa Decision Sealed in Envelope',
-      5: 'Passport Dispatched via Courier',
-      6: 'Passport Received & Verdict Confirmed',
+      1: 'Documents Ready',
+      2: 'Visa File Prepared',
+      3: 'VFS Appointment Booked',
+      4: 'VFS Submitted',
+      5: 'Consular Processing',
+      6: 'Decision Made',
+      7: 'Passport Return',
+      8: 'Visa Result Confirmed',
     };
 
     try {
@@ -425,14 +427,16 @@ export const AdminVisaTracker: React.FC = () => {
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
                       Quick-Select Processing Stage (Click milestone to update)
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
-                        { num: 1, label: '1. Appt Booked' },
-                        { num: 2, label: '2. Submitted VFS' },
-                        { num: 3, label: '3. Embassy Review' },
-                        { num: 4, label: '4. Verdict Sealed' },
-                        { num: 5, label: '5. Courier Dispatch' },
-                        { num: 6, label: '6. Verdict Confirmed' },
+                        { num: 1, label: '1. Docs Ready' },
+                        { num: 2, label: '2. File Prepared' },
+                        { num: 3, label: '3. Appt Booked' },
+                        { num: 4, label: '4. Submitted VFS' },
+                        { num: 5, label: '5. Consular Review' },
+                        { num: 6, label: '6. Decision Made' },
+                        { num: 7, label: '7. Passport Return' },
+                        { num: 8, label: '8. Visa Result' },
                       ].map((st) => {
                         const isActive = currentStage === st.num;
                         return (
@@ -441,11 +445,11 @@ export const AdminVisaTracker: React.FC = () => {
                             type="button"
                             onClick={() => {
                               setCurrentStage(st.num);
-                              if (st.num !== 6) {
+                              if (st.num !== 8) {
                                 setDecisionOutcome('Pending');
                               }
                             }}
-                            className={`py-2 px-3 rounded-xl text-[10px] font-black border transition-all text-center flex items-center justify-center min-h-[44px] ${
+                            className={`py-2 px-2.5 rounded-xl text-[10px] font-black border transition-all text-center flex items-center justify-center min-h-[44px] ${
                               isActive
                                 ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-sm scale-[1.02]'
                                 : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
@@ -466,12 +470,14 @@ export const AdminVisaTracker: React.FC = () => {
                         onChange={(e) => setCurrentStage(Number(e.target.value))}
                         className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
                       >
-                        <option value={1}>Stage 1 — VFS Appointment Booked</option>
-                        <option value={2}>Stage 2 — Documents Submitted at VFS (Re-file Start)</option>
-                        <option value={3}>Stage 3 — Under Verification at Embassy</option>
-                        <option value={4}>Stage 4 — Visa Decision Sealed in Envelope</option>
-                        <option value={5}>Stage 5 — Passport Dispatched via Courier (In Transit)</option>
-                        <option value={6}>Stage 6 — Passport Received & Verdict Confirmed (Verdict Unsealed)</option>
+                        <option value={1}>Stage 1 — Documents Ready</option>
+                        <option value={2}>Stage 2 — Visa File Prepared</option>
+                        <option value={3}>Stage 3 — VFS Appointment Booked</option>
+                        <option value={4}>Stage 4 — VFS Submitted</option>
+                        <option value={5}>Stage 5 — Consular Processing</option>
+                        <option value={6}>Stage 6 — Decision Made</option>
+                        <option value={7}>Stage 7 — Passport Return</option>
+                        <option value={8}>Stage 8 — Visa Result Confirmed</option>
                       </select>
                     </div>
 

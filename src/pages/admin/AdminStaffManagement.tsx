@@ -181,12 +181,12 @@ export const AdminStaffManagement: React.FC = () => {
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Admin User Management</h1>
-          <p className="text-xs font-semibold text-slate-400 mt-0.5">{staff.length} Administrative & Operational Users</p>
+          <h1 className="text-xl font-extrabold text-slate-900">Staff & Counselor Management</h1>
+          <p className="text-xs font-semibold text-slate-400 mt-0.5">{staff.length} Active Counselors, Admissions & Operations Staff</p>
         </div>
         <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 h-9 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all shadow-sm cursor-pointer">
-          <Plus className="w-3.5 h-3.5" /> Add Admin User
+          className="flex items-center gap-1.5 h-9.5 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all shadow-md shadow-[#6A1B2E]/20 cursor-pointer">
+          <Plus className="w-4 h-4" /> Add Staff / Counselor
         </button>
       </div>
 
