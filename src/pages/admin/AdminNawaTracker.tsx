@@ -264,7 +264,7 @@ export const AdminNawaTracker: React.FC = () => {
     <div className="space-y-6 text-left relative">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-[#50001D] text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-3">
+        <div className="fixed top-6 right-6 z-50 bg-[#58051E] text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-3">
           <CheckCircle2 className="w-5 h-5 text-emerald-400" /> {toast}
         </div>
       )}
@@ -276,7 +276,7 @@ export const AdminNawaTracker: React.FC = () => {
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
               Country Workflows & Legalization Management
             </h1>
-            <span className="text-[10px] font-black uppercase tracking-wider bg-[#50001D]/10 text-[#50001D] px-2.5 py-0.5 rounded-md border border-[#50001D]/20">
+            <span className="text-[10px] font-black uppercase tracking-wider bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-md border border-[#58051E]/20">
               SuperAdmin Config
             </span>
           </div>
@@ -291,7 +291,7 @@ export const AdminNawaTracker: React.FC = () => {
             onClick={() => setActiveTab('tracking')}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'tracking'
-                ? 'bg-[#50001D] text-white shadow-xs'
+                ? 'bg-[#58051E] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -301,7 +301,7 @@ export const AdminNawaTracker: React.FC = () => {
             onClick={() => setActiveTab('workflows')}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'workflows'
-                ? 'bg-[#50001D] text-white shadow-xs'
+                ? 'bg-[#58051E] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -322,7 +322,7 @@ export const AdminNawaTracker: React.FC = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by student name, reference ID, or document type..."
-                className="w-full h-9.5 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#50001D]"
+                className="w-full h-9.5 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
               />
             </div>
 
@@ -352,7 +352,7 @@ export const AdminNawaTracker: React.FC = () => {
 
               <button
                 onClick={handleOpenAddModal}
-                className="h-9.5 px-4 bg-[#50001D] hover:bg-[#3D0016] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer whitespace-nowrap"
+                className="h-9.5 px-4 bg-[#58051E] hover:bg-[#3D0016] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Student to Queue</span>
@@ -394,11 +394,11 @@ export const AdminNawaTracker: React.FC = () => {
                             <span className="text-[10px] font-black uppercase bg-slate-100 text-slate-800 px-2 py-0.5 rounded border border-slate-200">
                               {country}
                             </span>
-                            <span className="text-[10px] font-black uppercase bg-[#50001D]/10 text-[#50001D] px-2 py-0.5 rounded border border-[#50001D]/20">
+                            <span className="text-[10px] font-black uppercase bg-[#58051E]/10 text-[#58051E] px-2 py-0.5 rounded border border-[#58051E]/20">
                               {wf.authority_acronym}
                             </span>
                           </div>
-                          <h3 className="text-sm font-black text-slate-900 group-hover:text-[#50001D] transition-colors">
+                          <h3 className="text-sm font-black text-slate-900 group-hover:text-[#58051E] transition-colors">
                             {rec.student_name}
                           </h3>
                           <p className="text-[11px] font-semibold text-slate-400 font-mono">
@@ -436,7 +436,7 @@ export const AdminNawaTracker: React.FC = () => {
                           <span className="text-slate-500">
                             Stage {rec.current_step} of {maxSteps}:
                           </span>
-                          <span className="text-[#50001D] font-black">
+                          <span className="text-[#58051E] font-black">
                             {currentStageObj?.short_name || currentStageObj?.title || `Step ${rec.current_step}`}
                           </span>
                         </div>
@@ -447,7 +447,7 @@ export const AdminNawaTracker: React.FC = () => {
                               key={idx}
                               className={`flex-1 h-full transition-all ${
                                 idx + 1 <= rec.current_step
-                                  ? rec.status === 'Approved' ? 'bg-emerald-500' : 'bg-[#50001D]'
+                                  ? rec.status === 'Approved' ? 'bg-emerald-500' : 'bg-[#58051E]'
                                   : 'bg-slate-200'
                               }`}
                             />
@@ -462,7 +462,7 @@ export const AdminNawaTracker: React.FC = () => {
                         {rec.current_step < maxSteps && (
                           <button
                             onClick={() => handleStepChange(rec.id, rec.current_step + 1, 'In Review')}
-                            className="text-[10.5px] font-bold text-[#50001D] bg-[#50001D]/5 hover:bg-[#50001D]/10 px-2.5 py-1 rounded-lg border border-[#50001D]/20 cursor-pointer"
+                            className="text-[10.5px] font-bold text-[#58051E] bg-[#58051E]/5 hover:bg-[#58051E]/10 px-2.5 py-1 rounded-lg border border-[#58051E]/20 cursor-pointer"
                           >
                             Advance Step →
                           </button>
@@ -496,7 +496,7 @@ export const AdminNawaTracker: React.FC = () => {
       {/* ──────────────── TAB 2: COUNTRY WORKFLOWS & PROCEDURES CONFIGURATOR ── */}
       {activeTab === 'workflows' && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-[#50001D] via-[#6A1B2E] to-[#50001D] text-white p-6 rounded-3xl shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-[#58051E] via-[#6A1B2E] to-[#58051E] text-white p-6 rounded-3xl shadow-xl">
             <div className="space-y-1">
               <h2 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
                 <Globe className="w-5 h-5 text-amber-300" />
@@ -509,9 +509,9 @@ export const AdminNawaTracker: React.FC = () => {
 
             <button
               onClick={handleOpenNewWorkflowModal}
-              className="h-10 px-5 bg-white hover:bg-rose-50 text-[#50001D] rounded-xl text-xs font-black flex items-center gap-2 shadow-lg transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
+              className="h-10 px-5 bg-white hover:bg-rose-50 text-[#58051E] rounded-xl text-xs font-black flex items-center gap-2 shadow-lg transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
             >
-              <Plus className="w-4 h-4 text-[#50001D]" />
+              <Plus className="w-4 h-4 text-[#58051E]" />
               <span>Add Country Workflow</span>
             </button>
           </div>
@@ -530,7 +530,7 @@ export const AdminNawaTracker: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-base font-black text-slate-900">{wf.country}</h3>
-                        <span className="text-[10px] font-black uppercase tracking-wider bg-[#50001D] text-amber-300 px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-[#58051E] text-amber-300 px-2 py-0.5 rounded-md">
                           {wf.authority_acronym}
                         </span>
                       </div>
@@ -557,7 +557,7 @@ export const AdminNawaTracker: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Stages:</span>
-                      <span className="font-bold text-[#50001D]">{wf.stages?.length || 5} Step Flow</span>
+                      <span className="font-bold text-[#58051E]">{wf.stages?.length || 5} Step Flow</span>
                     </div>
                   </div>
 
@@ -580,7 +580,7 @@ export const AdminNawaTracker: React.FC = () => {
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                   <button
                     onClick={() => handleOpenEditWorkflowModal(wf)}
-                    className="flex-1 h-9 bg-[#50001D] hover:bg-[#3D0016] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="flex-1 h-9 bg-[#58051E] hover:bg-[#3D0016] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Edit2 className="w-3.5 h-3.5 text-amber-300" />
                     <span>Configure Workflow & Stages</span>
@@ -688,7 +688,7 @@ export const AdminNawaTracker: React.FC = () => {
 
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
                   <button type="button" onClick={() => setShowAddModal(false)} className="h-10 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
-                  <button type="submit" disabled={isSubmitting} className="h-10 px-6 bg-[#50001D] text-white text-xs font-bold rounded-xl hover:bg-[#3D0016] shadow-sm cursor-pointer disabled:opacity-50">
+                  <button type="submit" disabled={isSubmitting} className="h-10 px-6 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#3D0016] shadow-sm cursor-pointer disabled:opacity-50">
                     {isSubmitting ? 'Initiating Process...' : 'Add to Legalization Queue'}
                   </button>
                 </div>
@@ -730,7 +730,7 @@ export const AdminNawaTracker: React.FC = () => {
                     onClick={() => setActiveWorkflowTab(tab.id as any)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                       activeWorkflowTab === tab.id
-                        ? 'bg-[#50001D] text-white shadow-xs'
+                        ? 'bg-[#58051E] text-white shadow-xs'
                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
@@ -843,7 +843,7 @@ export const AdminNawaTracker: React.FC = () => {
                             }
                           ]);
                         }}
-                        className="h-8 px-3 bg-[#50001D] text-white text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer"
+                        className="h-8 px-3 bg-[#58051E] text-white text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Step
                       </button>
@@ -853,7 +853,7 @@ export const AdminNawaTracker: React.FC = () => {
                       {wfStages.map((st, idx) => (
                         <div key={idx} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase text-[#50001D]">Stage #{idx + 1}</span>
+                            <span className="text-[10px] font-black uppercase text-[#58051E]">Stage #{idx + 1}</span>
                             {wfStages.length > 1 && (
                               <button
                                 type="button"
@@ -920,7 +920,7 @@ export const AdminNawaTracker: React.FC = () => {
                             { id: nextId, name: 'New Required Document', category: 'academic', is_mandatory: true, instructions: 'Document upload instructions.' }
                           ]);
                         }}
-                        className="h-8 px-3 bg-[#50001D] text-white text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer"
+                        className="h-8 px-3 bg-[#58051E] text-white text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Requirement
                       </button>
@@ -1020,7 +1020,7 @@ export const AdminNawaTracker: React.FC = () => {
                   <button type="button" onClick={() => setShowWorkflowModal(false)} className="h-10 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">
                     Cancel
                   </button>
-                  <button type="submit" className="h-10 px-6 bg-[#50001D] text-white text-xs font-bold rounded-xl hover:bg-[#3D0016] shadow-sm cursor-pointer">
+                  <button type="submit" className="h-10 px-6 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#3D0016] shadow-sm cursor-pointer">
                     {editingWorkflowId ? 'Save & Sync Workflow Across System' : 'Publish Country Workflow'}
                   </button>
                 </div>

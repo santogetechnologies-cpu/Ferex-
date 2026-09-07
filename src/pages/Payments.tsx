@@ -594,7 +594,7 @@ export const Payments: React.FC = () => {
                             sac_code: '9992',
                             place_of_supply: 'Kerala'
                           })}
-                          className="flex-1 h-9 bg-[#50001D] hover:bg-[#6b0027] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                          className="flex-1 h-9 bg-[#58051E] hover:bg-[#6b0027] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
                         >
                           <Eye className="w-3.5 h-3.5" /> View Invoice
                         </button>

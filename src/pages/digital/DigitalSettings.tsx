@@ -111,7 +111,7 @@ export const DigitalSettings: React.FC = () => {
       </AnimatePresence>
 
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#24020B] via-[#3B0C17] to-[#50001D] rounded-2xl p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-[#6A1B2E]/50 shadow-md">
+      <div className="bg-gradient-to-r from-[#24020B] via-[#3B0C17] to-[#58051E] rounded-2xl p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-[#6A1B2E]/50 shadow-md">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="px-2.5 py-0.5 rounded-full bg-[#E6CA9E]/20 text-[#E6CA9E] text-[10px] font-black uppercase tracking-wider border border-[#E6CA9E]/30">

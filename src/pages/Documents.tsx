@@ -202,7 +202,7 @@ export const Documents: React.FC = () => {
 
       {/* Country Workflow Document Requirements Banner */}
       {targetWf && (
-        <div className="bg-gradient-to-r from-[#24020B] to-[#50001D] rounded-2xl p-5 text-white shadow-md relative overflow-hidden border border-[#6A1B2E]/40">
+        <div className="bg-gradient-to-r from-[#24020B] to-[#58051E] rounded-2xl p-5 text-white shadow-md relative overflow-hidden border border-[#6A1B2E]/40">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#E6CA9E]/5 rounded-full blur-2xl pointer-events-none" />
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
             <div>

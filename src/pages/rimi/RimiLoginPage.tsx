@@ -119,8 +119,8 @@ export const RimiLoginPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 text-left relative overflow-hidden antialiased">
       {/* Background Glow */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#6A1B2E]/30 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#6A1B2E]/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#58051E]/30 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#58051E]/20 rounded-full blur-3xl pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, y: 15 }}
@@ -143,11 +143,11 @@ export const RimiLoginPage: React.FC = () => {
             onClick={() => handleQuickLogin('admin')}
             className={`p-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition-all cursor-pointer ${
               email === 'rimi@ferex.com'
-                ? 'bg-[#6A1B2E]/10 border-[#6A1B2E] text-[#6A1B2E] shadow-xs'
+                ? 'bg-[#58051E]/10 border-[#58051E] text-[#58051E] shadow-xs'
                 : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <Snowflake className="w-4 h-4 text-[#6A1B2E]" />
+            <Snowflake className="w-4 h-4 text-[#58051E]" />
             <span className="text-[11px] font-black">❄️ Rimi Admin</span>
             <span className="text-[9px] text-slate-400 font-normal">rimi@ferex.com</span>
           </button>
@@ -206,7 +206,7 @@ export const RimiLoginPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="rimi@ferex.com"
-                className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E] focus:ring-4 focus:ring-[#6A1B2E]/10 transition-all"
+                className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E] focus:ring-4 focus:ring-[#58051E]/10 transition-all"
               />
             </div>
           </div>
@@ -223,7 +223,7 @@ export const RimiLoginPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full h-10 pl-10 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E] focus:ring-4 focus:ring-[#6A1B2E]/10 transition-all"
+                className="w-full h-10 pl-10 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E] focus:ring-4 focus:ring-[#58051E]/10 transition-all"
               />
               <button
                 type="button"
@@ -239,14 +239,14 @@ export const RimiLoginPage: React.FC = () => {
           <Button
             type="submit"
             isLoading={isLoading}
-            className="w-full h-11 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-black tracking-wide shadow-md shadow-[#6A1B2E]/20 flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full h-11 bg-[#58051E] hover:bg-[#430316] text-xs font-black tracking-wide shadow-md shadow-[#58051E]/20 flex items-center justify-center gap-2 cursor-pointer"
           >
             {email.includes('customer') || email.includes('distributor') ? 'Access Customer Portal' : 'Access Rimi Console'} <ArrowRight className="w-4 h-4" />
           </Button>
         </form>
 
         <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] font-extrabold text-slate-400">
-          <button onClick={() => navigate('/')} className="hover:text-[#6A1B2E] transition-colors cursor-pointer">
+          <button onClick={() => navigate('/')} className="hover:text-[#58051E] transition-colors cursor-pointer">
             ← Main Portal Selection
           </button>
           <span className="flex items-center gap-1">

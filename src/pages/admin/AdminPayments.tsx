@@ -552,7 +552,7 @@ export const AdminPayments: React.FC = () => {
                                 sac_code: '9992',
                                 place_of_supply: 'Kerala'
                               })} title="View Official Tax Invoice Model"
-                                className="p-1.5 rounded-lg text-[#50001D] hover:bg-[#50001D]/10 border border-[#50001D]/20 transition-colors">
+                                className="p-1.5 rounded-lg text-[#58051E] hover:bg-[#58051E]/10 border border-[#58051E]/20 transition-colors">
                                 <FileText className="w-3.5 h-3.5" />
                               </button>
                               <button onClick={() => downloadReceipt(p)} title="Download Payment Receipt PDF"

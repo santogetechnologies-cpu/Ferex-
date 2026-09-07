@@ -332,7 +332,7 @@ export const LoginPage: React.FC = () => {
       <div className="mb-6 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#50001D] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#58051E] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Ferex Education
         </button>
@@ -350,7 +350,7 @@ export const LoginPage: React.FC = () => {
             className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xl space-y-4"
           >
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-[#50001D]/10 text-[#50001D] flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
                 <KeyRound className="w-5 h-5" />
               </div>
               <div>
@@ -392,7 +392,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isChangingPass}
-                className="w-full h-11 bg-[#50001D] text-white rounded-xl text-xs font-black hover:bg-[#3D0016] transition-colors shadow-md disabled:opacity-50 mt-2 cursor-pointer"
+                className="w-full h-11 bg-[#58051E] text-white rounded-xl text-xs font-black hover:bg-[#430316] transition-colors shadow-md disabled:opacity-50 mt-2 cursor-pointer"
               >
                 {isChangingPass ? 'Updating Password...' : 'Save New Password & Return to Login'}
               </button>
@@ -415,7 +415,7 @@ export const LoginPage: React.FC = () => {
                     type="button"
                     onClick={switchToSignIn}
                     className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${authMode === 'signin'
-                        ? 'bg-[#50001D] text-white shadow-sm'
+                        ? 'bg-[#58051E] text-white shadow-sm'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                       }`}
                   >
@@ -425,7 +425,7 @@ export const LoginPage: React.FC = () => {
                     type="button"
                     onClick={switchToSignUp}
                     className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${authMode === 'signup'
-                        ? 'bg-[#50001D] text-white shadow-sm'
+                        ? 'bg-[#58051E] text-white shadow-sm'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                       }`}
                   >
@@ -519,7 +519,7 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowForgotOverlay(true)}
-                    className="text-xs font-bold text-[#50001D] hover:underline focus:outline-none cursor-pointer"
+                    className="text-xs font-bold text-[#58051E] hover:underline focus:outline-none cursor-pointer"
                     tabIndex={0}
                   >
                     Forgot password?
@@ -530,7 +530,7 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-12 bg-gradient-to-r from-[#50001D] via-[#6A1B2E] to-[#50001D] hover:from-[#3D0016] hover:to-[#50001D] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#50001D]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2 cursor-pointer"
+                  className="w-full h-12 bg-gradient-to-r from-[#58051E] via-[#6A1B2E] to-[#58051E] hover:from-[#430316] hover:to-[#58051E] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#58051E]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2 cursor-pointer"
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
@@ -614,7 +614,7 @@ export const LoginPage: React.FC = () => {
                       checked={agreeConsent}
                       onChange={(e) => setAgreeConsent(e.target.checked)}
                       disabled={isLoading}
-                      className="w-4 h-4 mt-0.5 rounded accent-[#50001D] text-[#50001D] cursor-pointer"
+                      className="w-4 h-4 mt-0.5 rounded accent-[#58051E] text-[#58051E] cursor-pointer"
                     />
                     <label htmlFor="agreeConsentBox" className="text-[11.5px] font-bold text-slate-900 leading-snug cursor-pointer">
                       I consent to FEREX Education processing my academic transcripts, passport, and financial documents for Polish NAWA Legalization, University Admissions, and VFS Visa Filing.
@@ -625,9 +625,9 @@ export const LoginPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowConsentModal(true)}
-                      className="text-[11px] font-black text-[#50001D] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-[11px] font-black text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
                     >
-                      <FileText className="w-3.5 h-3.5 text-[#50001D]" />
+                      <FileText className="w-3.5 h-3.5 text-[#58051E]" />
                       <span>Review Mandatory Document Processing Consent Agreement</span>
                     </button>
                     <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
@@ -644,7 +644,7 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-12 bg-gradient-to-r from-[#50001D] via-[#6A1B2E] to-[#50001D] hover:from-[#3D0016] hover:to-[#50001D] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#50001D]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2 cursor-pointer"
+                  className="w-full h-12 bg-gradient-to-r from-[#58051E] via-[#6A1B2E] to-[#58051E] hover:from-[#430316] hover:to-[#58051E] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#58051E]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2 cursor-pointer"
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
@@ -699,7 +699,7 @@ export const LoginPage: React.FC = () => {
                     setShowForgotOverlay(false);
                     setForgotSent(false);
                   }}
-                  className="mt-2 text-xs font-bold text-[#50001D] hover:underline block mx-auto cursor-pointer"
+                  className="mt-2 text-xs font-bold text-[#58051E] hover:underline block mx-auto cursor-pointer"
                 >
                   Return to Sign In
                 </button>
@@ -733,7 +733,7 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="h-10 px-5 bg-[#50001D] text-white text-xs font-bold rounded-xl hover:bg-[#3D0016] transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                    className="h-10 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
                   >
                     Send Reset Link
                   </button>
@@ -764,7 +764,7 @@ export const LoginPage: React.FC = () => {
               {/* Modal Header */}
               <div className="flex items-start justify-between border-b border-slate-100 pb-4 mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#50001D] text-amber-300 flex items-center justify-center font-bold shadow-md shrink-0">
+                  <div className="w-10 h-10 rounded-2xl bg-[#58051E] text-amber-300 flex items-center justify-center font-bold shadow-md shrink-0">
                     <FileCheck className="w-5 h-5" />
                   </div>
                   <div>
@@ -789,7 +789,7 @@ export const LoginPage: React.FC = () => {
               <div className="space-y-4 text-xs text-slate-700 leading-relaxed">
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
                   <div className="font-black text-slate-900 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-[#50001D] text-white text-[10px] flex items-center justify-center font-bold">1</span>
+                    <span className="w-5 h-5 rounded-full bg-[#58051E] text-white text-[10px] flex items-center justify-center font-bold">1</span>
                     Collection & Storage of Sensitive Documentation
                   </div>
                   <p className="text-[11.5px] text-slate-600 pl-6.5">
@@ -799,7 +799,7 @@ export const LoginPage: React.FC = () => {
 
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
                   <div className="font-black text-slate-900 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-[#50001D] text-white text-[10px] flex items-center justify-center font-bold">2</span>
+                    <span className="w-5 h-5 rounded-full bg-[#58051E] text-white text-[10px] flex items-center justify-center font-bold">2</span>
                     NAWA Legalization & University Representation Authorization
                   </div>
                   <p className="text-[11.5px] text-slate-600 pl-6.5">
@@ -809,7 +809,7 @@ export const LoginPage: React.FC = () => {
 
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
                   <div className="font-black text-slate-900 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-[#50001D] text-white text-[10px] flex items-center justify-center font-bold">3</span>
+                    <span className="w-5 h-5 rounded-full bg-[#58051E] text-white text-[10px] flex items-center justify-center font-bold">3</span>
                     Document Authenticity & Anti-Fraud Guarantee
                   </div>
                   <p className="text-[11.5px] text-slate-600 pl-6.5">
@@ -819,7 +819,7 @@ export const LoginPage: React.FC = () => {
 
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
                   <div className="font-black text-slate-900 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-[#50001D] text-white text-[10px] flex items-center justify-center font-bold">4</span>
+                    <span className="w-5 h-5 rounded-full bg-[#58051E] text-white text-[10px] flex items-center justify-center font-bold">4</span>
                     GDPR Confidentiality & Non-Disclosure
                   </div>
                   <p className="text-[11.5px] text-slate-600 pl-6.5">
@@ -844,7 +844,7 @@ export const LoginPage: React.FC = () => {
                     setAgreeConsent(true);
                     setShowConsentModal(false);
                   }}
-                  className="w-full sm:w-auto h-10 px-6 bg-[#50001D] hover:bg-[#3D0016] text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                  className="w-full sm:w-auto h-10 px-6 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-md cursor-pointer"
                 >
                   <Check className="w-4 h-4 text-amber-300" />
                   <span>I Understand & Accept Consent Terms</span>
