@@ -105,7 +105,7 @@ export const AdminNotifications: React.FC = () => {
       id: n.id,
       title: n.title,
       body: n.body,
-      time: new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      time: new Date(n.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
       category: n.category || 'Applications',
       read: n.is_read,
       archived: false,

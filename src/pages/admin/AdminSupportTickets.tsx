@@ -82,7 +82,7 @@ export const AdminSupportTickets: React.FC = () => {
           priority: t.priority as TicketPriority,
           status: t.status as TicketStatus,
           assignee: t.assigned_to || 'Unassigned',
-          created: new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          created: new Date(t.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           lastUpdate: 'Recently',
           messages: [{ sender: t.users?.full_name || 'Student', text: t.description, time: 'Initial Request', self: false }],
         };

@@ -72,7 +72,7 @@ export const AdminStaffManagement: React.FC = () => {
           department: dept,
           role: customRole,
           status: 'Active' as const,
-          joined: new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          joined: new Date(m.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
           students: 0,
           permissions: m.permissions || DEFAULT_PERMS,
         };
