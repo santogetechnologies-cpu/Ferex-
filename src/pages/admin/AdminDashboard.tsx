@@ -211,7 +211,7 @@ export const AdminDashboard: React.FC = () => {
                         New user enrolled: {s.full_name || s.email}
                       </p>
                       <p className="text-[10px] font-semibold text-slate-400 mt-0.5">
-                        {s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently'}
+                        {s.created_at && !isNaN(new Date(s.created_at).getTime()) ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently'}
                       </p>
                     </div>
                   </div>

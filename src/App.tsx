@@ -172,9 +172,13 @@ const AppInitializer: React.FC = () => {
   return null;
 };
 
+// Admin role equivalence list
+const ADMIN_ROLES = ['admin', 'education_admin', 'education', 'super_admin', 'superadmin', 'central', 'staff', 'counselor'];
+
 // Guards portal routes — redirects to login if not authenticated, or to proper portal if role mismatched
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
   const { session, user, profile, loading } = useAuth();
+  const location = useLocation();
   const [authTimeout, setAuthTimeout] = React.useState(false);
 
   React.useEffect(() => {
@@ -223,12 +227,20 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
   if (allowedRoles && allowedRoles.length > 0) {
     const normalizedAllowed = allowedRoles.map(r => normalizeRole(r));
     const isSuper = currentRole === 'superadmin' || currentRole === 'super_admin' || currentRole === 'central';
-    // Superadmin has universal access to all admin/division/staff portals (except student portal which is student-only)
-    const isAllowed = normalizedAllowed.includes(currentRole) || (isSuper && !normalizedAllowed.includes('student'));
+    const isAdminRoute = normalizedAllowed.includes('admin') || normalizedAllowed.some(r => ADMIN_ROLES.includes(r));
+    const isEducationAdminUser = ADMIN_ROLES.includes(currentRole);
+
+    const isAllowed =
+      normalizedAllowed.includes(currentRole) ||
+      (isAdminRoute && isEducationAdminUser) ||
+      (isSuper && !normalizedAllowed.includes('student'));
 
     if (!isAllowed) {
-      // Unauthorized for this specific portal -> Redirect to user's authoritative dashboard
+      // Guard against infinite self-redirect loops:
       const correctDashboard = getDashboardRoute(currentRole);
+      if (correctDashboard === location.pathname || (location.pathname.startsWith('/admin') && isEducationAdminUser)) {
+        return <>{children}</>;
+      }
       return <Navigate to={correctDashboard} replace />;
     }
   }
@@ -268,27 +280,27 @@ function App() {
           <Route path="/student/visa-tracker" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><VisaTracker /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/pre-departure" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><PreDeparture /></StudentLayout></ProtectedRoute>} />
 
-          {/* ── Admin Routes (role = 'admin', 'super_admin', 'central') ── */}
-          <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/students" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminStudents /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/universities" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminUniversities /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/visa-tracker" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminVisaTracker /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/pre-departure" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminPreDeparture /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/tasks" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminTaskManagement /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/applications" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminApplications /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/offers" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminApplications initialFilter="Offer Issued" /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/offer-letters" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminApplications initialFilter="Offer Issued" /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/documents" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminDocumentReview /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/nawa" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminNawaTracker /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/payments" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminPayments /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/support" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminSupportTickets /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminChatSupport /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminReports /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/staff" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminStaffManagement /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/meetings" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminMeetings /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminNotifications /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/fee-config" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminFeeConfig /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminSettings /></AdminLayout></ProtectedRoute>} />
+          {/* ── Admin Routes (role = 'admin', 'education_admin', 'education', 'super_admin', 'superadmin', 'central', 'staff', 'counselor') ── */}
+          <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/students" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminStudents /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/universities" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminUniversities /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/visa-tracker" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminVisaTracker /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/pre-departure" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPreDeparture /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/tasks" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminTaskManagement /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/applications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminApplications /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/offers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminApplications initialFilter="Offer Issued" /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/offer-letters" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminApplications initialFilter="Offer Issued" /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/documents" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminDocumentReview /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/nawa" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminNawaTracker /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/payments" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPayments /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/support" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSupportTickets /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminChatSupport /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminReports /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/staff" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminStaffManagement /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/meetings" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminMeetings /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminNotifications /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/fee-config" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminFeeConfig /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSettings /></AdminLayout></ProtectedRoute>} />
 
           {/* ── Central Super Admin Routes (Strictly Super Admin Only) ── */}
           <Route path="/central/dashboard" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralDashboard /></CentralLayout></ProtectedRoute>} />
