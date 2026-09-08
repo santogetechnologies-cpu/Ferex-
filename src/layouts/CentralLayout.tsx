@@ -5,7 +5,7 @@ import {
   LayoutDashboard, CreditCard, BarChart3, ShieldCheck, UserCheck,
   CheckSquare, Activity, Bell, Settings, Mail,
   Search, Menu, ChevronDown, ChevronRight, LogOut, X, Crown,
-  Globe, Snowflake, Monitor, GraduationCap
+  Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
