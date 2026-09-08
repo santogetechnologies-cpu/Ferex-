@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { useSystemConfig } from '../hooks/useSystemConfig';
 import { getAllPaymentsAdmin } from '../lib/api/payments';
+import { isSuperAdmin } from '../lib/roleRouter';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
@@ -246,9 +247,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
           <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Quick Switch to Central Super Admin Command Center (STRICTLY FOR SUPER ADMINS ONLY) */}
-            {((profile?.role || user?.role || user?.user_metadata?.role || localSavedUser?.role || '').toLowerCase().trim() === 'superadmin' ||
-              (profile?.role || user?.role || user?.user_metadata?.role || localSavedUser?.role || '').toLowerCase().trim() === 'super_admin' ||
-              (profile?.role || user?.role || user?.user_metadata?.role || localSavedUser?.role || '').toLowerCase().trim() === 'central') && (
+            {isSuperAdmin(profile?.role || user?.role || user?.user_metadata?.role || localSavedUser?.role, adminEmail) && (
               <button
                 onClick={() => navigate('/central/dashboard')}
                 title="Return to Central Super Admin HQ"

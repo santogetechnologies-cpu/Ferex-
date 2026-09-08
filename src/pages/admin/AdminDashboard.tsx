@@ -10,6 +10,7 @@ import { getAdminDashboardStats } from '../../lib/api/dashboard';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
 import { useAuth } from '../../contexts/AuthContext';
+import { isSuperAdmin } from '../../lib/roleRouter';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export const AdminDashboard: React.FC = () => {
     }
   })();
   const userRole = (profile?.role || user?.role || user?.user_metadata?.role || localSavedUser?.role || '').toLowerCase().trim();
-  const isSuper = userRole === 'superadmin' || userRole === 'super_admin' || userRole === 'central';
+  const isSuper = isSuperAdmin(userRole, profile?.email || user?.email || localSavedUser?.email);
 
   const { students: dbStudents } = useStudents();
   const { applications: dbApps } = useApplications();

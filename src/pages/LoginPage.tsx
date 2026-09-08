@@ -8,7 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '../components/Input';
 import { Checkbox } from '../components/Checkbox';
 import { useAuth } from '../contexts/AuthContext';
-import { getDashboardRoute, getPortalLabel } from '../lib/roleRouter';
+import { getDashboardRoute, getPortalLabel, isSuperAdmin } from '../lib/roleRouter';
 import { supabase } from '../lib/supabase';
 
 export const LoginPage: React.FC = () => {
@@ -218,9 +218,27 @@ export const LoginPage: React.FC = () => {
       }
     }
 
-    // Direct unassigned Supabase auth defaults to superadmin
+    // Direct unassigned Supabase auth defaults
     if (!role) {
-      role = user.user_metadata?.role || 'superadmin';
+      role = user.user_metadata?.role || null;
+    }
+
+    // Authoritatively detect Super Admin via email, role, or user metadata
+    const isSuper =
+      isSuperAdmin(role, cleanEmail) ||
+      isSuperAdmin(user.user_metadata?.role, cleanEmail) ||
+      isSuperAdmin(dbProfile?.role, cleanEmail);
+
+    if (isSuper) {
+      role = 'superadmin';
+      // Sync authoritative role back to public.users
+      supabase
+        .from('users')
+        .update({ role: 'superadmin', updated_at: new Date().toISOString() })
+        .eq('id', user.id)
+        .catch(() => {});
+    } else if (!role) {
+      role = 'student';
     }
 
     if (mustChangePassword) {
@@ -234,12 +252,12 @@ export const LoginPage: React.FC = () => {
         id: user.id,
         email: cleanEmail,
         role: role,
-        full_name: user.user_metadata?.full_name || (dbProfile as any)?.full_name || cleanEmail.split('@')[0],
+        full_name: user.user_metadata?.full_name || (dbProfile as any)?.full_name || (isSuper ? 'Central Super Admin' : cleanEmail.split('@')[0]),
       }));
     } catch {}
 
-    const portalLabel = getPortalLabel(role);
-    const targetRoute = getDashboardRoute(role);
+    const portalLabel = getPortalLabel(role, cleanEmail);
+    const targetRoute = getDashboardRoute(role, cleanEmail);
     setSuccessMsg(`Authorization successful. Loading ${portalLabel}...`);
     setIsLoading(false);
 

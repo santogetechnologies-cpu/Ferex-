@@ -114,7 +114,7 @@ export const FerexLandingPage: React.FC = () => {
   const handleAuthAction = () => {
     if (session && user) {
       const role = profile?.role || 'student';
-      navigate(getDashboardRoute(role));
+      navigate(getDashboardRoute(role, user.email));
     } else {
       goToLogin('signin');
     }

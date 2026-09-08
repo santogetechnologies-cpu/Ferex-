@@ -9,6 +9,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { isSuperAdmin } from '../../lib/roleRouter';
 
 interface AdminAccount {
   id: string;
@@ -138,8 +139,9 @@ export const CentralAdmins: React.FC = () => {
       const list: AdminAccount[] = [];
 
       (data || []).forEach((u: any) => {
-        const cleanRole = (u.role || 'superadmin').toLowerCase().trim();
-        const cfg = DIVISION_CONFIG[cleanRole] || DIVISION_CONFIG.superadmin;
+        const isSuper = isSuperAdmin(u.role, u.email);
+        const cleanRole = isSuper ? 'superadmin' : (u.role || 'education_admin').toLowerCase().trim();
+        const cfg = DIVISION_CONFIG[cleanRole] || (isSuper ? DIVISION_CONFIG.superadmin : DIVISION_CONFIG.education_admin);
 
         // Check if there are cached credentials saved locally by Super Admin for password quick copy
         let savedPass: string | undefined = undefined;
@@ -284,11 +286,11 @@ export const CentralAdmins: React.FC = () => {
   const filteredAdmins = adminList.filter(a => {
     const matchesFilter =
       divisionFilter === 'All' ||
-      (divisionFilter === 'Education' && (a.role === 'education_admin' || a.role === 'education')) ||
+      (divisionFilter === 'Education' && (a.role === 'education_admin' || a.role === 'education' || a.role === 'admin')) ||
       (divisionFilter === 'Trade' && (a.role === 'trade' || a.role === 'trade_admin')) ||
       (divisionFilter === 'Rimi' && (a.role === 'rimi' || a.role === 'rimi_admin')) ||
       (divisionFilter === 'Digital' && (a.role === 'digital' || a.role === 'digital_admin')) ||
-      (divisionFilter === 'SuperAdmin' && (a.role === 'superadmin' || a.role === 'central' || a.role === 'super_admin' || a.role === 'admin'));
+      (divisionFilter === 'SuperAdmin' && (a.role === 'superadmin' || a.role === 'central' || a.role === 'super_admin'));
 
     const matchesSearch =
       a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

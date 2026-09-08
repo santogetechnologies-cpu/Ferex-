@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, Edit3, Trash2, X, Save, CheckCircle2, Mail, Phone } from 'lucide-react';
 import { getStaffMembers, createStaffMember, updateStudent, deleteStudent } from '../../lib/api/students';
 import { useAuth } from '../../contexts/AuthContext';
+import { isSuperAdmin } from '../../lib/roleRouter';
 
 interface StaffMember {
   id: string; name: string; email: string; phone: string; department: string;
@@ -47,7 +48,7 @@ const getDbRole = (displayRole: string): string => {
 export const AdminStaffManagement: React.FC = () => {
   const { user, profile } = useAuth();
   const userRole = (profile?.role || user?.role || user?.user_metadata?.role || '').toLowerCase().trim();
-  const isSuper = userRole === 'superadmin' || userRole === 'super_admin' || userRole === 'central';
+  const isSuper = isSuperAdmin(userRole, profile?.email || user?.email);
 
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [roleFilter, setRoleFilter] = useState('All');

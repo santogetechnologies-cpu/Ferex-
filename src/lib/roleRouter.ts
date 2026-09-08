@@ -69,23 +69,50 @@ const ROLE_LABELS: Record<string, string> = {
   rimi_client: 'Rimi Cold Chain Customer Portal',
 };
 
-export function normalizeRole(role?: string | null): string {
+export function isSuperAdmin(role?: string | null, email?: string | null): boolean {
+  if (role) {
+    const cleanRole = role.toLowerCase().trim().replace(/[\s-]+/g, '_');
+    if (cleanRole === 'superadmin' || cleanRole === 'super_admin' || cleanRole === 'central') {
+      return true;
+    }
+  }
+  if (email) {
+    const cleanEmail = email.toLowerCase().trim();
+    if (
+      cleanEmail.includes('superadmin') ||
+      cleanEmail.includes('super_admin') ||
+      cleanEmail.includes('super-admin') ||
+      cleanEmail.includes('central') ||
+      cleanEmail === 'admin@ferex.com' ||
+      cleanEmail === 'admin@ferexventures.com'
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function normalizeRole(role?: string | null, email?: string | null): string {
+  if (isSuperAdmin(role, email)) return 'superadmin';
   if (!role) return 'superadmin';
   const clean = role.toLowerCase().trim().replace(/[\s-]+/g, '_');
   return clean;
 }
 
-export function getDashboardRoute(role?: string | null): string {
-  const normalized = normalizeRole(role);
+export function getDashboardRoute(role?: string | null, email?: string | null): string {
+  if (isSuperAdmin(role, email)) return '/central/dashboard';
+  const normalized = normalizeRole(role, email);
   return ROLE_ROUTES[normalized] || '/central/dashboard';
 }
 
-export function getPortalLabel(role?: string | null): string {
-  const normalized = normalizeRole(role);
-  return ROLE_LABELS[normalized] || 'Super Admin Portal';
+export function getPortalLabel(role?: string | null, email?: string | null): string {
+  if (isSuperAdmin(role, email)) return 'Central Super Admin Command Center';
+  const normalized = normalizeRole(role, email);
+  return ROLE_LABELS[normalized] || 'Central Super Admin Command Center';
 }
 
 export function isValidRole(role: string): boolean {
   const normalized = normalizeRole(role);
   return normalized in ROLE_ROUTES;
 }
+

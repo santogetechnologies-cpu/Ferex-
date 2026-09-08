@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, AlertCircle, CheckCircle2, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { Logo } from '../../components/Logo';
 import { useAuth } from '../../contexts/AuthContext';
-import { getDashboardRoute, getPortalLabel } from '../../lib/roleRouter';
+import { getDashboardRoute, getPortalLabel, isSuperAdmin } from '../../lib/roleRouter';
 import { supabase } from '../../lib/supabase';
 
 export const AdminLoginPage: React.FC = () => {
@@ -32,13 +32,15 @@ export const AdminLoginPage: React.FC = () => {
       const { error: authErr } = await signIn(cleanEmail, password);
       if (!authErr) {
         const { data: { user } } = await supabase.auth.getUser();
-        let role = user?.user_metadata?.role || 'superadmin';
+        let role = isSuperAdmin(user?.user_metadata?.role, cleanEmail) ? 'superadmin' : (user?.user_metadata?.role || 'admin');
         if (user?.id) {
           const { data: dbProfile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
-          if (dbProfile?.role) role = dbProfile.role;
+          if (dbProfile?.role) {
+            role = isSuperAdmin(dbProfile.role, cleanEmail) ? 'superadmin' : dbProfile.role;
+          }
         }
-        setSuccess(`Access granted. Loading ${getPortalLabel(role)}...`);
-        setTimeout(() => navigate(getDashboardRoute(role)), 600);
+        setSuccess(`Access granted. Loading ${getPortalLabel(role, cleanEmail)}...`);
+        setTimeout(() => navigate(getDashboardRoute(role, cleanEmail)), 600);
         return;
       }
     } catch (e) {}
@@ -47,7 +49,7 @@ export const AdminLoginPage: React.FC = () => {
     setTimeout(() => {
       setIsLoading(false);
       if (cleanEmail === 'admin@gmail.com' && password === 'admin123') {
-        localStorage.setItem('ferex_user', JSON.stringify({ id: 'admin-1', email: cleanEmail, role: 'superadmin' }));
+        localStorage.setItem('ferex_user', JSON.stringify({ id: 'admin-1', email: cleanEmail, role: 'admin' }));
         setSuccess('Access granted. Loading Education Admin Panel...');
         setTimeout(() => navigate('/admin/dashboard'), 600);
       } else if (cleanEmail === 'superadmin@gmail.com' && password === 'super123') {

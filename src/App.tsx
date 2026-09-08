@@ -155,7 +155,7 @@ import { StaffProfile } from './pages/staff/StaffProfile';
 
 import { autoSeedAllDataToSupabase } from './lib/api/supabaseAutoSeeder';
 
-import { normalizeRole, getDashboardRoute } from './lib/roleRouter';
+import { normalizeRole, getDashboardRoute, isSuperAdmin } from './lib/roleRouter';
 
 // Resets route to Main Login on initial fresh load if at root and auto-seeds Supabase
 const AppInitializer: React.FC = () => {
@@ -218,26 +218,26 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
     profile?.role ||
     user?.user_metadata?.role ||
     user?.role ||
-    localSavedUser?.role ||
-    'admin';
+    localSavedUser?.role;
 
-  const currentRole = normalizeRole(rawRole);
+  const userEmail = effectiveUser?.email || profile?.email || localSavedUser?.email || '';
+  const isSuper = isSuperAdmin(rawRole, userEmail);
+  const currentRole = isSuper ? 'superadmin' : normalizeRole(rawRole || 'admin');
 
   // Check role authorization if specified
   if (allowedRoles && allowedRoles.length > 0) {
     const normalizedAllowed = allowedRoles.map(r => normalizeRole(r));
-    const isSuper = currentRole === 'superadmin' || currentRole === 'super_admin' || currentRole === 'central';
     const isAdminRoute = normalizedAllowed.includes('admin') || normalizedAllowed.some(r => ADMIN_ROLES.includes(r));
     const isEducationAdminUser = ADMIN_ROLES.includes(currentRole);
 
     const isAllowed =
+      (isSuper && !normalizedAllowed.includes('student')) ||
       normalizedAllowed.includes(currentRole) ||
-      (isAdminRoute && isEducationAdminUser) ||
-      (isSuper && !normalizedAllowed.includes('student'));
+      (isAdminRoute && isEducationAdminUser);
 
     if (!isAllowed) {
       // Guard against infinite self-redirect loops:
-      const correctDashboard = getDashboardRoute(currentRole);
+      const correctDashboard = getDashboardRoute(currentRole, userEmail);
       if (correctDashboard === location.pathname || (location.pathname.startsWith('/admin') && isEducationAdminUser)) {
         return <>{children}</>;
       }

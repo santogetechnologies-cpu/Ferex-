@@ -29,12 +29,13 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   useEffect(() => {
     const rawRole = profile?.role || user?.user_metadata?.role;
     if (rawRole) {
-      const normalized = normalizeRole(rawRole);
+      const normalized = normalizeRole(rawRole, user?.email);
       if (normalized !== 'student') {
-        navigate(getDashboardRoute(normalized), { replace: true });
+        navigate(getDashboardRoute(normalized, user?.email), { replace: true });
       }
     }
-  }, [profile?.role, user?.user_metadata?.role, navigate]);
+  }, [profile?.role, user?.user_metadata?.role, user?.email, navigate]);
+
 
   // Responsive states
   const [isCollapsed, setIsCollapsed] = useState(false);

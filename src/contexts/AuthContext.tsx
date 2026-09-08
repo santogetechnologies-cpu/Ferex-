@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { isSuperAdmin } from '../lib/roleRouter';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -64,9 +65,10 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
       .maybeSingle();
 
     if (!error && data) {
+      const isSuper = isSuperAdmin(data.role, email || data.email);
       return {
         ...data,
-        role: data.role || 'superadmin',
+        role: isSuper ? 'superadmin' : (data.role || 'superadmin'),
       } as UserProfile;
     }
 
@@ -85,10 +87,11 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
             await supabase.from('users').update({ id: userId }).eq('id', emailUser.id);
           } catch {}
         }
+        const isSuper = isSuperAdmin(emailUser.role, email);
         return {
           ...emailUser,
           id: userId,
-          role: emailUser.role || 'superadmin',
+          role: isSuper ? 'superadmin' : (emailUser.role || 'superadmin'),
         } as UserProfile;
       }
     }
@@ -101,11 +104,17 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
 
 async function ensureProfile(user: User): Promise<UserProfile> {
   const existing = await fetchProfile(user.id, user.email);
-  if (existing) return existing;
+  if (existing) {
+    if (isSuperAdmin(existing.role, user.email)) {
+      existing.role = 'superadmin';
+    }
+    return existing;
+  }
 
-  // Direct Supabase auth defaults to superadmin unless explicitly created as student or division role
-  const role = user.user_metadata?.role || 'superadmin';
-  const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Administrator';
+  // Direct Supabase auth defaults to superadmin for superadmin emails or unassigned staff
+  const isSuper = isSuperAdmin(user.user_metadata?.role, user.email);
+  const role = isSuper ? 'superadmin' : (user.user_metadata?.role || 'admin');
+  const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || (isSuper ? 'Central Super Admin' : 'Administrator');
 
   const newProfile: UserProfile = {
     id: user.id,
@@ -141,6 +150,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(currentUser);
 
     if (currentUser) {
+      const isSuper = isSuperAdmin(currentUser.user_metadata?.role, currentUser.email);
+      const defaultRole = isSuper ? 'superadmin' : (currentUser.user_metadata?.role || 'admin');
+
       try {
         const prof = await Promise.race([
           ensureProfile(currentUser),
@@ -150,8 +162,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 resolve({
                   id: currentUser.id,
                   email: currentUser.email || '',
-                  full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Administrator',
-                  role: currentUser.user_metadata?.role || 'admin',
+                  full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || (isSuper ? 'Central Super Admin' : 'Administrator'),
+                  role: defaultRole,
                   created_at: new Date().toISOString(),
                 }),
               2000
@@ -163,8 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile({
           id: currentUser.id,
           email: currentUser.email || '',
-          full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Administrator',
-          role: currentUser.user_metadata?.role || 'admin',
+          full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || (isSuper ? 'Central Super Admin' : 'Administrator'),
+          role: defaultRole,
           created_at: new Date().toISOString(),
         });
       }
@@ -180,19 +192,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })();
 
       if (localSavedUser && localSavedUser.id) {
+        const isSuper = isSuperAdmin(localSavedUser.role, localSavedUser.email);
+        const resolvedRole = isSuper ? 'superadmin' : (localSavedUser.role || 'admin');
+
         setProfile({
           id: localSavedUser.id,
-          email: localSavedUser.email || 'admin@ferex.com',
-          full_name: localSavedUser.fullName || localSavedUser.full_name || 'System Admin',
-          role: localSavedUser.role || 'superadmin',
+          email: localSavedUser.email || (isSuper ? 'admin@ferex.com' : 'admin@ferex.com'),
+          full_name: localSavedUser.fullName || localSavedUser.full_name || (isSuper ? 'Central Super Admin' : 'System Admin'),
+          role: resolvedRole,
           created_at: new Date().toISOString(),
         });
         setUser({
           id: localSavedUser.id,
-          email: localSavedUser.email || 'admin@ferex.com',
+          email: localSavedUser.email || (isSuper ? 'admin@ferex.com' : 'admin@ferex.com'),
           user_metadata: {
-            full_name: localSavedUser.fullName || localSavedUser.full_name || 'System Admin',
-            role: localSavedUser.role || 'superadmin',
+            full_name: localSavedUser.fullName || localSavedUser.full_name || (isSuper ? 'Central Super Admin' : 'System Admin'),
+            role: resolvedRole,
           }
         } as any);
       } else {
