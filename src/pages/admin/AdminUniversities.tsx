@@ -45,14 +45,15 @@ export type CountryItem = DestinationItem;
 
 export const AdminUniversities: React.FC = () => {
   const { universities, loading, addUniversity, updateUniversity, removeUniversity, clearAll: clearAllUniversitiesData, refresh } = useUniversities();
-  const { destinations: countryList, addDestination, removeDestination, clearAll: clearAllDestinationsData, refresh: refreshDestinations } = useDestinations();
+  const { destinations: countryList, addDestination, editDestination, removeDestination, clearAll: clearAllDestinationsData, refresh: refreshDestinations } = useDestinations();
   const { config } = useFeeConfig();
 
   // Top view tab: 'universities' or 'countries'
   const [activeMainTab, setActiveMainTab] = useState<'universities' | 'countries'>('universities');
 
-  // Add Country modal state
+  // Add / Edit Country modal state
   const [showAddCountryModal, setShowAddCountryModal] = useState(false);
+  const [editingCountryId, setEditingCountryId] = useState<string | null>(null);
   const [newCountryName, setNewCountryName] = useState('');
   const [newCountryCode, setNewCountryCode] = useState('');
   const [newCountryFlag, setNewCountryFlag] = useState('🌍');
@@ -212,39 +213,84 @@ export const AdminUniversities: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
+  const handleOpenEditCountry = (c: DestinationItem) => {
+    setEditingCountryId(c.id);
+    setNewCountryName(c.name);
+    setNewCountryCode(c.code);
+    setNewCountryFlag(c.flag || '🌍');
+    setNewCountryCurrency(c.currency || 'EUR');
+    setNewCountryAuthority(c.authority || '');
+    setNewCountryAcronym(c.acronym || '');
+    setNewCountryProcessing(c.processing || '15-30 Days');
+    setNewCountryFee(c.fee || '€50');
+    setShowAddCountryModal(true);
+  };
+
+  const handleOpenAddCountry = () => {
+    setEditingCountryId(null);
+    setNewCountryName('');
+    setNewCountryCode('');
+    setNewCountryFlag('🌍');
+    setNewCountryCurrency('EUR');
+    setNewCountryAuthority('');
+    setNewCountryAcronym('');
+    setNewCountryProcessing('15-30 Days');
+    setNewCountryFee('€50');
+    setShowAddCountryModal(true);
+  };
+
   const handleAddCountrySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCountryName.trim()) return;
 
     const trimmed = newCountryName.trim();
-    if (countryList.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
+
+    if (!editingCountryId && countryList.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
       showToast(`Destination "${trimmed}" is already registered.`);
       return;
     }
 
     try {
-      await addDestination({
-        name: trimmed,
-        code: newCountryCode.trim().toUpperCase() || trimmed.substring(0, 2).toUpperCase(),
-        flag: newCountryFlag.trim() || '🌍',
-        currency: newCountryCurrency.trim() || 'EUR',
-        authority: newCountryAuthority.trim() || `${trimmed} Higher Education Ministry`,
-        acronym: newCountryAcronym.trim() || trimmed.substring(0, 4).toUpperCase(),
-        processing: newCountryProcessing.trim() || '15-30 Days',
-        fee: newCountryFee.trim() || '€50',
-        desk: `${trimmed} Desk`,
-        badge: 'Accredited',
-        is_active: true
-      });
+      if (editingCountryId) {
+        await editDestination(editingCountryId, {
+          name: trimmed,
+          code: newCountryCode.trim().toUpperCase() || trimmed.substring(0, 2).toUpperCase(),
+          flag: newCountryFlag.trim() || '🌍',
+          currency: newCountryCurrency.trim() || 'EUR',
+          authority: newCountryAuthority.trim() || `${trimmed} Higher Education Ministry`,
+          acronym: newCountryAcronym.trim() || trimmed.substring(0, 4).toUpperCase(),
+          processing: newCountryProcessing.trim() || '15-30 Days',
+          fee: newCountryFee.trim() || '€50',
+          desk: `${trimmed} Desk`,
+          badge: 'Accredited',
+          is_active: true
+        });
+        showToast(`🎉 Destination "${trimmed}" updated successfully!`);
+      } else {
+        await addDestination({
+          name: trimmed,
+          code: newCountryCode.trim().toUpperCase() || trimmed.substring(0, 2).toUpperCase(),
+          flag: newCountryFlag.trim() || '🌍',
+          currency: newCountryCurrency.trim() || 'EUR',
+          authority: newCountryAuthority.trim() || `${trimmed} Higher Education Ministry`,
+          acronym: newCountryAcronym.trim() || trimmed.substring(0, 4).toUpperCase(),
+          processing: newCountryProcessing.trim() || '15-30 Days',
+          fee: newCountryFee.trim() || '€50',
+          desk: `${trimmed} Desk`,
+          badge: 'Accredited',
+          is_active: true
+        });
+        showToast(`🎉 Destination "${trimmed}" registered successfully!`);
+      }
 
       setShowAddCountryModal(false);
+      setEditingCountryId(null);
       setNewCountryName('');
       setNewCountryCode('');
       setNewCountryAuthority('');
       setNewCountryAcronym('');
-      showToast(`🎉 Destination "${trimmed}" registered successfully!`);
     } catch (err: any) {
-      showToast(`Error: ${err.message || 'Could not register destination'}`);
+      showToast(`Error: ${err.message || 'Could not save destination'}`);
     }
   };
 
@@ -512,7 +558,7 @@ export const AdminUniversities: React.FC = () => {
             <RefreshCw className="w-3.5 h-3.5 text-slate-500" /> Refresh
           </button>
           <button
-            onClick={() => setShowAddCountryModal(true)}
+            onClick={handleOpenAddCountry}
             className="flex items-center gap-1.5 h-9.5 px-3.5 bg-slate-900 rounded-xl text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
           >
             <Globe className="w-3.5 h-3.5 text-amber-300" /> Add Country
@@ -803,20 +849,27 @@ export const AdminUniversities: React.FC = () => {
                             setCountryFilter(c.name);
                             setActiveMainTab('universities');
                           }}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors"
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer"
                         >
                           View Universities
                         </button>
                         <button
                           onClick={() => handleOpenAddModal(c.name)}
-                          className="px-2.5 py-1 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-lg transition-colors"
+                          className="px-2.5 py-1 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
                         >
                           + Add Uni
                         </button>
                         <button
+                          onClick={() => handleOpenEditCountry(c)}
+                          title="Edit Destination"
+                          className="p-1 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteCountry(c.id, c.name)}
                           title="Remove Destination"
-                          className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -830,7 +883,7 @@ export const AdminUniversities: React.FC = () => {
         </div>
       )}
 
-      {/* ADD COUNTRY MODAL */}
+      {/* ADD / EDIT COUNTRY MODAL */}
       <AnimatePresence>
         {showAddCountryModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -839,7 +892,9 @@ export const AdminUniversities: React.FC = () => {
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <Globe className="w-5 h-5 text-[#6A1B2E]" />
-                  <h3 className="text-base font-black text-slate-900">Register New Destination Country</h3>
+                  <h3 className="text-base font-black text-slate-900">
+                    {editingCountryId ? 'Edit Destination Country' : 'Register New Destination Country'}
+                  </h3>
                 </div>
                 <button onClick={() => setShowAddCountryModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
               </div>
@@ -935,8 +990,10 @@ export const AdminUniversities: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                  <button type="button" onClick={() => setShowAddCountryModal(false)} className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
-                  <button type="submit" className="h-9 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221]">Register Country</button>
+                  <button type="button" onClick={() => setShowAddCountryModal(false)} className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
+                  <button type="submit" className="h-9 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] shadow-xs cursor-pointer">
+                    {editingCountryId ? 'Save Country Changes' : 'Register Country'}
+                  </button>
                 </div>
               </form>
             </motion.div>

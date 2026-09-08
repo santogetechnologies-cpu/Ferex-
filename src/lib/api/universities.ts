@@ -188,7 +188,8 @@ export async function updateUniversityRecord(id: string, payload: Partial<Univer
     existingList = local ? JSON.parse(local) : [];
   } catch (e) {}
 
-  const current = existingList.find(u => u.id === id);
+  const customUnis = getCustomUniversities();
+  const current = existingList.find(u => u.id === id) || customUnis.find(u => u.id === id);
 
   const updatedObj: University = {
     id,
@@ -216,20 +217,33 @@ export async function updateUniversityRecord(id: string, payload: Partial<Univer
     semesters: payload.semesters ?? current?.semesters ?? [],
   };
 
-  // Update in custom universities if present
+  // Update in custom universities if present or add to ensure persistence
   try {
-    const customList = getCustomUniversities().map(u => u.id === id ? updatedObj : u);
-    localStorage.setItem('ferex_custom_universities', JSON.stringify(customList));
+    const isCustom = customUnis.some(u => u.id === id);
+    let newCustomList: University[];
+    if (isCustom) {
+      newCustomList = customUnis.map(u => u.id === id ? updatedObj : u);
+    } else {
+      newCustomList = [updatedObj, ...customUnis.filter(u => u.id !== id)];
+    }
+    localStorage.setItem('ferex_custom_universities', JSON.stringify(newCustomList));
   } catch {}
 
-  // Update Supabase
+  // Update Supabase in background
   try {
-    await supabase.from('universities').update(payload).eq('id', id);
-  } catch (err) {}
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (isUuid) {
+      await supabase.from('universities').update(payload).eq('id', id);
+    }
+  } catch (err) {
+    console.warn('[updateUniversityRecord Supabase Warning]:', err);
+  }
 
   // Update local cache
   try {
-    const updated = existingList.map(u => u.id === id ? updatedObj : u);
+    const updated = existingList.some(u => u.id === id)
+      ? existingList.map(u => u.id === id ? updatedObj : u)
+      : [updatedObj, ...existingList];
     localStorage.setItem('ferex_local_universities', JSON.stringify(updated));
   } catch (e) {}
 
@@ -325,26 +339,24 @@ export async function deleteUniversity(id: string, name?: string) {
     }
   } catch {}
 
+  // Broadcast update events immediately
+  window.dispatchEvent(new Event('ferex_university_change'));
+  window.dispatchEvent(new Event('storage'));
+
   // 7. Delete from Supabase in background (non-blocking, fails gracefully)
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const targetName = name || Array.from(toDelete).find(s => s && isNaN(Number(s)) && !s.includes('-'));
 
-  (async () => {
-    try {
-      if (isUuid) {
-        await supabase.from('universities').delete().eq('id', id);
-      }
-      if (targetName) {
-        await supabase.from('universities').delete().ilike('name', targetName.trim());
-      }
-    } catch (err) {
-      console.warn('[deleteUniversity Supabase Warning]:', err);
+  try {
+    if (isUuid) {
+      await supabase.from('universities').delete().eq('id', id);
     }
-  })();
-
-  // 8. Broadcast update events
-  window.dispatchEvent(new Event('ferex_university_change'));
-  window.dispatchEvent(new Event('storage'));
+    if (targetName) {
+      await supabase.from('universities').delete().ilike('name', targetName.trim());
+    }
+  } catch (err) {
+    console.warn('[deleteUniversity Supabase Warning]:', err);
+  }
 }
 
 export async function clearAllUniversities(): Promise<void> {
