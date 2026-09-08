@@ -2,246 +2,7 @@ import { supabase } from '../supabase';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../types';
 import { generateUUID } from '../../utils/uuid';
 
-export const BASELINE_UNIVERSITIES: University[] = [
-  {
-    id: '11111111-1111-4000-8000-000000000001',
-    name: 'Warsaw University of Technology',
-    country: 'Poland',
-    city: 'Warsaw',
-    logo_url: '',
-    image_url: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80',
-    badge: 'Top Choice',
-    category: 'Engineering',
-    description: '#1 Technical University in Poland offering prestigious European engineering and AI programs.',
-    ranking: 1,
-    rating: 4.9,
-    programs: ['B.Sc Computer Science', 'M.Sc Robotics & Autonomous Systems', 'B.Sc Civil Engineering', 'M.Sc Artificial Intelligence'],
-    tuition_range: '€3,000 - €4,500 / yr',
-    is_active: true,
-    intakes: ['October 2026', 'February 2027'],
-    university_fee: '€3,000 / yr',
-    vfs_fee: '₹15,000',
-    agency_fee: '₹25,000',
-    living_cost_monthly: '€350 - €500 / mo',
-    nawa_required: true,
-    course_programs: [
-      { id: 'cp-wut-1', name: 'B.Sc Computer Science & Systems', degree_level: 'Bachelor', tuition_fee: '€3,000 / yr', duration: '3.5 Years' },
-      { id: 'cp-wut-2', name: 'M.Sc Robotics & Artificial Intelligence', degree_level: 'Master', tuition_fee: '€3,800 / yr', duration: '2 Years' },
-      { id: 'cp-wut-3', name: 'B.Sc Civil & Structural Engineering', degree_level: 'Bachelor', tuition_fee: '€3,200 / yr', duration: '4 Years' },
-      { id: 'cp-wut-4', name: 'M.Sc Cyber Security Engineering', degree_level: 'Master', tuition_fee: '€3,500 / yr', duration: '2 Years' }
-    ]
-  },
-  {
-    id: '11111111-1111-4000-8000-000000000002',
-    name: 'Kozminski University',
-    country: 'Poland',
-    city: 'Warsaw',
-    logo_url: '',
-    image_url: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80',
-    badge: 'AACSB Accredited',
-    category: 'Business',
-    description: 'Triple-crown accredited premier European business school ranked top in Central Europe.',
-    ranking: 2,
-    rating: 4.9,
-    programs: ['Bachelor in Management', 'Master in Finance & Accounting', 'MBA International Business', 'Big Data Analytics'],
-    tuition_range: '€4,200 - €5,500 / yr',
-    is_active: true,
-    intakes: ['October 2026', 'February 2027'],
-    university_fee: '€4,200 / yr',
-    vfs_fee: '₹15,000',
-    agency_fee: '₹25,000',
-    living_cost_monthly: '€400 - €550 / mo',
-    nawa_required: true,
-    course_programs: [
-      { id: 'cp-koz-1', name: 'Bachelor in Management (BBA)', degree_level: 'Bachelor', tuition_fee: '€4,200 / yr', duration: '3 Years' },
-      { id: 'cp-koz-2', name: 'Master in International Business & AI', degree_level: 'Master', tuition_fee: '€4,900 / yr', duration: '2 Years' },
-      { id: 'cp-koz-3', name: 'M.Sc Strategic Finance & Banking', degree_level: 'Master', tuition_fee: '€4,500 / yr', duration: '2 Years' }
-    ]
-  },
-  {
-    id: '11111111-1111-4000-8000-000000000003',
-    name: 'Vistula University',
-    country: 'Poland',
-    city: 'Warsaw',
-    logo_url: '',
-    image_url: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80',
-    badge: 'High Acceptance',
-    category: 'IT & CS',
-    description: '#1 Internationalized university in Poland with high visa success rate and modern IT campus.',
-    ranking: 5,
-    rating: 4.7,
-    programs: ['B.Sc Information Technology', 'B.A. International Relations', 'M.Sc Software Development', 'Graphic Design'],
-    tuition_range: '€2,500 - €3,400 / yr',
-    is_active: true,
-    intakes: ['October 2026', 'February 2027'],
-    university_fee: '€2,500 / yr',
-    vfs_fee: '₹15,000',
-    agency_fee: '₹25,000',
-    living_cost_monthly: '€350 - €450 / mo',
-    nawa_required: true,
-    course_programs: [
-      { id: 'cp-vis-1', name: 'B.Sc Information Technology & Cyber Defense', degree_level: 'Bachelor', tuition_fee: '€2,500 / yr', duration: '3.5 Years' },
-      { id: 'cp-vis-2', name: 'M.Sc Computer Engineering & Cloud', degree_level: 'Master', tuition_fee: '€2,900 / yr', duration: '2 Years' },
-      { id: 'cp-vis-3', name: 'B.A. International Business & Logistics', degree_level: 'Bachelor', tuition_fee: '€2,600 / yr', duration: '3 Years' }
-    ]
-  },
-  {
-    id: '11111111-1111-4000-8000-000000000004',
-    name: 'AGH University of Krakow',
-    country: 'Poland',
-    city: 'Kraków',
-    logo_url: '',
-    image_url: 'https://images.unsplash.com/photo-1592280771190-3e2e4d571952?auto=format&fit=crop&w=800&q=80',
-    badge: 'Research Hub',
-    category: 'Engineering',
-    description: 'Renowned European technical research campus with state-of-the-art supercomputing laboratories.',
-    ranking: 3,
-    rating: 4.8,
-    programs: ['B.Sc Data Science & AI', 'M.Sc Applied Computer Science', 'B.Sc Electronic Telecommunications', 'Renewable Energy'],
-    tuition_range: '€3,200 - €4,200 / yr',
-    is_active: true,
-    intakes: ['October 2026', 'February 2027'],
-    university_fee: '€3,200 / yr',
-    vfs_fee: '₹15,000',
-    agency_fee: '₹25,000',
-    living_cost_monthly: '€300 - €450 / mo',
-    nawa_required: true,
-    course_programs: [
-      { id: 'cp-agh-1', name: 'B.Sc Data Science & Artificial Intelligence', degree_level: 'Bachelor', tuition_fee: '€3,200 / yr', duration: '3.5 Years' },
-      { id: 'cp-agh-2', name: 'M.Sc Applied Computer Science & Networks', degree_level: 'Master', tuition_fee: '€3,600 / yr', duration: '2 Years' }
-    ]
-  },
-  {
-    id: '11111111-1111-4000-8000-000000000005',
-    name: 'Wroclaw University of Science and Technology',
-    country: 'Poland',
-    city: 'Wrocław',
-    logo_url: '',
-    image_url: 'https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=800&q=80',
-    badge: 'Industry Partner',
-    category: 'Engineering',
-    description: 'Leader in European technical education with direct corporate partnerships and paid industry internships.',
-    ranking: 4,
-    rating: 4.7,
-    programs: ['B.Sc Applied Computer Science', 'M.Sc Artificial Intelligence', 'B.Sc Mechanical Engineering', 'Automotive Systems'],
-    tuition_range: '€2,800 - €4,000 / yr',
-    is_active: true,
-    intakes: ['October 2026', 'February 2027'],
-    university_fee: '€2,800 / yr',
-    vfs_fee: '₹15,000',
-    agency_fee: '₹25,000',
-    living_cost_monthly: '€320 - €470 / mo',
-    nawa_required: true,
-    course_programs: [
-      { id: 'cp-wust-1', name: 'B.Sc Applied Computer Science & Software', degree_level: 'Bachelor', tuition_fee: '€2,800 / yr', duration: '3.5 Years' },
-      { id: 'cp-wust-2', name: 'M.Sc Artificial Intelligence Systems', degree_level: 'Master', tuition_fee: '€3,200 / yr', duration: '2 Years' }
-    ]
-  },
-  {
-    id: '11111111-1111-4000-8000-000000000006',
-    name: 'SWPS University of Social Sciences',
-    country: 'Poland',
-    city: 'Warsaw',
-    logo_url: '',
-    image_url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80',
-    badge: 'Top Rated',
-    category: 'Humanities',
-    description: '#1 Private university in Poland for Psychology, UX/UI Design, and Modern English Studies.',
-    ranking: 6,
-    rating: 4.8,
-    programs: ['B.A. Psychology in English', 'M.A. Clinical Psychology', 'B.A. UX Design', 'Management & Leadership'],
-    tuition_range: '€3,500 - €4,800 / yr',
-    is_active: true,
-    intakes: ['October 2026', 'February 2027'],
-    university_fee: '€3,500 / yr',
-    vfs_fee: '₹15,000',
-    agency_fee: '₹25,000',
-    living_cost_monthly: '€380 - €520 / mo',
-    nawa_required: true,
-    course_programs: [
-      { id: 'cp-swps-1', name: 'B.A. Psychology & Behavioral Science', degree_level: 'Bachelor', tuition_fee: '€3,500 / yr', duration: '3 Years' },
-      { id: 'cp-swps-2', name: 'B.A. User Experience (UX) & Design', degree_level: 'Bachelor', tuition_fee: '€3,800 / yr', duration: '3 Years' }
-    ]
-  },
-  {
-    id: '11111111-1111-4000-8000-000000000007',
-    name: 'Technical University of Munich (TUM)',
-    country: 'Germany',
-    city: 'Munich',
-    logo_url: '',
-    image_url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=800&q=80',
-    badge: 'Top European Rank',
-    category: 'Engineering',
-    description: 'Germany’s Excellence University ranked among the top 30 universities worldwide with world-class tech facilities.',
-    ranking: 7,
-    rating: 4.9,
-    programs: ['B.Sc Informatics', 'M.Sc Data Engineering and Analytics', 'M.Sc Robotics & Cognition', 'Aerospace Engineering'],
-    tuition_range: '€0 - €1,500 / semester',
-    is_active: true,
-    intakes: ['October 2026', 'April 2027'],
-    university_fee: '€1,500 / semester',
-    vfs_fee: '₹15,000',
-    agency_fee: '₹25,000',
-    living_cost_monthly: '€850 - €1,100 / mo',
-    nawa_required: false,
-    course_programs: [
-      { id: 'cp-tum-1', name: 'B.Sc Informatics & Computer Science', degree_level: 'Bachelor', tuition_fee: '€1,500 / sem', duration: '3 Years' },
-      { id: 'cp-tum-2', name: 'M.Sc Data Engineering & Analytics', degree_level: 'Master', tuition_fee: '€1,500 / sem', duration: '2 Years' }
-    ]
-  },
-  {
-    id: '11111111-1111-4000-8000-000000000008',
-    name: 'Charles University',
-    country: 'Czech Republic',
-    city: 'Prague',
-    logo_url: '',
-    image_url: 'https://images.unsplash.com/photo-1513584684374-8bab748fbf90?auto=format&fit=crop&w=800&q=80',
-    badge: 'Historic Heritage',
-    category: 'Medicine',
-    description: 'One of the oldest universities in Europe offering world-class General Medicine and Computer Science programs.',
-    ranking: 8,
-    rating: 4.9,
-    programs: ['General Medicine (MD)', 'B.Sc Computer Science', 'M.Sc Economics & Finance', 'Pharmacy'],
-    tuition_range: '€4,000 - €12,000 / yr',
-    is_active: true,
-    intakes: ['September 2026', 'February 2027'],
-    university_fee: '€4,500 / yr',
-    vfs_fee: '₹15,000',
-    agency_fee: '₹25,000',
-    living_cost_monthly: '€400 - €600 / mo',
-    nawa_required: false,
-    course_programs: [
-      { id: 'cp-cuni-1', name: 'B.Sc Computer Science & Data Analytics', degree_level: 'Bachelor', tuition_fee: '€4,500 / yr', duration: '3 Years' },
-      { id: 'cp-cuni-2', name: 'General Medicine (6-Year MD Program)', degree_level: 'Master', tuition_fee: '€12,500 / yr', duration: '6 Years' }
-    ]
-  },
-  {
-    id: '11111111-1111-4000-8000-000000000009',
-    name: 'Sapienza University of Rome',
-    country: 'Italy',
-    city: 'Rome',
-    logo_url: '',
-    image_url: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=800&q=80',
-    badge: 'Affordable Living',
-    category: 'IT & CS',
-    description: 'Top public Italian university with extensive regional DSU scholarships covering tuition and accommodation.',
-    ranking: 9,
-    rating: 4.8,
-    programs: ['B.Sc Applied Computer Science & AI', 'M.Sc Data Science', 'B.A. Sustainable Building Engineering', 'Classics'],
-    tuition_range: '€1,000 - €2,800 / yr',
-    is_active: true,
-    intakes: ['September 2026', 'February 2027'],
-    university_fee: '€1,800 / yr',
-    vfs_fee: '₹15,000',
-    agency_fee: '₹25,000',
-    living_cost_monthly: '€500 - €750 / mo',
-    nawa_required: false,
-    course_programs: [
-      { id: 'cp-sap-1', name: 'B.Sc Applied Computer Science & Artificial Intelligence', degree_level: 'Bachelor', tuition_fee: '€1,800 / yr', duration: '3 Years' },
-      { id: 'cp-sap-2', name: 'M.Sc Data Science & Big Data', degree_level: 'Master', tuition_fee: '€2,200 / yr', duration: '2 Years' }
-    ]
-  }
-];
+export const BASELINE_UNIVERSITIES: University[] = [];
 
 // Helper to get deleted IDs
 export function getDeletedUniversityIds(): string[] {
@@ -299,17 +60,17 @@ export async function getUniversities(): Promise<University[]> {
       .select('*')
       .order('ranking', { ascending: true });
 
-    if (!error && data && Array.isArray(data) && data.length > 0) {
+    if (!error && data && Array.isArray(data)) {
       fetchedFromDb = data as University[];
     }
   } catch (err) {
     console.warn('[getUniversities DB Warning]:', err);
   }
 
-  // Base list to use if DB returned rows or fallback
-  const basePool = fetchedFromDb.length > 0 ? fetchedFromDb : BASELINE_UNIVERSITIES;
+  // Base list only uses live Supabase database records
+  const basePool = fetchedFromDb;
 
-  // Merge: custom additions first, then base pool (avoiding duplicates by id or name)
+  // Merge: custom additions first, then DB records (avoiding duplicates by id or name)
   const seenIds = new Set<string>();
   const seenNames = new Set<string>();
   const merged: University[] = [];
@@ -317,7 +78,7 @@ export async function getUniversities(): Promise<University[]> {
   for (const u of customUnis) {
     if (!u || !u.id || isDeletedUniversity(u, deletedIds)) continue;
     seenIds.add(u.id);
-    seenNames.add(u.name.toLowerCase().trim());
+    seenNames.add((u.name || '').toLowerCase().trim());
     merged.push(u);
   }
 
@@ -424,10 +185,10 @@ export async function updateUniversityRecord(id: string, payload: Partial<Univer
   let existingList: University[] = [];
   try {
     const local = localStorage.getItem('ferex_local_universities');
-    existingList = local ? JSON.parse(local) : BASELINE_UNIVERSITIES;
+    existingList = local ? JSON.parse(local) : [];
   } catch (e) {}
 
-  const current = existingList.find(u => u.id === id) || BASELINE_UNIVERSITIES.find(u => u.id === id);
+  const current = existingList.find(u => u.id === id);
 
   const updatedObj: University = {
     id,
@@ -593,5 +354,5 @@ export async function restoreDefaultUniversities(): Promise<University[]> {
   } catch {}
   window.dispatchEvent(new Event('ferex_university_change'));
   window.dispatchEvent(new Event('storage'));
-  return BASELINE_UNIVERSITIES;
+  return getUniversities();
 }

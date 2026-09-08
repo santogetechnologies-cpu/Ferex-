@@ -90,7 +90,7 @@ export const INITIAL_COUNTRIES: CountryItem[] = [
 ];
 
 export const AdminUniversities: React.FC = () => {
-  const { universities, loading, addUniversity, updateUniversity, removeUniversity, resetToDefaults } = useUniversities();
+  const { universities, loading, addUniversity, updateUniversity, removeUniversity, refresh } = useUniversities();
   const { config } = useFeeConfig();
 
   // Top view tab: 'universities' or 'countries'
@@ -536,20 +536,16 @@ export const AdminUniversities: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {universities.length < 9 && (
-            <button
-              onClick={async () => {
-                if (window.confirm('Restore default European partner universities to the catalog?')) {
-                  await resetToDefaults();
-                  showToast('Baseline universities restored to catalog.');
-                }
-              }}
-              className="flex items-center gap-1.5 h-9.5 px-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-all cursor-pointer border border-slate-200"
-              title="Restore baseline universities"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-slate-500" /> Restore Defaults
-            </button>
-          )}
+          <button
+            onClick={async () => {
+              await refresh();
+              showToast('University catalog refreshed from database.');
+            }}
+            className="flex items-center gap-1.5 h-9.5 px-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-all cursor-pointer border border-slate-200"
+            title="Refresh university catalog"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-slate-500" /> Refresh
+          </button>
           <button
             onClick={() => setShowAddCountryModal(true)}
             className="flex items-center gap-1.5 h-9.5 px-3.5 bg-slate-900 rounded-xl text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
