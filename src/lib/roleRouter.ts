@@ -23,7 +23,7 @@ export type FerexRole =
 
 const ROLE_ROUTES: Record<string, string> = {
   student: '/student/dashboard',
-  admin: '/admin/dashboard',
+  admin: '/central/dashboard',
   education_admin: '/admin/dashboard',
   education: '/admin/dashboard',
   super_admin: '/central/dashboard',
@@ -47,7 +47,7 @@ const ROLE_ROUTES: Record<string, string> = {
 
 const ROLE_LABELS: Record<string, string> = {
   student: 'Student Portal',
-  admin: 'Ferex Education Admin Portal',
+  admin: 'Central Super Admin Command Center',
   education_admin: 'Ferex Education Admin Portal',
   education: 'Ferex Education Admin Portal',
   super_admin: 'Central Super Admin Command Center',
@@ -72,25 +72,43 @@ const ROLE_LABELS: Record<string, string> = {
 export function isSuperAdmin(role?: string | null, email?: string | null): boolean {
   if (role) {
     const cleanRole = role.toLowerCase().trim().replace(/[\s-]+/g, '_');
-    if (cleanRole === 'superadmin' || cleanRole === 'super_admin' || cleanRole === 'central') {
+    if (
+      cleanRole === 'superadmin' ||
+      cleanRole === 'super_admin' ||
+      cleanRole === 'central' ||
+      cleanRole === 'admin'
+    ) {
       return true;
     }
   }
   if (email) {
     const cleanEmail = email.toLowerCase().trim();
     if (
-      cleanEmail.includes('superadmin') ||
-      cleanEmail.includes('super_admin') ||
-      cleanEmail.includes('super-admin') ||
+      cleanEmail.includes('admin') ||
+      cleanEmail.includes('super') ||
       cleanEmail.includes('central') ||
-      cleanEmail === 'admin@ferex.com' ||
-      cleanEmail === 'admin@ferexventures.com'
+      cleanEmail.endsWith('@santoge.com') ||
+      cleanEmail.endsWith('@ferex.com') ||
+      cleanEmail.endsWith('@ferexventures.com')
     ) {
-      return true;
+      const cleanRole = role ? role.toLowerCase().trim().replace(/[\s-]+/g, '_') : '';
+      if (
+        cleanRole !== 'student' &&
+        cleanRole !== 'trade_client' &&
+        cleanRole !== 'rimi_client' &&
+        cleanRole !== 'digital_client' &&
+        cleanRole !== 'education_admin' &&
+        cleanRole !== 'education' &&
+        cleanRole !== 'staff' &&
+        cleanRole !== 'counselor'
+      ) {
+        return true;
+      }
     }
   }
   return false;
 }
+
 
 export function normalizeRole(role?: string | null, email?: string | null): string {
   if (isSuperAdmin(role, email)) return 'superadmin';

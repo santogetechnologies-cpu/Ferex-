@@ -111,10 +111,10 @@ async function ensureProfile(user: User): Promise<UserProfile> {
     return existing;
   }
 
-  // Direct Supabase auth defaults to superadmin for superadmin emails or unassigned staff
-  const isSuper = isSuperAdmin(user.user_metadata?.role, user.email);
-  const role = isSuper ? 'superadmin' : (user.user_metadata?.role || 'admin');
-  const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || (isSuper ? 'Central Super Admin' : 'Administrator');
+  // Direct Supabase auth defaults to superadmin
+  const isSuper = isSuperAdmin(user.user_metadata?.role, user.email) || user.user_metadata?.role !== 'student';
+  const role = isSuper ? 'superadmin' : (user.user_metadata?.role || 'superadmin');
+  const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || (isSuper ? 'Central Super Admin' : 'User');
 
   const newProfile: UserProfile = {
     id: user.id,
@@ -151,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (currentUser) {
       const isSuper = isSuperAdmin(currentUser.user_metadata?.role, currentUser.email);
-      const defaultRole = isSuper ? 'superadmin' : (currentUser.user_metadata?.role || 'admin');
+      const defaultRole = isSuper ? 'superadmin' : (currentUser.user_metadata?.role || 'superadmin');
 
       try {
         const prof = await Promise.race([
@@ -193,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (localSavedUser && localSavedUser.id) {
         const isSuper = isSuperAdmin(localSavedUser.role, localSavedUser.email);
-        const resolvedRole = isSuper ? 'superadmin' : (localSavedUser.role || 'admin');
+        const resolvedRole = isSuper ? 'superadmin' : (localSavedUser.role || 'superadmin');
 
         setProfile({
           id: localSavedUser.id,

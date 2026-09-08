@@ -222,7 +222,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
 
   const userEmail = effectiveUser?.email || profile?.email || localSavedUser?.email || '';
   const isSuper = isSuperAdmin(rawRole, userEmail);
-  const currentRole = isSuper ? 'superadmin' : normalizeRole(rawRole || 'admin');
+  const currentRole = isSuper ? 'superadmin' : normalizeRole(rawRole || 'superadmin');
 
   // Check role authorization if specified
   if (allowedRoles && allowedRoles.length > 0) {
