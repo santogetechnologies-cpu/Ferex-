@@ -13,6 +13,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useSystemConfig } from '../hooks/useSystemConfig';
 import { getAllPaymentsAdmin } from '../lib/api/payments';
 import { isSuperAdmin } from '../lib/roleRouter';
+import { AppSwitcher } from '../components/AppSwitcher';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
@@ -269,6 +270,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 className="h-9 w-60 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#6A1B2E]/40 focus:ring-4 focus:ring-[#6A1B2E]/5 transition-all"
               />
             </div>
+
+            {/* Google-Style 9-Dots 4-App Switcher */}
+            <AppSwitcher />
 
             {/* Quick Notification Bell */}
             <div className="relative" onClick={(e) => e.stopPropagation()}>

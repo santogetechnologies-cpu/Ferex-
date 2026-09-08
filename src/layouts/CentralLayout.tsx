@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
+import { AppSwitcher } from '../components/AppSwitcher';
 
 interface CentralLayoutProps {
   children: React.ReactNode;
@@ -233,60 +234,10 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
               <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
               <span className="text-slate-900 font-extrabold bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60">{activeItem}</span>
             </div>
-
-            {/* Quick Division Switcher Dropdown */}
-            <div className="relative hidden md:block" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => setShowDivisionMenu(!showDivisionMenu)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#6A1B2E]/10 hover:bg-[#6A1B2E]/15 text-[#6A1B2E] border border-[#6A1B2E]/20 rounded-xl text-xs font-black transition-all cursor-pointer"
-              >
-                <Crown className="w-3.5 h-3.5" /> 4 Apps Switcher <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-
-              <AnimatePresence>
-                {showDivisionMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute left-0 mt-2 w-64 bg-white border border-slate-200/80 rounded-2xl shadow-xl p-2 z-50 text-left"
-                  >
-                    <div className="px-3 py-1.5 text-[9.5px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1">
-                      Jump to Division App
-                    </div>
-                    {[
-                      { name: 'Ferex Education', path: '/admin/dashboard', desc: 'Education Admin Portal', icon: GraduationCap, color: 'text-rose-600 bg-rose-50' },
-                      { name: 'Global Trade', path: '/trade/dashboard', desc: 'Trade CRM, LC & Shipping', icon: Globe, color: 'text-indigo-600 bg-indigo-50' },
-                      { name: 'Rimi Frozen', path: '/rimi/dashboard', desc: 'FMCG, Warehouse & Batch', icon: Snowflake, color: 'text-cyan-600 bg-cyan-50' },
-                      { name: 'Ferex Digital', path: '/digital/dashboard', desc: 'Projects, Tasks & Invoices', icon: Monitor, color: 'text-emerald-600 bg-emerald-50' },
-                    ].map((div) => (
-                      <button
-                        key={div.path}
-                        onClick={() => {
-                          setShowDivisionMenu(false);
-                          navigate(div.path);
-                        }}
-                        className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-50 transition-colors text-left group cursor-pointer"
-                      >
-                        <div className={`w-8 h-8 rounded-lg ${div.color} flex items-center justify-center shrink-0`}>
-                          <div.icon className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-black text-slate-900 group-hover:text-[#6A1B2E] transition-colors">{div.name}</p>
-                          <p className="text-[10px] font-semibold text-slate-400 truncate">{div.desc}</p>
-                        </div>
-                        <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors" />
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
           </div>
 
-          {/* Right part: Search, Notification and Avatar Controls */}
-          <div className="flex items-center gap-3">
+          {/* Right part: Search, App Switcher, Notification and Avatar Controls */}
+          <div className="flex items-center gap-2.5">
             
             {/* Global Command Search Box */}
             <div className="relative hidden md:block w-60">
@@ -299,6 +250,9 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
                 className="w-full h-9 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#6A1B2E]/40 focus:ring-4 focus:ring-[#6A1B2E]/5 transition-all"
               />
             </div>
+
+            {/* Google-Style 9-Dots 4-App Switcher */}
+            <AppSwitcher />
 
             {/* Notification Bell */}
             <div className="relative" onClick={(e) => e.stopPropagation()}>

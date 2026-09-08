@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -6,6 +6,8 @@ import {
   Ticket, StickyNote, Bell, User, LogOut, Menu, X, Shield,
   BookOpen, Search
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { AppSwitcher } from '../AppSwitcher';
 
 interface StaffLayoutProps {
   children: React.ReactNode;
@@ -14,18 +16,16 @@ interface StaffLayoutProps {
 export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
-    const isStaffSession = localStorage.getItem('ferex_staff_demo_session');
-    if (!isStaffSession) {
-      navigate('/');
-    }
-  }, [navigate]);
+  const staffName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Staff Member';
+  const staffRole = profile?.role || user?.user_metadata?.role || 'Counselor';
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     localStorage.removeItem('ferex_staff_demo_session');
-    navigate('/');
+    navigate('/login');
   };
 
   const navSections = [
@@ -92,8 +92,11 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
 
           <div className="hidden sm:flex items-center gap-2 bg-[#6A1B2E]/10 border border-[#6A1B2E]/20 px-3 py-1 rounded-full text-xs font-bold text-[#6A1B2E]">
             <Shield className="w-3.5 h-3.5" />
-            <span>Restricted Staff Scope</span>
+            <span>{staffRole.toUpperCase()}</span>
           </div>
+
+          {/* Google-Style 9-Dots 4-App Switcher */}
+          <AppSwitcher />
 
           <Link to="/staff/notifications" className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 relative">
             <Bell className="w-4.5 h-4.5" />
@@ -102,11 +105,11 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
 
           <Link to="/staff/profile" className="flex items-center gap-2.5 p-1.5 rounded-2xl hover:bg-slate-100 transition-all">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6A1B2E] to-[#3B0B16] text-white font-black flex items-center justify-center text-xs shadow-2xs">
-              AP
+              {staffName.slice(0, 2).toUpperCase()}
             </div>
             <div className="hidden md:block text-left">
-              <span className="text-xs font-black text-slate-900 block leading-tight">Arun Patel</span>
-              <span className="text-[9.5px] font-bold text-emerald-600 block">● Available / On Duty</span>
+              <span className="text-xs font-black text-slate-900 block leading-tight">{staffName}</span>
+              <span className="text-[9.5px] font-bold text-emerald-600 block">● Active Staff</span>
             </div>
           </Link>
 

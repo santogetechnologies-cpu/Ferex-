@@ -37,8 +37,14 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   /** Sign up new user with email + password + metadata */
   signUp: (email: string, password: string, fullName: string, role?: string) => Promise<{ error?: string; user?: User | null }>;
-  /** Provision a new Division Admin or User with email and password */
-  provisionDivisionAdmin: (email: string, password: string, fullName: string, role: string) => Promise<{ error?: string; user?: any }>;
+  /** Provision a new Division Admin or Staff User with email, password, role and metadata */
+  provisionDivisionAdmin: (
+    email: string,
+    password: string,
+    fullName: string,
+    role: string,
+    extra?: { department?: string; phone?: string; permissions?: any[] }
+  ) => Promise<{ error?: string; user?: any }>;
   /** Sign out the current user */
   signOut: () => Promise<void>;
   /** Send a password reset email */
@@ -349,7 +355,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [loadUserData]);
 
-  const provisionDivisionAdmin = useCallback(async (email: string, password: string, fullName: string, role: string) => {
+  const provisionDivisionAdmin = useCallback(async (
+    email: string,
+    password: string,
+    fullName: string,
+    role: string,
+    extra?: { department?: string; phone?: string; permissions?: any[] }
+  ) => {
     try {
       const cleanEmail = email.trim();
       const credRecord = {
@@ -357,6 +369,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password: password,
         fullName: fullName,
         role: role,
+        department: extra?.department || (role.includes('counselor') ? 'Admissions & Counseling' : role.includes('digital') ? 'Digital Technology' : 'Enterprise HQ'),
+        phone: extra?.phone || '',
+        permissions: extra?.permissions || [],
         created_at: new Date().toISOString(),
       };
       localStorage.setItem(`ferex_admin_cred_${cleanEmail.toLowerCase()}`, JSON.stringify(credRecord));
@@ -370,6 +385,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             data: {
               full_name: fullName,
               role: role,
+              department: credRecord.department,
+              phone: credRecord.phone,
             }
           }
         });
@@ -389,6 +406,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .update({
               role: role,
               full_name: fullName,
+              department: credRecord.department,
+              phone: credRecord.phone,
               updated_at: new Date().toISOString(),
             })
             .eq('id', existingUser.id);
@@ -404,6 +423,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               email: cleanEmail,
               full_name: fullName,
               role: role,
+              department: credRecord.department,
+              phone: credRecord.phone,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             });
@@ -412,12 +433,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Database update error in provisionDivisionAdmin:', dbErr);
       }
 
-      // Trigger event for immediate live UI refresh
+      // Trigger event for immediate live UI refresh across all tabs and hooks
       window.dispatchEvent(new CustomEvent('ferex_admin_created', { detail: credRecord }));
+      window.dispatchEvent(new Event('ferex_staff_change'));
+      window.dispatchEvent(new Event('storage'));
 
       return { user: credRecord };
     } catch (err: any) {
-      return { error: err?.message || 'Failed to provision division admin' };
+      return { error: err?.message || 'Failed to provision division admin or staff' };
     }
   }, []);
 

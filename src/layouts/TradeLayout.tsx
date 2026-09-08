@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
+import { AppSwitcher } from '../components/AppSwitcher';
 
 interface TradeLayoutProps {
   children: React.ReactNode;
@@ -242,6 +243,9 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                 ⌘K
               </kbd>
             </div>
+
+            {/* Google-Style 9-Dots 4-App Switcher */}
+            <AppSwitcher />
 
             {/* Quick Actions Button */}
             <div className="relative" onClick={(e) => e.stopPropagation()}>

@@ -12,14 +12,17 @@ export type FerexRole =
   | 'digital_admin'
   | 'ferex_digital'
   | 'digital_client'
+  | 'project_manager'
   | 'trade'
   | 'trade_admin'
   | 'global_trade'
   | 'trade_client'
+  | 'logistics_officer'
   | 'rimi'
   | 'rimi_admin'
   | 'rimi_frozen'
-  | 'rimi_client';
+  | 'rimi_client'
+  | 'operations_manager';
 
 const ROLE_ROUTES: Record<string, string> = {
   student: '/student/dashboard',
@@ -35,14 +38,17 @@ const ROLE_ROUTES: Record<string, string> = {
   digital_admin: '/digital/dashboard',
   ferex_digital: '/digital/dashboard',
   digital_client: '/digital/client-portal',
+  project_manager: '/digital/dashboard',
   trade: '/trade/dashboard',
   trade_admin: '/trade/dashboard',
   global_trade: '/trade/dashboard',
   trade_client: '/trade/client-portal',
+  logistics_officer: '/trade/dashboard',
   rimi: '/rimi/dashboard',
   rimi_admin: '/rimi/dashboard',
   rimi_frozen: '/rimi/dashboard',
   rimi_client: '/rimi/customer-portal',
+  operations_manager: '/rimi/dashboard',
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -54,19 +60,22 @@ const ROLE_LABELS: Record<string, string> = {
   superadmin: 'Central Super Admin Command Center',
   central: 'Central Super Admin Command Center',
   staff: 'Staff & Counselor Portal',
-  counselor: 'Counselor Portal',
-  digital: 'Ferex Digital Portal',
-  digital_admin: 'Ferex Digital Portal',
-  ferex_digital: 'Ferex Digital Portal',
+  counselor: 'Admissions Counselor Portal',
+  digital: 'Ferex Digital Admin Portal',
+  digital_admin: 'Ferex Digital Admin Portal',
+  ferex_digital: 'Ferex Digital Admin Portal',
   digital_client: 'Ferex Digital Client Portal',
-  trade: 'Global Trade Portal',
-  trade_admin: 'Global Trade Portal',
-  global_trade: 'Global Trade Portal',
+  project_manager: 'Ferex Digital Project Manager',
+  trade: 'Global Trade Admin Portal',
+  trade_admin: 'Global Trade Admin Portal',
+  global_trade: 'Global Trade Admin Portal',
   trade_client: 'Global Trade Partner Portal',
-  rimi: 'Rimi Frozen Distribution Portal',
-  rimi_admin: 'Rimi Frozen Distribution Portal',
-  rimi_frozen: 'Rimi Frozen Distribution Portal',
+  logistics_officer: 'Trade Logistics Desk',
+  rimi: 'Rimi Frozen Admin Portal',
+  rimi_admin: 'Rimi Frozen Admin Portal',
+  rimi_frozen: 'Rimi Frozen Admin Portal',
   rimi_client: 'Rimi Cold Chain Customer Portal',
+  operations_manager: 'Rimi Operations Desk',
 };
 
 export function isSuperAdmin(role?: string | null, email?: string | null): boolean {
@@ -78,12 +87,15 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
       cleanRole === 'trade_admin' ||
       cleanRole === 'trade' ||
       cleanRole === 'global_trade' ||
+      cleanRole === 'logistics_officer' ||
       cleanRole === 'rimi_admin' ||
       cleanRole === 'rimi' ||
       cleanRole === 'rimi_frozen' ||
+      cleanRole === 'operations_manager' ||
       cleanRole === 'digital_admin' ||
       cleanRole === 'digital' ||
       cleanRole === 'ferex_digital' ||
+      cleanRole === 'project_manager' ||
       cleanRole === 'staff' ||
       cleanRole === 'counselor' ||
       cleanRole === 'student' ||
@@ -118,7 +130,8 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
       cleanEmail.includes('rimi_admin') ||
       cleanEmail.includes('ferexdigital') ||
       cleanEmail.includes('digitaladmin') ||
-      cleanEmail.includes('digital_admin')
+      cleanEmail.includes('digital_admin') ||
+      cleanEmail.includes('counselor')
     ) {
       return false;
     }
@@ -145,10 +158,9 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
     return true;
   }
 
-  return false;
+  // Any direct unassigned Supabase auth user defaults to superadmin
+  return true;
 }
-
-
 
 export function normalizeRole(role?: string | null, email?: string | null): string {
   if (isSuperAdmin(role, email)) return 'superadmin';
@@ -173,4 +185,3 @@ export function isValidRole(role: string): boolean {
   const normalized = normalizeRole(role);
   return normalized in ROLE_ROUTES;
 }
-

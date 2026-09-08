@@ -80,7 +80,18 @@ export const AdminStudents: React.FC = () => {
   const [counselorFilter, setCounselorFilter] = useState('All');
 
   useEffect(() => {
-    getStaffMembers().then(setStaffMembers).catch(() => {});
+    const fetchStaff = () => {
+      getStaffMembers().then(setStaffMembers).catch(() => {});
+    };
+    fetchStaff();
+    window.addEventListener('ferex_staff_change', fetchStaff);
+    window.addEventListener('ferex_admin_created', fetchStaff);
+    window.addEventListener('storage', fetchStaff);
+    return () => {
+      window.removeEventListener('ferex_staff_change', fetchStaff);
+      window.removeEventListener('ferex_admin_created', fetchStaff);
+      window.removeEventListener('storage', fetchStaff);
+    };
   }, []);
 
   useEffect(() => {
