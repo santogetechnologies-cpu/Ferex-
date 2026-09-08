@@ -93,6 +93,7 @@ export async function getStaffMembers(): Promise<UserProfile[]> {
               email: parsed.email,
               full_name: parsed.fullName || parsed.full_name || parsed.email.split('@')[0],
               role: role,
+              avatar_url: parsed.avatar_url || '',
               department: parsed.department || 'Admissions',
               phone: parsed.phone || '',
               permissions: parsed.permissions || [],
@@ -119,6 +120,7 @@ export async function getStaffMembers(): Promise<UserProfile[]> {
       email: c.email,
       full_name: c.name,
       role: 'counselor',
+      avatar_url: '',
       department: `Admissions:${c.desk}`,
       phone: '',
       permissions: [],
@@ -274,6 +276,7 @@ export async function createStaffMember(payload: {
     full_name: payload.full_name.trim(),
     phone: payload.phone?.trim() || '',
     role: cleanRole,
+    avatar_url: '',
     department: deptString,
     permissions: payload.permissions || [
       { label: 'View Students', enabled: true },

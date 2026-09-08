@@ -5,13 +5,18 @@ export interface UserProfile {
   email: string;
   full_name: string;
   role: string;
-  avatar_url: string;
-  phone: string;
-  created_at: string;
+  avatar_url?: string;
+  phone?: string;
+  created_at?: string;
+  updated_at?: string;
   must_change_password?: boolean;
   department?: string;
-  permissions?: { label: string; enabled: boolean }[];
+  permissions?: { label: string; enabled: boolean }[] | any[];
   assigned_counselor?: string;
+  passport_no?: string;
+  city?: string;
+  country?: string;
+  emergency_contact?: Record<string, any>;
 }
 
 export interface PaymentInstallment {

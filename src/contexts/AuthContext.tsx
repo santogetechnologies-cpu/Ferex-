@@ -18,6 +18,7 @@ export interface UserProfile {
   assigned_counselor?: string;
   emergency_contact?: Record<string, any>;
   must_change_password?: boolean;
+  permissions?: any[];
   created_at?: string;
   updated_at?: string;
 }
