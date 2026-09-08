@@ -232,11 +232,12 @@ export const LoginPage: React.FC = () => {
     if (isSuper) {
       role = 'superadmin';
       // Sync authoritative role back to public.users
-      supabase
-        .from('users')
-        .update({ role: 'superadmin', updated_at: new Date().toISOString() })
-        .eq('id', user.id)
-        .catch(() => {});
+      try {
+        await supabase
+          .from('users')
+          .update({ role: 'superadmin', updated_at: new Date().toISOString() })
+          .eq('id', user.id);
+      } catch {}
     } else if (!role) {
       role = 'student';
     }
