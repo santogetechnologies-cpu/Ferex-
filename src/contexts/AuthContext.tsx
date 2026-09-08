@@ -168,21 +168,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     } else {
-      setProfile(null);
+      // Fallback check: If Supabase session is null, check local user store
+      const localSavedUser = (() => {
+        try {
+          const raw = localStorage.getItem('ferex_user');
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return null;
+        }
+      })();
+
+      if (localSavedUser && localSavedUser.id) {
+        setProfile({
+          id: localSavedUser.id,
+          email: localSavedUser.email || 'admin@ferex.com',
+          full_name: localSavedUser.fullName || localSavedUser.full_name || 'System Admin',
+          role: localSavedUser.role || 'superadmin',
+          created_at: new Date().toISOString(),
+        });
+        setUser({
+          id: localSavedUser.id,
+          email: localSavedUser.email || 'admin@ferex.com',
+          user_metadata: {
+            full_name: localSavedUser.fullName || localSavedUser.full_name || 'System Admin',
+            role: localSavedUser.role || 'superadmin',
+          }
+        } as any);
+      } else {
+        setProfile(null);
+        setUser(null);
+      }
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
     // 1. Initial Session Load
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        // If refresh token failed with 400 or invalid grant, clean up stale token
+        supabase.auth.signOut().catch(() => {});
+        loadUserData(null);
+        return;
+      }
       loadUserData(data.session);
     }).catch(() => {
-      setLoading(false);
+      loadUserData(null);
     });
 
     // 2. Realtime Auth State Listener
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === 'TOKEN_REFRESH_FAILED') {
+        supabase.auth.signOut().catch(() => {});
+        loadUserData(null);
+        return;
+      }
       loadUserData(newSession);
     });
 

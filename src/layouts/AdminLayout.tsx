@@ -92,8 +92,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const hasUnreadNawa = hasUnreadCategory('NAWA') || hasUnreadCategory('Legalization');
 
   const active = baseMenuItems.find(m => location.pathname === m.path)?.name || 'Dashboard';
-  const adminName = profile?.full_name || 'System Admin';
-  const adminEmail = profile?.email || user?.email || 'admin@ferex.com';
+  const localSavedUser = (() => {
+    try {
+      const r = localStorage.getItem('ferex_user');
+      return r ? JSON.parse(r) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const adminName = profile?.full_name || user?.user_metadata?.full_name || localSavedUser?.fullName || localSavedUser?.full_name || 'System Admin';
+  const adminEmail = profile?.email || user?.email || localSavedUser?.email || 'admin@ferex.com';
   const unreadNotifs = (notifications || []).filter(n => !n.is_read);
   const totalUnreadCount = unreadNotifs.length + pendingPaymentsCount;
 
@@ -117,7 +125,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#6A1B2E]/10 selection:text-[#6A1B2E]">
+    <div className="min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#6A1B2E]/10 selection:text-[#6A1B2E] overflow-x-hidden">
       {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobileOpen && (
@@ -222,30 +230,32 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </button>
 
           {/* Breadcrumb & Division Identity */}
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-            <Link to="/admin/dashboard" className="hover:text-slate-700 transition-colors flex items-center gap-1.5 text-slate-700 font-bold">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-medium text-slate-400 min-w-0">
+            <Link to="/admin/dashboard" className="hover:text-slate-700 transition-colors flex items-center gap-1.5 text-slate-700 font-bold shrink-0">
               <GraduationCap className="w-4 h-4 text-[#6A1B2E]" />
-              <span>{config.branding.portal_title || 'Education Admin Portal'}</span>
+              <span className="hidden sm:inline">{config?.branding?.portal_title || 'Education Admin Portal'}</span>
             </Link>
-            <span className="text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md hidden sm:inline-block truncate max-w-[200px]" title={config.branding.division_name}>
-              {config.branding.division_name || 'Division'}
-            </span>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-            <span className="text-slate-900 font-extrabold bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60">{active}</span>
+            {config?.branding?.division_name && (
+              <span className="text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md hidden md:inline-block truncate max-w-[160px]" title={config.branding.division_name}>
+                {config.branding.division_name}
+              </span>
+            )}
+            <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0 hidden sm:inline-block" />
+            <span className="text-slate-900 font-extrabold bg-slate-100 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-slate-200/60 truncate max-w-[110px] sm:max-w-none">{active}</span>
           </div>
 
-          <div className="ml-auto flex items-center gap-2.5">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Quick Switch to Central Super Admin Command Center (STRICTLY FOR SUPER ADMINS ONLY) */}
-            {((profile?.role || user?.role || user?.user_metadata?.role || '').toLowerCase().trim() === 'superadmin' ||
-              (profile?.role || user?.role || user?.user_metadata?.role || '').toLowerCase().trim() === 'super_admin' ||
-              (profile?.role || user?.role || user?.user_metadata?.role || '').toLowerCase().trim() === 'central') && (
+            {((profile?.role || user?.role || user?.user_metadata?.role || localSavedUser?.role || '').toLowerCase().trim() === 'superadmin' ||
+              (profile?.role || user?.role || user?.user_metadata?.role || localSavedUser?.role || '').toLowerCase().trim() === 'super_admin' ||
+              (profile?.role || user?.role || user?.user_metadata?.role || localSavedUser?.role || '').toLowerCase().trim() === 'central') && (
               <button
                 onClick={() => navigate('/central/dashboard')}
                 title="Return to Central Super Admin HQ"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black transition-all shadow-2xs cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black transition-all shadow-2xs cursor-pointer"
               >
                 <Crown className="w-3.5 h-3.5 text-amber-700" />
-                <span className="hidden sm:inline">Super Admin HQ</span>
+                <span className="hidden md:inline">Super Admin HQ</span>
               </button>
             )}
 
@@ -302,7 +312,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                               <p className="text-xs font-bold text-slate-800 leading-tight">{n.title}</p>
                               <p className="text-[10px] font-semibold text-slate-400 mt-0.5 truncate">{n.body}</p>
                               <span className="text-[9px] font-bold text-slate-400">
-                                {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                               </span>
                             </div>
                           </div>
@@ -378,7 +388,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </header>
 
         {/* Live Broadcast Announcement Banner for Admins */}
-        {config.broadcast?.is_active && config.broadcast.target_audience !== 'students' && (
+        {config?.broadcast?.is_active && config?.broadcast?.target_audience !== 'students' && (
           <div className={`px-4 py-2.5 text-xs font-bold flex items-center justify-between border-b shadow-2xs ${
             config.broadcast.urgency === 'urgent' ? 'bg-red-50 text-red-950 border-red-200' :
             config.broadcast.urgency === 'warning' ? 'bg-amber-50 text-amber-950 border-amber-200' :

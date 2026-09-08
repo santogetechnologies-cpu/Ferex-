@@ -14,7 +14,15 @@ import { useAuth } from '../../contexts/AuthContext';
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const userRole = (profile?.role || user?.role || user?.user_metadata?.role || '').toLowerCase().trim();
+  const localSavedUser = (() => {
+    try {
+      const r = localStorage.getItem('ferex_user');
+      return r ? JSON.parse(r) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const userRole = (profile?.role || user?.role || user?.user_metadata?.role || localSavedUser?.role || '').toLowerCase().trim();
   const isSuper = userRole === 'superadmin' || userRole === 'super_admin' || userRole === 'central';
 
   const { students: dbStudents } = useStudents();
@@ -32,13 +40,16 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const fetchStats = () => {
       getAdminDashboardStats().then(stats => {
+        if (!stats) return;
+        const pendingAmount = Number(stats.pendingPaymentsAmount) || 0;
+        const pendingCount = Number(stats.pendingPaymentsCount) || 0;
         setStatCards([
-          { label: 'Total Students', value: String(stats.totalStudents), change: 'Live from DB', icon: Users, color: 'bg-blue-50 text-blue-600 border-blue-100', trend: 'up', path: '/admin/students' },
-          { label: 'Active Applications', value: String(stats.activeApplications), change: 'Live from DB', icon: FileCheck, color: 'bg-violet-50 text-violet-600 border-violet-100', trend: 'up', path: '/admin/applications' },
-          { label: 'Pending Applications', value: String(stats.pendingApplications), change: 'Review Needed', icon: Clock3, color: 'bg-amber-50 text-amber-700 border-amber-200', trend: 'down', path: '/admin/applications' },
-          { label: 'Pending Documents', value: String(stats.pendingDocuments), change: 'Vault Verification', icon: FolderOpen, color: 'bg-orange-50 text-orange-600 border-orange-100', trend: 'down', path: '/admin/documents' },
-          { label: 'Pending Payments', value: `₹${stats.pendingPaymentsAmount.toLocaleString('en-IN')}`, change: `${stats.pendingPaymentsCount} Pending Request${stats.pendingPaymentsCount === 1 ? '' : 's'}`, icon: CreditCard, color: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20', trend: 'up', path: '/admin/payments' },
-          { label: 'Open Tickets', value: String(stats.openTickets), change: 'Support Queue', icon: Headphones, color: 'bg-red-50 text-red-600 border-red-100', trend: 'down', path: '/admin/support' },
+          { label: 'Total Students', value: String(stats.totalStudents ?? 0), change: 'Live from DB', icon: Users, color: 'bg-blue-50 text-blue-600 border-blue-100', trend: 'up', path: '/admin/students' },
+          { label: 'Active Applications', value: String(stats.activeApplications ?? 0), change: 'Live from DB', icon: FileCheck, color: 'bg-violet-50 text-violet-600 border-violet-100', trend: 'up', path: '/admin/applications' },
+          { label: 'Pending Applications', value: String(stats.pendingApplications ?? 0), change: 'Review Needed', icon: Clock3, color: 'bg-amber-50 text-amber-700 border-amber-200', trend: 'down', path: '/admin/applications' },
+          { label: 'Pending Documents', value: String(stats.pendingDocuments ?? 0), change: 'Vault Verification', icon: FolderOpen, color: 'bg-orange-50 text-orange-600 border-orange-100', trend: 'down', path: '/admin/documents' },
+          { label: 'Pending Payments', value: `₹${pendingAmount.toLocaleString('en-IN')}`, change: `${pendingCount} Pending Request${pendingCount === 1 ? '' : 's'}`, icon: CreditCard, color: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20', trend: 'up', path: '/admin/payments' },
+          { label: 'Open Tickets', value: String(stats.openTickets ?? 0), change: 'Support Queue', icon: Headphones, color: 'bg-red-50 text-red-600 border-red-100', trend: 'down', path: '/admin/support' },
         ]);
       }).catch(() => { });
     };
@@ -200,7 +211,7 @@ export const AdminDashboard: React.FC = () => {
                         New user enrolled: {s.full_name || s.email}
                       </p>
                       <p className="text-[10px] font-semibold text-slate-400 mt-0.5">
-                        {new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently'}
                       </p>
                     </div>
                   </div>

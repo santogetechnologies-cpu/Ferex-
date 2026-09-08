@@ -220,6 +220,15 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
+    try {
+      localStorage.setItem('ferex_user', JSON.stringify({
+        id: user.id,
+        email: cleanEmail,
+        role: role,
+        full_name: user.user_metadata?.full_name || dbProfile?.full_name || cleanEmail.split('@')[0],
+      }));
+    } catch {}
+
     const portalLabel = getPortalLabel(role);
     const targetRoute = getDashboardRoute(role);
     setSuccessMsg(`Authorization successful. Loading ${portalLabel}...`);
