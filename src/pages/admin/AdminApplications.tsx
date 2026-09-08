@@ -4,6 +4,8 @@ import { Search, Eye, CheckCircle2, X, Sparkles, Upload, FileText, Download, Awa
 import { useApplications } from '../../hooks/useApplications';
 import { uploadOfferPdfToSupabase } from '../../lib/api/applications';
 
+import { useSearchParams } from 'react-router-dom';
+
 type AppStatus = 'Submitted' | 'NAWA Review' | 'NAWA Submitted' | 'NAWA Approved' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Visa Rejected' | 'Approved' | 'Closed' | 'Rejected' | 'Withdrawn';
 
 interface ApplicationItem {
@@ -40,9 +42,26 @@ const STATUS_COLORS: Record<AppStatus, string> = {
   'Withdrawn': 'bg-slate-100 text-slate-500 border-slate-200',
 };
 
-export const AdminApplications: React.FC = () => {
-  const { applications: dbApps, changeStatus, refresh } = useApplications();
+export interface AdminApplicationsProps {
+  initialFilter?: string;
+}
+
+export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFilter }) => {
+  const [searchParams] = useSearchParams();
+  const queryParam = searchParams.get('filter') || searchParams.get('tab');
+  const resolvedFilter = queryParam === 'offers' || queryParam === 'offer' ? 'Offer Issued' : (queryParam || initialFilter || 'All');
+
+  const { applications: dbApps, changeStatus, refresh, addApp } = useApplications();
   const [apps, setApps] = useState<ApplicationItem[]>([]);
+  const [statusFilter, setStatusFilter] = useState(resolvedFilter);
+
+  useEffect(() => {
+    if (initialFilter) {
+      setStatusFilter(initialFilter);
+    } else if (queryParam) {
+      setStatusFilter(queryParam === 'offers' || queryParam === 'offer' ? 'Offer Issued' : queryParam);
+    }
+  }, [initialFilter, queryParam]);
 
   useEffect(() => {
     const mapped = (dbApps || []).map(a => ({
@@ -122,6 +141,23 @@ export const AdminApplications: React.FC = () => {
       showToast(`Error: ${err.message || 'Failed to update status'}`);
     } finally {
       setIsUpdating(null);
+    }
+  };
+
+  const handleCreateSampleApp = async () => {
+    try {
+      await addApp({
+        student_name: 'Rahul Sharma',
+        university_name: 'Warsaw University of Technology',
+        program_name: "Bachelor's Degree - Computer Science, Engineering",
+        course: "Bachelor's Degree - Computer Science, Engineering",
+        intake: 'October 2026',
+        tuition_fee: '€3,000 / yr',
+        course_fee: '€3,000 / yr',
+      });
+      showToast('🎉 Sample student application created! View and issue offer letter now.');
+    } catch (err: any) {
+      showToast(`Error creating application: ${err.message}`);
     }
   };
 
@@ -511,14 +547,93 @@ startxref
                 </td>
 
                 <td className="px-5 py-4">
-                  <button onClick={() => setViewApp(a)} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center gap-1 text-xs font-bold">
-                    <Eye className="w-3.5 h-3.5" /> View
-                  </button>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      onClick={() => setViewApp(a)}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center gap-1 text-xs font-bold cursor-pointer"
+                      title="View Details"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> View
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setOfferNotes(a.notes || `Congratulations ${a.studentName}! Your official admission offer letter for ${a.course} at ${a.university} has been released.`);
+                        setOfferPdfUrlInput(a.offerLetterUrl || '');
+                        setOfferPdfFile(null);
+                        setOfferModalApp(a);
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-all cursor-pointer ${
+                        a.offerLetterUrl || a.status === 'Offer Issued' || a.status === 'Accepted'
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          : 'bg-[#6A1B2E] hover:bg-[#521221] text-white'
+                      }`}
+                      title={a.offerLetterUrl ? 'Update Offer Letter' : 'Issue Official Offer Letter'}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      {a.offerLetterUrl || a.status === 'Offer Issued' ? 'Offer Issued' : 'Issue Offer Letter'}
+                    </button>
+
+                    {a.offerLetterUrl && (
+                      <a
+                        href={a.offerLetterUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        download={`Offer_Letter_${(a.studentName || 'Student').replace(/\s+/g, '_')}.pdf`}
+                        className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all"
+                        title="Download Offer Letter PDF"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={6} className="py-12 text-center text-sm font-semibold text-slate-400">No applications match your search.</td></tr>
+              <tr>
+                <td colSpan={7} className="py-16 text-center">
+                  <div className="max-w-md mx-auto space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center mx-auto">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-slate-800">
+                        {apps.length === 0 ? 'No Student Applications Yet' : `No applications match filter "${statusFilter}"`}
+                      </h4>
+                      <p className="text-xs text-slate-400 font-semibold mt-1">
+                        {apps.length === 0
+                          ? 'When students select a course and submit their application from the student portal, it will automatically appear here live in real-time.'
+                          : 'Try resetting the filter to "All" to view all student applications.'}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 pt-2">
+                      {statusFilter !== 'All' && (
+                        <button
+                          onClick={() => setStatusFilter('All')}
+                          className="px-4 py-2 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] transition-all shadow-xs cursor-pointer"
+                        >
+                          View All Applications ({apps.length})
+                        </button>
+                      )}
+                      <button
+                        onClick={() => refresh()}
+                        className="px-4 py-2 border border-slate-200 bg-white text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" /> Refresh Live Data
+                      </button>
+                      {apps.length === 0 && (
+                        <button
+                          onClick={handleCreateSampleApp}
+                          className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-xs cursor-pointer"
+                        >
+                          + Create Sample Application
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -743,18 +858,49 @@ startxref
                   </select>
                 </div>
 
-                {viewApp.offerLetterUrl && (
+                {viewApp.offerLetterUrl ? (
                   <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 space-y-2">
                     <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider block">Official Admission Offer PDF Attached</span>
-                    <a
-                      href={viewApp.offerLetterUrl}
-                      download={`Official_Offer_${viewApp.university.replace(/\s+/g, '_')}.pdf`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 h-8 px-3 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={viewApp.offerLetterUrl}
+                        download={`Official_Offer_${viewApp.university.replace(/\s+/g, '_')}.pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 h-8 px-3 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Download Admission Offer PDF
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOfferNotes(viewApp.notes || `Congratulations ${viewApp.studentName}! Your official admission offer letter for ${viewApp.course} at ${viewApp.university} has been released.`);
+                          setOfferPdfUrlInput(viewApp.offerLetterUrl || '');
+                          setOfferPdfFile(null);
+                          setOfferModalApp(viewApp);
+                        }}
+                        className="inline-flex items-center gap-1 h-8 px-3 bg-white border border-emerald-300 text-emerald-800 rounded-lg text-xs font-bold hover:bg-emerald-100"
+                      >
+                        <FileText className="w-3.5 h-3.5" /> Re-upload / Edit
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider block">Official Admission Offer Letter</span>
+                    <p className="text-xs text-slate-500 font-semibold">No offer letter has been issued to this student yet.</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOfferNotes(viewApp.notes || `Congratulations ${viewApp.studentName}! Your official admission offer letter for ${viewApp.course} at ${viewApp.university} has been released.`);
+                        setOfferPdfUrlInput(viewApp.offerLetterUrl || '');
+                        setOfferPdfFile(null);
+                        setOfferModalApp(viewApp);
+                      }}
+                      className="w-full h-9.5 bg-[#6A1B2E] hover:bg-[#521221] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
                     >
-                      <Download className="w-3.5 h-3.5" /> Download Admission Offer PDF
-                    </a>
+                      <FileText className="w-3.5 h-3.5" /> Issue Official Offer Letter
+                    </button>
                   </div>
                 )}
 

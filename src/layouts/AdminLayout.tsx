@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
   CreditCard, Headphones, BarChart3, Crown, GraduationCap,
-  Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane
+  Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane, FileText
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -21,6 +21,7 @@ const baseMenuItems = [
   { name: 'Universities', path: '/admin/universities', icon: Building2, badge: null, hasUpdate: false },
   { name: 'Status Tracker', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
   { name: 'Applications', path: '/admin/applications', icon: FileCheck, badge: null, hasUpdate: false },
+  { name: 'Offer Letters', path: '/admin/offers', icon: FileText, badge: null, hasUpdate: false },
   { name: 'Documents Review', path: '/admin/documents', icon: FolderOpen, badge: null, hasUpdate: false },
   { name: 'Legalization & Workflows', path: '/admin/nawa', icon: FileCheck, badge: null, hasUpdate: false },
   { name: 'Payments', path: '/admin/payments', icon: CreditCard, badge: null, hasUpdate: false },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GraduationCap, MapPin, Calendar, ArrowRight, X, Check, Building2, Plus, LogOut, Sparkles, Download, Clock } from 'lucide-react';
+import { GraduationCap, MapPin, Calendar, ArrowRight, X, Check, Building2, Plus, LogOut, Sparkles, Download, Clock, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -297,23 +297,60 @@ export const UniversityApplications: React.FC = () => {
               </div>
 
               {/* Drawer Footer */}
-              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex flex-col gap-2">
-                {(activeApp.offer_letter_url || activeApp.status === 'Offer Issued' || activeApp.status === 'Accepted') && (
-                  <a
-                    href={activeApp.offer_letter_url || '#'}
-                    download={`Offer_Letter_${activeApp.university_name || 'University'}.pdf`}
-                    onClick={(e) => {
-                      if (!activeApp.offer_letter_url) {
-                        e.preventDefault();
-                        alert(`Official Offer Letter from ${activeApp.university_name || 'University'} is attached. (Status: ${activeApp.status})`);
-                      }
-                    }}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all"
-                  >
-                    <Download className="w-4 h-4" /> Download Official Offer Letter (PDF)
-                  </a>
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex flex-col gap-2.5">
+                {/* Official Offer Letter Card */}
+                {(activeApp.offer_letter_url || activeApp.status === 'Offer Issued' || activeApp.status === 'Accepted') ? (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2 text-left">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                        Official Admission Offer Letter Issued!
+                      </span>
+                      <span className="text-[9.5px] font-extrabold bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full">
+                        Ready
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-emerald-950 font-semibold">
+                      Your official admission offer letter for {activeApp.course || activeApp.university_name} is released by the university admissions council.
+                    </p>
+                    <a
+                      href={activeApp.offer_letter_url || '#'}
+                      download={`Offer_Letter_${(activeApp.university_name || 'University').replace(/\s+/g, '_')}.pdf`}
+                      onClick={(e) => {
+                        if (!activeApp.offer_letter_url) {
+                          e.preventDefault();
+                          navigate('/student/offers');
+                        }
+                      }}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full h-9.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" /> Download Official Offer Letter (PDF)
+                    </a>
+                  </div>
+                ) : (
+                  <div className="p-3.5 bg-white border border-indigo-100 rounded-xl space-y-2 text-left shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase text-indigo-900 tracking-wider flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                        Official Offer Letter Status
+                      </span>
+                      <span className="text-[9.5px] font-extrabold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">
+                        Admissions Review
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 font-semibold leading-relaxed">
+                      Your university admission file is currently under review by the admissions board. Once approved, your official Offer Letter will appear here and under the Offer Letters tab.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/student/offers')}
+                      className="text-[11px] font-bold text-[#6A1B2E] hover:underline flex items-center gap-1 pt-0.5 cursor-pointer"
+                    >
+                      Go to Offer Letters & Acceptance Hub &rarr;
+                    </button>
+                  </div>
                 )}
                 {activeApp.status !== 'Withdrawn' && (activeApp.status as string) !== 'Approved' && (activeApp.status as string) !== 'Closed' && (
                   <button

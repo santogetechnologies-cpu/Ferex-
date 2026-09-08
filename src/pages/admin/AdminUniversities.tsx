@@ -159,6 +159,47 @@ export const AdminUniversities: React.FC = () => {
     { label: 'Modern Campus', url: 'https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=800&q=80' },
   ];
 
+  const compressImageFile = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        img.src = (e.target?.result as string) || '';
+      };
+      reader.onerror = reject;
+
+      img.onload = () => {
+        const maxWidth = 1200;
+        const maxHeight = 800;
+        let { width, height } = img;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(img.src);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -168,36 +209,33 @@ export const AdminUniversities: React.FC = () => {
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('Image file size must be under 10MB.');
+    if (file.size > 15 * 1024 * 1024) {
+      showToast('Image file size must be under 15MB.');
       return;
     }
 
     try {
       setUploadingImage(true);
-      const res = await uploadFileToBucket('digital-assets', file, `uni_${Date.now()}`);
-      if (res.url) {
-        setImageUrl(res.url);
-        showToast('🎉 University cover picture uploaded successfully!');
-      } else {
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result === 'string') {
-            setImageUrl(reader.result);
-            showToast('University picture loaded!');
-          }
-        };
-        reader.readAsDataURL(file);
-      }
-    } catch (err: any) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          setImageUrl(reader.result);
-          showToast('University picture loaded locally!');
+      // 1. Client-side compression to permanent, high-resolution base64 Data URL
+      const dataUrl = await compressImageFile(file);
+
+      // 2. Also attempt upload to Supabase storage bucket
+      try {
+        const res = await uploadFileToBucket('digital-assets', file, `uni_${Date.now()}`);
+        if (res.url && !res.url.startsWith('blob:')) {
+          setImageUrl(res.url);
+          showToast('🎉 Cover picture uploaded! Click "Save Changes" below to save.');
+          return;
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (uploadErr) {
+        console.warn('Storage bucket upload notice, using persistent compressed image:', uploadErr);
+      }
+
+      // 3. Fallback to compressed Data URL (permanent, works on all browsers and offline)
+      setImageUrl(dataUrl);
+      showToast('🎉 Picture updated! Click "Save Changes" below to apply.');
+    } catch (err: any) {
+      showToast(`Could not process image: ${err.message || 'Please choose a different photo'}`);
     } finally {
       setUploadingImage(false);
       if (e.target) e.target.value = '';
@@ -951,7 +989,7 @@ export const AdminUniversities: React.FC = () => {
                 ))}
               </div>
 
-              <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto pr-1 space-y-4">
+              <form id="university-admin-form" onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto pr-1 space-y-4">
                 {activeFormTab === 'general' && (
                   <div className="space-y-3.5">
                     <div>
@@ -1114,8 +1152,11 @@ export const AdminUniversities: React.FC = () => {
                             <button
                               key={preset.label}
                               type="button"
-                              onClick={() => setImageUrl(preset.url)}
-                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                              onClick={() => {
+                                setImageUrl(preset.url);
+                                showToast(`Selected "${preset.label}"! Click "Save Changes" below to save.`);
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
                                 imageUrl === preset.url
                                   ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]'
                                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -1316,13 +1357,31 @@ export const AdminUniversities: React.FC = () => {
                   </div>
                 )}
 
-                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                  <button type="button" onClick={() => setShowAddModal(false)} className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
-                  <button type="submit" className="h-9 px-6 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221]">
+              </form>
+
+              {/* Modal Persistent Sticky Footer */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0 bg-white">
+                <span className="text-[11px] font-bold text-slate-400 truncate max-w-[200px]">
+                  {editingId ? `Editing: ${name || 'University'}` : 'New University Profile'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    form="university-admin-form"
+                    type="submit"
+                    className="h-9 px-6 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] shadow-md flex items-center gap-1.5 cursor-pointer transition-all active:scale-98"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                     {editingId ? 'Save Changes' : 'Publish University'}
                   </button>
                 </div>
-              </form>
+              </div>
             </motion.div>
           </div>
         )}

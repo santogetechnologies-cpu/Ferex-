@@ -276,6 +276,8 @@ function App() {
           <Route path="/admin/pre-departure" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminPreDeparture /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/tasks" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminTaskManagement /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/applications" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminApplications /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/offers" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminApplications initialFilter="Offer Issued" /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/offer-letters" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminApplications initialFilter="Offer Issued" /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/documents" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminDocumentReview /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/nawa" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminNawaTracker /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/payments" element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'central']}><AdminLayout><AdminPayments /></AdminLayout></ProtectedRoute>} />

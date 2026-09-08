@@ -223,18 +223,45 @@ export const OfferLetters: React.FC = () => {
       {loading && applications.length === 0 ? (
         <div className="py-16 text-center text-xs font-bold text-slate-400">Loading university decisions...</div>
       ) : offerApps.length === 0 ? (
-        <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
-          <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-sm font-black text-slate-800">No Offer Letters Released Yet</h3>
-          <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto mb-5">
-            Offer letters will appear here as admissions boards process your submitted university applications.
-          </p>
-          <button
-            onClick={() => navigate('/student/applications')}
-            className="inline-flex items-center gap-2 h-9.5 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] transition-all shadow-sm"
-          >
-            View Active Applications <ArrowRight className="w-4 h-4" />
-          </button>
+        <div className="bg-white border border-slate-200/70 rounded-2xl p-10 text-center shadow-xs max-w-2xl mx-auto space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center mx-auto">
+            <GraduationCap className="w-7 h-7" />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-slate-800">
+              {applications.length > 0
+                ? `${applications.length} University Application(s) Under Review`
+                : 'No University Applications Submitted Yet'}
+            </h3>
+            <p className="text-xs font-semibold text-slate-400 mt-1 max-w-md mx-auto">
+              {applications.length > 0
+                ? 'Your applications have been submitted to Edu Admin and the admissions council. Official offer letters will be released here once approved.'
+                : 'Select your target European universities and programs to start receiving official admission offer letters.'}
+            </p>
+          </div>
+
+          {applications.length > 0 && (
+            <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl max-w-md mx-auto text-left space-y-2">
+              <span className="text-[10px] font-black uppercase text-slate-400 block tracking-wider">Submitted Applications:</span>
+              {applications.map(app => (
+                <div key={app.id} className="flex items-center justify-between text-xs font-bold text-slate-800">
+                  <span className="truncate max-w-[240px]">{app.university_name || 'University'}</span>
+                  <span className="text-[10px] font-extrabold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">
+                    {app.status || 'Submitted'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <button
+              onClick={() => navigate(applications.length > 0 ? '/student/applications' : '/student/universities')}
+              className="inline-flex items-center gap-2 h-9.5 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] transition-all shadow-sm cursor-pointer"
+            >
+              {applications.length > 0 ? 'Track Application Milestones' : 'Browse Accredited Universities'} <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-6">
