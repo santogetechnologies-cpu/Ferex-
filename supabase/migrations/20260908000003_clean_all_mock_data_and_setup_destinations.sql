@@ -1,15 +1,8 @@
 -- =============================================================================
 -- FEREX ENTERPRISE PLATFORM - TOTAL CLEAN MIGRATION & DESTINATIONS SCHEMA
 -- =============================================================================
--- 1. Create dedicated 'destinations' table for dynamic Country & Legalization Management.
--- 2. Clear all mock / sample data across Universities, Payments, Invoices, Applications.
--- 3. Reset Email and Payment Gateway system configurations to clean, unconfigured state.
--- =============================================================================
 
--- ─────────────────────────────────────────────────────────────────────────────
--- STEP 1: CREATE DESTINATIONS CATALOG TABLE
--- ─────────────────────────────────────────────────────────────────────────────
-
+-- STEP 1: CREATE DESTINATIONS CATALOG TABLE (WITH RLS)
 CREATE TABLE IF NOT EXISTS public.destinations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
@@ -27,7 +20,7 @@ CREATE TABLE IF NOT EXISTS public.destinations (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Enable RLS
+-- Enable RLS on destinations
 ALTER TABLE public.destinations ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if any
@@ -56,64 +49,73 @@ CREATE POLICY "destinations_manage_admin" ON public.destinations
   );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- STEP 2: PURGE ALL MOCK / DUMMY / SEED DATA
+-- STEP 2: SAFELY PURGE MOCK DATA (SKIPS MISSING TABLES AUTOMATICALLY)
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- 2.1 Education Division: Universities & Applications
-DELETE FROM public.application_checklist;
-DELETE FROM public.final_acceptance;
-DELETE FROM public.offer_letters;
-DELETE FROM public.nawa_records;
-DELETE FROM public.visa_tracking;
-DELETE FROM public.visa_applications;
-DELETE FROM public.pre_departure_checklists;
-DELETE FROM public.student_documents;
-DELETE FROM public.applications;
-DELETE FROM public.universities;
-DELETE FROM public.destinations;
-
--- 2.2 Finance & Payments: Clear all test payment records
-DELETE FROM public.credit_notes;
-DELETE FROM public.receipts;
-DELETE FROM public.invoices;
-DELETE FROM public.payments;
-
--- 2.3 Operations & Support
-DELETE FROM public.ticket_replies;
-DELETE FROM public.ticket_messages;
-DELETE FROM public.support_tickets;
-DELETE FROM public.meetings;
-DELETE FROM public.tasks;
-
--- 2.4 Subsidiary Mock Data (Rimi, Digital, Trade)
-DELETE FROM public.rimi_order_items;
-DELETE FROM public.rimi_sales_orders;
-DELETE FROM public.rimi_inventory;
-DELETE FROM public.rimi_batches;
-DELETE FROM public.rimi_products;
-DELETE FROM public.rimi_payments;
-
-DELETE FROM public.digital_invoices;
-DELETE FROM public.digital_tasks;
-DELETE FROM public.digital_deliverables;
-DELETE FROM public.digital_projects;
-DELETE FROM public.digital_clients;
-
-DELETE FROM public.trade_payments;
-DELETE FROM public.trade_invoices;
-DELETE FROM public.trade_shipments;
-DELETE FROM public.trade_documents;
-DELETE FROM public.trade_clients;
+DO $$ 
+DECLARE 
+  tbl TEXT;
+  tbls TEXT[] := ARRAY[
+    'destinations', 'universities', 'applications', 'student_documents',
+    'offer_letters', 'final_acceptance', 'nawa_records', 'visa_tracking',
+    'visa_applications', 'pre_departure_checklists', 'application_checklist',
+    'payments', 'invoices', 'receipts', 'credit_notes',
+    'meetings', 'support_tickets', 'ticket_messages', 'ticket_replies', 'tasks',
+    'rimi_products', 'rimi_sales_orders', 'rimi_order_items', 'rimi_inventory', 'rimi_batches', 'rimi_payments',
+    'digital_clients', 'digital_projects', 'digital_invoices', 'digital_deliverables', 'digital_tasks',
+    'trade_clients', 'trade_shipments', 'trade_documents', 'trade_invoices', 'trade_payments'
+  ];
+BEGIN 
+  FOREACH tbl IN ARRAY tbls LOOP 
+    IF to_regclass('public.' || tbl) IS NOT NULL THEN 
+      EXECUTE 'DELETE FROM public.' || quote_ident(tbl); 
+    END IF; 
+  END LOOP; 
+END $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- STEP 3: RESET SYSTEM CONFIGURATION (CLEAN EMPTY STATE)
+-- STEP 3: SYSTEM CONFIGURATION TABLE (WITH RLS ENABLED)
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- Reset Payment Gateways (No fake Stripe or UPI demo keys)
+CREATE TABLE IF NOT EXISTS public.system_config (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Enable RLS on system_config
+ALTER TABLE public.system_config ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "system_config_read" ON public.system_config;
+DROP POLICY IF EXISTS "system_config_manage" ON public.system_config;
+
+-- Allow read access
+CREATE POLICY "system_config_read" ON public.system_config
+  FOR SELECT TO authenticated, anon USING (true);
+
+-- Allow manage access for administrative roles
+CREATE POLICY "system_config_manage" ON public.system_config
+  FOR ALL TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE id = auth.uid()
+      AND role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'trade_admin', 'rimi_admin', 'digital_admin')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE id = auth.uid()
+      AND role IN ('superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'trade_admin', 'rimi_admin', 'digital_admin')
+    )
+  );
+
+-- Reset Payment Gateways
 INSERT INTO public.system_config (key, value, updated_at)
 VALUES (
   'payment_gateways',
-  '{
+  $json$
+  {
     "stripe": {
       "enabled": false,
       "publishableKey": "",
@@ -139,17 +141,19 @@ VALUES (
       "rimi": { "allowStripe": false, "allowUpi": false, "customUpiId": "", "customMerchantName": "" },
       "trade": { "allowStripe": false, "allowUpi": false, "customUpiId": "", "customMerchantName": "" }
     }
-  }'::jsonb,
+  }
+  $json$::jsonb,
   NOW()
 )
 ON CONFLICT (key) DO UPDATE
 SET value = EXCLUDED.value, updated_at = NOW();
 
--- Reset Email Providers (No fake Resend, Brevo, AWS SES, or Sendgrid keys)
+-- Reset Email Providers
 INSERT INTO public.system_config (key, value, updated_at)
 VALUES (
   'email_config',
-  '{
+  $json$
+  {
     "activeProvider": "resend",
     "fallbackProvider": "custom_smtp",
     "environment": "live",
@@ -178,7 +182,8 @@ VALUES (
     "trackOpensAndClicks": true,
     "enforceTls": true,
     "webhookSecret": ""
-  }'::jsonb,
+  }
+  $json$::jsonb,
   NOW()
 )
 ON CONFLICT (key) DO UPDATE
