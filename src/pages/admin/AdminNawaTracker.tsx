@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
   Plus, Search, X, Trash2, CheckCircle2,
-  FileText, Stamp, Globe, Edit2
+  FileText, Stamp, Globe, Edit2, ArrowRight, GraduationCap
 } from 'lucide-react';
 import { getStudents } from '../../lib/api/students';
 import {
@@ -285,28 +286,39 @@ export const AdminNawaTracker: React.FC = () => {
           </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="p-1 bg-slate-100 rounded-xl flex items-center gap-1 border border-slate-200 self-start sm:self-auto">
-          <button
-            onClick={() => setActiveTab('tracking')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'tracking'
-                ? 'bg-[#58051E] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+        <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+          <Link
+            to="/admin/applications"
+            className="h-10 px-3.5 bg-white border border-[#58051E]/25 hover:bg-[#58051E] hover:text-white text-[#58051E] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
-            Student Legalization Queue ({records.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('workflows')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'workflows'
-                ? 'bg-[#58051E] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Country Workflows ({workflows.length})
-          </button>
+            <GraduationCap className="w-4 h-4" />
+            <span>University Applications Control</span>
+            <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+          </Link>
+
+          {/* Tab Switcher */}
+          <div className="p-1 bg-slate-100 rounded-xl flex items-center gap-1 border border-slate-200">
+            <button
+              onClick={() => setActiveTab('tracking')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'tracking'
+                  ? 'bg-[#58051E] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Student Legalization Queue ({records.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('workflows')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'workflows'
+                  ? 'bg-[#58051E] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Country Workflows ({workflows.length})
+            </button>
+          </div>
         </div>
       </div>
 

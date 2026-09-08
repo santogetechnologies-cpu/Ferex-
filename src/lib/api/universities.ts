@@ -4,7 +4,7 @@ import { generateUUID } from '../../utils/uuid';
 
 export const BASELINE_UNIVERSITIES: University[] = [
   {
-    id: 'u-1',
+    id: '11111111-1111-4000-8000-000000000001',
     name: 'Warsaw University of Technology',
     country: 'Poland',
     city: 'Warsaw',
@@ -32,7 +32,7 @@ export const BASELINE_UNIVERSITIES: University[] = [
     ]
   },
   {
-    id: 'u-2',
+    id: '11111111-1111-4000-8000-000000000002',
     name: 'Kozminski University',
     country: 'Poland',
     city: 'Warsaw',
@@ -59,7 +59,7 @@ export const BASELINE_UNIVERSITIES: University[] = [
     ]
   },
   {
-    id: 'u-3',
+    id: '11111111-1111-4000-8000-000000000003',
     name: 'Vistula University',
     country: 'Poland',
     city: 'Warsaw',
@@ -86,7 +86,7 @@ export const BASELINE_UNIVERSITIES: University[] = [
     ]
   },
   {
-    id: 'u-4',
+    id: '11111111-1111-4000-8000-000000000004',
     name: 'AGH University of Krakow',
     country: 'Poland',
     city: 'Kraków',
@@ -112,7 +112,7 @@ export const BASELINE_UNIVERSITIES: University[] = [
     ]
   },
   {
-    id: 'u-5',
+    id: '11111111-1111-4000-8000-000000000005',
     name: 'Wroclaw University of Science and Technology',
     country: 'Poland',
     city: 'Wrocław',
@@ -120,11 +120,11 @@ export const BASELINE_UNIVERSITIES: University[] = [
     image_url: 'https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=800&q=80',
     badge: 'Industry Partner',
     category: 'Engineering',
-    description: 'Leader in European industrial innovation with close partnerships with multinational automotive & IT hubs.',
+    description: 'Leader in European technical education with direct corporate partnerships and paid industry internships.',
     ranking: 4,
-    rating: 4.8,
-    programs: ['M.Sc Mechanical Engineering & Robotics', 'B.Sc Systems Engineering', 'M.Sc Computer Networks', 'Automotive Design'],
-    tuition_range: '€2,800 - €3,900 / yr',
+    rating: 4.7,
+    programs: ['B.Sc Applied Computer Science', 'M.Sc Artificial Intelligence', 'B.Sc Mechanical Engineering', 'Automotive Systems'],
+    tuition_range: '€2,800 - €4,000 / yr',
     is_active: true,
     intakes: ['October 2026', 'February 2027'],
     university_fee: '€2,800 / yr',
@@ -133,23 +133,23 @@ export const BASELINE_UNIVERSITIES: University[] = [
     living_cost_monthly: '€320 - €470 / mo',
     nawa_required: true,
     course_programs: [
-      { id: 'cp-wro-1', name: 'M.Sc Mechanical Engineering & Robotics', degree_level: 'Master', tuition_fee: '€2,800 / yr', duration: '2 Years' },
-      { id: 'cp-wro-2', name: 'B.Sc Information & Communication Systems', degree_level: 'Bachelor', tuition_fee: '€3,000 / yr', duration: '3.5 Years' }
+      { id: 'cp-wust-1', name: 'B.Sc Applied Computer Science & Software', degree_level: 'Bachelor', tuition_fee: '€2,800 / yr', duration: '3.5 Years' },
+      { id: 'cp-wust-2', name: 'M.Sc Artificial Intelligence Systems', degree_level: 'Master', tuition_fee: '€3,200 / yr', duration: '2 Years' }
     ]
   },
   {
-    id: 'u-6',
+    id: '11111111-1111-4000-8000-000000000006',
     name: 'SWPS University of Social Sciences',
     country: 'Poland',
     city: 'Warsaw',
     logo_url: '',
-    image_url: 'https://images.unsplash.com/photo-1519452635265-7b1fbfd1e4e0?auto=format&fit=crop&w=800&q=80',
+    image_url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80',
     badge: 'Top Rated',
     category: 'Humanities',
-    description: '#1 Private university for Psychology, Design, and Social Sciences with global faculty.',
+    description: '#1 Private university in Poland for Psychology, UX/UI Design, and Modern English Studies.',
     ranking: 6,
     rating: 4.8,
-    programs: ['B.A. Psychology in English', 'B.A. UI/UX & Interactive Media', 'M.A. Clinical Psychology', 'English Studies'],
+    programs: ['B.A. Psychology in English', 'M.A. Clinical Psychology', 'B.A. UX Design', 'Management & Leadership'],
     tuition_range: '€3,500 - €4,800 / yr',
     is_active: true,
     intakes: ['October 2026', 'February 2027'],
@@ -160,37 +160,37 @@ export const BASELINE_UNIVERSITIES: University[] = [
     nawa_required: true,
     course_programs: [
       { id: 'cp-swps-1', name: 'B.A. Psychology & Behavioral Science', degree_level: 'Bachelor', tuition_fee: '€3,500 / yr', duration: '3 Years' },
-      { id: 'cp-swps-2', name: 'B.A. UI/UX Design & Digital Media', degree_level: 'Bachelor', tuition_fee: '€3,800 / yr', duration: '3 Years' }
+      { id: 'cp-swps-2', name: 'B.A. User Experience (UX) & Design', degree_level: 'Bachelor', tuition_fee: '€3,800 / yr', duration: '3 Years' }
     ]
   },
   {
-    id: 'u-7',
+    id: '11111111-1111-4000-8000-000000000007',
     name: 'Technical University of Munich (TUM)',
     country: 'Germany',
     city: 'Munich',
     logo_url: '',
-    image_url: 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=800&q=80',
+    image_url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=800&q=80',
     badge: 'Top European Rank',
     category: 'Engineering',
-    description: 'Germany’s premier University of Excellence with tuition-free / low administrative fees for high-achieving applicants.',
+    description: 'Germany’s Excellence University ranked among the top 30 universities worldwide with world-class tech facilities.',
     ranking: 7,
     rating: 4.9,
-    programs: ['M.Sc Informatics', 'B.Sc Management & Technology', 'M.Sc Aerospace Engineering', 'Data Engineering'],
+    programs: ['B.Sc Informatics', 'M.Sc Data Engineering and Analytics', 'M.Sc Robotics & Cognition', 'Aerospace Engineering'],
     tuition_range: '€0 - €1,500 / semester',
     is_active: true,
     intakes: ['October 2026', 'April 2027'],
-    university_fee: '€1,500 / yr',
+    university_fee: '€1,500 / semester',
     vfs_fee: '₹15,000',
-    agency_fee: '₹30,000',
+    agency_fee: '₹25,000',
     living_cost_monthly: '€850 - €1,100 / mo',
     nawa_required: false,
     course_programs: [
-      { id: 'cp-tum-1', name: 'M.Sc Informatics & Computer Science', degree_level: 'Master', tuition_fee: '€1,500 / yr', duration: '2 Years' },
-      { id: 'cp-tum-2', name: 'B.Sc Management & Technology', degree_level: 'Bachelor', tuition_fee: '€1,200 / yr', duration: '3 Years' }
+      { id: 'cp-tum-1', name: 'B.Sc Informatics & Computer Science', degree_level: 'Bachelor', tuition_fee: '€1,500 / sem', duration: '3 Years' },
+      { id: 'cp-tum-2', name: 'M.Sc Data Engineering & Analytics', degree_level: 'Master', tuition_fee: '€1,500 / sem', duration: '2 Years' }
     ]
   },
   {
-    id: 'u-8',
+    id: '11111111-1111-4000-8000-000000000008',
     name: 'Charles University',
     country: 'Czech Republic',
     city: 'Prague',
@@ -216,7 +216,7 @@ export const BASELINE_UNIVERSITIES: University[] = [
     ]
   },
   {
-    id: 'u-9',
+    id: '11111111-1111-4000-8000-000000000009',
     name: 'Sapienza University of Rome',
     country: 'Italy',
     city: 'Rome',
@@ -243,41 +243,77 @@ export const BASELINE_UNIVERSITIES: University[] = [
   }
 ];
 
+// Helper to get deleted IDs
+function getDeletedUniversityIds(): string[] {
+  try {
+    const raw = localStorage.getItem('ferex_deleted_university_ids');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+function getCustomUniversities(): University[] {
+  try {
+    const raw = localStorage.getItem('ferex_custom_universities');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
 export async function getUniversities(): Promise<University[]> {
+  const deletedIds = getDeletedUniversityIds();
+  const customUnis = getCustomUniversities();
+
+  let fetchedFromDb: University[] = [];
   try {
     const { data, error } = await supabase
       .from('universities')
       .select('*')
       .order('ranking', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      const local = localStorage.getItem('ferex_local_universities');
-      if (local) {
-        try {
-          const parsed = JSON.parse(local);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        } catch (e) {}
-      }
-      localStorage.setItem('ferex_local_universities', JSON.stringify(BASELINE_UNIVERSITIES));
-      return BASELINE_UNIVERSITIES;
+    if (!error && data && Array.isArray(data) && data.length > 0) {
+      fetchedFromDb = data as University[];
     }
-
-    // Cache to localStorage
-    try {
-      localStorage.setItem('ferex_local_universities', JSON.stringify(data));
-    } catch (e) {}
-
-    return (data ?? []) as University[];
   } catch (err) {
-    console.error('[getUniversities Error]:', err);
-    const local = localStorage.getItem('ferex_local_universities');
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch (e) {}
-    }
-    return BASELINE_UNIVERSITIES;
+    console.warn('[getUniversities DB Warning]:', err);
   }
+
+  // Base list to use if DB returned rows or fallback
+  const basePool = fetchedFromDb.length > 0 ? fetchedFromDb : BASELINE_UNIVERSITIES;
+
+  // Merge: custom additions first, then base pool (avoiding duplicates by id or name)
+  const seenIds = new Set<string>();
+  const seenNames = new Set<string>();
+  const merged: University[] = [];
+
+  for (const u of customUnis) {
+    if (!u || !u.id || deletedIds.includes(u.id) || deletedIds.includes(u.name)) continue;
+    seenIds.add(u.id);
+    seenNames.add(u.name.toLowerCase().trim());
+    merged.push(u);
+  }
+
+  for (const u of basePool) {
+    if (!u || !u.id || deletedIds.includes(u.id) || deletedIds.includes(u.name)) continue;
+    const nameKey = (u.name || '').toLowerCase().trim();
+    if (seenIds.has(u.id) || seenNames.has(nameKey)) continue;
+    seenIds.add(u.id);
+    seenNames.add(nameKey);
+    merged.push(u);
+  }
+
+  // Cache to localStorage
+  try {
+    localStorage.setItem('ferex_local_universities', JSON.stringify(merged));
+  } catch (e) {}
+
+  return merged;
 }
 
 export async function createUniversity(payload: {
@@ -306,14 +342,14 @@ export async function createUniversity(payload: {
   const newId = generateUUID();
   const createdObj: University = {
     id: newId,
-    name: payload.name,
-    country: payload.country,
-    city: payload.city || '',
+    name: payload.name.trim(),
+    country: payload.country.trim(),
+    city: payload.city?.trim() || '',
     logo_url: payload.logo_url || '',
     image_url: payload.image_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80',
-    badge: payload.badge || 'Accredited',
-    category: payload.category || 'General',
-    description: payload.description || 'Premier European institution with accredited English taught programs.',
+    badge: payload.badge || 'Top Choice',
+    category: payload.category || 'Engineering',
+    description: payload.description || `${payload.name} offers accredited degree programs with global post-study work opportunities.`,
     ranking: payload.ranking || 100,
     rating: payload.rating || 4.8,
     programs: payload.programs || ['Computer Science', 'Business Management'],
@@ -330,24 +366,35 @@ export async function createUniversity(payload: {
     semesters: payload.semesters || [],
   };
 
+  // 1. Remove from deleted tracking if previously deleted
   try {
-    const { error } = await supabase.from('universities').insert(createdObj);
-    if (error) {
-      console.warn('[createUniversity notice]:', error.message);
-    }
+    const deletedIds = getDeletedUniversityIds().filter(id => id !== newId && id !== createdObj.name);
+    localStorage.setItem('ferex_deleted_university_ids', JSON.stringify(deletedIds));
+  } catch {}
+
+  // 2. Persist in custom universities collection
+  try {
+    const customList = getCustomUniversities().filter(u => u.id !== newId && u.name.toLowerCase() !== createdObj.name.toLowerCase());
+    localStorage.setItem('ferex_custom_universities', JSON.stringify([createdObj, ...customList]));
+  } catch (e) {}
+
+  // 3. Attempt Supabase Insert
+  try {
+    await supabase.from('universities').insert(createdObj);
   } catch (err: any) {
-    console.warn('[createUniversity error]:', err?.message || err);
+    console.warn('[createUniversity Supabase Insert Notice]:', err?.message || err);
   }
 
-  // Update local storage backup
+  // 4. Update local cache
   try {
     const local = localStorage.getItem('ferex_local_universities');
-    const existing = local ? JSON.parse(local) : BASELINE_UNIVERSITIES;
-    const updated = [createdObj, ...existing.filter((u: any) => u.id !== newId)];
+    const existing: University[] = local ? JSON.parse(local) : [];
+    const updated = [createdObj, ...existing.filter(u => u.id !== newId && u.name.toLowerCase() !== createdObj.name.toLowerCase())];
     localStorage.setItem('ferex_local_universities', JSON.stringify(updated));
   } catch (e) {}
 
   window.dispatchEvent(new Event('ferex_university_change'));
+  window.dispatchEvent(new Event('storage'));
   return createdObj;
 }
 
@@ -386,34 +433,69 @@ export async function updateUniversityRecord(id: string, payload: Partial<Univer
     semesters: payload.semesters ?? current?.semesters ?? [],
   };
 
+  // Update in custom universities if present
+  try {
+    const customList = getCustomUniversities().map(u => u.id === id ? updatedObj : u);
+    localStorage.setItem('ferex_custom_universities', JSON.stringify(customList));
+  } catch {}
+
+  // Update Supabase
   try {
     await supabase.from('universities').update(payload).eq('id', id);
   } catch (err) {}
 
+  // Update local cache
   try {
     const updated = existingList.map(u => u.id === id ? updatedObj : u);
     localStorage.setItem('ferex_local_universities', JSON.stringify(updated));
   } catch (e) {}
 
   window.dispatchEvent(new Event('ferex_university_change'));
+  window.dispatchEvent(new Event('storage'));
   return updatedObj;
 }
 
 export async function deleteUniversity(id: string) {
+  // 1. Record ID and name in deleted tracking so it never resurrects
   try {
-    await supabase.from('universities').delete().eq('id', id);
-  } catch (err) {
-    console.warn('[deleteUniversity Error]:', err);
-  }
-
-  try {
+    const deletedIds = getDeletedUniversityIds();
+    let uniName = '';
     const local = localStorage.getItem('ferex_local_universities');
     if (local) {
       const parsed = JSON.parse(local);
-      const filtered = parsed.filter((u: any) => u.id !== id);
+      const found = parsed.find((u: any) => u.id === id);
+      if (found) uniName = found.name;
+    }
+    const updatedDeleted = Array.from(new Set([...deletedIds, id, uniName].filter(Boolean)));
+    localStorage.setItem('ferex_deleted_university_ids', JSON.stringify(updatedDeleted));
+  } catch {}
+
+  // 2. Remove from custom universities
+  try {
+    const customList = getCustomUniversities().filter(u => u.id !== id);
+    localStorage.setItem('ferex_custom_universities', JSON.stringify(customList));
+  } catch {}
+
+  // 3. Remove from local universities cache
+  try {
+    const local = localStorage.getItem('ferex_local_universities');
+    if (local) {
+      const parsed: University[] = JSON.parse(local);
+      const filtered = parsed.filter(u => u.id !== id);
       localStorage.setItem('ferex_local_universities', JSON.stringify(filtered));
     }
-  } catch (e) {}
+  } catch {}
+
+  // 4. Attempt Supabase Delete if valid UUID
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  if (isUuid) {
+    try {
+      await supabase.from('universities').delete().eq('id', id);
+    } catch (err) {
+      console.warn('[deleteUniversity Supabase Error]:', err);
+    }
+  }
 
   window.dispatchEvent(new Event('ferex_university_change'));
+  window.dispatchEvent(new Event('storage'));
 }

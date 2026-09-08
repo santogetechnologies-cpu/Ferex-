@@ -1,10 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, CheckCircle2, X, Sparkles, Upload, FileText, Download, Award, RefreshCw } from 'lucide-react';
+import { Search, Eye, CheckCircle2, X, Sparkles, Upload, FileText, Download, Award, RefreshCw, Globe, ArrowRight, Compass, ShieldCheck } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useApplications } from '../../hooks/useApplications';
 import { uploadOfferPdfToSupabase } from '../../lib/api/applications';
+import { updateNawaStep } from '../../lib/api/nawa';
 
-import { useSearchParams } from 'react-router-dom';
+export const COUNTRY_AUTHORITIES: Record<string, { acronym: string; name: string; flag: string }> = {
+  'Poland': { acronym: 'NAWA', name: 'Polish National Agency (NAWA)', flag: '🇵🇱' },
+  'Germany': { acronym: 'APS', name: 'German Academic Evaluation (APS)', flag: '🇩🇪' },
+  'United Kingdom': { acronym: 'CAS', name: 'UKVI / CAS Verification', flag: '🇬🇧' },
+  'UK': { acronym: 'CAS', name: 'UKVI / CAS Verification', flag: '🇬🇧' },
+  'France': { acronym: 'Campus France', name: 'Campus France EEF', flag: '🇫🇷' },
+  'Italy': { acronym: 'CIMEA', name: 'CIMEA / Universitaly', flag: '🇮🇹' },
+  'Czech Republic': { acronym: 'Nostrification', name: 'Czech Nostrification Council', flag: '🇨🇿' },
+  'Spain': { acronym: 'UNEDasiss', name: 'UNEDasiss Accreditation', flag: '🇪🇸' },
+  'United States': { acronym: 'SEVIS', name: 'SEVIS / I-20 Compliance', flag: '🇺🇸' },
+  'USA': { acronym: 'SEVIS', name: 'SEVIS / I-20 Compliance', flag: '🇺🇸' },
+  'Canada': { acronym: 'IRCC / PAL', name: 'IRCC PAL Attestation', flag: '🇨🇦' },
+  'Hungary': { acronym: 'OFI', name: 'Hungarian Educational Authority', flag: '🇭🇺' },
+};
+
+export function getCountryAuthority(country?: string) {
+  if (!country) return { acronym: 'Legalization', name: 'Academic Legalization', flag: '🇪🇺' };
+  const foundKey = Object.keys(COUNTRY_AUTHORITIES).find(k =>
+    country.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(country.toLowerCase())
+  );
+  if (foundKey) return COUNTRY_AUTHORITIES[foundKey];
+  return { acronym: 'Legalization', name: `${country} Educational Verification`, flag: '🌍' };
+}
 
 type AppStatus = 'Submitted' | 'NAWA Review' | 'NAWA Submitted' | 'NAWA Approved' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Visa Rejected' | 'Approved' | 'Closed' | 'Rejected' | 'Withdrawn';
 
@@ -63,22 +87,42 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
     }
   }, [initialFilter, queryParam]);
 
+  const [countryFilter, setCountryFilter] = useState('All');
+
   useEffect(() => {
-    const mapped = (dbApps || []).map(a => ({
-      id: a.id,
-      studentId: a.student_id || 'STU-1001',
-      studentName: a.student_name || a.users?.full_name || a.users?.email?.split('@')[0] || 'Student',
-      university: (a.university_name && a.university_name !== 'Pending University Selection') ? a.university_name : (a.universities?.name || 'University Applied For'),
-      country: a.universities?.country || 'Europe',
-      course: a.program_name || a.course || 'Higher Studies',
-      intake: a.intake || 'October 2026',
-      status: (a.status as AppStatus) || 'Submitted',
-      date: new Date(a.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      counselor: 'Education Team',
-      offerLetterUrl: a.offer_letter_url,
-      finalAcceptanceUrl: a.final_acceptance_url,
-      notes: a.notes,
-    }));
+    const mapped = (dbApps || []).map(a => {
+      const resolvedCountry = (() => {
+        if (a.universities?.country) return a.universities.country;
+        const uni = (a.university_name || a.universities?.name || '').toLowerCase();
+        if (uni.includes('poland') || uni.includes('warsaw') || uni.includes('krakow') || uni.includes('kozminski') || uni.includes('vistula') || uni.includes('agh') || uni.includes('wroclaw') || uni.includes('swps')) return 'Poland';
+        if (uni.includes('germany') || uni.includes('munich') || uni.includes('tum') || uni.includes('berlin') || uni.includes('heidelberg')) return 'Germany';
+        if (uni.includes('uk') || uni.includes('kingdom') || uni.includes('oxford') || uni.includes('cambridge') || uni.includes('london')) return 'United Kingdom';
+        if (uni.includes('france') || uni.includes('paris') || uni.includes('sorbonne')) return 'France';
+        if (uni.includes('italy') || uni.includes('rome') || uni.includes('sapienza') || uni.includes('milan')) return 'Italy';
+        if (uni.includes('czech') || uni.includes('prague') || uni.includes('charles')) return 'Czech Republic';
+        if (uni.includes('spain') || uni.includes('madrid') || uni.includes('barcelona')) return 'Spain';
+        if (uni.includes('usa') || uni.includes('states') || uni.includes('harvard') || uni.includes('mit')) return 'United States';
+        if (uni.includes('canada') || uni.includes('toronto') || uni.includes('mcgill')) return 'Canada';
+        if (uni.includes('hungary') || uni.includes('budapest')) return 'Hungary';
+        return 'Poland';
+      })();
+
+      return {
+        id: a.id,
+        studentId: a.student_id || 'STU-1001',
+        studentName: a.student_name || a.users?.full_name || a.users?.email?.split('@')[0] || 'Student',
+        university: (a.university_name && a.university_name !== 'Pending University Selection') ? a.university_name : (a.universities?.name || 'University Applied For'),
+        country: resolvedCountry,
+        course: a.program_name || a.course || 'Higher Studies',
+        intake: a.intake || 'October 2026',
+        status: (a.status as AppStatus) || 'Submitted',
+        date: new Date(a.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        counselor: a.users?.assigned_counselor || 'Admissions Desk',
+        offerLetterUrl: a.offer_letter_url,
+        finalAcceptanceUrl: a.final_acceptance_url,
+        notes: a.notes,
+      };
+    });
     setApps(mapped);
   }, [dbApps]);
 
@@ -135,7 +179,28 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
       if (viewApp?.id === id) {
         setViewApp(prev => prev ? { ...prev, status: newStatus } : null);
       }
-      showToast(`Application status updated to "${newStatus}" in Supabase.`);
+
+      // Two-way synchronization with Country Workflows & Legalization Queue (nawa_records)
+      if (targetApp && targetApp.studentId) {
+        const isApproved = newStatus === 'NAWA Approved' || newStatus === 'Approved';
+        const isSubmitted = newStatus === 'NAWA Submitted';
+        const isReview = newStatus === 'NAWA Review';
+
+        if (isApproved || isSubmitted || isReview) {
+          const stepNum = isApproved ? 3 : (isSubmitted ? 2 : 1);
+          const legStatus = isApproved ? 'Approved' : (isSubmitted ? 'Submitted' : 'In Review');
+          try {
+            await updateNawaStep(
+              targetApp.studentId,
+              stepNum,
+              legStatus as any,
+              `Synchronized from University Applications Control: Status updated to ${newStatus}`
+            );
+          } catch {}
+        }
+      }
+
+      showToast(`Application status updated to "${newStatus}" & synced with Country Legalization desk.`);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to update status'}`);
     } finally {
@@ -387,14 +452,60 @@ startxref
     }
   };
 
-  const filtered = apps.filter(a =>
-    (statusFilter === 'All' || a.status === statusFilter) &&
-    (a.studentName.toLowerCase().includes(search.toLowerCase()) || a.university.toLowerCase().includes(search.toLowerCase()) || a.id.toLowerCase().includes(search.toLowerCase()))
-  );
+  const selectedAuth = getCountryAuthority(countryFilter === 'All' ? '' : countryFilter);
+  const legReviewLabel = countryFilter === 'All' ? 'Legalization Review' : `${selectedAuth.acronym} Review`;
+  const legSubmittedLabel = countryFilter === 'All' ? 'Legalization Submitted' : `${selectedAuth.acronym} Submitted`;
+  const legApprovedLabel = countryFilter === 'All' ? 'Legalization Approved' : `${selectedAuth.acronym} Approved`;
 
-  const statusCounts = ['All', 'Submitted', 'NAWA Review', 'NAWA Submitted', 'NAWA Approved', 'Under Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Approved', 'Closed', 'Rejected'].map(s => ({
-    label: s, count: s === 'All' ? apps.length : apps.filter(a => a.status === s).length
-  }));
+  const statusPills = [
+    { key: 'All', label: 'All' },
+    { key: 'Submitted', label: 'Submitted' },
+    { key: 'NAWA Review', label: legReviewLabel },
+    { key: 'NAWA Submitted', label: legSubmittedLabel },
+    { key: 'NAWA Approved', label: legApprovedLabel },
+    { key: 'Under Review', label: 'Under Review' },
+    { key: 'Offer Issued', label: 'Offer Issued' },
+    { key: 'Accepted', label: 'Accepted' },
+    { key: 'Final Acceptance Issued', label: 'Final Acceptance Issued' },
+    { key: 'Visa Processing', label: 'Visa Processing' },
+    { key: 'Approved', label: 'Approved' },
+    { key: 'Closed', label: 'Closed' },
+    { key: 'Rejected', label: 'Rejected' },
+  ];
+
+  const statusCounts = statusPills.map(p => {
+    let count = 0;
+    if (p.key === 'All') {
+      count = apps.filter(a => countryFilter === 'All' || a.country.toLowerCase() === countryFilter.toLowerCase()).length;
+    } else {
+      count = apps.filter(a => {
+        const matchCountry = countryFilter === 'All' || a.country.toLowerCase() === countryFilter.toLowerCase();
+        return matchCountry && a.status === p.key;
+      }).length;
+    }
+    return { ...p, count };
+  });
+
+  const filtered = apps.filter(a => {
+    const q = search.toLowerCase().trim();
+    const matchSearch = !q ||
+      a.studentName.toLowerCase().includes(q) ||
+      a.university.toLowerCase().includes(q) ||
+      a.id.toLowerCase().includes(q) ||
+      a.course.toLowerCase().includes(q) ||
+      a.country.toLowerCase().includes(q);
+
+    const matchCountry = countryFilter === 'All' || a.country.toLowerCase() === countryFilter.toLowerCase();
+
+    let matchStatus = false;
+    if (statusFilter === 'All') {
+      matchStatus = true;
+    } else {
+      matchStatus = a.status === statusFilter;
+    }
+
+    return matchSearch && matchCountry && matchStatus;
+  });
 
   return (
     <div className="space-y-5 relative text-left">
@@ -415,23 +526,88 @@ startxref
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900">University Applications Control</h1>
-          <p className="text-xs font-semibold text-slate-400 mt-0.5">Manage, review, and issue official offer letters & final acceptance letters for all student applications</p>
+          <p className="text-xs font-semibold text-slate-400 mt-0.5">Manage, review, and issue official offer letters & final acceptance letters across all destination countries</p>
         </div>
         <button
           onClick={() => refresh()}
-          className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all shadow-xs self-start sm:self-auto"
+          className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all shadow-xs self-start sm:self-auto cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5" /> Refresh Live Data
         </button>
+      </div>
+
+      {/* Synchronization Banner with Country Workflows & Legalization Desk */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-rose-50/70 via-amber-50/50 to-slate-50 border border-[#6A1B2E]/15 rounded-2xl shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-[#6A1B2E] text-white flex items-center justify-center shrink-0 shadow-xs">
+            <Compass className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-black text-slate-900">Multi-Country Admissions & Legalization Engine</span>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live 2-Way Synced
+              </span>
+            </div>
+            <p className="text-[10.5px] font-medium text-slate-500 mt-0.5">
+              Legalization stages adapt dynamically by destination country: Poland (NAWA) • Germany (APS) • UK (CAS) • France (Campus France) • Italy (CIMEA) • USA (SEVIS) • Canada (PAL)
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/admin/nawa-tracker"
+          className="px-3.5 py-2 bg-white border border-[#6A1B2E]/30 hover:bg-[#6A1B2E] hover:text-white text-[#6A1B2E] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer self-start md:self-auto"
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>Country Workflows & Legalization Desk</span>
+          <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+        </Link>
+      </div>
+
+      {/* Search Input and Destination Country Selector */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by student name, university, program, or application ID..."
+            className="w-full h-10 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#6A1B2E] transition-all shadow-xs"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 h-10 shadow-xs">
+            <Globe className="w-4 h-4 text-[#6A1B2E] shrink-0" />
+            <select
+              value={countryFilter}
+              onChange={(e) => setCountryFilter(e.target.value)}
+              className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-1"
+            >
+              <option value="All">🌍 All Countries (Common Legalization)</option>
+              <option value="Poland">🇵🇱 Poland (NAWA Desk)</option>
+              <option value="Germany">🇩🇪 Germany (APS Desk)</option>
+              <option value="United Kingdom">🇬🇧 United Kingdom (CAS / UKVI)</option>
+              <option value="France">🇫🇷 France (Campus France)</option>
+              <option value="Italy">🇮🇹 Italy (CIMEA / Universitaly)</option>
+              <option value="Czech Republic">🇨🇿 Czech Republic (Nostrification)</option>
+              <option value="United States">🇺🇸 United States (SEVIS / I-20)</option>
+              <option value="Canada">🇨🇦 Canada (IRCC / PAL)</option>
+              <option value="Spain">🇪🇸 Spain (UNEDasiss)</option>
+              <option value="Hungary">🇭🇺 Hungary (OFI)</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Status filter pills */}
       <div className="flex items-center gap-2 flex-wrap">
         {statusCounts.map((s) => (
           <button
-            key={s.label}
-            onClick={() => setStatusFilter(s.label)}
-            className={`h-8 px-3.5 rounded-xl text-xs font-bold transition-all border ${statusFilter === s.label
+            key={s.key}
+            onClick={() => setStatusFilter(s.key)}
+            className={`h-8 px-3.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${statusFilter === s.key
               ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-xs'
               : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
               }`}
@@ -439,18 +615,6 @@ startxref
             {s.label} <span className="ml-1 opacity-70 font-mono text-[11px]">({s.count})</span>
           </button>
         ))}
-      </div>
-
-      {/* Search Input */}
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by student name, university, or application ID..."
-          className="w-full h-10 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#6A1B2E] transition-all"
-        />
       </div>
 
       {/* Applications Table */}
@@ -468,46 +632,54 @@ startxref
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-            {filtered.map((a) => (
-              <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
-                <td className="px-5 py-4">
-                  <span className="font-extrabold text-slate-900 block">{a.studentName}</span>
-                  <span className="text-[10px] font-mono text-slate-400">{a.studentId}</span>
-                </td>
-                <td className="px-5 py-4">
-                  <span className="font-bold text-slate-900 block">{a.university}</span>
-                  <span className="text-[11px] text-[#6A1B2E] font-extrabold">{a.course}</span>
-                </td>
-                <td className="px-5 py-4 text-slate-700 font-bold max-w-[150px] truncate">
-                  {a.counselor || 'Admin'}
-                </td>
-                <td className="px-5 py-4 text-slate-600 font-bold">{a.intake}</td>
+            {filtered.map((a) => {
+              const auth = getCountryAuthority(a.country);
+              return (
+                <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
+                  <td className="px-5 py-4">
+                    <span className="font-extrabold text-slate-900 block">{a.studentName}</span>
+                    <span className="text-[10px] font-mono text-slate-400">{a.studentId}</span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="font-bold text-slate-900 block">{a.university}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[11px] text-[#6A1B2E] font-extrabold">{a.course}</span>
+                      <span className="inline-flex items-center gap-1 text-[9.5px] font-black px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200" title={auth.name}>
+                        <span>{auth.flag}</span>
+                        <span>{auth.acronym}</span>
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-slate-700 font-bold max-w-[150px] truncate">
+                    {a.counselor || 'Admin'}
+                  </td>
+                  <td className="px-5 py-4 text-slate-600 font-bold">{a.intake}</td>
 
-                {/* Dynamic Status Selector Dropdown */}
-                <td className="px-5 py-4">
-                  <select
-                    value={a.status}
-                    disabled={isUpdating === a.id}
-                    onChange={(e) => handleStatusSelect(a.id, e.target.value as AppStatus)}
-                    className={`h-8 px-2.5 rounded-lg text-[11px] font-bold border focus:outline-none cursor-pointer ${STATUS_COLORS[a.status]}`}
-                  >
-                    <option value="Submitted">Submitted</option>
-                    <option value="NAWA Review">NAWA Review</option>
-                    <option value="NAWA Submitted">NAWA Submitted</option>
-                    <option value="NAWA Approved">NAWA Approved</option>
-                    <option value="Under Review">Under Review</option>
-                    <option value="Offer Issued">Offer Issued (Attach Offer PDF)</option>
-                    <option value="Accepted">Accepted</option>
-                    <option value="Final Acceptance Issued">Final Acceptance Issued (Attach Acceptance PDF)</option>
-                    <option value="Visa Processing">Visa Processing</option>
-                    <option value="Visa Approved">Visa Approved</option>
-                    <option value="Visa Rejected">Visa Rejected</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Closed">Closed</option>
-                    <option value="Rejected">Rejected</option>
-                    <option value="Withdrawn">Withdrawn</option>
-                  </select>
-                </td>
+                  {/* Dynamic Status Selector Dropdown */}
+                  <td className="px-5 py-4">
+                    <select
+                      value={a.status}
+                      disabled={isUpdating === a.id}
+                      onChange={(e) => handleStatusSelect(a.id, e.target.value as AppStatus)}
+                      className={`h-8 px-2 rounded-lg text-[11px] font-bold border focus:outline-none cursor-pointer ${STATUS_COLORS[a.status]}`}
+                    >
+                      <option value="Submitted">Submitted</option>
+                      <option value="NAWA Review">{auth.acronym} Review (Legalization Review)</option>
+                      <option value="NAWA Submitted">{auth.acronym} Submitted (Authority Lodged)</option>
+                      <option value="NAWA Approved">{auth.acronym} Approved (Legalization Cleared)</option>
+                      <option value="Under Review">Under Review</option>
+                      <option value="Offer Issued">Offer Issued (Attach Offer PDF)</option>
+                      <option value="Accepted">Accepted</option>
+                      <option value="Final Acceptance Issued">Final Acceptance Issued (Attach Acceptance PDF)</option>
+                      <option value="Visa Processing">Visa Processing</option>
+                      <option value="Visa Approved">Visa Approved</option>
+                      <option value="Visa Rejected">Visa Rejected</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Closed">Closed</option>
+                      <option value="Rejected">Rejected</option>
+                      <option value="Withdrawn">Withdrawn</option>
+                    </select>
+                  </td>
 
                 <td className="px-5 py-4">
                   <div className="flex flex-col gap-1.5">
@@ -840,9 +1012,9 @@ startxref
                     className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                   >
                     <option value="Submitted">Submitted</option>
-                    <option value="NAWA Review">NAWA Review</option>
-                    <option value="NAWA Submitted">NAWA Submitted</option>
-                    <option value="NAWA Approved">NAWA Approved</option>
+                    <option value="NAWA Review">{getCountryAuthority(viewApp.country).acronym} Review (Legalization Review)</option>
+                    <option value="NAWA Submitted">{getCountryAuthority(viewApp.country).acronym} Submitted (Authority Lodged)</option>
+                    <option value="NAWA Approved">{getCountryAuthority(viewApp.country).acronym} Approved (Legalization Cleared)</option>
                     <option value="Under Review">Under Review</option>
                     <option value="Offer Issued">Offer Issued (Attach Offer PDF)</option>
                     <option value="Accepted">Accepted</option>

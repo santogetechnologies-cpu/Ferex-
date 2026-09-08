@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap } from 'lucide-react';
+import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, Key, ShieldCheck, Plus } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
-import { getStaffMembers, DEFAULT_COUNSELOR_ROSTER, assignCounselorToStudent, getDefaultCounselorForCountry } from '../../lib/api/students';
+import { getStaffMembers, createStaffMember, DEFAULT_COUNSELOR_ROSTER, assignCounselorToStudent, getDefaultCounselorForCountry } from '../../lib/api/students';
 import { ensureStudentApplication } from '../../lib/api/applications';
 import type { UserProfile } from '../../lib/types';
 
@@ -62,6 +62,16 @@ export const AdminStudents: React.FC = () => {
   const [counselorModalStudent, setCounselorModalStudent] = useState<StudentItem | null>(null);
   const [selectedCounselorToAssign, setSelectedCounselorToAssign] = useState('');
   const [isAssigningCounselor, setIsAssigningCounselor] = useState(false);
+
+  // Counselor On-The-Fly Provisioning Form
+  const [showCreateCounselorForm, setShowCreateCounselorForm] = useState(false);
+  const [newCounselorName, setNewCounselorName] = useState('');
+  const [newCounselorEmail, setNewCounselorEmail] = useState('');
+  const [newCounselorPassword, setNewCounselorPassword] = useState('ferex2026!');
+  const [newCounselorRole, setNewCounselorRole] = useState('Senior Admissions Counselor');
+  const [newCounselorDesk, setNewCounselorDesk] = useState('Poland & NAWA Desk');
+  const [newCounselorPhone, setNewCounselorPhone] = useState('');
+  const [isCreatingCounselor, setIsCreatingCounselor] = useState(false);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -285,6 +295,47 @@ export const AdminStudents: React.FC = () => {
       showToast(`Error assigning counselor: ${err.message || 'Failed'}`);
     } finally {
       setIsAssigningCounselor(false);
+    }
+  };
+
+  const handleCreateAndAssignCounselor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCounselorName.trim() || !newCounselorEmail.trim()) {
+      showToast('Please provide both Counselor Full Name and Login Email.');
+      return;
+    }
+    try {
+      setIsCreatingCounselor(true);
+      const deskVal = newCounselorDesk.trim() || 'Admissions Desk';
+      const created = await createStaffMember({
+        full_name: newCounselorName.trim(),
+        email: newCounselorEmail.trim(),
+        role: 'counselor',
+        password: newCounselorPassword.trim() || 'ferex2026!',
+        desk: deskVal,
+        department: `Admissions:${deskVal}`,
+        phone: newCounselorPhone.trim(),
+      });
+
+      const updatedRoster = await getStaffMembers();
+      setStaffMembers(updatedRoster);
+
+      const assignedLabel = `${created.full_name || newCounselorName.trim()} (${deskVal})`;
+      setSelectedCounselorToAssign(assignedLabel);
+
+      if (counselorModalStudent) {
+        await handleQuickAssignCounselor(counselorModalStudent, assignedLabel);
+      }
+
+      showToast(`🎉 Counselor ${newCounselorName} created & login provisioned (Password: ${newCounselorPassword})!`);
+      setShowCreateCounselorForm(false);
+      setNewCounselorName('');
+      setNewCounselorEmail('');
+      setNewCounselorPhone('');
+    } catch (err: any) {
+      showToast(`Error creating counselor: ${err.message || 'Failed to create'}`);
+    } finally {
+      setIsCreatingCounselor(false);
     }
   };
 
@@ -815,52 +866,148 @@ export const AdminStudents: React.FC = () => {
                   </button>
                 </div>
 
-                <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  Available Admissions Counselors & Specialized Desks:
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                    Available Admissions Counselors & Specialized Desks:
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateCounselorForm(!showCreateCounselorForm)}
+                    className="px-2.5 py-1 text-[10px] font-bold text-[#6A1B2E] bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <UserPlus className="w-3 h-3" />
+                    {showCreateCounselorForm ? 'Close Form' : '+ Add New Counselor & Login'}
+                  </button>
+                </div>
+
+                {showCreateCounselorForm && (
+                  <form onSubmit={handleCreateAndAssignCounselor} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                        <UserPlus className="w-3.5 h-3.5 text-[#6A1B2E]" />
+                        Create Counselor & Provision Login
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        Immediate Access
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Full Name</label>
+                        <input
+                          required
+                          type="text"
+                          value={newCounselorName}
+                          onChange={(e) => setNewCounselorName(e.target.value)}
+                          placeholder="e.g. Dr. Maria Kowalska"
+                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Login Email</label>
+                        <input
+                          required
+                          type="email"
+                          value={newCounselorEmail}
+                          onChange={(e) => setNewCounselorEmail(e.target.value)}
+                          placeholder="counselor@ferex.com"
+                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Desk Specialization</label>
+                        <select
+                          value={newCounselorDesk}
+                          onChange={(e) => setNewCounselorDesk(e.target.value)}
+                          className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
+                        >
+                          <option value="Poland & NAWA Desk">Poland & NAWA Desk</option>
+                          <option value="Germany APS & Technical Desk">Germany APS & Technical Desk</option>
+                          <option value="UK CAS & Ireland Desk">UK CAS & Ireland Desk</option>
+                          <option value="France & Italy Desk">France & Italy Desk</option>
+                          <option value="USA & Canada Desk">USA & Canada Desk</option>
+                          <option value="Schengen Visa & Compliance Desk">Schengen Visa & Compliance Desk</option>
+                          <option value="General Admissions Desk">General Admissions Desk</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Role / Designation</label>
+                        <input
+                          type="text"
+                          value={newCounselorRole}
+                          onChange={(e) => setNewCounselorRole(e.target.value)}
+                          placeholder="Senior Admissions Lead"
+                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase">Login Password</label>
+                          <button
+                            type="button"
+                            onClick={() => setNewCounselorPassword(`ferex${Math.floor(1000 + Math.random() * 9000)}!`)}
+                            className="text-[9px] font-bold text-[#6A1B2E] hover:underline"
+                          >
+                            Generate
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={newCounselorPassword}
+                          onChange={(e) => setNewCounselorPassword(e.target.value)}
+                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Phone Number</label>
+                        <input
+                          type="text"
+                          value={newCounselorPhone}
+                          onChange={(e) => setNewCounselorPhone(e.target.value)}
+                          placeholder="+48 22 123 4567"
+                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateCounselorForm(false)}
+                        className="h-7 px-3 border border-slate-200 text-[10px] font-bold text-slate-600 rounded-lg hover:bg-slate-100"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isCreatingCounselor}
+                        className="h-7 px-3 bg-[#6A1B2E] text-white text-[10px] font-bold rounded-lg hover:bg-[#521221] flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        <ShieldCheck className="w-3 h-3" />
+                        {isCreatingCounselor ? 'Provisioning...' : 'Create & Assign to Student'}
+                      </button>
+                    </div>
+                  </form>
+                )}
 
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                  {DEFAULT_COUNSELOR_ROSTER.map(c => {
-                    const counselorVal = `${c.name} (${c.desk})`;
-                    const isSelected = selectedCounselorToAssign.includes(c.name);
-                    return (
-                      <div
-                        key={c.id}
-                        onClick={() => setSelectedCounselorToAssign(counselorVal)}
-                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                          isSelected
-                            ? 'bg-rose-50/70 border-[#6A1B2E] ring-2 ring-[#6A1B2E]/10'
-                            : 'bg-white border-slate-200/80 hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
-                            isSelected ? 'bg-[#6A1B2E] text-white' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            {c.name[0]}
-                          </div>
-                          <div>
-                            <p className="text-xs font-black text-slate-900">{c.name}</p>
-                            <p className="text-[10px] font-bold text-[#6A1B2E]">{c.desk}</p>
-                            <p className="text-[9.5px] font-semibold text-slate-400">{c.role} • {c.email}</p>
-                          </div>
-                        </div>
-
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                          isSelected ? 'border-[#6A1B2E] bg-[#6A1B2E] text-white' : 'border-slate-300'
-                        }`}>
-                          {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {staffMembers.filter(s => !DEFAULT_COUNSELOR_ROSTER.some(d => d.name === s.full_name)).map(s => {
-                    const counselorVal = `${s.full_name || s.email} (${s.department?.split(':')[1] || s.role})`;
+                  {staffMembers.map(s => {
+                    const parts = (s.department || '').split(':');
+                    const deskLabel = parts[1] || parts[0] || 'Admissions Desk';
+                    const counselorVal = `${s.full_name || s.email} (${deskLabel})`;
                     const isSelected = selectedCounselorToAssign.includes(s.full_name || s.email);
+                    const hasLocalCred = typeof localStorage !== 'undefined' && !!localStorage.getItem(`ferex_admin_cred_${s.email.toLowerCase()}`);
+
                     return (
                       <div
-                        key={s.id}
+                        key={s.id || s.email}
                         onClick={() => setSelectedCounselorToAssign(counselorVal)}
                         className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                           isSelected
@@ -872,11 +1019,19 @@ export const AdminStudents: React.FC = () => {
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
                             isSelected ? 'bg-[#6A1B2E] text-white' : 'bg-slate-100 text-slate-600'
                           }`}>
-                            {s.full_name?.[0] || 'S'}
+                            {(s.full_name || s.email)[0]}
                           </div>
                           <div>
-                            <p className="text-xs font-black text-slate-900">{s.full_name || s.email}</p>
-                            <p className="text-[10px] font-bold text-[#6A1B2E]">{s.department || s.role}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-black text-slate-900">{s.full_name || s.email}</p>
+                              {hasLocalCred && (
+                                <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-100">
+                                  Login Active
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] font-bold text-[#6A1B2E]">{deskLabel}</p>
+                            <p className="text-[9.5px] font-semibold text-slate-400">{s.role} • {s.email}</p>
                           </div>
                         </div>
 

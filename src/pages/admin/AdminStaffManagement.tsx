@@ -377,25 +377,32 @@ export const AdminStaffManagement: React.FC = () => {
                 const f = e.target as HTMLFormElement;
                 const name = (f.elements.namedItem('name') as HTMLInputElement).value;
                 const email = (f.elements.namedItem('email') as HTMLInputElement).value;
+                const phone = (f.elements.namedItem('phone') as HTMLInputElement)?.value || '';
+                const password = (f.elements.namedItem('password') as HTMLInputElement)?.value || 'ferex2026!';
                 const category = (f.elements.namedItem('category') as HTMLSelectElement).value;
                 const department = (f.elements.namedItem('department') as HTMLSelectElement).value;
+                const desk = (f.elements.namedItem('desk') as HTMLInputElement)?.value || '';
 
                 try {
                   const dbRole = getDbRole(category);
+                  const roleOrDesk = desk.trim() || category;
                   const created = await createStaffMember({
                     email,
                     full_name: name,
                     role: dbRole,
-                    department: `${department}:${category}`,
+                    password,
+                    phone,
+                    desk: roleOrDesk,
+                    department: `${department}:${roleOrDesk}`,
                   });
 
                   setStaff(prev => [{
                     id: created.id,
                     name: created.full_name || name,
                     email: created.email,
-                    phone: created.phone || '—',
+                    phone: created.phone || phone || '—',
                     department,
-                    role: category,
+                    role: roleOrDesk,
                     status: 'Active',
                     joined: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
                     students: 0,
@@ -403,40 +410,67 @@ export const AdminStaffManagement: React.FC = () => {
                   }, ...prev]);
 
                   setShowAdd(false);
-                  showToast(`🎉 Administrative user ${name} added successfully!`);
+                  showToast(`🎉 User ${name} added! Login password: ${password}`);
                 } catch (err: any) {
                   showToast(`Error: ${err.message || 'Failed to add'}`);
                 }
               }} className="space-y-3.5 text-left">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Full Name</label>
-                  <input required name="name" placeholder="e.g. Elena Rostova"
+                  <input required name="name" placeholder="e.g. Dr. Maria Kowalska"
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Email Address</label>
-                  <input required name="email" type="email" placeholder="e.g. elena@ferex.com"
+                  <input required name="email" type="email" placeholder="e.g. maria.kowalska@ferex.com"
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
                 </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Administrative Role</label>
-                  <select name="category" defaultValue="Admin"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
-                    {ALLOWED_ROLES.map(r => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Administrative Role</label>
+                    <select name="category" defaultValue="Counselor"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
+                      {ALLOWED_ROLES.map(r => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Department</label>
+                    <select name="department" defaultValue="Admissions"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
+                      {['Admissions', 'Administration', 'Central Office', 'Executive', 'Operations', 'Documents', 'Finance'].map(d => <option key={d}>{d}</option>)}
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Department</label>
-                  <select name="department" defaultValue="Administration"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
-                    {['Administration', 'Central Office', 'Executive', 'Admissions', 'Operations', 'Documents', 'Finance'].map(d => <option key={d}>{d}</option>)}
-                  </select>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Regional Desk / Desk Title</label>
+                    <input name="desk" defaultValue="Poland & NAWA Desk" placeholder="e.g. Poland & NAWA Desk"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Contact Phone</label>
+                    <input name="phone" placeholder="+48 22 123 4567"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
+                  </div>
                 </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Login Password (Provision Credentials)</label>
+                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                      Instant Sign In
+                    </span>
+                  </div>
+                  <input required name="password" defaultValue="ferex2026!"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40 font-mono" />
+                </div>
+
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setShowAdd(false)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
-                  <button type="submit" className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] cursor-pointer">Add User</button>
+                  <button type="submit" className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] cursor-pointer">Add User & Credentials</button>
                 </div>
               </form>
             </motion.div>

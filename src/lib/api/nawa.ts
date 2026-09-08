@@ -193,15 +193,27 @@ export async function updateNawaStep(
     try {
       await createNotification({
         user_id: cleanId,
-        title: '🎉 NAWA Academic Legalization Approved!',
-        body: `Your degree recognition & legalization has been officially approved by NAWA Warsaw. You can now select your target university!`,
+        title: '🎉 Academic Legalization Approved!',
+        body: `Your educational degree recognition & verification has been officially approved. Your university application is now cleared to proceed!`,
         category: 'Application'
       });
     } catch (e) {}
   }
 
+  // Two-way synchronization with applications table
+  if (cleanId) {
+    try {
+      const syncStatus = isApproved ? 'NAWA Approved' : (status === 'Submitted' ? 'NAWA Submitted' : 'NAWA Review');
+      await supabase
+        .from('applications')
+        .update({ status: syncStatus, updated_at: now })
+        .or(`student_id.eq.${cleanId},id.eq.${cleanId}`);
+    } catch (e) {}
+  }
+
   window.dispatchEvent(new Event('ferex_nawa_change'));
   window.dispatchEvent(new Event('ferex_application_change'));
+  window.dispatchEvent(new Event('ferex_applications_change'));
 
   return updatedRecord;
 }

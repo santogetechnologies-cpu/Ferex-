@@ -244,21 +244,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           try {
             const parsed = JSON.parse(localCred);
             if (parsed.password === password) {
-              // Try signing up this provisioned user directly to seed Supabase auth
-              const su = await supabase.auth.signUp({
+              const localId = parsed.id || `staff-${cleanEmail.replace(/[^a-z0-9]/g, '')}`;
+              const localName = parsed.fullName || cleanEmail.split('@')[0];
+              const localRole = parsed.role || 'counselor';
+              const localUserObj = {
+                id: localId,
+                email: cleanEmail,
+                user_metadata: {
+                  full_name: localName,
+                  role: localRole,
+                }
+              } as any;
+              const localProfileObj: UserProfile = {
+                id: localId,
+                email: cleanEmail,
+                full_name: localName,
+                role: localRole,
+                department: parsed.department || 'Admissions',
+                phone: parsed.phone || '',
+                created_at: parsed.created_at || new Date().toISOString(),
+                must_change_password: false,
+                permissions: parsed.permissions || []
+              };
+
+              localStorage.setItem('ferex_user', JSON.stringify({
+                id: localId,
+                email: cleanEmail,
+                role: localRole,
+                full_name: localName
+              }));
+
+              setUser(localUserObj);
+              setProfile(localProfileObj);
+
+              // Best-effort background sign up / sync with Supabase
+              supabase.auth.signUp({
                 email: cleanEmail,
                 password: password,
                 options: {
                   data: {
-                    full_name: parsed.fullName || cleanEmail.split('@')[0],
-                    role: parsed.role || 'admin',
+                    full_name: localName,
+                    role: localRole,
                   }
                 }
-              });
-              if (!su.error && su.data.session) {
-                await loadUserData(su.data.session);
-                return {};
-              }
+              }).catch(() => {});
+
+              return {};
             }
           } catch {}
         }

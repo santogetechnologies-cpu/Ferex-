@@ -164,8 +164,17 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
-    // 2. Fetch authenticated user profile to resolve authoritative role from public.users
-    const { data: { user } } = await supabase.auth.getUser();
+    // 2. Fetch authenticated user profile to resolve authoritative role from public.users or local registry
+    const { data: { user: suUser } } = await supabase.auth.getUser();
+    const user = suUser || (() => {
+      try {
+        const raw = localStorage.getItem('ferex_user');
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    })();
+
     if (!user?.id) {
       setIsLoading(false);
       setErrorMsg('Authentication error: Unable to retrieve authenticated user session.');
