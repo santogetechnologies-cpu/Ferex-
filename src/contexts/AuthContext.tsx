@@ -217,8 +217,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // 2. Realtime Auth State Listener
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
-      if (event === 'TOKEN_REFRESH_FAILED') {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event: any, newSession) => {
+      if ((event as any) === 'TOKEN_REFRESH_FAILED') {
         supabase.auth.signOut().catch(() => {});
         loadUserData(null);
         return;

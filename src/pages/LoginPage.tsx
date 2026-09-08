@@ -225,7 +225,7 @@ export const LoginPage: React.FC = () => {
         id: user.id,
         email: cleanEmail,
         role: role,
-        full_name: user.user_metadata?.full_name || dbProfile?.full_name || cleanEmail.split('@')[0],
+        full_name: user.user_metadata?.full_name || (dbProfile as any)?.full_name || cleanEmail.split('@')[0],
       }));
     } catch {}
 

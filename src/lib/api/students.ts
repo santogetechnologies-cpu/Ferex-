@@ -72,7 +72,7 @@ export async function getStaffMembers(): Promise<UserProfile[]> {
 
 export async function assignCounselorToStudent(studentId: string, counselorName: string): Promise<UserProfile | null> {
   try {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('users')
       .update({ assigned_counselor: counselorName, updated_at: new Date().toISOString() })
       .eq('id', studentId)

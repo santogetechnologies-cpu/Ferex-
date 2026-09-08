@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Filter, Check, GraduationCap } from 'lucide-react';
+import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
 import { getStaffMembers, DEFAULT_COUNSELOR_ROSTER, assignCounselorToStudent, getDefaultCounselorForCountry } from '../../lib/api/students';
@@ -105,8 +105,6 @@ export const AdminStudents: React.FC = () => {
     setStudents(mapped);
   }, [dbStudents, dbApps]);
 
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
   const [viewStudent, setViewStudent] = useState<StudentItem | null>(null);
   const [editStudent, setEditStudent] = useState<StudentItem | null>(null);
   const [editTemp, setEditTemp] = useState<StudentItem | null>(null);
@@ -248,11 +246,12 @@ export const AdminStudents: React.FC = () => {
 
     try {
       setIsSubmittingAdd(true);
+      const chosenCounselor = addCounselor || getDefaultCounselorForCountry(addTargetCountry);
       const created = await addStudent({
         full_name: addName.trim(),
         email: addEmail.trim(),
         phone: addPhone.trim() || '',
-        assigned_counselor: addCounselor || 'Admin Counselor'
+        assigned_counselor: chosenCounselor
       });
 
       // Auto-create base application
@@ -264,7 +263,7 @@ export const AdminStudents: React.FC = () => {
       setAddName('');
       setAddEmail('');
       setAddPhone('');
-      showToast(`🎉 Student ${addName} added successfully!`);
+      showToast(`🎉 Student ${addName} added successfully! Assigned to ${chosenCounselor}`);
     } catch (err: any) {
       showToast(`Error adding student: ${err.message || 'Failed'}`);
     } finally {
@@ -517,7 +516,7 @@ export const AdminStudents: React.FC = () => {
               <div className="space-y-4 text-xs font-semibold">
                 <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
                   <div><span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Phone</span><span className="text-slate-800 font-bold">{viewStudent.phone}</span></div>
-                  <div><span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Country</span><span className="text-slate-800 font-bold">{viewStudent.country}</span></div>
+                  <div><span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Country</span><span className="text-slate-800 font-bold">{viewStudent.targetCountry}</span></div>
                   <div><span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">University</span><span className="text-slate-800 font-bold">{viewStudent.university}</span></div>
                   <div><span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Course</span><span className="text-slate-800 font-bold">{viewStudent.course}</span></div>
                 </div>
@@ -687,27 +686,23 @@ export const AdminStudents: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Target University</label>
-                  <input
-                    type="text"
-                    value={addUniversity}
-                    onChange={(e) => setAddUniversity(e.target.value)}
-                    placeholder="e.g. Warsaw University of Technology"
-                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
-                  />
-                </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Program / Course</label>
-                    <input
-                      type="text"
-                      value={addCourse}
-                      onChange={(e) => setAddCourse(e.target.value)}
-                      placeholder="B.Sc Computer Science"
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Target Country *</label>
+                    <select
+                      value={addTargetCountry}
+                      onChange={(e) => {
+                        setAddTargetCountry(e.target.value);
+                        if (!addCounselor) {
+                          setAddCounselor(getDefaultCounselorForCountry(e.target.value));
+                        }
+                      }}
                       className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
-                    />
+                    >
+                      {['Poland', 'Germany', 'United Kingdom', 'France', 'Italy', 'United States', 'Canada', 'Hungary'].map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
@@ -725,13 +720,35 @@ export const AdminStudents: React.FC = () => {
                 </div>
 
                 <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Target University</label>
+                  <input
+                    type="text"
+                    value={addUniversity}
+                    onChange={(e) => setAddUniversity(e.target.value)}
+                    placeholder="e.g. Warsaw University of Technology"
+                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Program / Course</label>
+                  <input
+                    type="text"
+                    value={addCourse}
+                    onChange={(e) => setAddCourse(e.target.value)}
+                    placeholder="B.Sc Computer Science"
+                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Assigned Counselor</label>
                   <select
                     value={addCounselor}
                     onChange={(e) => setAddCounselor(e.target.value)}
                     className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
                   >
-                    <option value="Admin Counselor">Admin Counselor (Default)</option>
+                    <option value="">Auto-Assign by Country Desk</option>
                     {staffMembers.map(s => {
                       const label = `${s.full_name || s.email} (${s.department?.split(':')[1] || s.role})`;
                       return <option key={s.id} value={s.full_name || s.email}>{label}</option>;

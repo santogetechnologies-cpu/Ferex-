@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight, BookOpen, AlertCircle, PhoneCall } from 'lucide-react';
+import { Target, Search, MapPin, Award, Sparkles, Heart, X, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUniversities } from '../hooks/useUniversities';
 import { useApplications } from '../hooks/useApplications';
@@ -11,7 +11,7 @@ import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { Card } from '../components/Card';
 import { UnifiedPaymentModal } from '../components/UnifiedPaymentModal';
-import { getDefaultCounselorForCountry, DEFAULT_COUNSELOR_ROSTER } from '../lib/api/students';
+import { getDefaultCounselorForCountry } from '../lib/api/students';
 
 const POPULAR_DESTINATIONS = [
   { country: 'Poland', flag: '🇵🇱', authority: 'NAWA Legalization', desk: 'Poland Desk', badge: 'Fast Track Visa', counselor: 'Dr. Maria Kowalska' },
@@ -236,7 +236,7 @@ export const SelectUniversity: React.FC = () => {
             { step: '03', title: 'Document Vault', status: hasMandatoryDocs ? 'Passport & Transcripts Ready' : 'Upload Needed', isDone: hasMandatoryDocs, badge: hasMandatoryDocs ? 'Verified' : 'Action Req', path: '/student/documents' },
             { step: '04', title: 'Registration Fee', status: inst1Paid ? 'Cleared & Verified' : `₹${requiredAdvanceInr.toLocaleString('en-IN')}`, isDone: inst1Paid, badge: inst1Paid ? 'Paid' : 'Due' },
             { step: '05', title: 'Course Application', status: 'Select Program', isDone: false, badge: 'Current' },
-            { step: '06', title: 'Offer & Legalization', status: `${targetWf?.authority_acronym || 'NAWA'} / Visa`, isDone: false, badge: 'Next Stage' },
+            { step: '06', title: 'Offer & Legalization', status: `${getWorkflowForCountry(effectiveCountryKey)?.authority_acronym || 'NAWA'} / Visa`, isDone: false, badge: 'Next Stage' },
           ].map((s, idx) => (
             <div
               key={idx}
