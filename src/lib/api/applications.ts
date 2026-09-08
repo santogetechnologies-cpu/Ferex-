@@ -23,6 +23,14 @@ function saveLocalApplications(apps: Application[]) {
   } catch {}
 }
 
+async function safeQuery<T>(queryPromise: PromiseLike<T>): Promise<T | { data: null; error: any }> {
+  try {
+    return await queryPromise;
+  } catch (err: any) {
+    return { data: null, error: err } as any;
+  }
+}
+
 async function syncAppsToSupabase(apps: Application[]) {
   for (const app of apps) {
     if (!isValidUuid(app.id)) continue;
@@ -31,13 +39,15 @@ async function syncAppsToSupabase(apps: Application[]) {
       if (!studentId) continue;
 
       // Ensure user row exists in public.users
-      await supabase.from('users').upsert({
-        id: studentId,
-        email: `${studentId}@student.ferex.com`,
-        full_name: app.student_name || 'Student',
-        role: 'student',
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'id' }).catch(() => {});
+      try {
+        await supabase.from('users').upsert({
+          id: studentId,
+          email: `${studentId}@student.ferex.com`,
+          full_name: app.student_name || 'Student',
+          role: 'student',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+      } catch {}
 
       const payload: any = {
         id: app.id,
@@ -100,9 +110,9 @@ export async function getApplications(studentId?: string): Promise<Application[]
 
     // Parallel fetch offer letters, final acceptances, and registered users
     const [offerRes, finalRes, allUsersRes] = await Promise.all([
-      supabase.from('offer_letters').select('id, student_id, application_id, offer_letter_url, file_url, url').catch(() => ({ data: null })),
-      supabase.from('final_acceptance').select('id, student_id, application_id, final_acceptance_url, file_url, url').catch(() => ({ data: null })),
-      supabase.from('users').select('id, full_name, email').catch(() => ({ data: null })),
+      safeQuery(supabase.from('offer_letters').select('id, student_id, application_id, offer_letter_url, file_url, url')),
+      safeQuery(supabase.from('final_acceptance').select('id, student_id, application_id, final_acceptance_url, file_url, url')),
+      safeQuery(supabase.from('users').select('id, full_name, email')),
     ]);
 
     const rawList = (appRes.data ?? []) as any[];
@@ -229,27 +239,31 @@ export async function ensureStudentApplication(studentId: string, studentName: s
     saveLocalApplications(local);
 
     if (isValidUuid(studentId)) {
-      await supabase.from('users').upsert({
-        id: studentId,
-        email: `${studentId}@student.ferex.com`,
-        full_name: studentName,
-        role: 'student'
-      }, { onConflict: 'id' }).catch(() => {});
+      try {
+        await supabase.from('users').upsert({
+          id: studentId,
+          email: `${studentId}@student.ferex.com`,
+          full_name: studentName,
+          role: 'student'
+        }, { onConflict: 'id' });
+      } catch {}
 
-      await supabase.from('applications').insert({
-        id: newId,
-        student_id: studentId,
-        university_id: null,
-        university_name: 'Pending University Selection',
-        program_name: 'Pending Course Selection',
-        course: 'Pending Course Selection',
-        intake: 'October 2026',
-        status: 'NAWA Review',
-        notes: 'Auto-enrolled on document submission.',
-        applied_date: now.split('T')[0],
-        created_at: now,
-        updated_at: now,
-      }).catch(() => {});
+      try {
+        await supabase.from('applications').insert({
+          id: newId,
+          student_id: studentId,
+          university_id: null,
+          university_name: 'Pending University Selection',
+          program_name: 'Pending Course Selection',
+          course: 'Pending Course Selection',
+          intake: 'October 2026',
+          status: 'NAWA Review',
+          notes: 'Auto-enrolled on document submission.',
+          applied_date: now.split('T')[0],
+          created_at: now,
+          updated_at: now,
+        });
+      } catch {}
     }
   } catch (err) {
     console.warn('[ensureStudentApplication Notice]:', err);
@@ -480,7 +494,7 @@ export async function updateApplicationStatus(
           file_url: offerLetterUrl,
           status: 'Issued',
           created_at: now
-        }).catch(() => {});
+        });
       }
     } catch (e) {}
   }
@@ -498,7 +512,7 @@ export async function updateApplicationStatus(
           file_url: finalAcceptanceUrl,
           status: 'Issued',
           created_at: now
-        }).catch(() => {});
+        });
       }
     } catch (e) {}
   }

@@ -83,7 +83,6 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
   }, [dbApps]);
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
   const [viewApp, setViewApp] = useState<ApplicationItem | null>(null);
   const [toast, setToast] = useState('');
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
