@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check } from 'lucide-react';
+import { Target, Search, MapPin, Award, Sparkles, Heart, X, Lock, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight, BookOpen, AlertCircle, PhoneCall } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUniversities } from '../hooks/useUniversities';
 import { useApplications } from '../hooks/useApplications';
@@ -11,18 +11,19 @@ import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { Card } from '../components/Card';
 import { UnifiedPaymentModal } from '../components/UnifiedPaymentModal';
+import { getDefaultCounselorForCountry, DEFAULT_COUNSELOR_ROSTER } from '../lib/api/students';
 
 const POPULAR_DESTINATIONS = [
-  { country: 'Poland', flag: '🇵🇱', authority: 'NAWA Legalization', badge: 'Fast Track Visa' },
-  { country: 'Germany', flag: '🇩🇪', authority: 'APS Certificate & Blocked A/c', badge: 'Tuition Free / Low Fee' },
-  { country: 'United Kingdom', flag: '🇬🇧', authority: 'CAS & UKVI Visa', badge: 'PSW Visa (2 Yrs)' },
-  { country: 'United States', flag: '🇺🇸', authority: 'I-20 & SEVIS Interview', badge: 'STEM OPT (3 Yrs)' },
-  { country: 'Canada', flag: '🇨🇦', authority: 'PAL & SDS Visa', badge: 'PGWP Eligible' },
-  { country: 'France', flag: '🇫🇷', authority: 'Campus France EEF', badge: 'Schengen Mobility' },
-  { country: 'Italy', flag: '🇮🇹', authority: 'Universitaly & CIMEA', badge: 'Regional Scholarships' },
-  { country: 'Hungary', flag: '🇭🇺', authority: 'EU Direct Admission', badge: 'Affordable Living' },
-  { country: 'Ireland', flag: '🇮🇪', authority: 'ILEP & Stamp 2 Visa', badge: 'Tech Hub Careers' },
-  { country: 'Finland', flag: '🇫🇮', authority: 'Study in Finland', badge: 'Innovation & Tech' },
+  { country: 'Poland', flag: '🇵🇱', authority: 'NAWA Legalization', desk: 'Poland Desk', badge: 'Fast Track Visa', counselor: 'Dr. Maria Kowalska' },
+  { country: 'Germany', flag: '🇩🇪', authority: 'APS Certificate & Blocked A/c', desk: 'Germany Desk', badge: 'Tuition Free / Low Fee', counselor: 'Aarav Sharma' },
+  { country: 'United Kingdom', flag: '🇬🇧', authority: 'CAS & UKVI Visa', desk: 'UK / Ireland Desk', badge: 'PSW Visa (2 Yrs)', counselor: 'Elena Vance' },
+  { country: 'United States', flag: '🇺🇸', authority: 'I-20 & SEVIS Interview', desk: 'USA / Canada Desk', badge: 'STEM OPT (3 Yrs)', counselor: 'Vikram Malhotra' },
+  { country: 'Canada', flag: '🇨🇦', authority: 'PAL & SDS Visa', desk: 'USA / Canada Desk', badge: 'PGWP Eligible', counselor: 'Vikram Malhotra' },
+  { country: 'France', flag: '🇫🇷', authority: 'Campus France EEF', desk: 'France / Italy Desk', badge: 'Schengen Mobility', counselor: 'Sneha Reddy' },
+  { country: 'Italy', flag: '🇮🇹', authority: 'Universitaly & CIMEA', desk: 'France / Italy Desk', badge: 'Regional Scholarships', counselor: 'Sneha Reddy' },
+  { country: 'Hungary', flag: '🇭🇺', authority: 'EU Direct Admission', desk: 'Central Europe Desk', badge: 'Affordable Living', counselor: 'Dr. Maria Kowalska' },
+  { country: 'Ireland', flag: '🇮🇪', authority: 'ILEP & Stamp 2 Visa', desk: 'UK / Ireland Desk', badge: 'Tech Hub Careers', counselor: 'Elena Vance' },
+  { country: 'Finland', flag: '🇫🇮', authority: 'Study in Finland', desk: 'Nordic Desk', badge: 'Innovation & Tech', counselor: 'Aarav Sharma' },
 ];
 
 export const SelectUniversity: React.FC = () => {
@@ -84,6 +85,11 @@ export const SelectUniversity: React.FC = () => {
   const requiredAdvanceInr = countryFeeConfig?.registration_fee_inr || config.advance_registration_fee_inr || 15000;
   const requiredAdvanceEur = countryFeeConfig?.registration_fee_eur || config.advance_registration_fee_eur || 150;
 
+  // Dedicated counselor for active country
+  const assignedCounselorName = (profile as any)?.assigned_counselor && (profile as any)?.assigned_counselor !== 'Admin'
+    ? (profile as any).assigned_counselor
+    : getDefaultCounselorForCountry(effectiveCountryKey);
+
   const handleCountrySelect = (c: string) => {
     setSelectedCountry(c);
     if (c !== 'All') {
@@ -104,30 +110,12 @@ export const SelectUniversity: React.FC = () => {
   };
 
   const handleOpenApply = (uni: any) => {
-    if (!hasMandatoryDocs) {
-      setSuccessToast('🔒 Mandatory Step Required: Please upload your Passport and Academic Marksheets in Document Vault before selecting a university.');
-      setTimeout(() => navigate('/student/documents'), 2000);
-      return;
-    }
-    if (!inst1Paid) {
-      setShowPaymentModal(true);
-      return;
-    }
     setApplyUni(uni);
     setSelectedCourse(uni.programs?.[0] || 'Computer Science & Engineering');
   };
 
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hasMandatoryDocs) {
-      setSuccessToast('🔒 Mandatory Step: Please upload your Passport & Marksheets first.');
-      navigate('/student/documents');
-      return;
-    }
-    if (!inst1Paid) {
-      setShowPaymentModal(true);
-      return;
-    }
     if (!applyUni || !user) return;
 
     try {
@@ -156,7 +144,7 @@ export const SelectUniversity: React.FC = () => {
       }
 
       setApplyUni(null);
-      setSuccessToast(`Application submitted successfully to ${applyUni.name}!`);
+      setSuccessToast(`🎉 Application submitted successfully to ${applyUni.name}! Routed to ${assignedCounselorName}`);
       setTimeout(() => navigate('/student/applications'), 1200);
     } catch (err: any) {
       setSuccessToast(`Error: ${err.message || 'Failed to submit application'}`);
@@ -215,13 +203,74 @@ export const SelectUniversity: React.FC = () => {
         </div>
       </div>
 
+      {/* Multi-Country Linear Workflow Stepper */}
+      <div className="bg-gradient-to-r from-slate-900 via-[#3B0713] to-slate-900 text-white p-5 md:p-6 rounded-3xl border border-rose-950/40 shadow-xl space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#C5A059] to-[#8C6D2B] text-slate-950 flex items-center justify-center font-black shadow-lg shrink-0">
+              <Globe className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-300/90 block">Multi-Country Admissions Engine</span>
+              <h2 className="text-base font-black text-white tracking-tight">Structured 6-Stage Student Admission Flow</h2>
+            </div>
+          </div>
+
+          {/* Assigned Counselor Desk Pill */}
+          <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/15">
+            <div className="w-8 h-8 rounded-full bg-[#C5A059] text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
+              {assignedCounselorName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[9.5px] font-extrabold text-amber-200 block uppercase tracking-wider">Dedicated Counselor</span>
+              <span className="text-xs font-black text-white truncate block">{assignedCounselorName}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 6 Step Linear Pipeline */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
+          {[
+            { step: '01', title: 'Target Country', status: selectedCountry !== 'All' ? `${selectedCountry}` : 'Global Catalog', isDone: true, badge: 'Step 1' },
+            { step: '02', title: 'Counselor Assigned', status: assignedCounselorName.split('(')[0].trim(), isDone: true, badge: 'Active Desk' },
+            { step: '03', title: 'Document Vault', status: hasMandatoryDocs ? 'Passport & Transcripts Ready' : 'Upload Needed', isDone: hasMandatoryDocs, badge: hasMandatoryDocs ? 'Verified' : 'Action Req', path: '/student/documents' },
+            { step: '04', title: 'Registration Fee', status: inst1Paid ? 'Cleared & Verified' : `₹${requiredAdvanceInr.toLocaleString('en-IN')}`, isDone: inst1Paid, badge: inst1Paid ? 'Paid' : 'Due' },
+            { step: '05', title: 'Course Application', status: 'Select Program', isDone: false, badge: 'Current' },
+            { step: '06', title: 'Offer & Legalization', status: `${targetWf?.authority_acronym || 'NAWA'} / Visa`, isDone: false, badge: 'Next Stage' },
+          ].map((s, idx) => (
+            <div
+              key={idx}
+              onClick={() => s.path && navigate(s.path)}
+              className={`p-2.5 rounded-2xl border transition-all text-left ${
+                s.isDone
+                  ? 'bg-white/10 border-white/20 text-white'
+                  : s.badge === 'Current'
+                    ? 'bg-gradient-to-br from-[#6A1B2E] to-[#4A101E] border-amber-400/40 text-white shadow-md'
+                    : 'bg-white/5 border-white/10 text-white/60'
+              } ${s.path ? 'cursor-pointer hover:border-amber-400/60' : ''}`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-black text-amber-300 font-mono">{s.step}</span>
+                <span className={`text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-md ${
+                  s.isDone ? 'bg-emerald-500/20 text-emerald-300' : s.badge === 'Current' ? 'bg-amber-400/20 text-amber-200' : 'bg-white/10 text-white/50'
+                }`}>
+                  {s.badge}
+                </span>
+              </div>
+              <h4 className="text-[11px] font-black truncate">{s.title}</h4>
+              <p className="text-[9.5px] font-medium text-white/70 truncate mt-0.5">{s.status}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Destination Country Selection Hub */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+      <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <Globe className="w-4 h-4 text-[#6A1B2E]" />
             <h2 className="text-xs font-black uppercase text-slate-900 tracking-wider">
-              1. Choose Target Destination Country
+              Step 1: Choose Target Destination Country & Admission Desk
             </h2>
           </div>
           <span className="text-[11px] font-bold text-slate-500">
@@ -232,15 +281,15 @@ export const SelectUniversity: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
           <button
             onClick={() => handleCountrySelect('All')}
-            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+            className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
               selectedCountry === 'All'
-                ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-sm'
-                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-md'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/80'
             }`}
           >
-            <span className="text-sm block mb-0.5">🌍</span>
+            <span className="text-lg block mb-0.5">🌍</span>
             <span className="text-xs font-extrabold block">All Countries</span>
-            <span className={`text-[9px] block ${selectedCountry === 'All' ? 'text-white/80' : 'text-slate-400'}`}>
+            <span className={`text-[9.5px] block ${selectedCountry === 'All' ? 'text-white/80' : 'text-slate-400'}`}>
               Browse Entire Catalog
             </span>
           </button>
@@ -251,19 +300,22 @@ export const SelectUniversity: React.FC = () => {
               <button
                 key={d.country}
                 onClick={() => handleCountrySelect(d.country)}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-sm'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                    ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-md scale-[1.02]'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/80'
                 }`}
               >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-base">{d.flag}</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-lg">{d.flag}</span>
                   {isSelected && <Check className="w-3.5 h-3.5 text-amber-300" />}
                 </div>
-                <span className="text-xs font-extrabold block truncate">{d.country}</span>
-                <span className={`text-[9px] font-bold block truncate ${isSelected ? 'text-amber-200' : 'text-slate-400'}`}>
+                <span className="text-xs font-black block truncate">{d.country}</span>
+                <span className={`text-[9.5px] font-bold block truncate ${isSelected ? 'text-amber-200' : 'text-slate-500'}`}>
                   {d.authority}
+                </span>
+                <span className={`text-[8.5px] font-semibold block truncate mt-0.5 ${isSelected ? 'text-white/70' : 'text-slate-400'}`}>
+                  Desk: {d.counselor.split(' ')[0]}
                 </span>
               </button>
             );
@@ -272,7 +324,7 @@ export const SelectUniversity: React.FC = () => {
       </div>
 
       {/* Advance & Registration Fee Status Banner */}
-      <div className={`p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs ${
+      <div className={`p-5 rounded-3xl border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs ${
         inst1Paid
           ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
           : 'bg-gradient-to-r from-amber-50 via-rose-50/40 to-slate-50 border-amber-200 text-slate-900'
@@ -280,12 +332,12 @@ export const SelectUniversity: React.FC = () => {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             {inst1Paid ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold shadow-xs">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Registration & Advance Advisory Verified
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold shadow-xs">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Advance Advisory & Registration Fee Settled
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-extrabold shadow-xs">
-                <CreditCard className="w-3.5 h-3.5" /> Step 2: Advance Registration Required
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white text-[10px] font-extrabold shadow-xs">
+                <CreditCard className="w-3.5 h-3.5" /> Step 4: Advance Registration Fee
               </span>
             )}
             <span className="text-xs font-black text-slate-700">
@@ -417,26 +469,12 @@ export const SelectUniversity: React.FC = () => {
                   View Details
                 </button>
 
-                {!hasMandatoryDocs ? (
-                  <button
-                    onClick={() => handleOpenApply(uni)}
-                    className="flex-1 h-9 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 shadow-xs transition-all cursor-pointer"
-                  >
-                    <Lock className="w-3.5 h-3.5" /> Upload Docs First
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleOpenApply(uni)}
-                    disabled={!inst1Paid}
-                    className={`flex-1 h-9 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer ${
-                      inst1Paid
-                        ? 'bg-[#6A1B2E] text-white hover:bg-[#521221] shadow-xs'
-                        : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-                    }`}
-                  >
-                    {!inst1Paid && <Lock className="w-3 h-3 mr-0.5" />} Apply Now
-                  </button>
-                )}
+                <button
+                  onClick={() => handleOpenApply(uni)}
+                  className="flex-1 h-9 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 shadow-xs transition-all cursor-pointer"
+                >
+                  Apply Now <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+                </button>
               </div>
             </Card>
           );
@@ -513,33 +551,17 @@ export const SelectUniversity: React.FC = () => {
                 </div>
 
                 <div className="pt-4 border-t border-slate-100">
-                  {!hasMandatoryDocs ? (
-                    <button
-                      onClick={() => {
-                        setDrawerUni(null);
-                        navigate('/student/documents');
-                      }}
-                      className="w-full h-10 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl text-xs shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Upload className="w-4 h-4" /> Upload Passport & Marksheets First
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        const u = drawerUni;
-                        setDrawerUni(null);
-                        handleOpenApply(u);
-                      }}
-                      disabled={!inst1Paid}
-                      className={`w-full h-10 text-xs font-extrabold rounded-xl shadow-xs transition-all cursor-pointer ${
-                        inst1Paid
-                          ? 'bg-[#6A1B2E] text-white hover:bg-[#521221]'
-                          : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-                      }`}
-                    >
-                      {!inst1Paid ? '🔒 Clear 1st Installment Fee to Apply' : `Apply to ${drawerUni.name}`}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => {
+                      const u = drawerUni;
+                      setDrawerUni(null);
+                      handleOpenApply(u);
+                    }}
+                    className="w-full h-10 text-xs font-black rounded-xl shadow-md bg-[#6A1B2E] text-white hover:bg-[#521221] flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Proceed to Course Application</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               </motion.div>
             </div>
@@ -547,21 +569,54 @@ export const SelectUniversity: React.FC = () => {
         })()}
       </AnimatePresence>
 
-      {/* Apply Course & Program Modal */}
+      {/* Apply Course & Program Modal with Guided Multi-Step Checklist */}
       <AnimatePresence>
         {applyUni && (() => {
           const targetWf = getWorkflowForCountry(applyUni.country);
 
           return (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setApplyUni(null)} />
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl z-10 p-6 sm:p-7 text-left border border-slate-200">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs" onClick={() => setApplyUni(null)} />
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white w-full max-w-xl rounded-3xl shadow-2xl z-10 p-6 sm:p-7 text-left border border-slate-200 max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                  <div>
-                    <h3 className="text-base font-black text-slate-900">Apply to {applyUni.name}</h3>
-                    <p className="text-xs font-semibold text-slate-400">{applyUni.city}, {applyUni.country} • {targetWf.authority_acronym} Process</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-black text-base border border-[#6A1B2E]/20 shrink-0">
+                      {applyUni.name?.[0] || 'U'}
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-slate-900">Apply to {applyUni.name}</h3>
+                      <p className="text-xs font-semibold text-slate-400">{applyUni.city}, {applyUni.country} • {targetWf.authority_acronym} Authority Flow</p>
+                    </div>
                   </div>
                   <button onClick={() => setApplyUni(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"><X className="w-4 h-4" /></button>
+                </div>
+
+                {/* Step Verification & Counselor Review Pill */}
+                <div className="p-3.5 bg-gradient-to-r from-amber-50 via-rose-50/40 to-slate-50 rounded-2xl border border-amber-200/80 mb-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="w-4 h-4 text-[#6A1B2E]" />
+                      <span className="text-xs font-black text-slate-900">Assigned Review Desk:</span>
+                    </div>
+                    <span className="text-[11px] font-black text-[#6A1B2E] bg-white px-2.5 py-0.5 rounded-full border border-rose-200">
+                      {assignedCounselorName}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] font-semibold">
+                    <div className={`p-2 rounded-xl border flex items-center justify-between ${
+                      hasMandatoryDocs ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'
+                    }`}>
+                      <span>Passport & Transcripts:</span>
+                      <span className="font-black">{hasMandatoryDocs ? '✅ Ready' : '⚠️ Missing Docs'}</span>
+                    </div>
+                    <div className={`p-2 rounded-xl border flex items-center justify-between ${
+                      inst1Paid ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900' : 'bg-blue-50 border-blue-200 text-blue-900'
+                    }`}>
+                      <span>Advance Registration:</span>
+                      <span className="font-black">{inst1Paid ? '✅ Settled' : `₹${requiredAdvanceInr.toLocaleString('en-IN')}`}</span>
+                    </div>
+                  </div>
                 </div>
 
                 <form onSubmit={handleApplySubmit} className="space-y-4">
@@ -618,15 +673,31 @@ export const SelectUniversity: React.FC = () => {
                       <span>{targetWf.authority_badge} Procedure</span>
                     </div>
                     <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
-                      Your application will proceed according to the official {targetWf.country} academic recognition and {targetWf.visa_procedures?.visa_type || 'visa'} roadmap.
+                      Your dossier will be reviewed by {assignedCounselorName} and submitted to {applyUni.name} admissions board.
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
-                    <button type="button" onClick={() => setApplyUni(null)} className="h-10 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
-                    <button type="submit" disabled={isSubmitting} className="h-10 px-6 bg-[#6A1B2E] text-white text-xs font-black rounded-xl hover:bg-[#521221] shadow-md cursor-pointer disabled:opacity-50">
-                      {isSubmitting ? 'Submitting Application...' : 'Confirm & Submit Application'}
-                    </button>
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                    {!hasMandatoryDocs && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setApplyUni(null);
+                          navigate('/student/documents');
+                        }}
+                        className="text-xs font-bold text-amber-700 hover:underline flex items-center gap-1"
+                      >
+                        <Upload className="w-3.5 h-3.5" /> Upload Missing Documents
+                      </button>
+                    )}
+
+                    <div className="flex items-center gap-2 ml-auto">
+                      <button type="button" onClick={() => setApplyUni(null)} className="h-10 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
+                      <button type="submit" disabled={isSubmitting} className="h-10 px-6 bg-[#6A1B2E] text-white text-xs font-black rounded-xl hover:bg-[#521221] shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
+                        <Check className="w-4 h-4" />
+                        <span>{isSubmitting ? 'Submitting Application...' : 'Confirm & Submit Application'}</span>
+                      </button>
+                    </div>
                   </div>
                 </form>
               </motion.div>

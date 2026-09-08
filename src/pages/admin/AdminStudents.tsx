@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Filter, Check, GraduationCap } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
-import { getStaffMembers } from '../../lib/api/students';
+import { getStaffMembers, DEFAULT_COUNSELOR_ROSTER, assignCounselorToStudent, getDefaultCounselorForCountry } from '../../lib/api/students';
 import { ensureStudentApplication } from '../../lib/api/applications';
 import type { UserProfile } from '../../lib/types';
 
@@ -12,16 +12,33 @@ interface StudentItem {
   name: string;
   email: string;
   phone: string;
-  country: string;
+  originCountry: string;
+  targetCountry: string;
+  targetFlag: string;
+  workflowAuthority: string;
   university: string;
   course: string;
   intake: string;
   status: string;
   statusColor: string;
   counselor: string;
+  counselorEmail?: string;
   joined: string;
   appStatus: string;
 }
+
+const COUNTRY_FLAGS: Record<string, { flag: string; authority: string }> = {
+  'Poland': { flag: '🇵🇱', authority: 'NAWA Legalization' },
+  'Germany': { flag: '🇩🇪', authority: 'APS Certificate' },
+  'United Kingdom': { flag: '🇬🇧', authority: 'CAS / UKVI' },
+  'UK': { flag: '🇬🇧', authority: 'CAS / UKVI' },
+  'France': { flag: '🇫🇷', authority: 'Campus France EEF' },
+  'Italy': { flag: '🇮🇹', authority: 'CIMEA / Universitaly' },
+  'United States': { flag: '🇺🇸', authority: 'I-20 / SEVIS' },
+  'USA': { flag: '🇺🇸', authority: 'I-20 / SEVIS' },
+  'Canada': { flag: '🇨🇦', authority: 'PAL / SDS' },
+  'Hungary': { flag: '🇭🇺', authority: 'EU Direct' },
+};
 
 export const AdminStudents: React.FC = () => {
   const { students: dbStudents, removeStudent, editStudent: updateDbStudent, addStudent } = useStudents();
@@ -34,11 +51,23 @@ export const AdminStudents: React.FC = () => {
   const [addName, setAddName] = useState('');
   const [addEmail, setAddEmail] = useState('');
   const [addPhone, setAddPhone] = useState('');
+  const [addTargetCountry, setAddTargetCountry] = useState('Poland');
   const [addUniversity, setAddUniversity] = useState('Warsaw University of Technology');
   const [addCourse, setAddCourse] = useState('B.Sc Computer Science & Engineering');
-  const [addCounselor, setAddCounselor] = useState('Admin Counselor');
+  const [addCounselor, setAddCounselor] = useState('');
   const [addIntake, setAddIntake] = useState('October 2026');
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
+
+  // 1-Click Quick Counselor Assignment Modal
+  const [counselorModalStudent, setCounselorModalStudent] = useState<StudentItem | null>(null);
+  const [selectedCounselorToAssign, setSelectedCounselorToAssign] = useState('');
+  const [isAssigningCounselor, setIsAssigningCounselor] = useState(false);
+
+  // Filters
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [countryFilter, setCountryFilter] = useState('All');
+  const [counselorFilter, setCounselorFilter] = useState('All');
 
   useEffect(() => {
     getStaffMembers().then(setStaffMembers).catch(() => {});
@@ -47,19 +76,29 @@ export const AdminStudents: React.FC = () => {
   useEffect(() => {
     const mapped = dbStudents.map((s) => {
       const studentApp = dbApps.find(a => a.student_id === s.id);
+      const rawCountry = studentApp?.universities?.country || (studentApp as any)?.country || (studentApp?.university_name?.includes('Warsaw') || studentApp?.university_name?.includes('Poland') ? 'Poland' : studentApp?.university_name?.includes('Munich') || studentApp?.university_name?.includes('Berlin') ? 'Germany' : 'Poland');
+      const countryMeta = COUNTRY_FLAGS[rawCountry] || { flag: '🇪🇺', authority: 'Academic Legalization' };
+      
+      const assignedCounselor = (s.assigned_counselor && s.assigned_counselor !== 'Admin' && s.assigned_counselor !== '--')
+        ? s.assigned_counselor
+        : getDefaultCounselorForCountry(rawCountry);
+
       return {
         id: s.id,
         name: s.full_name || s.email.split('@')[0],
         email: s.email,
         phone: s.phone || '—',
-        country: 'India',
-        university: (studentApp?.university_name && studentApp.university_name !== 'Pending University Selection') ? studentApp.university_name : (studentApp?.universities?.name || 'University Applied For'),
-        course: studentApp?.program_name || studentApp?.course || 'Higher Studies',
-        intake: studentApp?.intake || 'Oct 2026',
+        originCountry: 'India',
+        targetCountry: rawCountry,
+        targetFlag: countryMeta.flag,
+        workflowAuthority: countryMeta.authority,
+        university: (studentApp?.university_name && studentApp.university_name !== 'Pending University Selection') ? studentApp.university_name : (studentApp?.universities?.name || `${rawCountry} Partner University`),
+        course: studentApp?.program_name || studentApp?.course || 'B.Sc Computer Science & Higher Studies',
+        intake: studentApp?.intake || 'October 2026',
         status: studentApp?.status || 'Active',
         statusColor: studentApp?.status === 'Offer Issued' ? 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100',
-        counselor: s.assigned_counselor || 'Admin',
-        joined: new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        counselor: assignedCounselor,
+        joined: s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently',
         appStatus: studentApp?.status || 'Submitted',
       };
     });
@@ -233,12 +272,39 @@ export const AdminStudents: React.FC = () => {
     }
   };
 
-  const filtered = students.filter(s =>
-    (statusFilter === 'All' || s.status === statusFilter) &&
-    (s.name.toLowerCase().includes(search.toLowerCase()) || s.id.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase()))
-  );
+  const handleQuickAssignCounselor = async (student: StudentItem, counselorName: string) => {
+    try {
+      setIsAssigningCounselor(true);
+      await assignCounselorToStudent(student.id, counselorName);
+      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, counselor: counselorName } : s));
+      if (viewStudent && viewStudent.id === student.id) {
+        setViewStudent({ ...viewStudent, counselor: counselorName });
+      }
+      setCounselorModalStudent(null);
+      showToast(`✅ Assigned ${counselorName} to ${student.name}!`);
+    } catch (err: any) {
+      showToast(`Error assigning counselor: ${err.message || 'Failed'}`);
+    } finally {
+      setIsAssigningCounselor(false);
+    }
+  };
+
+  const filtered = students.filter(s => {
+    const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.id.toLowerCase().includes(search.toLowerCase()) ||
+      s.email.toLowerCase().includes(search.toLowerCase()) ||
+      s.university.toLowerCase().includes(search.toLowerCase()) ||
+      s.targetCountry.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'All' || s.status === statusFilter;
+    const matchCountry = countryFilter === 'All' || s.targetCountry.toLowerCase() === countryFilter.toLowerCase();
+    const matchCounselor = counselorFilter === 'All' || s.counselor.toLowerCase().includes(counselorFilter.toLowerCase());
+    return matchSearch && matchStatus && matchCountry && matchCounselor;
+  });
+
   const pages = Math.ceil(filtered.length / PER_PAGE);
   const paged = filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
+
+  const ALL_DESTINATIONS = ['All', 'Poland', 'Germany', 'United Kingdom', 'France', 'Italy', 'United States', 'Canada', 'Hungary'];
 
   return (
     <div className="space-y-5 relative text-left">
@@ -252,32 +318,82 @@ export const AdminStudents: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Student Directory & Enrollments</h1>
-          <p className="text-xs font-semibold text-slate-400 mt-0.5">{students.length} total students enrolled</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <GraduationCap className="w-6 h-6 text-[#6A1B2E]" /> Student Directory & Enrollments
+            </h1>
+            <span className="text-[10px] font-extrabold bg-[#6A1B2E]/10 text-[#6A1B2E] px-2.5 py-0.5 rounded-full border border-[#6A1B2E]/20">
+              Multi-Country CRM
+            </span>
+          </div>
+          <p className="text-xs font-semibold text-slate-500 mt-1">
+            Global Student Applications • Destination Routing, Auto Counselor Assignment, Document Audit & NAWA/APS Legalization.
+          </p>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 h-9.5 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] active:scale-98 transition-all shadow-md shadow-[#6A1B2E]/20 cursor-pointer"
-        >
-          <UserPlus className="w-4 h-4" /> Add Student
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 h-9.5 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] active:scale-98 transition-all shadow-md shadow-[#6A1B2E]/20 cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" /> Add Student
+          </button>
+        </div>
       </div>
 
-      {/* Search + Filter Header */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      {/* Multi-Country Destination Filter Bar */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
+          <Globe className="w-3.5 h-3.5 text-[#6A1B2E]" /> Destination:
+        </span>
+        {ALL_DESTINATIONS.map(c => {
+          const flag = COUNTRY_FLAGS[c]?.flag || '🌍';
+          const isActive = countryFilter === c;
+          return (
+            <button
+              key={c}
+              onClick={() => { setCountryFilter(c); setCurrentPage(1); }}
+              className={`h-8 px-3 rounded-xl text-xs font-bold shrink-0 transition-all flex items-center gap-1.5 ${
+                isActive
+                  ? 'bg-[#6A1B2E] text-white shadow-xs'
+                  : 'bg-white border border-slate-200/80 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <span>{flag}</span>
+              <span>{c === 'United Kingdom' ? 'UK' : c === 'United States' ? 'USA' : c}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search + Counselor + Status Filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+        <div className="sm:col-span-6 relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-            placeholder="Search by name, ID or email..."
+            placeholder="Search by student name, ID, email, destination or university..."
             className="w-full h-10 pl-9.5 pr-4 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#6A1B2E]/40 focus:ring-4 focus:ring-[#6A1B2E]/5 transition-all shadow-xs"
           />
         </div>
-        <div className="flex gap-1.5">
-          {['All', 'Active', 'Pending', 'Inactive'].map(f => (
+
+        <div className="sm:col-span-3">
+          <select
+            value={counselorFilter}
+            onChange={(e) => { setCounselorFilter(e.target.value); setCurrentPage(1); }}
+            className="w-full h-10 px-3 bg-white border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+          >
+            <option value="All">All Counselors (Roster)</option>
+            {DEFAULT_COUNSELOR_ROSTER.map(c => (
+              <option key={c.id} value={c.name}>{c.name} ({c.country})</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="sm:col-span-3 flex gap-1.5">
+          {['All', 'Active', 'Pending'].map(f => (
             <button key={f} onClick={() => { setStatusFilter(f); setCurrentPage(1); }}
-              className={`h-10 px-4 rounded-xl text-xs font-bold border transition-all duration-150 active:scale-98 ${statusFilter === f ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-sm shadow-[#6A1B2E]/20' : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'}`}>
+              className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all duration-150 active:scale-98 ${statusFilter === f ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-sm shadow-[#6A1B2E]/20' : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'}`}>
               {f}
             </button>
           ))}
@@ -286,27 +402,27 @@ export const AdminStudents: React.FC = () => {
 
       {/* Table */}
       <div className="bg-white border border-slate-200/70 rounded-2xl shadow-xs overflow-hidden">
-        <table className="w-full text-xs min-w-[700px]">
+        <table className="w-full text-xs min-w-[760px]">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/60 text-slate-400 uppercase text-[9.5px] font-extrabold tracking-wider">
               <th className="text-left px-5 py-3">Student Name</th>
               <th className="text-left px-4 py-3">Contact</th>
-              <th className="text-left px-4 py-3">Target University</th>
+              <th className="text-left px-4 py-3">Target Country & University</th>
               <th className="text-left px-4 py-3">Status</th>
-              <th className="text-left px-4 py-3">Counselor</th>
+              <th className="text-left px-4 py-3">Assigned Counselor</th>
               <th className="text-left px-4 py-3">Joined</th>
               <th className="text-right px-5 py-3">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
             {paged.length === 0 ? (
-              <tr><td colSpan={7} className="py-8 text-center text-slate-400 font-bold">No students found.</td></tr>
+              <tr><td colSpan={7} className="py-8 text-center text-slate-400 font-bold">No students match your filter.</td></tr>
             ) : (
               paged.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#6A1B2E] text-white flex items-center justify-center font-extrabold text-xs shadow-2xs">
+                      <div className="w-8 h-8 rounded-full bg-[#6A1B2E] text-white flex items-center justify-center font-black text-xs shadow-2xs">
                         {s.name[0]?.toUpperCase() || 'S'}
                       </div>
                       <div>
@@ -320,18 +436,44 @@ export const AdminStudents: React.FC = () => {
                     <p className="text-[10px] font-semibold text-slate-400">{s.phone}</p>
                   </td>
                   <td className="px-4 py-3.5">
-                    <p className="font-extrabold text-slate-800">{s.university}</p>
-                    <p className="text-[10px] font-semibold text-slate-400">{s.course}</p>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-sm">{s.targetFlag}</span>
+                      <span className="font-black text-slate-900">{s.targetCountry}</span>
+                      <span className="text-[9px] font-extrabold bg-blue-50 text-blue-700 px-1.5 py-0.2 rounded border border-blue-200">
+                        {s.workflowAuthority}
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-600 truncate max-w-[200px]">{s.university}</p>
+                    <p className="text-[9.5px] font-semibold text-slate-400 truncate max-w-[200px]">{s.course}</p>
                   </td>
                   <td className="px-4 py-3.5">
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${s.statusColor}`}>
                       {s.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-slate-600 font-bold">{s.counselor}</td>
+                  <td className="px-4 py-3.5">
+                    <div
+                      onClick={() => { setCounselorModalStudent(s); setSelectedCounselorToAssign(s.counselor); }}
+                      className="group cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 transition-colors"
+                      title="Click to change or reassign counselor"
+                    >
+                      <Headphones className="w-3 h-3 text-[#6A1B2E]" />
+                      <span className="text-[11px] font-bold text-slate-800 group-hover:text-[#6A1B2E] max-w-[140px] truncate">
+                        {s.counselor.split('(')[0].trim()}
+                      </span>
+                      <span className="text-[9px] font-extrabold text-[#6A1B2E] underline ml-1">Change</span>
+                    </div>
+                  </td>
                   <td className="px-4 py-3.5 text-slate-500 font-semibold">{s.joined}</td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => { setCounselorModalStudent(s); setSelectedCounselorToAssign(s.counselor); }}
+                        title="Assign Counselor"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-rose-50 transition-colors"
+                      >
+                        <UserCheck className="w-3.5 h-3.5" />
+                      </button>
                       <button onClick={() => setViewStudent(s)} title="View Student" className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"><Eye className="w-3.5 h-3.5" /></button>
                       <button onClick={() => { setEditStudent(s); setEditTemp({ ...s }); }} title="Edit Student" className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Edit3 className="w-3.5 h-3.5" /></button>
                       <button onClick={() => setDeleteId(s.id)} title="Delete Student" className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
@@ -614,6 +756,142 @@ export const AdminStudents: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Quick Assign / Reassign Counselor Modal */}
+        {counselorModalStudent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs" onClick={() => setCounselorModalStudent(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-[#6A1B2E] text-white flex items-center justify-center">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Assign Dedicated Counselor</h3>
+                    <p className="text-xs font-semibold text-slate-400">
+                      Student: <span className="text-slate-800 font-bold">{counselorModalStudent.name}</span> ({counselorModalStudent.targetFlag} {counselorModalStudent.targetCountry})
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setCounselorModalStudent(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-700 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-amber-950">Recommended Desk for {counselorModalStudent.targetCountry}</p>
+                      <p className="text-[10px] font-semibold text-amber-700">{getDefaultCounselorForCountry(counselorModalStudent.targetCountry)}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCounselorToAssign(getDefaultCounselorForCountry(counselorModalStudent.targetCountry))}
+                    className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-black cursor-pointer"
+                  >
+                    Select
+                  </button>
+                </div>
+
+                <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                  Available Admissions Counselors & Specialized Desks:
+                </label>
+
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {DEFAULT_COUNSELOR_ROSTER.map(c => {
+                    const counselorVal = `${c.name} (${c.desk})`;
+                    const isSelected = selectedCounselorToAssign.includes(c.name);
+                    return (
+                      <div
+                        key={c.id}
+                        onClick={() => setSelectedCounselorToAssign(counselorVal)}
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-rose-50/70 border-[#6A1B2E] ring-2 ring-[#6A1B2E]/10'
+                            : 'bg-white border-slate-200/80 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
+                            isSelected ? 'bg-[#6A1B2E] text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {c.name[0]}
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-slate-900">{c.name}</p>
+                            <p className="text-[10px] font-bold text-[#6A1B2E]">{c.desk}</p>
+                            <p className="text-[9.5px] font-semibold text-slate-400">{c.role} • {c.email}</p>
+                          </div>
+                        </div>
+
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                          isSelected ? 'border-[#6A1B2E] bg-[#6A1B2E] text-white' : 'border-slate-300'
+                        }`}>
+                          {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {staffMembers.filter(s => !DEFAULT_COUNSELOR_ROSTER.some(d => d.name === s.full_name)).map(s => {
+                    const counselorVal = `${s.full_name || s.email} (${s.department?.split(':')[1] || s.role})`;
+                    const isSelected = selectedCounselorToAssign.includes(s.full_name || s.email);
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={() => setSelectedCounselorToAssign(counselorVal)}
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-rose-50/70 border-[#6A1B2E] ring-2 ring-[#6A1B2E]/10'
+                            : 'bg-white border-slate-200/80 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
+                            isSelected ? 'bg-[#6A1B2E] text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {s.full_name?.[0] || 'S'}
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-slate-900">{s.full_name || s.email}</p>
+                            <p className="text-[10px] font-bold text-[#6A1B2E]">{s.department || s.role}</p>
+                          </div>
+                        </div>
+
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                          isSelected ? 'border-[#6A1B2E] bg-[#6A1B2E] text-white' : 'border-slate-300'
+                        }`}>
+                          {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setCounselorModalStudent(null)}
+                  className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedCounselorToAssign || isAssigningCounselor}
+                  onClick={() => handleQuickAssignCounselor(counselorModalStudent, selectedCounselorToAssign)}
+                  className="h-9 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  {isAssigningCounselor ? 'Assigning...' : 'Assign & Notify Student'}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
