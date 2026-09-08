@@ -45,7 +45,7 @@ export type CountryItem = DestinationItem;
 
 export const AdminUniversities: React.FC = () => {
   const { universities, loading, addUniversity, updateUniversity, removeUniversity, clearAll: clearAllUniversitiesData, refresh } = useUniversities();
-  const { destinations: countryList, loading: loadingDestinations, addDestination, editDestination, removeDestination, clearAll: clearAllDestinationsData, refresh: refreshDestinations } = useDestinations();
+  const { destinations: countryList, addDestination, removeDestination, clearAll: clearAllDestinationsData, refresh: refreshDestinations } = useDestinations();
   const { config } = useFeeConfig();
 
   // Top view tab: 'universities' or 'countries'
