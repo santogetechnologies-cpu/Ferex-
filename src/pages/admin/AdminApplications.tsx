@@ -760,8 +760,9 @@ startxref
                   </div>
                 </td>
               </tr>
-            ))}
-            {filtered.length === 0 && (
+            );
+          })}
+          {filtered.length === 0 && (
               <tr>
                 <td colSpan={7} className="py-16 text-center">
                   <div className="max-w-md mx-auto space-y-3">
