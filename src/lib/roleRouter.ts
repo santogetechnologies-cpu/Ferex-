@@ -73,41 +73,81 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
   if (role) {
     const cleanRole = role.toLowerCase().trim().replace(/[\s-]+/g, '_');
     if (
+      cleanRole === 'education_admin' ||
+      cleanRole === 'education' ||
+      cleanRole === 'trade_admin' ||
+      cleanRole === 'trade' ||
+      cleanRole === 'global_trade' ||
+      cleanRole === 'rimi_admin' ||
+      cleanRole === 'rimi' ||
+      cleanRole === 'rimi_frozen' ||
+      cleanRole === 'digital_admin' ||
+      cleanRole === 'digital' ||
+      cleanRole === 'ferex_digital' ||
+      cleanRole === 'staff' ||
+      cleanRole === 'counselor' ||
+      cleanRole === 'student' ||
+      cleanRole === 'trade_client' ||
+      cleanRole === 'rimi_client' ||
+      cleanRole === 'digital_client'
+    ) {
+      return false;
+    }
+
+    if (
       cleanRole === 'superadmin' ||
       cleanRole === 'super_admin' ||
-      cleanRole === 'central' ||
-      cleanRole === 'admin'
+      cleanRole === 'central'
     ) {
       return true;
     }
   }
+
   if (email) {
     const cleanEmail = email.toLowerCase().trim();
+
     if (
-      cleanEmail.includes('admin') ||
-      cleanEmail.includes('super') ||
-      cleanEmail.includes('central') ||
-      cleanEmail.endsWith('@santoge.com') ||
-      cleanEmail.endsWith('@ferex.com') ||
-      cleanEmail.endsWith('@ferexventures.com')
+      cleanEmail.includes('ferexedu') ||
+      cleanEmail.includes('eduadmin') ||
+      cleanEmail.includes('education_admin') ||
+      cleanEmail.includes('ferextrade') ||
+      cleanEmail.includes('tradeadmin') ||
+      cleanEmail.includes('trade_admin') ||
+      cleanEmail.includes('ferexrimi') ||
+      cleanEmail.includes('rimiadmin') ||
+      cleanEmail.includes('rimi_admin') ||
+      cleanEmail.includes('ferexdigital') ||
+      cleanEmail.includes('digitaladmin') ||
+      cleanEmail.includes('digital_admin')
     ) {
-      const cleanRole = role ? role.toLowerCase().trim().replace(/[\s-]+/g, '_') : '';
-      if (
-        cleanRole !== 'student' &&
-        cleanRole !== 'trade_client' &&
-        cleanRole !== 'rimi_client' &&
-        cleanRole !== 'digital_client' &&
-        cleanRole !== 'education_admin' &&
-        cleanRole !== 'education' &&
-        cleanRole !== 'staff' &&
-        cleanRole !== 'counselor'
-      ) {
-        return true;
-      }
+      return false;
+    }
+
+    if (
+      cleanEmail.includes('superadmin') ||
+      cleanEmail.includes('super_admin') ||
+      cleanEmail.includes('super-admin') ||
+      cleanEmail.includes('ferexadmin') ||
+      cleanEmail.includes('central') ||
+      cleanEmail === 'admin@ferex.com' ||
+      cleanEmail === 'admin@ferexventures.com' ||
+      cleanEmail === 'admin@santoge.com'
+    ) {
+      return true;
+    }
+
+    if (cleanEmail.includes('admin') && !cleanEmail.includes('edu') && !cleanEmail.includes('trade') && !cleanEmail.includes('rimi') && !cleanEmail.includes('digital')) {
+      return true;
     }
   }
+
+  if (role && role.toLowerCase().trim() === 'admin') {
+    return true;
+  }
+
   return false;
 }
+
 
 
 export function normalizeRole(role?: string | null, email?: string | null): string {

@@ -126,6 +126,21 @@ export const CentralAdmins: React.FC = () => {
   const loadAdmins = useCallback(async () => {
     setLoading(true);
     try {
+      // 1. Purge legacy fake counselor mock accounts from local credentials
+      const FAKE_MOCK_EMAILS = [
+        'maria.kowalska@ferex.com',
+        'aarav.sharma@ferex.com',
+        'elena.vance@ferex.com',
+        'sneha.reddy@ferex.com',
+        'vikram.malhotra@ferex.com',
+      ];
+      FAKE_MOCK_EMAILS.forEach(em => {
+        try {
+          localStorage.removeItem(`ferex_admin_cred_${em}`);
+        } catch {}
+      });
+
+      // 2. Fetch all real active administrative accounts directly from Supabase
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -138,59 +153,51 @@ export const CentralAdmins: React.FC = () => {
 
       const list: AdminAccount[] = [];
 
-      (data || []).forEach((u: any) => {
-        const isSuper = isSuperAdmin(u.role, u.email);
-        const cleanRole = isSuper ? 'superadmin' : (u.role || 'education_admin').toLowerCase().trim();
-        const cfg = DIVISION_CONFIG[cleanRole] || (isSuper ? DIVISION_CONFIG.superadmin : DIVISION_CONFIG.education_admin);
+      (data || [])
+        .filter((u: any) => !FAKE_MOCK_EMAILS.includes((u.email || '').toLowerCase().trim()))
+        .forEach((u: any) => {
+          let cleanRole = (u.role || '').toLowerCase().trim();
+          const cleanEmail = (u.email || '').toLowerCase().trim();
 
-        // Check if there are cached credentials saved locally by Super Admin for password quick copy
-        let savedPass: string | undefined = undefined;
-        try {
-          const localCred = localStorage.getItem(`ferex_admin_cred_${u.email.toLowerCase()}`);
-          if (localCred) {
-            savedPass = JSON.parse(localCred).password;
+          if (isSuperAdmin(u.role, u.email)) {
+            cleanRole = 'superadmin';
+          } else if (cleanEmail.includes('ferexedu') || cleanRole === 'education' || cleanRole === 'education_admin') {
+            cleanRole = 'education_admin';
+          } else if (cleanEmail.includes('ferextrade') || cleanRole === 'trade' || cleanRole === 'trade_admin') {
+            cleanRole = 'trade_admin';
+          } else if (cleanEmail.includes('ferexrimi') || cleanRole === 'rimi' || cleanRole === 'rimi_admin') {
+            cleanRole = 'rimi_admin';
+          } else if (cleanEmail.includes('ferexdigital') || cleanRole === 'digital' || cleanRole === 'digital_admin') {
+            cleanRole = 'digital_admin';
+          } else if (!cleanRole || cleanRole === 'admin') {
+            cleanRole = 'superadmin';
           }
-        } catch {}
 
-        list.push({
-          id: u.id,
-          name: u.full_name || u.email.split('@')[0],
-          email: u.email,
-          role: cleanRole,
-          division: cleanRole,
-          divisionLabel: cfg.label,
-          targetRoute: cfg.route,
-          status: 'Active',
-          password: savedPass,
-          created_at: u.created_at || new Date().toISOString(),
-          initials: (u.full_name || u.email || 'AD').slice(0, 2).toUpperCase(),
+          const cfg = DIVISION_CONFIG[cleanRole] || (cleanRole === 'superadmin' ? DIVISION_CONFIG.superadmin : DIVISION_CONFIG.education_admin);
+
+          // Check if there are cached credentials saved locally by Super Admin for password quick copy
+          let savedPass: string | undefined = undefined;
+          try {
+            const localCred = localStorage.getItem(`ferex_admin_cred_${(u.email || '').toLowerCase()}`);
+            if (localCred) {
+              savedPass = JSON.parse(localCred).password;
+            }
+          } catch {}
+
+          list.push({
+            id: u.id,
+            name: u.full_name || (u.email || '').split('@')[0],
+            email: u.email,
+            role: cleanRole,
+            division: cleanRole,
+            divisionLabel: cfg.label,
+            targetRoute: cfg.route,
+            status: 'Active',
+            password: savedPass,
+            created_at: u.created_at || new Date().toISOString(),
+            initials: (u.full_name || u.email || 'AD').slice(0, 2).toUpperCase(),
+          });
         });
-      });
-
-      // Also append any locally provisioned admin credentials if not yet synced in DB
-      const localKeys = Object.keys(localStorage).filter(k => k.startsWith('ferex_admin_cred_'));
-      localKeys.forEach(k => {
-        try {
-          const item = JSON.parse(localStorage.getItem(k) || '{}');
-          if (item.email && !list.some(l => l.email.toLowerCase() === item.email.toLowerCase())) {
-            const cleanRole = (item.role || 'education_admin').toLowerCase().trim();
-            const cfg = DIVISION_CONFIG[cleanRole] || DIVISION_CONFIG.education_admin;
-            list.push({
-              id: `loc_${item.email}`,
-              name: item.fullName || item.email.split('@')[0],
-              email: item.email,
-              role: cleanRole,
-              division: cleanRole,
-              divisionLabel: cfg.label,
-              targetRoute: cfg.route,
-              status: 'Active',
-              password: item.password,
-              created_at: item.created_at || new Date().toISOString(),
-              initials: (item.fullName || item.email).slice(0, 2).toUpperCase(),
-            });
-          }
-        } catch {}
-      });
 
       setAdminList(list);
     } catch (err) {
@@ -348,20 +355,21 @@ export const CentralAdmins: React.FC = () => {
       </div>
 
       {/* Division KPI Overview Cards - Live Realtime Counts */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
         {[
-          { label: 'Education Admins', count: adminList.filter(a => a.role === 'education_admin' || a.role === 'education').length, icon: GraduationCap, color: 'text-rose-600 bg-rose-50' },
-          { label: 'Global Trade Admins', count: adminList.filter(a => a.role === 'trade' || a.role === 'trade_admin').length, icon: Globe, color: 'text-indigo-600 bg-indigo-50' },
-          { label: 'Rimi Frozen Admins', count: adminList.filter(a => a.role === 'rimi' || a.role === 'rimi_admin').length, icon: Snowflake, color: 'text-cyan-600 bg-cyan-50' },
-          { label: 'Digital Agency Admins', count: adminList.filter(a => a.role === 'digital' || a.role === 'digital_admin').length, icon: Monitor, color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'Super Admins', count: adminList.filter(a => a.role === 'superadmin').length, icon: Crown, color: 'text-amber-600 bg-amber-50 border-amber-200' },
+          { label: 'Education Admins', count: adminList.filter(a => a.role === 'education_admin' || a.role === 'education').length, icon: GraduationCap, color: 'text-rose-600 bg-rose-50 border-rose-200' },
+          { label: 'Global Trade Admins', count: adminList.filter(a => a.role === 'trade_admin' || a.role === 'trade').length, icon: Globe, color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
+          { label: 'Rimi Frozen Admins', count: adminList.filter(a => a.role === 'rimi_admin' || a.role === 'rimi').length, icon: Snowflake, color: 'text-cyan-600 bg-cyan-50 border-cyan-200' },
+          { label: 'Digital Admins', count: adminList.filter(a => a.role === 'digital_admin' || a.role === 'digital').length, icon: Monitor, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
         ].map((card, idx) => (
-          <Card key={idx} className="p-4 border border-slate-200/80 flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl ${card.color} flex items-center justify-center shrink-0`}>
-              <card.icon className="w-5 h-5" />
+          <Card key={idx} className="p-3.5 border border-slate-200/80 flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-xl ${card.color} border flex items-center justify-center shrink-0`}>
+              <card.icon className="w-4.5 h-4.5" />
             </div>
             <div>
-              <p className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">{card.label}</p>
-              <p className="text-xl font-black text-slate-900 leading-tight">{card.count}</p>
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{card.label}</p>
+              <p className="text-lg font-black text-slate-900 leading-tight">{card.count}</p>
             </div>
           </Card>
         ))}

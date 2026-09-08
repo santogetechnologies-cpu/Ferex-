@@ -67,7 +67,6 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
       title: 'ADMIN & GOVERNANCE',
       items: [
         { name: 'Division Admins', path: '/central/admins', icon: UserCheck, badge: 'Staff' },
-        { name: 'Roles & Privileges', path: '/central/roles', icon: ShieldCheck, badge: 'RBAC' },
         { name: 'Audit & Activity Log', path: '/central/activity', icon: Activity, badge: 'Realtime' },
         { name: 'System Settings', path: '/central/settings', icon: Settings, badge: 'Config' },
       ]
@@ -386,15 +385,6 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
                       className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
                     >
                       <ShieldCheck className="w-3.5 h-3.5 text-[#6A1B2E]" /> Manage Division Admins
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileDropdown(false);
-                        navigate('/central/roles');
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
-                    >
-                      <UserCheck className="w-3.5 h-3.5 text-slate-500" /> Roles & Privileges
                     </button>
                     <div className="my-1 border-t border-slate-100" />
                     <button

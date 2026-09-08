@@ -382,12 +382,6 @@ export const CentralDashboard: React.FC = () => {
                 <ShieldCheck className="w-4 h-4 text-[#6A1B2E]" /> Division Admins
               </button>
 
-              <button
-                onClick={() => navigate('/central/roles')}
-                className="h-9.5 px-4 rounded-xl text-xs font-black text-white bg-white/15 hover:bg-white/25 border border-white/30 transition-all shadow-xs flex items-center gap-1.5 active:scale-98 cursor-pointer"
-              >
-                <UserCheck className="w-4 h-4 text-white" /> Roles & Privileges
-              </button>
 
               <button
                 onClick={handleRefreshSync}
@@ -891,10 +885,10 @@ export const CentralDashboard: React.FC = () => {
 
             <div className="pt-4 border-t border-slate-100 mt-4">
               <button
-                onClick={() => navigate('/central/roles')}
+                onClick={() => navigate('/central/admins')}
                 className="w-full h-8.5 rounded-xl border border-slate-200 hover:border-slate-300 text-xs font-black text-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <UserCheck className="w-3.5 h-3.5 text-[#6A1B2E]" /> Inspect 4-App Permissions Matrix
+                <ShieldCheck className="w-3.5 h-3.5 text-[#6A1B2E]" /> Manage Universal Division Admins
               </button>
             </div>
           </Card>
