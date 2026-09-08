@@ -90,7 +90,7 @@ export const INITIAL_COUNTRIES: CountryItem[] = [
 ];
 
 export const AdminUniversities: React.FC = () => {
-  const { universities, loading, addUniversity, updateUniversity, removeUniversity } = useUniversities();
+  const { universities, loading, addUniversity, updateUniversity, removeUniversity, resetToDefaults } = useUniversities();
   const { config } = useFeeConfig();
 
   // Top view tab: 'universities' or 'countries'
@@ -125,7 +125,7 @@ export const AdminUniversities: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewUniversity, setViewUniversity] = useState<University | null>(null);
   const [toast, setToast] = useState('');
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<University | null>(null);
 
   // Modal active tab for university form
   const [activeFormTab, setActiveFormTab] = useState<'general' | 'courses' | 'fees' | 'installments' | 'semesters'>('general');
@@ -482,11 +482,12 @@ export const AdminUniversities: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
     try {
-      await removeUniversity(deleteId);
-      setDeleteId(null);
-      showToast('University removed from portal and landing page.');
+      await removeUniversity(target.id, target.name);
+      showToast(`"${target.name}" removed from catalog.`);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to remove university'}`);
     }
@@ -535,6 +536,20 @@ export const AdminUniversities: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {universities.length < 9 && (
+            <button
+              onClick={async () => {
+                if (window.confirm('Restore default European partner universities to the catalog?')) {
+                  await resetToDefaults();
+                  showToast('Baseline universities restored to catalog.');
+                }
+              }}
+              className="flex items-center gap-1.5 h-9.5 px-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-all cursor-pointer border border-slate-200"
+              title="Restore baseline universities"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-slate-500" /> Restore Defaults
+            </button>
+          )}
           <button
             onClick={() => setShowAddCountryModal(true)}
             className="flex items-center gap-1.5 h-9.5 px-3.5 bg-slate-900 rounded-xl text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
@@ -688,7 +703,7 @@ export const AdminUniversities: React.FC = () => {
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => setDeleteId(u.id)}
+                              onClick={() => setDeleteTarget(u)}
                               title="Delete University"
                               className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                             >
@@ -1441,22 +1456,25 @@ export const AdminUniversities: React.FC = () => {
 
       {/* DELETE UNIVERSITY CONFIRMATION */}
       <AnimatePresence>
-        {deleteId && (
+        {deleteTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50" onClick={() => setDeleteId(null)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setDeleteTarget(null)} />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
                   <Trash2 className="w-5 h-5 text-red-500" />
                 </div>
-                <h3 className="text-sm font-extrabold text-slate-900">Remove University?</h3>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900">Remove University?</h3>
+                  <p className="text-xs font-bold text-slate-700 line-clamp-1">{deleteTarget.name}</p>
+                </div>
               </div>
               <p className="text-xs font-semibold text-slate-500 mb-5">
-                This will remove this university from both the portal and public views.
+                This will remove <strong className="text-slate-800">{deleteTarget.name}</strong> ({deleteTarget.city ? `${deleteTarget.city}, ` : ''}{deleteTarget.country}) from the portal and student view.
               </p>
               <div className="flex gap-3">
-                <button onClick={() => setDeleteId(null)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
-                <button onClick={handleDelete} className="flex-1 h-9 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700">Delete</button>
+                <button onClick={() => setDeleteTarget(null)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
+                <button onClick={handleDelete} className="flex-1 h-9 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 transition-all shadow-md shadow-red-600/20 cursor-pointer">Delete</button>
               </div>
             </motion.div>
           </div>

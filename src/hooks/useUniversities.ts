@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getUniversities, createUniversity, updateUniversityRecord, deleteUniversity } from '../lib/api/universities';
+import { getUniversities, createUniversity, updateUniversityRecord, deleteUniversity, restoreDefaultUniversities } from '../lib/api/universities';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../lib/types';
 
 export function useUniversities() {
@@ -7,17 +7,17 @@ export function useUniversities() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUniversities = useCallback(async () => {
+  const fetchUniversities = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       const data = await getUniversities();
       setUniversities(data || []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch universities');
-      setUniversities([]);
+      if (!silent) setUniversities([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -25,7 +25,7 @@ export function useUniversities() {
     fetchUniversities();
 
     const handleDataChange = () => {
-      fetchUniversities();
+      fetchUniversities(true);
     };
 
     window.addEventListener('ferex_university_change', handleDataChange);
@@ -70,10 +70,36 @@ export function useUniversities() {
     return updated;
   };
 
-  const removeUniversity = async (id: string) => {
-    await deleteUniversity(id);
-    setUniversities(prev => prev.filter(u => u.id !== id));
+  const removeUniversity = async (id: string, name?: string) => {
+    const target = universities.find(u => u.id === id);
+    const resolvedName = name || target?.name;
+
+    // Instant optimistic update so count and grid update immediately
+    setUniversities(prev => prev.filter(u => {
+      if (u.id === id) return false;
+      if (resolvedName && u.name.trim().toLowerCase() === resolvedName.trim().toLowerCase()) return false;
+      return true;
+    }));
+
+    await deleteUniversity(id, resolvedName);
   };
 
-  return { universities, loading, error, refresh: fetchUniversities, addUniversity, updateUniversity, removeUniversity };
+  const resetToDefaults = async () => {
+    setLoading(true);
+    const restored = await restoreDefaultUniversities();
+    setUniversities(restored);
+    setLoading(false);
+  };
+
+  return {
+    universities,
+    loading,
+    error,
+    refresh: fetchUniversities,
+    addUniversity,
+    updateUniversity,
+    removeUniversity,
+    resetToDefaults
+  };
 }
+

@@ -244,15 +244,37 @@ export const BASELINE_UNIVERSITIES: University[] = [
 ];
 
 // Helper to get deleted IDs
-function getDeletedUniversityIds(): string[] {
+export function getDeletedUniversityIds(): string[] {
   try {
     const raw = localStorage.getItem('ferex_deleted_university_ids');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        return parsed.filter(x => typeof x === 'string' && x.trim().length > 0);
+      }
     }
   } catch {}
   return [];
+}
+
+export function isDeletedUniversity(
+  u: { id?: string; name?: string } | null | undefined,
+  deletedList: string[]
+): boolean {
+  if (!u) return true;
+  const uid = (u.id || '').trim().toLowerCase();
+  const uname = (u.name || '').trim().toLowerCase();
+  const cleanUname = uname.replace(/[^a-z0-9]/g, '');
+
+  return deletedList.some(item => {
+    if (!item) return false;
+    const norm = item.trim().toLowerCase();
+    if (uid && norm === uid) return true;
+    if (uname && norm === uname) return true;
+    const cleanNorm = norm.replace(/[^a-z0-9]/g, '');
+    if (cleanUname && cleanNorm && cleanUname === cleanNorm) return true;
+    return false;
+  });
 }
 
 function getCustomUniversities(): University[] {
@@ -293,14 +315,14 @@ export async function getUniversities(): Promise<University[]> {
   const merged: University[] = [];
 
   for (const u of customUnis) {
-    if (!u || !u.id || deletedIds.includes(u.id) || deletedIds.includes(u.name)) continue;
+    if (!u || !u.id || isDeletedUniversity(u, deletedIds)) continue;
     seenIds.add(u.id);
     seenNames.add(u.name.toLowerCase().trim());
     merged.push(u);
   }
 
   for (const u of basePool) {
-    if (!u || !u.id || deletedIds.includes(u.id) || deletedIds.includes(u.name)) continue;
+    if (!u || !u.id || isDeletedUniversity(u, deletedIds)) continue;
     const nameKey = (u.name || '').toLowerCase().trim();
     if (seenIds.has(u.id) || seenNames.has(nameKey)) continue;
     seenIds.add(u.id);
@@ -455,47 +477,121 @@ export async function updateUniversityRecord(id: string, payload: Partial<Univer
   return updatedObj;
 }
 
-export async function deleteUniversity(id: string) {
-  // 1. Record ID and name in deleted tracking so it never resurrects
-  try {
-    const deletedIds = getDeletedUniversityIds();
-    let uniName = '';
-    const local = localStorage.getItem('ferex_local_universities');
-    if (local) {
-      const parsed = JSON.parse(local);
-      const found = parsed.find((u: any) => u.id === id);
-      if (found) uniName = found.name;
+export async function deleteUniversity(id: string, name?: string) {
+  const toDelete = new Set<string>();
+
+  if (id && typeof id === 'string' && id.trim()) {
+    toDelete.add(id.trim());
+    toDelete.add(id.trim().toLowerCase());
+  }
+
+  if (name && typeof name === 'string' && name.trim()) {
+    toDelete.add(name.trim());
+    toDelete.add(name.trim().toLowerCase());
+  }
+
+  // 1. Search in BASELINE_UNIVERSITIES for any match to ensure both UUID and name are captured
+  for (const b of BASELINE_UNIVERSITIES) {
+    const bIdMatch = id && (b.id === id || b.id.toLowerCase() === id.toLowerCase());
+    const bNameMatch = name && b.name.toLowerCase().trim() === name.toLowerCase().trim();
+    if (bIdMatch || bNameMatch) {
+      toDelete.add(b.id);
+      toDelete.add(b.id.toLowerCase());
+      toDelete.add(b.name);
+      toDelete.add(b.name.toLowerCase().trim());
     }
-    const updatedDeleted = Array.from(new Set([...deletedIds, id, uniName].filter(Boolean)));
-    localStorage.setItem('ferex_deleted_university_ids', JSON.stringify(updatedDeleted));
-  } catch {}
+  }
 
-  // 2. Remove from custom universities
-  try {
-    const customList = getCustomUniversities().filter(u => u.id !== id);
-    localStorage.setItem('ferex_custom_universities', JSON.stringify(customList));
-  } catch {}
-
-  // 3. Remove from local universities cache
+  // 2. Search in local universities cache
   try {
     const local = localStorage.getItem('ferex_local_universities');
     if (local) {
       const parsed: University[] = JSON.parse(local);
-      const filtered = parsed.filter(u => u.id !== id);
-      localStorage.setItem('ferex_local_universities', JSON.stringify(filtered));
+      if (Array.isArray(parsed)) {
+        for (const u of parsed) {
+          const uIdMatch = id && (u.id === id || u.id.toLowerCase() === id.toLowerCase());
+          const uNameMatch = name && u.name.toLowerCase().trim() === name.toLowerCase().trim();
+          if (uIdMatch || uNameMatch) {
+            toDelete.add(u.id);
+            toDelete.add(u.id.toLowerCase());
+            toDelete.add(u.name);
+            toDelete.add(u.name.toLowerCase().trim());
+          }
+        }
+      }
     }
   } catch {}
 
-  // 4. Attempt Supabase Delete if valid UUID
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  if (isUuid) {
-    try {
-      await supabase.from('universities').delete().eq('id', id);
-    } catch (err) {
-      console.warn('[deleteUniversity Supabase Error]:', err);
+  // 3. Search in custom universities
+  try {
+    const customUnis = getCustomUniversities();
+    for (const u of customUnis) {
+      const uIdMatch = id && (u.id === id || u.id.toLowerCase() === id.toLowerCase());
+      const uNameMatch = name && u.name.toLowerCase().trim() === name.toLowerCase().trim();
+      if (uIdMatch || uNameMatch) {
+        toDelete.add(u.id);
+        toDelete.add(u.id.toLowerCase());
+        toDelete.add(u.name);
+        toDelete.add(u.name.toLowerCase().trim());
+      }
     }
-  }
+  } catch {}
 
+  const deleteItems = Array.from(toDelete).filter(Boolean);
+
+  // 4. Persist in deleted tracking so it never resurrects
+  try {
+    const existingDeleted = getDeletedUniversityIds();
+    const updatedDeleted = Array.from(new Set([...existingDeleted, ...deleteItems]));
+    localStorage.setItem('ferex_deleted_university_ids', JSON.stringify(updatedDeleted));
+  } catch {}
+
+  // 5. Remove from custom universities
+  try {
+    const customList = getCustomUniversities().filter(u => !isDeletedUniversity(u, deleteItems));
+    localStorage.setItem('ferex_custom_universities', JSON.stringify(customList));
+  } catch {}
+
+  // 6. Remove from local universities cache immediately
+  try {
+    const local = localStorage.getItem('ferex_local_universities');
+    if (local) {
+      const parsed: University[] = JSON.parse(local);
+      if (Array.isArray(parsed)) {
+        const filtered = parsed.filter(u => !isDeletedUniversity(u, deleteItems));
+        localStorage.setItem('ferex_local_universities', JSON.stringify(filtered));
+      }
+    }
+  } catch {}
+
+  // 7. Delete from Supabase in background (non-blocking, fails gracefully)
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const targetName = name || Array.from(toDelete).find(s => s && isNaN(Number(s)) && !s.includes('-'));
+
+  (async () => {
+    try {
+      if (isUuid) {
+        await supabase.from('universities').delete().eq('id', id);
+      }
+      if (targetName) {
+        await supabase.from('universities').delete().ilike('name', targetName.trim());
+      }
+    } catch (err) {
+      console.warn('[deleteUniversity Supabase Warning]:', err);
+    }
+  })();
+
+  // 8. Broadcast update events
   window.dispatchEvent(new Event('ferex_university_change'));
   window.dispatchEvent(new Event('storage'));
+}
+
+export async function restoreDefaultUniversities(): Promise<University[]> {
+  try {
+    localStorage.removeItem('ferex_deleted_university_ids');
+    localStorage.removeItem('ferex_local_universities');
+  } catch {}
+  window.dispatchEvent(new Event('ferex_university_change'));
+  window.dispatchEvent(new Event('storage'));
+  return BASELINE_UNIVERSITIES;
 }
