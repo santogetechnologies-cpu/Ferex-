@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getUniversities, createUniversity, updateUniversityRecord, deleteUniversity, restoreDefaultUniversities } from '../lib/api/universities';
+import { getUniversities, createUniversity, updateUniversityRecord, deleteUniversity, restoreDefaultUniversities, clearAllUniversities } from '../lib/api/universities';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../lib/types';
 
 export function useUniversities() {
@@ -84,6 +84,11 @@ export function useUniversities() {
     await deleteUniversity(id, resolvedName);
   };
 
+  const clearAll = async () => {
+    setUniversities([]);
+    await clearAllUniversities();
+  };
+
   const resetToDefaults = async () => {
     setLoading(true);
     const restored = await restoreDefaultUniversities();
@@ -99,6 +104,7 @@ export function useUniversities() {
     addUniversity,
     updateUniversity,
     removeUniversity,
+    clearAll,
     resetToDefaults
   };
 }

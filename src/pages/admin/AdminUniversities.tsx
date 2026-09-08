@@ -5,9 +5,11 @@ import {
   Calendar, Eye, Globe, Upload, Image as ImageIcon, RefreshCw
 } from 'lucide-react';
 import { useUniversities } from '../../hooks/useUniversities';
+import { useDestinations } from '../../hooks/useDestinations';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
 import { uploadFileToBucket } from '../../lib/storage';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../../lib/types';
+import type { DestinationItem } from '../../lib/api/destinations';
 
 export function formatFeeEURandINR(feeStr?: string): string {
   if (!feeStr || feeStr === 'N/A' || feeStr === '—') return '—';
@@ -39,74 +41,15 @@ export function formatFeeEURandINR(feeStr?: string): string {
   return `€${amount.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
 }
 
-export interface CountryItem {
-  name: string;
-  code: string;
-  flag: string;
-  currency: string;
-  authority: string;
-  acronym: string;
-  processing: string;
-  fee: string;
-  isCustom?: boolean;
-}
-
-export const INITIAL_COUNTRIES: CountryItem[] = [
-  { name: 'Poland', code: 'PL', flag: '🇵🇱', currency: 'EUR', authority: 'NAWA Polish National Agency', acronym: 'NAWA', processing: '15-30 Days', fee: '€50' },
-  { name: 'Germany', code: 'DE', flag: '🇩🇪', currency: 'EUR', authority: 'APS German Academic Evaluation', acronym: 'APS', processing: '30-45 Days', fee: '€100' },
-  { name: 'Italy', code: 'IT', flag: '🇮🇹', currency: 'EUR', authority: 'CIMEA / Universitaly', acronym: 'CIMEA', processing: '20-30 Days', fee: '€80' },
-  { name: 'Czech Republic', code: 'CZ', flag: '🇨🇿', currency: 'EUR', authority: 'Nostrification Council', acronym: 'Nostrification', processing: '20-40 Days', fee: '€60' },
-  { name: 'France', code: 'FR', flag: '🇫🇷', currency: 'EUR', authority: 'Campus France EEF', acronym: 'Campus France', processing: '15-25 Days', fee: '€75' },
-  { name: 'Spain', code: 'ES', flag: '🇪🇸', currency: 'EUR', authority: 'UNEDasiss Accreditation', acronym: 'UNEDasiss', processing: '20-35 Days', fee: '€85' },
-  { name: 'United Kingdom', code: 'GB', flag: '🇬🇧', currency: 'GBP', authority: 'UKVI / CAS Verification', acronym: 'UKVI', processing: '15-20 Days', fee: '£350' },
-  { name: 'United States', code: 'US', flag: '🇺🇸', currency: 'USD', authority: 'SEVIS / I-20 Compliance', acronym: 'SEVIS', processing: '10-20 Days', fee: '$350' },
-  { name: 'Canada', code: 'CA', flag: '🇨🇦', currency: 'CAD', authority: 'IRCC / PAL Attestation', acronym: 'IRCC', processing: '30-60 Days', fee: '$150' },
-  { name: 'Australia', code: 'AU', flag: '🇦🇺', currency: 'AUD', authority: 'PRISMS / CoE Confirmation', acronym: 'PRISMS', processing: '20-40 Days', fee: '$710' },
-  { name: 'Ireland', code: 'IE', flag: '🇮🇪', currency: 'EUR', authority: 'ILEP Academic Approval', acronym: 'ILEP', processing: '20-30 Days', fee: '€60' },
-  { name: 'Netherlands', code: 'NL', flag: '🇳🇱', currency: 'EUR', authority: 'IND Resident Entry Review', acronym: 'IND', processing: '15-30 Days', fee: '€210' },
-  { name: 'Austria', code: 'AT', flag: '🇦🇹', currency: 'EUR', authority: 'Austrian Federal Ministry', acronym: 'BMBWF', processing: '20-35 Days', fee: '€90' },
-  { name: 'Switzerland', code: 'CH', flag: '🇨🇭', currency: 'CHF', authority: 'Swiss Cantonal Authority', acronym: 'SEM', processing: '30-60 Days', fee: 'CHF 150' },
-  { name: 'Sweden', code: 'SE', flag: '🇸🇪', currency: 'SEK', authority: 'Swedish Migration Agency', acronym: 'Migrationsverket', processing: '30-50 Days', fee: 'SEK 1500' },
-  { name: 'Finland', code: 'FI', flag: '🇫🇮', currency: 'EUR', authority: 'Finnish Immigration Service', acronym: 'Migri', processing: '20-40 Days', fee: '€350' },
-  { name: 'Denmark', code: 'DK', flag: '🇩🇰', currency: 'DKK', authority: 'Danish Agency SIRI', acronym: 'SIRI', processing: '25-45 Days', fee: 'DKK 2110' },
-  { name: 'Norway', code: 'NO', flag: '🇳🇴', currency: 'NOK', authority: 'Norwegian UDI Directorate', acronym: 'UDI', processing: '30-60 Days', fee: 'NOK 5900' },
-  { name: 'Hungary', code: 'HU', flag: '🇭🇺', currency: 'EUR', authority: 'Hungarian Educational Authority', acronym: 'OFI', processing: '15-30 Days', fee: '€50' },
-  { name: 'Latvia', code: 'LV', flag: '🇱🇻', currency: 'EUR', authority: 'Academic Information Centre', acronym: 'AIC', processing: '20-30 Days', fee: '€40' },
-  { name: 'Lithuania', code: 'LT', flag: '🇱🇹', currency: 'EUR', authority: 'SKVC Quality Assessment Centre', acronym: 'SKVC', processing: '20-30 Days', fee: '€45' },
-  { name: 'Cyprus', code: 'CY', flag: '🇨🇾', currency: 'EUR', authority: 'Cyprus KYSATS Council', acronym: 'KYSATS', processing: '15-25 Days', fee: '€50' },
-  { name: 'Malta', code: 'MT', flag: '🇲🇹', currency: 'EUR', authority: 'Malta MFHEA Authority', acronym: 'MFHEA', processing: '15-30 Days', fee: '€60' },
-  { name: 'Belgium', code: 'BE', flag: '🇧🇪', currency: 'EUR', authority: 'NARIC Flanders & Wallonia', acronym: 'NARIC', processing: '30-50 Days', fee: '€100' },
-  { name: 'Portugal', code: 'PT', flag: '🇵🇹', currency: 'EUR', authority: 'DGES Higher Education Council', acronym: 'DGES', processing: '20-40 Days', fee: '€55' },
-  { name: 'Greece', code: 'GR', flag: '🇬🇷', currency: 'EUR', authority: 'DOATAP Hellenic NARIC', acronym: 'DOATAP', processing: '25-45 Days', fee: '€65' },
-  { name: 'Romania', code: 'RO', flag: '🇷🇴', currency: 'EUR', authority: 'CNRED Ministry of Education', acronym: 'CNRED', processing: '20-35 Days', fee: '€45' },
-  { name: 'Bulgaria', code: 'BG', flag: '🇧🇬', currency: 'EUR', authority: 'NACID Information Center', acronym: 'NACID', processing: '20-35 Days', fee: '€40' },
-  { name: 'Georgia', code: 'GE', flag: '🇬🇪', currency: 'USD', authority: 'NCEQE National Center', acronym: 'NCEQE', processing: '15-25 Days', fee: '$50' },
-  { name: 'United Arab Emirates', code: 'AE', flag: '🇦🇪', currency: 'AED', authority: 'KHDA / MoE Clearance', acronym: 'KHDA', processing: '10-20 Days', fee: 'AED 500' },
-  { name: 'Singapore', code: 'SG', flag: '🇸🇬', currency: 'SGD', authority: 'ICA Student Pass Division', acronym: 'ICA', processing: '14-21 Days', fee: 'SGD 90' },
-  { name: 'Malaysia', code: 'MY', flag: '🇲🇾', currency: 'MYR', authority: 'Education Malaysia EMGS', acronym: 'EMGS', processing: '20-35 Days', fee: 'MYR 1200' },
-  { name: 'New Zealand', code: 'NZ', flag: '🇳🇿', currency: 'NZD', authority: 'NZQA Qualification Authority', acronym: 'NZQA', processing: '25-45 Days', fee: 'NZD 375' },
-  { name: 'Japan', code: 'JP', flag: '🇯🇵', currency: 'JPY', authority: 'Immigration Services MOFA COE', acronym: 'MOFA', processing: '30-60 Days', fee: '¥4,000' },
-  { name: 'South Korea', code: 'KR', flag: '🇰🇷', currency: 'KRW', authority: 'NIIED National Institute', acronym: 'NIIED', processing: '20-40 Days', fee: '₩60,000' },
-];
+export type CountryItem = DestinationItem;
 
 export const AdminUniversities: React.FC = () => {
-  const { universities, loading, addUniversity, updateUniversity, removeUniversity, refresh } = useUniversities();
+  const { universities, loading, addUniversity, updateUniversity, removeUniversity, clearAll: clearAllUniversitiesData, refresh } = useUniversities();
+  const { destinations: countryList, loading: loadingDestinations, addDestination, editDestination, removeDestination, clearAll: clearAllDestinationsData, refresh: refreshDestinations } = useDestinations();
   const { config } = useFeeConfig();
 
   // Top view tab: 'universities' or 'countries'
   const [activeMainTab, setActiveMainTab] = useState<'universities' | 'countries'>('universities');
-
-  // Country registry state (initial + custom from localStorage)
-  const [countryList, setCountryList] = useState<CountryItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('ferex_registered_countries');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return INITIAL_COUNTRIES;
-  });
 
   // Add Country modal state
   const [showAddCountryModal, setShowAddCountryModal] = useState(false);
@@ -269,50 +212,65 @@ export const AdminUniversities: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleAddCountrySubmit = (e: React.FormEvent) => {
+  const handleAddCountrySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCountryName.trim()) return;
 
     const trimmed = newCountryName.trim();
     if (countryList.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
-      showToast(`Country "${trimmed}" is already registered.`);
+      showToast(`Destination "${trimmed}" is already registered.`);
       return;
     }
 
-    const newCountry: CountryItem = {
-      name: trimmed,
-      code: newCountryCode.trim().toUpperCase() || trimmed.substring(0, 2).toUpperCase(),
-      flag: newCountryFlag.trim() || '🌍',
-      currency: newCountryCurrency.trim() || 'EUR',
-      authority: newCountryAuthority.trim() || `${trimmed} Higher Education Ministry`,
-      acronym: newCountryAcronym.trim() || trimmed.substring(0, 4).toUpperCase(),
-      processing: newCountryProcessing.trim() || '20-30 Days',
-      fee: newCountryFee.trim() || '€50',
-      isCustom: true,
-    };
-
-    const updated = [newCountry, ...countryList];
-    setCountryList(updated);
     try {
-      localStorage.setItem('ferex_registered_countries', JSON.stringify(updated));
-    } catch {}
+      await addDestination({
+        name: trimmed,
+        code: newCountryCode.trim().toUpperCase() || trimmed.substring(0, 2).toUpperCase(),
+        flag: newCountryFlag.trim() || '🌍',
+        currency: newCountryCurrency.trim() || 'EUR',
+        authority: newCountryAuthority.trim() || `${trimmed} Higher Education Ministry`,
+        acronym: newCountryAcronym.trim() || trimmed.substring(0, 4).toUpperCase(),
+        processing: newCountryProcessing.trim() || '15-30 Days',
+        fee: newCountryFee.trim() || '€50',
+        desk: `${trimmed} Desk`,
+        badge: 'Accredited',
+        is_active: true
+      });
 
-    setShowAddCountryModal(false);
-    setNewCountryName('');
-    setNewCountryCode('');
-    setNewCountryAuthority('');
-    setNewCountryAcronym('');
-    showToast(`🎉 Country "${trimmed}" added successfully!`);
+      setShowAddCountryModal(false);
+      setNewCountryName('');
+      setNewCountryCode('');
+      setNewCountryAuthority('');
+      setNewCountryAcronym('');
+      showToast(`🎉 Destination "${trimmed}" registered successfully!`);
+    } catch (err: any) {
+      showToast(`Error: ${err.message || 'Could not register destination'}`);
+    }
   };
 
-  const handleDeleteCountry = (cName: string) => {
-    if (!window.confirm(`Are you sure you want to remove country "${cName}"?`)) return;
-    const updated = countryList.filter(c => c.name !== cName);
-    setCountryList(updated);
+  const handleDeleteCountry = async (id: string, cName: string) => {
+    if (!window.confirm(`Are you sure you want to remove destination "${cName}"?`)) return;
     try {
-      localStorage.setItem('ferex_registered_countries', JSON.stringify(updated));
-    } catch {}
-    showToast(`Country "${cName}" removed.`);
+      await removeDestination(id, cName);
+      showToast(`Destination "${cName}" removed.`);
+    } catch (err: any) {
+      showToast(`Error: ${err.message || 'Could not remove destination'}`);
+    }
+  };
+
+  const handleClearAllData = async () => {
+    if (!window.confirm("⚠️ Clear All University & Destination Data?\n\nThis will purge all universities and destination countries from Supabase and clear local caches for a completely fresh start. Continue?")) {
+      return;
+    }
+    try {
+      await Promise.all([
+        clearAllUniversitiesData(),
+        clearAllDestinationsData()
+      ]);
+      showToast('✨ All university & destination data purged. Clean slate ready.');
+    } catch (err: any) {
+      showToast(`Error: ${err.message || 'Could not purge data'}`);
+    }
   };
 
 
@@ -537,12 +495,19 @@ export const AdminUniversities: React.FC = () => {
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
+            onClick={handleClearAllData}
+            className="flex items-center gap-1.5 h-9.5 px-3 bg-rose-50 hover:bg-rose-100 rounded-xl text-xs font-bold text-rose-700 transition-all cursor-pointer border border-rose-200"
+            title="Clear all mock / test data for fresh setup"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-500" /> Clear All Data
+          </button>
+          <button
             onClick={async () => {
-              await refresh();
-              showToast('University catalog refreshed from database.');
+              await Promise.all([refresh(), refreshDestinations()]);
+              showToast('Catalog refreshed from live database.');
             }}
             className="flex items-center gap-1.5 h-9.5 px-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-all cursor-pointer border border-slate-200"
-            title="Refresh university catalog"
+            title="Refresh catalog"
           >
             <RefreshCw className="w-3.5 h-3.5 text-slate-500" /> Refresh
           </button>
@@ -776,76 +741,92 @@ export const AdminUniversities: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCountries.map((c) => {
-              const count = universities.filter(u => u.country.toLowerCase() === c.name.toLowerCase()).length;
+          {filteredCountries.length === 0 ? (
+            <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
+              <Globe className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-sm font-black text-slate-800">No Destination Countries Registered</h3>
+              <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto mb-4">
+                Register study destination countries with their legalization authorities, currencies, and visa guidelines.
+              </p>
+              <button
+                onClick={() => setShowAddCountryModal(true)}
+                className="px-4 py-2 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221]"
+              >
+                + Register First Destination Country
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredCountries.map((c) => {
+                const count = universities.filter(u => u.country.toLowerCase() === c.name.toLowerCase()).length;
 
-              return (
-                <div key={c.name} className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-2xl">{c.flag}</span>
+                return (
+                  <div key={c.id || c.name} className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-2xl">{c.flag}</span>
+                          <div>
+                            <h3 className="text-sm font-black text-slate-900">{c.name}</h3>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">ISO: {c.code} • {c.currency}</span>
+                          </div>
+                        </div>
+
+                        <span className="px-2 py-0.5 bg-[#6A1B2E]/10 text-[#6A1B2E] rounded-md text-[10px] font-extrabold border border-[#6A1B2E]/20">
+                          {c.acronym}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 text-xs p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <div>
-                          <h3 className="text-sm font-black text-slate-900">{c.name}</h3>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase">ISO: {c.code} • {c.currency}</span>
+                          <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Legalization Authority:</span>
+                          <span className="font-bold text-slate-800 text-xs">{c.authority}</span>
+                        </div>
+                        <div className="flex justify-between pt-1">
+                          <span className="text-slate-500 font-medium">Processing Time:</span>
+                          <span className="font-bold text-emerald-700">{c.processing}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 font-medium">Govt / Legal Fee:</span>
+                          <span className="font-bold text-slate-800">{c.fee}</span>
                         </div>
                       </div>
+                    </div>
 
-                      <span className="px-2 py-0.5 bg-[#6A1B2E]/10 text-[#6A1B2E] rounded-md text-[10px] font-extrabold border border-[#6A1B2E]/20">
-                        {c.acronym}
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between mt-4">
+                      <span className="text-xs font-bold text-slate-600">
+                        {count} {count === 1 ? 'University' : 'Universities'}
                       </span>
-                    </div>
-
-                    <div className="space-y-2 text-xs p-3 bg-slate-50 rounded-xl border border-slate-100">
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Legalization Authority:</span>
-                        <span className="font-bold text-slate-800 text-xs">{c.authority}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setCountryFilter(c.name);
+                            setActiveMainTab('universities');
+                          }}
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors"
+                        >
+                          View Universities
+                        </button>
+                        <button
+                          onClick={() => handleOpenAddModal(c.name)}
+                          className="px-2.5 py-1 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-lg transition-colors"
+                        >
+                          + Add Uni
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCountry(c.id, c.name)}
+                          title="Remove Destination"
+                          className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <div className="flex justify-between pt-1">
-                        <span className="text-slate-500 font-medium">Processing Time:</span>
-                        <span className="font-bold text-emerald-700">{c.processing}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 font-medium">Govt / Legal Fee:</span>
-                        <span className="font-bold text-slate-800">{c.fee}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between mt-4">
-                    <span className="text-xs font-bold text-slate-600">
-                      {count} {count === 1 ? 'University' : 'Universities'}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setCountryFilter(c.name);
-                          setActiveMainTab('universities');
-                        }}
-                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors"
-                      >
-                        View Universities
-                      </button>
-                      <button
-                        onClick={() => handleOpenAddModal(c.name)}
-                        className="px-2.5 py-1 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-lg transition-colors"
-                      >
-                        + Add Uni
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCountry(c.name)}
-                        title="Remove Country"
-                        className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

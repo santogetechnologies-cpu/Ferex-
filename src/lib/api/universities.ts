@@ -347,10 +347,26 @@ export async function deleteUniversity(id: string, name?: string) {
   window.dispatchEvent(new Event('storage'));
 }
 
+export async function clearAllUniversities(): Promise<void> {
+  try {
+    await supabase.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  } catch (err) {
+    console.warn('[clearAllUniversities Supabase Warning]:', err);
+  }
+  try {
+    localStorage.removeItem('ferex_local_universities');
+    localStorage.removeItem('ferex_custom_universities');
+    localStorage.removeItem('ferex_deleted_university_ids');
+  } catch {}
+  window.dispatchEvent(new Event('ferex_university_change'));
+  window.dispatchEvent(new Event('storage'));
+}
+
 export async function restoreDefaultUniversities(): Promise<University[]> {
   try {
     localStorage.removeItem('ferex_deleted_university_ids');
     localStorage.removeItem('ferex_local_universities');
+    localStorage.removeItem('ferex_custom_universities');
   } catch {}
   window.dispatchEvent(new Event('ferex_university_change'));
   window.dispatchEvent(new Event('storage'));

@@ -4,21 +4,12 @@ import { generateUUID } from '../../utils/uuid';
 import { createNotification } from './notifications';
 
 export const DEFAULT_COUNSELOR_ROSTER = [
-  { id: 'c-1', name: 'Dr. Maria Kowalska', role: 'Senior European Admissions Lead', desk: 'Poland & NAWA Desk', email: 'maria.kowalska@ferex.com', country: 'Poland' },
-  { id: 'c-2', name: 'Aarav Sharma', role: 'Senior Admissions Counselor', desk: 'Germany APS & Technical Desk', email: 'aarav.sharma@ferex.com', country: 'Germany' },
-  { id: 'c-3', name: 'Elena Vance', role: 'Admissions Director', desk: 'UK CAS & Ireland Desk', email: 'elena.vance@ferex.com', country: 'United Kingdom' },
-  { id: 'c-4', name: 'Sneha Reddy', role: 'Visa & Compliance Counselor', desk: 'France & Italy Desk', email: 'sneha.reddy@ferex.com', country: 'France' },
-  { id: 'c-5', name: 'Vikram Malhotra', role: 'Global Admissions Head', desk: 'USA & Canada Desk', email: 'vikram.malhotra@ferex.com', country: 'United States' },
+  { id: 'c-1', name: 'Admissions Officer', role: 'European Admissions Lead', desk: 'Admissions Desk', email: 'admissions@ferex.com', country: 'Global' },
 ];
 
 export function getDefaultCounselorForCountry(country?: string): string {
-  if (!country) return `${DEFAULT_COUNSELOR_ROSTER[0].name} (${DEFAULT_COUNSELOR_ROSTER[0].desk})`;
-  const match = DEFAULT_COUNSELOR_ROSTER.find(c =>
-    country.toLowerCase().includes(c.country.toLowerCase()) ||
-    c.country.toLowerCase().includes(country.toLowerCase())
-  );
-  if (match) return `${match.name} (${match.desk})`;
-  return `${DEFAULT_COUNSELOR_ROSTER[0].name} (${DEFAULT_COUNSELOR_ROSTER[0].desk})`;
+  if (!country || country === 'All') return 'Admissions Counselor (Global Desk)';
+  return `Admissions Counselor (${country} Desk)`;
 }
 
 // ─── Get all students (users with role = 'student') ──────────────────────────

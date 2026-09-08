@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Search, MapPin, Award, Sparkles, Heart, X, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUniversities } from '../hooks/useUniversities';
+import { useDestinations } from '../hooks/useDestinations';
 import { useApplications } from '../hooks/useApplications';
 import { usePayments } from '../hooks/usePayments';
 import { useDocuments } from '../hooks/useDocuments';
@@ -13,28 +14,49 @@ import { Card } from '../components/Card';
 import { UnifiedPaymentModal } from '../components/UnifiedPaymentModal';
 import { getDefaultCounselorForCountry } from '../lib/api/students';
 
-const POPULAR_DESTINATIONS = [
-  { country: 'Poland', flag: '🇵🇱', authority: 'NAWA Legalization', desk: 'Poland Desk', badge: 'Fast Track Visa', counselor: 'Dr. Maria Kowalska' },
-  { country: 'Germany', flag: '🇩🇪', authority: 'APS Certificate & Blocked A/c', desk: 'Germany Desk', badge: 'Tuition Free / Low Fee', counselor: 'Aarav Sharma' },
-  { country: 'United Kingdom', flag: '🇬🇧', authority: 'CAS & UKVI Visa', desk: 'UK / Ireland Desk', badge: 'PSW Visa (2 Yrs)', counselor: 'Elena Vance' },
-  { country: 'United States', flag: '🇺🇸', authority: 'I-20 & SEVIS Interview', desk: 'USA / Canada Desk', badge: 'STEM OPT (3 Yrs)', counselor: 'Vikram Malhotra' },
-  { country: 'Canada', flag: '🇨🇦', authority: 'PAL & SDS Visa', desk: 'USA / Canada Desk', badge: 'PGWP Eligible', counselor: 'Vikram Malhotra' },
-  { country: 'France', flag: '🇫🇷', authority: 'Campus France EEF', desk: 'France / Italy Desk', badge: 'Schengen Mobility', counselor: 'Sneha Reddy' },
-  { country: 'Italy', flag: '🇮🇹', authority: 'Universitaly & CIMEA', desk: 'France / Italy Desk', badge: 'Regional Scholarships', counselor: 'Sneha Reddy' },
-  { country: 'Hungary', flag: '🇭🇺', authority: 'EU Direct Admission', desk: 'Central Europe Desk', badge: 'Affordable Living', counselor: 'Dr. Maria Kowalska' },
-  { country: 'Ireland', flag: '🇮🇪', authority: 'ILEP & Stamp 2 Visa', desk: 'UK / Ireland Desk', badge: 'Tech Hub Careers', counselor: 'Elena Vance' },
-  { country: 'Finland', flag: '🇫🇮', authority: 'Study in Finland', desk: 'Nordic Desk', badge: 'Innovation & Tech', counselor: 'Aarav Sharma' },
-];
-
 export const SelectUniversity: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { universities } = useUniversities();
+  const { destinations } = useDestinations();
   const { addApp } = useApplications(user?.id);
   const { payments, refresh: refreshPayments } = usePayments(user?.id);
   const { documents } = useDocuments(user?.id);
   const { getWorkflowForCountry } = useCountryWorkflows();
   const { config } = useFeeConfig();
+
+  // Active destinations from database + countries present in universities
+  const availableDestinations = useMemo(() => {
+    const destMap = new Map<string, { country: string; flag: string; authority: string; desk: string; badge: string }>();
+    
+    // Add destinations from registry
+    destinations.forEach(d => {
+      if (d.name) {
+        destMap.set(d.name.toLowerCase(), {
+          country: d.name,
+          flag: d.flag || '🌍',
+          authority: d.authority || `${d.name} Legalization`,
+          desk: d.desk || `${d.name} Desk`,
+          badge: d.badge || 'Accredited'
+        });
+      }
+    });
+
+    // Add any countries from universities not already in destinations
+    universities.forEach(u => {
+      if (u.country && !destMap.has(u.country.toLowerCase())) {
+        destMap.set(u.country.toLowerCase(), {
+          country: u.country,
+          flag: '🌍',
+          authority: `${u.country} Higher Education`,
+          desk: `${u.country} Desk`,
+          badge: u.badge || 'Partner'
+        });
+      }
+    });
+
+    return Array.from(destMap.values());
+  }, [destinations, universities]);
 
   // Get current active target country
   const savedTargetCountry = localStorage.getItem('ferex_student_target_country') || 'All';
@@ -294,7 +316,7 @@ export const SelectUniversity: React.FC = () => {
             </span>
           </button>
 
-          {POPULAR_DESTINATIONS.map(d => {
+          {availableDestinations.map(d => {
             const isSelected = selectedCountry.toLowerCase() === d.country.toLowerCase();
             return (
               <button
@@ -315,7 +337,7 @@ export const SelectUniversity: React.FC = () => {
                   {d.authority}
                 </span>
                 <span className={`text-[8.5px] font-semibold block truncate mt-0.5 ${isSelected ? 'text-white/70' : 'text-slate-400'}`}>
-                  Desk: {d.counselor.split(' ')[0]}
+                  {d.desk || `${d.country} Desk`}
                 </span>
               </button>
             );
