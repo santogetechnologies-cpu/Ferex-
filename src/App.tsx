@@ -296,7 +296,9 @@ function App() {
           <Route path="/admin/offers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminApplications initialFilter="Offer Issued" /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/offer-letters" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminApplications initialFilter="Offer Issued" /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/documents" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminDocumentReview /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/document-review" element={<Navigate to="/admin/documents" replace />} />
           <Route path="/admin/nawa" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminNawaTracker /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/nawa-tracker" element={<Navigate to="/admin/nawa" replace />} />
           <Route path="/admin/payments" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPayments /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/support" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSupportTickets /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminChatSupport /></AdminLayout></ProtectedRoute>} />

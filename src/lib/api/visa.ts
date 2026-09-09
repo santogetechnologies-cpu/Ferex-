@@ -175,8 +175,33 @@ export async function updateVisaStatus(
   if (upsertPayload.student_id) {
     try {
       const { createNotification } = await import('./notifications');
+      const { updateApplicationStatus, getApplications } = await import('./applications');
+      const { getJourneyStages, updateJourneyStageStatus } = await import('./journey');
+
       const isApproved = updates.decision_outcome === 'Approved' || String(upsertPayload.status_label).toLowerCase().includes('approved');
       const isRejected = updates.decision_outcome === 'Rejected' || String(upsertPayload.status_label).toLowerCase().includes('refus');
+
+      // Auto update student application
+      try {
+        const studentApps = await getApplications(upsertPayload.student_id);
+        const activeApp = studentApps[0];
+        if (activeApp) {
+          if (isApproved && activeApp.status !== 'Visa Approved') {
+            await updateApplicationStatus(activeApp.id, 'Visa Approved' as any, 'Visa Approved & Stamped by Embassy!');
+          } else if (isRejected && activeApp.status !== 'Visa Rejected') {
+            await updateApplicationStatus(activeApp.id, 'Visa Rejected' as any, 'Visa Decision: Refused by Embassy');
+          }
+        }
+      } catch (appErr) {}
+
+      // Auto advance journey stage 12 (Visa Outcome)
+      try {
+        const stages = await getJourneyStages(upsertPayload.student_id);
+        const visaStage = stages.find(s => s.stage_number === 4 || s.stage_number === 8 || s.stage_name?.toLowerCase().includes('visa'));
+        if (visaStage && isApproved && visaStage.status !== 'Completed') {
+          await updateJourneyStageStatus(visaStage.id, 'Completed');
+        }
+      } catch (stageErr) {}
 
       await createNotification({
         user_id: upsertPayload.student_id,
@@ -192,6 +217,7 @@ export async function updateVisaStatus(
   }
 
   window.dispatchEvent(new Event('ferex_visa_change'));
+  window.dispatchEvent(new Event('ferex_application_change'));
   window.dispatchEvent(new Event('ferex_notification_change'));
   return upsertPayload;
 }

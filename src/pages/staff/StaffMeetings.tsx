@@ -159,9 +159,34 @@ export const StaffMeetings: React.FC = () => {
     if (!completingMeeting) return;
 
     try {
+      const finalNotes = completionNotes || completingMeeting.notes || 'Advisory session concluded successfully.';
       await changeStatus(completingMeeting.id, 'Completed', {
-        notes: completionNotes || completingMeeting.notes || 'Advisory session concluded successfully.'
+        notes: finalNotes
       });
+
+      // Auto-advance student journey stage if student_id is present
+      if (completingMeeting.student_id) {
+        try {
+          const { getJourneyStages, updateJourneyStageStatus } = await import('../../lib/api/journey');
+          const { createNotification } = await import('../../lib/api/notifications');
+
+          const stages = await getJourneyStages(completingMeeting.student_id);
+          const counsellingStage = stages.find(s => s.stage_number === 2 || s.stage_name?.toLowerCase().includes('counsel') || s.stage_name?.toLowerCase().includes('nawa'));
+          if (counsellingStage && counsellingStage.status !== 'Completed') {
+            await updateJourneyStageStatus(counsellingStage.id, 'Completed');
+          }
+
+          await createNotification({
+            user_id: completingMeeting.student_id,
+            title: 'Consultation Session Concluded',
+            body: `Your advisory session with ${counselorName} has been marked as Completed. Notes: ${finalNotes}`,
+            category: 'Counselor Session'
+          });
+        } catch (stageErr) {
+          console.warn('[Auto Journey Advance Notice]:', stageErr);
+        }
+      }
+
       showToast(`Meeting "${completingMeeting.subject}" marked as Completed!`);
       setCompletingMeeting(null);
       setCompletionNotes('');

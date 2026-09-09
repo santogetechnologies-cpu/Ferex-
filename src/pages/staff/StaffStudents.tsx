@@ -10,6 +10,8 @@ export const StaffStudents: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [counselorNoteInput, setCounselorNoteInput] = useState('');
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -129,16 +131,49 @@ export const StaffStudents: React.FC = () => {
               </div>
 
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs font-semibold">
-                <p>Country: <span className="font-bold text-slate-900">{selectedStudent.flag} {selectedStudent.country}</span></p>
-                <p>University: <span className="font-bold text-slate-900">{selectedStudent.uni}</span></p>
+                <p>Email: <span className="font-bold text-slate-900">{selectedStudent.email || '—'}</span></p>
+                <p>Target University: <span className="font-bold text-slate-900">{selectedStudent.uni}</span></p>
                 <p>Course: <span className="font-bold text-slate-900">{selectedStudent.course}</span></p>
-                <p>Status: <span className="font-bold text-emerald-700">{selectedStudent.status}</span></p>
-                <p>Advisor Notes: <span className="font-bold text-slate-800">{selectedStudent.notes}</span></p>
+                <p>Application Status: <span className="font-bold text-emerald-700">{selectedStudent.status}</span></p>
               </div>
 
-              <Button size="sm" className="w-full bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { showToast(`Note added to ${selectedStudent.name}`); setSelectedStudent(null); }}>
-                Add Official Advisory Note
-              </Button>
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <label className="text-xs font-black text-slate-800 block">Add Official Advisory Note / Directive</label>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. Discussed course choices; student should prepare NAWA documents for Oct 2026 intake..."
+                  value={counselorNoteInput}
+                  onChange={e => setCounselorNoteInput(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#6A1B2E]/20"
+                />
+                <Button
+                  size="sm"
+                  className="w-full bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold"
+                  disabled={isSavingNote || !counselorNoteInput.trim()}
+                  onClick={async () => {
+                    if (!counselorNoteInput.trim() || !selectedStudent?.id) return;
+                    try {
+                      setIsSavingNote(true);
+                      const { createNotification } = await import('../../lib/api/notifications');
+                      await createNotification({
+                        user_id: selectedStudent.id,
+                        title: 'New Counselor Advisory Note',
+                        body: counselorNoteInput.trim(),
+                        category: 'Counselor Session'
+                      });
+                      showToast(`Official note logged & sent to ${selectedStudent.name}!`);
+                      setCounselorNoteInput('');
+                      setSelectedStudent(null);
+                    } catch (err: any) {
+                      showToast(`Error saving note: ${err.message}`);
+                    } finally {
+                      setIsSavingNote(false);
+                    }
+                  }}
+                >
+                  {isSavingNote ? 'Saving Note...' : 'Save & Send Advisory Directive'}
+                </Button>
+              </div>
             </motion.div>
           </>
         )}
