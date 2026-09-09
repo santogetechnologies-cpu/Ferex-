@@ -26,7 +26,7 @@ export type FerexRole =
 
 const ROLE_ROUTES: Record<string, string> = {
   student: '/student/dashboard',
-  admin: '/central/dashboard',
+  admin: '/admin/dashboard',
   education_admin: '/admin/dashboard',
   education: '/admin/dashboard',
   super_admin: '/central/dashboard',
@@ -53,7 +53,7 @@ const ROLE_ROUTES: Record<string, string> = {
 
 const ROLE_LABELS: Record<string, string> = {
   student: 'Student Portal',
-  admin: 'Central Super Admin Command Center',
+  admin: 'Ferex Education Admin Portal',
   education_admin: 'Ferex Education Admin Portal',
   education: 'Ferex Education Admin Portal',
   super_admin: 'Central Super Admin Command Center',
@@ -81,9 +81,12 @@ const ROLE_LABELS: Record<string, string> = {
 export function isSuperAdmin(role?: string | null, email?: string | null): boolean {
   if (role) {
     const cleanRole = role.toLowerCase().trim().replace(/[\s-]+/g, '_');
+
+    // Explicitly non-super roles — return false immediately
     if (
       cleanRole === 'education_admin' ||
       cleanRole === 'education' ||
+      cleanRole === 'admin' ||
       cleanRole === 'trade_admin' ||
       cleanRole === 'trade' ||
       cleanRole === 'global_trade' ||
@@ -106,6 +109,7 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
       return false;
     }
 
+    // Explicitly super roles
     if (
       cleanRole === 'superadmin' ||
       cleanRole === 'super_admin' ||
@@ -118,6 +122,7 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
   if (email) {
     const cleanEmail = email.toLowerCase().trim();
 
+    // Explicitly non-super emails
     if (
       cleanEmail.includes('ferexedu') ||
       cleanEmail.includes('eduadmin') ||
@@ -136,6 +141,7 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
       return false;
     }
 
+    // Explicitly super emails
     if (
       cleanEmail.includes('superadmin') ||
       cleanEmail.includes('super_admin') ||
@@ -148,23 +154,15 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
     ) {
       return true;
     }
-
-    if (cleanEmail.includes('admin') && !cleanEmail.includes('edu') && !cleanEmail.includes('trade') && !cleanEmail.includes('rimi') && !cleanEmail.includes('digital')) {
-      return true;
-    }
   }
 
-  if (role && role.toLowerCase().trim() === 'admin') {
-    return true;
-  }
-
-  // Any direct unassigned Supabase auth user defaults to superadmin
-  return true;
+  // Do NOT default to superadmin — unknown roles are NOT super admin
+  return false;
 }
 
 export function normalizeRole(role?: string | null, email?: string | null): string {
   if (isSuperAdmin(role, email)) return 'superadmin';
-  if (!role) return 'superadmin';
+  if (!role) return 'student';
   const clean = role.toLowerCase().trim().replace(/[\s-]+/g, '_');
   return clean;
 }
@@ -172,13 +170,13 @@ export function normalizeRole(role?: string | null, email?: string | null): stri
 export function getDashboardRoute(role?: string | null, email?: string | null): string {
   if (isSuperAdmin(role, email)) return '/central/dashboard';
   const normalized = normalizeRole(role, email);
-  return ROLE_ROUTES[normalized] || '/central/dashboard';
+  return ROLE_ROUTES[normalized] || '/login';
 }
 
 export function getPortalLabel(role?: string | null, email?: string | null): string {
   if (isSuperAdmin(role, email)) return 'Central Super Admin Command Center';
   const normalized = normalizeRole(role, email);
-  return ROLE_LABELS[normalized] || 'Central Super Admin Command Center';
+  return ROLE_LABELS[normalized] || 'Ferex Portal';
 }
 
 export function isValidRole(role: string): boolean {

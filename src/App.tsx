@@ -49,6 +49,7 @@ import { CentralDashboard } from './pages/central/CentralDashboard';
 import { CentralPayments } from './pages/central/CentralPayments';
 import { CentralReports } from './pages/central/CentralReports';
 import { CentralAdmins } from './pages/central/CentralAdmins';
+import { RolesUsers } from './pages/central/RolesUsers';
 import { CentralTasks } from './pages/central/CentralTasks';
 import { CentralActivity } from './pages/central/CentralActivity';
 import { CentralNotifications } from './pages/central/CentralNotifications';
@@ -306,8 +307,9 @@ function App() {
           <Route path="/central/finance" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/payments" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/reports" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralReports /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/admins" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralAdmins /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/roles" element={<Navigate to="/central/admins" replace />} />
+          <Route path="/central/admins" element={<Navigate to="/central/roles-users" replace />} />
+          <Route path="/central/roles" element={<Navigate to="/central/roles-users" replace />} />
+          <Route path="/central/roles-users" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><RolesUsers /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/tasks" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralTasks /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/activity" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralActivity /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/notifications" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralNotifications /></CentralLayout></ProtectedRoute>} />

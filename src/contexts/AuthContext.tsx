@@ -108,6 +108,7 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
   }
 }
 
+
 async function ensureProfile(user: User): Promise<UserProfile> {
   const existing = await fetchProfile(user.id, user.email);
   if (existing) {
@@ -117,10 +118,11 @@ async function ensureProfile(user: User): Promise<UserProfile> {
     return existing;
   }
 
-  // Direct Supabase auth defaults to superadmin
-  const isSuper = isSuperAdmin(user.user_metadata?.role, user.email) || user.user_metadata?.role !== 'student';
-  const role = isSuper ? 'superadmin' : (user.user_metadata?.role || 'superadmin');
-  const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || (isSuper ? 'Central Super Admin' : 'User');
+  // Use the role from user metadata (set during provisioning), fallback to 'staff'
+  const metaRole = user.user_metadata?.role;
+  const isSuper = isSuperAdmin(metaRole, user.email);
+  const role = isSuper ? 'superadmin' : (metaRole || 'staff');
+  const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User';
 
   const newProfile: UserProfile = {
     id: user.id,
@@ -157,7 +159,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (currentUser) {
       const isSuper = isSuperAdmin(currentUser.user_metadata?.role, currentUser.email);
-      const defaultRole = isSuper ? 'superadmin' : (currentUser.user_metadata?.role || 'superadmin');
+      const metaRole = currentUser.user_metadata?.role;
+      const defaultRole = isSuper ? 'superadmin' : (metaRole || 'staff');
 
       try {
         const prof = await Promise.race([

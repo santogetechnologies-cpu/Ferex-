@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Crown, GraduationCap, Monitor, Globe,
+  Crown, GraduationCap, Monitor, Globe, Snowflake,
   ArrowUpRight, Sparkles, Check
 } from 'lucide-react';
 
@@ -62,16 +62,29 @@ const FEREX_APPS: AppItem[] = [
   },
   {
     id: 'trade',
-    name: 'Global Trade & Commodities',
-    subtitle: 'Export/Import, LCs, Cargo Vessels & Cold Chain',
+    name: 'Global Trade',
+    subtitle: 'Export/Import, LCs, Cargo Vessels & Commodities',
     path: '/trade/dashboard',
-    matchPrefixes: ['/trade', '/rimi'],
+    matchPrefixes: ['/trade'],
     icon: Globe,
-    tag: 'Trade & Logistics',
+    tag: 'Trade ERP',
     tagColor: 'bg-indigo-100 text-indigo-800 border-indigo-300',
     bgGradient: 'from-indigo-500/10 to-indigo-600/5 hover:border-indigo-400/60',
     iconBg: 'bg-indigo-600 text-white shadow-indigo-600/30 shadow-md',
     accentColor: '#4F46E5',
+  },
+  {
+    id: 'rimi',
+    name: 'Rimi Frozen',
+    subtitle: 'FMCG Distribution, Cold Chain & Warehouses',
+    path: '/rimi/dashboard',
+    matchPrefixes: ['/rimi'],
+    icon: Snowflake,
+    tag: 'Frozen Dist.',
+    tagColor: 'bg-cyan-100 text-cyan-800 border-cyan-300',
+    bgGradient: 'from-cyan-500/10 to-cyan-600/5 hover:border-cyan-400/60',
+    iconBg: 'bg-cyan-600 text-white shadow-cyan-600/30 shadow-md',
+    accentColor: '#0891B2',
   },
 ];
 

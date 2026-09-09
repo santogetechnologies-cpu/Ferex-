@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Edit3, Trash2, X, Save, CheckCircle2, Mail, Phone } from 'lucide-react';
-import { getStaffMembers, createStaffMember, updateStudent, deleteStudent } from '../../lib/api/students';
+import { Search, Edit3, Trash2, X, Save, CheckCircle2, Mail, Phone } from 'lucide-react';
+import { getStaffMembers, updateStudent, deleteStudent } from '../../lib/api/students';
 import { useAuth } from '../../contexts/AuthContext';
 import { isSuperAdmin } from '../../lib/roleRouter';
 
@@ -56,7 +56,6 @@ export const AdminStaffManagement: React.FC = () => {
   const [editStaff, setEditStaff] = useState<StaffMember | null>(null);
   const [editTemp, setEditTemp] = useState<StaffMember | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [showAdd, setShowAdd] = useState(false);
   const [toast, setToast] = useState('');
 
   const loadData = () => {
@@ -172,7 +171,7 @@ export const AdminStaffManagement: React.FC = () => {
             </p>
           </div>
           <a
-            href="/#/central/admins"
+            href="/#/central/roles-users"
             className="px-3 py-1.5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] transition-all shrink-0 shadow-xs"
           >
             Open Super Admin Console →
@@ -185,10 +184,12 @@ export const AdminStaffManagement: React.FC = () => {
           <h1 className="text-xl font-extrabold text-slate-900">Staff & Counselor Management</h1>
           <p className="text-xs font-semibold text-slate-400 mt-0.5">{staff.length} Active Counselors, Admissions & Operations Staff</p>
         </div>
-        <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 h-9.5 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all shadow-md shadow-[#6A1B2E]/20 cursor-pointer">
-          <Plus className="w-4 h-4" /> Add Staff / Counselor
-        </button>
+        <a
+          href="/#/central/roles-users"
+          className="flex items-center gap-1.5 h-9 px-4 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-200 transition-all cursor-pointer"
+        >
+          Manage in Super Admin →
+        </a>
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
@@ -361,123 +362,6 @@ export const AdminStaffManagement: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Add Staff Modal */}
-      <AnimatePresence>
-        {showAdd && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50" onClick={() => setShowAdd(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="text-sm font-extrabold text-slate-900">Add Administrative User</h3>
-                <button onClick={() => setShowAdd(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"><X className="w-4 h-4" /></button>
-              </div>
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const f = e.target as HTMLFormElement;
-                const name = (f.elements.namedItem('name') as HTMLInputElement).value;
-                const email = (f.elements.namedItem('email') as HTMLInputElement).value;
-                const phone = (f.elements.namedItem('phone') as HTMLInputElement)?.value || '';
-                const password = (f.elements.namedItem('password') as HTMLInputElement)?.value || 'ferex2026!';
-                const category = (f.elements.namedItem('category') as HTMLSelectElement).value;
-                const department = (f.elements.namedItem('department') as HTMLSelectElement).value;
-                const desk = (f.elements.namedItem('desk') as HTMLInputElement)?.value || '';
-
-                try {
-                  const dbRole = getDbRole(category);
-                  const roleOrDesk = desk.trim() || category;
-                  const created = await createStaffMember({
-                    email,
-                    full_name: name,
-                    role: dbRole,
-                    password,
-                    phone,
-                    desk: roleOrDesk,
-                    department: `${department}:${roleOrDesk}`,
-                  });
-
-                  setStaff(prev => [{
-                    id: created.id,
-                    name: created.full_name || name,
-                    email: created.email,
-                    phone: created.phone || phone || '—',
-                    department,
-                    role: roleOrDesk,
-                    status: 'Active',
-                    joined: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-                    students: 0,
-                    permissions: DEFAULT_PERMS.map(p => ({ ...p })),
-                  }, ...prev]);
-
-                  setShowAdd(false);
-                  showToast(`🎉 User ${name} added! Login password: ${password}`);
-                } catch (err: any) {
-                  showToast(`Error: ${err.message || 'Failed to add'}`);
-                }
-              }} className="space-y-3.5 text-left">
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Full Name</label>
-                  <input required name="name" placeholder="e.g. Dr. Maria Kowalska"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Email Address</label>
-                  <input required name="email" type="email" placeholder="e.g. maria.kowalska@ferex.com"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
-                </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Administrative Role</label>
-                    <select name="category" defaultValue="Counselor"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
-                      {ALLOWED_ROLES.map(r => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Department</label>
-                    <select name="department" defaultValue="Admissions"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40">
-                      {['Admissions', 'Administration', 'Central Office', 'Executive', 'Operations', 'Documents', 'Finance'].map(d => <option key={d}>{d}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Regional Desk / Desk Title</label>
-                    <input name="desk" defaultValue="Poland & NAWA Desk" placeholder="e.g. Poland & NAWA Desk"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Contact Phone</label>
-                    <input name="phone" placeholder="+48 22 123 4567"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Login Password (Provision Credentials)</label>
-                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                      Instant Sign In
-                    </span>
-                  </div>
-                  <input required name="password" defaultValue="ferex2026!"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40 font-mono" />
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowAdd(false)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
-                  <button type="submit" className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] cursor-pointer">Add User & Credentials</button>
-                </div>
-              </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* Delete Confirm */}
       <AnimatePresence>
