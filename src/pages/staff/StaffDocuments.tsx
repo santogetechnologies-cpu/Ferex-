@@ -105,7 +105,7 @@ export const StaffDocuments: React.FC = () => {
   const handleApprove = async (doc: any) => {
     try {
       setIsProcessing(true);
-      await changeStatus(doc.id, 'Verified', 'Verified by Admissions Counselor');
+      await changeStatus(doc.id, 'Approved', 'Verified by Admissions Counselor');
       showToast(`✅ "${doc.title}" for ${doc.student} approved!`);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to approve document'}`);

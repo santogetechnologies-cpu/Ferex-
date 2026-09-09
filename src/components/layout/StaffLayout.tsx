@@ -28,7 +28,19 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
     navigate('/login');
   };
 
-  const navSections = [
+  interface NavItem {
+    name: string;
+    path: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge?: string;
+  }
+
+  interface NavSection {
+    title: string;
+    items: NavItem[];
+  }
+
+  const navSections: NavSection[] = [
     {
       title: 'WORKSPACE',
       items: [
