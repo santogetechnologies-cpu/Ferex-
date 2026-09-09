@@ -9,8 +9,19 @@ import { computeEndTime } from '../lib/api/meetings';
 import { getStaffMembers } from '../lib/api/students';
 
 export const Meetings: React.FC = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { meetings: dbMeetings, addMeeting, deleteCall, loading } = useMeetings(user?.id);
+
+  // Compute student assigned counselor
+  const rawAssigned = (profile as any)?.assigned_counselor?.trim();
+  const hasAssignedCounselor = Boolean(
+    rawAssigned &&
+    rawAssigned !== 'Admin' &&
+    rawAssigned !== '--' &&
+    !rawAssigned.toLowerCase().includes('desk counselor') &&
+    !rawAssigned.toLowerCase().startsWith('admissions counselor')
+  );
+  const assignedCounselorName = hasAssignedCounselor ? rawAssigned : null;
 
   // Proper Interactive Calendar Helpers
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -67,25 +78,17 @@ export const Meetings: React.FC = () => {
   const [subject, setSubject] = useState('Visa & Embassy Guidance Session');
   const [scheduledDate, setScheduledDate] = useState(getLocalDateString());
   const [startTime, setStartTime] = useState('10:00 AM');
-  const [counselorsList, setCounselorsList] = useState<string[]>([]);
-  const [advisorName, setAdvisorName] = useState('');
+  const [advisorName, setAdvisorName] = useState(assignedCounselorName || 'Admissions Desk');
   const [toastMessage, setToastMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   React.useEffect(() => {
-    getStaffMembers().then(members => {
-      const names = (members || []).map(m => m.full_name || (m.email ? m.email.split('@')[0] : 'Advisor')).filter(Boolean);
-      setCounselorsList(names.length > 0 ? names : ['Academic Advisor', 'Admissions Counselor']);
-      if (names.length > 0) {
-        setAdvisorName(names[0]);
-      } else {
-        setAdvisorName('Academic Advisor');
-      }
-    }).catch(() => {
-      setCounselorsList(['Academic Advisor', 'Admissions Counselor']);
-      setAdvisorName('Academic Advisor');
-    });
-  }, []);
+    if (assignedCounselorName) {
+      setAdvisorName(assignedCounselorName);
+    } else {
+      setAdvisorName('Admissions Desk');
+    }
+  }, [assignedCounselorName]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -98,6 +101,7 @@ export const Meetings: React.FC = () => {
 
     try {
       setIsSubmitting(true);
+      const chosenAdvisor = assignedCounselorName || advisorName || 'Admissions Desk';
       const computedEnd = computeEndTime(startTime);
       await addMeeting({
         student_id: user.id,
@@ -105,14 +109,17 @@ export const Meetings: React.FC = () => {
         scheduled_date: scheduledDate,
         start_time: startTime,
         end_time: computedEnd,
-        advisor_name: advisorName || 'Academic Advisor',
+        advisor_name: chosenAdvisor,
       });
 
       setShowBookModal(false);
-      showToast(`Advisory session "${subject}" scheduled successfully!`);
+      showToast(`Advisory session "${subject}" with ${chosenAdvisor} scheduled!`);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to schedule meeting'}`);
     } finally {
+      setIsSubmitting(false);
+    }
+  };
       setIsSubmitting(false);
     }
   };
@@ -376,16 +383,41 @@ export const Meetings: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Assigned Counselor</label>
-                  <select
-                    value={advisorName}
-                    onChange={(e) => setAdvisorName(e.target.value)}
-                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-                  >
-                    {counselorsList.map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+                      Assigned Counselor
+                    </label>
+                    {hasAssignedCounselor ? (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        ● Dedicated Counselor
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">
+                        ● Assignment Pending
+                      </span>
+                    )}
+                  </div>
+
+                  {hasAssignedCounselor ? (
+                    <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-[#6A1B2E] text-amber-300 font-black text-xs flex items-center justify-center">
+                          {assignedCounselorName?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'AD'}
+                        </div>
+                        <div>
+                          <div className="text-xs font-black text-slate-900">{assignedCounselorName}</div>
+                          <div className="text-[10px] font-bold text-[#6A1B2E]">Your Designated European Admissions Counselor</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                      <div className="text-xs font-black text-slate-900">General Admissions Desk</div>
+                      <div className="text-[10px] font-semibold text-slate-500 mt-0.5">
+                        Counselor assignment in progress. Your session will be booked directly with the Admissions Desk.
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">

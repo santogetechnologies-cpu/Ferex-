@@ -50,19 +50,19 @@ export const StaffStudents: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {students.map(student => {
-            const stuName = student.full_name || student.name || 'Student Candidate';
-            const stuId = student.id;
+            const stuName = student.full_name || student.email?.split('@')[0] || 'Student Candidate';
+            const stuId = student.id || 'STU';
             const country = student.country || 'Poland';
-            const uni = student.target_university || 'Vistula University';
-            const course = student.target_course || 'BSc International Relations';
-            const status = student.status || 'Application Submitted';
+            const uni = student.target_university || 'European Partner University';
+            const course = student.target_course || 'Higher Studies';
+            const status = student.status || 'Active Application';
             const completion = 85;
 
             return (
               <Card key={student.id} className="p-6 border border-slate-200/80 shadow-xs hover:shadow-lg transition-all space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl">🇵🇱</span>
+                    <span className="text-3xl">🎓</span>
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-base font-black text-slate-900">{stuName}</h3>

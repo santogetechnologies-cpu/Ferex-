@@ -78,7 +78,7 @@ export function useMeetings(studentId?: string) {
   const changeStatus = async (
     id: string,
     status: Meeting['status'],
-    additionalFields?: { scheduled_date?: string; start_time?: string; end_time?: string }
+    additionalFields?: { scheduled_date?: string; start_time?: string; end_time?: string; notes?: string; advisor_name?: string }
   ) => {
     const updated = await updateMeetingStatus(id, status, additionalFields);
     setMeetings(prev =>

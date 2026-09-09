@@ -277,7 +277,7 @@ export async function createMeeting(payload: {
 export async function updateMeetingStatus(
   id: string,
   status: Meeting['status'],
-  additionalFields?: { scheduled_date?: string; start_time?: string; end_time?: string }
+  additionalFields?: { scheduled_date?: string; start_time?: string; end_time?: string; notes?: string; advisor_name?: string }
 ) {
   try {
     const updateObj = { status, ...additionalFields };

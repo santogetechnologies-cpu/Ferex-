@@ -33,11 +33,11 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
       title: 'WORKSPACE',
       items: [
         { name: 'Dashboard', path: '/staff/dashboard', icon: LayoutDashboard },
-        { name: 'Tasks', path: '/staff/tasks', icon: CheckSquare, badge: '4' },
+        { name: 'Tasks', path: '/staff/tasks', icon: CheckSquare },
         { name: 'Students / Clients', path: '/staff/students', icon: Users },
-        { name: 'Meetings', path: '/staff/meetings', icon: Calendar, badge: '2 Today' },
+        { name: 'Meetings & Planner', path: '/staff/meetings', icon: Calendar },
         { name: 'Documents', path: '/staff/documents', icon: FileText },
-        { name: 'Tickets', path: '/staff/tickets', icon: Ticket, badge: 'Urgent' },
+        { name: 'Tickets', path: '/staff/tickets', icon: Ticket },
       ]
     },
     {
@@ -50,7 +50,7 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
     {
       title: 'COMMUNICATION & SYSTEM',
       items: [
-        { name: 'Notifications', path: '/staff/notifications', icon: Bell, badge: 'New' },
+        { name: 'Notifications', path: '/staff/notifications', icon: Bell },
         { name: 'Employee Profile', path: '/staff/profile', icon: User },
       ]
     }

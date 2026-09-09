@@ -986,12 +986,19 @@ export const AdminMeetings: React.FC = () => {
                   <select
                     required
                     value={selectedStudentId}
-                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    onChange={(e) => {
+                      const stId = e.target.value;
+                      setSelectedStudentId(stId);
+                      const chosenStudent = studentsList.find(s => s.id === stId);
+                      if (chosenStudent?.assigned_counselor && chosenStudent.assigned_counselor !== 'Admin' && chosenStudent.assigned_counselor !== '--') {
+                        setBookAdvisor(chosenStudent.assigned_counselor);
+                      }
+                    }}
                     className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
                   >
                     {studentsList.map(s => (
                       <option key={s.id} value={s.id}>
-                        {s.full_name || s.email.split('@')[0]} ({s.email})
+                        {s.full_name || s.email.split('@')[0]} ({s.email}) {s.assigned_counselor && s.assigned_counselor !== 'Admin' ? `[Counselor: ${s.assigned_counselor}]` : ''}
                       </option>
                     ))}
                   </select>
