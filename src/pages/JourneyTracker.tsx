@@ -27,10 +27,10 @@ export const JourneyTracker: React.FC = () => {
 
   // Meeting verification states for Counselling stage
   const hasCompletedMeeting = meetings.some(m =>
-    m.status === 'Completed' || m.status === 'Done' || m.status === 'Attended' || (m as any).status === 'completed'
+    m.status === 'Completed' || (m.status as string) === 'Done' || (m.status as string) === 'Attended'
   );
   const hasScheduledMeeting = meetings.some(m =>
-    m.status === 'Scheduled' || m.status === 'Confirmed' || (m as any).status === 'scheduled'
+    m.status === 'Scheduled' || (m.status as string) === 'Confirmed'
   );
 
   const activeApp = applications[0];

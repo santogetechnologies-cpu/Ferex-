@@ -26,11 +26,10 @@ export const StaffDashboard: React.FC = () => {
 
   // Compute real KPIs
   const pendingTasks = tasks.filter(t =>
-    t.status === 'pending' || t.status === 'in_progress' ||
-    t.status === 'Pending' || t.status === 'In Progress'
+    t.status === 'To Do' || t.status === 'In Progress' || (t.status as string) === 'Pending' || (t.status as string) === 'pending'
   );
   const upcomingMeetings = meetings.filter(m =>
-    m.status === 'Scheduled' || m.status === 'Confirmed' || m.status === 'scheduled'
+    m.status === 'Scheduled' || (m.status as string) === 'Confirmed'
   );
   const assignedStudents = students.filter(s =>
     s.assigned_counselor && (
@@ -39,7 +38,7 @@ export const StaffDashboard: React.FC = () => {
     )
   );
   const completedTasks = tasks.filter(t =>
-    t.status === 'completed' || t.status === 'done' || t.status === 'Done'
+    t.status === 'Completed' || (t.status as string) === 'done' || (t.status as string) === 'Done'
   );
 
   const isLoading = meetingsLoading || tasksLoading || studentsLoading;
@@ -207,9 +206,9 @@ export const StaffDashboard: React.FC = () => {
                         <td className="py-3 px-3 font-extrabold text-slate-900">{t.title}</td>
                         <td className="py-3 px-3">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
-                            t.priority === 'high' || t.priority === 'High'
+                            t.priority === 'High' || t.priority === 'Critical'
                               ? 'bg-red-50 text-red-700 border border-red-200'
-                              : t.priority === 'medium' || t.priority === 'Medium'
+                              : t.priority === 'Medium'
                                 ? 'bg-amber-50 text-amber-700 border border-amber-200'
                                 : 'bg-slate-100 text-slate-600'
                           }`}>
