@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Edit3, Trash2, X, Save, CheckCircle2, Mail, Phone } from 'lucide-react';
 import { getStaffMembers, updateStudent, deleteStudent } from '../../lib/api/students';
@@ -170,12 +171,12 @@ export const AdminStaffManagement: React.FC = () => {
               Creating and provisioning logins for all 4 enterprise divisions (Education, Trade, Rimi Frozen, Digital) is managed centrally in Super Admin.
             </p>
           </div>
-          <a
-            href="/#/central/roles-users"
+          <Link
+            to="/central/roles-users"
             className="px-3 py-1.5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] transition-all shrink-0 shadow-xs"
           >
             Open Super Admin Console →
-          </a>
+          </Link>
         </div>
       )}
 
@@ -184,12 +185,12 @@ export const AdminStaffManagement: React.FC = () => {
           <h1 className="text-xl font-extrabold text-slate-900">Staff & Counselor Management</h1>
           <p className="text-xs font-semibold text-slate-400 mt-0.5">{staff.length} Active Counselors, Admissions & Operations Staff</p>
         </div>
-        <a
-          href="/#/central/roles-users"
+        <Link
+          to="/central/roles-users"
           className="flex items-center gap-1.5 h-9 px-4 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-200 transition-all cursor-pointer"
         >
           Manage in Super Admin →
-        </a>
+        </Link>
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">

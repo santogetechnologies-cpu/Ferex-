@@ -218,20 +218,16 @@ export const LoginPage: React.FC = () => {
       }
     }
 
-    // Direct unassigned Supabase auth defaults to superadmin
+    // Direct unassigned Supabase auth defaults to student
     if (!role) {
-      role = user.user_metadata?.role || (dbProfile as any)?.role || 'superadmin';
+      role = user.user_metadata?.role || (dbProfile as any)?.role || 'student';
     }
 
     // Authoritatively detect Super Admin via email, role, or user metadata
     const isSuper =
       isSuperAdmin(role, cleanEmail) ||
       isSuperAdmin(user.user_metadata?.role, cleanEmail) ||
-      isSuperAdmin(dbProfile?.role, cleanEmail) ||
-      role === 'superadmin' ||
-      role === 'super_admin' ||
-      role === 'central' ||
-      role === 'admin';
+      isSuperAdmin(dbProfile?.role, cleanEmail);
 
     if (isSuper) {
       role = 'superadmin';

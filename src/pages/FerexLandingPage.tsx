@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Building2, ShieldCheck, ArrowRight, LogIn, LogOut, ChevronDown, MapPin,
   User, Calculator, Search, Check, ArrowUpRight, Sparkles
@@ -966,10 +966,10 @@ export const FerexLandingPage: React.FC = () => {
             <div className="space-y-2">
               <h5 className="font-bold text-slate-900 uppercase text-[11px] tracking-wider">Group Portals</h5>
               <div className="space-y-1 font-semibold text-slate-700">
-                <a href="/login" className="block hover:text-[#58051E]">Ferex Education Portal</a>
-                <a href="/trade/dashboard" className="block hover:text-[#58051E]">Global Trade ERP</a>
-                <a href="/rimi/dashboard" className="block hover:text-[#58051E]">Rimi Frozen FMCG</a>
-                <a href="/digital/dashboard" className="block hover:text-[#58051E]">Ferex Digital Agency</a>
+                <Link to="/login" className="block hover:text-[#58051E]">Ferex Education Portal</Link>
+                <Link to="/trade/dashboard" className="block hover:text-[#58051E]">Global Trade ERP</Link>
+                <Link to="/rimi/dashboard" className="block hover:text-[#58051E]">Rimi Frozen FMCG</Link>
+                <Link to="/digital/dashboard" className="block hover:text-[#58051E]">Ferex Digital Agency</Link>
               </div>
             </div>
 

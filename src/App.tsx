@@ -172,8 +172,13 @@ const AppInitializer: React.FC = () => {
   return null;
 };
 
-// Admin role equivalence list
+// Role equivalence lists across all 4 enterprise divisions + Central + Staff
 const ADMIN_ROLES = ['admin', 'education_admin', 'education', 'super_admin', 'superadmin', 'central', 'staff', 'counselor'];
+const CENTRAL_ROLES = ['central', 'super_admin', 'superadmin'];
+const TRADE_ROLES = ['trade', 'trade_admin', 'global_trade', 'logistics_officer', 'admin', 'central', 'super_admin', 'superadmin'];
+const RIMI_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen', 'operations_manager', 'admin', 'central', 'super_admin', 'superadmin'];
+const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'project_manager', 'admin', 'central', 'super_admin', 'superadmin'];
+const STAFF_ROLES = ['staff', 'counselor', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
 
 // Guards portal routes — redirects to login if not authenticated, or to proper portal if role mismatched
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
@@ -222,7 +227,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
 
   const userEmail = effectiveUser?.email || profile?.email || localSavedUser?.email || '';
   const isSuper = isSuperAdmin(rawRole, userEmail);
-  const currentRole = isSuper ? 'superadmin' : normalizeRole(rawRole || 'superadmin');
+  const currentRole = isSuper ? 'superadmin' : normalizeRole(rawRole || 'student', userEmail);
 
   // Check role authorization if specified
   if (allowedRoles && allowedRoles.length > 0) {
@@ -280,7 +285,7 @@ function App() {
           <Route path="/student/visa-tracker" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><VisaTracker /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/pre-departure" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><PreDeparture /></StudentLayout></ProtectedRoute>} />
 
-          {/* ── Admin Routes (role = 'admin', 'education_admin', 'education', 'super_admin', 'superadmin', 'central', 'staff', 'counselor') ── */}
+          {/* ── Admin Routes ── */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/students" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminStudents /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/universities" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminUniversities /></AdminLayout></ProtectedRoute>} />
@@ -303,141 +308,141 @@ function App() {
           <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSettings /></AdminLayout></ProtectedRoute>} />
 
           {/* ── Central Super Admin Routes (Strictly Super Admin Only) ── */}
-          <Route path="/central/dashboard" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralDashboard /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/finance" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/payments" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/reports" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralReports /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/dashboard" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralDashboard /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/finance" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/payments" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/reports" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralReports /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/admins" element={<Navigate to="/central/roles-users" replace />} />
           <Route path="/central/roles" element={<Navigate to="/central/roles-users" replace />} />
-          <Route path="/central/roles-users" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><RolesUsers /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/tasks" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralTasks /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/activity" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralActivity /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/notifications" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralNotifications /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/settings" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralSettings /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/education" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralStudents /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/universities" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralEducation /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/students" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralStudents /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/trade" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralTrade /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/rimi" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralRimi /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/digital" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralDigital /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/support" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralSupport /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/emails" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralEmailLogs /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/email-settings" element={<ProtectedRoute allowedRoles={['central', 'super_admin', 'superadmin']}><CentralLayout><CentralEmailSettings /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/roles-users" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><RolesUsers /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/tasks" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralTasks /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/activity" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralActivity /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/notifications" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralNotifications /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/settings" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralSettings /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/education" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralStudents /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/universities" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralEducation /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/students" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralStudents /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/trade" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralTrade /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/rimi" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralRimi /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/digital" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralDigital /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/support" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralSupport /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/emails" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralEmailLogs /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/email-settings" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralEmailSettings /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/documents" element={<Navigate to="/admin/documents" replace />} />
           <Route path="/central/insights" element={<Navigate to="/central/reports" replace />} />
 
           {/* ── Global Trade Routes ── */}
-          <Route path="/trade/dashboard" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeDashboard /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/crm" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeCRM /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/shipments" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeShipments /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/invoices" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeInvoices /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/packing-lists" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradePackingLists /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/bills-of-lading" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeBillsOfLading /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/certificates" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeCertificates /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/documents" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeDocuments /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/letters-of-credit" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeLettersOfCredit /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/payments" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradePayments /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/reports" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeReports /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/shipment-analytics" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeShipmentAnalytics /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/financial-analytics" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeFinancialAnalytics /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/messages" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeMessages /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/notifications" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeNotifications /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/profile" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeProfile /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/settings" element={<ProtectedRoute allowedRoles={['trade', 'admin', 'central', 'super_admin']}><TradeLayout><TradeSettings /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/dashboard" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeDashboard /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/crm" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeCRM /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/shipments" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeShipments /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/invoices" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeInvoices /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/packing-lists" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradePackingLists /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/bills-of-lading" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeBillsOfLading /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/certificates" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeCertificates /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/documents" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeDocuments /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/letters-of-credit" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeLettersOfCredit /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/payments" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradePayments /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/reports" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeReports /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/shipment-analytics" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeShipmentAnalytics /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/financial-analytics" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeFinancialAnalytics /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/messages" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeMessages /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/notifications" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeNotifications /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/profile" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeProfile /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/settings" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeSettings /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/client-portal" element={<ProtectedRoute allowedRoles={['trade_client']}><TradeClientPortal /></ProtectedRoute>} />
 
           {/* ── Rimi Frozen Distribution Routes ── */}
-          <Route path="/rimi/dashboard" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDashboard /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/customers" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiCustomers /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/distributors" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDistributors /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/retailers" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiRetailers /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/wholesalers" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiWholesalers /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/sales-orders" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiSalesOrders /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/products" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiProducts /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/inventory" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiInventory /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/warehouses" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiWarehouses /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/batch-tracking" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiBatchTracking /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/expiry-tracking" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiExpiryTracking /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/deliveries" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDeliveries /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/collections" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiCollections /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/vehicles" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiVehicles /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/delivery-routes" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiDeliveryRoutes /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/sales-reports" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiSalesReports /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/inventory-analytics" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiInventoryAnalytics /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/revenue-analytics" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiRevenueAnalytics /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/messages" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiMessages /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={['rimi', 'rimi_admin', 'rimi_frozen', 'admin', 'central', 'super_admin']}><RimiLayout><RimiSettings /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/dashboard" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDashboard /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/customers" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiCustomers /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/distributors" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDistributors /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/retailers" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiRetailers /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/wholesalers" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiWholesalers /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/sales-orders" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiSalesOrders /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/products" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProducts /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/inventory" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiInventory /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/warehouses" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiWarehouses /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/batch-tracking" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiBatchTracking /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/expiry-tracking" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiExpiryTracking /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/deliveries" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDeliveries /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/collections" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiCollections /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/vehicles" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiVehicles /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/delivery-routes" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDeliveryRoutes /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/sales-reports" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiSalesReports /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/inventory-analytics" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiInventoryAnalytics /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/revenue-analytics" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiRevenueAnalytics /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/messages" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiMessages /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiSettings /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/customer-portal" element={<ProtectedRoute allowedRoles={['rimi_client']}><RimiCustomerPortal /></ProtectedRoute>} />
 
           {/* ── Ferex Digital Routes ── */}
-          <Route path="/digital/dashboard" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalDashboard /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/clients" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalClients /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/leads" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalLeads /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/projects" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProjects /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/tasks" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalTasks /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/meetings" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMeetings /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/dashboard" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalDashboard /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/clients" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalClients /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/leads" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalLeads /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/projects" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProjects /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/tasks" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalTasks /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/meetings" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMeetings /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Services */}
-          <Route path="/digital/services" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalServicesHub /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/web-development" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalWebDevelopment /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/web-development" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalWebDevelopment /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/mobile-apps" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMobileApps /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/mobile-apps" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMobileApps /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/ui-ux-design" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalUIUX /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/ui-ux-design" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalUIUX /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/digital-marketing" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMarketing /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/digital-marketing" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalMarketing /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/seo" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalSEO /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/seo" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalSEO /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/branding" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalBranding /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/branding" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalBranding /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalServicesHub /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services/web-development" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalWebDevelopment /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/web-development" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalWebDevelopment /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services/mobile-apps" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMobileApps /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/mobile-apps" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMobileApps /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services/ui-ux-design" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalUIUX /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/ui-ux-design" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalUIUX /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services/digital-marketing" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMarketing /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/digital-marketing" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMarketing /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services/seo" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalSEO /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/seo" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalSEO /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/services/branding" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBranding /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/branding" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBranding /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Finance */}
-          <Route path="/digital/invoices" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalInvoices /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/finance/invoices" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalInvoices /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/payments" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalPayments /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/finance/payments" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalPayments /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/expenses" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/finance/expenses" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/invoices" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalInvoices /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/finance/invoices" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalInvoices /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/payments" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalPayments /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/finance/payments" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalPayments /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/expenses" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/finance/expenses" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Team */}
-          <Route path="/digital/employees" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalEmployees /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/team/employees" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalEmployees /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/attendance" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/team/attendance" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/performance" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalPerformance /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/team/performance" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalPerformance /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/employees" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalEmployees /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/team/employees" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalEmployees /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/attendance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/team/attendance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/performance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalPerformance /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/team/performance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalPerformance /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Analytics */}
-          <Route path="/digital/reports" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalReports /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/analytics/reports" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalReports /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/revenue-analytics" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalRevenueAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/analytics/revenue" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalRevenueAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/project-analytics" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProjectAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/analytics/project" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProjectAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/reports" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalReports /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics/reports" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalReports /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/revenue-analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalRevenueAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics/revenue" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalRevenueAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/project-analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProjectAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics/project" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProjectAnalytics /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital System */}
-          <Route path="/digital/notifications" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalNotifications /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/profile" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalProfile /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/settings" element={<ProtectedRoute allowedRoles={['digital', 'digital_admin', 'ferex_digital', 'admin', 'central', 'super_admin']}><DigitalLayout><DigitalSettings /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/notifications" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalNotifications /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/profile" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProfile /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/settings" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalSettings /></DigitalLayout></ProtectedRoute>} />
 
-          {/* ── Ferex Digital Client Portal (restricted view for provisioned clients) ── */}
+          {/* ── Ferex Digital Client Portal ── */}
           <Route path="/digital/client-portal" element={<ProtectedRoute allowedRoles={['digital_client']}><DigitalClientPortal /></ProtectedRoute>} />
           <Route path="/digital/client" element={<ProtectedRoute allowedRoles={['digital_client']}><DigitalClientPortal /></ProtectedRoute>} />
 
           {/* ── Ferex Staff Panel Routes ── */}
           <Route path="/staff" element={<Navigate to="/staff/dashboard" replace />} />
-          <Route path="/staff/dashboard" element={<ProtectedRoute allowedRoles={['staff', 'counselor', 'admin', 'central', 'super_admin']}><StaffLayout><StaffDashboard /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/tasks" element={<ProtectedRoute allowedRoles={['staff', 'counselor', 'admin', 'central', 'super_admin']}><StaffLayout><StaffTasks /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/students" element={<ProtectedRoute allowedRoles={['staff', 'counselor', 'admin', 'central', 'super_admin']}><StaffLayout><StaffStudents /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/meetings" element={<ProtectedRoute allowedRoles={['staff', 'counselor', 'admin', 'central', 'super_admin']}><StaffLayout><StaffMeetings /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/documents" element={<ProtectedRoute allowedRoles={['staff', 'counselor', 'admin', 'central', 'super_admin']}><StaffLayout><StaffDocuments /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/tickets" element={<ProtectedRoute allowedRoles={['staff', 'counselor', 'admin', 'central', 'super_admin']}><StaffLayout><StaffTickets /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/notes" element={<ProtectedRoute allowedRoles={['staff', 'counselor', 'admin', 'central', 'super_admin']}><StaffLayout><StaffNotes /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/notifications" element={<ProtectedRoute allowedRoles={['staff', 'counselor', 'admin', 'central', 'super_admin']}><StaffLayout><StaffNotifications /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/profile" element={<ProtectedRoute allowedRoles={['staff', 'counselor', 'admin', 'central', 'super_admin']}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/dashboard" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDashboard /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/tasks" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTasks /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/students" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffStudents /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/meetings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffMeetings /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/documents" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDocuments /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/tickets" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTickets /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/notes" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffNotes /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/notifications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffNotifications /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/profile" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -97,7 +97,7 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
         return {
           ...emailUser,
           id: userId,
-          role: isSuper ? 'superadmin' : (emailUser.role || 'superadmin'),
+          role: isSuper ? 'superadmin' : (emailUser.role || 'student'),
         } as UserProfile;
       }
     }

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
+import { AppSwitcher } from '../components/AppSwitcher';
 
 interface RimiLayoutProps {
   children: React.ReactNode;
@@ -250,6 +251,9 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
               <span className="truncate">Search products, orders...</span>
               <kbd className="hidden sm:inline-block ml-auto text-[9px] font-extrabold bg-white text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">⌘K</kbd>
             </button>
+
+            {/* Google-Style 9-Dots 4-App Switcher */}
+            <AppSwitcher />
 
             {/* Quick Actions Trigger */}
             <div className="relative">
