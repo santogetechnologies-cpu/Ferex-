@@ -120,9 +120,6 @@ export const Meetings: React.FC = () => {
       setIsSubmitting(false);
     }
   };
-      setIsSubmitting(false);
-    }
-  };
 
   const meetings = dbMeetings.map(m => ({
     id: m.id,
