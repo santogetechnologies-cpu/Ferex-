@@ -573,16 +573,16 @@ export const RimiInventory: React.FC = () => {
               <form onSubmit={handleRecordFrostLoss} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Product Name</label>
-                  <input type="text" required value={newFrostLoss.product_name} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, product_name: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newFrostLoss.product_name} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, product_name: e.target.value })} placeholder="e.g. Norwegian Atlantic Salmon Fillets" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Batch #</label>
-                    <input type="text" required value={newFrostLoss.batch_number} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, batch_number: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newFrostLoss.batch_number} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, batch_number: e.target.value })} placeholder="e.g. LOT-SAL-8821" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Weight Lost (KG)</label>
-                    <input type="number" required value={newFrostLoss.quantity_lost_kg} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, quantity_lost_kg: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" required value={newFrostLoss.quantity_lost_kg} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, quantity_lost_kg: e.target.value as any })} placeholder="e.g. 15" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
                 <div>
@@ -598,11 +598,11 @@ export const RimiInventory: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Cold Bay / Location</label>
-                    <input type="text" required value={newFrostLoss.warehouse_location} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, warehouse_location: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newFrostLoss.warehouse_location} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, warehouse_location: e.target.value })} placeholder="e.g. Mumbai Bay 4" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Estimated Loss (₹ INR)</label>
-                    <input type="number" required value={newFrostLoss.estimated_loss_value} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, estimated_loss_value: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" required value={newFrostLoss.estimated_loss_value} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, estimated_loss_value: e.target.value as any })} placeholder="e.g. 18750" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
                 <div className="pt-3 flex gap-2">
@@ -628,7 +628,7 @@ export const RimiInventory: React.FC = () => {
               <form onSubmit={handleRecordAdjustment} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Product Name</label>
-                  <input type="text" required value={newAdjustment.product_name} onChange={(e) => setNewAdjustment({ ...newAdjustment, product_name: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newAdjustment.product_name} onChange={(e) => setNewAdjustment({ ...newAdjustment, product_name: e.target.value })} placeholder="e.g. King Tiger Prawns (500g)" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -642,22 +642,22 @@ export const RimiInventory: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Quantity</label>
-                    <input type="number" required value={newAdjustment.quantity} onChange={(e) => setNewAdjustment({ ...newAdjustment, quantity: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" required value={newAdjustment.quantity} onChange={(e) => setNewAdjustment({ ...newAdjustment, quantity: e.target.value as any })} placeholder="e.g. 50" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Source Location</label>
-                    <input type="text" required value={newAdjustment.source_location} onChange={(e) => setNewAdjustment({ ...newAdjustment, source_location: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newAdjustment.source_location} onChange={(e) => setNewAdjustment({ ...newAdjustment, source_location: e.target.value })} placeholder="e.g. Mumbai Deep Freeze" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Target Location</label>
-                    <input type="text" value={newAdjustment.target_location} onChange={(e) => setNewAdjustment({ ...newAdjustment, target_location: e.target.value })} placeholder="Target Depot" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" value={newAdjustment.target_location} onChange={(e) => setNewAdjustment({ ...newAdjustment, target_location: e.target.value })} placeholder="e.g. Pune Regional Depot" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Reason / Notes</label>
-                  <input type="text" required value={newAdjustment.reason} onChange={(e) => setNewAdjustment({ ...newAdjustment, reason: e.target.value })} placeholder="Audit reconciliation" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newAdjustment.reason} onChange={(e) => setNewAdjustment({ ...newAdjustment, reason: e.target.value })} placeholder="e.g. Rebalancing cold stocks for weekend surge" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAdjustmentModal(false)}>Cancel</Button>
