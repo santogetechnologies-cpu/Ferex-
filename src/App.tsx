@@ -83,6 +83,7 @@ import { TradeNotifications } from './pages/trade/TradeNotifications';
 import { TradeProfile } from './pages/trade/TradeProfile';
 import { TradeSettings } from './pages/trade/TradeSettings';
 import { TradeClientPortal } from './pages/trade/TradeClientPortal';
+import { TradeLoginPage } from './pages/trade/TradeLoginPage';
 
 // Rimi Frozen Distribution imports
 import { RimiLayout } from './layouts/RimiLayout';
