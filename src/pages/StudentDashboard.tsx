@@ -365,57 +365,93 @@ export const StudentDashboard: React.FC = () => {
 
           {/* Assigned Counselor Card */}
           <Card className="p-5 border border-slate-200/70 shadow-xs space-y-3 bg-gradient-to-br from-white to-slate-50/50 text-left">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Dedicated Admissions Counselor</span>
-              <span className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">● Active & Available</span>
-            </div>
             {(() => {
-              const rawCounselor = (profile as any)?.assigned_counselor && (profile as any)?.assigned_counselor !== 'Admin'
-                ? (profile as any).assigned_counselor
-                : `${targetCountry} Desk Counselor`;
+              const rawCounselor = (profile as any)?.assigned_counselor?.trim();
+              const hasRealCounselor = rawCounselor && 
+                rawCounselor !== 'Admin' && 
+                !rawCounselor.toLowerCase().includes('desk counselor') &&
+                !rawCounselor.toLowerCase().startsWith('admissions counselor');
+
+              if (!hasRealCounselor) {
+                return (
+                  <>
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Dedicated Admissions Counselor</span>
+                      <span className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">● Assignment Pending</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center font-black text-sm shadow-xs shrink-0 border border-amber-200">
+                        ⏳
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-black text-slate-900 truncate">
+                          Counselor Assignment in Progress
+                        </h4>
+                        <p className="text-[10.5px] font-bold text-slate-500 truncate">Admissions Team ({targetCountry} Desk)</p>
+                        <p className="text-[9.5px] font-semibold text-slate-400">Target: <span className="font-bold text-slate-700">{targetCountry}</span></p>
+                      </div>
+                    </div>
+                    <p className="text-[10.5px] text-slate-500 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                      Your dedicated counselor will be assigned shortly. You can book an introductory advisory session below.
+                    </p>
+                    <div className="pt-1">
+                      <Button size="sm" className="w-full text-xs font-bold h-8 bg-[#6A1B2E] text-white cursor-pointer" onClick={() => navigate('/student/meetings')}>
+                        📅 Book Advisory Session
+                      </Button>
+                    </div>
+                  </>
+                );
+              }
+
               const namePart = rawCounselor.split('(')[0].trim();
               const titlePart = rawCounselor.includes('(')
                 ? rawCounselor.split('(')[1].replace(')', '').trim()
                 : `${targetCountry} Admissions & Visa Desk`;
-              const initials = namePart.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'AD';
+              const initials = namePart.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'FX';
 
               return (
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#6A1B2E] to-[#4A101E] text-amber-300 flex items-center justify-center font-black text-sm shadow-sm shrink-0 border border-rose-900/30">
-                    {initials}
+                <>
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Dedicated Admissions Counselor</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">● Active & Available</span>
                   </div>
-                  <div className="min-w-0">
-                    <h4 className="text-xs font-black text-slate-900 truncate">
-                      {namePart}
-                    </h4>
-                    <p className="text-[10.5px] font-bold text-[#6A1B2E] truncate">{titlePart}</p>
-                    <p className="text-[9.5px] font-semibold text-slate-500">Destination: <span className="font-bold text-slate-800">{targetCountry}</span></p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#6A1B2E] to-[#4A101E] text-amber-300 flex items-center justify-center font-black text-sm shadow-sm shrink-0 border border-rose-900/30">
+                      {initials}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-black text-slate-900 truncate">
+                        {namePart}
+                      </h4>
+                      <p className="text-[10.5px] font-bold text-[#6A1B2E] truncate">{titlePart}</p>
+                      <p className="text-[9.5px] font-semibold text-slate-500">Destination: <span className="font-bold text-slate-800">{targetCountry}</span></p>
+                    </div>
                   </div>
-                </div>
+                  {config.branding.operating_hours && (
+                    <div className="p-2.5 rounded-xl bg-slate-100/70 border border-slate-200/60 text-[10px] font-bold text-slate-600 space-y-0.5">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Desk Hours:</span>
+                        <span className="text-slate-800 font-extrabold">{config.branding.operating_hours}</span>
+                      </div>
+                      {config.branding.support_phone && (
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Direct Helpline:</span>
+                          <span className="text-slate-800 font-extrabold">{config.branding.support_phone}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <Button size="sm" variant="outline" className="text-xs font-bold h-8 cursor-pointer" onClick={() => navigate('/student/meetings')}>
+                      💬 Chat / Notes
+                    </Button>
+                    <Button size="sm" className="text-xs font-bold h-8 bg-[#6A1B2E] text-white cursor-pointer" onClick={() => navigate('/student/meetings')}>
+                      📅 Book Session
+                    </Button>
+                  </div>
+                </>
               );
             })()}
-            {config.branding.operating_hours && (
-              <div className="p-2.5 rounded-xl bg-slate-100/70 border border-slate-200/60 text-[10px] font-bold text-slate-600 space-y-0.5">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Desk Hours:</span>
-                  <span className="text-slate-800 font-extrabold">{config.branding.operating_hours}</span>
-                </div>
-                {config.branding.support_phone && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Direct Helpline:</span>
-                    <span className="text-slate-800 font-extrabold">{config.branding.support_phone}</span>
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <Button size="sm" variant="outline" className="text-xs font-bold h-8 cursor-pointer" onClick={() => navigate('/student/meetings')}>
-                💬 Chat / Notes
-              </Button>
-              <Button size="sm" className="text-xs font-bold h-8 bg-[#6A1B2E] text-white cursor-pointer" onClick={() => navigate('/student/meetings')}>
-                📅 Book Session
-              </Button>
-            </div>
           </Card>
 
           <Card className="p-6 border border-slate-200/70 shadow-xs space-y-4">

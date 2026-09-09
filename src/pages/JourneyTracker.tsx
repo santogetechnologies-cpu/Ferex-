@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useApplications } from '../hooks/useApplications';
 import { useDocuments } from '../hooks/useDocuments';
 import { useVisa } from '../hooks/useVisa';
+import { useMeetings } from '../hooks/useMeetings';
 
 export const JourneyTracker: React.FC = () => {
   const navigate = useNavigate();
@@ -16,12 +17,21 @@ export const JourneyTracker: React.FC = () => {
   const { applications } = useApplications(user?.id);
   const { documents } = useDocuments(user?.id);
   const { records: visaRecords } = useVisa(user?.id);
+  const { meetings } = useMeetings(user?.id);
 
   // Active tracker tab: 'university' (🟦), 'visa' (🟨), 'travel' (🟩)
   const [activeTracker, setActiveTracker] = useState<'university' | 'visa' | 'travel'>('university');
 
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
   const isProfileDone = Boolean(profile?.full_name);
+
+  // Meeting verification states for Counselling stage
+  const hasCompletedMeeting = meetings.some(m =>
+    m.status === 'Completed' || m.status === 'Done' || m.status === 'Attended' || (m as any).status === 'completed'
+  );
+  const hasScheduledMeeting = meetings.some(m =>
+    m.status === 'Scheduled' || m.status === 'Confirmed' || (m as any).status === 'scheduled'
+  );
 
   const activeApp = applications[0];
   const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || (activeApp as any)?.country || 'Poland';
@@ -69,9 +79,9 @@ export const JourneyTracker: React.FC = () => {
       id: 'u2',
       num: 2,
       title: 'Counselling',
-      status: isProfileDone ? 'completed' : 'upcoming',
+      status: hasCompletedMeeting ? 'completed' : (hasScheduledMeeting ? 'in_progress' : (isProfileDone ? 'current' : 'upcoming')),
       desc: 'One-on-one session with dedicated European education counsellor.',
-      actionLabel: 'Schedule Session',
+      actionLabel: hasCompletedMeeting ? 'View Notes' : (hasScheduledMeeting ? 'View Session' : 'Schedule Session'),
       actionRoute: '/student/meetings',
     },
     {
