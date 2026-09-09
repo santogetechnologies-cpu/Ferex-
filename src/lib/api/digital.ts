@@ -277,12 +277,6 @@ export async function createDigitalTask(task: {
   triggerLocalSync('ferex_digital_tasks_change');
   return payload;
 }
-    const { project, ...dbPayload } = payload as any;
-    await supabase.from('digital_tasks').insert(dbPayload);
-  } catch {}
-  triggerLocalSync('ferex_digital_tasks_change');
-  return payload;
-}
 
 export async function updateDigitalTask(id: string, updates: any) {
   const current = await getDigitalTasks();
