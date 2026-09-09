@@ -34,9 +34,9 @@ export const RimiInventory: React.FC = () => {
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const emptyInward = { product_id: '', batch_number: '', warehouse_location: '', quantity: 0, expiry_date: '' };
-  const emptyFrostLoss = { product_name: '', batch_number: '', warehouse_location: '', quantity_lost_kg: 0, loss_reason: 'Freezer Burn' as const, estimated_loss_value: 0 };
-  const emptyAdjustment = { product_name: '', adjustment_type: 'Inter-Warehouse Transfer' as const, quantity: 0, unit: 'KG', source_location: '', target_location: '', reason: '' };
+  const emptyInward = { product_id: '', batch_number: '', warehouse_location: '', quantity: '' as any, expiry_date: '' };
+  const emptyFrostLoss = { product_name: '', batch_number: '', warehouse_location: '', quantity_lost_kg: '' as any, loss_reason: 'Freezer Burn' as const, estimated_loss_value: '' as any };
+  const emptyAdjustment = { product_name: '', adjustment_type: 'Inter-Warehouse Transfer' as const, quantity: '' as any, unit: 'KG', source_location: '', target_location: '', reason: '' };
 
   const [newInward, setNewInward] = useState(emptyInward);
   const [newFrostLoss, setNewFrostLoss] = useState(emptyFrostLoss);
@@ -88,7 +88,7 @@ export const RimiInventory: React.FC = () => {
 
     const channel = supabase
       .channel('realtime_rimi_inventory')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rimi_inventory' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_inventory' }, () => loadData())
       .subscribe();
 
     const handleLocalChange = () => loadData();
@@ -108,74 +108,98 @@ export const RimiInventory: React.FC = () => {
   const handleAddInward = async (e: React.FormEvent) => {
     e.preventDefault();
     const prodId = newInward.product_id || (products.length > 0 ? products[0].id : 'PROD-01');
+    const matchedProd = products.find(p => p.id === prodId);
+    const qty = Number(newInward.quantity) || 100;
+    const batchNo = newInward.batch_number || `LOT-2026-${Math.floor(100 + Math.random() * 900)}`;
 
-    await createRimiInventoryItem({
+    const created = await createRimiInventoryItem({
       product_id: prodId,
-      batch_number: newInward.batch_number,
-      warehouse_location: newInward.warehouse_location,
-      quantity_on_hand: Number(newInward.quantity) || 100,
-      expiry_date: newInward.expiry_date
+      batch_number: batchNo,
+      warehouse_location: newInward.warehouse_location || 'Central Cold Storage',
+      quantity_on_hand: qty,
+      expiry_date: newInward.expiry_date || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]
     });
+
+    if (created) {
+      setStockItems(prev => [{
+        id: created.id,
+        batchNo: created.batch_number,
+        productName: matchedProd?.name || 'Frozen SKU',
+        warehouse: created.warehouse_location,
+        quantityNum: qty,
+        unitPrice: Number(matchedProd?.unit_price || 500),
+        quantity: `${qty} ${matchedProd?.unit || 'KG'}`,
+        valuation: `₹${(qty * Number(matchedProd?.unit_price || 500)).toLocaleString('en-IN')}`,
+        expiryDate: created.expiry_date,
+        status: qty > 50 ? 'Optimal Stock' : 'Reorder Alert',
+        statusBadge: qty > 50 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+      }, ...prev]);
+    }
 
     setShowInwardModal(false);
     setNewInward(emptyInward);
-    showToastMsg(`Inwarded stock batch ${newInward.batch_number}`);
-    await loadData(); // Reload needed as mapping is complex
+    showToastMsg(`Inwarded stock batch ${batchNo}`);
   };
 
   // Handle Frost Loss Incident
   const handleRecordFrostLoss = async (e: React.FormEvent) => {
     e.preventDefault();
-    await recordRimiFrostLoss({
+    const created = await recordRimiFrostLoss({
       product_name: newFrostLoss.product_name,
       batch_number: newFrostLoss.batch_number,
       warehouse_location: newFrostLoss.warehouse_location,
-      quantity_lost_kg: Number(newFrostLoss.quantity_lost_kg),
+      quantity_lost_kg: Number(newFrostLoss.quantity_lost_kg) || 0,
       loss_reason: newFrostLoss.loss_reason,
-      estimated_loss_value: Number(newFrostLoss.estimated_loss_value)
+      estimated_loss_value: Number(newFrostLoss.estimated_loss_value) || 0
     });
+
+    if (created) {
+      setFrostLosses(prev => [created, ...prev]);
+    }
 
     setShowFrostLossModal(false);
     showToastMsg(`Recorded frost loss incident for ${newFrostLoss.product_name}`);
     setNewFrostLoss(emptyFrostLoss);
-    await loadData();
   };
 
   // Handle Stock Adjustment / Transfer
   const handleRecordAdjustment = async (e: React.FormEvent) => {
     e.preventDefault();
-    await recordRimiStockAdjustment({
+    const created = await recordRimiStockAdjustment({
       product_name: newAdjustment.product_name,
       adjustment_type: newAdjustment.adjustment_type,
-      quantity: Number(newAdjustment.quantity),
+      quantity: Number(newAdjustment.quantity) || 0,
       unit: newAdjustment.unit,
       source_location: newAdjustment.source_location,
       target_location: newAdjustment.target_location,
       reason: newAdjustment.reason
     });
 
+    if (created) {
+      setAdjustments(prev => [created, ...prev]);
+    }
+
     setShowAdjustmentModal(false);
     showToastMsg(`Stock adjustment recorded successfully!`);
     setNewAdjustment(emptyAdjustment);
-    await loadData();
   };
 
   const handleDeleteItem = async (id: string) => {
+    await deleteRimiInventoryItem(id);
     setStockItems(prev => prev.filter(s => s.id !== id));
     showToastMsg('Removed stock record');
-    await deleteRimiInventoryItem(id);
   };
 
   const handleDeleteFrostLoss = async (id: string) => {
+    await deleteRimiFrostLoss(id);
     setFrostLosses(prev => prev.filter(f => f.id !== id));
     showToastMsg('Deleted frost loss record');
-    await deleteRimiFrostLoss(id);
   };
 
   const handleDeleteAdjustment = async (id: string) => {
+    await deleteRimiStockAdjustment(id);
     setAdjustments(prev => prev.filter(a => a.id !== id));
     showToastMsg('Removed stock adjustment record');
-    await deleteRimiStockAdjustment(id);
   };
 
   const handleExportCSV = () => {
@@ -236,15 +260,21 @@ export const RimiInventory: React.FC = () => {
           <Button size="sm" variant="outline" className="text-xs font-bold border-slate-200" onClick={handleExportCSV}>
             <Download className="w-3.5 h-3.5 mr-1.5 text-[#6A1B2E]" /> Export CSV
           </Button>
-          <Button size="sm" variant="outline" className="text-xs font-bold border-amber-300 bg-amber-50/60 text-amber-900 hover:bg-amber-100" onClick={() => { setNewFrostLoss(emptyFrostLoss); setShowFrostLossModal(true); }} style={{ display: activeTab === 'frost_loss' ? 'none' : undefined }}>
-            <Snowflake className="w-3.5 h-3.5 mr-1.5 text-amber-700" /> Record Frost Loss
-          </Button>
-          <Button size="sm" variant="outline" className="text-xs font-bold border-slate-200" onClick={() => setShowAdjustmentModal(true)}>
-            <ArrowRightLeft className="w-3.5 h-3.5 mr-1.5 text-slate-700" /> Cold Transfer / Adjust
-          </Button>
-          <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowInwardModal(true)}>
-            <Plus className="w-3.5 h-3.5 mr-1.5" /> Inward Stock
-          </Button>
+          {activeTab === 'stock' && (
+            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { setNewInward(emptyInward); setShowInwardModal(true); }}>
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Inward Stock
+            </Button>
+          )}
+          {activeTab === 'frost_loss' && (
+            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { setNewFrostLoss(emptyFrostLoss); setShowFrostLossModal(true); }}>
+              <Snowflake className="w-3.5 h-3.5 mr-1.5" /> Log New Frost Loss
+            </Button>
+          )}
+          {activeTab === 'adjustments' && (
+            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { setNewAdjustment(emptyAdjustment); setShowAdjustmentModal(true); }}>
+              <ArrowRightLeft className="w-3.5 h-3.5 mr-1.5" /> Cold Transfer / Adjust
+            </Button>
+          )}
         </div>
       </div>
 

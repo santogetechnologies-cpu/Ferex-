@@ -283,6 +283,7 @@ export const RimiSalesOrders: React.FC = () => {
                     value={newOrder.items}
                     onChange={(e) => setNewOrder({ ...newOrder, items: e.target.value })}
                     rows={2}
+                    placeholder="e.g. 50x Atlantic Salmon Fillets, 20x Premium King Prawns"
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
                   />
                 </div>
@@ -294,6 +295,7 @@ export const RimiSalesOrders: React.FC = () => {
                       required
                       value={newOrder.amount}
                       onChange={(e) => setNewOrder({ ...newOrder, amount: e.target.value })}
+                      placeholder="e.g. 75000"
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
                     />
                   </div>
