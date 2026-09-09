@@ -14,13 +14,14 @@ export const RimiDeliveries: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const [newDel, setNewDel] = useState({
+  const emptyDel = {
     order_id: '',
-    vehicle_no: 'MH-12-AZ-8901 (Reefer)',
-    driver_name: 'Sanjay Kumar',
-    driver_phone: '+91 98765 43210',
-    departure_temp: '-18.5°C'
-  });
+    vehicle_no: '',
+    driver_name: '',
+    driver_phone: '',
+    departure_temp: ''
+  };
+  const [newDel, setNewDel] = useState(emptyDel);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -57,7 +58,7 @@ export const RimiDeliveries: React.FC = () => {
 
     const channel = supabase
       .channel('realtime_rimi_deliveries')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_deliveries' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rimi_deliveries' }, () => {
         loadData();
       })
       .subscribe();
@@ -78,29 +79,47 @@ export const RimiDeliveries: React.FC = () => {
 
   const handleAddDelivery = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createRimiDelivery({
+    if (!newDel.vehicle_no || !newDel.driver_name) return;
+    const targetOrder = orders.find(o => o.id === newDel.order_id);
+    const newItem = await createRimiDelivery({
       order_id: newDel.order_id || (orders.length > 0 ? orders[0].id : undefined),
       vehicle_no: newDel.vehicle_no,
       driver_name: newDel.driver_name,
       driver_phone: newDel.driver_phone,
-      departure_temp: newDel.departure_temp,
-      delivery_status: 'In Transit'
+      departure_temp: newDel.departure_temp || '-18.0°C',
+      delivery_status: 'In Transit',
+      customer_name: targetOrder?.distributor?.business_name || 'Retail Depot'
     });
+    // Optimistic add — show immediately in list
+    if (newItem) {
+      setDeliveries(prev => [{
+        id: newItem.delivery_number || `DEL-${(newItem.id || '').slice(0, 4).toUpperCase()}`,
+        rawId: newItem.id,
+        orderNo: targetOrder?.order_no || 'SO-2026-101',
+        customer: targetOrder?.distributor?.business_name || newDel.driver_name || 'Customer Hub',
+        vehicle: newDel.vehicle_no,
+        driver: newDel.driver_name,
+        driverPhone: newDel.driver_phone || '+91 98765 43210',
+        temp: newDel.departure_temp || '-18.0°C',
+        status: 'In Transit'
+      }, ...prev]);
+    }
     setShowAddModal(false);
     showToastMsg(`Dispatched delivery manifest for ${newDel.vehicle_no}`);
-    await loadData();
+    setNewDel(emptyDel);
   };
 
   const handleMarkCompleted = async (rawId: string, delId: string) => {
     await updateRimiDeliveryStatus(rawId, 'Delivered');
-    setDeliveries(prev => prev.map(d => d.rawId === rawId ? { ...d, status: 'Delivered' } : d));
+    setDeliveries(prev => prev.map(d => (d.rawId === rawId || d.id === rawId) ? { ...d, status: 'Delivered' } : d));
     showToastMsg(`Delivery ${delId} marked completed! Temperature log archived.`);
   };
 
   const handleDeleteDelivery = async (rawId: string) => {
-    await deleteRimiDelivery(rawId);
-    setDeliveries(prev => prev.filter(d => d.rawId !== rawId));
+    // Optimistic remove first matching rawId or id
+    setDeliveries(prev => prev.filter(d => d.rawId !== rawId && d.id !== rawId));
     showToastMsg('Removed delivery manifest');
+    await deleteRimiDelivery(rawId);
   };
 
   const filteredDeliveries = deliveries.filter(d =>
@@ -130,7 +149,7 @@ export const RimiDeliveries: React.FC = () => {
             Rimi Cold Chain Console • Live temperature-controlled delivery logs, driver assignments, and proof of delivery.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { setNewDel(emptyDel); setShowAddModal(true); }}>
           <Plus className="w-4 h-4 mr-1.5" /> Dispatch Delivery
         </Button>
       </div>
@@ -208,6 +227,7 @@ export const RimiDeliveries: React.FC = () => {
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Target Sales Order</label>
                   {orders.length > 0 ? (
                     <select value={newDel.order_id} onChange={(e) => setNewDel({ ...newDel, order_id: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                      <option value="">Select Sales Order...</option>
                       {orders.map(o => (
                         <option key={o.id} value={o.id}>{o.order_no} - {o.distributor?.business_name || 'Buyer'}</option>
                       ))}
@@ -218,16 +238,16 @@ export const RimiDeliveries: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Reefer Truck License #</label>
-                  <input type="text" required value={newDel.vehicle_no} onChange={(e) => setNewDel({ ...newDel, vehicle_no: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newDel.vehicle_no} onChange={(e) => setNewDel({ ...newDel, vehicle_no: e.target.value })} placeholder="e.g. MH-12-AZ-8901" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Driver Name</label>
-                    <input type="text" required value={newDel.driver_name} onChange={(e) => setNewDel({ ...newDel, driver_name: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newDel.driver_name} onChange={(e) => setNewDel({ ...newDel, driver_name: e.target.value })} placeholder="e.g. Sanjay Kumar" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Departure Temp</label>
-                    <input type="text" required value={newDel.departure_temp} onChange={(e) => setNewDel({ ...newDel, departure_temp: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newDel.departure_temp} onChange={(e) => setNewDel({ ...newDel, departure_temp: e.target.value })} placeholder="e.g. -18.5°C" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
                 <div className="pt-3 flex gap-2">

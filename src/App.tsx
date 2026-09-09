@@ -264,7 +264,7 @@ function App() {
           <Route path="/login" element={<AuthLayout><LoginPage /></AuthLayout>} />
           <Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
           <Route path="/admin/login" element={<Navigate to="/login" replace />} />
-          <Route path="/trade/login" element={<Navigate to="/login" replace />} />
+          <Route path="/trade/login" element={<TradeLoginPage />} />
           <Route path="/rimi/login" element={<RimiLoginPage />} />
           <Route path="/digital/login" element={<DigitalLoginPage />} />
 

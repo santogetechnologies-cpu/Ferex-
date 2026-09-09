@@ -4,6 +4,7 @@ import { PackageCheck, Search, Download, Eye, X, CheckCircle2, Plus, Trash2 } fr
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getTradePackingLists, createTradePackingList, deleteTradePackingList } from '../../lib/api/trade';
+import { downloadPackingListDocument } from '../../utils/fileDownloader';
 import { supabase } from '../../lib/supabase';
 
 export const TradePackingLists: React.FC = () => {
@@ -88,9 +89,25 @@ export const TradePackingLists: React.FC = () => {
   };
 
   const handleDeletePL = async (id: string, rawId?: string) => {
-    await deleteTradePackingList(rawId || id);
+    // Optimistic remove first
     setLists(prev => prev.filter(l => l.id !== id && l.rawId !== rawId));
     showToastMsg(`Removed Packing List ${id}`);
+    await deleteTradePackingList(rawId || id);
+  };
+
+  const downloadPackingListDocument = (l: any) => {
+    const rows = [
+      ['Packing List #', 'Shipment/Container', 'Consignee', 'Packages & Goods', 'Gross Weight', 'Net Weight', 'Status'],
+      [l.id, l.container, l.consignee, l.items, l.grossWeight, l.netWeight, l.status]
+    ];
+    const csv = rows.map(r => r.map((v: any) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PackingList_${l.id}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const filteredLists = lists.filter(l =>
@@ -182,7 +199,14 @@ export const TradePackingLists: React.FC = () => {
                         <button onClick={() => setSelectedList(l)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Inspect Packing List">
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button onClick={() => showToastMsg(`Downloading PDF for ${l.id}...`)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100" title="Download Manifest PDF">
+                        <button
+                          onClick={() => {
+                            downloadPackingListDocument(l);
+                            showToastMsg(`Downloaded Packing Manifest ${l.id}`);
+                          }}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100 cursor-pointer"
+                          title="Download Manifest PDF/HTML"
+                        >
                           <Download className="w-4 h-4" />
                         </button>
                         <button onClick={() => handleDeletePL(l.id, l.rawId)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete Packing List">
@@ -222,10 +246,15 @@ export const TradePackingLists: React.FC = () => {
                   <div className="text-xs font-bold text-slate-600 mt-1">Gross: {selectedList.grossWeight} · Net: {selectedList.netWeight}</div>
                 </div>
 
-                <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => {
-                  showToastMsg(`Printed Official Packing Slip for ${selectedList.id}`);
-                }}>
-                  Print Official Packing Slip
+                <Button
+                  size="sm"
+                  className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221] cursor-pointer"
+                  onClick={() => {
+                    downloadPackingListDocument(selectedList);
+                    showToastMsg(`Downloaded Packing Slip for ${selectedList.id}`);
+                  }}
+                >
+                  <Download className="w-4 h-4 mr-1.5" /> Download Official Packing Slip
                 </Button>
               </div>
             </motion.div>

@@ -15,15 +15,21 @@ export async function getRimiProducts() {
       .select('*')
       .order('name', { ascending: true });
 
+    const local = localStorage.getItem('ferex_rimi_products');
+    const localItems = local ? JSON.parse(local) : [];
+
     if (!error && Array.isArray(data)) {
-      try { localStorage.setItem('ferex_rimi_products', JSON.stringify(data)); } catch {}
-      return data;
+      const merged = [...data];
+      for (const item of localItems) {
+        if (!merged.some((m: any) => m.id === item.id || (m.sku && m.sku === item.sku))) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_rimi_products', JSON.stringify(merged)); } catch {}
+      return merged;
     }
 
-    const local = localStorage.getItem('ferex_rimi_products');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
-    }
+    if (localItems.length > 0) return localItems;
     return [];
   } catch {
     const local = localStorage.getItem('ferex_rimi_products');
@@ -77,7 +83,7 @@ export async function updateRimiProduct(id: string, updates: Partial<{
   is_active: boolean;
 }>) {
   const current = await getRimiProducts();
-  const updated = current.map((p: any) => p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p);
+  const updated = current.map((p: any) => (p.id === id || p.rawId === id || p.sku === id) ? { ...p, ...updates, updated_at: new Date().toISOString() } : p);
   try { localStorage.setItem('ferex_rimi_products', JSON.stringify(updated)); } catch {}
   try {
     await supabase
@@ -91,7 +97,7 @@ export async function updateRimiProduct(id: string, updates: Partial<{
 
 export async function deleteRimiProduct(id: string) {
   const current = await getRimiProducts();
-  const updated = current.filter((p: any) => p.id !== id);
+  const updated = current.filter((p: any) => p.id !== id && p.rawId !== id && p.sku !== id);
   try { localStorage.setItem('ferex_rimi_products', JSON.stringify(updated)); } catch {}
   try { await supabase.from('rimi_products').delete().eq('id', id); } catch {}
   triggerLocalSync('ferex_rimi_products_change');
@@ -208,15 +214,22 @@ export async function getRimiInventory() {
       .from('rimi_inventory')
       .select('*, product:rimi_products(*)')
       .order('updated_at', { ascending: false });
-    if (!error && Array.isArray(data)) {
-      try { localStorage.setItem('ferex_rimi_inventory', JSON.stringify(data)); } catch {}
-      return data;
-    }
 
     const local = localStorage.getItem('ferex_rimi_inventory');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
+    const localItems = local ? JSON.parse(local) : [];
+
+    if (!error && Array.isArray(data)) {
+      const merged = [...data];
+      for (const item of localItems) {
+        if (!merged.some((m: any) => m.id === item.id || (m.batch_number && m.batch_number === item.batch_number))) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_rimi_inventory', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+
+    if (localItems.length > 0) return localItems;
     return [];
   } catch {
     const local = localStorage.getItem('ferex_rimi_inventory');
@@ -269,7 +282,7 @@ export async function createRimiInventoryItem(item: {
 
 export async function updateRimiInventoryStock(id: string, quantity_on_hand: number) {
   const current = await getRimiInventory();
-  const updated = current.map((i: any) => i.id === id ? { ...i, quantity_on_hand, updated_at: new Date().toISOString() } : i);
+  const updated = current.map((i: any) => (i.id === id || i.rawId === id || i.batch_number === id) ? { ...i, quantity_on_hand, updated_at: new Date().toISOString() } : i);
   try { localStorage.setItem('ferex_rimi_inventory', JSON.stringify(updated)); } catch {}
   try {
     await supabase
@@ -283,7 +296,7 @@ export async function updateRimiInventoryStock(id: string, quantity_on_hand: num
 
 export async function deleteRimiInventoryItem(id: string) {
   const current = await getRimiInventory();
-  const updated = current.filter((i: any) => i.id !== id);
+  const updated = current.filter((i: any) => i.id !== id && i.rawId !== id && i.batch_number !== id);
   try { localStorage.setItem('ferex_rimi_inventory', JSON.stringify(updated)); } catch {}
   try { await supabase.from('rimi_inventory').delete().eq('id', id); } catch {}
   triggerLocalSync('ferex_rimi_inventory_change');
@@ -297,15 +310,22 @@ export async function getRimiSalesOrders() {
       .from('rimi_sales_orders')
       .select('*, distributor:rimi_distributors(*)')
       .order('created_at', { ascending: false });
-    if (!error && Array.isArray(data)) {
-      try { localStorage.setItem('ferex_rimi_sales_orders', JSON.stringify(data)); } catch {}
-      return data;
-    }
 
     const local = localStorage.getItem('ferex_rimi_sales_orders');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
+    const localItems = local ? JSON.parse(local) : [];
+
+    if (!error && Array.isArray(data)) {
+      const merged = [...data];
+      for (const item of localItems) {
+        if (!merged.some((m: any) => m.id === item.id || (m.order_no && m.order_no === item.order_no))) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_rimi_sales_orders', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+
+    if (localItems.length > 0) return localItems;
     return [];
   } catch {
     const local = localStorage.getItem('ferex_rimi_sales_orders');
@@ -354,7 +374,7 @@ export async function createRimiSalesOrder(order: {
 
 export async function updateRimiSalesOrderStatus(id: string, order_status: string) {
   const current = await getRimiSalesOrders();
-  const updated = current.map((o: any) => o.id === id ? { ...o, order_status, updated_at: new Date().toISOString() } : o);
+  const updated = current.map((o: any) => (o.id === id || o.rawId === id || o.order_no === id) ? { ...o, order_status, updated_at: new Date().toISOString() } : o);
   try { localStorage.setItem('ferex_rimi_sales_orders', JSON.stringify(updated)); } catch {}
   try {
     await supabase
@@ -370,7 +390,7 @@ export const updateRimiOrderStatus = updateRimiSalesOrderStatus;
 
 export async function deleteRimiSalesOrder(id: string) {
   const current = await getRimiSalesOrders();
-  const updated = current.filter((o: any) => o.id !== id);
+  const updated = current.filter((o: any) => o.id !== id && o.rawId !== id && o.order_no !== id);
   try { localStorage.setItem('ferex_rimi_sales_orders', JSON.stringify(updated)); } catch {}
   try { await supabase.from('rimi_sales_orders').delete().eq('id', id); } catch {}
   triggerLocalSync('ferex_rimi_sales_orders_change');
@@ -384,15 +404,22 @@ export async function getRimiWarehouses() {
       .from('rimi_warehouses')
       .select('*')
       .order('created_at', { ascending: false });
-    if (!error && Array.isArray(data)) {
-      try { localStorage.setItem('ferex_rimi_warehouses', JSON.stringify(data)); } catch {}
-      return data;
-    }
 
     const local = localStorage.getItem('ferex_rimi_warehouses');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
+    const localItems = local ? JSON.parse(local) : [];
+
+    if (!error && Array.isArray(data)) {
+      const merged = [...data];
+      for (const item of localItems) {
+        if (!merged.some((m: any) => m.id === item.id || (m.code && m.code === item.code))) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_rimi_warehouses', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+
+    if (localItems.length > 0) return localItems;
     return [];
   } catch {
     const local = localStorage.getItem('ferex_rimi_warehouses');
@@ -438,7 +465,7 @@ export async function createRimiWarehouse(wh: {
 
 export async function updateRimiWarehouse(id: string, updates: any) {
   const current = await getRimiWarehouses();
-  const updated = current.map((w: any) => w.id === id ? { ...w, ...updates } : w);
+  const updated = current.map((w: any) => (w.id === id || w.rawId === id || w.code === id) ? { ...w, ...updates } : w);
   try { localStorage.setItem('ferex_rimi_warehouses', JSON.stringify(updated)); } catch {}
   try {
     await supabase
@@ -452,7 +479,7 @@ export async function updateRimiWarehouse(id: string, updates: any) {
 
 export async function deleteRimiWarehouse(id: string) {
   const current = await getRimiWarehouses();
-  const updated = current.filter((w: any) => w.id !== id);
+  const updated = current.filter((w: any) => w.id !== id && w.rawId !== id && w.code !== id);
   try { localStorage.setItem('ferex_rimi_warehouses', JSON.stringify(updated)); } catch {}
   try { await supabase.from('rimi_warehouses').delete().eq('id', id); } catch {}
   triggerLocalSync('ferex_rimi_warehouses_change');
@@ -466,15 +493,22 @@ export async function getRimiBatches() {
       .from('rimi_batches')
       .select('*')
       .order('created_at', { ascending: false });
-    if (!error && Array.isArray(data)) {
-      try { localStorage.setItem('ferex_rimi_batches', JSON.stringify(data)); } catch {}
-      return data;
-    }
 
     const local = localStorage.getItem('ferex_rimi_batches');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
+    const localItems = local ? JSON.parse(local) : [];
+
+    if (!error && Array.isArray(data)) {
+      const merged = [...data];
+      for (const item of localItems) {
+        if (!merged.some((m: any) => m.id === item.id || (m.batch_number && m.batch_number === item.batch_number))) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_rimi_batches', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+
+    if (localItems.length > 0) return localItems;
     return [];
   } catch {
     const local = localStorage.getItem('ferex_rimi_batches');
@@ -518,7 +552,7 @@ export async function createRimiBatch(batch: {
 
 export async function updateRimiBatchStatus(id: string, status: string) {
   const current = await getRimiBatches();
-  const updated = current.map((b: any) => b.id === id ? { ...b, status } : b);
+  const updated = current.map((b: any) => (b.id === id || b.rawId === id || b.batch_number === id) ? { ...b, status } : b);
   try { localStorage.setItem('ferex_rimi_batches', JSON.stringify(updated)); } catch {}
   try {
     await supabase
@@ -532,7 +566,7 @@ export async function updateRimiBatchStatus(id: string, status: string) {
 
 export async function deleteRimiBatch(id: string) {
   const current = await getRimiBatches();
-  const updated = current.filter((b: any) => b.id !== id);
+  const updated = current.filter((b: any) => b.id !== id && b.rawId !== id && b.batch_number !== id);
   try { localStorage.setItem('ferex_rimi_batches', JSON.stringify(updated)); } catch {}
   try { await supabase.from('rimi_batches').delete().eq('id', id); } catch {}
   triggerLocalSync('ferex_rimi_batches_change');
@@ -546,15 +580,22 @@ export async function getRimiDeliveries() {
       .from('rimi_deliveries')
       .select('*, order:rimi_sales_orders(*, distributor:rimi_distributors(*))')
       .order('created_at', { ascending: false });
-    if (!error && Array.isArray(data)) {
-      try { localStorage.setItem('ferex_rimi_deliveries', JSON.stringify(data)); } catch {}
-      return data;
-    }
 
     const local = localStorage.getItem('ferex_rimi_deliveries');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
+    const localItems = local ? JSON.parse(local) : [];
+
+    if (!error && Array.isArray(data)) {
+      const merged = [...data];
+      for (const item of localItems) {
+        if (!merged.some((m: any) => m.id === item.id || (m.delivery_number && m.delivery_number === item.delivery_number))) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_rimi_deliveries', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+
+    if (localItems.length > 0) return localItems;
     return [];
   } catch {
     const local = localStorage.getItem('ferex_rimi_deliveries');
@@ -598,7 +639,7 @@ export async function createRimiDelivery(delivery: {
 
 export async function updateRimiDeliveryStatus(id: string, delivery_status: string) {
   const current = await getRimiDeliveries();
-  const updated = current.map((d: any) => d.id === id ? { ...d, delivery_status } : d);
+  const updated = current.map((d: any) => (d.id === id || d.rawId === id || d.delivery_number === id) ? { ...d, delivery_status } : d);
   try { localStorage.setItem('ferex_rimi_deliveries', JSON.stringify(updated)); } catch {}
   try {
     await supabase
@@ -612,7 +653,7 @@ export async function updateRimiDeliveryStatus(id: string, delivery_status: stri
 
 export async function deleteRimiDelivery(id: string) {
   const current = await getRimiDeliveries();
-  const updated = current.filter((d: any) => d.id !== id);
+  const updated = current.filter((d: any) => d.id !== id && d.rawId !== id && d.delivery_number !== id);
   try { localStorage.setItem('ferex_rimi_deliveries', JSON.stringify(updated)); } catch {}
   try { await supabase.from('rimi_deliveries').delete().eq('id', id); } catch {}
   triggerLocalSync('ferex_rimi_deliveries_change');
@@ -626,15 +667,22 @@ export async function getRimiCollections() {
       .from('rimi_payment_collections')
       .select('*, distributor:rimi_distributors(*)')
       .order('created_at', { ascending: false });
-    if (!error && Array.isArray(data)) {
-      try { localStorage.setItem('ferex_rimi_collections', JSON.stringify(data)); } catch {}
-      return data;
-    }
 
     const local = localStorage.getItem('ferex_rimi_collections');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
+    const localItems = local ? JSON.parse(local) : [];
+
+    if (!error && Array.isArray(data)) {
+      const merged = [...data];
+      for (const item of localItems) {
+        if (!merged.some((m: any) => m.id === item.id || (m.reference_no && m.reference_no === item.reference_no))) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_rimi_collections', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+
+    if (localItems.length > 0) return localItems;
     return [];
   } catch {
     const local = localStorage.getItem('ferex_rimi_collections');
@@ -678,7 +726,7 @@ export const getRimiPayments = getRimiCollections;
 
 export async function updateRimiCollectionStatus(id: string, status: string) {
   const current = await getRimiCollections();
-  const updated = current.map((c: any) => c.id === id ? { ...c, status } : c);
+  const updated = current.map((c: any) => (c.id === id || c.rawId === id || c.reference_no === id) ? { ...c, status } : c);
   try { localStorage.setItem('ferex_rimi_collections', JSON.stringify(updated)); } catch {}
   try {
     await supabase
@@ -692,7 +740,7 @@ export async function updateRimiCollectionStatus(id: string, status: string) {
 
 export async function deleteRimiCollection(id: string) {
   const current = await getRimiCollections();
-  const updated = current.filter((c: any) => c.id !== id);
+  const updated = current.filter((c: any) => c.id !== id && c.rawId !== id && c.reference_no !== id);
   try { localStorage.setItem('ferex_rimi_collections', JSON.stringify(updated)); } catch {}
   try { await supabase.from('rimi_payment_collections').delete().eq('id', id); } catch {}
   triggerLocalSync('ferex_rimi_collections_change');
@@ -706,15 +754,22 @@ export async function getRimiVehicles() {
       .from('rimi_vehicles')
       .select('*')
       .order('created_at', { ascending: false });
-    if (!error && Array.isArray(data)) {
-      try { localStorage.setItem('ferex_rimi_vehicles', JSON.stringify(data)); } catch {}
-      return data;
-    }
 
     const local = localStorage.getItem('ferex_rimi_vehicles');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
+    const localItems = local ? JSON.parse(local) : [];
+
+    if (!error && Array.isArray(data)) {
+      const merged = [...data];
+      for (const item of localItems) {
+        if (!merged.some((m: any) => m.id === item.id || (m.vehicle_number && m.vehicle_number === item.vehicle_number))) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_rimi_vehicles', JSON.stringify(merged)); } catch {}
+      return merged;
     }
+
+    if (localItems.length > 0) return localItems;
     return [];
   } catch {
     const local = localStorage.getItem('ferex_rimi_vehicles');
@@ -754,7 +809,7 @@ export async function createRimiVehicle(v: {
 
 export async function updateRimiVehicleStatus(id: string, status: string) {
   const current = await getRimiVehicles();
-  const updated = current.map((v: any) => v.id === id ? { ...v, status } : v);
+  const updated = current.map((v: any) => (v.id === id || v.rawId === id || v.vehicle_number === id) ? { ...v, status } : v);
   try { localStorage.setItem('ferex_rimi_vehicles', JSON.stringify(updated)); } catch {}
   try {
     await supabase
@@ -768,7 +823,7 @@ export async function updateRimiVehicleStatus(id: string, status: string) {
 
 export async function deleteRimiVehicle(id: string) {
   const current = await getRimiVehicles();
-  const updated = current.filter((v: any) => v.id !== id);
+  const updated = current.filter((v: any) => v.id !== id && v.rawId !== id && v.vehicle_number !== id);
   try { localStorage.setItem('ferex_rimi_vehicles', JSON.stringify(updated)); } catch {}
   try { await supabase.from('rimi_vehicles').delete().eq('id', id); } catch {}
   triggerLocalSync('ferex_rimi_vehicles_change');

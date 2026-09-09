@@ -4,6 +4,7 @@ import { FileCheck2, Search, Download, Eye, X, CheckCircle2, Anchor, Trash2, Plu
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getTradeBillsOfLading, createTradeBillOfLading, updateTradeBillOfLadingStatus, deleteTradeBillOfLading } from '../../lib/api/trade';
+import { downloadBillOfLadingDocument } from '../../utils/fileDownloader';
 import { supabase } from '../../lib/supabase';
 
 export const TradeBillsOfLading: React.FC = () => {
@@ -83,9 +84,26 @@ export const TradeBillsOfLading: React.FC = () => {
   };
 
   const handleDeleteBL = async (id: string) => {
-    await deleteTradeBillOfLading(id);
+    // Optimistic remove first
     setBills(prev => prev.filter(b => b.id !== id && b.bl_number !== id));
     showToastMsg(`Removed Bill of Lading ${id}`);
+    await deleteTradeBillOfLading(id);
+  };
+
+  const downloadBLDocument = (b: any) => {
+    const blId = b.bl_number || b.id;
+    const rows = [
+      ['B/L Number', 'Vessel', 'Carrier', 'Port of Loading', 'Port of Discharge', 'Consignee', 'Shipper', 'Status'],
+      [blId, b.vessel_name || b.vessel || '', b.carrier || '', b.port_of_loading || b.pol || '', b.port_of_discharge || b.pod || '', b.consignee || '', b.shipper || '', b.status || '']
+    ];
+    const csv = rows.map(r => r.map((v: any) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `BillOfLading_${blId}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const filteredBills = bills.filter(b =>
@@ -188,7 +206,14 @@ export const TradeBillsOfLading: React.FC = () => {
                           <button onClick={() => setSelectedBL(b)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Inspect B/L Document">
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button onClick={() => showToastMsg(`Downloading B/L PDF for ${blId}...`)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100" title="Download B/L PDF">
+                          <button
+                            onClick={() => {
+                              downloadBLDocument(b);
+                              showToastMsg(`Downloaded B/L ${blId}`);
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100 cursor-pointer"
+                            title="Download B/L CSV"
+                          >
                             <Download className="w-4 h-4" />
                           </button>
                           <button onClick={() => handleDeleteBL(b.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete B/L">
@@ -219,14 +244,6 @@ export const TradeBillsOfLading: React.FC = () => {
               <div className="space-y-4 text-left">
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
                   <span className="text-[10px] font-black text-[#6A1B2E] uppercase">{selectedBL.bl_number || selectedBL.id}</span>
-                  <h4 className="text-base font-black text-slate-900">{selectedBL.carrier}</h4>
-                  <p className="text-xs font-semibold text-slate-500">{selectedBL.vessel_name || selectedBL.vessel}</p>
-                </div>
-
-                <div className="p-4 bg-slate-50 rounded-xl space-y-1">
-                  <span className="text-[10px] font-extrabold uppercase text-slate-400">Shipper & Consignee</span>
-                  <div className="text-xs font-black text-slate-900">Shipper: {selectedBL.shipper || 'Ferex Global Trade Corp'}</div>
-                  <div className="text-xs font-semibold text-slate-500">Consignee: {selectedBL.consignee || 'Warsaw Global Logistics Sp. z o.o.'}</div>
                 </div>
 
                 <div className="p-4 bg-slate-50 rounded-xl space-y-1">

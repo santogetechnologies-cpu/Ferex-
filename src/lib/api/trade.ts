@@ -3,28 +3,31 @@ import { generateUUID } from '../../utils/uuid';
 
 // ─── 1. TRADE SHIPMENTS ───────────────────────────────────────────────────────
 export async function getTradeShipments() {
+  let localShipments: any[] = [];
+  const local = localStorage.getItem('ferex_trade_shipments');
+  if (local !== null) {
+    try { localShipments = JSON.parse(local); } catch {}
+  }
+
   try {
     const { data, error } = await supabase
       .from('trade_shipments')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && Array.isArray(data)) {
-      try { localStorage.setItem('ferex_trade_shipments', JSON.stringify(data)); } catch {}
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const merged = [...data];
+      for (const item of localShipments) {
+        if (!merged.some((m: any) => m.id === item.id || m.shipment_no === item.shipment_no)) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_trade_shipments', JSON.stringify(merged)); } catch {}
+      return merged;
     }
-
-    const local = localStorage.getItem('ferex_trade_shipments');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
-    }
-    return [];
+    return localShipments;
   } catch {
-    const local = localStorage.getItem('ferex_trade_shipments');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
-    }
-    return [];
+    return localShipments;
   }
 }
 
@@ -97,28 +100,31 @@ export async function deleteTradeShipment(id: string) {
 
 // ─── 2. TRADE INVOICES ────────────────────────────────────────────────────────
 export async function getTradeInvoices() {
+  let localInvoices: any[] = [];
+  const local = localStorage.getItem('ferex_trade_invoices');
+  if (local !== null) {
+    try { localInvoices = JSON.parse(local); } catch {}
+  }
+
   try {
     const { data, error } = await supabase
       .from('trade_invoices')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && Array.isArray(data)) {
-      try { localStorage.setItem('ferex_trade_invoices', JSON.stringify(data)); } catch {}
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const merged = [...data];
+      for (const item of localInvoices) {
+        if (!merged.some((m: any) => m.id === item.id || m.invoice_no === item.invoice_no)) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_trade_invoices', JSON.stringify(merged)); } catch {}
+      return merged;
     }
-
-    const local = localStorage.getItem('ferex_trade_invoices');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
-    }
-    return [];
+    return localInvoices;
   } catch {
-    const local = localStorage.getItem('ferex_trade_invoices');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
-    }
-    return [];
+    return localInvoices;
   }
 }
 
@@ -180,28 +186,31 @@ export async function deleteTradeInvoice(id: string) {
 
 // ─── 3. TRADE CRM CLIENTS ────────────────────────────────────────────────────
 export async function getTradeCRMContacts() {
+  let localContacts: any[] = [];
+  const local = localStorage.getItem('ferex_trade_crm');
+  if (local !== null) {
+    try { localContacts = JSON.parse(local); } catch {}
+  }
+
   try {
     const { data, error } = await supabase
       .from('trade_clients')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && Array.isArray(data)) {
-      try { localStorage.setItem('ferex_trade_crm', JSON.stringify(data)); } catch {}
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const merged = [...data];
+      for (const item of localContacts) {
+        if (!merged.some((m: any) => m.id === item.id || m.company_name === item.company_name)) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_trade_crm', JSON.stringify(merged)); } catch {}
+      return merged;
     }
-
-    const local = localStorage.getItem('ferex_trade_crm');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
-    }
-    return [];
+    return localContacts;
   } catch {
-    const local = localStorage.getItem('ferex_trade_crm');
-    if (local !== null) {
-      try { return JSON.parse(local); } catch {}
-    }
-    return [];
+    return localContacts;
   }
 }
 

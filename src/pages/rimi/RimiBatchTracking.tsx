@@ -14,15 +14,16 @@ export const RimiBatchTracking: React.FC = () => {
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const [newBatch, setNewBatch] = useState({
-    batch_number: 'LOT-FZN-9821',
-    product_name: 'Premium King Prawns (500g)',
-    warehouse_name: 'Mumbai Central Deep Freeze Hub',
-    quantity_units: 350,
+  const emptyBatch = {
+    batch_number: '',
+    product_name: '',
+    warehouse_name: 'Central Cold Hub',
+    quantity_units: '' as any,
     production_date: new Date().toISOString().split('T')[0],
-    expiry_date: '2027-03-31',
-    quality_grade: 'Grade A Export'
-  });
+    expiry_date: '',
+    quality_grade: 'Grade A'
+  };
+  const [newBatch, setNewBatch] = useState(emptyBatch);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -59,7 +60,7 @@ export const RimiBatchTracking: React.FC = () => {
 
     const channel = supabase
       .channel('realtime_rimi_batches')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_batches' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rimi_batches' }, () => {
         loadData();
       })
       .subscribe();
@@ -80,7 +81,8 @@ export const RimiBatchTracking: React.FC = () => {
 
   const handleAddBatch = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createRimiBatch({
+    if (!newBatch.batch_number || !newBatch.product_name) return;
+    const created = await createRimiBatch({
       batch_number: newBatch.batch_number,
       product_name: newBatch.product_name,
       warehouse_name: newBatch.warehouse_name,
@@ -89,15 +91,29 @@ export const RimiBatchTracking: React.FC = () => {
       expiry_date: newBatch.expiry_date,
       quality_grade: newBatch.quality_grade
     });
+    if (created) {
+      setBatches(prev => [{
+        id: created.batch_number || created.id,
+        rawId: created.id,
+        product: created.product_name,
+        mfgDate: created.production_date,
+        expDate: created.expiry_date,
+        units: `${created.quantity_units} Units`,
+        supplier: created.warehouse_name || 'Central Cold Hub',
+        grade: created.quality_grade || 'Grade A',
+        status: created.status || 'Active'
+      }, ...prev]);
+    }
     setShowAddModal(false);
     showToastMsg(`Registered lot batch ${newBatch.batch_number}`);
-    await loadData();
+    setNewBatch(emptyBatch);
   };
 
   const handleDeleteBatch = async (rawId: string) => {
-    await deleteRimiBatch(rawId);
-    setBatches(prev => prev.filter(b => b.rawId !== rawId));
+    // Optimistic remove first matching rawId or id
+    setBatches(prev => prev.filter(b => b.rawId !== rawId && b.id !== rawId));
     showToastMsg('Removed batch telemetry record');
+    await deleteRimiBatch(rawId);
   };
 
   const filteredBatches = batches.filter(b =>
@@ -198,28 +214,29 @@ export const RimiBatchTracking: React.FC = () => {
               <form onSubmit={handleAddBatch} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Batch / Lot Number</label>
-                  <input type="text" required value={newBatch.batch_number} onChange={(e) => setNewBatch({ ...newBatch, batch_number: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newBatch.batch_number} onChange={(e) => setNewBatch({ ...newBatch, batch_number: e.target.value })} placeholder="e.g. LOT-FZN-9821" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Product Description</label>
                   {products.length > 0 ? (
                     <select value={newBatch.product_name} onChange={(e) => setNewBatch({ ...newBatch, product_name: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                      <option value="">Select product...</option>
                       {products.map(p => (
                         <option key={p.id} value={p.name}>{p.name}</option>
                       ))}
                     </select>
                   ) : (
-                    <input type="text" required value={newBatch.product_name} onChange={(e) => setNewBatch({ ...newBatch, product_name: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newBatch.product_name} onChange={(e) => setNewBatch({ ...newBatch, product_name: e.target.value })} placeholder="e.g. Premium King Prawns (500g)" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Quantity (Units)</label>
-                    <input type="number" required value={newBatch.quantity_units} onChange={(e) => setNewBatch({ ...newBatch, quantity_units: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" required value={newBatch.quantity_units} onChange={(e) => setNewBatch({ ...newBatch, quantity_units: e.target.value as any })} placeholder="e.g. 350" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Quality Grade</label>
-                    <input type="text" value={newBatch.quality_grade} onChange={(e) => setNewBatch({ ...newBatch, quality_grade: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" value={newBatch.quality_grade} onChange={(e) => setNewBatch({ ...newBatch, quality_grade: e.target.value })} placeholder="e.g. Grade A Export" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">

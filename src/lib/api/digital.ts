@@ -106,37 +106,34 @@ export async function createDigitalLead(lead: {
 
 // ─── Digital Projects ───────────────────────────────────────────────────────
 export async function getDigitalProjects(category?: string) {
+  let localProjects: any[] = [];
+  const local = localStorage.getItem('ferex_digital_projects');
+  if (local !== null) {
+    try { localProjects = JSON.parse(local); } catch {}
+  }
+
   try {
     let query = supabase.from('digital_projects').select('*, client:digital_clients(*)').order('created_at', { ascending: false });
     if (category && category !== 'All') {
       query = query.eq('service_category', category);
     }
     const { data, error } = await query;
-    if (!error && data) {
-      try { localStorage.setItem('ferex_digital_projects', JSON.stringify(data)); } catch {}
-      if (category && category !== 'All') return data.filter((p: any) => p.service_category === category);
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const merged = [...data];
+      for (const item of localProjects) {
+        if (!merged.some((m: any) => m.id === item.id || m.title === item.title)) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_digital_projects', JSON.stringify(merged)); } catch {}
+      if (category && category !== 'All') return merged.filter((p: any) => p.service_category === category);
+      return merged;
     }
-
-    const local = localStorage.getItem('ferex_digital_projects');
-    if (local !== null) {
-      try {
-        const parsed = JSON.parse(local);
-        if (category && category !== 'All') return parsed.filter((p: any) => p.service_category === category);
-        return parsed;
-      } catch {}
-    }
-    return [];
+    if (category && category !== 'All') return localProjects.filter((p: any) => p.service_category === category);
+    return localProjects;
   } catch {
-    const local = localStorage.getItem('ferex_digital_projects');
-    if (local !== null) {
-      try {
-        const parsed = JSON.parse(local);
-        if (category && category !== 'All') return parsed.filter((p: any) => p.service_category === category);
-        return parsed;
-      } catch {}
-    }
-    return [];
+    if (category && category !== 'All') return localProjects.filter((p: any) => p.service_category === category);
+    return localProjects;
   }
 }
 
@@ -181,7 +178,7 @@ export async function createDigitalProject(project: {
   };
 
   const current = await getDigitalProjects();
-  const updated = [payload, ...current];
+  const updated = [payload, ...current.filter((p: any) => p.id !== payload.id)];
   try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
   try {
     const { client, ...dbPayload } = payload;
@@ -214,37 +211,34 @@ export async function deleteDigitalProject(id: string) {
 
 // ─── Digital Tasks ──────────────────────────────────────────────────────────
 export async function getDigitalTasks(projectId?: string) {
+  let localTasks: any[] = [];
+  const local = localStorage.getItem('ferex_digital_tasks');
+  if (local !== null) {
+    try { localTasks = JSON.parse(local); } catch {}
+  }
+
   try {
     let query = supabase.from('digital_tasks').select('*, project:digital_projects(*)').order('created_at', { ascending: false });
     if (projectId) {
       query = query.eq('project_id', projectId);
     }
     const { data, error } = await query;
-    if (!error && data) {
-      try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(data)); } catch {}
-      if (projectId) return data.filter((t: any) => t.project_id === projectId);
-      return data;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const merged = [...data];
+      for (const item of localTasks) {
+        if (!merged.some((m: any) => m.id === item.id || m.title === item.title)) {
+          merged.push(item);
+        }
+      }
+      try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(merged)); } catch {}
+      if (projectId) return merged.filter((t: any) => t.project_id === projectId);
+      return merged;
     }
-
-    const local = localStorage.getItem('ferex_digital_tasks');
-    if (local !== null) {
-      try {
-        const parsed = JSON.parse(local);
-        if (projectId) return parsed.filter((t: any) => t.project_id === projectId);
-        return parsed;
-      } catch {}
-    }
-    return [];
+    if (projectId) return localTasks.filter((t: any) => t.project_id === projectId);
+    return localTasks;
   } catch {
-    const local = localStorage.getItem('ferex_digital_tasks');
-    if (local !== null) {
-      try {
-        const parsed = JSON.parse(local);
-        if (projectId) return parsed.filter((t: any) => t.project_id === projectId);
-        return parsed;
-      } catch {}
-    }
-    return [];
+    if (projectId) return localTasks.filter((t: any) => t.project_id === projectId);
+    return localTasks;
   }
 }
 
@@ -257,9 +251,13 @@ export async function createDigitalTask(task: {
   due_date?: string;
   assigned_to_name?: string;
 }) {
+  const projects = await getDigitalProjects();
+  const projectObj = projects.find((p: any) => p.id === task.project_id);
+
   const payload = {
     id: generateUUID(),
     project_id: task.project_id || null,
+    project: projectObj || { title: task.project_title || 'Sprint Project' },
     title: task.title,
     priority: task.priority || 'Medium',
     status: task.status || 'To Do',
@@ -270,9 +268,15 @@ export async function createDigitalTask(task: {
   };
 
   const current = await getDigitalTasks();
-  const updated = [payload, ...current];
+  const updated = [payload, ...current.filter((t: any) => t.id !== payload.id)];
   try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(updated)); } catch {}
   try {
+    const { project, ...dbPayload } = payload as any;
+    await supabase.from('digital_tasks').insert(dbPayload);
+  } catch {}
+  triggerLocalSync('ferex_digital_tasks_change');
+  return payload;
+}
     const { project, ...dbPayload } = payload as any;
     await supabase.from('digital_tasks').insert(dbPayload);
   } catch {}

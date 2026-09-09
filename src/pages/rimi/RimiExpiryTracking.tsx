@@ -14,13 +14,14 @@ export const RimiExpiryTracking: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [newBatch, setNewBatch] = useState({
-    batch_number: `LOT-PER-${Math.floor(100 + Math.random() * 900)}`,
-    product_name: 'Norwegian Atlantic Salmon Fillets',
-    warehouse_name: 'Mumbai Central Deep Freeze Hub',
-    quantity_units: 120,
-    expiry_date: new Date(Date.now() + 45 * 86400000).toISOString().split('T')[0],
-  });
+  const emptyBatch = {
+    batch_number: '',
+    product_name: '',
+    warehouse_name: 'Central Cold Hub',
+    quantity_units: '' as any,
+    expiry_date: '',
+  };
+  const [newBatch, setNewBatch] = useState(emptyBatch);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -69,7 +70,7 @@ export const RimiExpiryTracking: React.FC = () => {
 
     const channel = supabase
       .channel('realtime_rimi_expiry')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_batches' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rimi_batches' }, () => {
         loadData();
       })
       .subscribe();
@@ -90,34 +91,55 @@ export const RimiExpiryTracking: React.FC = () => {
 
   const handleApplyDiscount = async (rawId: string, batchNo: string, discount: string) => {
     await updateRimiBatchStatus(rawId, `Flash Clearance (${discount} Off)`);
-    setExpiringStock(prev => prev.map(s => s.rawId === rawId ? { ...s, status: `Flash Clearance (${discount} Off)` } : s));
+    setExpiringStock(prev => prev.map(s => (s.rawId === rawId || s.id === rawId) ? { ...s, status: `Flash Clearance (${discount} Off)` } : s));
     showToastMsg(`Applied ${discount} Quick Clearance Markdown for ${batchNo}`);
   };
 
   const handleQuarantine = async (rawId: string, batchNo: string) => {
     await updateRimiBatchStatus(rawId, 'Quarantined for Disposal');
-    setExpiringStock(prev => prev.map(s => s.rawId === rawId ? { ...s, status: 'Quarantined for Disposal' } : s));
+    setExpiringStock(prev => prev.map(s => (s.rawId === rawId || s.id === rawId) ? { ...s, status: 'Quarantined for Disposal' } : s));
     showToastMsg(`Batch ${batchNo} moved to Quarantine Storage`);
   };
 
   const handleDeleteBatch = async (rawId: string) => {
-    await deleteRimiBatch(rawId);
-    setExpiringStock(prev => prev.filter(s => s.rawId !== rawId));
+    // Optimistic remove first matching rawId or id
+    setExpiringStock(prev => prev.filter(s => s.rawId !== rawId && s.id !== rawId));
     showToastMsg('Removed batch from monitoring');
+    await deleteRimiBatch(rawId);
   };
 
   const handleAddBatch = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createRimiBatch({
+    if (!newBatch.batch_number || !newBatch.product_name) return;
+    const newItem = await createRimiBatch({
       batch_number: newBatch.batch_number,
       product_name: newBatch.product_name,
       warehouse_name: newBatch.warehouse_name,
       quantity_units: Number(newBatch.quantity_units) || 100,
       expiry_date: newBatch.expiry_date
     });
+    // Optimistic add
+    if (newItem) {
+      const exp = new Date(newBatch.expiry_date);
+      const diffDays = Math.ceil((exp.getTime() - Date.now()) / (1000 * 3600 * 24));
+      const category = diffDays <= 30 ? 'Critical' : diffDays <= 60 ? 'Warning' : 'Safe';
+      setExpiringStock(prev => [{
+        id: newItem.id,
+        rawId: newItem.id,
+        product: newBatch.product_name,
+        batch: newBatch.batch_number,
+        units: `${newBatch.quantity_units} Units`,
+        location: newBatch.warehouse_name || 'Central Cold Hub',
+        daysLeft: diffDays,
+        category,
+        risk: diffDays <= 0 ? 'Expired' : `${diffDays} Days Left`,
+        riskBadge: category === 'Critical' ? 'bg-rose-50 text-rose-700 border-rose-200' : category === 'Warning' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        status: 'Active'
+      }, ...prev]);
+    }
     setShowAddModal(false);
     showToastMsg(`Registered lot batch ${newBatch.batch_number}`);
-    await loadData();
+    setNewBatch(emptyBatch);
   };
 
   const filtered = expiringStock.filter(s => {
@@ -145,7 +167,7 @@ export const RimiExpiryTracking: React.FC = () => {
             Rimi Cold Chain Console • Proactive expiration monitoring, early clearance workflows, and FIFO batch rotation.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { setNewBatch(emptyBatch); setShowAddModal(true); }}>
           <Plus className="w-3.5 h-3.5 mr-1.5" /> Monitor New Perishable Lot
         </Button>
       </div>
@@ -241,22 +263,23 @@ export const RimiExpiryTracking: React.FC = () => {
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Product Description</label>
                   {products.length > 0 ? (
                     <select value={newBatch.product_name} onChange={(e) => setNewBatch({ ...newBatch, product_name: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                      <option value="">Select product...</option>
                       {products.map(p => (
                         <option key={p.id} value={p.name}>{p.name}</option>
                       ))}
                     </select>
                   ) : (
-                    <input type="text" required value={newBatch.product_name} onChange={(e) => setNewBatch({ ...newBatch, product_name: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newBatch.product_name} onChange={(e) => setNewBatch({ ...newBatch, product_name: e.target.value })} placeholder="e.g. Frozen Prawns" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Batch #</label>
-                    <input type="text" required value={newBatch.batch_number} onChange={(e) => setNewBatch({ ...newBatch, batch_number: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newBatch.batch_number} onChange={(e) => setNewBatch({ ...newBatch, batch_number: e.target.value })} placeholder="e.g. LOT-FZN-9821" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Quantity (Units)</label>
-                    <input type="number" required value={newBatch.quantity_units} onChange={(e) => setNewBatch({ ...newBatch, quantity_units: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" required value={newBatch.quantity_units} onChange={(e) => setNewBatch({ ...newBatch, quantity_units: e.target.value as any })} placeholder="e.g. 250" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
                 <div>

@@ -46,7 +46,7 @@ export const DigitalTasks: React.FC = () => {
 
     const channel = supabase
       .channel('realtime_digital_tasks')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_tasks' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'digital_tasks' }, () => {
         loadData();
       })
       .subscribe();
@@ -63,17 +63,18 @@ export const DigitalTasks: React.FC = () => {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTask.title) return;
-    await createDigitalTask({
+    const created = await createDigitalTask({
       title: newTask.title,
       project_id: newTask.project_id || (projects.length > 0 ? projects[0].id : undefined),
       priority: newTask.priority,
       due_date: newTask.due_date,
       status: 'To Do'
     });
+    setTasks(prev => [created, ...prev.filter(t => t.id !== created.id)]);
     setShowAddModal(false);
     showToast(`Created task "${newTask.title}"`);
     setNewTask({ title: '', project_id: '', priority: 'Medium', due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0] });
-    await loadData();
+    // No loadData() — optimistic update already shows the new task
   };
 
   const handleToggleStatus = async (task: any) => {
@@ -84,9 +85,10 @@ export const DigitalTasks: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await deleteDigitalTask(id);
+    // Optimistic remove first
     setTasks(prev => prev.filter(t => t.id !== id));
     showToast('Task removed from sprint');
+    await deleteDigitalTask(id);
   };
 
   const filtered = tasks.filter(t => {

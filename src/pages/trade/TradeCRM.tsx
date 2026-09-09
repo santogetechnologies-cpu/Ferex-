@@ -70,7 +70,7 @@ export const TradeCRM: React.FC = () => {
 
     const channel = supabase
       .channel('realtime_trade_crm')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_clients' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trade_clients' }, () => {
         loadData();
       })
       .subscribe();
@@ -111,10 +111,28 @@ export const TradeCRM: React.FC = () => {
       category: newCompany.category,
       payment_terms: newCompany.payment_terms
     });
+
+    const newFormatted = {
+      id: created.id ? `CRM-${created.id.slice(0, 4).toUpperCase()}` : 'CRM-NEW',
+      rawId: created.id,
+      name: created.company_name,
+      country: created.country,
+      flag: created.country?.includes('Poland') ? '🇵🇱' : created.country?.includes('Germany') ? '🇩🇪' : created.country?.includes('Netherlands') ? '🇳🇱' : created.country?.includes('Norway') ? '🇳🇴' : '🌐',
+      contact: created.contact_person,
+      email: created.email,
+      phone: created.phone || '+48 22 890 1234',
+      category: created.category || 'Buyer',
+      paymentTerms: created.payment_terms || 'LC 60 Days',
+      status: created.status || 'Active',
+      statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      hasCredentials: false
+    };
+
+    setCompanies(prev => [newFormatted, ...prev.filter(c => c.rawId !== created.id)]);
     setShowAddModal(false);
     showToastMsg(`Added partner company ${newCompany.name}`);
-    setNewCompany({ name: '', country: 'Poland', contact: '', email: '', phone: '', category: 'Logistics Partner', payment_terms: 'LC 60 Days' });
-    await loadData();
+    setNewCompany({ name: '', country: '', contact: '', email: '', phone: '', category: 'Logistics Partner', payment_terms: 'LC 60 Days' });
+    // No loadData() — optimistic update already shows the new item
 
     if (created?.id && created?.email) {
       handleProvisionCredentials({
@@ -145,9 +163,10 @@ export const TradeCRM: React.FC = () => {
   };
 
   const handleDeleteCompany = async (id: string, rawId?: string) => {
-    await deleteTradeCRMContact(rawId || id);
+    // Optimistic remove first
     setCompanies(prev => prev.filter(c => c.id !== id && c.rawId !== rawId));
     showToastMsg(`Removed partner record ${id}`);
+    await deleteTradeCRMContact(rawId || id);
   };
 
   const handleProvisionCredentials = async (company: any) => {

@@ -15,13 +15,14 @@ export const RimiCollections: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
 
-  const [newCol, setNewCol] = useState({
+  const emptyCol = {
     distributor_id: '',
     customer_name: '',
-    amount: 125000,
+    amount: '' as any,
     payment_method: 'RTGS / Bank Wire',
-    reference_no: `REF-FMCG-${Date.now().toString().slice(-4)}`
-  });
+    reference_no: ''
+  };
+  const [newCol, setNewCol] = useState(emptyCol);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -57,7 +58,7 @@ export const RimiCollections: React.FC = () => {
 
     const channel = supabase
       .channel('realtime_rimi_collections')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_payments' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rimi_payment_collections' }, () => {
         loadData();
       })
       .subscribe();
@@ -78,22 +79,41 @@ export const RimiCollections: React.FC = () => {
 
   const handleAddCollection = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createRimiCollection({
-      distributor_id: newCol.distributor_id || (distributors.length > 0 ? distributors[0].id : undefined),
-      customer_name: newCol.customer_name || (distributors.length > 0 ? distributors[0].business_name : 'HyperCity Hub'),
-      amount: Number(newCol.amount) || 100000,
+    const matchedDist = distributors.find(d => d.id === newCol.distributor_id);
+    const custName = newCol.customer_name || matchedDist?.business_name || 'Customer';
+    const cleanAmount = Number(newCol.amount) || 100000;
+    const refNo = newCol.reference_no || `REF-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    const newItem = await createRimiCollection({
+      distributor_id: newCol.distributor_id || undefined,
+      customer_name: custName,
+      amount: cleanAmount,
       payment_method: newCol.payment_method,
-      reference_no: newCol.reference_no
+      reference_no: refNo
     });
+    // Optimistic add
+    if (newItem) {
+      setCollections(prev => [{
+        id: newItem.reference_no || `COL-${(newItem.id || '').slice(0, 4).toUpperCase()}`,
+        rawId: newItem.id,
+        customer: custName,
+        amountRaw: cleanAmount,
+        amount: `₹${cleanAmount.toLocaleString('en-IN')}`,
+        mode: newCol.payment_method,
+        date: new Date().toISOString().split('T')[0],
+        status: 'Settled & Cleared'
+      }, ...prev]);
+    }
     setShowAddModal(false);
-    showToastMsg(`Recorded collection of ₹${Number(newCol.amount).toLocaleString('en-IN')}`);
-    await loadData();
+    showToastMsg(`Recorded collection of ₹${cleanAmount.toLocaleString('en-IN')}`);
+    setNewCol(emptyCol);
   };
 
   const handleDeleteCollection = async (rawId: string) => {
-    await deleteRimiCollection(rawId);
-    setCollections(prev => prev.filter(c => c.rawId !== rawId));
+    // Optimistic remove first matching rawId or id
+    setCollections(prev => prev.filter(c => c.rawId !== rawId && c.id !== rawId));
     showToastMsg('Removed collection record');
+    await deleteRimiCollection(rawId);
   };
 
   const handleExportCSV = () => {
@@ -216,18 +236,19 @@ export const RimiCollections: React.FC = () => {
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Customer / Distributor</label>
                   {distributors.length > 0 ? (
                     <select value={newCol.distributor_id} onChange={(e) => setNewCol({ ...newCol, distributor_id: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                      <option value="">Select customer / distributor...</option>
                       {distributors.map(d => (
                         <option key={d.id} value={d.id}>{d.business_name} ({d.tier || 'Retailer'})</option>
                       ))}
                     </select>
                   ) : (
-                    <input type="text" required value={newCol.customer_name} onChange={(e) => setNewCol({ ...newCol, customer_name: e.target.value })} placeholder="Customer Name" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newCol.customer_name} onChange={(e) => setNewCol({ ...newCol, customer_name: e.target.value })} placeholder="e.g. HyperCity Supermarket" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Amount (₹ INR)</label>
-                    <input type="number" required value={newCol.amount} onChange={(e) => setNewCol({ ...newCol, amount: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" required value={newCol.amount} onChange={(e) => setNewCol({ ...newCol, amount: e.target.value as any })} placeholder="e.g. 125000" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Payment Method</label>
@@ -241,7 +262,7 @@ export const RimiCollections: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Bank Reference # / UTR</label>
-                  <input type="text" required value={newCol.reference_no} onChange={(e) => setNewCol({ ...newCol, reference_no: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newCol.reference_no} onChange={(e) => setNewCol({ ...newCol, reference_no: e.target.value })} placeholder="e.g. UTR-2026-98124" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>

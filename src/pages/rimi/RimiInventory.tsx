@@ -34,33 +34,13 @@ export const RimiInventory: React.FC = () => {
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Forms
-  const [newInward, setNewInward] = useState({
-    product_id: '',
-    batch_number: `LOT-2026-${Math.floor(100 + Math.random() * 900)}`,
-    warehouse_location: 'Mumbai Central Deep Freeze (Bay 1)',
-    quantity: 200,
-    expiry_date: '2027-03-31'
-  });
+  const emptyInward = { product_id: '', batch_number: '', warehouse_location: '', quantity: 0, expiry_date: '' };
+  const emptyFrostLoss = { product_name: '', batch_number: '', warehouse_location: '', quantity_lost_kg: 0, loss_reason: 'Freezer Burn' as const, estimated_loss_value: 0 };
+  const emptyAdjustment = { product_name: '', adjustment_type: 'Inter-Warehouse Transfer' as const, quantity: 0, unit: 'KG', source_location: '', target_location: '', reason: '' };
 
-  const [newFrostLoss, setNewFrostLoss] = useState({
-    product_name: 'Norwegian Atlantic Salmon Fillets',
-    batch_number: 'LOT-SAL-8821',
-    warehouse_location: 'Mumbai Central Deep Freeze (Bay 4)',
-    quantity_lost_kg: 15,
-    loss_reason: 'Freezer Burn' as const,
-    estimated_loss_value: 18750,
-  });
-
-  const [newAdjustment, setNewAdjustment] = useState({
-    product_name: 'King Tiger Prawns (500g)',
-    adjustment_type: 'Inter-Warehouse Transfer' as const,
-    quantity: 50,
-    unit: 'Packs',
-    source_location: 'Mumbai Central Deep Freeze',
-    target_location: 'Pune Regional Depot',
-    reason: 'Rebalancing cold stocks for weekend surge'
-  });
+  const [newInward, setNewInward] = useState(emptyInward);
+  const [newFrostLoss, setNewFrostLoss] = useState(emptyFrostLoss);
+  const [newAdjustment, setNewAdjustment] = useState(emptyAdjustment);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -108,7 +88,7 @@ export const RimiInventory: React.FC = () => {
 
     const channel = supabase
       .channel('realtime_rimi_inventory')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_inventory' }, () => loadData())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rimi_inventory' }, () => loadData())
       .subscribe();
 
     const handleLocalChange = () => loadData();
@@ -138,15 +118,9 @@ export const RimiInventory: React.FC = () => {
     });
 
     setShowInwardModal(false);
-    setNewInward({
-      product_id: products.length > 0 ? products[0].id : '',
-      batch_number: `LOT-2026-${Math.floor(100 + Math.random() * 900)}`,
-      warehouse_location: 'Mumbai Central Deep Freeze (Bay 1)',
-      quantity: 200,
-      expiry_date: '2027-03-31'
-    });
+    setNewInward(emptyInward);
     showToastMsg(`Inwarded stock batch ${newInward.batch_number}`);
-    await loadData();
+    await loadData(); // Reload needed as mapping is complex
   };
 
   // Handle Frost Loss Incident
@@ -163,6 +137,7 @@ export const RimiInventory: React.FC = () => {
 
     setShowFrostLossModal(false);
     showToastMsg(`Recorded frost loss incident for ${newFrostLoss.product_name}`);
+    setNewFrostLoss(emptyFrostLoss);
     await loadData();
   };
 
@@ -181,25 +156,26 @@ export const RimiInventory: React.FC = () => {
 
     setShowAdjustmentModal(false);
     showToastMsg(`Stock adjustment recorded successfully!`);
+    setNewAdjustment(emptyAdjustment);
     await loadData();
   };
 
   const handleDeleteItem = async (id: string) => {
-    await deleteRimiInventoryItem(id);
     setStockItems(prev => prev.filter(s => s.id !== id));
     showToastMsg('Removed stock record');
+    await deleteRimiInventoryItem(id);
   };
 
   const handleDeleteFrostLoss = async (id: string) => {
-    await deleteRimiFrostLoss(id);
     setFrostLosses(prev => prev.filter(f => f.id !== id));
     showToastMsg('Deleted frost loss record');
+    await deleteRimiFrostLoss(id);
   };
 
   const handleDeleteAdjustment = async (id: string) => {
-    await deleteRimiStockAdjustment(id);
     setAdjustments(prev => prev.filter(a => a.id !== id));
     showToastMsg('Removed stock adjustment record');
+    await deleteRimiStockAdjustment(id);
   };
 
   const handleExportCSV = () => {
@@ -260,7 +236,7 @@ export const RimiInventory: React.FC = () => {
           <Button size="sm" variant="outline" className="text-xs font-bold border-slate-200" onClick={handleExportCSV}>
             <Download className="w-3.5 h-3.5 mr-1.5 text-[#6A1B2E]" /> Export CSV
           </Button>
-          <Button size="sm" variant="outline" className="text-xs font-bold border-amber-300 bg-amber-50/60 text-amber-900 hover:bg-amber-100" onClick={() => setShowFrostLossModal(true)}>
+          <Button size="sm" variant="outline" className="text-xs font-bold border-amber-300 bg-amber-50/60 text-amber-900 hover:bg-amber-100" onClick={() => { setNewFrostLoss(emptyFrostLoss); setShowFrostLossModal(true); }} style={{ display: activeTab === 'frost_loss' ? 'none' : undefined }}>
             <Snowflake className="w-3.5 h-3.5 mr-1.5 text-amber-700" /> Record Frost Loss
           </Button>
           <Button size="sm" variant="outline" className="text-xs font-bold border-slate-200" onClick={() => setShowAdjustmentModal(true)}>
@@ -407,7 +383,7 @@ export const RimiInventory: React.FC = () => {
                 </p>
               </div>
             </div>
-            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shrink-0" onClick={() => setShowFrostLossModal(true)}>
+            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shrink-0" onClick={() => { setNewFrostLoss(emptyFrostLoss); setShowFrostLossModal(true); }}>
               <Plus className="w-3.5 h-3.5 mr-1" /> Log New Frost Loss
             </Button>
           </div>
@@ -440,7 +416,7 @@ export const RimiInventory: React.FC = () => {
                       <td className="py-3.5 px-4 font-bold text-amber-800">{f.loss_reason}</td>
                       <td className="py-3.5 px-4 font-black text-rose-600">₹{Number(f.estimated_loss_value).toLocaleString('en-IN')}</td>
                       <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-200">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap">
                           {f.status}
                         </span>
                       </td>

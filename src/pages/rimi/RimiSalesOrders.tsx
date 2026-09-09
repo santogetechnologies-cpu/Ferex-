@@ -52,7 +52,7 @@ export const RimiSalesOrders: React.FC = () => {
 
     const channel = supabase
       .channel('realtime_rimi_sales_orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_sales_orders' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rimi_sales_orders' }, () => {
         loadOrders();
       })
       .subscribe();
@@ -69,8 +69,8 @@ export const RimiSalesOrders: React.FC = () => {
   const [newOrder, setNewOrder] = useState({
     distributor_id: '',
     buyer: '',
-    items: '50 Packs King Prawns (500g) + 100 Packs Gourmet Chicken Nuggets',
-    amount: '85000',
+    items: '',
+    amount: '',
     delivery_date: new Date(Date.now() + 86400000).toISOString().split('T')[0]
   });
 
@@ -81,30 +81,50 @@ export const RimiSalesOrders: React.FC = () => {
 
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanAmount = Number(newOrder.amount.replace(/[^0-9.]/g, '')) || 50000;
+    const cleanAmount = Number(String(newOrder.amount).replace(/[^0-9.]/g, '')) || 50000;
+    const matchedDist = distributors.find(d => d.id === newOrder.distributor_id);
+    const buyerName = newOrder.buyer || matchedDist?.business_name || 'B2B Client';
+
     const created = await createRimiSalesOrder({
-      distributor_id: newOrder.distributor_id || (distributors.length > 0 ? distributors[0].id : undefined),
-      customer_name: newOrder.buyer || (distributors.length > 0 ? distributors[0].business_name : 'HyperCity Supermarket'),
+      distributor_id: newOrder.distributor_id || undefined,
+      customer_name: buyerName,
       items_summary: newOrder.items,
       total_amount: cleanAmount,
       delivery_date: newOrder.delivery_date
     });
+    // Optimistic add — show immediately in table
+    if (created) {
+      setOrders(prev => [{
+        id: created.order_no || created.id,
+        rawId: created.id,
+        orderNo: created.order_no,
+        buyer: buyerName,
+        date: new Date().toLocaleDateString(),
+        deliveryDate: newOrder.delivery_date || new Date().toISOString().split('T')[0],
+        items: newOrder.items || 'Cold Storage SKUs',
+        rawAmount: cleanAmount,
+        amount: `₹${cleanAmount.toLocaleString('en-IN')}`,
+        status: 'Order Received',
+        paymentStatus: 'Unpaid',
+        truck: 'Reefer Truck #MH-12-AZ-8901'
+      }, ...prev]);
+    }
     setShowCreateModal(false);
-    showToastMsg(`Created Cold Chain B2B Order ${created.order_no || 'SO-2026'}`);
-    setNewOrder({ distributor_id: '', buyer: '', items: '50 Packs King Prawns + 100 Packs Chicken Nuggets', amount: '85000', delivery_date: new Date(Date.now() + 86400000).toISOString().split('T')[0] });
-    await loadOrders();
+    showToastMsg(`Created Cold Chain B2B Order ${created?.order_no || 'SO-2026'}`);
+    setNewOrder({ distributor_id: '', buyer: '', items: '', amount: '', delivery_date: new Date(Date.now() + 86400000).toISOString().split('T')[0] });
   };
 
   const handleStatusChange = async (rawId: string, newStatus: string) => {
     await updateRimiOrderStatus(rawId, newStatus);
-    setOrders(prev => prev.map(o => o.rawId === rawId ? { ...o, status: newStatus } : o));
+    setOrders(prev => prev.map(o => (o.rawId === rawId || o.id === rawId) ? { ...o, status: newStatus } : o));
     showToastMsg(`Updated order status to "${newStatus}"`);
   };
 
   const handleDeleteOrder = async (rawId: string) => {
-    await deleteRimiSalesOrder(rawId);
-    setOrders(prev => prev.filter(o => o.rawId !== rawId));
+    // Optimistic remove first matching rawId or id
+    setOrders(prev => prev.filter(o => o.rawId !== rawId && o.id !== rawId));
     showToastMsg('Order record deleted');
+    await deleteRimiSalesOrder(rawId);
   };
 
   const filteredOrders = orders.filter(o =>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FolderArchive, Search, Upload, Eye, Trash2, X, CheckCircle2, FileText } from 'lucide-react';
+import { FolderArchive, Search, Upload, Eye, Trash2, X, CheckCircle2, FileText, Download } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { getTradeDocuments, uploadTradeDocumentRecord, deleteTradeDocumentRecord } from '../../lib/api/trade';
+import { downloadGenericVaultDocument } from '../../utils/fileDownloader';
 import { supabase } from '../../lib/supabase';
 
 export const TradeDocuments: React.FC = () => {
@@ -192,12 +193,24 @@ export const TradeDocuments: React.FC = () => {
               </div>
 
               <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                <button onClick={() => setSelectedFile(file)} className="text-xs font-bold text-[#6A1B2E] hover:underline flex items-center gap-1">
+                <button onClick={() => setSelectedFile(file)} className="text-xs font-bold text-[#6A1B2E] hover:underline flex items-center gap-1 cursor-pointer">
                   <Eye className="w-3.5 h-3.5" /> Inspect
                 </button>
-                <button onClick={() => handleDeleteFile(file.id, file.rawId)} className="p-1 text-slate-400 hover:text-red-600 rounded" title="Delete Document">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      downloadGenericVaultDocument(file);
+                      showToastMsg(`Downloaded ${file.name}`);
+                    }}
+                    className="p-1 text-slate-400 hover:text-[#6A1B2E] rounded cursor-pointer"
+                    title="Download File"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => handleDeleteFile(file.id, file.rawId)} className="p-1 text-slate-400 hover:text-red-600 rounded cursor-pointer" title="Delete Document">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </Card>
           ))}
@@ -265,10 +278,15 @@ export const TradeDocuments: React.FC = () => {
                   <div className="text-xs font-bold text-emerald-600 mt-1">Status: Digitally Signed & Verified</div>
                 </div>
 
-                <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => {
-                  showToastMsg(`Exporting digital copy for ${selectedFile.name}`);
-                }}>
-                  Download Digital PDF Copy
+                <Button
+                  size="sm"
+                  className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221] cursor-pointer"
+                  onClick={() => {
+                    downloadGenericVaultDocument(selectedFile);
+                    showToastMsg(`Downloaded ${selectedFile.name}`);
+                  }}
+                >
+                  <Download className="w-4 h-4 mr-1.5" /> Download Document File
                 </Button>
               </div>
             </motion.div>

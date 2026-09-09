@@ -13,16 +13,17 @@ export const RimiWarehouses: React.FC = () => {
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const [newWh, setNewWh] = useState({
-    code: 'WH-MUM-01',
+  const emptyWh = {
+    code: '',
     name: '',
-    city: 'Mumbai',
+    city: '',
     address: '',
-    cold_room_temp_celsius: -22.0,
-    total_capacity_pallets: 1200,
-    utilized_pallets: 850,
-    manager_name: 'Rajesh Sharma'
-  });
+    cold_room_temp_celsius: -18.0,
+    total_capacity_pallets: 500,
+    utilized_pallets: 0,
+    manager_name: ''
+  };
+  const [newWh, setNewWh] = useState(emptyWh);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -57,7 +58,7 @@ export const RimiWarehouses: React.FC = () => {
 
     const channel = supabase
       .channel('realtime_rimi_warehouses')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_warehouses' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rimi_warehouses' }, () => {
         loadData();
       })
       .subscribe();
@@ -78,27 +79,43 @@ export const RimiWarehouses: React.FC = () => {
 
   const handleAddWarehouse = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWh.name) return;
-    await createRimiWarehouse({
-      code: `WH-${newWh.city.slice(0, 3).toUpperCase()}-${Math.floor(10 + Math.random() * 90)}`,
+    if (!newWh.name || !newWh.city) return;
+    const cityCode = newWh.city.slice(0, 3).toUpperCase();
+    const newItem = await createRimiWarehouse({
+      code: `WH-${cityCode}-${Math.floor(10 + Math.random() * 90)}`,
       name: newWh.name,
       city: newWh.city,
       address: newWh.address,
-      cold_room_temp_celsius: Number(newWh.cold_room_temp_celsius) || -22.0,
-      total_capacity_pallets: Number(newWh.total_capacity_pallets) || 1000,
-      utilized_pallets: Number(newWh.utilized_pallets) || 400,
+      cold_room_temp_celsius: Number(newWh.cold_room_temp_celsius) || -18.0,
+      total_capacity_pallets: Number(newWh.total_capacity_pallets) || 500,
+      utilized_pallets: Number(newWh.utilized_pallets) || 0,
       manager_name: newWh.manager_name
     });
+    // Optimistic update — show immediately without waiting for DB re-fetch
+    if (newItem) {
+      const utilPct = newItem.total_capacity_pallets > 0 ? Math.round((newItem.utilized_pallets / newItem.total_capacity_pallets) * 100) : 0;
+      setFacilities(prev => [{
+        id: newItem.code || newItem.id,
+        rawId: newItem.id,
+        name: newItem.name,
+        city: newItem.city,
+        address: newItem.address || `${newItem.city} Industrial Zone`,
+        temp: `${newItem.cold_room_temp_celsius}°C`,
+        capacity: `${Number(newItem.total_capacity_pallets).toLocaleString()} Pallets (${utilPct}% Used)`,
+        manager: newItem.manager_name || 'Hub Manager',
+        status: 'Active Frozen'
+      }, ...prev]);
+    }
     setShowAddModal(false);
     showToastMsg(`Added cold storage facility ${newWh.name}`);
-    setNewWh({ code: 'WH-MUM-01', name: '', city: 'Mumbai', address: '', cold_room_temp_celsius: -22.0, total_capacity_pallets: 1200, utilized_pallets: 850, manager_name: 'Rajesh Sharma' });
-    await loadData();
+    setNewWh(emptyWh);
   };
 
   const handleDeleteWh = async (rawId: string) => {
-    await deleteRimiWarehouse(rawId);
-    setFacilities(prev => prev.filter(f => f.rawId !== rawId));
+    // Optimistic remove first, matching rawId or id
+    setFacilities(prev => prev.filter(f => f.rawId !== rawId && f.id !== rawId));
     showToastMsg('Removed warehouse record');
+    await deleteRimiWarehouse(rawId);
   };
 
   const filteredFacilities = facilities.filter(f =>
@@ -126,7 +143,7 @@ export const RimiWarehouses: React.FC = () => {
             Rimi Cold Chain Console • Live telemetry monitoring, deep freeze storage, and regional hub capacity.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { setNewWh(emptyWh); setShowAddModal(true); }}>
           <Plus className="w-4 h-4 mr-1.5" /> Register Cold Hub
         </Button>
       </div>
@@ -198,16 +215,16 @@ export const RimiWarehouses: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">City</label>
-                    <input type="text" required value={newWh.city} onChange={(e) => setNewWh({ ...newWh, city: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newWh.city} onChange={(e) => setNewWh({ ...newWh, city: e.target.value })} placeholder="e.g. Pune" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Cold Temp (°C)</label>
-                    <input type="number" step="0.1" required value={newWh.cold_room_temp_celsius} onChange={(e) => setNewWh({ ...newWh, cold_room_temp_celsius: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" step="0.1" required value={newWh.cold_room_temp_celsius} onChange={(e) => setNewWh({ ...newWh, cold_room_temp_celsius: e.target.value as any })} placeholder="-18.0" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Facility Manager</label>
-                  <input type="text" required value={newWh.manager_name} onChange={(e) => setNewWh({ ...newWh, manager_name: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newWh.manager_name} onChange={(e) => setNewWh({ ...newWh, manager_name: e.target.value })} placeholder="e.g. Rajesh Sharma" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>

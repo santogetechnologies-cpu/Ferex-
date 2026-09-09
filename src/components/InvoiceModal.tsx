@@ -78,63 +78,292 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
     : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 
   const handlePrint = () => {
-    const printContent = printRef.current;
-    if (!printContent) return;
-
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('Please allow popups to print / save invoice');
       return;
     }
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Invoice_${invoice.invoice_no}</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Inter:wght@400;500;600;700;800;900&display=swap');
-            body {
-              font-family: 'Inter', sans-serif;
-              margin: 0;
-              padding: 0;
-              background: #fff;
-              color: #1e293b;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-            .invoice-page {
-              width: 210mm;
-              min-height: 297mm;
-              padding: 12mm 15mm;
-              margin: 0 auto;
-              box-sizing: border-box;
-              background: #ffffff;
-              position: relative;
-            }
-            .maroon-text { color: #58051E; }
-            .maroon-bg { background-color: #58051E !important; color: #ffffff !important; }
-            .top-bar { height: 3px; background: #58051E; margin: 15px 0 25px 0; }
-            .bottom-bar { height: 6px; background: linear-gradient(90deg, #58051E 0%, #80002E 100%); width: 100%; position: absolute; bottom: 0; left: 0; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { background-color: #58051E !important; color: #ffffff !important; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 10px 12px; }
-            td { padding: 12px; font-size: 12px; border-bottom: 1px solid #f1f5f9; }
-            @page { size: A4; margin: 0; }
-          </style>
-        </head>
-        <body>
-          <div class="invoice-page">
-            ${printContent.innerHTML}
-          </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
-        </body>
-      </html>
-    `);
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tax_Invoice_${invoice.invoice_no}</title>
+  <style>
+    @page { size: A4; margin: 15mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      color: #0f172a;
+      line-height: 1.4;
+      font-size: 12px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .invoice-card {
+      width: 100%;
+      max-width: 190mm;
+      margin: 0 auto;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 12px;
+      border-bottom: 2.5px solid #58051E;
+    }
+    .brand-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: #58051E;
+      letter-spacing: 0.5px;
+      margin: 0 0 2px 0;
+    }
+    .brand-sub {
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .company-info {
+      text-align: right;
+      font-size: 11px;
+      color: #334155;
+    }
+    .company-info p { margin: 2px 0; }
+    .title-banner {
+      text-align: center;
+      margin: 18px 0 14px 0;
+    }
+    .invoice-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: 2px;
+      margin: 0;
+    }
+    .gstin {
+      font-size: 12px;
+      font-weight: 800;
+      color: #58051E;
+      margin-top: 2px;
+    }
+    .details-grid {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin: 16px 0;
+      padding: 12px 16px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+    .info-col h4 {
+      margin: 0 0 4px 0;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #64748b;
+      letter-spacing: 0.5px;
+    }
+    .info-col p { margin: 2px 0; font-size: 12px; }
+    .info-col strong { color: #0f172a; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+    th {
+      background: #58051E !important;
+      color: #ffffff !important;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 9px 12px;
+      text-align: left;
+    }
+    th.text-center { text-align: center; }
+    th.text-right { text-align: right; }
+    td {
+      padding: 12px;
+      font-size: 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    td.text-center { text-align: center; }
+    td.text-right { text-align: right; }
+    .tax-box {
+      margin-top: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+    }
+    .words-box {
+      flex: 1;
+      font-size: 12px;
+      padding: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+    .summary-box {
+      width: 250px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      color: #475569;
+    }
+    .summary-row.total {
+      border-top: 1.5px solid #cbd5e1;
+      padding-top: 6px;
+      margin-top: 6px;
+      font-size: 14px;
+      font-weight: 900;
+      color: #58051E;
+    }
+    .paid-badge {
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .paid-badge strong { color: #166534; font-size: 12px; }
+    .footer-note {
+      text-align: center;
+      font-size: 10.5px;
+      color: #94a3b8;
+      margin-top: 30px;
+      font-style: italic;
+    }
+    .footer-bar {
+      height: 4px;
+      background: linear-gradient(90deg, #58051E 0%, #80002E 100%);
+      margin-top: 10px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="invoice-card">
+    <div class="header">
+      <div>
+        <div class="brand-title">FEREX VENTURES</div>
+        <div class="brand-sub">European Admissions & Global Operations</div>
+      </div>
+      <div class="company-info">
+        <p><strong>Tel:</strong> +91 95448 85077 / +44 78678 67779</p>
+        <p><strong>Email:</strong> ferexventuresoffice@gmail.com</p>
+        <p>12/640 Thachukuzhi, Companipady Rd, Kothamangalam, Kerala - 686691</p>
+      </div>
+    </div>
+
+    <div class="title-banner">
+      <h1 class="invoice-title">TAX INVOICE</h1>
+      <div class="gstin">GSTIN: 32AAGCF8602A1Z8</div>
+    </div>
+
+    <div class="details-grid">
+      <div class="info-col">
+        <h4>Billed To</h4>
+        <p><strong>${invoice.student_name}</strong></p>
+        <p>Student Candidate — Ferex Global Education</p>
+      </div>
+      <div class="info-col" style="text-align: right;">
+        <h4>Invoice Reference</h4>
+        <p><strong>Invoice No:</strong> ${invoice.invoice_no}</p>
+        <p><strong>Invoice Date:</strong> ${formattedDate}</p>
+        <p><strong>Place of Supply:</strong> ${invoice.place_of_supply || 'Kerala (32)'}</p>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="text-center" style="width: 40px;">#</th>
+          <th>Service Description</th>
+          <th class="text-center" style="width: 100px;">SAC Code</th>
+          <th class="text-right" style="width: 130px;">Amount (INR)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="text-center">1</td>
+          <td>
+            <strong>${invoice.description || 'Registration Fee – Overseas Higher Education Consultancy Services'}</strong>
+            ${invoice.course_destination ? `<br><span style="color:#64748b; font-size:11px;">Destination: ${invoice.course_destination}</span>` : ''}
+          </td>
+          <td class="text-center" style="font-family: monospace; font-weight: bold;">${invoice.sac_code || '9992'}</td>
+          <td class="text-right font-bold">₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="tax-box">
+      <div class="words-box">
+        <strong>Amount Chargeable (in words):</strong><br>
+        <span style="color: #0f172a; font-weight: bold;">${amountWords}</span>
+      </div>
+      <div class="summary-box">
+        <div class="summary-row">
+          <span>Taxable Amount</span>
+          <span>₹${taxableValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
+        <div class="summary-row">
+          <span>CGST @ 9%</span>
+          <span>₹${cgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
+        <div class="summary-row">
+          <span>SGST @ 9%</span>
+          <span>₹${sgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
+        <div class="summary-row total">
+          <span>Total (INR)</span>
+          <span>₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="paid-badge">
+      <div style="font-size: 16px; color: #16a34a; font-weight: 900;">✓</div>
+      <div>
+        <strong>PAYMENT RECEIVED & RECORDED AS PAID</strong><br>
+        <span style="font-size: 11px; color: #15803d;">Settled via ${invoice.payment_method || 'Online Bank Transfer / UPI'}${invoice.utr_number ? ` • Ref/UTR: ${invoice.utr_number}` : ''} on ${formattedDate}</span>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      This is an authentic, computer-generated tax invoice verified by FEREX Financial Governance. No physical signature is required.
+    </div>
+    <div class="footer-bar"></div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 300);
+    };
+  </script>
+</body>
+</html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
     printWindow.document.close();
   };
 

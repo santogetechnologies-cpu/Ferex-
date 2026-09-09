@@ -128,14 +128,19 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
       cleanEmail.includes('eduadmin') ||
       cleanEmail.includes('education_admin') ||
       cleanEmail.includes('ferextrade') ||
+      cleanEmail.includes('ferexglobal') ||
+      cleanEmail.includes('globaltrade') ||
       cleanEmail.includes('tradeadmin') ||
       cleanEmail.includes('trade_admin') ||
+      cleanEmail.includes('trade@') ||
       cleanEmail.includes('ferexrimi') ||
       cleanEmail.includes('rimiadmin') ||
       cleanEmail.includes('rimi_admin') ||
+      cleanEmail.includes('rimi@') ||
       cleanEmail.includes('ferexdigital') ||
       cleanEmail.includes('digitaladmin') ||
       cleanEmail.includes('digital_admin') ||
+      cleanEmail.includes('digital@') ||
       cleanEmail.includes('counselor')
     ) {
       return false;
@@ -162,6 +167,48 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
 
 export function normalizeRole(role?: string | null, email?: string | null): string {
   if (isSuperAdmin(role, email)) return 'superadmin';
+  if (email) {
+    const cleanEmail = email.toLowerCase().trim();
+    if (
+      cleanEmail.includes('ferextrade') ||
+      cleanEmail.includes('ferexglobal') ||
+      cleanEmail.includes('globaltrade') ||
+      cleanEmail.includes('tradeadmin') ||
+      cleanEmail.includes('trade_admin') ||
+      cleanEmail.includes('trade@')
+    ) {
+      return 'trade_admin';
+    }
+    if (
+      cleanEmail.includes('ferexdigital') ||
+      cleanEmail.includes('digitaladmin') ||
+      cleanEmail.includes('digital_admin') ||
+      cleanEmail.includes('digital@') ||
+      cleanEmail.includes('project_manager') ||
+      cleanEmail.includes('digitalpm')
+    ) {
+      return 'digital_admin';
+    }
+    if (
+      cleanEmail.includes('ferexrimi') ||
+      cleanEmail.includes('rimiadmin') ||
+      cleanEmail.includes('rimi_admin') ||
+      cleanEmail.includes('rimi@')
+    ) {
+      return 'rimi_admin';
+    }
+    if (
+      cleanEmail.includes('ferexedu') ||
+      cleanEmail.includes('eduadmin') ||
+      cleanEmail.includes('education_admin') ||
+      cleanEmail.includes('education@')
+    ) {
+      return 'education_admin';
+    }
+    if (cleanEmail.includes('counselor') || cleanEmail.includes('staff')) {
+      return 'staff';
+    }
+  }
   if (!role) return 'student';
   const clean = role.toLowerCase().trim().replace(/[\s-]+/g, '_');
   return clean;

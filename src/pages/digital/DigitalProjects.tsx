@@ -22,6 +22,7 @@ export const DigitalProjects: React.FC = () => {
     service_category: 'Web & App Development',
     budget: 650000,
     progress: 25,
+    status: 'In Progress',
     deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
     lead_developer: 'Kavita Iyer'
   });
@@ -68,7 +69,7 @@ export const DigitalProjects: React.FC = () => {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProj.title) return;
-    await createDigitalProject({
+    const created = await createDigitalProject({
       title: newProj.title,
       client_id: newProj.client_id || (clients.length > 0 ? clients[0].id : undefined),
       client_name: newProj.client_name || (clients.length > 0 ? clients[0].company_name : 'Nexus FinTech Global'),
@@ -77,18 +78,20 @@ export const DigitalProjects: React.FC = () => {
       progress: Number(newProj.progress),
       deadline: newProj.deadline,
       lead_developer: newProj.lead_developer,
-      status: 'In Progress'
+      status: newProj.status || 'In Progress'
     });
+
+    setProjects(prev => [created, ...prev.filter(p => p.id !== created.id)]);
     setShowAddModal(false);
-    showToast(`Created project "${newProj.title}"`);
-    setNewProj({ title: '', client_id: '', client_name: '', service_category: 'Web & App Development', budget: 650000, progress: 25, deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0], lead_developer: 'Kavita Iyer' });
+    showToast(`Created project "${newProj.title}" at ${newProj.status} (${newProj.progress}%)`);
+    setNewProj({ title: '', client_id: '', client_name: '', service_category: 'Web & App Development', budget: 650000, progress: 25, status: 'In Progress', deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0], lead_developer: 'Kavita Iyer' });
     await loadData();
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProject) return;
-    await updateDigitalProject(editingProject.id, {
+    const updated = await updateDigitalProject(editingProject.id, {
       title: editingProject.title,
       service_category: editingProject.service_category,
       budget: Number(editingProject.budget),
@@ -96,6 +99,8 @@ export const DigitalProjects: React.FC = () => {
       status: editingProject.status,
       lead_developer: editingProject.lead_developer
     });
+
+    setProjects(prev => prev.map(p => p.id === editingProject.id ? { ...p, ...editingProject, progress: Number(editingProject.progress), status: editingProject.status } : p));
 
     // Automated Email Dispatch
     try {
@@ -113,7 +118,7 @@ export const DigitalProjects: React.FC = () => {
     } catch {}
 
     setEditingProject(null);
-    showToast(`Updated "${editingProject.title}" to ${editingProject.status}`);
+    showToast(`Updated "${editingProject.title}" to ${editingProject.status} (${editingProject.progress}%)`);
     await loadData();
   };
 
@@ -263,6 +268,23 @@ export const DigitalProjects: React.FC = () => {
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Budget (₹ INR)</label>
                     <input type="number" required value={newProj.budget} onChange={(e) => setNewProj({ ...newProj, budget: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Lifecycle Stage</label>
+                    <select value={newProj.status} onChange={(e) => setNewProj({ ...newProj, status: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                      <option value="Briefing">Briefing</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Review">Review</option>
+                      <option value="Revisions">Revisions</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Closed">Closed</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Sprint Progress: {newProj.progress}%</label>
+                    <input type="range" min="0" max="100" value={newProj.progress} onChange={(e) => setNewProj({ ...newProj, progress: Number(e.target.value) })} className="w-full mt-2" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">

@@ -24,7 +24,14 @@ export const TradeLoginPage: React.FC = () => {
       const em = email.trim().toLowerCase();
 
       if (em.includes('client') || em.includes('partner') || em.includes('buyer') || em === 'client@trade.com') {
+        const userObj = {
+          id: 'trade-client-user',
+          email: em,
+          full_name: 'Maritime Client Representative',
+          role: 'trade_client'
+        };
         try {
+          localStorage.setItem('ferex_user', JSON.stringify(userObj));
           await supabase.from('users').upsert({
             email: em,
             full_name: 'Maritime Client Representative',
@@ -32,23 +39,33 @@ export const TradeLoginPage: React.FC = () => {
             updated_at: new Date().toISOString()
           }, { onConflict: 'email' });
         } catch {}
-        navigate('/trade/client');
+        navigate('/trade/client-portal', { replace: true });
       } else {
+        const userObj = {
+          id: 'trade-admin-user',
+          email: em || 'ferexglobal@gmail.com',
+          full_name: 'FEREX Global Trade Director',
+          role: 'trade_admin'
+        };
         try {
+          localStorage.setItem('ferex_user', JSON.stringify(userObj));
           await supabase.from('users').upsert({
-            email: em,
+            email: em || 'ferexglobal@gmail.com',
             full_name: 'FEREX Global Trade Director',
             role: 'trade_admin',
             updated_at: new Date().toISOString()
           }, { onConflict: 'email' });
         } catch {}
-        navigate('/trade/dashboard');
+        navigate('/trade/dashboard', { replace: true });
       }
-    }, 600);
+    }, 400);
   };
 
-  const handleQuickLogin = (type: 'admin' | 'client') => {
-    if (type === 'admin') {
+  const handleQuickLogin = (type: 'admin' | 'client' | 'ferexglobal') => {
+    if (type === 'ferexglobal') {
+      setEmail('ferexglobal@gmail.com');
+      setPassword('trade123');
+    } else if (type === 'admin') {
       setEmail('trade@ferex.com');
       setPassword('trade123');
     } else {

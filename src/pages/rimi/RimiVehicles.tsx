@@ -13,13 +13,14 @@ export const RimiVehicles: React.FC = () => {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [newVehicle, setNewVehicle] = useState({
-    regNo: 'MH-12-AZ-8901',
-    driver: 'Sanjay Kumar',
-    driver_phone: '+91 98765 43210',
-    capacity_tonnes: 14,
-    temp: -20.0
-  });
+  const emptyVehicle = {
+    regNo: '',
+    driver: '',
+    driver_phone: '',
+    capacity_tonnes: '' as any,
+    temp: '' as any
+  };
+  const [newVehicle, setNewVehicle] = useState(emptyVehicle);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -52,7 +53,7 @@ export const RimiVehicles: React.FC = () => {
 
     const channel = supabase
       .channel('realtime_rimi_vehicles')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_vehicles' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rimi_vehicles' }, () => {
         loadData();
       })
       .subscribe();
@@ -74,31 +75,46 @@ export const RimiVehicles: React.FC = () => {
   const handleAddVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newVehicle.regNo) return;
-    await createRimiVehicle({
+    const newItem = await createRimiVehicle({
       vehicle_number: newVehicle.regNo,
       driver_name: newVehicle.driver,
       driver_phone: newVehicle.driver_phone,
       capacity_tonnes: Number(newVehicle.capacity_tonnes) || 14,
-      current_temp_celsius: Number(newVehicle.temp) || -20.0,
+      current_temp_celsius: Number(newVehicle.temp) || -18.0,
       status: 'Stationed'
     });
+    // Optimistic add
+    if (newItem) {
+      setVehicles(prev => [{
+        id: newItem.id ? `TRK-${newItem.id.slice(0, 4).toUpperCase()}` : 'TRK-NEW',
+        rawId: newItem.id,
+        regNo: newVehicle.regNo,
+        model: `${newVehicle.capacity_tonnes || 14}-Ton Ultra Cold Reefer`,
+        temp: `${newVehicle.temp || -18.0}°C`,
+        tempNum: Number(newVehicle.temp) || -18.0,
+        driver: newVehicle.driver,
+        phone: newVehicle.driver_phone,
+        route: 'Stationed Cold Logistics Depot',
+        status: 'Stationed',
+      }, ...prev]);
+    }
     setShowAddModal(false);
     showToastMsg(`Registered reefer vehicle ${newVehicle.regNo}`);
-    setNewVehicle({ regNo: '', driver: 'Rajesh Kumar', driver_phone: '+91 98765 43210', capacity_tonnes: 14, temp: -20.0 });
-    await loadData();
+    setNewVehicle(emptyVehicle);
   };
 
   const handleToggleStatus = async (rawId: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'On Route' ? 'Stationed' : 'On Route';
     await updateRimiVehicleStatus(rawId, nextStatus);
-    setVehicles(prev => prev.map(v => v.rawId === rawId ? { ...v, status: nextStatus } : v));
+    setVehicles(prev => prev.map(v => (v.rawId === rawId || v.id === rawId) ? { ...v, status: nextStatus } : v));
     showToastMsg(`Vehicle status updated to ${nextStatus}`);
   };
 
   const handleDeleteVehicle = async (rawId: string) => {
-    await deleteRimiVehicle(rawId);
-    setVehicles(prev => prev.filter(v => v.rawId !== rawId));
+    // Optimistic remove first matching rawId or id
+    setVehicles(prev => prev.filter(v => v.rawId !== rawId && v.id !== rawId));
     showToastMsg('Removed vehicle registry record');
+    await deleteRimiVehicle(rawId);
   };
 
   const filteredVehicles = vehicles.filter(v =>
@@ -127,7 +143,7 @@ export const RimiVehicles: React.FC = () => {
             Rimi Cold Chain Console • Live fleet telematics, reefer temperature sensors (-20°C), and driver contact directory.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { setNewVehicle(emptyVehicle); setShowAddModal(true); }}>
           <Plus className="w-4 h-4 mr-1.5" /> Register Reefer Vehicle
         </Button>
       </div>
@@ -197,26 +213,26 @@ export const RimiVehicles: React.FC = () => {
               <form onSubmit={handleAddVehicle} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Registration Plate #</label>
-                  <input type="text" required value={newVehicle.regNo} onChange={(e) => setNewVehicle({ ...newVehicle, regNo: e.target.value })} placeholder="MH-12-AZ-8901" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newVehicle.regNo} onChange={(e) => setNewVehicle({ ...newVehicle, regNo: e.target.value })} placeholder="e.g. MH-12-AZ-8901" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Driver Name</label>
-                    <input type="text" required value={newVehicle.driver} onChange={(e) => setNewVehicle({ ...newVehicle, driver: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newVehicle.driver} onChange={(e) => setNewVehicle({ ...newVehicle, driver: e.target.value })} placeholder="e.g. Rajesh Kumar" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Driver Phone</label>
-                    <input type="text" value={newVehicle.driver_phone} onChange={(e) => setNewVehicle({ ...newVehicle, driver_phone: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" value={newVehicle.driver_phone} onChange={(e) => setNewVehicle({ ...newVehicle, driver_phone: e.target.value })} placeholder="e.g. +91 98765 43210" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Capacity (Tonnes)</label>
-                    <input type="number" required value={newVehicle.capacity_tonnes} onChange={(e) => setNewVehicle({ ...newVehicle, capacity_tonnes: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" required value={newVehicle.capacity_tonnes} onChange={(e) => setNewVehicle({ ...newVehicle, capacity_tonnes: e.target.value as any })} placeholder="e.g. 14" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Setpoint Temp (°C)</label>
-                    <input type="number" step="0.1" required value={newVehicle.temp} onChange={(e) => setNewVehicle({ ...newVehicle, temp: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" step="0.1" required value={newVehicle.temp} onChange={(e) => setNewVehicle({ ...newVehicle, temp: e.target.value as any })} placeholder="e.g. -18.0" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
                 <div className="pt-3 flex gap-2">
