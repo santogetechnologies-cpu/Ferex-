@@ -186,10 +186,10 @@ export async function updateVisaStatus(
         const studentApps = await getApplications(upsertPayload.student_id);
         const activeApp = studentApps[0];
         if (activeApp) {
-          if (isApproved && activeApp.status !== 'Visa Approved') {
-            await updateApplicationStatus(activeApp.id, 'Visa Approved' as any, 'Visa Approved & Stamped by Embassy!');
-          } else if (isRejected && activeApp.status !== 'Visa Rejected') {
-            await updateApplicationStatus(activeApp.id, 'Visa Rejected' as any, 'Visa Decision: Refused by Embassy');
+          if (isApproved && (activeApp.status as string) !== 'Visa Approved') {
+            await updateApplicationStatus(activeApp.id, 'Visa Approved', 'Visa Approved & Stamped by Embassy!');
+          } else if (isRejected && (activeApp.status as string) !== 'Visa Rejected') {
+            await updateApplicationStatus(activeApp.id, 'Visa Rejected', 'Visa Decision: Refused by Embassy');
           }
         }
       } catch (appErr) {}

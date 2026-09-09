@@ -72,7 +72,7 @@ export interface Application {
   student_id: string;
   university_id: string;
   course: string;
-  status: 'Draft' | 'Submitted' | 'NAWA Review' | 'NAWA Submitted' | 'NAWA Approved' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Approved' | 'Enrolled' | 'Closed' | 'Rejected' | 'Withdrawn';
+  status: 'Draft' | 'Submitted' | 'NAWA Review' | 'NAWA Submitted' | 'NAWA Approved' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Visa Rejected' | 'Approved' | 'Enrolled' | 'Closed' | 'Rejected' | 'Withdrawn';
   applied_date?: string;
   notes?: string;
   offer_letter_url?: string;
