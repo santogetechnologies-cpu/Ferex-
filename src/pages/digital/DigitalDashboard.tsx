@@ -7,11 +7,28 @@ import {
 import { Card } from '../../components/Card';
 import { getDigitalDashboardStats, getDigitalProjects, getDigitalTasks } from '../../lib/api/digital';
 import { useDigitalConfig } from '../../hooks/useDigitalConfig';
+import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+
+const DIGITAL_ADMIN_ROLES = ['digital_admin', 'ferex_digital', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+
 
 export const DigitalDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { config } = useDigitalConfig();
+  const { profile } = useAuth();
+
+  const isAdmin = DIGITAL_ADMIN_ROLES.includes(profile?.role || '');
+  const userName = profile?.full_name?.split(' ')[0] || '';
+  const greeting = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  })();
+  const roleTitle = isAdmin ? 'Digital Director' : 'Project Manager';
+  const displayName = userName ? `${greeting}, ${userName}` : `${greeting}, ${roleTitle}`;
+
   const [stats, setStats] = useState({
     activeClientsCount: 0,
     activeProjectsCount: 0,
@@ -107,7 +124,7 @@ export const DigitalDashboard: React.FC = () => {
               </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
-              Good Morning, Digital Director
+              {displayName}
             </h1>
             <p className="text-xs md:text-sm text-white/85 leading-relaxed font-semibold">
               {config.branding?.tagline || 'Managing full-stack web applications, mobile platforms, UI/UX design systems, performance marketing, and client deliverables.'}

@@ -10,14 +10,28 @@ import {
 
 import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
+import { useAuth } from '../contexts/AuthContext';
 
 interface TradeLayoutProps {
   children: React.ReactNode;
 }
 
+// Admin-level roles for Global Trade
+const TRADE_ADMIN_ROLES = ['trade_admin', 'global_trade', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+
 export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { profile } = useAuth();
+
+  const userRole = profile?.role || '';
+  const userName = profile?.full_name || '';
+  const userEmail = profile?.email || 'trade@ferex.com';
+  const isAdmin = TRADE_ADMIN_ROLES.includes(userRole);
+  const isStaff = !isAdmin; // logistics_officer or unrecognized trade role
+
+  const roleLabel = isAdmin ? 'Trade Director' : 'Logistics Officer';
+  const initials = userName ? userName.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) : (isAdmin ? 'GT' : 'LO');
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -51,7 +65,8 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
     };
   }, []);
 
-  const menuSections = [
+  // ── Admin nav: full access ────────────────────────────────────────────
+  const adminMenuSections = [
     {
       title: 'FEREX GLOBAL TRADE',
       items: [
@@ -95,6 +110,41 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
       ]
     }
   ];
+
+  // ── Staff nav: restricted — logistics operations only ─────────────────
+  const staffMenuSections = [
+    {
+      title: 'LOGISTICS DESK',
+      items: [
+        { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard, badge: 'Live' }
+      ]
+    },
+    {
+      title: 'OPERATIONS',
+      items: [
+        { name: 'Shipments', path: '/trade/shipments', icon: Truck, badge: 'Active' },
+        { name: 'Packing Lists', path: '/trade/packing-lists', icon: PackageCheck, badge: null },
+        { name: 'Bills of Lading', path: '/trade/bills-of-lading', icon: FileCheck2, badge: 'Ocean' },
+        { name: 'Certificates', path: '/trade/certificates', icon: Award, badge: null },
+        { name: 'Trade Documents', path: '/trade/documents', icon: FolderArchive, badge: 'Vault' },
+      ]
+    },
+    {
+      title: 'COMMUNICATION',
+      items: [
+        { name: 'Messages', path: '/trade/messages', icon: MessageSquare, badge: 'Chat' },
+        { name: 'Notifications', path: '/trade/notifications', icon: Bell, badge: null },
+      ]
+    },
+    {
+      title: 'SYSTEM',
+      items: [
+        { name: 'Profile', path: '/trade/profile', icon: User, badge: null },
+      ]
+    }
+  ];
+
+  const menuSections = isAdmin ? adminMenuSections : staffMenuSections;
 
   const allMenuItems = menuSections.flatMap(s => s.items);
   const activeItem = allMenuItems.find(item => location.pathname === item.path)?.name || 'Dashboard';
@@ -346,15 +396,15 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                     <img src={profilePhoto} alt="Trade Exec" className="w-6.5 h-6.5 rounded-lg object-cover border border-slate-200 shadow-2xs" />
                   ) : (
                     <div className="w-6.5 h-6.5 rounded-lg bg-[#6A1B2E] text-white text-[10px] font-black flex items-center justify-center shadow-xs">
-                      GT
+                      {initials}
                     </div>
                   )}
                   <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 border border-white rounded-full" />
                 </div>
 
                 <div className="hidden sm:block text-left min-w-0">
-                  <span className="block text-xs font-extrabold text-slate-800 leading-none">Trade Director</span>
-                  <span className="block text-[9px] font-semibold text-slate-400 mt-0.5">trade@ferex.com</span>
+                  <span className="block text-xs font-extrabold text-slate-800 leading-none">{userName ? userName.split(' ')[0] : roleLabel}</span>
+                  <span className="block text-[9px] font-semibold text-slate-400 mt-0.5">{roleLabel}</span>
                 </div>
 
                 <ChevronDown size={14} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
@@ -369,16 +419,19 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                     className="absolute right-0 mt-2 w-56 bg-white border border-slate-200/80 rounded-2xl shadow-xl p-2 z-50 text-left"
                   >
                     <div className="px-3 py-2 border-b border-slate-100">
-                      <p className="text-xs font-extrabold text-slate-900">Ferex Global Trade Director</p>
-                      <p className="text-[10px] font-semibold text-slate-400 truncate">trade@ferex.com</p>
+                      <p className="text-xs font-extrabold text-slate-900">{userName || roleLabel}</p>
+                      <p className="text-[10px] font-bold text-[#6A1B2E]">{roleLabel}</p>
+                      <p className="text-[10px] font-semibold text-slate-400 truncate">{userEmail}</p>
                     </div>
                     <div className="py-1 space-y-0.5 text-xs font-bold text-slate-700">
                       <button onClick={() => navigate('/trade/profile')} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-xl flex items-center gap-2">
                         <User className="w-4 h-4 text-slate-400" /> Trade Profile
                       </button>
-                      <button onClick={() => navigate('/trade/settings')} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-xl flex items-center gap-2">
-                        <Settings className="w-4 h-4 text-slate-400" /> System Settings
-                      </button>
+                      {isAdmin && (
+                        <button onClick={() => navigate('/trade/settings')} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-xl flex items-center gap-2">
+                          <Settings className="w-4 h-4 text-slate-400" /> System Settings
+                        </button>
+                      )}
                       <button onClick={() => navigate('/trade/notifications')} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-xl flex items-center gap-2">
                         <Bell className="w-4 h-4 text-slate-400" /> Trade Notifications
                       </button>

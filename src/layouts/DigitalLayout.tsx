@@ -10,6 +10,7 @@ import {
 
 import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
+import { useAuth } from '../contexts/AuthContext';
 
 interface DigitalLayoutProps {
   children: React.ReactNode;
@@ -28,9 +29,22 @@ interface NavSection {
   items: NavItem[];
 }
 
+// Admin-level roles for Ferex Digital
+const DIGITAL_ADMIN_ROLES = ['digital_admin', 'ferex_digital', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+
 export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { profile } = useAuth();
+
+  const userRole = profile?.role || '';
+  const userName = profile?.full_name || '';
+  const userEmail = profile?.email || 'digital@ferex.com';
+  const isAdmin = DIGITAL_ADMIN_ROLES.includes(userRole);
+  const isStaff = !isAdmin; // project_manager or any unrecognized digital role
+
+  const roleLabel = isAdmin ? 'Digital Director' : 'Project Manager';
+  const initials = userName ? userName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : (isAdmin ? 'FD' : 'PM');
 
   const sidebarOpen = true;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -59,7 +73,8 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const navSections: NavSection[] = [
+  // ── Admin nav: full access to all modules ──────────────────────────────────
+  const adminNavSections: NavSection[] = [
     {
       title: 'DASHBOARD',
       items: [
@@ -117,6 +132,45 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       ]
     }
   ];
+
+  // ── Staff nav: restricted — operational modules only (no Finance/Settings/Analytics) ──
+  const staffNavSections: NavSection[] = [
+    {
+      title: 'DASHBOARD',
+      items: [
+        { label: 'Dashboard', path: '/digital/dashboard', icon: LayoutDashboard }
+      ]
+    },
+    {
+      title: 'WORK',
+      items: [
+        { label: 'Clients', path: '/digital/clients', icon: Users },
+        { label: 'Leads', path: '/digital/leads', icon: UserPlus, badge: 'NEW' },
+        { label: 'Projects', path: '/digital/projects', icon: FolderKanban },
+        { label: 'Tasks', path: '/digital/tasks', icon: CheckSquare },
+        { label: 'Meetings', path: '/digital/meetings', icon: Calendar }
+      ]
+    },
+    {
+      title: 'SERVICES',
+      items: [
+        { label: 'Services Overview', path: '/digital/services', icon: Layers },
+        { label: 'Web Development', path: '/digital/services/web-development', icon: Code },
+        { label: 'Mobile Apps', path: '/digital/services/mobile-apps', icon: Smartphone },
+        { label: 'UI/UX Design', path: '/digital/services/ui-ux-design', icon: Palette }
+      ]
+    },
+    {
+      title: 'SYSTEM',
+      items: [
+        { label: 'Notifications', path: '/digital/notifications', icon: Bell, badge: '4' },
+        { label: 'Profile', path: '/digital/profile', icon: User },
+        { label: 'Logout', path: '/', icon: LogOut, isLogout: true }
+      ]
+    }
+  ];
+
+  const navSections = isAdmin ? adminNavSections : staffNavSections;
 
   const handleLogout = () => {
     showToastMsg('Logging out from Ferex Digital Console...');
@@ -208,13 +262,18 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
           <div className="p-3 border-t border-slate-100 bg-slate-50/50">
             <div className="flex items-center gap-3 p-2 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
               <div className="w-8 h-8 rounded-lg bg-[#6A1B2E] text-white text-xs font-black flex items-center justify-center overflow-hidden shrink-0">
-                {profilePhoto ? <img src={profilePhoto} alt="Digital User" className="w-full h-full object-cover" /> : 'FD'}
+                {profilePhoto ? <img src={profilePhoto} alt="Digital User" className="w-full h-full object-cover" /> : initials}
               </div>
               <div className="flex flex-col truncate">
-                <span className="text-xs font-black text-slate-900 truncate">Ferex Digital Lead</span>
-                <span className="text-[10px] font-semibold text-slate-400 truncate">digital@ferex.com</span>
+                <span className="text-xs font-black text-slate-900 truncate">{userName || roleLabel}</span>
+                <span className="text-[10px] font-semibold text-slate-400 truncate">{userEmail}</span>
               </div>
             </div>
+            {isStaff && (
+              <div className="mt-1.5 px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg">
+                <span className="text-[9px] font-extrabold text-amber-700 uppercase tracking-wider">Staff Access</span>
+              </div>
+            )}
           </div>
         )}
       </aside>
@@ -343,7 +402,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                 className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-100 transition-colors"
               >
                 <div className="w-8 h-8 rounded-lg bg-[#6A1B2E] text-white text-xs font-black flex items-center justify-center overflow-hidden border border-white shadow-2xs">
-                  {profilePhoto ? <img src={profilePhoto} alt="Digital Profile" className="w-full h-full object-cover" /> : 'FD'}
+                  {profilePhoto ? <img src={profilePhoto} alt="Digital Profile" className="w-full h-full object-cover" /> : initials}
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
               </button>
@@ -359,15 +418,18 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                       className="absolute right-0 top-11 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-40 space-y-1"
                     >
                       <div className="px-3 py-2 border-b border-slate-100">
-                        <span className="text-xs font-black text-slate-900 block">Ferex Digital Director</span>
-                        <span className="text-[10px] font-semibold text-slate-400 block">digital@ferex.com</span>
+                        <span className="text-xs font-black text-slate-900 block">{userName || roleLabel}</span>
+                        <span className="text-[10px] font-semibold text-[#6A1B2E] block font-bold">{roleLabel}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 block">{userEmail}</span>
                       </div>
                       <button onClick={() => { setShowProfileDropdown(false); navigate('/digital/profile'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
                         <User className="w-3.5 h-3.5 text-slate-500" /> Account Profile
                       </button>
-                      <button onClick={() => { setShowProfileDropdown(false); navigate('/digital/settings'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                        <Settings className="w-3.5 h-3.5 text-slate-500" /> Agency Settings
-                      </button>
+                      {isAdmin && (
+                        <button onClick={() => { setShowProfileDropdown(false); navigate('/digital/settings'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                          <Settings className="w-3.5 h-3.5 text-slate-500" /> Agency Settings
+                        </button>
+                      )}
                       <button onClick={() => { setShowProfileDropdown(false); handleLogout(); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
                         <LogOut className="w-3.5 h-3.5" /> Logout
                       </button>

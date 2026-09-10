@@ -3,12 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, Globe, CheckCircle2, Save,
   Megaphone, Sliders, Layers, Sparkles, RotateCcw,
-  Plus, Trash2
+  Plus, Trash2, Lock
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { useDigitalConfig } from '../../hooks/useDigitalConfig';
+import { useAuth } from '../../contexts/AuthContext';
 import type { DigitalCustomizationConfig, DigitalServicePackage } from '../../lib/api/digitalConfig';
+
+const DIGITAL_ADMIN_ROLES = ['digital_admin', 'ferex_digital', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
 
 type DigitalTab = 'branding' | 'client_policies' | 'delivery' | 'broadcast' | 'services';
 interface TabItem {
@@ -21,10 +24,33 @@ interface TabItem {
 
 export const DigitalSettings: React.FC = () => {
   const { config, updateConfig, resetToDefault, loading } = useDigitalConfig();
+  const { profile } = useAuth();
+  const isAdmin = DIGITAL_ADMIN_ROLES.includes(profile?.role || '');
+
   const [form, setForm] = useState<DigitalCustomizationConfig>(config);
   const [activeTab, setActiveTab] = useState<DigitalTab>('branding');
   const [toast, setToast] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // ── Admin-only guard ──────────────────────────────────────────
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center">
+          <Lock className="w-8 h-8 text-amber-500" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-lg font-black text-slate-900">Settings Access Restricted</h2>
+          <p className="text-sm font-semibold text-slate-500 max-w-sm">
+            Agency settings are only accessible to Digital Administrators. Contact your admin to make configuration changes.
+          </p>
+        </div>
+        <div className="px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl">
+          <span className="text-xs font-extrabold text-amber-700 uppercase tracking-wider">Staff Role — Read-Only Access</span>
+        </div>
+      </div>
+    );
+  }
 
   React.useEffect(() => {
     setForm(config);

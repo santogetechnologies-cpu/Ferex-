@@ -10,6 +10,7 @@ import {
 
 import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
+import { useAuth } from '../contexts/AuthContext';
 
 interface RimiLayoutProps {
   children: React.ReactNode;
@@ -28,9 +29,22 @@ interface NavSection {
   items: NavItem[];
 }
 
+// Admin-level roles for Rimi Frozen
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+
 export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { profile } = useAuth();
+
+  const userRole = profile?.role || '';
+  const userName = profile?.full_name || '';
+  const userEmail = profile?.email || 'rimi@ferex.com';
+  const isAdmin = RIMI_ADMIN_ROLES.includes(userRole);
+  const isStaff = !isAdmin; // operations_manager or unrecognized rimi role
+
+  const roleLabel = isAdmin ? 'Cold Chain Manager' : 'Operations Manager';
+  const initials = userName ? userName.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) : (isAdmin ? 'RF' : 'OM');
 
   const sidebarOpen = true;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -59,7 +73,8 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const navSections: NavSection[] = [
+  // ── Admin nav: full access ────────────────────────────────────────────
+  const adminNavSections: NavSection[] = [
     {
       title: 'DASHBOARD',
       items: [
@@ -119,6 +134,56 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       ]
     }
   ];
+
+  // ── Staff nav: restricted — operations only (no Reports, Settings, Collections, customer mgmt) ─
+  const staffNavSections: NavSection[] = [
+    {
+      title: 'DASHBOARD',
+      items: [
+        { label: 'Dashboard', path: '/rimi/dashboard', icon: LayoutDashboard }
+      ]
+    },
+    {
+      title: 'ORDERS',
+      items: [
+        { label: 'Sales Orders', path: '/rimi/sales-orders', icon: ShoppingCart }
+      ]
+    },
+    {
+      title: 'INVENTORY',
+      items: [
+        { label: 'Products', path: '/rimi/products', icon: Package },
+        { label: 'Inventory', path: '/rimi/inventory', icon: Boxes },
+        { label: 'Warehouses', path: '/rimi/warehouses', icon: Warehouse },
+        { label: 'Batch Tracking', path: '/rimi/batch-tracking', icon: QrCode },
+        { label: 'Expiry Tracking', path: '/rimi/expiry-tracking', icon: Clock }
+      ]
+    },
+    {
+      title: 'LOGISTICS',
+      items: [
+        { label: 'Deliveries', path: '/rimi/deliveries', icon: Truck },
+        { label: 'Vehicles', path: '/rimi/vehicles', icon: Truck },
+        { label: 'Delivery Routes', path: '/rimi/delivery-routes', icon: Navigation }
+      ]
+    },
+    {
+      title: 'COMMUNICATION',
+      items: [
+        { label: 'Messages', path: '/rimi/messages', icon: MessageSquare, badge: '3' },
+        { label: 'Notifications', path: '/rimi/notifications', icon: Bell, badge: '5' }
+      ]
+    },
+    {
+      title: 'SYSTEM',
+      items: [
+        { label: 'Profile', path: '/rimi/profile', icon: User },
+        { label: 'Logout', path: '/', icon: LogOut, isLogout: true }
+      ]
+    }
+  ];
+
+  const navSections = isAdmin ? adminNavSections : staffNavSections;
 
   const handleLogout = () => {
     showToastMsg('Logging out from Rimi Distribution Console...');
@@ -342,7 +407,7 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
                 className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-100 transition-colors"
               >
                 <div className="w-8 h-8 rounded-lg bg-[#6A1B2E] text-white text-xs font-black flex items-center justify-center overflow-hidden border border-white shadow-2xs">
-                  {profilePhoto ? <img src={profilePhoto} alt="Rimi Profile" className="w-full h-full object-cover" /> : 'RF'}
+                  {profilePhoto ? <img src={profilePhoto} alt="Rimi Profile" className="w-full h-full object-cover" /> : initials}
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
               </button>
@@ -358,15 +423,18 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
                       className="absolute right-0 top-11 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-40 space-y-1"
                     >
                       <div className="px-3 py-2 border-b border-slate-100">
-                        <span className="text-xs font-black text-slate-900 block">Rimi Cold Manager</span>
-                        <span className="text-[10px] font-semibold text-slate-400 block">rimi@ferex.com</span>
+                        <span className="text-xs font-black text-slate-900 block">{userName || roleLabel}</span>
+                        <span className="text-[10px] font-bold text-[#6A1B2E] block">{roleLabel}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 block">{userEmail}</span>
                       </div>
                       <button onClick={() => { setShowProfileDropdown(false); navigate('/rimi/profile'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
                         <User className="w-3.5 h-3.5 text-slate-500" /> Account Profile
                       </button>
-                      <button onClick={() => { setShowProfileDropdown(false); navigate('/rimi/settings'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                        <Settings className="w-3.5 h-3.5 text-slate-500" /> Cold Chain Settings
-                      </button>
+                      {isAdmin && (
+                        <button onClick={() => { setShowProfileDropdown(false); navigate('/rimi/settings'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                          <Settings className="w-3.5 h-3.5 text-slate-500" /> Cold Chain Settings
+                        </button>
+                      )}
                       <button onClick={() => { setShowProfileDropdown(false); handleLogout(); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
                         <LogOut className="w-3.5 h-3.5" /> Logout
                       </button>

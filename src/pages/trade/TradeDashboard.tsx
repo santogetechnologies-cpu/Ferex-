@@ -9,10 +9,30 @@ import { Button } from '../../components/Button';
 import { supabase } from '../../lib/supabase';
 import { getTradeDashboardLiveStats, getTradeShipments, getTradeInvoices } from '../../lib/api/trade';
 import { useTradeConfig } from '../../hooks/useTradeConfig';
+import { useAuth } from '../../contexts/AuthContext';
+
+const TRADE_ADMIN_ROLES = ['trade_admin', 'global_trade', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+
 
 export const TradeDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { config: tradeConfig } = useTradeConfig();
+  const { profile } = useAuth();
+
+  const isAdmin = TRADE_ADMIN_ROLES.includes(profile?.role || '');
+  const userName = profile?.full_name?.split(' ')[0] || '';
+  const greeting = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  })();
+  const roleTitle = isAdmin ? 'Trade Director' : 'Logistics Officer';
+  const displayName = userName ? `${greeting}, ${userName}` : `${greeting}, ${roleTitle}`;
+  const heroSubtitle = isAdmin
+    ? 'Managing international supply chains, Bills of Lading, container dispatch, and Letters of Credit across European & Asian maritime ports.'
+    : 'Tracking active shipments, processing packing lists, managing bills of lading, and coordinating container logistics.';
+
   const [shipments, setShipments] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [stats, setStats] = useState({
@@ -118,10 +138,10 @@ export const TradeDashboard: React.FC = () => {
               </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
-              Ferex Global Trade Operations
+              {displayName}
             </h1>
             <p className="text-xs md:text-sm text-white/85 leading-relaxed font-semibold">
-              Managing international supply chains, Bills of Lading, container dispatch, and Letters of Credit across European & Asian maritime ports.
+              {heroSubtitle}
             </p>
           </div>
 

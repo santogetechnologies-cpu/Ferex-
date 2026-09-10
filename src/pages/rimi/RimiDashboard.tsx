@@ -8,11 +8,28 @@ import {
 import { Card } from '../../components/Card';
 import { getRimiDashboardStats, getRimiSalesOrders, getRimiWarehouses, getRimiVehicles } from '../../lib/api/rimi';
 import { useRimiConfig } from '../../hooks/useRimiConfig';
+import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+
 
 export const RimiDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { config } = useRimiConfig();
+  const { profile } = useAuth();
+
+  const isAdmin = RIMI_ADMIN_ROLES.includes(profile?.role || '');
+  const userName = profile?.full_name?.split(' ')[0] || '';
+  const greeting = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  })();
+  const roleTitle = isAdmin ? 'Cold Chain Manager' : 'Operations Manager';
+  const displayName = userName ? `${greeting}, ${userName}` : `${greeting}, ${roleTitle}`;
+
   const [stats, setStats] = useState({
     activeOrdersCount: 0,
     totalOrdersCount: 0,
@@ -108,10 +125,12 @@ export const RimiDashboard: React.FC = () => {
               </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
-              {config.branding?.entity_name || 'Rimi Frozen Distribution Hub'}
+              {displayName}
             </h1>
             <p className="text-xs md:text-sm text-white/85 leading-relaxed font-semibold">
-              {config.branding?.tagline || 'Managing regional frozen food logistics, supermarket reefer supply chains, temperature-controlled warehouses, and batch expiration telemetry.'}
+              {isAdmin
+                ? (config.branding?.tagline || 'Managing regional frozen food logistics, supermarket reefer supply chains, temperature-controlled warehouses, and batch expiration telemetry.')
+                : 'Handling active deliveries, tracking inventory and expiry, managing vehicle dispatches, and monitoring warehouse operations.'}
             </p>
           </div>
 
