@@ -3,9 +3,12 @@
  * 
  * This module ensures proper payment verification before allowing
  * students to progress through their journey stages.
+ * 
+ * Payment amounts are now fully configurable by Admin via Fee Configuration.
  */
 
 import type { Payment } from './types';
+import { getSystemFeeConfig } from './api/feeConfig';
 
 export interface StageUnlockStatus {
   isUnlocked: boolean;
@@ -17,13 +20,17 @@ export interface StageUnlockStatus {
 /**
  * Check if a specific installment stage has been paid
  */
-export function checkPaymentStage(payments: Payment[], stageNum: 1 | 2 | 3): StageUnlockStatus {
+export function checkPaymentStage(
+  payments: Payment[], 
+  stageNum: 1 | 2 | 3, 
+  targetCountry?: string
+): StageUnlockStatus {
   if (!payments || payments.length === 0) {
     return {
       isUnlocked: false,
-      requiredPayment: getPaymentName(stageNum),
+      requiredPayment: getPaymentName(stageNum, targetCountry),
       paymentStatus: 'not_found',
-      message: `${getPaymentName(stageNum)} payment is required to unlock this stage.`
+      message: `${getPaymentName(stageNum, targetCountry)} payment is required to unlock this stage.`
     };
   }
 
@@ -57,9 +64,9 @@ export function checkPaymentStage(payments: Payment[], stageNum: 1 | 2 | 3): Sta
   if (!stagePayment) {
     return {
       isUnlocked: false,
-      requiredPayment: getPaymentName(stageNum),
+      requiredPayment: getPaymentName(stageNum, targetCountry),
       paymentStatus: 'not_found',
-      message: `${getPaymentName(stageNum)} payment has not been submitted yet.`
+      message: `${getPaymentName(stageNum, targetCountry)} payment has not been submitted yet.`
     };
   }
 
@@ -67,22 +74,64 @@ export function checkPaymentStage(payments: Payment[], stageNum: 1 | 2 | 3): Sta
   
   return {
     isUnlocked: isPaid,
-    requiredPayment: getPaymentName(stageNum),
+    requiredPayment: getPaymentName(stageNum, targetCountry),
     paymentStatus: isPaid ? 'paid' : 'pending',
     message: isPaid 
-      ? `${getPaymentName(stageNum)} has been verified. This stage is unlocked.`
-      : `${getPaymentName(stageNum)} is awaiting admin verification. Please wait for approval.`
+      ? `${getPaymentName(stageNum, targetCountry)} has been verified. This stage is unlocked.`
+      : `${getPaymentName(stageNum, targetCountry)} is awaiting admin verification. Please wait for approval.`
   };
 }
 
 /**
- * Get payment name for stage number
+ * Get payment name for stage number with configurable amounts
  */
-function getPaymentName(stageNum: 1 | 2 | 3): string {
+function getPaymentName(stageNum: 1 | 2 | 3, targetCountry?: string): string {
+  const config = getSystemFeeConfig();
+  
   switch (stageNum) {
-    case 1: return '1st Installment (Registration & Legalization Fee)';
-    case 2: return '2nd Installment (University Tuition Fee)';
-    case 3: return '3rd Installment (Agency & VFS Visa Fee)';
+    case 1: {
+      // Get country-specific fee or default advance registration fee
+      const countryFee = targetCountry && config.country_fees?.[targetCountry];
+      const amount = countryFee 
+        ? `₹${countryFee.registration_fee_inr.toLocaleString('en-IN')}`
+        : `₹${config.advance_registration_fee_inr.toLocaleString('en-IN')}`;
+      return `1st Installment (Registration & Legalization Fee - ${amount})`;
+    }
+    case 2: {
+      return '2nd Installment (University Tuition Fee - Variable)';
+    }
+    case 3: {
+      const agencyFee = config.default_agency_fee || '₹25,000';
+      const vfsFee = config.default_vfs_fee || '₹28,000';
+      return `3rd Installment (Agency & VFS Visa Fee - ${agencyFee} + ${vfsFee})`;
+    }
+  }
+}
+
+/**
+ * Get expected payment amount for a stage based on configuration
+ */
+export function getExpectedPaymentAmount(stageNum: 1 | 2 | 3, targetCountry?: string, tuitionAmount?: number): number {
+  const config = getSystemFeeConfig();
+  
+  switch (stageNum) {
+    case 1: {
+      // Get country-specific fee or default
+      const countryFee = targetCountry && config.country_fees?.[targetCountry];
+      return countryFee 
+        ? countryFee.registration_fee_inr 
+        : config.advance_registration_fee_inr;
+    }
+    case 2: {
+      // Tuition fee - dynamic based on selected course
+      return tuitionAmount || 0;
+    }
+    case 3: {
+      // Parse agency and VFS fees from config
+      const agencyFee = parseInt(String(config.default_agency_fee).replace(/[^0-9]/g, '')) || 25000;
+      const vfsFee = parseInt(String(config.default_vfs_fee).replace(/[^0-9]/g, '')) || 28000;
+      return agencyFee + vfsFee;
+    }
   }
 }
 
@@ -99,10 +148,10 @@ export interface JourneyStageAccess {
   blockedReason?: string;
 }
 
-export function getJourneyStageAccess(payments: Payment[]): JourneyStageAccess {
-  const payment1 = checkPaymentStage(payments, 1);
-  const payment2 = checkPaymentStage(payments, 2);
-  const payment3 = checkPaymentStage(payments, 3);
+export function getJourneyStageAccess(payments: Payment[], targetCountry?: string): JourneyStageAccess {
+  const payment1 = checkPaymentStage(payments, 1, targetCountry);
+  const payment2 = checkPaymentStage(payments, 2, targetCountry);
+  const payment3 = checkPaymentStage(payments, 3, targetCountry);
 
   return {
     // Stage unlocked after 1st installment is paid
@@ -133,8 +182,12 @@ export function getJourneyStageAccess(payments: Payment[]): JourneyStageAccess {
 /**
  * Check if student can access a specific page based on payment status
  */
-export function canAccessPage(pagePath: string, payments: Payment[]): { allowed: boolean; reason?: string } {
-  const access = getJourneyStageAccess(payments);
+export function canAccessPage(
+  pagePath: string, 
+  payments: Payment[], 
+  targetCountry?: string
+): { allowed: boolean; reason?: string } {
+  const access = getJourneyStageAccess(payments, targetCountry);
   
   // Routes that require 1st installment
   if (pagePath.includes('/select-university') || pagePath.includes('/universities')) {
@@ -181,22 +234,27 @@ export function canAccessPage(pagePath: string, payments: Payment[]): { allowed:
 /**
  * Get next required payment based on current payment status
  */
-export function getNextRequiredPayment(payments: Payment[]): {
+export function getNextRequiredPayment(
+  payments: Payment[], 
+  targetCountry?: string
+): {
   stageNum: 1 | 2 | 3 | null;
   name: string;
   description: string;
   status: 'required' | 'all_complete';
+  expectedAmount?: number;
 } {
-  const payment1 = checkPaymentStage(payments, 1);
-  const payment2 = checkPaymentStage(payments, 2);
-  const payment3 = checkPaymentStage(payments, 3);
+  const payment1 = checkPaymentStage(payments, 1, targetCountry);
+  const payment2 = checkPaymentStage(payments, 2, targetCountry);
+  const payment3 = checkPaymentStage(payments, 3, targetCountry);
 
   if (!payment1.isUnlocked) {
     return {
       stageNum: 1,
       name: '1st Installment - Registration & Legalization Fee',
       description: 'Required to unlock university selection and application submission.',
-      status: 'required'
+      status: 'required',
+      expectedAmount: getExpectedPaymentAmount(1, targetCountry)
     };
   }
 
@@ -205,7 +263,8 @@ export function getNextRequiredPayment(payments: Payment[]): {
       stageNum: 2,
       name: '2nd Installment - University Tuition Fee',
       description: 'Required to accept offer letter and access visa tracking.',
-      status: 'required'
+      status: 'required',
+      expectedAmount: 0 // Dynamic based on selected course
     };
   }
 
@@ -214,7 +273,8 @@ export function getNextRequiredPayment(payments: Payment[]): {
       stageNum: 3,
       name: '3rd Installment - Agency & VFS Visa Fee',
       description: 'Required to access pre-departure checklist and travel planning.',
-      status: 'required'
+      status: 'required',
+      expectedAmount: getExpectedPaymentAmount(3, targetCountry)
     };
   }
 

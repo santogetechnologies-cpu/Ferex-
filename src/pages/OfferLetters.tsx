@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Download, Check, X, Sparkles, GraduationCap, ArrowRight, Eye, Award, CreditCard, ShieldCheck } from 'lucide-react';
+import { FileText, Download, Check, X, Sparkles, GraduationCap, ArrowRight, Eye, Award, CreditCard, ShieldCheck, Lock, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { useApplications } from '../hooks/useApplications';
 import { usePayments } from '../hooks/usePayments';
+import { triggerOfferAcceptanceWorkflow } from '../lib/syncEvents';
+import { checkPaymentStage } from '../lib/paymentUnlock';
 
 // Generate 100% Valid PDF Binary Blob with Embedded Fonts & Structured Text Layout
 export function createValidOfferPdfBlob(app: {
@@ -131,6 +133,10 @@ export const OfferLetters: React.FC = () => {
     Boolean(a.final_acceptance_url)
   );
 
+  // Check payment status for offer acceptance
+  const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || 'Poland';
+  const payment2Status = checkPaymentStage(payments, 2, targetCountry);
+
   const inst2Paid = payments.some(p =>
     (p.description?.includes('2nd') || p.description?.includes('2') || p.payment_type?.includes('2nd')) &&
     (p.status === 'Paid' || p.status === 'Verified')
@@ -141,9 +147,36 @@ export const OfferLetters: React.FC = () => {
     setTimeout(() => setToastMessage(''), 3500);
   };
 
-  const handleAccept = async (id: string) => {
-    await changeStatus(id, 'Accepted');
-    showToast('🎉 Offer Accepted! Next step: Pay 2nd Installment Tuition Deposit Fee to receive your Official Final Acceptance Letter.');
+  const handleAccept = async (app: any) => {
+    try {
+      await changeStatus(app.id, 'Accepted');
+      
+      // Trigger offer acceptance workflow with sync events
+      triggerOfferAcceptanceWorkflow({
+        applicationId: app.id,
+        studentId: user?.id || '',
+        studentName: studentName,
+        universityName: app.university_name || app.universities?.name || 'University'
+      });
+      
+      showToast('🎉 Offer Accepted! Next step: Pay 2nd Installment Tuition Deposit Fee to receive your Official Final Acceptance Letter.');
+      
+      // Show payment prompt after 2 seconds if not paid
+      if (!inst2Paid) {
+        setTimeout(() => {
+          const confirmPayment = window.confirm(
+            '🎓 Congratulations on accepting your offer!\n\n' +
+            'To proceed with Final Acceptance Letter issuance, please complete the 2nd Installment (University Tuition Fee) payment.\n\n' +
+            'Would you like to go to the Payments page now?'
+          );
+          if (confirmPayment) {
+            navigate('/student/payments?highlight=stage2');
+          }
+        }, 2000);
+      }
+    } catch (error) {
+      showToast('Error accepting offer. Please try again.');
+    }
   };
 
   const handleReject = async (id: string) => {

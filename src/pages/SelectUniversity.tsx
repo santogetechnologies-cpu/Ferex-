@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Search, MapPin, Award, Sparkles, Heart, X, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight } from 'lucide-react';
+import { Target, Search, MapPin, Award, Sparkles, Heart, X, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight, Lock, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUniversities } from '../hooks/useUniversities';
 import { useDestinations } from '../hooks/useDestinations';
@@ -12,7 +12,7 @@ import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { Card } from '../components/Card';
 import { UnifiedPaymentModal } from '../components/UnifiedPaymentModal';
-import { getDefaultCounselorForCountry } from '../lib/api/students';
+import { canAccessPage, checkPaymentStage } from '../lib/paymentUnlock';
 
 export const SelectUniversity: React.FC = () => {
   const navigate = useNavigate();
@@ -107,10 +107,106 @@ export const SelectUniversity: React.FC = () => {
   const requiredAdvanceInr = countryFeeConfig?.registration_fee_inr || config.advance_registration_fee_inr || 15000;
   const requiredAdvanceEur = countryFeeConfig?.registration_fee_eur || config.advance_registration_fee_eur || 150;
 
-  // Dedicated counselor for active country
-  const assignedCounselorName = (profile as any)?.assigned_counselor && (profile as any)?.assigned_counselor !== 'Admin'
+  // Payment Guard Check - 1st Installment Required
+  const paymentAccess = canAccessPage('/select-university', payments, effectiveCountryKey);
+  const payment1Status = checkPaymentStage(payments, 1, effectiveCountryKey);
+
+  // If payment not verified, show locked state
+  if (!paymentAccess.allowed) {
+    return (
+      <div className="space-y-6 text-left">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-2xl mx-auto"
+        >
+          {/* Locked State Card */}
+          <Card className="p-8 text-center space-y-6 bg-gradient-to-br from-amber-50 via-white to-rose-50 border-2 border-amber-200">
+            <div className="w-20 h-20 rounded-full bg-amber-100 border-4 border-amber-300 mx-auto flex items-center justify-center">
+              <Lock className="w-10 h-10 text-amber-600" />
+            </div>
+            
+            <div className="space-y-3">
+              <h2 className="text-2xl font-black text-slate-900">
+                University Selection Locked
+              </h2>
+              <p className="text-base font-semibold text-slate-600 max-w-lg mx-auto">
+                {paymentAccess.reason || 'Please complete 1st Installment payment to unlock university selection.'}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl border-2 border-amber-200 p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-700">Required Payment:</span>
+                <span className="text-sm font-extrabold text-amber-700">{payment1Status.requiredPayment}</span>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-700">Amount:</span>
+                <span className="text-lg font-black text-[#6A1B2E]">
+                  ₹{requiredAdvanceInr.toLocaleString('en-IN')} <span className="text-sm text-slate-500">or</span> €{requiredAdvanceEur}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-700">Status:</span>
+                <span className={`text-sm font-extrabold px-3 py-1 rounded-full ${
+                  payment1Status.paymentStatus === 'pending' 
+                    ? 'bg-amber-100 text-amber-700 border border-amber-300'
+                    : 'bg-red-100 text-red-700 border border-red-300'
+                }`}>
+                  {payment1Status.paymentStatus === 'pending' ? 'Pending Verification' : 'Not Submitted'}
+                </span>
+              </div>
+
+              {payment1Status.paymentStatus === 'pending' && (
+                <div className="pt-4 border-t border-amber-200">
+                  <div className="flex items-start gap-3 bg-blue-50 rounded-xl p-4 border border-blue-200">
+                    <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-blue-900 mb-1">Payment Under Review</p>
+                      <p className="text-xs font-semibold text-blue-700">
+                        Your payment is currently being verified by our admin team. 
+                        You will receive a notification once verification is complete.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+              {payment1Status.paymentStatus === 'not_found' && (
+                <button
+                  onClick={() => navigate('/student/payments')}
+                  className="px-6 py-3 bg-[#6A1B2E] text-white rounded-xl font-bold text-sm hover:bg-[#521221] transition-all shadow-lg flex items-center justify-center gap-2"
+                >
+                  <CreditCard className="w-5 h-5" />
+                  Make Payment Now
+                </button>
+              )}
+              
+              <button
+                onClick={() => navigate('/student/dashboard')}
+                className="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-300 transition-all"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Dedicated counselor - strictly from admin assignment, NO country defaults
+  const assignedCounselorName = (profile as any)?.assigned_counselor && 
+                                 (profile as any)?.assigned_counselor !== 'Admin' &&
+                                 (profile as any)?.assigned_counselor !== '--'
     ? (profile as any).assigned_counselor
-    : getDefaultCounselorForCountry(effectiveCountryKey);
+    : 'Admissions Counselor (Pending Assignment)';
+
+  const hasCounselorAssigned = assignedCounselorName !== 'Admissions Counselor (Pending Assignment)';
 
   const handleCountrySelect = (c: string) => {
     setSelectedCountry(c);
@@ -166,7 +262,10 @@ export const SelectUniversity: React.FC = () => {
       }
 
       setApplyUni(null);
-      setSuccessToast(`🎉 Application submitted successfully to ${applyUni.name}! Routed to ${assignedCounselorName}`);
+      const successMsg = hasCounselorAssigned 
+        ? `🎉 Application submitted successfully to ${applyUni.name}! Routed to ${assignedCounselorName}`
+        : `🎉 Application submitted successfully to ${applyUni.name}! Pending counselor assignment.`;
+      setSuccessToast(successMsg);
       setTimeout(() => navigate('/student/applications'), 1200);
     } catch (err: any) {
       setSuccessToast(`Error: ${err.message || 'Failed to submit application'}`);
@@ -238,23 +337,37 @@ export const SelectUniversity: React.FC = () => {
             </div>
           </div>
 
-          {/* Assigned Counselor Desk Pill */}
-          <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/15">
-            <div className="w-8 h-8 rounded-full bg-[#C5A059] text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
-              {assignedCounselorName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+          {/* Assigned Counselor Desk Pill - Only show if actually assigned */}
+          {hasCounselorAssigned && (
+            <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/15">
+              <div className="w-8 h-8 rounded-full bg-[#C5A059] text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
+                {assignedCounselorName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+              </div>
+              <div className="text-left min-w-0">
+                <span className="text-[9.5px] font-extrabold text-amber-200 block uppercase tracking-wider">Dedicated Counselor</span>
+                <span className="text-xs font-black text-white truncate block">{assignedCounselorName}</span>
+              </div>
             </div>
-            <div className="text-left min-w-0">
-              <span className="text-[9.5px] font-extrabold text-amber-200 block uppercase tracking-wider">Dedicated Counselor</span>
-              <span className="text-xs font-black text-white truncate block">{assignedCounselorName}</span>
+          )}
+          
+          {!hasCounselorAssigned && (
+            <div className="flex items-center gap-2.5 bg-amber-500/20 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-amber-300/30">
+              <div className="w-8 h-8 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
+                ⏳
+              </div>
+              <div className="text-left min-w-0">
+                <span className="text-[9.5px] font-extrabold text-amber-200 block uppercase tracking-wider">Counselor Assignment</span>
+                <span className="text-xs font-black text-amber-100 truncate block">Pending Admin Assignment</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* 6 Step Linear Pipeline */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
           {[
             { step: '01', title: 'Target Country', status: selectedCountry !== 'All' ? `${selectedCountry}` : 'Global Catalog', isDone: true, badge: 'Step 1' },
-            { step: '02', title: 'Counselor Assigned', status: assignedCounselorName.split('(')[0].trim(), isDone: true, badge: 'Active Desk' },
+            { step: '02', title: 'Counselor Assignment', status: hasCounselorAssigned ? assignedCounselorName.split('(')[0].trim() : 'Pending Admin', isDone: hasCounselorAssigned, badge: hasCounselorAssigned ? 'Assigned' : 'Pending' },
             { step: '03', title: 'Document Vault', status: hasMandatoryDocs ? 'Passport & Transcripts Ready' : 'Upload Needed', isDone: hasMandatoryDocs, badge: hasMandatoryDocs ? 'Verified' : 'Action Req', path: '/student/documents' },
             { step: '04', title: 'Registration Fee', status: inst1Paid ? 'Cleared & Verified' : `₹${requiredAdvanceInr.toLocaleString('en-IN')}`, isDone: inst1Paid, badge: inst1Paid ? 'Paid' : 'Due' },
             { step: '05', title: 'Course Application', status: 'Select Program', isDone: false, badge: 'Current' },
@@ -615,15 +728,29 @@ export const SelectUniversity: React.FC = () => {
 
                 {/* Step Verification & Counselor Review Pill */}
                 <div className="p-3.5 bg-gradient-to-r from-amber-50 via-rose-50/40 to-slate-50 rounded-2xl border border-amber-200/80 mb-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <UserCheck className="w-4 h-4 text-[#6A1B2E]" />
-                      <span className="text-xs font-black text-slate-900">Assigned Review Desk:</span>
+                  {hasCounselorAssigned && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="w-4 h-4 text-[#6A1B2E]" />
+                        <span className="text-xs font-black text-slate-900">Assigned Review Desk:</span>
+                      </div>
+                      <span className="text-[11px] font-black text-[#6A1B2E] bg-white px-2.5 py-0.5 rounded-full border border-rose-200">
+                        {assignedCounselorName}
+                      </span>
                     </div>
-                    <span className="text-[11px] font-black text-[#6A1B2E] bg-white px-2.5 py-0.5 rounded-full border border-rose-200">
-                      {assignedCounselorName}
-                    </span>
-                  </div>
+                  )}
+                  
+                  {!hasCounselorAssigned && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="w-4 h-4 text-amber-600" />
+                        <span className="text-xs font-black text-slate-900">Counselor Assignment:</span>
+                      </div>
+                      <span className="text-[11px] font-black text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
+                        Pending Admin
+                      </span>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] font-semibold">
                     <div className={`p-2 rounded-xl border flex items-center justify-between ${
@@ -695,7 +822,10 @@ export const SelectUniversity: React.FC = () => {
                       <span>{targetWf.authority_badge} Procedure</span>
                     </div>
                     <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
-                      Your dossier will be reviewed by {assignedCounselorName} and submitted to {applyUni.name} admissions board.
+                      {hasCounselorAssigned 
+                        ? `Your dossier will be reviewed by ${assignedCounselorName} and submitted to ${applyUni.name} admissions board.`
+                        : `Your dossier will be reviewed by our admissions team and submitted to ${applyUni.name} admissions board. A counselor will be assigned by admin.`
+                      }
                     </p>
                   </div>
 

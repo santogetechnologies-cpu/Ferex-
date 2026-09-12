@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, CheckCircle2, Clock, Lock, ArrowRight, RefreshCw, Sparkles, XCircle } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Clock, Lock, ArrowRight, RefreshCw, Sparkles, XCircle, AlertCircle, CreditCard } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,8 @@ import { useVisa } from '../hooks/useVisa';
 import { useApplications } from '../hooks/useApplications';
 import { usePayments } from '../hooks/usePayments';
 import { useDocuments } from '../hooks/useDocuments';
+import { canAccessPage, checkPaymentStage as checkPayment } from '../lib/paymentUnlock';
+import { motion } from 'framer-motion';
 
 export const VisaTracker: React.FC = () => {
   const navigate = useNavigate();
@@ -37,6 +39,90 @@ export const VisaTracker: React.FC = () => {
   };
 
   const inst2Paid = payments.some(p => checkPaymentStage(p, 2) && (p.status === 'Paid' || p.status === 'Verified'));
+
+  // Payment Guard Check - 2nd Installment Required for Visa Tracker
+  const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || 'Poland';
+  const paymentAccess = canAccessPage('/visa-tracker', payments, targetCountry);
+  const payment2Status = checkPayment(payments, 2, targetCountry);
+
+  // If payment not verified, show locked state
+  if (!paymentAccess.allowed) {
+    return (
+      <div className="space-y-6 text-left">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-2xl mx-auto"
+        >
+          <Card className="p-8 text-center space-y-6 bg-gradient-to-br from-blue-50 via-white to-indigo-50 border-2 border-blue-200">
+            <div className="w-20 h-20 rounded-full bg-blue-100 border-4 border-blue-300 mx-auto flex items-center justify-center">
+              <Lock className="w-10 h-10 text-blue-600" />
+            </div>
+            
+            <div className="space-y-3">
+              <h2 className="text-2xl font-black text-slate-900">
+                Visa Tracker Locked
+              </h2>
+              <p className="text-base font-semibold text-slate-600 max-w-lg mx-auto">
+                {paymentAccess.reason || 'Complete 2nd Installment (University Tuition) payment to unlock visa tracker.'}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl border-2 border-blue-200 p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-700">Required Payment:</span>
+                <span className="text-sm font-extrabold text-blue-700">{payment2Status.requiredPayment}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-700">Status:</span>
+                <span className={`text-sm font-extrabold px-3 py-1 rounded-full ${
+                  payment2Status.paymentStatus === 'pending' 
+                    ? 'bg-amber-100 text-amber-700 border border-amber-300'
+                    : 'bg-red-100 text-red-700 border border-red-300'
+                }`}>
+                  {payment2Status.paymentStatus === 'pending' ? 'Pending Verification' : 'Not Submitted'}
+                </span>
+              </div>
+
+              {payment2Status.paymentStatus === 'pending' && (
+                <div className="pt-4 border-t border-blue-200">
+                  <div className="flex items-start gap-3 bg-amber-50 rounded-xl p-4 border border-amber-200">
+                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-amber-900 mb-1">Payment Under Review</p>
+                      <p className="text-xs font-semibold text-amber-700">
+                        Your tuition payment is being verified. Visa tracker access will be granted upon approval.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+              {payment2Status.paymentStatus === 'not_found' && (
+                <button
+                  onClick={() => navigate('/student/payments')}
+                  className="px-6 py-3 bg-[#6A1B2E] text-white rounded-xl font-bold text-sm hover:bg-[#521221] transition-all shadow-lg flex items-center justify-center gap-2"
+                >
+                  <CreditCard className="w-5 h-5" />
+                  Make Tuition Payment
+                </button>
+              )}
+              
+              <button
+                onClick={() => navigate('/student/dashboard')}
+                className="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-300 transition-all"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
 
   // Final Acceptance Letter check
   const hasFinalAcceptanceDoc = documents.some(d =>

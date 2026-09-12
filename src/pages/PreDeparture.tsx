@@ -3,19 +3,108 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plane, Home, ShieldCheck, MapPin, PhoneCall, CheckCircle2,
   Sparkles, Clock, Calendar, ExternalLink,
-  Building, Navigation, FileCheck
+  Building, Navigation, FileCheck, Lock, AlertCircle, CreditCard
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { useAuth } from '../contexts/AuthContext';
 import { useVisa } from '../hooks/useVisa';
 import { useApplications } from '../hooks/useApplications';
+import { usePayments } from '../hooks/usePayments';
 import { getPreDepartureRecords } from '../lib/api/preDeparture';
 import type { PreDepartureRecord } from '../lib/api/preDeparture';
+import { canAccessPage, checkPaymentStage } from '../lib/paymentUnlock';
+import { useNavigate } from 'react-router-dom';
 
 export const PreDeparture: React.FC = () => {
+  const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { records: visaRecords } = useVisa(user?.id);
   const { applications } = useApplications(user?.id);
+  const { payments } = usePayments(user?.id);
+
+  // Payment Guard Check - 3rd Installment Required for Pre-Departure
+  const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || 'Poland';
+  const paymentAccess = canAccessPage('/pre-departure', payments, targetCountry);
+  const payment3Status = checkPaymentStage(payments, 3, targetCountry);
+
+  // If payment not verified, show locked state
+  if (!paymentAccess.allowed) {
+    return (
+      <div className="space-y-6 text-left">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-2xl mx-auto"
+        >
+          <Card className="p-8 text-center space-y-6 bg-gradient-to-br from-green-50 via-white to-emerald-50 border-2 border-green-200">
+            <div className="w-20 h-20 rounded-full bg-green-100 border-4 border-green-300 mx-auto flex items-center justify-center">
+              <Lock className="w-10 h-10 text-green-600" />
+            </div>
+            
+            <div className="space-y-3">
+              <h2 className="text-2xl font-black text-slate-900">
+                Pre-Departure Checklist Locked
+              </h2>
+              <p className="text-base font-semibold text-slate-600 max-w-lg mx-auto">
+                {paymentAccess.reason || 'Complete 3rd Installment (Agency & VFS Fee) to unlock pre-departure planning.'}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl border-2 border-green-200 p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-700">Required Payment:</span>
+                <span className="text-sm font-extrabold text-green-700">{payment3Status.requiredPayment}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-700">Status:</span>
+                <span className={`text-sm font-extrabold px-3 py-1 rounded-full ${
+                  payment3Status.paymentStatus === 'pending' 
+                    ? 'bg-amber-100 text-amber-700 border border-amber-300'
+                    : 'bg-red-100 text-red-700 border border-red-300'
+                }`}>
+                  {payment3Status.paymentStatus === 'pending' ? 'Pending Verification' : 'Not Submitted'}
+                </span>
+              </div>
+
+              {payment3Status.paymentStatus === 'pending' && (
+                <div className="pt-4 border-t border-green-200">
+                  <div className="flex items-start gap-3 bg-amber-50 rounded-xl p-4 border border-amber-200">
+                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-amber-900 mb-1">Payment Under Review</p>
+                      <p className="text-xs font-semibold text-amber-700">
+                        Your final payment is being verified. Pre-departure access will be granted upon approval.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+              {payment3Status.paymentStatus === 'not_found' && (
+                <button
+                  onClick={() => navigate('/student/payments')}
+                  className="px-6 py-3 bg-[#6A1B2E] text-white rounded-xl font-bold text-sm hover:bg-[#521221] transition-all shadow-lg flex items-center justify-center gap-2"
+                >
+                  <CreditCard className="w-5 h-5" />
+                  Make Final Payment
+                </button>
+              )}
+              
+              <button
+                onClick={() => navigate('/student/dashboard')}
+                className="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-300 transition-all"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
 
   const activeApp = applications[0];
   const targetUniversity = activeApp?.university_name || 'European Partner University';

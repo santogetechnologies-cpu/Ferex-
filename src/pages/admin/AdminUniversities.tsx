@@ -90,18 +90,10 @@ export const AdminUniversities: React.FC = () => {
   const [livingCostMonthly, setLivingCostMonthly] = useState('€350 - €500 / mo');
   const [nawaRequired, setNawaRequired] = useState(true);
 
-  // Picture upload state & file input ref
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
 
-  const PRESET_CAMPUS_IMAGES = [
-    { label: 'Tech & Engineering', url: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80' },
-    { label: 'Historic Quad', url: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80' },
-    { label: 'Medical & Science', url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=800&q=80' },
-    { label: 'Business & Management', url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80' },
-    { label: 'Modern Campus', url: 'https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=800&q=80' },
-  ];
+  // REMOVED PRESET CAMPUS IMAGES - Admin must upload custom images only
 
   const compressImageFile = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -408,7 +400,7 @@ export const AdminUniversities: React.FC = () => {
     setCountry(u.country);
     setBadge(u.badge || 'Top Choice');
     setCategory(u.category || 'Engineering');
-    setImageUrl(u.image_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80');
+    setImageUrl(u.image_url || ''); // No default image URL
     setDescription(u.description || '');
     setRanking(String(u.ranking || 100));
     setRating(String(u.rating || 4.8));
@@ -453,7 +445,7 @@ export const AdminUniversities: React.FC = () => {
         city: city.trim() || 'Capital Campus',
         badge: badge.trim() || 'Top Choice',
         category: category.trim() || 'Engineering',
-        image_url: imageUrl.trim() || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80',
+        image_url: imageUrl.trim() || '', // NO DEFAULT IMAGE - Admin must upload
         description: description.trim() || `${name} offers accredited degree programs with global post-study work opportunities.`,
         rating: parseFloat(rating) || 4.8,
         ranking: parseInt(ranking) || 100,
@@ -663,12 +655,18 @@ export const AdminUniversities: React.FC = () => {
                   >
                     <div>
                       {/* Card Image Banner */}
-                      <div className="h-32 relative overflow-hidden bg-slate-900">
-                        <img
-                          src={u.image_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=600&q=80'}
-                          alt={u.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
-                        />
+                      <div className="h-32 relative overflow-hidden bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900">
+                        {u.image_url ? (
+                          <img
+                            src={u.image_url}
+                            alt={u.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400">
+                            <ImageIcon className="w-12 h-12 opacity-30" />
+                          </div>
+                        )}
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
                         
                         <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#6A1B2E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/40 shadow-xs">
@@ -1191,32 +1189,6 @@ export const AdminUniversities: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Curated Preset Quick Select */}
-                      <div className="pt-1">
-                        <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block mb-1.5">
-                          Or Select Curated Campus Photo:
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {PRESET_CAMPUS_IMAGES.map((preset) => (
-                            <button
-                              key={preset.label}
-                              type="button"
-                              onClick={() => {
-                                setImageUrl(preset.url);
-                                showToast(`Selected "${preset.label}"! Click "Save Changes" below to save.`);
-                              }}
-                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                                imageUrl === preset.url
-                                  ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]'
-                                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                              }`}
-                            >
-                              {preset.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
                       {/* Optional Direct URL Input */}
                       {showUrlInput && (
                         <div className="pt-1">
@@ -1224,7 +1196,7 @@ export const AdminUniversities: React.FC = () => {
                             type="text"
                             value={imageUrl}
                             onChange={(e) => setImageUrl(e.target.value)}
-                            placeholder="https://images.unsplash.com/photo-..."
+                            placeholder="https://example.com/university-photo.jpg"
                             className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
                           />
                         </div>
