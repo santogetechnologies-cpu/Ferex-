@@ -84,6 +84,17 @@ export async function createNawaApplication(payload: {
   document_type?: string;
   notes?: string;
 }): Promise<NawaRecord> {
+  // Check if NAWA record already exists for this student
+  try {
+    const existing = await getNawaRecords(payload.student_id);
+    if (existing && existing.length > 0) {
+      console.log('[createNawaRecord]: Record already exists for student', payload.student_id);
+      return existing[0]; // Return existing record instead of creating duplicate
+    }
+  } catch (e) {
+    console.warn('[createNawaRecord]: Could not check for existing records:', e);
+  }
+
   const now = new Date().toISOString();
   const refNo = payload.nawa_ref_no || `NAWA/POL/2026/${Math.floor(1000 + Math.random() * 9000)}`;
   const docType = payload.document_type || 'Academic Diploma & Transcripts';

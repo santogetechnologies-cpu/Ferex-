@@ -54,6 +54,7 @@ import { CentralTasks } from './pages/central/CentralTasks';
 import { CentralActivity } from './pages/central/CentralActivity';
 import { CentralNotifications } from './pages/central/CentralNotifications';
 import { CentralSettings } from './pages/central/CentralSettings';
+import { WorkflowGuide } from './pages/central/WorkflowGuide';
 import { CentralTrade } from './pages/central/CentralTrade';
 import { CentralRimi } from './pages/central/CentralRimi';
 import { CentralDigital } from './pages/central/CentralDigital';
@@ -322,6 +323,7 @@ function App() {
           <Route path="/central/activity" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralActivity /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/notifications" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralNotifications /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/settings" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralSettings /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/workflow-guide" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><WorkflowGuide /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/education" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralStudents /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/universities" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralEducation /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/students" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralStudents /></CentralLayout></ProtectedRoute>} />

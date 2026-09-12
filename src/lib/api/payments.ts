@@ -415,11 +415,23 @@ export async function verifyPayment(id: string, reviewerNotes?: string): Promise
       await createNotification({
         user_id: updatedPayment.student_id,
         title: '🎉 Payment Verified & Approved!',
-        body: `Your payment of ₹${Number(updatedPayment.amount || 0).toLocaleString()} for ${updatedPayment.title || 'Tuition Fee'} has been verified and approved by FEREX Finance Board.`,
+        body: `Your payment of ₹${Number(updatedPayment.amount || 0).toLocaleString()} for ${updatedPayment.title || 'Tuition Fee'} has been verified and approved by FEREX Finance Board. New journey stages have been unlocked!`,
         category: 'Payment'
       });
     } catch (err) {}
   }
+
+  // Dispatch payment unlock events for journey stage progression
+  window.dispatchEvent(new CustomEvent('ferex_payment_verified', { 
+    detail: { 
+      paymentId: id, 
+      studentId: updatedPayment?.student_id,
+      amount: updatedPayment?.amount,
+      paymentType: updatedPayment?.payment_type 
+    } 
+  }));
+  window.dispatchEvent(new Event('ferex_payment_change'));
+  window.dispatchEvent(new Event('ferex_journey_unlock'));
 
   const invoiceNo = updatedPayment.ref_no || `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`;
 

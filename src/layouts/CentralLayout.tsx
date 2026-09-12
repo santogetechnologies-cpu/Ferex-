@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, CreditCard, BarChart3, ShieldCheck, UserCheck,
-  CheckSquare, Activity, Bell, Settings, Mail,
+  CheckSquare, Activity, Bell, Settings, Mail, BookOpen,
   Search, Menu, ChevronDown, ChevronRight, LogOut, X, Crown,
   Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight
 } from 'lucide-react';
@@ -62,6 +62,12 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
         { name: 'Support & Tickets', path: '/central/support', icon: ShieldCheck, badge: 'Tickets' },
         { name: 'Email Dispatch Vault', path: '/central/emails', icon: Bell, badge: 'Audit' },
         { name: 'Email & SMTP Providers', path: '/central/email-settings', icon: Mail, badge: 'Gateways' },
+      ]
+    },
+    {
+      title: 'DOCUMENTATION & GUIDES',
+      items: [
+        { name: 'Workflow Guide', path: '/central/workflow-guide', icon: BookOpen, badge: '4-App Flows' },
       ]
     },
     {
