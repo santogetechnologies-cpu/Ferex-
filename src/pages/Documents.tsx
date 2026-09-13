@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Folder, Search, Upload, Eye, FileText, X, AlertCircle,
@@ -12,9 +12,10 @@ import { useDocuments } from '../hooks/useDocuments';
 import { useApplications } from '../hooks/useApplications';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { ensureStudentApplication } from '../lib/api/applications';
+import { getDocumentRequirements, type DocumentRequirement } from '../lib/api/documentRequirements';
 
 export const Documents: React.FC = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { applications } = useApplications(user?.id);
   const { getWorkflowForCountry } = useCountryWorkflows();
 
@@ -32,11 +33,25 @@ export const Documents: React.FC = () => {
 
   const { documents: dbDocs, loading, addDoc, replaceDoc } = useDocuments(activeStudentId);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [configuredReqs, setConfiguredReqs] = useState<DocumentRequirement[]>([]);
 
   // Target country resolution
   const targetCountry = useMemo(() => {
-    return localStorage.getItem('ferex_student_target_country') || applications[0]?.universities?.country || (applications[0] as any)?.country || 'Poland';
-  }, [applications]);
+    return (
+      (profile as any)?.target_country ||
+      (profile as any)?.country ||
+      localStorage.getItem('ferex_student_target_country') ||
+      applications[0]?.universities?.country ||
+      (applications[0] as any)?.country ||
+      'Poland'
+    );
+  }, [profile, applications]);
+
+  useEffect(() => {
+    if (targetCountry && targetCountry !== 'Not Set') {
+      getDocumentRequirements(targetCountry).then(setConfiguredReqs);
+    }
+  }, [targetCountry]);
 
   const targetWf = useMemo(() => {
     return getWorkflowForCountry(targetCountry);

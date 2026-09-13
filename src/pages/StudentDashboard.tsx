@@ -137,17 +137,17 @@ export const StudentDashboard: React.FC = () => {
     Boolean(a.final_acceptance_url)
   );
 
-  const isNawaApproved = applications.some(a =>
-    ['NAWA Approved', 'Approved', 'Under Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved'].includes(String(a.status || ''))
+  const isLegalizationApproved = applications.some(a =>
+    ['Legalization Approved', 'APS Approved', 'NAWA Approved', 'Approved', 'Under Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved'].includes(String(a.status || ''))
   );
-  const isNawaSubmitted = applications.some(a => String(a.status || '') === 'NAWA Submitted');
-  const isNawaInReview = applications.some(a => String(a.status || '') === 'NAWA Review');
+  const isLegalizationSubmitted = applications.some(a => String(a.status || '') === 'Legalization Submitted' || String(a.status || '') === 'NAWA Submitted');
+  const isLegalizationInReview = applications.some(a => String(a.status || '') === 'Legalization Review' || String(a.status || '') === 'NAWA Review');
 
   const checklistItems = [
     { title: '1. Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },
     { title: '2. Mandatory Document Vault (Passport & Marksheets)', isDone: hasApprovedDocs, path: '/student/documents', tag: hasApprovedDocs ? 'Verified' : isDocsUnderReview ? 'Under Review' : 'Mandatory' },
     { title: `3. 1st Installment Fee Payment (${config.installments.stage_1_currency === 'EUR' ? '€' : '₹'}${config.installments.stage_1_amount.toLocaleString()})`, isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
-    { title: `4. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isNawaApproved, path: '/student/documents', tag: isNawaApproved ? 'Approved' : isNawaSubmitted ? 'Submitted' : isNawaInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Locked' },
+    { title: `4. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isLegalizationApproved, path: '/student/documents', tag: isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Locked' },
     { title: '5. University Selection & Course Application', isDone: isUniSelected, path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Action Needed' },
     { title: '6. Official Admission Offer Issued & Accepted', isDone: isOfferAccepted, path: '/student/offers', tag: isOfferAccepted ? 'Accepted' : hasOffer ? 'Offer Released' : 'Pending' },
     { title: '7. 2nd Installment Tuition Deposit & Visa Status', isDone: inst2Paid, path: '/student/payments', tag: inst2Paid ? `Cleared (${visaRecord?.status_label || 'Visa Ready'})` : 'Due' },
@@ -235,7 +235,7 @@ export const StudentDashboard: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-900">{targetWf?.authority_badge || 'Legalization Audit'}</span>
                     <span className="px-2 py-0.2 rounded text-[9.5px] font-bold bg-slate-100 text-slate-700 uppercase border border-slate-200">
-                      {nawaRecord.nawa_ref_no}
+                      {nawaRecord.ref_no || nawaRecord.nawa_ref_no}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -328,34 +328,32 @@ export const StudentDashboard: React.FC = () => {
           <Card className="p-5 border border-slate-200/80 shadow-subtle space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
               <span className="text-xs font-bold text-slate-900">{targetWf?.authority_acronym ? `${targetWf.authority_acronym} Legalization` : 'Legalization Status'}</span>
-              <span className={`text-[9.5px] font-bold uppercase px-2 py-0.5 rounded border ${
-                isNawaApproved
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                isLegalizationApproved
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : isNawaSubmitted
-                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                    : isNawaInReview
-                      ? 'bg-amber-50 text-amber-800 border-amber-200'
-                      : inst1Paid
-                        ? 'bg-blue-50 text-blue-700 border-blue-200'
-                        : 'bg-slate-100 text-slate-500 border-slate-200'
+                  : isLegalizationSubmitted || isLegalizationInReview
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : inst1Paid
+                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                      : 'bg-slate-100 text-slate-500 border-slate-200'
               }`}>
-                {isNawaApproved ? 'Approved' : isNawaSubmitted ? 'Submitted' : isNawaInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Locked'}
+                {isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Locked'}
               </span>
             </div>
 
             <div className="p-3.5 rounded-xl border bg-slate-50 border-slate-200/70 space-y-1.5">
               <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                {isNawaApproved ? (
+                {isLegalizationApproved ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>{targetWf?.authority_acronym || 'Authority'} Legalization Approved</span>
                   </>
-                ) : isNawaSubmitted ? (
+                ) : isLegalizationSubmitted ? (
                   <>
                     <FileCheck className="w-4 h-4 text-blue-600 shrink-0" />
                     <span>Submitted to {targetWf?.authority_acronym || 'Agency'}</span>
                   </>
-                ) : isNawaInReview ? (
+                ) : isLegalizationInReview ? (
                   <>
                     <Clock className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>Eligibility & Audit Under Review</span>
@@ -373,11 +371,11 @@ export const StudentDashboard: React.FC = () => {
                 )}
               </p>
               <p className="text-[11px] font-normal text-slate-500 leading-relaxed">
-                {isNawaApproved
+                {isLegalizationApproved
                   ? `Your educational credentials and ${targetWf?.authority_acronym || 'legalization'} audit are officially verified.`
-                  : isNawaSubmitted
+                  : isLegalizationSubmitted
                     ? `Files dispatched to ${targetWf?.authority_name || 'the evaluation board'} for official equivalency verification.`
-                    : isNawaInReview
+                    : isLegalizationInReview
                       ? `FEREX admissions desk is reviewing your academic transcripts and eligibility for ${targetCountry}.`
                       : inst1Paid
                         ? `1st Installment verified. ${targetWf?.authority_acronym || 'Legalization'} process is queued for audit.`

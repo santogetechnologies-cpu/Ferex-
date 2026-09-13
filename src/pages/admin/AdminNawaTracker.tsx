@@ -254,7 +254,7 @@ export const AdminNawaTracker: React.FC = () => {
   // Filtered tracking list
   const filtered = records.filter(r => {
     const q = search.toLowerCase().trim();
-    const nameMatch = (r.student_name || '').toLowerCase().includes(q) || (r.nawa_ref_no || '').toLowerCase().includes(q) || (r.document_type || '').toLowerCase().includes(q);
+    const nameMatch = (r.student_name || '').toLowerCase().includes(q) || (r.ref_no || r.nawa_ref_no || '').toLowerCase().includes(q) || (r.document_type || '').toLowerCase().includes(q);
     const country = resolveStudentCountry(r);
     const countryMatch = countryFilter === 'All' || country === countryFilter;
     const statusMatch = statusFilter === 'All' || r.status === statusFilter;
@@ -414,7 +414,7 @@ export const AdminNawaTracker: React.FC = () => {
                             {rec.student_name}
                           </h3>
                           <p className="text-[11px] font-semibold text-slate-400 font-mono">
-                            Ref: {rec.nawa_ref_no}
+                            Ref: {rec.ref_no || rec.nawa_ref_no}
                           </p>
                         </div>
 

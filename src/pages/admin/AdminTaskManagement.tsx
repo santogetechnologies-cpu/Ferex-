@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useTasks } from '../../hooks/useTasks';
 import { useAuth } from '../../contexts/AuthContext';
-import { getStaffMembers } from '../../lib/api/students';
+import { getStaffMembers, getStudents } from '../../lib/api/students';
 
 type Priority = 'High' | 'Medium' | 'Low';
 type TaskStatus = 'To Do' | 'In Progress' | 'Review' | 'Done';
@@ -56,39 +56,46 @@ export const AdminTaskManagement: React.FC = () => {
   const [studentUsers, setStudentUsers] = useState<any[]>([]);
 
   useEffect(() => {
-    getStaffMembers().then((list: any[]) => {
-      const staff = list.filter(u => u.role === 'Staff' || u.role === 'Counselor' || u.role === 'Admin');
-      const students = list.filter(u => u.role === 'Student');
+    Promise.all([
+      getStaffMembers(),
+      getStudents()
+    ]).then(([staffList, studentList]) => {
+      const staff = (staffList || []).filter((u: any) => u.role !== 'Student');
+      const students = studentList || [];
       setStaffUsers(staff);
       setStudentUsers(students);
       setNewTask(prev => ({
         ...prev,
-        assigneeId: staff[0]?.id || '',
+        assigneeId: staff[0]?.full_name || staff[0]?.email || '',
         studentId: students[0]?.id || '',
       }));
     }).catch(() => {});
   }, []);
 
   useEffect(() => {
-    const mapped = dbTasks.map(t => ({
-      id: t.id,
-      title: t.title,
-      description: t.description || '',
-      assignee: t.assignee?.full_name || t.assignee?.email?.split('@')[0] || 'Unassigned',
-      priority: (t.priority === 'Critical' ? 'High' : t.priority) as Priority,
-      status: (t.status === 'Completed' ? 'Done' : t.status === 'Cancelled' ? 'To Do' : t.status) as TaskStatus,
-      due: t.due_date || 'Ongoing',
-      category: 'General',
-      studentName: t.student?.full_name || t.student?.email?.split('@')[0] || 'General Task',
-      university: 'Education Portal',
-      progress: t.status === 'Completed' ? 100 : t.status === 'In Progress' ? 50 : 0,
-      subtasksCompleted: 0,
-      subtasksTotal: 1,
-      attachmentsCount: 0,
-      commentsCount: 0,
-    }));
+    const mapped = dbTasks.map(t => {
+      const assignedUser = staffUsers.find(s => s.id === t.assigned_to || s.email === t.assigned_to || s.full_name === t.assigned_to);
+      const studentUser = studentUsers.find(st => st.id === (t as any).student_id || st.email === (t as any).student_id);
+      return {
+        id: t.id,
+        title: t.title,
+        description: t.description || '',
+        assignee: assignedUser?.full_name || t.assigned_to || (t as any).assignee?.full_name || 'Staff Member',
+        priority: (t.priority === 'Critical' ? 'High' : t.priority) as Priority,
+        status: (t.status === 'Completed' ? 'Done' : t.status === 'Cancelled' ? 'To Do' : (t.status as string) === 'Pending' ? 'To Do' : t.status) as TaskStatus,
+        due: t.due_date || 'Ongoing',
+        category: 'General',
+        studentName: (t as any).student_name || studentUser?.full_name || (t as any).student?.full_name || 'General Task',
+        university: 'Education Operations',
+        progress: t.status === 'Completed' ? 100 : t.status === 'In Progress' ? 50 : 0,
+        subtasksCompleted: 0,
+        subtasksTotal: 1,
+        attachmentsCount: 0,
+        commentsCount: 0,
+      };
+    });
     setTasks(mapped);
-  }, [dbTasks]);
+  }, [dbTasks, staffUsers, studentUsers]);
 
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [search, setSearch] = useState('');

@@ -25,13 +25,16 @@ const baseMenuItems = [
   { name: 'Applications', path: '/admin/applications', icon: FileCheck, badge: null, hasUpdate: false },
   { name: 'Offer Letters', path: '/admin/offers', icon: FileText, badge: null, hasUpdate: false },
   { name: 'Documents Review', path: '/admin/documents', icon: FolderOpen, badge: null, hasUpdate: false },
+  { name: 'Document Config', path: '/admin/document-config', icon: FileText, badge: null, hasUpdate: false },
   { name: 'Legalization & Workflows', path: '/admin/nawa', icon: FileCheck, badge: null, hasUpdate: false },
-  { name: 'Payments', path: '/admin/payments', icon: CreditCard, badge: null, hasUpdate: false },
+  { name: 'Payment Control', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
+  { name: 'Payments Ledger', path: '/admin/payments', icon: CreditCard, badge: null, hasUpdate: false },
   { name: 'VFS Visa Tracker', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },
   { name: 'Post Travel Management', path: '/admin/pre-departure', icon: Plane, badge: null, hasUpdate: false },
   { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
   { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },
   { name: 'Meetings & Planner', path: '/admin/meetings', icon: Calendar, badge: null, hasUpdate: false },
+  { name: 'Fee & Intake Config', path: '/admin/fee-config', icon: Settings, badge: null, hasUpdate: false },
   { name: 'Notifications', path: '/admin/notifications', icon: Bell, badge: null, hasUpdate: false },
   { name: 'Settings', path: '/admin/settings', icon: Settings, badge: null, hasUpdate: false },
 ];
@@ -110,6 +113,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const menuItems = baseMenuItems.map(item => {
     if (item.path === '/admin/applications') return { ...item, badge: hasUnreadApps ? 'REVIEW' : null, hasUpdate: hasUnreadApps };
     if (item.path === '/admin/documents') return { ...item, badge: hasUnreadDocs ? 'NEW DOC' : null, hasUpdate: hasUnreadDocs };
+    if (item.path === '/admin/payment-control') return { ...item, badge: pendingPaymentsCount > 0 ? `VERIFY (${pendingPaymentsCount})` : null, hasUpdate: pendingPaymentsCount > 0 };
     if (item.path === '/admin/payments') return { ...item, badge: hasUnreadPayments ? (pendingPaymentsCount > 0 ? `VERIFY (${pendingPaymentsCount})` : 'NEW PAYMENT') : null, hasUpdate: hasUnreadPayments };
     if (item.path === '/admin/nawa') return { ...item, badge: hasUnreadNawa ? 'NAWA' : null, hasUpdate: hasUnreadNawa };
     if (item.path === '/admin/visa-tracker') return { ...item, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa };
