@@ -3,11 +3,12 @@ import { cn } from '../utils/cn';
 
 export type BadgeVariant = 'brand' | 'success' | 'warning' | 'error' | 'info' | 'neutral';
 
-interface BadgeProps {
+export interface BadgeProps {
   children: React.ReactNode;
   variant?: BadgeVariant;
   size?: 'xs' | 'sm' | 'md';
   showDot?: boolean;
+  dot?: boolean;
   className?: string;
 }
 
@@ -16,8 +17,10 @@ export const Badge: React.FC<BadgeProps> = ({
   variant = 'neutral',
   size = 'sm',
   showDot = false,
+  dot = false,
   className,
 }) => {
+  const hasDot = showDot || dot;
   const variantStyles: Record<BadgeVariant, { container: string; dot: string }> = {
     brand: {
       container: 'bg-[#58051E]/8 text-[#58051E] border-[#58051E]/20 font-semibold',
@@ -62,7 +65,7 @@ export const Badge: React.FC<BadgeProps> = ({
         className
       )}
     >
-      {showDot && (
+      {hasDot && (
         <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', selected.dot)} />
       )}
       <span>{children}</span>

@@ -92,6 +92,7 @@ export const AdminUniversities: React.FC = () => {
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // REMOVED PRESET CAMPUS IMAGES - Admin must upload custom images only
 

@@ -5,11 +5,13 @@ import { cn } from '../utils/cn';
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
 
-interface ButtonProps extends HTMLMotionProps<'button'> {
+export interface ButtonProps extends HTMLMotionProps<'button'> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   isLoading?: boolean;
   icon?: React.ReactNode;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -20,6 +22,8 @@ export const Button: React.FC<ButtonProps> = ({
   isLoading = false,
   disabled = false,
   icon,
+  leftIcon,
+  rightIcon,
   ...props
 }) => {
   const baseStyles = 'inline-flex items-center justify-center font-semibold transition-all duration-150 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#58051E]/40 disabled:opacity-50 disabled:pointer-events-none select-none cursor-pointer tracking-tight';
@@ -73,8 +77,9 @@ export const Button: React.FC<ButtonProps> = ({
         </div>
       ) : (
         <>
-          {icon && <span className="shrink-0">{icon}</span>}
+          {(leftIcon || icon) && <span className="shrink-0">{leftIcon || icon}</span>}
           {children}
+          {rightIcon && <span className="shrink-0">{rightIcon}</span>}
         </>
       )}
     </motion.button>
