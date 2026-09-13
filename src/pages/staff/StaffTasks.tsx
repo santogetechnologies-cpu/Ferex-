@@ -62,7 +62,7 @@ export const StaffTasks: React.FC = () => {
     <div className="space-y-6 text-left antialiased select-none min-h-[550px]">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />{toast}
           </motion.div>
         )}
@@ -72,28 +72,28 @@ export const StaffTasks: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-[#6A1B2E]" /> Task Management Board
+            <CheckSquare className="w-5 h-5 text-[#58051E]" /> Task Management Board
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Manage assigned student tasks, document audits, and visa milestones.</p>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-1" /> New Task
           </Button>
 
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
-            <button onClick={() => setViewMode('list')} className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${viewMode === 'list' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500'}`}>
+            <button onClick={() => setViewMode('list')} className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500'}`}>
               <List className="w-3.5 h-3.5" /> List
             </button>
-            <button onClick={() => setViewMode('kanban')} className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${viewMode === 'kanban' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500'}`}>
+            <button onClick={() => setViewMode('kanban')} className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${viewMode === 'kanban' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500'}`}>
               <LayoutGrid className="w-3.5 h-3.5" /> Kanban
             </button>
           </div>
 
           <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
             {['All', 'Critical', 'High', 'Medium', 'Low'].map(p => (
-              <button key={p} onClick={() => setFilterPriority(p)} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${filterPriority === p ? 'bg-[#6A1B2E] text-white' : 'text-slate-600 hover:text-slate-900'}`}>{p}</button>
+              <button key={p} onClick={() => setFilterPriority(p)} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterPriority === p ? 'bg-[#58051E] text-white' : 'text-slate-600 hover:text-slate-900'}`}>{p}</button>
             ))}
           </div>
         </div>
@@ -108,7 +108,7 @@ export const StaffTasks: React.FC = () => {
             <h3 className="text-sm font-black text-slate-800">No Tasks Found</h3>
             <p className="text-xs font-semibold text-slate-500">Your task board is completely clear.</p>
           </div>
-          <Button size="sm" className="bg-[#6A1B2E] text-white text-xs font-bold" onClick={() => setShowAddModal(true)}>
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold cursor-pointer" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-1" /> Add Your First Task
           </Button>
         </Card>
@@ -121,7 +121,7 @@ export const StaffTasks: React.FC = () => {
               <Card key={task.id} className="p-5 border border-slate-200/80 shadow-xs hover:shadow-lg transition-all space-y-4 text-left">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                   <div>
-                    <span className="text-[10px] font-black uppercase text-[#6A1B2E]">{task.id.slice(0, 8)}</span>
+                    <span className="text-[10px] font-black uppercase text-[#58051E]">{task.id.slice(0, 8)}</span>
                     <h3 className="text-base font-black text-slate-900">{task.title}</h3>
                     {task.description && <p className="text-xs font-semibold text-slate-500 mt-0.5">{task.description}</p>}
                   </div>
@@ -173,7 +173,7 @@ export const StaffTasks: React.FC = () => {
               <div className="space-y-3">
                 {filteredTasks.filter(t => t.status === colStatus || (colStatus === 'To Do' && (t.status as string) === 'Pending')).map(task => (
                   <Card key={task.id} className="p-4 border border-slate-200/80 shadow-xs space-y-3 text-left">
-                    <span className="text-[10px] font-black uppercase text-[#6A1B2E]">{task.id.slice(0, 8)}</span>
+                    <span className="text-[10px] font-black uppercase text-[#58051E]">{task.id.slice(0, 8)}</span>
                     <h4 className="text-xs font-black text-slate-900">{task.title}</h4>
                     <div className="flex justify-between text-[11px] font-bold text-slate-500">
                       <span>Priority: {task.priority}</span>
@@ -195,13 +195,13 @@ export const StaffTasks: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="text-sm font-black text-slate-900">Create New Advisory Task</h3>
-                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
 
               <form onSubmit={handleCreateTask} className="space-y-4 text-xs font-semibold">
                 <div>
                   <label className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">Task Title</label>
-                  <input type="text" required value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Audit student financial affidavit" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:outline-none focus:border-[#6A1B2E]" />
+                  <input type="text" required value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Audit student financial affidavit" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:outline-none focus:border-[#58051E]" />
                 </div>
                 <div>
                   <label className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">Priority</label>
@@ -222,8 +222,8 @@ export const StaffTasks: React.FC = () => {
                 </div>
 
                 <div className="pt-2 flex justify-end gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" disabled={isSubmitting} size="sm" className="bg-[#6A1B2E] text-white font-black">{isSubmitting ? 'Creating...' : 'Create Task'}</Button>
+                  <Button type="button" variant="outline" size="sm" className="cursor-pointer" onClick={() => setShowAddModal(false)}>Cancel</Button>
+                  <Button type="submit" disabled={isSubmitting} size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white font-black cursor-pointer">{isSubmitting ? 'Creating...' : 'Create Task'}</Button>
                 </div>
               </form>
             </motion.div>

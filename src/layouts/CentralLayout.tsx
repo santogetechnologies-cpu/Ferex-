@@ -108,12 +108,12 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
 
       {/* SIDEBAR PANEL */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-slate-200/80 z-50 flex flex-col justify-between transition-all duration-300 ease-out shadow-xs
-          ${isCollapsed ? 'lg:w-[76px]' : 'lg:w-[275px]'} 
-          ${isMobileOpen ? 'translate-x-0 w-[275px]' : '-translate-x-full lg:translate-x-0'}`}
+        className={`fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-slate-200/80 z-50 flex flex-col justify-between transition-all duration-200 ease-out select-none
+          ${isCollapsed ? 'lg:w-[70px]' : 'lg:w-[250px]'} 
+          ${isMobileOpen ? 'translate-x-0 w-[250px]' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Sidebar Header */}
-        <div className="h-16 border-b border-slate-100 flex items-center justify-between px-4 select-none shrink-0">
+        <div className="h-14 border-b border-slate-100 flex items-center justify-between px-4 select-none shrink-0">
           <div className="flex items-center gap-2 overflow-hidden">
             {isCollapsed ? (
               <Logo variant="icon" size="sm" />
@@ -132,11 +132,11 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
         </div>
 
         {/* Navigation list */}
-        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4 scrollbar-thin select-none text-left">
+        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-3.5 scrollbar-thin select-none text-left">
           {menuSections.map((section, sIdx) => (
-            <div key={sIdx} className="space-y-1">
+            <div key={sIdx} className="space-y-0.5">
               {!isCollapsed && (
-                <div className="px-3 pb-1 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                <div className="px-2.5 pb-1 text-[9px] font-bold uppercase tracking-wider text-slate-400">
                   {section.title}
                 </div>
               )}
@@ -149,28 +149,28 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
                     key={item.name}
                     to={item.path}
                     onClick={() => setIsMobileOpen(false)}
-                    className={`relative flex items-center rounded-xl h-9 px-3 transition-all duration-200 text-xs font-bold group
+                    className={`relative flex items-center rounded-xl h-8.5 px-2.5 transition-all duration-150 text-xs font-semibold group
                       ${isActive 
-                        ? 'bg-[#6A1B2E] text-white shadow-md shadow-[#6A1B2E]/15' 
+                        ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]' 
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
                     title={isCollapsed ? item.name : undefined}
                   >
-                    <Icon className={`w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${isCollapsed ? 'mx-auto' : 'mr-2.5'} ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-[#6A1B2E]'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isCollapsed ? 'mx-auto' : 'mr-2.5'} ${isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'}`} />
                     
                     {!isCollapsed && (
-                      <span className="truncate flex-1 font-extrabold">
+                      <span className="truncate flex-1">
                         {item.name}
                       </span>
                     )}
 
                     {!isCollapsed && item.badge && (
-                      <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-extrabold shrink-0 transition-colors
+                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 transition-colors
                         ${isActive
-                          ? 'bg-white/20 text-white'
+                          ? 'bg-[#58051E]/15 text-[#58051E]'
                           : item.badge === 'HQ Live' || item.badge === 'Create'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             : item.badge === 'Core' || item.badge === 'ERP' || item.badge === 'FMCG' || item.badge === 'Agency'
-                              ? 'bg-[#6A1B2E]/10 text-[#6A1B2E] border border-[#6A1B2E]/20'
+                              ? 'bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20'
                               : 'bg-slate-100 text-slate-500'}`}>
                         {item.badge}
                       </span>
@@ -184,25 +184,25 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
 
         {/* Sidebar Footer – Super Admin profile strip */}
         <div className="p-3 border-t border-slate-100 shrink-0 bg-slate-50/50">
-          <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/60 shadow-xs">
+          <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
             <div className="relative">
-              <div className="w-8 h-8 rounded-lg bg-[#6A1B2E] flex items-center justify-center text-white text-xs font-black shadow-xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-[#58051E] flex items-center justify-center text-white text-xs font-bold shadow-xs">
                 {superAdminName[0]?.toUpperCase() || 'S'}
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full" />
             </div>
             {!isCollapsed && (
               <div className="min-w-0 flex-1 text-left">
-                <p className="text-xs font-extrabold text-slate-900 truncate">{superAdminName}</p>
-                <p className="text-[9.5px] font-bold text-[#6A1B2E] uppercase tracking-wider truncate">SUPER ADMIN</p>
+                <p className="text-xs font-bold text-slate-900 truncate">{superAdminName}</p>
+                <p className="text-[9px] font-bold text-[#58051E] uppercase tracking-wider truncate">SUPER ADMIN</p>
               </div>
             )}
             <button
               onClick={handleSignOut}
               title="Sign Out"
-              className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors shrink-0"
+              className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0 cursor-pointer"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -212,48 +212,48 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
       <div className="flex-1 flex flex-col min-w-0">
         
         {/* STICKY TOP NAVBAR */}
-        <header className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-200/80 z-30 h-16 flex items-center justify-between px-4 sm:px-6 select-none shrink-0 shadow-xs">
+        <header className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0">
           
           {/* Left part: Toggles, Breadcrumbs & Division Switcher */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsMobileOpen(true)}
-              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              className="lg:hidden p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
               aria-label="Toggle sidebar menu"
             >
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
 
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden lg:block p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+              className="hidden lg:block p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
               aria-label="Collapse sidebar"
             >
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
 
             {/* Breadcrumbs */}
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-              <Link to="/central/dashboard" className="hover:text-slate-700 transition-colors text-slate-500 font-extrabold flex items-center gap-1">
-                <Crown className="w-3.5 h-3.5 text-[#6A1B2E]" /> Central Super Admin
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
+              <Link to="/central/dashboard" className="hover:text-slate-700 transition-colors text-slate-500 font-semibold flex items-center gap-1">
+                <Crown className="w-3.5 h-3.5 text-[#58051E]" /> HQ
               </Link>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-              <span className="text-slate-900 font-extrabold bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60">{activeItem}</span>
+              <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />
+              <span className="text-slate-800 font-bold bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/60">{activeItem}</span>
             </div>
           </div>
 
           {/* Right part: Search, App Switcher, Notification and Avatar Controls */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             
             {/* Global Command Search Box */}
-            <div className="relative hidden md:block w-60">
+            <div className="relative hidden md:block w-56">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search central database, logs..."
-                className="w-full h-9 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#6A1B2E]/40 focus:ring-4 focus:ring-[#6A1B2E]/5 transition-all"
+                placeholder="Search central database..."
+                className="w-full h-8.5 pl-8.5 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40 focus:ring-2 focus:ring-[#58051E]/5 transition-all"
               />
             </div>
 

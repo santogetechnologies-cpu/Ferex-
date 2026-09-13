@@ -80,7 +80,7 @@ export const TradeFinancialAnalytics: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <div>
         <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <DollarSign className="w-5 h-5 text-[#6A1B2E]" /> Trade Financial Analytics & Ledger Performance
+          <DollarSign className="w-5 h-5 text-[#58051E]" /> Trade Financial Analytics & Ledger Performance
         </h1>
         <p className="text-xs font-semibold text-slate-500 mt-1">
           Ferex Trade Intelligence • International revenue ledger, gross turnover, LC exposure, and live payment settlements in INR (₹).
@@ -92,7 +92,7 @@ export const TradeFinancialAnalytics: React.FC = () => {
           { label: 'Gross Invoiced Turnover', val: formatCr(totalInvoiced), sub: `${invoices.length} Commercial Invoices`, color: 'border-l-emerald-500' },
           { label: 'Settled Payments', val: formatCr(totalSettled), sub: `${payments.length} Settled Wires`, color: 'border-l-blue-500' },
           { label: 'Open LC Exposure', val: formatCr(totalOpenLC), sub: `${lcs.length} Active Bank Guarantees`, color: 'border-l-amber-500' },
-          { label: 'Pending Receivables', val: formatCr(pendingInvoiced), sub: 'Awaiting Settlement', color: 'border-l-[#6A1B2E]' }
+          { label: 'Pending Receivables', val: formatCr(pendingInvoiced), sub: 'Awaiting Settlement', color: 'border-l-[#58051E]' }
         ].map((kpi, idx) => (
           <Card key={idx} className={`p-4 border-l-4 ${kpi.color} border-slate-200/80 shadow-xs flex flex-col justify-between`}>
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">{kpi.label}</span>
@@ -106,7 +106,7 @@ export const TradeFinancialAnalytics: React.FC = () => {
         {/* Buyer Revenue Distribution */}
         <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
           <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-[#6A1B2E]" /> Revenue Turnover by Buyer / Consignee
+            <Building2 className="w-4 h-4 text-[#58051E]" /> Revenue Turnover by Buyer / Consignee
           </h3>
           {loading ? (
             <div className="py-8 text-center text-xs font-semibold text-slate-400">Computing financial breakdown...</div>
@@ -121,7 +121,7 @@ export const TradeFinancialAnalytics: React.FC = () => {
                     <span className="text-slate-900 font-black shrink-0">{b.amountStr} ({b.pct}%)</span>
                   </div>
                   <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#6A1B2E] rounded-full transition-all duration-500" style={{ width: `${b.pct}%` }} />
+                    <div className="h-full bg-[#58051E] rounded-full transition-all duration-500" style={{ width: `${b.pct}%` }} />
                   </div>
                 </div>
               ))}
@@ -132,7 +132,7 @@ export const TradeFinancialAnalytics: React.FC = () => {
         {/* Payment Methods Breakdown */}
         <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
           <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-[#6A1B2E]" /> Payment Settlement Channels
+            <CreditCard className="w-4 h-4 text-[#58051E]" /> Payment Settlement Channels
           </h3>
           <div className="space-y-3">
             {[

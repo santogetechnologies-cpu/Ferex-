@@ -289,7 +289,7 @@ export const TradeShipments: React.FC = () => {
     <div className="space-y-6 text-left antialiased max-w-7xl mx-auto">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -300,7 +300,7 @@ export const TradeShipments: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Truck className="w-6 h-6 text-[#6A1B2E]" /> Global Container & Freight Logistics
+            <Truck className="w-6 h-6 text-[#58051E]" /> Global Container & Freight Logistics
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Real-time container movement, bonded warehouse stock, demurrage exposure, and port-to-port manifests.
@@ -308,12 +308,12 @@ export const TradeShipments: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {activeTab === 'containers' && (
-            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddShipmentModal(true)}>
+            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddShipmentModal(true)}>
               <Plus className="w-4 h-4 mr-1.5" /> Book Container Shipment
             </Button>
           )}
           {activeTab === 'bonded_warehouse' && (
-            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddBondedModal(true)}>
+            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddBondedModal(true)}>
               <Plus className="w-4 h-4 mr-1.5" /> Add Bonded Yard Cargo
             </Button>
           )}
@@ -327,7 +327,7 @@ export const TradeShipments: React.FC = () => {
 
       {/* 4 Dynamic Metric Pill Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="p-4 border border-slate-200/80 bg-white hover:border-[#6A1B2E]/40 transition-all shadow-xs">
+        <Card className="p-4 border border-slate-200/80 bg-white hover:border-[#58051E]/40 transition-all shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Fleet</span>
             <div className="p-2 rounded-xl bg-blue-50 text-blue-700">
@@ -341,7 +341,7 @@ export const TradeShipments: React.FC = () => {
           </div>
         </Card>
 
-        <Card className="p-4 border border-slate-200/80 bg-white hover:border-[#6A1B2E]/40 transition-all shadow-xs">
+        <Card className="p-4 border border-slate-200/80 bg-white hover:border-[#58051E]/40 transition-all shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bonded Yard Stock</span>
             <div className="p-2 rounded-xl bg-amber-50 text-amber-700">
@@ -354,7 +354,7 @@ export const TradeShipments: React.FC = () => {
           </div>
         </Card>
 
-        <Card className="p-4 border border-slate-200/80 bg-white hover:border-[#6A1B2E]/40 transition-all shadow-xs">
+        <Card className="p-4 border border-slate-200/80 bg-white hover:border-[#58051E]/40 transition-all shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Demurrage Penalties</span>
             <div className="p-2 rounded-xl bg-rose-50 text-rose-700">
@@ -367,7 +367,7 @@ export const TradeShipments: React.FC = () => {
           </div>
         </Card>
 
-        <Card className="p-4 border border-slate-200/80 bg-white hover:border-[#6A1B2E]/40 transition-all shadow-xs">
+        <Card className="p-4 border border-slate-200/80 bg-white hover:border-[#58051E]/40 transition-all shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Insurance Recovery</span>
             <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700">
@@ -387,7 +387,7 @@ export const TradeShipments: React.FC = () => {
           onClick={() => { setActiveTab('containers'); setSearchQuery(''); }}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${
             activeTab === 'containers'
-              ? 'bg-[#6A1B2E] text-white shadow-sm'
+              ? 'bg-[#58051E] text-white shadow-sm'
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
           }`}
         >
@@ -397,7 +397,7 @@ export const TradeShipments: React.FC = () => {
           onClick={() => { setActiveTab('bonded_warehouse'); setSearchQuery(''); }}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${
             activeTab === 'bonded_warehouse'
-              ? 'bg-[#6A1B2E] text-white shadow-sm'
+              ? 'bg-[#58051E] text-white shadow-sm'
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
           }`}
         >
@@ -428,7 +428,7 @@ export const TradeShipments: React.FC = () => {
               activeTab === 'bonded_warehouse' ? 'Search SKU, Commodity, Warehouse Bay, Customs Bond...' :
               'Search Incident #, Container #, Port Location...'
             }
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
           />
         </div>
 
@@ -439,7 +439,7 @@ export const TradeShipments: React.FC = () => {
                 key={mode}
                 onClick={() => setFilterMode(mode)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  filterMode === mode ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  filterMode === mode ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 {mode}
@@ -461,7 +461,7 @@ export const TradeShipments: React.FC = () => {
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
                 Dispatch a new container shipment or refine your search query.
               </p>
-              <Button size="sm" className="mt-4 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddShipmentModal(true)}>
+              <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddShipmentModal(true)}>
                 <Plus className="w-3.5 h-3.5 mr-1" /> Book Container Shipment
               </Button>
             </Card>
@@ -485,7 +485,7 @@ export const TradeShipments: React.FC = () => {
                       <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="py-3.5 px-4">
                           <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                            <Anchor className="w-3.5 h-3.5 text-[#6A1B2E]" /> {s.container}
+                            <Anchor className="w-3.5 h-3.5 text-[#58051E]" /> {s.container}
                           </div>
                           <span className="text-[10px] font-bold text-slate-400">{s.id} · {s.carrier}</span>
                         </td>
@@ -538,7 +538,7 @@ export const TradeShipments: React.FC = () => {
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
                 Add customs bonded bulk commodities, metals, or petroleum stockpiles.
               </p>
-              <Button size="sm" className="mt-4 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddBondedModal(true)}>
+              <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddBondedModal(true)}>
                 <Plus className="w-3.5 h-3.5 mr-1" /> Add Bonded Yard Cargo
               </Button>
             </Card>
@@ -562,7 +562,7 @@ export const TradeShipments: React.FC = () => {
                       </div>
                       <h3 className="text-sm font-black text-slate-900 mt-2">{item.commodity}</h3>
                       <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
-                        <Warehouse className="w-3.5 h-3.5 text-[#6A1B2E]" /> {item.port_location} · <span className="font-bold text-slate-700">{item.warehouse_bay}</span>
+                        <Warehouse className="w-3.5 h-3.5 text-[#58051E]" /> {item.port_location} · <span className="font-bold text-slate-700">{item.warehouse_bay}</span>
                       </p>
                     </div>
                     <button
@@ -597,7 +597,7 @@ export const TradeShipments: React.FC = () => {
                   <div className="mt-3 flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase">Total Valuation</span>
-                      <div className="font-black text-[#6A1B2E]">{formatInrCr(item.total_valuation_inr)}</div>
+                      <div className="font-black text-[#58051E]">{formatInrCr(item.total_valuation_inr)}</div>
                     </div>
                     <div className="text-right">
                       <span className="text-[10px] font-bold text-slate-400 uppercase">Bond Certificate #</span>
@@ -727,7 +727,7 @@ export const TradeShipments: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-[#6A1B2E]" /> Book Container Shipment
+                  <Truck className="w-4 h-4 text-[#58051E]" /> Book Container Shipment
                 </h3>
                 <button onClick={() => setShowAddShipmentModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
@@ -767,7 +767,7 @@ export const TradeShipments: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddShipmentModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Dispatch Shipment</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Dispatch Shipment</Button>
                 </div>
               </form>
             </motion.div>
@@ -783,7 +783,7 @@ export const TradeShipments: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Warehouse className="w-4 h-4 text-[#6A1B2E]" /> Add Bonded Yard Cargo Stock
+                  <Warehouse className="w-4 h-4 text-[#58051E]" /> Add Bonded Yard Cargo Stock
                 </h3>
                 <button onClick={() => setShowAddBondedModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
@@ -818,7 +818,7 @@ export const TradeShipments: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddBondedModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Register Bond Cargo</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Register Bond Cargo</Button>
                 </div>
               </form>
             </motion.div>
@@ -902,7 +902,7 @@ export const TradeShipments: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-[#6A1B2E]" /> Stock Adjustment: {selectedBondedItem.sku}
+                  <Layers className="w-4 h-4 text-[#58051E]" /> Stock Adjustment: {selectedBondedItem.sku}
                 </h3>
                 <button onClick={() => setSelectedBondedItem(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
@@ -951,7 +951,7 @@ export const TradeShipments: React.FC = () => {
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setSelectedBondedItem(null)}>Cancel</Button>
                   <Button
                     size="sm"
-                    className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]"
+                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
                     onClick={async () => {
                       await updateTradeBondedStock(selectedBondedItem.id, selectedBondedItem);
                       showToastMsg(`Updated inventory and allocation levels for ${selectedBondedItem.sku}`);
@@ -976,14 +976,14 @@ export const TradeShipments: React.FC = () => {
             <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-md bg-white z-50 shadow-2xl p-6 overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Navigation className="w-4 h-4 text-[#6A1B2E]" /> Live Container Tracking Timeline
+                  <Navigation className="w-4 h-4 text-[#58051E]" /> Live Container Tracking Timeline
                 </h3>
                 <button onClick={() => setSelectedShipment(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-4 h-4" /></button>
               </div>
 
               <div className="space-y-4 text-left">
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-black text-[#6A1B2E] uppercase">{selectedShipment.id} · {selectedShipment.carrier}</span>
+                  <span className="text-[10px] font-black text-[#58051E] uppercase">{selectedShipment.id} · {selectedShipment.carrier}</span>
                   <h4 className="text-base font-black text-slate-900">{selectedShipment.container}</h4>
                   <p className="text-xs font-semibold text-slate-500">{selectedShipment.cargo} · {selectedShipment.weight}</p>
                 </div>
@@ -998,7 +998,7 @@ export const TradeShipments: React.FC = () => {
                     </div>
                     <div className="relative">
                       <span className="absolute -left-[21px] top-0.5 w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping" />
-                      <div className="text-xs font-black text-[#6A1B2E]">Current Status: {selectedShipment.status}</div>
+                      <div className="text-xs font-black text-[#58051E]">Current Status: {selectedShipment.status}</div>
                       <div className="text-[10px] font-semibold text-slate-400">Carrier line updated in real time</div>
                     </div>
                     <div className="relative">
@@ -1010,7 +1010,7 @@ export const TradeShipments: React.FC = () => {
                 </div>
 
                 <div className="pt-4">
-                  <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => setSelectedShipment(null)}>
+                  <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setSelectedShipment(null)}>
                     Close Inspector
                   </Button>
                 </div>

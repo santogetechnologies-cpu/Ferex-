@@ -58,7 +58,7 @@ export const CentralSettings: React.FC = () => {
     setTestingStripe(true);
     setTimeout(() => {
       setTestingStripe(false);
-      showToastMsg('✓ Stripe API Connection Verified (HTTP 200 OK)');
+      showToastMsg('Stripe API Connection Verified (HTTP 200 OK)');
     }, 1000);
   };
 
@@ -75,7 +75,7 @@ export const CentralSettings: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
@@ -88,9 +88,9 @@ export const CentralSettings: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Settings className="w-6 h-6 text-[#6A1B2E]" /> Global System & Payment Gateways Configuration
+              <Settings className="w-6 h-6 text-[#58051E]" /> Global System & Payment Gateways Configuration
             </h1>
-            <span className="text-[10px] font-black bg-[#6A1B2E]/10 text-[#6A1B2E] border border-[#6A1B2E]/20 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
               Super Admin Console
             </span>
           </div>
@@ -114,7 +114,7 @@ export const CentralSettings: React.FC = () => {
             onClick={() => setActiveTab(tab.key as any)}
             className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === tab.key
-                ? 'bg-[#6A1B2E] text-white shadow-xs'
+                ? 'bg-[#58051E] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
@@ -128,7 +128,7 @@ export const CentralSettings: React.FC = () => {
       {activeTab === 'gateways' && (
         <form onSubmit={handleSaveGateways} className="space-y-6">
           {/* Top Banner Notice */}
-          <div className="p-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-[#6A1B2E] text-white rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="p-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-[#58051E] text-white rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full text-amber-300">
                 Universal Settlement Hub
@@ -322,7 +322,7 @@ export const CentralSettings: React.FC = () => {
                 </div>
 
                 <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between text-[11px] font-semibold text-emerald-900">
-                  <span>✓ Dynamic QR Generation Enabled</span>
+                  <span>Dynamic QR Generation Enabled</span>
                   <span className="font-black text-emerald-700">Live API</span>
                 </div>
               </div>
@@ -421,7 +421,7 @@ export const CentralSettings: React.FC = () => {
             </div>
 
             <div className="pt-3 flex justify-end">
-              <Button type="submit" size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold text-white shadow-md">
+              <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-md">
                 <Save className="w-4 h-4 mr-1.5" /> Save Gateways Configuration
               </Button>
             </div>
@@ -448,7 +448,7 @@ export const CentralSettings: React.FC = () => {
                     type="checkbox"
                     checked={settings.enforce2FA}
                     onChange={e => setSettings({ ...settings, enforce2FA: e.target.checked })}
-                    className="w-4 h-4 accent-[#6A1B2E]"
+                    className="w-4 h-4 accent-[#58051E]"
                   />
                 </div>
 
@@ -556,7 +556,7 @@ export const CentralSettings: React.FC = () => {
                   </div>
                   <a
                     href="#/central/email-settings"
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black text-white bg-[#6A1B2E] hover:bg-[#521221] rounded-xl shadow-xs transition-colors"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black text-white bg-[#58051E] hover:bg-[#430316] rounded-xl shadow-xs transition-colors"
                   >
                     <Mail className="w-3.5 h-3.5" /> Open Full Email Settings Console
                   </a>
@@ -564,7 +564,7 @@ export const CentralSettings: React.FC = () => {
 
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-black">
+                    <div className="w-9 h-9 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black">
                       <Mail className="w-5 h-5" />
                     </div>
                     <div>
@@ -576,16 +576,16 @@ export const CentralSettings: React.FC = () => {
                   </div>
                   <a
                     href="#/central/email-settings"
-                    className="text-xs font-bold text-[#6A1B2E] hover:underline"
+                    className="text-xs font-bold text-[#58051E] hover:underline"
                   >
-                    Configure Providers ➔
+                    Configure Providers →
                   </a>
                 </div>
               </div>
             )}
 
             <div className="pt-4 border-t border-slate-100 flex justify-end">
-              <Button type="submit" size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold text-white shadow-xs">
+              <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs">
                 <Save className="w-4 h-4 mr-1.5" /> Save Configuration
               </Button>
             </div>

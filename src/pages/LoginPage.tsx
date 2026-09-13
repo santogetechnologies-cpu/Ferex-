@@ -290,7 +290,7 @@ export const LoginPage: React.FC = () => {
     }
 
     // Account creation successful
-    setSuccessMsg('🎉 Account created with Document Processing Consent verified! Preparing your Student Portal...');
+    setSuccessMsg('Account created with Document Processing Consent verified. Preparing your Student Portal...');
     setIsLoading(false);
 
     setTimeout(() => {
@@ -334,7 +334,7 @@ export const LoginPage: React.FC = () => {
       setNewPassword('');
       setConfirmPassword('');
       setSignInPassword('');
-      setSuccessMsg('🎉 Password updated successfully! Please enter your new password to log in.');
+      setSuccessMsg('Password updated successfully. Please enter your new password to log in.');
     } catch (err: any) {
       setIsChangingPass(false);
       setChangePassError(err.message || 'Failed to update password.');
@@ -568,16 +568,16 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-12 bg-gradient-to-r from-[#58051E] via-[#6A1B2E] to-[#58051E] hover:from-[#430316] hover:to-[#58051E] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#58051E]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2 cursor-pointer"
+                  className="w-full h-11 bg-[#58051E] hover:bg-[#430417] text-white font-semibold text-xs rounded-lg shadow-subtle transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-3 cursor-pointer"
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Authenticating Credentials...
                     </span>
                   ) : (
                     <>
-                      <LogIn className="w-4 h-4 text-amber-300" />
+                      <LogIn className="w-3.5 h-3.5" />
                       <span>Sign In to Portal</span>
                     </>
                   )}
@@ -644,7 +644,7 @@ export const LoginPage: React.FC = () => {
                 </div>
 
                 {/* Document Processing & NAWA Consent Card */}
-                <div className="p-3.5 bg-[#FAF4E8] rounded-2xl border border-[#C5A880]/60 space-y-2 text-left">
+                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-2 text-left">
                   <div className="flex items-start gap-2.5">
                     <input
                       type="checkbox"
@@ -654,7 +654,7 @@ export const LoginPage: React.FC = () => {
                       disabled={isLoading}
                       className="w-4 h-4 mt-0.5 rounded accent-[#58051E] text-[#58051E] cursor-pointer"
                     />
-                    <label htmlFor="agreeConsentBox" className="text-[11.5px] font-bold text-slate-900 leading-snug cursor-pointer">
+                    <label htmlFor="agreeConsentBox" className="text-xs font-medium text-slate-700 leading-snug cursor-pointer">
                       I consent to FEREX Education processing my academic transcripts, passport, and financial documents for Polish NAWA Legalization, University Admissions, and VFS Visa Filing.
                     </label>
                   </div>
@@ -663,12 +663,12 @@ export const LoginPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowConsentModal(true)}
-                      className="text-[11px] font-black text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-semibold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <FileText className="w-3.5 h-3.5 text-[#58051E]" />
-                      <span>Review Mandatory Document Processing Consent Agreement</span>
+                      <span>Review Consent Agreement</span>
                     </button>
-                    <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
                       GDPR Compliant
                     </span>
                   </div>
@@ -682,16 +682,16 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-12 bg-gradient-to-r from-[#58051E] via-[#6A1B2E] to-[#58051E] hover:from-[#430316] hover:to-[#58051E] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#58051E]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2 cursor-pointer"
+                  className="w-full h-11 bg-[#58051E] hover:bg-[#430417] text-white font-semibold text-xs rounded-lg shadow-subtle transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-3 cursor-pointer"
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Creating Account & Verifying Consent...
                     </span>
                   ) : (
                     <>
-                      <UserPlus className="w-4 h-4 text-amber-300" />
+                      <UserPlus className="w-3.5 h-3.5" />
                       <span>Create Student Account</span>
                     </>
                   )}

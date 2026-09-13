@@ -1,8 +1,12 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, Search, Upload, Eye, FileText, X, AlertCircle, ShieldCheck, Globe, CheckCircle2 } from 'lucide-react';
+import {
+  Folder, Search, Upload, Eye, FileText, X, AlertCircle,
+  ShieldCheck, Globe, CheckCircle2, Download, ExternalLink
+} from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { Badge } from '../components/Badge';
 import { useAuth } from '../contexts/AuthContext';
 import { useDocuments } from '../hooks/useDocuments';
 import { useApplications } from '../hooks/useApplications';
@@ -71,7 +75,6 @@ export const Documents: React.FC = () => {
       doc.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.status.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Normalize backward compatible statuses
     const normStatus = 
       (doc.status as string) === 'Pending Verification' || (doc.status as string) === 'Pending' ? 'Submitted' :
       (doc.status as string) === 'Re-upload Requested' ? 'Rejected' :
@@ -128,7 +131,6 @@ export const Documents: React.FC = () => {
     const baseName = nameToUse.includes('.') ? nameToUse : `${nameToUse}.pdf`;
     const fileSizeStr = selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '1.4 MB';
 
-    // Upload directly to Supabase Storage bucket
     let fileUrlStr = '';
     if (selectedFile) {
       const { uploadFileToBucket } = await import('../lib/storage');
@@ -150,7 +152,7 @@ export const Documents: React.FC = () => {
           file_size: fileSizeStr,
           doc_type: uploadType,
         });
-        showToast(`Document "${baseName}" re-uploaded successfully and submitted for review!`);
+        showToast(`Document "${baseName}" re-uploaded successfully and submitted for review.`);
       } else {
         await addDoc({
           student_id: user.id,
@@ -159,10 +161,9 @@ export const Documents: React.FC = () => {
           file_size: fileSizeStr,
           doc_type: uploadType,
         });
-        // Auto-enroll student into NAWA Review application so admin can track the process
         const studentName = (user as any)?.user_metadata?.full_name || user.email?.split('@')[0] || 'Student';
         await ensureStudentApplication(user.id, studentName);
-        showToast(`Document "${baseName}" submitted successfully for verification!`);
+        showToast(`Document "${baseName}" submitted successfully for verification.`);
       }
 
       setShowUploadModal(false);
@@ -181,34 +182,49 @@ export const Documents: React.FC = () => {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
+  const getStatusBadge = (status: string) => {
+    const norm =
+      status === 'Pending Verification' || status === 'Pending' ? 'Submitted' :
+      status === 'Re-upload Requested' ? 'Rejected' :
+      status === 'Verified' ? 'Approved' :
+      status;
+
+    if (norm === 'Approved') return <Badge variant="success" dot>Approved</Badge>;
+    if (norm === 'Rejected') return <Badge variant="error" dot>Action Required</Badge>;
+    if (norm === 'Under Review') return <Badge variant="brand" dot>Under Review</Badge>;
+    return <Badge variant="neutral" dot>Submitted</Badge>;
+  };
+
   return (
-    <div className="space-y-6 text-left relative min-h-[600px]">
-      {/* Toast */}
+    <div className="space-y-6 text-left relative min-h-[600px] pb-10">
+      {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white px-4 py-3 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2"
+            className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-card text-xs font-semibold flex items-center gap-2 border border-slate-700"
           >
-            <Folder className="w-4 h-4 text-amber-300" />
+            <Folder className="w-4 h-4 text-[#58051E]" />
             {toastMessage}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Header */}
+      {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-[#6A1B2E]/5 text-[#6A1B2E] flex items-center justify-center">
-              <Folder className="w-5 h-5" />
-            </span>
-            Document Vault
-          </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Upload and manage your required compliance, academic, and identification documents.
+          <div className="flex items-center gap-2.5 mb-1">
+            <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
+              <Folder className="w-4 h-4" />
+            </div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Document Vault
+            </h1>
+          </div>
+          <p className="text-xs text-slate-500">
+            Upload, verify, and track your required academic, identity, and consular documents.
           </p>
         </div>
 
@@ -216,53 +232,55 @@ export const Documents: React.FC = () => {
           onClick={() => {
             setUploadName('');
             setSelectedFile(null);
+            setReuploadTargetDocId(null);
             setShowUploadModal(true);
           }}
-          className="flex items-center gap-2 text-xs font-bold h-10 px-4 self-start sm:self-auto shadow-sm"
+          size="sm"
+          leftIcon={<Upload className="w-4 h-4" />}
+          className="self-start sm:self-auto"
         >
-          <Upload className="w-4 h-4" /> Upload Document
+          Upload Document
         </Button>
       </div>
 
-      {/* Country Workflow Document Requirements Banner */}
+      {/* Legalization & Country Checklist Card */}
       {targetWf && (
-        <div className="bg-gradient-to-r from-[#24020B] to-[#58051E] rounded-2xl p-5 text-white shadow-md relative overflow-hidden border border-[#6A1B2E]/40">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#E6CA9E]/5 rounded-full blur-2xl pointer-events-none" />
+        <div className="bg-slate-900 rounded-xl p-5 text-white border border-slate-800 shadow-card relative overflow-hidden">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#E6CA9E]/20 text-[#E6CA9E] text-[10px] font-extrabold uppercase tracking-wider border border-[#E6CA9E]/30">
-                  <Globe className="w-3 h-3" />
-                  {targetCountry} Legalization Requirements
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-slate-200 text-[11px] font-semibold tracking-wide border border-white/10">
+                  <Globe className="w-3 h-3 text-slate-400" />
+                  {targetCountry} Compliance Protocol
                 </span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-300">
+                <span className="inline-flex items-center gap-1 text-xs text-slate-300">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                   Authority: {targetWf.authority_acronym || targetWf.authority_name}
                 </span>
               </div>
-              <h2 className="text-base font-black text-white">{targetWf.authority_badge}</h2>
+              <h2 className="text-sm font-semibold text-white">{targetWf.authority_badge}</h2>
               <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
                 {targetWf.authority_description}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2 bg-white/10 p-3 rounded-xl backdrop-blur-xs border border-white/10 self-start md:self-auto shrink-0">
-              <div className="text-right">
-                <p className="text-[10px] uppercase font-bold text-slate-300">Processing Time</p>
-                <p className="text-xs font-black text-[#E6CA9E]">{targetWf.estimated_processing_days}</p>
+            <div className="flex items-center gap-3 bg-white/5 p-3 rounded-lg border border-white/10 self-start md:self-auto shrink-0">
+              <div className="text-left md:text-right">
+                <p className="text-[10px] uppercase font-semibold text-slate-400">Processing Time</p>
+                <p className="text-xs font-bold text-white">{targetWf.estimated_processing_days}</p>
               </div>
-              <div className="w-px h-6 bg-white/20 mx-1" />
-              <div className="text-right">
-                <p className="text-[10px] uppercase font-bold text-slate-300">Authority Fee</p>
-                <p className="text-xs font-black text-white">{targetWf.authority_fee}</p>
+              <div className="w-px h-6 bg-white/10" />
+              <div className="text-left md:text-right">
+                <p className="text-[10px] uppercase font-semibold text-slate-400">Authority Fee</p>
+                <p className="text-xs font-bold text-white">{targetWf.authority_fee}</p>
               </div>
             </div>
           </div>
 
           {targetWf.checklist_documents && targetWf.checklist_documents.length > 0 && (
             <div className="mt-4 pt-4 border-t border-white/10">
-              <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#E6CA9E] mb-2.5 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Required Legalization & Visa Checklist ({targetWf.checklist_documents.length} Items)
+              <p className="text-[11px] font-semibold text-slate-300 mb-2.5 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                Required Dossier Checklist ({targetWf.checklist_documents.length} Items)
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                 {targetWf.checklist_documents.map((reqDoc) => {
@@ -273,21 +291,21 @@ export const Documents: React.FC = () => {
                   return (
                     <div 
                       key={reqDoc.id}
-                      className={`p-2.5 rounded-xl border text-xs flex flex-col justify-between transition-all ${
+                      className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between transition-all ${
                         isUploaded 
-                          ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100' 
+                          ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200' 
                           : 'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <span className="font-bold text-[11px] leading-tight">{reqDoc.name}</span>
+                        <span className="font-semibold text-[11px] leading-tight">{reqDoc.name}</span>
                         {reqDoc.is_mandatory && (
-                          <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
                             Required
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-300 leading-snug line-clamp-2">
+                      <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
                         {reqDoc.instructions}
                       </p>
                     </div>
@@ -299,8 +317,8 @@ export const Documents: React.FC = () => {
         </div>
       )}
 
-      {/* Search & Filter Bar */}
-      <div className="bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col sm:flex-row items-center gap-3">
+      {/* Search & Filter Toolbar */}
+      <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-subtle flex flex-col sm:flex-row items-center gap-2.5">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -308,48 +326,54 @@ export const Documents: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search documents by name, category, or status..."
-            className="w-full h-10 pl-9.5 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+            className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#58051E] focus:bg-white"
           />
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
-          {['All', 'Submitted', 'Under Review', 'Approved', 'Rejected'].map(s => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
-                statusFilter === s ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
+          {['All', 'Submitted', 'Under Review', 'Approved', 'Rejected'].map(s => {
+            const isSelected = statusFilter === s;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatusFilter(s)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#58051E] text-white shadow-xs'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
+                }`}
+              >
+                {s}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Documents Grid */}
       {loading && dbDocs.length === 0 ? (
-        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading document vault...</div>
+        <div className="py-16 text-center text-xs font-semibold text-slate-400">Loading document vault...</div>
       ) : filteredDocs.length === 0 ? (
-        <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
-          <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-sm font-black text-slate-800">No Documents Found</h3>
-          <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto mb-5">
+        <div className="bg-white border border-slate-200/80 rounded-xl p-12 text-center shadow-subtle">
+          <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-semibold text-slate-800">No Documents Found</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto mb-5">
             {searchQuery || statusFilter !== 'All'
-              ? 'No documents match your current filter or search term.'
-              : 'Upload your academic transcripts, passport, and certificates to proceed with university applications.'}
+              ? 'No documents match your current search query or status filter.'
+              : 'Upload academic transcripts, passport copies, and required compliance files to initiate your admissions review.'}
           </p>
           <Button
+            size="sm"
             onClick={() => setShowUploadModal(true)}
-            className="inline-flex items-center gap-2 text-xs font-bold h-9 px-4"
+            leftIcon={<Upload className="w-4 h-4" />}
           >
-            <Upload className="w-4 h-4" /> Upload First Document
+            Upload First Document
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredDocs.map((doc) => {
-            // Map status directly
             const displayStatus = 
               (doc.status as string) === 'Pending Verification' || (doc.status as string) === 'Pending' ? 'Submitted' :
               (doc.status as string) === 'Re-upload Requested' ? 'Rejected' :
@@ -357,44 +381,35 @@ export const Documents: React.FC = () => {
               (doc.status as string) === 'Under Review' ? 'Under Review' :
               doc.status || 'Submitted';
 
-            const badgeClass = 
-              displayStatus === 'Approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' :
-              displayStatus === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200 font-bold' :
-              displayStatus === 'Under Review' ? 'bg-amber-50 text-amber-700 border-amber-200 font-extrabold animate-pulse' :
-              displayStatus === 'Submitted' ? 'bg-blue-50 text-blue-700 border-blue-200 font-bold' :
-              'bg-slate-50 text-slate-700 border-slate-200';
-
             const isReupload = displayStatus === 'Rejected';
 
             return (
-              <Card key={doc.id} className="p-5 border border-slate-200/80 hover:border-slate-300 transition-all flex flex-col justify-between bg-white relative">
+              <Card key={doc.id} className="p-4 border border-slate-200/80 hover:border-slate-300 transition-all flex flex-col justify-between bg-white">
                 <div>
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                      <FileText className="w-5 h-5 text-[#6A1B2E]" />
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200/70 flex items-center justify-center shrink-0 text-[#58051E]">
+                      <FileText className="w-4 h-4" />
                     </div>
-                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${badgeClass}`}>
-                      {displayStatus}
-                    </span>
+                    {getStatusBadge(doc.status)}
                   </div>
 
-                  <h3 className="text-sm font-black text-slate-900 leading-snug mb-1 truncate" title={doc.name}>
+                  <h3 className="text-sm font-semibold text-slate-900 leading-snug mb-1 truncate" title={doc.name}>
                     {doc.name}
                   </h3>
-                  <p className="text-xs font-bold text-slate-400 mb-3">{doc.type}</p>
+                  <p className="text-xs font-medium text-slate-500 mb-3">{doc.type}</p>
 
-                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs font-semibold text-slate-500 space-y-1">
-                    <div className="flex justify-between"><span>File Size:</span><span className="font-bold text-slate-800">{doc.size}</span></div>
-                    <div className="flex justify-between"><span>Uploaded:</span><span className="font-bold text-slate-800">{doc.date}</span></div>
+                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 text-xs text-slate-500 space-y-1">
+                    <div className="flex justify-between"><span>File Size:</span><span className="font-semibold text-slate-800">{doc.size}</span></div>
+                    <div className="flex justify-between"><span>Uploaded:</span><span className="font-semibold text-slate-800">{doc.date}</span></div>
                   </div>
 
                   {(doc.reviewerNotes || (doc as any).rejection_reason || (doc as any).notes || (doc as any).comment) && (
-                    <div className="mt-3 p-3 bg-red-50/90 border border-red-200/90 rounded-xl text-left shadow-2xs">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-red-800 flex items-center gap-1.5 mb-1">
+                    <div className="mt-3 p-3 bg-red-50/70 border border-red-200/70 rounded-lg text-left">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-red-800 flex items-center gap-1.5 mb-1">
                         <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                        Rejection Reason / Admin Feedback
+                        Admin Feedback
                       </p>
-                      <p className="text-xs font-bold text-red-950 leading-relaxed">
+                      <p className="text-xs text-red-950 leading-relaxed">
                         {doc.reviewerNotes || (doc as any).rejection_reason || (doc as any).notes || (doc as any).comment}
                       </p>
                     </div>
@@ -403,24 +418,27 @@ export const Documents: React.FC = () => {
 
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 mt-4">
                   <button
+                    type="button"
                     onClick={() => handleOpenPreview(doc)}
-                    className="flex items-center gap-1.5 text-xs font-bold text-[#6A1B2E] hover:underline"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#58051E] hover:underline cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5" /> Preview
                   </button>
 
                   {isReupload && (
-                    <button
+                    <Button
+                      size="xs"
+                      variant="destructive"
                       onClick={() => {
                         setReuploadTargetDocId(doc.id);
                         setUploadName(doc.name);
                         setUploadType(doc.type);
                         setShowUploadModal(true);
                       }}
-                      className="h-8 px-3.5 bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
+                      leftIcon={<Upload className="w-3.5 h-3.5" />}
                     >
-                      <Upload className="w-3.5 h-3.5" /> Re-upload File
-                    </button>
+                      Re-upload
+                    </Button>
                   )}
                 </div>
               </Card>
@@ -429,34 +447,48 @@ export const Documents: React.FC = () => {
         </div>
       )}
 
-      {/* Upload File Modal with Real File Picker */}
+      {/* Upload File Modal */}
       <AnimatePresence>
         {showUploadModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setShowUploadModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left space-y-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
+              onClick={() => setShowUploadModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="relative bg-white rounded-xl p-6 w-full max-w-md shadow-card border border-slate-200 z-10 text-left space-y-4"
+            >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-base font-black text-slate-900">
+                <h3 className="text-base font-semibold text-slate-900">
                   {reuploadTargetDocId ? 'Re-upload Document' : 'Upload Compliance Document'}
                 </h3>
-                <button onClick={() => setShowUploadModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(false)}
+                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              {/* Display Rejection Reason Banner in Modal if re-uploading */}
+              {/* Rejection notice in modal */}
               {(() => {
                 const reuploadTargetDoc = documents.find(d => d.id === reuploadTargetDocId);
                 const targetNotes = reuploadTargetDoc?.reviewerNotes || (reuploadTargetDoc as any)?.rejection_reason || (reuploadTargetDoc as any)?.notes || (reuploadTargetDoc as any)?.comment;
                 if (!targetNotes) return null;
                 return (
-                  <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-left space-y-1">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-red-800 flex items-center gap-1.5">
-                      <AlertCircle className="w-4 h-4 text-red-600 shrink-0" /> Admin Rejection Reason
+                  <div className="p-3 bg-red-50/80 border border-red-200 rounded-lg text-left space-y-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-red-800 flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" /> Previous Feedback
                     </span>
-                    <p className="text-xs font-bold text-red-950 leading-relaxed">
+                    <p className="text-xs text-red-950 leading-relaxed">
                       "{targetNotes}"
-                    </p>
-                    <p className="text-[11px] font-semibold text-red-700 pt-0.5">
-                      Please review the admin feedback above and upload an updated file to replace this document.
                     </p>
                   </div>
                 );
@@ -464,23 +496,23 @@ export const Documents: React.FC = () => {
 
               <form onSubmit={handleUploadSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Document File Name</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Document File Name</label>
                   <input
                     type="text"
                     value={uploadName}
                     onChange={(e) => setUploadName(e.target.value)}
                     placeholder="e.g. Bachelor_Degree_Transcript"
                     required
-                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Document Category</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Document Category</label>
                   <select
                     value={uploadType}
                     onChange={(e) => setUploadType(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
                   >
                     <option value="Transcripts">Academic Transcripts</option>
                     <option value="Identification">Identification (Passport / ID)</option>
@@ -490,7 +522,6 @@ export const Documents: React.FC = () => {
                   </select>
                 </div>
 
-                {/* 📂 Native File Input Picker */}
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -501,16 +532,16 @@ export const Documents: React.FC = () => {
 
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-6 border-2 border-dashed border-slate-200 hover:border-[#6A1B2E]/40 rounded-2xl bg-slate-50/50 hover:bg-slate-50 text-center cursor-pointer transition-all group"
+                  className="p-6 border border-dashed border-slate-200 hover:border-[#58051E]/50 rounded-xl bg-slate-50/50 hover:bg-slate-50 text-center cursor-pointer transition-all"
                 >
-                  <Upload className="w-8 h-8 text-slate-400 group-hover:text-[#6A1B2E] mx-auto mb-2 transition-colors" />
-                  <p className="text-xs font-bold text-slate-800">
-                    {selectedFile ? selectedFile.name : 'Click to browse & select local document file'}
+                  <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2" />
+                  <p className="text-xs font-semibold text-slate-800 truncate">
+                    {selectedFile ? selectedFile.name : 'Click to select local document file'}
                   </p>
-                  <p className="text-[10px] font-semibold text-slate-400 mt-1">Supports PDF, DOCX, JPG, PNG (Max 10MB)</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Supports PDF, DOCX, JPG, PNG (Max 10MB)</p>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-2">
+                <div className="flex items-center justify-end gap-2 pt-2">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowUploadModal(false)}>Cancel</Button>
                   <Button type="submit" size="sm" disabled={isSubmitting || !uploadName}>
                     {isSubmitting ? 'Uploading...' : 'Submit Document'}
@@ -522,60 +553,72 @@ export const Documents: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Interactive Document Preview Modal */}
+      {/* Document Preview Modal */}
       <AnimatePresence>
         {previewDoc && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" onClick={() => setPreviewDoc(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-5 sm:p-6 w-full max-w-3xl shadow-2xl border border-slate-100 z-10 text-left space-y-4 max-h-[90vh] flex flex-col">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
+              onClick={() => setPreviewDoc(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="relative bg-white rounded-xl p-5 sm:p-6 w-full max-w-3xl shadow-card border border-slate-200 z-10 text-left space-y-4 max-h-[90vh] flex flex-col"
+            >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="min-w-0 flex-1 pr-3">
-                  <h3 className="text-base font-black text-slate-900 truncate">{previewDoc.name}</h3>
+                  <h3 className="text-base font-semibold text-slate-900 truncate">{previewDoc.name}</h3>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs font-semibold text-[#6A1B2E]">{previewDoc.type}</span>
+                    <span className="text-xs font-medium text-[#58051E]">{previewDoc.type}</span>
                     <span className="text-slate-300">•</span>
-                    <span className="text-xs font-medium text-slate-500">{previewDoc.size}</span>
-                    <span className="text-slate-300">•</span>
-                    <span className="text-xs font-bold text-slate-700">{previewDoc.status}</span>
+                    <span className="text-xs text-slate-500">{previewDoc.size}</span>
                   </div>
                 </div>
-                <button onClick={() => setPreviewDoc(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 shrink-0"><X className="w-5 h-5" /></button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDoc(null)}
+                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 shrink-0 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
               {/* Document Preview Content Frame */}
-              <div className="flex-1 min-h-[320px] max-h-[550px] overflow-hidden rounded-xl border border-slate-200 bg-slate-50 relative flex flex-col items-center justify-center">
+              <div className="flex-1 min-h-[320px] max-h-[550px] overflow-hidden rounded-lg border border-slate-200 bg-slate-50 relative flex flex-col items-center justify-center">
                 {previewLoading ? (
-                  <div className="py-12 text-center text-xs font-bold text-slate-400">Loading document preview...</div>
+                  <div className="py-12 text-center text-xs font-semibold text-slate-400">Loading document preview...</div>
                 ) : resolvedPreviewUrl ? (
                   resolvedPreviewUrl.match(/\.(jpg|jpeg|png|webp|gif)($|\?)/i) || resolvedPreviewUrl.startsWith('data:image') ? (
                     <div className="w-full h-full overflow-auto flex items-center justify-center p-2 bg-slate-900/5">
-                      <img src={resolvedPreviewUrl} alt={previewDoc.name} className="max-w-full max-h-[500px] object-contain rounded-lg shadow-sm" />
+                      <img src={resolvedPreviewUrl} alt={previewDoc.name} className="max-w-full max-h-[500px] object-contain rounded-md shadow-xs" />
                     </div>
                   ) : (
                     <iframe
                       src={resolvedPreviewUrl}
                       title={previewDoc.name}
-                      className="w-full h-full min-h-[420px] border-0 rounded-xl bg-white"
+                      className="w-full h-full min-h-[420px] border-0 rounded-lg bg-white"
                     />
                   )
                 ) : (
                   <div className="p-8 text-center space-y-3">
-                    <FileText className="w-16 h-16 text-[#6A1B2E]/60 mx-auto" />
-                    <p className="text-sm font-bold text-slate-800">Compliance Document File Registered</p>
+                    <FileText className="w-12 h-12 text-[#58051E]/40 mx-auto" />
+                    <p className="text-sm font-semibold text-slate-800">Compliance Document File Registered</p>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                      This document is securely verified and logged under your FEREX compliance record.
+                      This document is securely logged under your FEREX compliance record.
                     </p>
-                    <div className="inline-block px-3 py-1 bg-white rounded-lg border text-xs font-extrabold text-slate-800 shadow-2xs">
-                      Status: {previewDoc.status}
-                    </div>
                   </div>
                 )}
               </div>
 
               {/* Footer Actions */}
               <div className="flex items-center justify-between pt-2 border-t border-slate-100 flex-wrap gap-2">
-                <div className="text-xs text-slate-500 font-semibold">
-                  Uploaded on: <span className="font-bold text-slate-800">{previewDoc.date}</span>
+                <div className="text-xs text-slate-500">
+                  Uploaded on: <span className="font-semibold text-slate-800">{previewDoc.date}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {resolvedPreviewUrl && (
@@ -583,9 +626,9 @@ export const Documents: React.FC = () => {
                       href={resolvedPreviewUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-4 py-2 bg-[#6A1B2E] text-white text-xs font-extrabold rounded-xl hover:bg-[#521221] transition-all inline-flex items-center gap-1.5 shadow-xs"
+                      className="px-3.5 py-1.5 bg-[#58051E] text-white text-xs font-semibold rounded-lg hover:bg-[#430417] transition-colors inline-flex items-center gap-1.5 shadow-subtle"
                     >
-                      <Eye className="w-3.5 h-3.5" /> Open in Full Tab / Download
+                      <ExternalLink className="w-3.5 h-3.5" /> Open in New Tab
                     </a>
                   )}
                   <Button size="sm" variant="outline" onClick={() => setPreviewDoc(null)}>Close</Button>

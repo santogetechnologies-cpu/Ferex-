@@ -66,8 +66,8 @@ export const AdminLoginPage: React.FC = () => {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative">
       {/* Background decorative blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#6A1B2E]/10 blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-[#6A1B2E]/10 blur-3xl" />
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#58051E]/10 blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-[#58051E]/10 blur-3xl" />
       </div>
 
       <motion.div
@@ -81,7 +81,7 @@ export const AdminLoginPage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/login')}
-            className="text-xs font-bold text-slate-500 hover:text-[#6A1B2E] transition-colors flex items-center gap-1 cursor-pointer"
+            className="text-xs font-bold text-slate-500 hover:text-[#58051E] transition-colors flex items-center gap-1 cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Go to Student Portal
           </button>
@@ -90,7 +90,7 @@ export const AdminLoginPage: React.FC = () => {
         {/* Card */}
         <div className="bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden text-left">
           {/* Header banner */}
-          <div className="bg-gradient-to-br from-[#6A1B2E] via-[#521221] to-[#3a0a14] px-8 py-7 text-center relative overflow-hidden text-white">
+          <div className="bg-gradient-to-br from-[#58051E] via-[#430316] to-[#2E030F] px-8 py-7 text-center relative overflow-hidden text-white">
             <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/5" />
             <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/5" />
             <div className="relative z-10 flex flex-col items-center">
@@ -139,7 +139,7 @@ export const AdminLoginPage: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@gmail.com"
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-300 focus:outline-none focus:bg-white focus:border-[#6A1B2E]/50 focus:ring-2 focus:ring-[#6A1B2E]/10 transition-all"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-300 focus:outline-none focus:bg-white focus:border-[#58051E]/50 focus:ring-2 focus:ring-[#58051E]/10 transition-all"
                 />
               </div>
 
@@ -151,7 +151,7 @@ export const AdminLoginPage: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full h-10 px-3.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-300 focus:outline-none focus:bg-white focus:border-[#6A1B2E]/50 focus:ring-2 focus:ring-[#6A1B2E]/10 transition-all"
+                    className="w-full h-10 px-3.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-300 focus:outline-none focus:bg-white focus:border-[#58051E]/50 focus:ring-2 focus:ring-[#58051E]/10 transition-all"
                   />
                   <button
                     type="button"
@@ -166,7 +166,7 @@ export const AdminLoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-11 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-extrabold rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-md shadow-[#6A1B2E]/20 mt-4 cursor-pointer"
+                className="w-full h-11 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-extrabold rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-md shadow-[#58051E]/20 mt-4 cursor-pointer"
               >
                 {isLoading ? (
                   <>

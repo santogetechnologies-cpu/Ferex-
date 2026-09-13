@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff, CheckCircle2, Laptop, Globe } from 'lucide-react';
 import { Logo } from '../../components/Logo';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../contexts/AuthContext';
@@ -211,7 +211,7 @@ export const DigitalLoginPage: React.FC = () => {
                     : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                💻 Digital Admin
+                <Laptop className="w-3.5 h-3.5 inline mr-1 -mt-0.5" /> Digital Admin
               </button>
               <button
                 type="button"
@@ -222,7 +222,7 @@ export const DigitalLoginPage: React.FC = () => {
                     : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                🚀 Client Portal
+                <Globe className="w-3.5 h-3.5 inline mr-1 -mt-0.5" /> Client Portal
               </button>
             </div>
           </div>

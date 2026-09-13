@@ -229,7 +229,7 @@ export const CentralPayments: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
@@ -242,9 +242,9 @@ export const CentralPayments: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <CreditCard className="w-6 h-6 text-[#6A1B2E]" /> Consolidated Enterprise Finance & Payouts Ledger
+              <CreditCard className="w-6 h-6 text-[#58051E]" /> Consolidated Enterprise Finance & Payouts Ledger
             </h1>
-            <span className="text-[10px] font-black bg-[#6A1B2E]/10 text-[#6A1B2E] border border-[#6A1B2E]/20 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
               4-Division Treasury
             </span>
           </div>
@@ -257,7 +257,7 @@ export const CentralPayments: React.FC = () => {
           <Button
             size="sm"
             onClick={handleExportLedger}
-            className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold text-white shadow-xs"
+            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs"
           >
             <Download className="w-4 h-4 mr-1.5" /> Export Treasury CSV
           </Button>
@@ -327,7 +327,7 @@ export const CentralPayments: React.FC = () => {
                   onClick={() => setSelectedDivision(div)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                     selectedDivision === div
-                      ? 'bg-[#6A1B2E] text-white shadow-xs'
+                      ? 'bg-[#58051E] text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -362,7 +362,7 @@ export const CentralPayments: React.FC = () => {
               placeholder="Search reference, client, invoice..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-[#6A1B2E]"
+              className="w-full h-9 pl-9 pr-3 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-[#58051E]"
             />
           </div>
         </div>
@@ -426,7 +426,7 @@ export const CentralPayments: React.FC = () => {
                       {t.status === 'Pending' ? (
                         <button
                           onClick={() => handleVerify(t.id, t.refNo)}
-                          className="px-2.5 py-1 bg-[#6A1B2E] hover:bg-[#521221] text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer"
+                          className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer"
                         >
                           Verify Wire
                         </button>

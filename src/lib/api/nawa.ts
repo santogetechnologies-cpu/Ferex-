@@ -204,7 +204,7 @@ export async function updateNawaStep(
     try {
       await createNotification({
         user_id: cleanId,
-        title: '🎉 Academic Legalization Approved!',
+        title: 'Academic Legalization Approved',
         body: `Your educational degree recognition & verification has been officially approved. Your university application is now cleared to proceed!`,
         category: 'Application'
       });

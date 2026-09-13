@@ -91,7 +91,7 @@ export const CentralStudents: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
@@ -102,7 +102,7 @@ export const CentralStudents: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#6A1B2E]" /> Master Student Directory
+            <Users className="w-5 h-5 text-[#58051E]" /> Master Student Directory
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Super Admin Console • Global student records, counselor assignments, and application stages.
@@ -110,7 +110,7 @@ export const CentralStudents: React.FC = () => {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="h-9 px-4 rounded-xl text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221] text-white shadow-xs transition-colors flex items-center gap-1.5 self-start md:self-auto cursor-pointer"
+          className="h-9 px-4 rounded-xl text-xs font-bold bg-[#58051E] hover:bg-[#430316] text-white shadow-xs transition-colors flex items-center gap-1.5 self-start md:self-auto cursor-pointer"
         >
           Add New Student
         </button>
@@ -129,7 +129,7 @@ export const CentralStudents: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search student name, ID, or university..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
           />
         </div>
         <span className="text-xs font-bold text-slate-400">{filteredStudents.length} Students Listed</span>
@@ -155,7 +155,7 @@ export const CentralStudents: React.FC = () => {
                 <tr key={student.id} className="hover:bg-slate-50/80 transition-colors group">
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#6A1B2E] text-white font-black text-xs flex items-center justify-center shadow-xs">
+                      <div className="w-9 h-9 rounded-xl bg-[#58051E] text-white font-black text-xs flex items-center justify-center shadow-xs">
                         {student.name.charAt(0)}
                       </div>
                       <div>
@@ -190,7 +190,7 @@ export const CentralStudents: React.FC = () => {
                       <strong className="text-slate-800">{student.counselor}</strong>
                       <button
                         onClick={() => setEditingStudent(student)}
-                        className="text-[10px] font-bold text-[#6A1B2E] hover:underline cursor-pointer"
+                        className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
                       >
                         (Reassign)
                       </button>
@@ -257,7 +257,7 @@ export const CentralStudents: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Save & Enroll</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save & Enroll</Button>
                 </div>
               </form>
             </motion.div>
@@ -286,7 +286,7 @@ export const CentralStudents: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingStudent(null)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Save Changes</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Changes</Button>
                 </div>
               </form>
             </motion.div>
@@ -307,7 +307,7 @@ export const CentralStudents: React.FC = () => {
 
               <div className="space-y-5 text-left">
                 <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="w-12 h-12 rounded-xl bg-[#6A1B2E] text-white font-black text-base flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-[#58051E] text-white font-black text-base flex items-center justify-center">
                     {selectedStudent.name.charAt(0)}
                   </div>
                   <div>

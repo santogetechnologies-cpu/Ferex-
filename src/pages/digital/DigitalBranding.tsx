@@ -17,7 +17,7 @@ export const DigitalBranding: React.FC = () => {
   const [selectedMockup, setSelectedMockup] = useState<'business-card' | 'packaging' | 'merch' | 'billboard'>('business-card');
 
   const [colorSwatches] = useState([
-    { name: 'Deep Maroon', hex: '#6A1B2E', role: 'Primary Brand' },
+    { name: 'Ferex Wine', hex: '#58051E', role: 'Primary Brand' },
     { name: 'Crimson Rose', hex: '#9B3A50', role: 'Secondary Accent' },
     { name: 'Emerald Velvet', hex: '#10B981', role: 'Success Token' },
     { name: 'Slate Onyx', hex: '#0F172A', role: 'Typography Dark' },
@@ -110,8 +110,8 @@ export const DigitalBranding: React.FC = () => {
             ))}
           </select>
         </div>
-        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-          ✓ Vector Assets & Tokens Synchronized
+        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1.5">
+          <CheckCircle2 className="w-3.5 h-3.5" /> Vector Assets & Tokens Synchronized
         </span>
       </Card>
 
@@ -119,7 +119,7 @@ export const DigitalBranding: React.FC = () => {
       <Card className="p-6 border border-slate-300 rounded-3xl shadow-xl space-y-6 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
-            <span className="text-[10px] font-black uppercase text-[#6A1B2E]">Realistic Brand Asset Mockups</span>
+            <span className="text-[10px] font-black uppercase text-[#58051E]">Realistic Brand Asset Mockups</span>
             <h3 className="text-lg font-black text-slate-900">Interactive Collateral Showcase</h3>
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-bold">
@@ -134,7 +134,7 @@ export const DigitalBranding: React.FC = () => {
                 <button
                   key={tab.id}
                   onClick={() => setSelectedMockup(tab.id as any)}
-                  className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${selectedMockup === tab.id ? 'bg-[#6A1B2E] text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                  className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${selectedMockup === tab.id ? 'bg-[#58051E] text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
                 >
                   <IconComp className="w-3.5 h-3.5" /> {tab.label}
                 </button>
@@ -146,7 +146,7 @@ export const DigitalBranding: React.FC = () => {
         {/* Dynamic Mockup Preview Frame */}
         <div className="p-8 rounded-3xl bg-slate-900 text-white min-h-[320px] flex items-center justify-center text-center relative overflow-hidden">
           {selectedMockup === 'business-card' && (
-            <div className="w-96 h-56 rounded-2xl bg-gradient-to-br from-[#6A1B2E] via-[#521221] to-[#0F172A] p-6 text-white shadow-2xl border border-white/20 flex flex-col justify-between text-left space-y-4">
+            <div className="w-96 h-56 rounded-2xl bg-gradient-to-br from-[#58051E] via-[#430316] to-[#0F172A] p-6 text-white shadow-2xl border border-white/20 flex flex-col justify-between text-left space-y-4">
               <div className="flex justify-between items-start">
                 <span className="text-2xl font-black text-white uppercase">{clientName}</span>
                 <span className="text-[9px] font-black uppercase bg-white/20 px-2 py-0.5 rounded text-emerald-300">Embossed Gold Foil</span>
@@ -172,14 +172,14 @@ export const DigitalBranding: React.FC = () => {
 
           {selectedMockup === 'merch' && (
             <div className="w-80 h-64 rounded-3xl bg-slate-800 border-2 border-slate-700 p-6 text-white shadow-2xl flex flex-col items-center justify-center space-y-3">
-              <Shirt className="w-16 h-16 text-[#6A1B2E]" />
+              <Shirt className="w-16 h-16 text-[#58051E]" />
               <h4 className="text-base font-black text-white uppercase">{clientName} MERCH</h4>
               <span className="text-xs font-bold text-slate-400">100% Organic Heavyweight Cotton • Screen Printed</span>
             </div>
           )}
 
           {selectedMockup === 'billboard' && (
-            <div className="w-full max-w-xl h-56 rounded-2xl bg-gradient-to-r from-blue-900 via-[#6A1B2E] to-purple-900 p-6 text-white shadow-2xl flex flex-col justify-between text-left border-4 border-slate-800">
+            <div className="w-full max-w-xl h-56 rounded-2xl bg-gradient-to-r from-blue-900 via-[#58051E] to-purple-900 p-6 text-white shadow-2xl flex flex-col justify-between text-left border-4 border-slate-800">
               <span className="text-[10px] font-black uppercase text-amber-400">12x24ft LED Highway Billboard</span>
               <div>
                 <h4 className="text-2xl font-black text-white uppercase">{clientName}</h4>
@@ -206,7 +206,7 @@ export const DigitalBranding: React.FC = () => {
               </div>
               <div>
                 <span className="text-xs font-black text-slate-900 block">{c.name}</span>
-                <span className="text-xs font-mono font-bold text-[#6A1B2E] block">{c.hex}</span>
+                <span className="text-xs font-mono font-bold text-[#58051E] block">{c.hex}</span>
                 <span className="text-[9.5px] font-bold text-slate-400 block mt-0.5">{c.role}</span>
               </div>
             </div>

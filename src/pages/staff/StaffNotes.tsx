@@ -64,7 +64,7 @@ export const StaffNotes: React.FC = () => {
     <div className="space-y-6 text-left antialiased select-none">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />{toast}
           </motion.div>
         )}
@@ -73,7 +73,7 @@ export const StaffNotes: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <StickyNote className="w-5 h-5 text-[#6A1B2E]" /> Notion Knowledge & Notes Workspace
+            <StickyNote className="w-5 h-5 text-[#58051E]" /> Notion Knowledge & Notes Workspace
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Keep personal advisory checklists, university SOP guidelines, and student application summaries.</p>
         </div>
@@ -84,11 +84,11 @@ export const StaffNotes: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search knowledge notes..."
-              className="w-full bg-white border border-slate-300 rounded-xl py-1.5 pl-3 pr-8 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+              className="w-full bg-white border border-slate-300 rounded-xl py-1.5 pl-3 pr-8 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
             />
             <Search className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-2.5" />
           </div>
-          <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-1.5" /> Create Note
           </Button>
         </div>
@@ -99,7 +99,7 @@ export const StaffNotes: React.FC = () => {
           <Card key={note.id} className="p-5 border border-slate-200/80 shadow-xs hover:shadow-lg transition-all space-y-3 flex flex-col justify-between">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase bg-[#6A1B2E]/10 text-[#6A1B2E] px-2 py-0.5 rounded border border-[#6A1B2E]/20">{note.category}</span>
+                <span className="text-[10px] font-black uppercase bg-[#58051E]/10 text-[#58051E] px-2 py-0.5 rounded border border-[#58051E]/20">{note.category}</span>
                 <div className="flex items-center gap-2">
                   <button onClick={() => togglePin(note.id)} className={`text-slate-400 hover:text-amber-500 ${note.pinned ? 'text-amber-500' : ''}`}><Pin className="w-3.5 h-3.5" /></button>
                   <button onClick={() => handleDelete(note.id)} className="text-slate-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
@@ -143,7 +143,7 @@ export const StaffNotes: React.FC = () => {
                 </div>
               </div>
 
-              <Button size="sm" className="w-full bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={handleAddNote}>
+              <Button size="sm" className="w-full bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={handleAddNote}>
                 Save Personal Note
               </Button>
             </motion.div>

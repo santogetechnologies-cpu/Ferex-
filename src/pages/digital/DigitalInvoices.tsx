@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, Search, Plus, Eye, X, CheckCircle2, Trash2, Printer,
-  FolderKanban, Building2, CheckCircle, Clock
+  FolderKanban, Building2, CheckCircle, Clock, Zap
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -553,7 +553,7 @@ export const DigitalInvoices: React.FC = () => {
                   </div>
                   <div className="flex justify-between py-1 font-black text-slate-900 text-sm">
                     <span>Total Invoiced (INR):</span>
-                    <span className="text-[#6A1B2E]">₹{(Number(selectedInvoice.amount) + Number(selectedInvoice.tax_amount || Math.round(selectedInvoice.amount * 0.18))).toLocaleString('en-IN')}</span>
+                    <span className="text-[#58051E]">₹{(Number(selectedInvoice.amount) + Number(selectedInvoice.tax_amount || Math.round(selectedInvoice.amount * 0.18))).toLocaleString('en-IN')}</span>
                   </div>
                 </div>
 
@@ -565,13 +565,13 @@ export const DigitalInvoices: React.FC = () => {
                       className="flex-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
                       onClick={() => setSettlingInvoice(selectedInvoice)}
                     >
-                      ⚡ Collect (Stripe / UPI)
+                      <Zap className="w-3.5 h-3.5 mr-1" /> Collect (Stripe / UPI)
                     </Button>
                   )}
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => { window.print(); }}>
                     <Printer className="w-3.5 h-3.5 mr-1" /> Print Official PDF
                   </Button>
-                  <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => setSelectedInvoice(null)}>Close</Button>
+                  <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setSelectedInvoice(null)}>Close</Button>
                 </div>
               </div>
             </motion.div>

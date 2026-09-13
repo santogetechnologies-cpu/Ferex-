@@ -113,7 +113,7 @@ export const RimiDashboard: React.FC = () => {
       )}
 
       {/* FMCG Cold Chain Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-6 md:p-8 shadow-xl border border-[#6A1B2E]/30">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#3B0B16] text-white p-6 md:p-8 shadow-xl border border-[#58051E]/30">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
@@ -137,7 +137,7 @@ export const RimiDashboard: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <button
               onClick={() => navigate('/rimi/sales-orders')}
-              className="h-10 px-5 rounded-xl text-xs font-black text-[#6A1B2E] bg-white hover:bg-slate-100 transition-all shadow-md flex items-center gap-2 cursor-pointer"
+              className="h-10 px-5 rounded-xl text-xs font-black text-[#58051E] bg-white hover:bg-slate-100 transition-all shadow-md flex items-center gap-2 cursor-pointer"
             >
               Dispatch New Sales Order <ArrowUpRight className="w-4 h-4" />
             </button>
@@ -155,7 +155,7 @@ export const RimiDashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { title: 'Total Sales Revenue', value: stats.totalRevenueStr, sub: `${stats.totalOrdersCount} Total Orders Dispatched`, icon: DollarSign, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', badge: 'Live Ledger', path: '/rimi/sales-orders' },
-          { title: 'Total Collected', value: stats.totalCollectedStr, sub: `Outstanding: ${stats.totalOutstandingStr}`, icon: ShoppingCart, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20', badge: 'Settled', path: '/rimi/collections' },
+          { title: 'Total Collected', value: stats.totalCollectedStr, sub: `Outstanding: ${stats.totalOutstandingStr}`, icon: ShoppingCart, color: 'text-[#58051E] bg-[#58051E]/10 border-[#58051E]/20', badge: 'Settled', path: '/rimi/collections' },
           { title: 'Catalog SKUs', value: `${stats.totalProductsCount} Products`, sub: 'Frozen Seafood, Meats, Dairy', icon: Boxes, color: 'text-blue-600 bg-blue-50 border-blue-100', badge: 'Master Catalog', path: '/rimi/products' },
           { title: 'Reefer Fleet', value: `${vehicles.length} Trucks`, sub: `${warehouses.length} Active Cold Warehouses`, icon: Truck, color: 'text-indigo-600 bg-indigo-50 border-indigo-100', badge: 'GPS Active', path: '/rimi/vehicles' },
         ].map((stat, idx) => (
@@ -190,7 +190,7 @@ export const RimiDashboard: React.FC = () => {
                 <h3 className="text-sm font-black text-slate-900">Recent Cold Chain Sales Orders</h3>
                 <p className="text-xs text-slate-400 font-semibold mt-0.5">Live distributor dispatches and delivery statuses</p>
               </div>
-              <button onClick={() => navigate('/rimi/sales-orders')} className="text-xs font-bold text-[#6A1B2E] hover:underline flex items-center gap-1 cursor-pointer">
+              <button onClick={() => navigate('/rimi/sales-orders')} className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer">
                 View All <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -228,7 +228,7 @@ export const RimiDashboard: React.FC = () => {
           <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <Thermometer className="w-4 h-4 text-[#6A1B2E]" /> Cold Storage Facilities
+                <Thermometer className="w-4 h-4 text-[#58051E]" /> Cold Storage Facilities
               </h3>
             </div>
 
@@ -244,7 +244,7 @@ export const RimiDashboard: React.FC = () => {
                     <span className="text-[10px] font-semibold text-slate-500">{wh.capacity}</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs font-black text-[#6A1B2E]">{wh.temp}</span>
+                    <span className="text-xs font-black text-[#58051E]">{wh.temp}</span>
                     <span className="block text-[9px] font-extrabold text-emerald-600">{wh.status}</span>
                   </div>
                 </div>

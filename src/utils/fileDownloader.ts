@@ -36,17 +36,17 @@ export function downloadPackingListDocument(pl: {
   <title>Packing_List_${pl.id}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 30px; color: #1e293b; line-height: 1.5; }
-    .header { border-bottom: 3px solid #6A1B2E; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .title { color: #6A1B2E; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+    .header { border-bottom: 3px solid #58051E; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .title { color: #58051E; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
     .doc-ref { font-size: 14px; font-weight: bold; color: #64748b; }
     .section { margin-bottom: 20px; }
-    .section-title { font-size: 12px; font-weight: 800; text-transform: uppercase; color: #6A1B2E; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px; }
+    .section-title { font-size: 12px; font-weight: 800; text-transform: uppercase; color: #58051E; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
     .box p { margin: 4px 0; font-size: 13px; }
     .box p strong { color: #0f172a; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th { background: #6A1B2E; color: white; text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; }
+    th { background: #58051E; color: white; text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; }
     td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
     .footer { margin-top: 40px; padding-top: 20px; border-top: 1px dashed #cbd5e1; display: flex; justify-content: space-between; font-size: 11px; color: #64748b; }
     .seal { display: inline-block; border: 2px solid #059669; color: #059669; padding: 6px 12px; border-radius: 6px; font-weight: 900; text-transform: uppercase; font-size: 11px; margin-top: 15px; }
@@ -140,17 +140,17 @@ export function downloadBillOfLadingDocument(bl: {
   <title>Bill_Of_Lading_${blId}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 30px; color: #0f172a; line-height: 1.5; }
-    .header { border-bottom: 3px solid #6A1B2E; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .title { color: #6A1B2E; font-size: 22px; font-weight: 900; text-transform: uppercase; margin: 0; }
+    .header { border-bottom: 3px solid #58051E; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .title { color: #58051E; font-size: 22px; font-weight: 900; text-transform: uppercase; margin: 0; }
     .doc-ref { font-size: 15px; font-weight: 900; color: #0f172a; font-family: monospace; }
     .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
     .box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 16px; }
-    .box h4 { margin: 0 0 6px 0; font-size: 11px; text-transform: uppercase; color: #6A1B2E; font-weight: 800; }
+    .box h4 { margin: 0 0 6px 0; font-size: 11px; text-transform: uppercase; color: #58051E; font-weight: 800; }
     .box p { margin: 2px 0; font-size: 12.5px; }
     .highlight { background: #eff6ff; border-color: #93c5fd; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
-    th { background: #6A1B2E; color: white; text-align: left; padding: 9px 12px; font-size: 11px; text-transform: uppercase; }
+    th { background: #58051E; color: white; text-align: left; padding: 9px 12px; font-size: 11px; text-transform: uppercase; }
     td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
     .status-stamp { border: 2px solid #059669; color: #059669; font-weight: 900; padding: 8px 14px; border-radius: 6px; display: inline-block; text-transform: uppercase; font-size: 12px; }
     .footer { margin-top: 35px; padding-top: 15px; border-top: 1px solid #cbd5e1; font-size: 11px; color: #64748b; display: flex; justify-content: space-between; }
@@ -252,8 +252,8 @@ export function downloadGenericVaultDocument(doc: {
   <title>${doc.name}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 40px; color: #0f172a; }
-    .header { border-bottom: 2px solid #6A1B2E; padding-bottom: 15px; margin-bottom: 20px; }
-    .title { font-size: 20px; font-weight: 800; color: #6A1B2E; }
+    .header { border-bottom: 2px solid #58051E; padding-bottom: 15px; margin-bottom: 20px; }
+    .title { font-size: 20px; font-weight: 800; color: #58051E; }
     .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-top: 20px; }
     .stamp { margin-top: 30px; display: inline-block; border: 2px solid #059669; color: #059669; padding: 6px 12px; border-radius: 6px; font-weight: bold; }
   </style>

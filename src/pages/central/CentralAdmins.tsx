@@ -300,7 +300,7 @@ export const CentralAdmins: React.FC = () => {
       return;
     }
 
-    showToastMsg(`✅ Provisioned ${fullName.trim()} as ${DIVISION_CONFIG[selectedRole]?.label || selectedRole}! Credentials active.`);
+    showToastMsg(`Provisioned ${fullName.trim()} as ${DIVISION_CONFIG[selectedRole]?.label || selectedRole}. Credentials active.`);
     setShowAddModal(false);
     setFullName('');
     setEmail('');
@@ -340,7 +340,7 @@ export const CentralAdmins: React.FC = () => {
   const copyCredentials = (adm: AdminAccount) => {
     const text = `Email: ${adm.email}\nPassword: ${adm.password || 'Configured in Supabase Auth'}\nRole: ${adm.divisionLabel}\nPortal: ${window.location.origin}/#/login`;
     navigator.clipboard.writeText(text);
-    showToastMsg('📋 Login credentials copied to clipboard!');
+    showToastMsg('Login credentials copied to clipboard!');
   };
 
   const filteredAdmins = adminList.filter(a => {
@@ -370,7 +370,7 @@ export const CentralAdmins: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
@@ -382,7 +382,7 @@ export const CentralAdmins: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-[#6A1B2E]" /> Universal Admin & Staff Governance
+            <ShieldCheck className="w-6 h-6 text-[#58051E]" /> Universal Admin & Staff Governance
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Super Admin Console • Real-time live creation and management of Division Admins and Staff logins (Admissions Counselors, Digital PMs, Trade Officers).
@@ -401,7 +401,7 @@ export const CentralAdmins: React.FC = () => {
           <Button
             size="sm"
             onClick={() => setShowAddModal(true)}
-            className="bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold shadow-md flex items-center gap-1.5 cursor-pointer"
+            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Provision Admin or Staff
           </Button>
@@ -435,7 +435,7 @@ export const CentralAdmins: React.FC = () => {
               placeholder="Search by name, email address, division role..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
             />
           </div>
 
@@ -446,7 +446,7 @@ export const CentralAdmins: React.FC = () => {
                 onClick={() => setDivisionFilter(div)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                   divisionFilter === div
-                    ? 'bg-[#6A1B2E] text-white shadow-xs'
+                    ? 'bg-[#58051E] text-white shadow-xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -560,7 +560,7 @@ export const CentralAdmins: React.FC = () => {
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
                 <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-bold">
+                  <div className="w-9 h-9 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div>
@@ -640,11 +640,11 @@ export const CentralAdmins: React.FC = () => {
                             onClick={() => setSelectedRole(opt.role)}
                             className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2 ${
                               selectedRole === opt.role
-                                ? `${opt.color} ring-2 ring-[#6A1B2E] font-black shadow-xs`
+                                ? `${opt.color} ring-2 ring-[#58051E] font-black shadow-xs`
                                 : 'border-slate-200 bg-white hover:bg-slate-50'
                             }`}
                           >
-                            <opt.icon className="w-4 h-4 shrink-0 mt-0.5 text-[#6A1B2E]" />
+                            <opt.icon className="w-4 h-4 shrink-0 mt-0.5 text-[#58051E]" />
                             <div>
                               <p className="text-xs font-extrabold">{opt.label}</p>
                               <p className="text-[10px] text-slate-500 font-medium">{opt.desc}</p>
@@ -751,7 +751,7 @@ export const CentralAdmins: React.FC = () => {
                     type="submit"
                     size="sm"
                     disabled={isSubmitting}
-                    className="bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold shadow-md cursor-pointer"
+                    className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md cursor-pointer"
                   >
                     {isSubmitting ? 'Activating in Supabase...' : 'Activate Login'}
                   </Button>

@@ -30,7 +30,7 @@ export const CentralSupport: React.FC = () => {
       priority: d.priority || 'Medium',
       date: d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Recent',
       status: d.status || 'Open',
-      statusBadge: d.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20',
+      statusBadge: d.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-[#58051E]/10 text-[#58051E] border-[#58051E]/20',
       messages: [
         { sender: d.users?.full_name || 'Student', text: d.description, time: 'Initial Ticket' }
       ]
@@ -71,7 +71,7 @@ export const CentralSupport: React.FC = () => {
     <div className="space-y-6 text-left">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -81,7 +81,7 @@ export const CentralSupport: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <LifeBuoy className="w-5 h-5 text-[#6A1B2E]" /> Global Support & Escalations Desk
+            <LifeBuoy className="w-5 h-5 text-[#58051E]" /> Global Support & Escalations Desk
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Super Admin Console • Executive ticket resolution desk and SLA monitoring.
@@ -93,14 +93,14 @@ export const CentralSupport: React.FC = () => {
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search ticket ID, student, or issue..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search ticket ID, student, or issue..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
         </div>
         <div className="flex items-center gap-1.5 overflow-x-auto">
           {['All', 'Education', 'Trade', 'Rimi', 'Digital'].map((div) => (
             <button
               key={div}
               onClick={() => setSelectedDivision(div)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${selectedDivision === div ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${selectedDivision === div ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
               {div}
             </button>
@@ -143,7 +143,7 @@ export const CentralSupport: React.FC = () => {
               </Button>
               <Button
                 size="sm"
-                className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold"
+                className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold"
                 onClick={() => setSelectedTicket(ticket)}
               >
                 Reply / Resolve
@@ -187,7 +187,7 @@ export const CentralSupport: React.FC = () => {
                   <Button
                     type="button"
                     size="sm"
-                    className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]"
+                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
                     onClick={() => {
                       const updated = reassignStaffName || reassignTicket.assignedStaff || 'Rahul Mehta';
                       setTickets(tickets.map(t => t.id === reassignTicket.id ? { ...t, assignedStaff: updated } : t));
@@ -221,7 +221,7 @@ export const CentralSupport: React.FC = () => {
 
               <div className="space-y-3 max-h-56 overflow-y-auto p-3 bg-slate-50 rounded-xl mb-4 text-xs font-semibold">
                 {selectedTicket.messages.map((m: any, idx: number) => (
-                  <div key={idx} className={`p-3 rounded-xl max-w-[85%] ${m.sender === 'Super Admin' ? 'bg-[#6A1B2E] text-white ml-auto text-right' : 'bg-white text-slate-800 border border-slate-200'}`}>
+                  <div key={idx} className={`p-3 rounded-xl max-w-[85%] ${m.sender === 'Super Admin' ? 'bg-[#58051E] text-white ml-auto text-right' : 'bg-white text-slate-800 border border-slate-200'}`}>
                     <span className="text-[9px] font-extrabold opacity-75 block">{m.sender} · {m.time}</span>
                     <p className="mt-0.5">{m.text}</p>
                   </div>
@@ -229,10 +229,10 @@ export const CentralSupport: React.FC = () => {
               </div>
 
               <form onSubmit={handleSendReply} className="space-y-3">
-                <textarea rows={3} value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Type official response to student..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+                <textarea rows={3} value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Type official response to student..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setSelectedTicket(null)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">
                     <Send className="w-3.5 h-3.5 mr-1.5" /> Submit Response
                   </Button>
                 </div>

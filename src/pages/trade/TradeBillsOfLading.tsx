@@ -18,8 +18,8 @@ export const TradeBillsOfLading: React.FC = () => {
   const [newBL, setNewBL] = useState({
     vessel: 'MSC Oscar (V.8821)',
     carrier: 'MSC Mediterranean Shipping Co.',
-    pol: 'Port of Gdansk 🇵🇱',
-    pod: 'Port of Rotterdam 🇳🇱',
+    pol: 'Port of Gdansk (PL)',
+    pod: 'Port of Rotterdam (NL)',
     consignee: 'Warsaw Global Logistics Sp. z o.o.',
     shipper: 'Ferex Global Trade Corp'
   });
@@ -116,7 +116,7 @@ export const TradeBillsOfLading: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -126,13 +126,13 @@ export const TradeBillsOfLading: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <FileCheck2 className="w-5 h-5 text-[#6A1B2E]" /> Bills of Lading (B/L) Registry
+            <FileCheck2 className="w-5 h-5 text-[#58051E]" /> Bills of Lading (B/L) Registry
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Ferex Trade Console • Ocean Bills of Lading, vessel assignments, port of loading/discharge documentation.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Issue Ocean B/L
         </Button>
       </div>
@@ -140,7 +140,7 @@ export const TradeBillsOfLading: React.FC = () => {
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search B/L #, Vessel, Carrier..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search B/L #, Vessel, Carrier..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
         </div>
         <span className="text-xs font-bold text-slate-400">{filteredBills.length} Bills Registered</span>
       </Card>
@@ -154,7 +154,7 @@ export const TradeBillsOfLading: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
             {searchQuery ? 'No records match your query.' : 'There are no active B/L documents. Issue a new ocean B/L below.'}
           </p>
-          <Button size="sm" className="mt-4 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
+          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
             <Plus className="w-3.5 h-3.5 mr-1" /> Issue Ocean B/L
           </Button>
         </Card>
@@ -177,14 +177,14 @@ export const TradeBillsOfLading: React.FC = () => {
                   const blId = b.bl_number || b.id;
                   const vessel = b.vessel_name || b.vessel || 'MSC Oscar (V.8821)';
                   const carrier = b.carrier || 'MSC Mediterranean Shipping Co.';
-                  const pol = b.port_of_loading || b.pol || 'Port of Gdansk 🇵🇱';
-                  const pod = b.port_of_discharge || b.pod || 'Port of Rotterdam 🇳🇱';
+                  const pol = b.port_of_loading || b.pol || 'Port of Gdansk (PL)';
+                  const pod = b.port_of_discharge || b.pod || 'Port of Rotterdam (NL)';
                   const status = b.status || 'Clean On-Board Signed';
 
                   return (
                     <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                        <div className="flex items-center gap-1.5"><Anchor className="w-3.5 h-3.5 text-[#6A1B2E]" /> {blId}</div>
+                        <div className="flex items-center gap-1.5"><Anchor className="w-3.5 h-3.5 text-[#58051E]" /> {blId}</div>
                         <span className="text-[10px] font-bold text-slate-400">{vessel}</span>
                       </td>
                       <td className="py-3.5 px-4 font-bold text-slate-800">{carrier}</td>
@@ -203,7 +203,7 @@ export const TradeBillsOfLading: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => setSelectedBL(b)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Inspect B/L Document">
+                          <button onClick={() => setSelectedBL(b)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer" title="Inspect B/L Document">
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
@@ -211,12 +211,12 @@ export const TradeBillsOfLading: React.FC = () => {
                               downloadBLDocument(b);
                               showToastMsg(`Downloaded B/L ${blId}`);
                             }}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100 cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-[#58051E] hover:bg-slate-100 cursor-pointer"
                             title="Download B/L CSV"
                           >
                             <Download className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleDeleteBL(b.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete B/L">
+                          <button onClick={() => handleDeleteBL(b.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Delete B/L">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -243,7 +243,7 @@ export const TradeBillsOfLading: React.FC = () => {
 
               <div className="space-y-4 text-left">
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-black text-[#6A1B2E] uppercase">{selectedBL.bl_number || selectedBL.id}</span>
+                  <span className="text-[10px] font-black text-[#58051E] uppercase">{selectedBL.bl_number || selectedBL.id}</span>
                 </div>
 
                 <div className="p-4 bg-slate-50 rounded-xl space-y-1">
@@ -252,7 +252,7 @@ export const TradeBillsOfLading: React.FC = () => {
                   <div className="text-xs font-black text-slate-900">POD: {selectedBL.port_of_discharge || selectedBL.pod}</div>
                 </div>
 
-                <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => {
+                <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => {
                   showToastMsg(`Official B/L Copy exported for ${selectedBL.bl_number || selectedBL.id}`);
                 }}>
                   Export Signed B/L Copy
@@ -268,7 +268,7 @@ export const TradeBillsOfLading: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900">Issue Ocean Bill of Lading</h3>
-                <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+                <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
               <form onSubmit={handleCreateBL} className="space-y-3 text-left">
                 <div>
@@ -293,7 +293,7 @@ export const TradeBillsOfLading: React.FC = () => {
                   <label className="text-[10px] font-black uppercase text-slate-500">Consignee Entity</label>
                   <input type="text" value={newBL.consignee} onChange={e => setNewBL({ ...newBL, consignee: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
                 </div>
-                <Button type="submit" size="sm" className="w-full bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold mt-2">
+                <Button type="submit" size="sm" className="w-full bg-[#58051E] hover:bg-[#430316] text-xs font-bold mt-2">
                   Sign & Issue Ocean B/L
                 </Button>
               </form>

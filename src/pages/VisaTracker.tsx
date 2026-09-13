@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, CheckCircle2, Clock, Lock, ArrowRight, RefreshCw, Sparkles, XCircle, AlertCircle, CreditCard } from 'lucide-react';
+import {
+  ShieldCheck, CheckCircle2, Clock, Lock, ArrowRight,
+  RefreshCw, XCircle, AlertCircle, CreditCard, Building,
+  Calendar, MapPin, Truck
+} from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { Badge } from '../components/Badge';
 import { useAuth } from '../contexts/AuthContext';
 import { useVisa } from '../hooks/useVisa';
 import { useApplications } from '../hooks/useApplications';
 import { usePayments } from '../hooks/usePayments';
 import { useDocuments } from '../hooks/useDocuments';
 import { canAccessPage, checkPaymentStage as checkPayment } from '../lib/paymentUnlock';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const VisaTracker: React.FC = () => {
   const navigate = useNavigate();
@@ -24,7 +29,7 @@ export const VisaTracker: React.FC = () => {
 
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
 
-  // Workflow Gating Checks: Offer Acceptance -> 2nd Installment Payment -> Final Acceptance Letter -> VFS Visa
+  // Workflow Gating Checks
   const hasOfferAccepted = applications.some(a => (a.status as string) === 'Accepted' || (a.status as string) === 'Final Acceptance Issued');
 
   const checkPaymentStage = (p: any, stageNum: number) => {
@@ -40,7 +45,6 @@ export const VisaTracker: React.FC = () => {
 
   const inst2Paid = payments.some(p => checkPaymentStage(p, 2) && (p.status === 'Paid' || p.status === 'Verified'));
 
-  // Payment Guard Check - 2nd Installment Required for Visa Tracker
   const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || 'Poland';
   const paymentAccess = canAccessPage('/visa-tracker', payments, targetCountry);
   const payment2Status = checkPayment(payments, 2, targetCountry);
@@ -48,51 +52,49 @@ export const VisaTracker: React.FC = () => {
   // If payment not verified, show locked state
   if (!paymentAccess.allowed) {
     return (
-      <div className="space-y-6 text-left">
+      <div className="space-y-6 text-left py-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-2xl mx-auto"
+          className="max-w-xl mx-auto"
         >
-          <Card className="p-8 text-center space-y-6 bg-gradient-to-br from-blue-50 via-white to-indigo-50 border-2 border-blue-200">
-            <div className="w-20 h-20 rounded-full bg-blue-100 border-4 border-blue-300 mx-auto flex items-center justify-center">
-              <Lock className="w-10 h-10 text-blue-600" />
+          <Card className="p-8 text-center space-y-6 bg-white border border-slate-200/80 shadow-card">
+            <div className="w-14 h-14 rounded-xl bg-slate-100 text-slate-600 mx-auto flex items-center justify-center">
+              <Lock className="w-6 h-6" />
             </div>
             
-            <div className="space-y-3">
-              <h2 className="text-2xl font-black text-slate-900">
-                Visa Tracker Locked
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-slate-900">
+                Consular Visa Tracker Locked
               </h2>
-              <p className="text-base font-semibold text-slate-600 max-w-lg mx-auto">
-                {paymentAccess.reason || 'Complete 2nd Installment (University Tuition) payment to unlock visa tracker.'}
+              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                {paymentAccess.reason || 'Complete the 2nd Installment (University Tuition) payment to activate consular file preparation and VFS scheduling.'}
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl border-2 border-blue-200 p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-slate-700">Required Payment:</span>
-                <span className="text-sm font-extrabold text-blue-700">{payment2Status.requiredPayment}</span>
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3 text-left">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-slate-600">Prerequisite Settlement:</span>
+                <span className="font-semibold text-slate-900">{payment2Status.requiredPayment}</span>
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-slate-700">Status:</span>
-                <span className={`text-sm font-extrabold px-3 py-1 rounded-full ${
-                  payment2Status.paymentStatus === 'pending' 
-                    ? 'bg-amber-100 text-amber-700 border border-amber-300'
-                    : 'bg-red-100 text-red-700 border border-red-300'
-                }`}>
-                  {payment2Status.paymentStatus === 'pending' ? 'Pending Verification' : 'Not Submitted'}
-                </span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-slate-600">Status:</span>
+                {payment2Status.paymentStatus === 'pending' ? (
+                  <Badge variant="brand" dot>Under Verification</Badge>
+                ) : (
+                  <Badge variant="error">Not Submitted</Badge>
+                )}
               </div>
 
               {payment2Status.paymentStatus === 'pending' && (
-                <div className="pt-4 border-t border-blue-200">
-                  <div className="flex items-start gap-3 bg-amber-50 rounded-xl p-4 border border-amber-200">
-                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="text-left">
-                      <p className="text-xs font-bold text-amber-900 mb-1">Payment Under Review</p>
-                      <p className="text-xs font-semibold text-amber-700">
-                        Your tuition payment is being verified. Visa tracker access will be granted upon approval.
+                <div className="pt-3 border-t border-slate-200">
+                  <div className="flex items-start gap-2.5 bg-white rounded-lg p-3 border border-slate-200">
+                    <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-left text-xs">
+                      <p className="font-semibold text-slate-800">Verification in Progress</p>
+                      <p className="text-slate-500 mt-0.5">
+                        Your tuition payment is being verified by admin. Visa tracker access will unlock once approved.
                       </p>
                     </div>
                   </div>
@@ -100,23 +102,24 @@ export const VisaTracker: React.FC = () => {
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+            <div className="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
               {payment2Status.paymentStatus === 'not_found' && (
-                <button
+                <Button
+                  size="sm"
                   onClick={() => navigate('/student/payments')}
-                  className="px-6 py-3 bg-[#6A1B2E] text-white rounded-xl font-bold text-sm hover:bg-[#521221] transition-all shadow-lg flex items-center justify-center gap-2"
+                  leftIcon={<CreditCard className="w-4 h-4" />}
                 >
-                  <CreditCard className="w-5 h-5" />
-                  Make Tuition Payment
-                </button>
+                  Settle Tuition Fee
+                </Button>
               )}
               
-              <button
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => navigate('/student/dashboard')}
-                className="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-300 transition-all"
               >
                 Return to Dashboard
-              </button>
+              </Button>
             </div>
           </Card>
         </motion.div>
@@ -146,21 +149,20 @@ export const VisaTracker: React.FC = () => {
     id: user?.id || 'vfs-pending',
     student_id: user?.id || '',
     student_name: studentName,
-    vfs_ref_no: 'Awaiting Admin Booking',
+    vfs_ref_no: 'Awaiting Counselor Booking',
     embassy_name: 'Consular Department & Embassy',
     vfs_center: 'VFS Global Application Center',
-    appointment_date: 'Not Scheduled Yet',
+    appointment_date: 'Scheduling in Progress',
     passport_no: 'Pending Vault Verification',
     courier_tracking_no: 'Not Assigned',
-    current_stage: 1, // Stage 1 (Documents Ready)
+    current_stage: 1,
     status_label: 'Documents Preparation in Progress',
     decision_outcome: 'Pending',
-    notes: 'Visa application file will be prepared and booked by FEREX counselor.'
+    notes: 'Visa application file will be compiled and booked by FEREX counselor.'
   };
 
   const visaRecord = foundRecord || initialPendingRecord;
 
-  // Decision outcome strictly controlled by Agency in Admin Panel
   const rawOutcome = (visaRecord as any)?.decision_outcome ||
     (visaRecord?.status_label?.toLowerCase().includes('approv') ? 'Approved' :
      visaRecord?.status_label?.toLowerCase().includes('reject') || visaRecord?.status_label?.toLowerCase().includes('refus') ? 'Rejected' : 'Pending');
@@ -169,16 +171,15 @@ export const VisaTracker: React.FC = () => {
   const isVerdictRejected = rawOutcome === 'Rejected';
   const isVerdictPending = !isVerdictApproved && !isVerdictRejected;
 
-  // Standardized 8 Stages for Visa Application Tracker
   const stages = [
-    { num: 1, name: 'Documents Ready', desc: 'All financial, academic & sponsor documents verified' },
-    { num: 2, name: 'Visa File Prepared', desc: 'Cover letter, SOP, forms & visa dossier compiled' },
-    { num: 3, name: 'VFS Appointment Booked', desc: 'Official appointment slot confirmed at VFS center' },
-    { num: 4, name: 'VFS Submitted', desc: 'Biometrics given & physical dossier handed over' },
-    { num: 5, name: 'Consular Processing', desc: 'Application actively under embassy officer review' },
-    { num: 6, name: 'Decision Made', desc: 'Consular evaluation complete & sealed for return' },
-    { num: 7, name: 'Passport Return', desc: 'Courier dispatch & tracking in transit' },
-    { num: 8, name: 'Visa Result Confirmed', desc: 'Passport collected & visa stamp verified' },
+    { num: 1, name: 'Documents Ready', desc: 'Financial proofs, transcripts, apostilles verified' },
+    { num: 2, name: 'Visa File Prepared', desc: 'Motivation statement, application forms & dossier compiled' },
+    { num: 3, name: 'VFS Appointment Booked', desc: 'Official biometric appointment slot confirmed' },
+    { num: 4, name: 'VFS Submission', desc: 'Biometric capture & physical file lodged' },
+    { num: 5, name: 'Consular Processing', desc: 'Application undergoing embassy evaluation' },
+    { num: 6, name: 'Decision Made', desc: 'Consular review completed and parcel sealed' },
+    { num: 7, name: 'Passport Return', desc: 'Secure courier dispatch in transit' },
+    { num: 8, name: 'Visa Verification', desc: 'Passport retrieved & entry vignette verified' },
   ];
 
   const currentStageNum = visaRecord.current_stage || 1;
@@ -189,7 +190,6 @@ export const VisaTracker: React.FC = () => {
     setTimeout(() => setToastMsg(''), 4000);
   };
 
-  // Re-appeal & Re-file Workflow from Stage 2 (Visa File Prepared)
   const handleInitiateReappeal = async () => {
     try {
       setReappealLoading(true);
@@ -199,84 +199,92 @@ export const VisaTracker: React.FC = () => {
         decision_outcome: 'Pending',
         notes: 'Re-appeal application packet and justification letter compiled.'
       });
-      showToast('🔄 Re-appeal initiated! Your Visa tracking has been restarted from Stage 2 (Visa File Prepared).');
+      showToast('Re-appeal initiated. Visa tracking reset to Stage 2 (File Prepared).');
     } catch (err: any) {
-      showToast('Re-appeal file updated locally. Rescheduling Stage 2 submission...');
+      showToast('Re-appeal file updated locally. Rescheduling Stage 2 submission.');
     } finally {
       setReappealLoading(false);
     }
   };
 
   if (isLoading) {
-    return <div className="py-16 text-center text-xs font-bold text-slate-400">Loading Visa tracking & prerequisite status...</div>;
+    return <div className="py-16 text-center text-xs font-semibold text-slate-400">Loading visa processing status...</div>;
   }
 
   return (
-    <div className="space-y-6 text-left relative min-h-[600px]">
-      {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl text-xs font-extrabold border border-slate-700 animate-bounce flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-300" />
-          {toastMsg}
-        </div>
-      )}
+    <div className="space-y-6 text-left relative min-h-[600px] pb-10">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-card text-xs font-semibold flex items-center gap-2 border border-slate-700"
+          >
+            <ShieldCheck className="w-4 h-4 text-[#58051E]" />
+            {toastMsg}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Header */}
-      <div className="bg-gradient-to-br from-slate-900 via-[#4A101E] to-[#6A1B2E] text-white p-6 sm:p-8 rounded-3xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Header Banner */}
+      <div className="bg-slate-900 text-white p-6 md:p-7 rounded-xl border border-slate-800 shadow-card flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="max-w-2xl">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white text-[10px] font-extrabold uppercase tracking-wider mb-3 backdrop-blur-sm">
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-300" /> 🟨 Visa Application Tracker (8 Stages)
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight mb-1.5">Visa Status for {studentName}</h1>
-          <p className="text-xs sm:text-sm font-semibold text-slate-300 leading-relaxed">
-            Real-time embassy & VFS dossier pipeline from document preparation to passport delivery and visa outcome.
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-slate-300 text-[11px] font-semibold mb-2.5 border border-white/10">
+            <ShieldCheck className="w-3.5 h-3.5 text-slate-300" />
+            Consular Phase 02 • 8 Sequential Milestones
+          </div>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight mb-1 text-white">
+            Visa Processing Status
+          </h1>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Live consular and VFS dossier pipeline tracking from document compilation to biometric submission and passport dispatch.
           </p>
         </div>
         <Button 
           variant="outline" 
           size="sm" 
-          className="border-white/20 text-white hover:bg-white/10 text-xs font-bold"
+          className="border-white/20 text-white hover:bg-white/10 text-xs shrink-0"
           onClick={() => navigate('/student/journey')}
         >
-          View Full Journey (3 Trackers)
+          View Full Lifecycle
         </Button>
       </div>
 
       {/* Prerequisites Banner if Final Acceptance is Pending */}
       {!isFinalAcceptanceUnlocked && (
-        <Card className="p-5 border border-amber-200/80 bg-amber-50/50 text-slate-800 rounded-2xl shadow-xs">
-          <div className="flex items-start gap-3.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-800 flex items-center justify-center shrink-0 border border-amber-300/40 mt-0.5">
+        <Card className="p-4 border border-amber-200/80 bg-amber-50/40 text-slate-800 rounded-xl">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-800 flex items-center justify-center shrink-0 border border-amber-300/40 mt-0.5">
               <Lock className="w-4 h-4" />
             </div>
             <div className="flex-1 space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h4 className="text-xs font-black text-amber-950 uppercase tracking-wider">
-                  Prerequisites for VFS Visa Filing In Progress
+                <h4 className="text-xs font-semibold text-amber-950 uppercase tracking-wide">
+                  Prerequisites in Progress
                 </h4>
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${hasOfferAccepted ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300'}`}>
-                    1. Offer {hasOfferAccepted ? '✓' : 'Pending'}
-                  </span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${inst2Paid ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300'}`}>
-                    2. 2nd Installment {inst2Paid ? '✓' : 'Pending'}
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-100 text-amber-800 border-amber-300">
-                    3. Final Letter Pending
-                  </span>
+                  <Badge variant={hasOfferAccepted ? 'success' : 'neutral'} dot>
+                    Offer Acceptance {hasOfferAccepted ? 'Complete' : 'Pending'}
+                  </Badge>
+                  <Badge variant={inst2Paid ? 'success' : 'neutral'} dot>
+                    Tuition Settlement {inst2Paid ? 'Complete' : 'Pending'}
+                  </Badge>
                 </div>
               </div>
-              <p className="text-xs font-medium text-slate-600 leading-relaxed">
-                You can track your 8 visa stages below. Official VFS appointment booking will be finalized once your Final Acceptance Letter is released by the university.
+              <p className="text-xs text-slate-600 leading-relaxed">
+                You can review the 8 visa milestones below. Official VFS appointment booking will be locked in once your university issues the Final Acceptance Letter.
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
                 {!hasOfferAccepted && (
-                  <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold h-8 px-3" onClick={() => navigate('/student/offers')}>
-                    View & Accept Offer <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                  <Button size="xs" onClick={() => navigate('/student/offers')} rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
+                    Review Offer Letter
                   </Button>
                 )}
                 {hasOfferAccepted && !inst2Paid && (
-                  <Button size="sm" className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold h-8 px-3" onClick={() => navigate('/student/payments')}>
-                    Pay 2nd Installment <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                  <Button size="xs" onClick={() => navigate('/student/payments')} rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
+                    Settle 2nd Installment
                   </Button>
                 )}
               </div>
@@ -285,126 +293,125 @@ export const VisaTracker: React.FC = () => {
         </Card>
       )}
 
-      {/* Decision Reveal Banner — Strictly controlled by Agency Selection */}
+      {/* Decision Reveal Banner */}
       {isVerdictPending ? (
-        <Card className="p-5 border border-amber-200 bg-amber-50/60 text-slate-800 rounded-2xl flex items-start gap-3.5 shadow-xs">
-          <Clock className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+        <Card className="p-4 border border-slate-200 bg-slate-50 text-slate-800 rounded-xl flex items-start gap-3">
+          <Clock className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
           <div>
-            <h4 className="text-xs font-black text-amber-900 uppercase tracking-wider">
-              {currentStageNum === 7 ? 'Passport in Courier Transit — Verdict Sealed' : 'Consular Processing / Decision In Progress'}
+            <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider">
+              {currentStageNum === 7 ? 'Passport in Courier Dispatch' : 'Consular Processing In Progress'}
             </h4>
-            <p className="text-xs font-semibold text-amber-800/90 mt-0.5 leading-relaxed">
+            <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
               {currentStageNum === 7
-                ? 'Your passport is currently in transit. In compliance with embassy rules, your visa verdict is sealed in your envelope and will be updated by your counselor upon physical delivery at Stage 8.'
-                : 'In compliance with VFS consular regulations, official outcomes remain sealed until passport retrieval is verified by agency counselors.'}
+                ? 'Your passport has been dispatched by the consular desk. The decision envelope will be verified upon physical delivery at Stage 8.'
+                : 'Your dossier is currently undergoing consular review. Updates will reflect automatically as the embassy concludes evaluation.'}
             </p>
           </div>
         </Card>
       ) : isVerdictApproved ? (
-        <Card className="p-6 border border-emerald-200 bg-emerald-50/80 text-emerald-950 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-              <CheckCircle2 className="w-6 h-6" />
+        <Card className="p-5 border border-emerald-200 bg-emerald-50/50 text-emerald-950 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-200/60 px-2 py-0.5 rounded-full border border-emerald-300">
-                Official Consular Verdict — Approved
-              </span>
-              <h3 className="text-lg font-black text-emerald-950 mt-1">🎉 VISA APPROVED & STAMPED ON PASSPORT!</h3>
-              <p className="text-xs font-semibold text-emerald-800 mt-0.5">
-                Your National Student Visa has been granted. Proceed to Travel Checklist to prepare flight, accommodation, and airport arrival.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" className="bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs shrink-0" onClick={() => navigate('/student/predeparture')}>
-              Go to Travel Tracker (9 Stages) <ArrowRight className="w-3.5 h-3.5 ml-1" />
-            </Button>
-          </div>
-        </Card>
-      ) : (
-        <Card className="p-6 border border-red-200 bg-red-50/80 text-red-950 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-              <XCircle className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-red-800 bg-red-200/60 px-2 py-0.5 rounded-full border border-red-300">
-                Embassy Refusal Notice Received
-              </span>
-              <h3 className="text-lg font-black text-red-950 mt-1">Visa Application Refused by Consular Desk</h3>
-              <p className="text-xs font-semibold text-red-800 mt-0.5 leading-relaxed">
-                Refusal grounds provided by embassy. You are eligible to file a formal re-appeal with updated justification documents starting back from Stage 2.
+              <Badge variant="success" dot>Consular Verdict: Granted</Badge>
+              <h3 className="text-base font-bold text-emerald-950 mt-1">Visa Approved & Verified</h3>
+              <p className="text-xs text-emerald-800 mt-0.5">
+                Your National Student Visa has been granted. Proceed to pre-departure planning for flights and accommodation.
               </p>
             </div>
           </div>
           <Button
             size="sm"
-            disabled={reappealLoading}
-            className="bg-[#6A1B2E] hover:bg-[#521221] text-white font-extrabold text-xs shrink-0 shadow-md flex items-center gap-1.5"
-            onClick={handleInitiateReappeal}
+            onClick={() => navigate('/student/predeparture')}
+            rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${reappealLoading ? 'animate-spin' : ''}`} />
-            {reappealLoading ? 'Re-filing Stage 2...' : '🔄 Initiate Re-appeal & Re-file VFS'}
+            Pre-Departure Plan
+          </Button>
+        </Card>
+      ) : (
+        <Card className="p-5 border border-red-200 bg-red-50/50 text-red-950 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-red-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+              <XCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <Badge variant="error" dot>Consular Refusal Notice</Badge>
+              <h3 className="text-base font-bold text-red-950 mt-1">Visa Refused by Consular Desk</h3>
+              <p className="text-xs text-red-800 mt-0.5 leading-relaxed">
+                Refusal grounds provided by the embassy. You are eligible to file a formal re-appeal with updated justification documents starting from Stage 2.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="destructive"
+            disabled={reappealLoading}
+            onClick={handleInitiateReappeal}
+            leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${reappealLoading ? 'animate-spin' : ''}`} />}
+          >
+            {reappealLoading ? 'Re-filing...' : 'Initiate Re-appeal'}
           </Button>
         </Card>
       )}
 
-      {/* Main 8 Stage Tracker Grid */}
+      {/* Main 8-Stage Tracker Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: 8 Stage Progress */}
-        <Card className="lg:col-span-2 p-6 border border-slate-200/80 bg-white">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+        {/* Left Column: 8 Stage Timeline */}
+        <Card className="lg:col-span-2 p-5 md:p-6 border border-slate-200/80 bg-white rounded-xl shadow-subtle">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
             <div>
-              <h3 className="text-sm font-black text-slate-900">Visa Processing Pipeline</h3>
-              <p className="text-xs font-semibold text-slate-400 mt-0.5">Live 8-stage progress from document assembly to stamped passport</p>
+              <h3 className="text-sm font-semibold text-slate-900">Visa Processing Pipeline</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Live progression across 8 consular milestones</p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-extrabold px-3 py-1 rounded-full border ${
-                isVerdictApproved
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 font-black'
-                  : isVerdictRejected
-                  ? 'bg-red-50 text-red-800 border-red-200 font-black'
-                  : 'bg-amber-50 text-amber-700 border-amber-200 font-extrabold'
-              }`}>
-                {isVerdictApproved
-                  ? '✓ Visa Verdict: Approved'
-                  : isVerdictRejected
-                  ? '✕ Visa Verdict: Refused'
-                  : `Stage ${currentStageNum} of 8 Active`}
-              </span>
+            <div>
+              {isVerdictApproved ? (
+                <Badge variant="success" dot>Approved</Badge>
+              ) : isVerdictRejected ? (
+                <Badge variant="error" dot>Refused</Badge>
+              ) : (
+                <Badge variant="neutral">Milestone {currentStageNum} of 8</Badge>
+              )}
             </div>
           </div>
 
-          <div className="space-y-6 relative before:absolute before:left-4 before:top-4 before:bottom-4 before:w-0.5 before:bg-slate-100">
+          <div className="space-y-4">
             {stages.map((st) => {
               const isPast = st.num < currentStageNum || (st.num === 8 && (rawOutcome === 'Approved' || rawOutcome === 'Rejected'));
               const isCurrent = st.num === currentStageNum && !(st.num === 8 && (rawOutcome === 'Approved' || rawOutcome === 'Rejected'));
 
               return (
-                <div key={st.num} className="relative flex items-start gap-4 z-10">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 transition-colors ${
+                <div
+                  key={st.num}
+                  className={`p-3.5 rounded-lg border transition-all flex items-start gap-3.5 ${
                     isPast
-                      ? 'bg-emerald-500 text-white shadow-xs'
+                      ? 'bg-slate-50/50 border-slate-200/60'
                       : isCurrent
-                      ? 'bg-[#6A1B2E] text-white ring-4 ring-[#6A1B2E]/10 animate-pulse'
-                      : 'bg-slate-100 text-slate-400 border border-slate-200'
+                      ? 'bg-white border-[#58051E]/30 shadow-subtle ring-1 ring-[#58051E]/10'
+                      : 'bg-white/40 border-slate-200/40 opacity-70'
+                  }`}
+                >
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-semibold text-xs shrink-0 border ${
+                    isPast
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : isCurrent
+                      ? 'bg-[#58051E] text-white border-[#58051E]'
+                      : 'bg-slate-100 text-slate-400 border-slate-200'
                   }`}>
-                    {isPast ? <CheckCircle2 className="w-4 h-4" /> : st.num}
+                    {isPast ? <CheckCircle2 className="w-3.5 h-3.5" /> : st.num}
                   </div>
 
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h4 className={`text-xs font-black ${isCurrent ? 'text-[#6A1B2E]' : isPast ? 'text-slate-900' : 'text-slate-400'}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className={`text-xs font-semibold ${isCurrent ? 'text-[#58051E]' : isPast ? 'text-slate-900' : 'text-slate-500'}`}>
                         {st.name}
                       </h4>
-                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
-                        isPast ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : isCurrent ? 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20' : 'bg-slate-100 text-slate-400 border-slate-200'
-                      }`}>
-                        {isPast ? 'Cleared' : isCurrent ? 'In Progress' : 'Pending'}
-                      </span>
+                      {isPast && <Badge variant="success">Cleared</Badge>}
+                      {isCurrent && <Badge variant="brand" dot>In Progress</Badge>}
+                      {!isPast && !isCurrent && <Badge variant="neutral">Pending</Badge>}
                     </div>
-                    <p className="text-[11px] font-semibold text-slate-500 mt-0.5">{st.desc}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{st.desc}</p>
                   </div>
                 </div>
               );
@@ -412,36 +419,40 @@ export const VisaTracker: React.FC = () => {
           </div>
         </Card>
 
-        {/* Right Column: Reference & Appointment Info */}
-        <div className="space-y-6">
-          <Card className="p-6 border border-slate-200/80 space-y-4 bg-white">
-            <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3">VFS Appointment Details</h3>
+        {/* Right Column: Appointment & Logistics Details */}
+        <div className="space-y-4">
+          <Card className="p-5 border border-slate-200/80 space-y-4 bg-white rounded-xl shadow-subtle">
+            <h3 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-3">
+              VFS Appointment File
+            </h3>
 
-            <div className="space-y-3 text-xs font-semibold text-slate-600">
+            <div className="space-y-3 text-xs text-slate-600">
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Tracking Reference:</span>
-                <span className="font-extrabold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md font-mono">{visaRecord.vfs_ref_no || 'VFS-84920'}</span>
+                <span className="font-mono font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
+                  {visaRecord.vfs_ref_no || 'VFS-84920'}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Appointment Date:</span>
-                <span className="font-bold text-slate-900">{visaRecord.appointment_date || 'Scheduled Soon'}</span>
+                <span className="font-medium text-slate-900">{visaRecord.appointment_date || 'Scheduling in progress'}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Target Consular Embassy:</span>
-                <span className="font-bold text-slate-900">{visaRecord.embassy_name || 'European Union'}</span>
+                <span className="text-slate-400">Target Mission:</span>
+                <span className="font-medium text-slate-900">{visaRecord.embassy_name || 'European Union'}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">VFS Center:</span>
-                <span className="font-bold text-[#6A1B2E]">{visaRecord.vfs_center || 'Main Metro VFS Desk'}</span>
+                <span className="font-medium text-[#58051E]">{visaRecord.vfs_center || 'Main Metro VFS Desk'}</span>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                <span className="text-slate-400">Courier Parcel:</span>
+                <span className="text-slate-400">Courier Dispatch:</span>
                 {currentStageNum >= 7 && visaRecord.courier_tracking_no ? (
-                  <span className="font-mono text-emerald-700 font-extrabold">{visaRecord.courier_tracking_no}</span>
+                  <span className="font-mono text-emerald-700 font-semibold">{visaRecord.courier_tracking_no}</span>
                 ) : currentStageNum >= 7 ? (
-                  <span className="text-amber-700 font-bold text-[11px]">Dispatched (Tracking Awaited)</span>
+                  <span className="text-amber-700 font-medium text-[11px]">Dispatched (Tracking Awaited)</span>
                 ) : (
-                  <span className="text-slate-400 font-bold text-[11px]">Available upon dispatch (Stage 7)</span>
+                  <span className="text-slate-400 text-[11px]">Dispatched at Stage 7</span>
                 )}
               </div>
             </div>

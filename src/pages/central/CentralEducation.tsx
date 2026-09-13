@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GraduationCap, Search, Plus, MapPin, Trash2, X, CheckCircle2 } from 'lucide-react';
+import { GraduationCap, Search, Plus, MapPin, Trash2, X, CheckCircle2, Star } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { useUniversities } from '../../hooks/useUniversities';
@@ -17,8 +17,9 @@ export const CentralEducation: React.FC = () => {
     name: '',
     city: '',
     country: 'Poland',
-    ranking: '150',
-    tuition: '€3,500 - €5,000 / yr'
+    tuition: '€3,500 / yr',
+    programs: ['Computer Science', 'Business Management'],
+    ranking: 50,
   });
 
   const showToastMsg = (msg: string) => {
@@ -28,18 +29,21 @@ export const CentralEducation: React.FC = () => {
 
   const handleAddPartner = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUni.name.trim()) return;
+    if (!newUni.name) return;
+
     try {
       await addUniversity({
-        name: newUni.name.trim(),
-        city: newUni.city.trim() || 'Main Campus',
+        name: newUni.name,
+        city: newUni.city,
         country: newUni.country,
-        ranking: parseInt(newUni.ranking) || 100,
-        tuition_range: newUni.tuition.trim() || '€3,500 / yr'
+        ranking: Number(newUni.ranking) || 100,
+        tuition_range: newUni.tuition,
+        programs: newUni.programs,
+        rating: 4.8,
       });
+      showToastMsg('Partner university added successfully');
       setShowAddModal(false);
-      showToastMsg(`Added ${newUni.name} to university alliances!`);
-      setNewUni({ name: '', city: '', country: 'Poland', ranking: '150', tuition: '€3,500 - €5,000 / yr' });
+      setNewUni({ name: '', city: '', country: 'Poland', tuition: '€3,500 / yr', programs: ['Computer Science'], ranking: 50 });
     } catch (err: any) {
       showToastMsg(`Error: ${err.message || 'Failed to add university'}`);
     }
@@ -54,7 +58,7 @@ export const CentralEducation: React.FC = () => {
     }
   };
 
-  const flagMap: Record<string, string> = { Poland: '🇵🇱', Germany: '🇩🇪', Netherlands: '🇳🇱', UK: '🇬🇧', France: '🇫🇷', Italy: '🇮🇹', Spain: '🇪🇸' };
+  const flagMap: Record<string, string> = { Poland: 'PL', Germany: 'DE', Netherlands: 'NL', UK: 'UK', France: 'FR', Italy: 'IT', Spain: 'ES' };
 
   const filteredPartners = universities.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -73,7 +77,7 @@ export const CentralEducation: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
@@ -85,13 +89,13 @@ export const CentralEducation: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-[#6A1B2E]" /> Education Alliances & Universities
+            <GraduationCap className="w-5 h-5 text-[#58051E]" /> Education Alliances & Universities
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Super Admin Console • Global partner university network, tuition rates, and enrollment quotas.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Add Partner University
         </Button>
       </div>
@@ -105,7 +109,7 @@ export const CentralEducation: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search university or city..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]/40"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]/40"
           />
         </div>
 
@@ -115,7 +119,7 @@ export const CentralEducation: React.FC = () => {
               key={c}
               onClick={() => setCountryFilter(c)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                countryFilter === c ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                countryFilter === c ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               {c}
@@ -141,12 +145,14 @@ export const CentralEducation: React.FC = () => {
             <Card key={uni.id} className="p-5 border border-slate-200/70 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
               <div>
                 <div className="flex items-start justify-between mb-3">
-                  <span className="text-2xl">{flagMap[uni.country] || '🇪🇺'}</span>
+                  <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-xs font-black font-mono text-slate-700">
+                    {flagMap[uni.country] || 'EU'}
+                  </span>
                   <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">
                     Active Partner
                   </span>
                 </div>
-                <h3 className="text-sm font-black text-slate-900 group-hover:text-[#6A1B2E] transition-colors">{uni.name}</h3>
+                <h3 className="text-sm font-black text-slate-900 group-hover:text-[#58051E] transition-colors">{uni.name}</h3>
                 <p className="text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-slate-400" /> {uni.city ? `${uni.city}, ${uni.country}` : uni.country}
                 </p>
@@ -158,7 +164,9 @@ export const CentralEducation: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Rating</span>
-                    <span className="text-xs font-bold text-slate-800">⭐ {uni.rating || 4.8} / 5</span>
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" /> {uni.rating || 4.8} / 5
+                    </span>
                   </div>
                   <div>
                     <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Programs</span>
@@ -174,7 +182,7 @@ export const CentralEducation: React.FC = () => {
               <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   onClick={() => handleDeletePartner(uni.id)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                   title="Remove partner"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -193,16 +201,16 @@ export const CentralEducation: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900">Add University Partner</h3>
-                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
               <form onSubmit={handleAddPartner} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">University Name *</label>
-                  <input type="text" required value={newUni.name} onChange={(e) => setNewUni({ ...newUni, name: e.target.value })} placeholder="e.g. Technical University" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#6A1B2E]" />
+                  <input type="text" required value={newUni.name} onChange={(e) => setNewUni({ ...newUni, name: e.target.value })} placeholder="e.g. Technical University" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">City / Location</label>
-                  <input type="text" value={newUni.city} onChange={(e) => setNewUni({ ...newUni, city: e.target.value })} placeholder="e.g. Berlin" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#6A1B2E]" />
+                  <input type="text" value={newUni.city} onChange={(e) => setNewUni({ ...newUni, city: e.target.value })} placeholder="e.g. Berlin" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -224,7 +232,7 @@ export const CentralEducation: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Save Partner</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Partner</Button>
                 </div>
               </form>
             </motion.div>

@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label: string;
+  label?: string;
   error?: string;
   showPasswordToggle?: boolean;
+  leftIcon?: React.ReactNode;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, showPasswordToggle = true, type = 'text', className, disabled, id, ...props }, ref) => {
+  ({ label, error, showPasswordToggle = true, type = 'text', className, disabled, id, leftIcon, ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const isPassword = type === 'password';
     const hasToggle = isPassword && showPasswordToggle;
@@ -18,26 +19,35 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className={cn('w-full text-left', className)}>
         {/* Label */}
-        <label 
-          htmlFor={id} 
-          className="block text-sm font-semibold text-slate-700 mb-1.5 select-none"
-        >
-          {label}
-        </label>
+        {label && (
+          <label 
+            htmlFor={id} 
+            className="block text-xs font-semibold text-slate-700 mb-1.5 select-none"
+          >
+            {label}
+          </label>
+        )}
 
         {/* Input Wrapper */}
-        <div className="relative">
+        <div className="relative flex items-center">
+          {leftIcon && (
+            <div className="absolute left-3 text-slate-400 pointer-events-none shrink-0">
+              {leftIcon}
+            </div>
+          )}
+
           <input
             id={id}
             ref={ref}
             type={inputType}
             disabled={disabled}
             className={cn(
-              'w-full h-11 px-3.5 rounded-lg border text-base text-slate-900 bg-white placeholder-slate-400 focus:outline-none transition-all duration-200 focus:ring-2 focus:ring-offset-0 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed hover:border-slate-300',
-              hasToggle && 'pr-10',
+              'w-full h-10 px-3 rounded-xl border text-xs font-medium text-slate-900 bg-white placeholder-slate-400 focus:outline-none transition-all duration-150 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed hover:border-slate-300',
+              leftIcon && 'pl-9',
+              hasToggle && 'pr-9',
               error
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
-                : 'border-slate-200 focus:border-[#6A1B2E] focus:ring-[#6A1B2E]/10'
+                ? 'border-rose-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15'
+                : 'border-slate-200/90 focus:border-[#58051E] focus:ring-2 focus:ring-[#58051E]/10'
             )}
             {...props}
           />
@@ -48,13 +58,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               type="button"
               disabled={disabled}
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/40 rounded transition-colors disabled:opacity-50"
+              className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 focus:outline-none rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? (
-                <EyeOff className="h-5 width-5" size={20} />
+                <EyeOff className="h-4 w-4" />
               ) : (
-                <Eye className="h-5 width-5" size={20} />
+                <Eye className="h-4 w-4" />
               )}
             </button>
           )}
@@ -62,7 +72,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
         {/* Error message */}
         {error && (
-          <p className="mt-1.5 text-sm text-red-600 font-medium" role="alert">
+          <p className="mt-1.5 text-xs text-rose-600 font-medium flex items-center gap-1" role="alert">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             {error}
           </p>
         )}
@@ -72,3 +83,4 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 
 Input.displayName = 'Input';
+

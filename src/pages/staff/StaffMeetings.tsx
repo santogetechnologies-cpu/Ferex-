@@ -256,7 +256,7 @@ export const StaffMeetings: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <Sparkles className="w-4 h-4 text-amber-300 shrink-0" />
             {toastMessage}
@@ -265,7 +265,7 @@ export const StaffMeetings: React.FC = () => {
       </AnimatePresence>
 
       {/* Header Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-7 shadow-xl relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#2E030F] text-white p-7 shadow-xl relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-1.5 max-w-2xl">
             <div className="flex items-center gap-2">
@@ -285,10 +285,10 @@ export const StaffMeetings: React.FC = () => {
           <div className="flex items-center gap-3 shrink-0">
             <Button
               size="sm"
-              className="bg-white text-[#6A1B2E] hover:bg-slate-100 font-black text-xs h-10 px-4 cursor-pointer"
+              className="bg-white text-[#58051E] hover:bg-slate-100 font-black text-xs h-10 px-4 cursor-pointer"
               onClick={() => setShowScheduleModal(true)}
             >
-              <Plus className="w-4 h-4 mr-1.5 text-[#6A1B2E]" /> Schedule Session
+              <Plus className="w-4 h-4 mr-1.5 text-[#58051E]" /> Schedule Session
             </Button>
           </div>
         </div>
@@ -300,7 +300,7 @@ export const StaffMeetings: React.FC = () => {
           { label: 'Upcoming Consultations', val: `${pendingCount} Scheduled`, sub: 'Pending student calls', color: 'text-blue-700', bg: 'bg-blue-500' },
           { label: 'Completed Sessions', val: `${completedCount} Attended`, sub: 'Advisory logged', color: 'text-emerald-700', bg: 'bg-emerald-500' },
           { label: 'My Assigned Students', val: `${myAssignedStudents.length} Active`, sub: 'Dedicated files', color: 'text-amber-700', bg: 'bg-amber-500' },
-          { label: 'Total Team Meetings', val: `${meetings.length} Total`, sub: 'Education portal', color: 'text-[#6A1B2E]', bg: 'bg-[#6A1B2E]' },
+          { label: 'Total Team Meetings', val: `${meetings.length} Total`, sub: 'Education portal', color: 'text-[#58051E]', bg: 'bg-[#58051E]' },
         ].map((kpi, idx) => (
           <Card key={idx} className="p-4 border border-slate-200/70 shadow-xs space-y-1">
             <span className="text-[10px] font-extrabold uppercase text-slate-400 block">{kpi.label}</span>
@@ -317,7 +317,7 @@ export const StaffMeetings: React.FC = () => {
             onClick={() => setActiveTab('my')}
             className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
               activeTab === 'my'
-                ? 'bg-[#6A1B2E] text-white shadow-xs'
+                ? 'bg-[#58051E] text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
@@ -327,7 +327,7 @@ export const StaffMeetings: React.FC = () => {
             onClick={() => setActiveTab('all')}
             className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
               activeTab === 'all'
-                ? 'bg-[#6A1B2E] text-white shadow-xs'
+                ? 'bg-[#58051E] text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
@@ -343,7 +343,7 @@ export const StaffMeetings: React.FC = () => {
               placeholder="Search student or subject..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
             />
           </div>
 
@@ -392,7 +392,7 @@ export const StaffMeetings: React.FC = () => {
               </div>
               <Button
                 size="sm"
-                className="bg-[#6A1B2E] text-white text-xs font-bold"
+                className="bg-[#58051E] text-white text-xs font-bold"
                 onClick={() => setShowScheduleModal(true)}
               >
                 <Plus className="w-4 h-4 mr-1" /> Schedule Consultation Call
@@ -421,7 +421,7 @@ export const StaffMeetings: React.FC = () => {
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-100 pb-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-black uppercase text-[#6A1B2E] bg-[#6A1B2E]/5 px-2 py-0.5 rounded-md border border-[#6A1B2E]/10">
+                        <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/5 px-2 py-0.5 rounded-md border border-[#58051E]/10">
                           {m.scheduled_date || 'Today'} • {timeSlot}
                         </span>
                         <span
@@ -448,7 +448,7 @@ export const StaffMeetings: React.FC = () => {
                         <>
                           <Button
                             size="sm"
-                            className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold h-8"
+                            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold h-8"
                             onClick={() => {
                               setActiveVideoCall(m);
                               setCallTimer('00:00');
@@ -502,7 +502,7 @@ export const StaffMeetings: React.FC = () => {
                           setRescheduleDate(m.scheduled_date || '');
                           setRescheduleTime(m.start_time || '10:00 AM');
                         }}
-                        className="text-[#6A1B2E] hover:underline"
+                        className="text-[#58051E] hover:underline"
                       >
                         Reschedule Session
                       </button>
@@ -565,7 +565,7 @@ export const StaffMeetings: React.FC = () => {
                     onClick={() => setSelectedDateFilter(isSelected ? null : dayStr)}
                     className={`h-8 rounded-lg flex flex-col items-center justify-center relative font-bold text-xs transition-all ${
                       isSelected
-                        ? 'bg-[#6A1B2E] text-white shadow-xs font-black'
+                        ? 'bg-[#58051E] text-white shadow-xs font-black'
                         : isToday
                         ? 'bg-slate-900 text-white font-black'
                         : hasMeetings
@@ -575,7 +575,7 @@ export const StaffMeetings: React.FC = () => {
                   >
                     <span>{day}</span>
                     {hasMeetings && !isSelected && !isToday && (
-                      <span className="w-1 h-1 rounded-full bg-[#6A1B2E] absolute bottom-1" />
+                      <span className="w-1 h-1 rounded-full bg-[#58051E] absolute bottom-1" />
                     )}
                   </button>
                 );
@@ -661,12 +661,12 @@ export const StaffMeetings: React.FC = () => {
                     value={completionNotes}
                     onChange={e => setCompletionNotes(e.target.value)}
                     placeholder="Enter key discussion takeaways, student document verification results, or recommended program applications..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
 
                 <div className="p-3 bg-slate-50 rounded-xl text-[10.5px] text-slate-500 font-medium leading-relaxed">
-                  💡 <strong>Automated Action:</strong> Marking this completed will immediately advance the student's <strong>Stage 2 (Counselling)</strong> milestone in the Journey Tracker.
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 inline-block mr-1 -mt-0.5" /> <strong>Automated Action:</strong> Marking this completed will immediately advance the student's <strong>Stage 2 (Counselling)</strong> milestone in the Journey Tracker.
                 </div>
 
                 <div className="pt-2 flex items-center justify-end gap-2">
@@ -691,7 +691,7 @@ export const StaffMeetings: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center">
+                  <span className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center">
                     <CalendarIcon className="w-4 h-4" />
                   </span>
                   <div>
@@ -713,7 +713,7 @@ export const StaffMeetings: React.FC = () => {
                     required
                     value={scheduleStudentId}
                     onChange={e => setScheduleStudentId(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   >
                     {students.map(st => (
                       <option key={st.id} value={st.id}>
@@ -733,7 +733,7 @@ export const StaffMeetings: React.FC = () => {
                     value={scheduleSubject}
                     onChange={e => setScheduleSubject(e.target.value)}
                     placeholder="e.g. European University Shortlisting & SOP Consultation"
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
 
@@ -745,7 +745,7 @@ export const StaffMeetings: React.FC = () => {
                       required
                       value={scheduleDate}
                       onChange={e => setScheduleDate(e.target.value)}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                     />
                   </div>
                   <div>
@@ -753,7 +753,7 @@ export const StaffMeetings: React.FC = () => {
                     <select
                       value={scheduleTime}
                       onChange={e => setScheduleTime(e.target.value)}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                     >
                       <option value="09:30 AM">09:30 AM</option>
                       <option value="10:00 AM">10:00 AM</option>
@@ -772,7 +772,7 @@ export const StaffMeetings: React.FC = () => {
                     <select
                       value={schedulePlatform}
                       onChange={e => setSchedulePlatform(e.target.value as any)}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                     >
                       <option value="Google Meet">Google Meet</option>
                       <option value="Zoom">Zoom Video</option>
@@ -785,7 +785,7 @@ export const StaffMeetings: React.FC = () => {
                       type="text"
                       value={scheduleLink}
                       onChange={e => setScheduleLink(e.target.value)}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                     />
                   </div>
                 </div>
@@ -797,7 +797,7 @@ export const StaffMeetings: React.FC = () => {
                     value={scheduleNotes}
                     onChange={e => setScheduleNotes(e.target.value)}
                     placeholder="Provide any instructions or documents for the student to bring to the call..."
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
 
@@ -805,7 +805,7 @@ export const StaffMeetings: React.FC = () => {
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowScheduleModal(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmittingSchedule} size="sm" className="bg-[#6A1B2E] text-white font-black text-xs">
+                  <Button type="submit" disabled={isSubmittingSchedule} size="sm" className="bg-[#58051E] text-white font-black text-xs">
                     {isSubmittingSchedule ? 'Scheduling...' : 'Schedule Call & Notify Student'}
                   </Button>
                 </div>
@@ -836,7 +836,7 @@ export const StaffMeetings: React.FC = () => {
                     required
                     value={rescheduleDate}
                     onChange={e => setRescheduleDate(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
 
@@ -845,7 +845,7 @@ export const StaffMeetings: React.FC = () => {
                   <select
                     value={rescheduleTime}
                     onChange={e => setRescheduleTime(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   >
                     <option value="10:00 AM">10:00 AM</option>
                     <option value="11:30 AM">11:30 AM</option>
@@ -859,7 +859,7 @@ export const StaffMeetings: React.FC = () => {
                   <Button type="button" variant="outline" size="sm" onClick={() => setReschedulingMeeting(null)}>
                     Cancel
                   </Button>
-                  <Button type="submit" size="sm" className="bg-[#6A1B2E] text-white font-black text-xs">
+                  <Button type="submit" size="sm" className="bg-[#58051E] text-white font-black text-xs">
                     Confirm Reschedule
                   </Button>
                 </div>
@@ -900,7 +900,7 @@ export const StaffMeetings: React.FC = () => {
                 <div className="bg-slate-900 rounded-2xl flex items-center justify-center relative border border-slate-800 overflow-hidden">
                   {!videoOff ? (
                     <div className="text-center space-y-2">
-                      <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#6A1B2E] to-[#4A101E] text-amber-300 font-black text-2xl flex items-center justify-center mx-auto shadow-xl border border-rose-800/40">
+                      <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#58051E] to-[#430316] text-amber-300 font-black text-2xl flex items-center justify-center mx-auto shadow-xl border border-rose-800/40">
                         {counselorInitials}
                       </div>
                       <span className="text-xs font-extrabold text-white block">{counselorName}</span>

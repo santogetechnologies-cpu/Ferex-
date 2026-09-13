@@ -113,7 +113,7 @@ export const CentralEmailLogs: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
-          <div className="flex items-center gap-2 text-xs font-black tracking-widest text-[#6A1B2E] uppercase">
+          <div className="flex items-center gap-2 text-xs font-black tracking-widest text-[#58051E] uppercase">
             <Mail className="w-4 h-4" /> Cross-Subsidiary Communications
           </div>
           <h1 className="text-2xl font-black text-slate-900 mt-1">Automated Email Dispatch Vault</h1>
@@ -125,7 +125,7 @@ export const CentralEmailLogs: React.FC = () => {
         <div className="flex items-center gap-2">
           <a
             href="#/central/email-settings"
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black text-[#6A1B2E] bg-[#6A1B2E]/10 hover:bg-[#6A1B2E]/15 border border-[#6A1B2E]/20 rounded-xl transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black text-[#58051E] bg-[#58051E]/10 hover:bg-[#58051E]/15 border border-[#58051E]/20 rounded-xl transition-colors cursor-pointer"
           >
             <Mail className="w-3.5 h-3.5" /> Configure Providers & SMTP
           </a>
@@ -137,7 +137,7 @@ export const CentralEmailLogs: React.FC = () => {
           </button>
           <button
             onClick={exportCSV}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black text-white bg-[#6A1B2E] hover:bg-[#581626] rounded-xl shadow-md shadow-[#6A1B2E]/20 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black text-white bg-[#58051E] hover:bg-[#581626] rounded-xl shadow-md shadow-[#58051E]/20 transition-all cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" /> Export Audit Log (.CSV)
           </button>
@@ -212,7 +212,7 @@ export const CentralEmailLogs: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search email, recipient, subject, ID..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#6A1B2E] transition-all"
+            className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E] transition-all"
           />
         </div>
       </div>
@@ -267,7 +267,7 @@ export const CentralEmailLogs: React.FC = () => {
                         {log.subject}
                       </div>
                       {log.reference_id && (
-                        <div className="text-[10px] text-[#6A1B2E] font-black font-mono mt-0.5">
+                        <div className="text-[10px] text-[#58051E] font-black font-mono mt-0.5">
                           Ref: #{log.reference_id}
                         </div>
                       )}
@@ -281,7 +281,7 @@ export const CentralEmailLogs: React.FC = () => {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setSelectedLog(log)}
-                          className="p-1.5 text-slate-600 hover:text-[#6A1B2E] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-600 hover:text-[#58051E] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                           title="Preview Email HTML Body"
                         >
                           <Eye className="w-4 h-4" />
@@ -323,7 +323,7 @@ export const CentralEmailLogs: React.FC = () => {
             >
               <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                 <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-[#6A1B2E]" />
+                  <Mail className="w-4 h-4 text-[#58051E]" />
                   <span className="text-xs font-black text-slate-900 uppercase">Email Dispatch Inspector</span>
                   {getDivisionBadge(selectedLog.division)}
                 </div>
@@ -364,7 +364,7 @@ export const CentralEmailLogs: React.FC = () => {
                   <button
                     onClick={() => handleResend(selectedLog)}
                     disabled={resendingId === selectedLog.id}
-                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-white bg-[#6A1B2E] hover:bg-[#581626] rounded-xl shadow-xs transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-white bg-[#58051E] hover:bg-[#581626] rounded-xl shadow-xs transition-colors cursor-pointer"
                   >
                     <Send className="w-3.5 h-3.5" /> Resend Now
                   </button>

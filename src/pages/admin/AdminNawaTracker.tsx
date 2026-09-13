@@ -147,7 +147,7 @@ export const AdminNawaTracker: React.FC = () => {
       const cleanId = deleteId.replace('nawa-app-', '').replace('nawa-std-', '');
       setRecords(prev => prev.filter(r => r.id !== deleteId && r.id !== cleanId && r.student_id !== cleanId));
       setDeleteId(null);
-      showToast('🎉 Legalization record permanently removed.');
+      showToast('Legalization record permanently removed.');
     } catch (e) {
       showToast('Could not remove record.');
     }
@@ -482,9 +482,9 @@ export const AdminNawaTracker: React.FC = () => {
                         {rec.status !== 'Approved' && (
                           <button
                             onClick={() => handleStepChange(rec.id, maxSteps, 'Approved')}
-                            className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 cursor-pointer"
+                            className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 cursor-pointer inline-flex items-center gap-1"
                           >
-                            Mark Approved ✓
+                            <CheckCircle2 className="w-3 h-3" /> Mark Approved
                           </button>
                         )}
                       </div>
@@ -508,7 +508,7 @@ export const AdminNawaTracker: React.FC = () => {
       {/* ──────────────── TAB 2: COUNTRY WORKFLOWS & PROCEDURES CONFIGURATOR ── */}
       {activeTab === 'workflows' && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-[#58051E] via-[#6A1B2E] to-[#58051E] text-white p-6 rounded-3xl shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-[#58051E] via-[#430316] to-[#2E030F] text-white p-6 rounded-3xl shadow-xl">
             <div className="space-y-1">
               <h2 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
                 <Globe className="w-5 h-5 text-amber-300" />

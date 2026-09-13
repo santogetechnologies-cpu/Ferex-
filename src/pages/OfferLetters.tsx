@@ -159,13 +159,13 @@ export const OfferLetters: React.FC = () => {
         universityName: app.university_name || app.universities?.name || 'University'
       });
       
-      showToast('🎉 Offer Accepted! Next step: Pay 2nd Installment Tuition Deposit Fee to receive your Official Final Acceptance Letter.');
+      showToast('Offer accepted. Next step: Settle 2nd Installment Tuition Deposit to receive your Final Acceptance Letter.');
       
       // Show payment prompt after 2 seconds if not paid
       if (!inst2Paid) {
         setTimeout(() => {
           const confirmPayment = window.confirm(
-            '🎓 Congratulations on accepting your offer!\n\n' +
+            'Offer accepted successfully.\n\n' +
             'To proceed with Final Acceptance Letter issuance, please complete the 2nd Installment (University Tuition Fee) payment.\n\n' +
             'Would you like to go to the Payments page now?'
           );
@@ -333,16 +333,16 @@ export const OfferLetters: React.FC = () => {
 
                 {/* Workflow Guidance Banner */}
                 {app.status === 'Offer Issued' && (
-                  <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+                  <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
                     <div>
-                      <h4 className="text-xs font-black text-amber-950">🎉 Official Admission Offer Letter Released!</h4>
-                      <p className="text-[11px] font-semibold text-amber-900 mt-0.5">Review document below and click Accept Offer to reserve your seat.</p>
+                      <h4 className="text-xs font-semibold text-amber-950">Official Admission Offer Letter Released</h4>
+                      <p className="text-xs text-amber-900 mt-0.5">Review document below and click Accept Offer to reserve your seat.</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold" onClick={() => handleAccept(app.id)}>
+                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold" onClick={() => handleAccept(app.id)}>
                         <Check className="w-3.5 h-3.5 mr-1" /> Accept Offer
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-xs font-bold text-red-600 hover:bg-red-50" onClick={() => handleReject(app.id)}>
+                      <Button variant="ghost" size="sm" className="text-xs font-semibold text-red-600 hover:bg-red-50" onClick={() => handleReject(app.id)}>
                         <X className="w-3.5 h-3.5 mr-1" /> Decline
                       </Button>
                     </div>
@@ -350,21 +350,21 @@ export const OfferLetters: React.FC = () => {
                 )}
 
                 {isAccepted && !inst2Paid && (
-                  <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+                  <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
                     <div>
-                      <h4 className="text-xs font-black text-emerald-950">🎉 Admission Offer Accepted! Next Step Required:</h4>
-                      <p className="text-[11px] font-semibold text-emerald-900 mt-0.5">Pay your 2nd Installment Tuition Deposit Fee to receive your Official Final Acceptance Letter from the University.</p>
+                      <h4 className="text-xs font-semibold text-emerald-950">Admission Offer Accepted — Action Required</h4>
+                      <p className="text-xs text-emerald-900 mt-0.5">Settle your 2nd Installment Tuition Deposit to receive your Official Final Acceptance Letter from the University.</p>
                     </div>
-                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0" onClick={() => navigate('/student/payments')}>
-                      <CreditCard className="w-3.5 h-3.5 mr-1.5" /> Pay 2nd Installment Tuition Deposit <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shrink-0" onClick={() => navigate('/student/payments')}>
+                      <CreditCard className="w-3.5 h-3.5 mr-1.5" /> Settle 2nd Installment <ArrowRight className="w-3.5 h-3.5 ml-1" />
                     </Button>
                   </div>
                 )}
 
                 {isAccepted && inst2Paid && !isFinalIssued && (
-                  <div className="p-3.5 bg-teal-50/70 border border-teal-200 rounded-2xl text-left">
-                    <h4 className="text-xs font-black text-teal-950">✅ 2nd Installment Tuition Deposit Cleared!</h4>
-                    <p className="text-[11px] font-semibold text-teal-900 mt-0.5">The University Admissions Board is issuing your Official Final Acceptance Certificate. Once uploaded by Admin, VFS Visa Filing will unlock automatically.</p>
+                  <div className="p-3.5 bg-teal-50/70 border border-teal-200 rounded-xl text-left">
+                    <h4 className="text-xs font-semibold text-teal-950">2nd Installment Tuition Deposit Cleared</h4>
+                    <p className="text-xs text-teal-900 mt-0.5">The University Admissions Board is preparing your Official Final Acceptance Certificate. Once uploaded by admin, VFS Visa Filing unlocks automatically.</p>
                   </div>
                 )}
 

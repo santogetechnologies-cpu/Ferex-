@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   GraduationCap, Calendar, Clock, ArrowRight,
-  Compass, FileCheck, CreditCard, CheckCircle2, Circle, XCircle
+  Compass, FileCheck, CreditCard, CheckCircle2, Circle, XCircle,
+  ScrollText, Lock, MessageSquare
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -55,19 +56,19 @@ export const StudentDashboard: React.FC = () => {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.08, duration: 0.3 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.06, duration: 0.25 } }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } }
+    hidden: { opacity: 0, y: 8 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' as const } }
   };
 
   const handleQuickAction = (path: string) => {
     navigate(path);
   };
 
-  // Dynamic 10-Stage Journey Checklist Status
+  // Dynamic 12-Stage Journey Checklist Status
   const isProfileDone = Boolean(profile?.full_name);
 
   const hasUploadedDocs = documents.length > 0;
@@ -164,30 +165,32 @@ export const StudentDashboard: React.FC = () => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6 text-left"
+      className="space-y-5 text-left"
     >
-      {/* Welcome Banner */}
+      {/* Welcome Hero Bento Banner */}
       <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#6A1B2E] to-[#4A101E] text-white p-6 md:p-8 shadow-md">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#2E020E] text-white p-6 md:p-7 shadow-card border border-[#58051E]/40">
           <div className="relative z-10 max-w-xl">
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight mb-2">
+            <span className="text-[9.5px] font-bold uppercase tracking-wider text-amber-300/90 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/15 inline-block mb-2.5">
+              FEREX Global Education Portal
+            </span>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight mb-1.5 text-white">
               Welcome back, {studentName}
             </h1>
-            <p className="text-xs md:text-sm text-white/80 leading-relaxed font-semibold">
-              Track your admission & visa progress for target European universities.
+            <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-normal">
+              Track your admission milestone roadmap, document compliance, and embassy visa readiness.
             </p>
-            <div className="mt-5 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-2.5">
               <Button
                 variant="secondary"
                 size="sm"
-                className="text-xs text-[#6A1B2E] font-bold shadow-xs hover:scale-105 active:scale-98 transition-transform"
                 onClick={() => handleQuickAction('/student/journey-tracker')}
               >
-                Track 12-Stage Journey <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                12-Stage Journey <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </Button>
               <button
                 onClick={() => handleQuickAction('/student/select-university')}
-                className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-white/10 hover:bg-white/20 active:bg-white/10 border border-white/30 transition-all shadow-xs"
+                className="h-8.5 px-3.5 rounded-xl text-xs font-semibold text-white bg-white/10 hover:bg-white/15 active:bg-white/10 border border-white/25 transition-all cursor-pointer"
               >
                 Browse Universities
               </button>
@@ -196,117 +199,122 @@ export const StudentDashboard: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Key Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Key Metrics Bento Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         {[
-          { title: 'Target Universities', value: `${applications.length}`, sub: `${applications.filter(a => a.status !== 'Draft').length} Apps Active`, icon: GraduationCap, color: 'text-indigo-600 bg-indigo-50 border-indigo-100', path: '/student/applications' },
-          { title: 'Journey Progress', value: `${completedCount} / 12`, sub: 'Checklist Stages Done', icon: Compass, color: 'text-blue-600 bg-blue-50 border-blue-100', path: '/student/journey-tracker' },
-          { title: 'Documents Verified', value: `${approvedDocs} / ${documents.length}`, sub: `${documents.filter(d => (d.status as string) === 'Submitted' || (d.status as string) === 'Under Review').length} Pending`, icon: FileCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', path: '/student/documents' },
-          { title: 'Fees & Payments', value: `₹${paidSum.toLocaleString()}`, sub: 'Paid Total', icon: CreditCard, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20', path: '/student/payments' },
+          { title: 'Target Universities', value: `${applications.length}`, sub: `${applications.filter(a => a.status !== 'Draft').length} Active Applications`, icon: GraduationCap, path: '/student/applications' },
+          { title: 'Journey Progress', value: `${completedCount} / 12`, sub: 'Milestones Completed', icon: Compass, path: '/student/journey-tracker' },
+          { title: 'Documents Verified', value: `${approvedDocs} / ${documents.length}`, sub: `${documents.filter(d => (d.status as string) === 'Submitted' || (d.status as string) === 'Under Review').length} In Verification`, icon: FileCheck, path: '/student/documents' },
+          { title: 'Payments Cleared', value: `₹${paidSum.toLocaleString()}`, sub: 'Fee Ledger Total', icon: CreditCard, path: '/student/payments' },
         ].map((stat, idx) => (
           <motion.div key={idx} variants={itemVariants} onClick={() => navigate(stat.path)}>
-            <Card className="flex items-center gap-4 p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group">
-              <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 ${stat.color} group-hover:scale-105 transition-transform`}>
-                <stat.icon className="w-6 h-6" />
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-subtle hover:shadow-card hover:border-slate-300 transition-all cursor-pointer group">
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">{stat.title}</span>
+                <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200/60 text-slate-700 flex items-center justify-center group-hover:text-[#58051E] group-hover:border-[#58051E]/30 transition-colors">
+                  <stat.icon className="w-4 h-4" />
+                </div>
               </div>
-              <div>
-                <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">{stat.title}</span>
-                <span className="text-xl font-black text-slate-900 leading-none">{stat.value}</span>
-                <span className="text-[10px] font-extrabold text-slate-500 block mt-1">{stat.sub}</span>
-              </div>
-            </Card>
+              <span className="text-xl font-bold text-slate-900 leading-none tracking-tight block">{stat.value}</span>
+              <span className="text-[10px] font-medium text-slate-400 block mt-1">{stat.sub}</span>
+            </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Country Legalization Progress Card */}
+      {/* Country Legalization Progress Banner */}
       {nawaRecord && (
         <motion.div variants={itemVariants}>
-          <Card className="p-4 border border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-white to-slate-50 shadow-xs">
+          <div className="p-4 rounded-2xl border border-slate-200/80 bg-white shadow-subtle">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shrink-0">
-                  📜
+                <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center shrink-0">
+                  <ScrollText className="w-4.5 h-4.5 text-[#58051E]" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-slate-900">{targetWf?.authority_badge || 'Qualification Legalization Audit'}</span>
-                    <span className="px-2 py-0.5 rounded text-[9.5px] font-black bg-indigo-100 text-indigo-800 uppercase">
+                    <span className="text-xs font-bold text-slate-900">{targetWf?.authority_badge || 'Legalization Audit'}</span>
+                    <span className="px-2 py-0.2 rounded text-[9.5px] font-bold bg-slate-100 text-slate-700 uppercase border border-slate-200">
                       {nawaRecord.nawa_ref_no}
                     </span>
                   </div>
-                  <p className="text-xs font-semibold text-slate-500 mt-0.5">
-                    Stage Progress: <span className="font-bold text-slate-900">Step {nawaRecord.current_step} of 4 — {nawaRecord.status}</span>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Stage Progress: <span className="font-semibold text-slate-800">Step {nawaRecord.current_step} of 4 — {nawaRecord.status}</span>
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  size="sm"
+                  variant="outline"
                   onClick={() => navigate('/student/journey-tracker')}
-                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-transform active:scale-95"
+                  className="gap-1.5"
                 >
-                  View Workflow Tracking <ArrowRight className="w-3.5 h-3.5 inline ml-1" />
-                </button>
+                  View Workflow Tracking <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </motion.div>
       )}
 
       {/* Main Workspace Division */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         {/* 12-Stage Journey Checklist */}
-        <motion.div variants={itemVariants} className="lg:col-span-2 space-y-6">
-          <Card className="p-6 border border-slate-200/70 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+        <motion.div variants={itemVariants} className="lg:col-span-2 space-y-4">
+          <Card className="p-5 border border-slate-200/80 shadow-subtle space-y-3.5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-sm font-black text-slate-900">12-Stage Journey Checklist</h3>
-                <p className="text-xs text-slate-400 font-semibold mt-0.5">Comprehensive admission, NAWA audit, installment, and visa roadmap</p>
+                <h3 className="text-sm font-bold text-slate-900">12-Stage Admission Journey</h3>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">Sequential milestones from inquiry to campus arrival</p>
               </div>
-              <span className="text-[10px] font-extrabold text-[#6A1B2E] bg-[#6A1B2E]/10 px-2.5 py-1 rounded-full uppercase border border-[#6A1B2E]/20">
+              <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/5 px-2.5 py-1 rounded-full uppercase border border-[#58051E]/15">
                 {completedCount} of 12 Completed
               </span>
             </div>
 
             {/* Checklist Items Grid */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {checklistItems.map((item, idx) => (
                 <div
                   key={idx}
                   onClick={() => navigate(item.path)}
-                  className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer hover:border-slate-300 ${item.isDone
-                    ? 'bg-slate-50/60 border-slate-200/60 text-slate-900'
-                    : item.isRejected
-                      ? 'bg-red-50/50 border-red-200 text-red-900'
-                      : 'bg-white border-slate-100 text-slate-500'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${item.isDone
-                      ? 'bg-emerald-500 text-white'
+                  className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer hover:border-slate-300 ${
+                    item.isDone
+                      ? 'bg-slate-50/70 border-slate-200/70 text-slate-900'
                       : item.isRejected
-                        ? 'bg-red-600 text-white'
-                        : 'bg-slate-100 border border-slate-200 text-slate-300'
-                      }`}>
-                      {item.isDone ? <CheckCircle2 className="w-4 h-4" /> : item.isRejected ? <XCircle className="w-4 h-4" /> : <Circle className="w-3.5 h-3.5" />}
+                        ? 'bg-rose-50/50 border-rose-200 text-rose-900'
+                        : 'bg-white border-slate-200/60 text-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                      item.isDone
+                        ? 'bg-emerald-500 text-white'
+                        : item.isRejected
+                          ? 'bg-rose-600 text-white'
+                          : 'bg-slate-100 text-slate-400 border border-slate-200'
+                    }`}>
+                      {item.isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : item.isRejected ? <XCircle className="w-3.5 h-3.5" /> : <Circle className="w-3 h-3" />}
                     </div>
-                    <span className={`text-xs font-extrabold ${item.isDone ? 'text-slate-900' : item.isRejected ? 'text-red-900' : 'text-slate-600'}`}>
+                    <span className={`text-xs truncate ${item.isDone ? 'font-semibold text-slate-900' : item.isRejected ? 'font-semibold text-rose-900' : 'font-medium text-slate-600'}`}>
                       {item.title}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase border ${item.isDone
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : item.isRejected
-                        ? 'bg-red-50 text-red-700 border-red-200'
-                        : 'bg-slate-100 text-slate-400 border-slate-200'
-                      }`}>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-[9.5px] font-bold px-2 py-0.2 rounded border ${
+                      item.isDone
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : item.isRejected
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
+                    }`}>
                       {item.tag}
                     </span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                    <ArrowRight className="w-3 h-3 text-slate-400" />
                   </div>
                 </div>
               ))}
@@ -314,57 +322,75 @@ export const StudentDashboard: React.FC = () => {
           </Card>
         </motion.div>
 
-        {/* Right Column: NAWA Status & Meetings */}
-        <motion.div variants={itemVariants} className="space-y-6">
+        {/* Right Column: Legalization & Counselor Blocks */}
+        <motion.div variants={itemVariants} className="space-y-4">
           {/* Legalization & Verification Process Live Status Card */}
-          <Card className="p-6 border border-slate-200/70 shadow-xs space-y-4">
-            <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
-              <span>{targetWf?.authority_acronym ? `${targetWf.authority_acronym} Legalization Status` : 'Legalization Status'}</span>
-              <span className={`text-[9.5px] font-black uppercase px-2 py-0.5 rounded-full border ${isNawaApproved
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : isNawaSubmitted
-                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                  : isNawaInReview
-                    ? 'bg-amber-50 text-amber-800 border-amber-200'
-                    : inst1Paid
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-slate-100 text-slate-500 border-slate-200'
-                }`}>
-                {isNawaApproved ? 'Approved' : isNawaSubmitted ? 'Submitted to Agency' : isNawaInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Locked'}
+          <Card className="p-5 border border-slate-200/80 shadow-subtle space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <span className="text-xs font-bold text-slate-900">{targetWf?.authority_acronym ? `${targetWf.authority_acronym} Legalization` : 'Legalization Status'}</span>
+              <span className={`text-[9.5px] font-bold uppercase px-2 py-0.5 rounded border ${
+                isNawaApproved
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : isNawaSubmitted
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : isNawaInReview
+                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      : inst1Paid
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-slate-100 text-slate-500 border-slate-200'
+              }`}>
+                {isNawaApproved ? 'Approved' : isNawaSubmitted ? 'Submitted' : isNawaInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Locked'}
               </span>
-            </h3>
+            </div>
 
-            <div className="p-4 rounded-xl border space-y-2 bg-slate-50 border-slate-100">
-              <p className="text-xs font-black text-slate-900">
-                {isNawaApproved
-                  ? `✅ ${targetWf?.authority_acronym || 'Authority'} Legalization & Audit Approved`
-                  : isNawaSubmitted
-                    ? `📩 Submitted to ${targetWf?.authority_acronym || 'Agency'} for Processing`
-                    : isNawaInReview
-                      ? `⏳ ${targetWf?.authority_acronym || 'Legalization'} Eligibility & Audit Under Review`
-                      : inst1Paid
-                        ? `⏳ ${targetWf?.authority_acronym || 'Legalization'} Evaluation Initiated (Awaiting Review)`
-                        : '🔒 1st Installment Payment Required'}
+            <div className="p-3.5 rounded-xl border bg-slate-50 border-slate-200/70 space-y-1.5">
+              <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                {isNawaApproved ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{targetWf?.authority_acronym || 'Authority'} Legalization Approved</span>
+                  </>
+                ) : isNawaSubmitted ? (
+                  <>
+                    <FileCheck className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>Submitted to {targetWf?.authority_acronym || 'Agency'}</span>
+                  </>
+                ) : isNawaInReview ? (
+                  <>
+                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Eligibility & Audit Under Review</span>
+                  </>
+                ) : inst1Paid ? (
+                  <>
+                    <Clock className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>Evaluation Initiated</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>1st Installment Deposit Required</span>
+                  </>
+                )}
               </p>
-              <p className="text-[11px] font-semibold text-slate-500 leading-relaxed">
+              <p className="text-[11px] font-normal text-slate-500 leading-relaxed">
                 {isNawaApproved
-                  ? `Your educational documents and ${targetWf?.authority_acronym || 'legalization'} audit have been verified and approved.`
+                  ? `Your educational credentials and ${targetWf?.authority_acronym || 'legalization'} audit are officially verified.`
                   : isNawaSubmitted
-                    ? `Your files have been submitted to ${targetWf?.authority_name || 'the evaluation board'} for official equivalency verification.`
+                    ? `Files dispatched to ${targetWf?.authority_name || 'the evaluation board'} for official equivalency verification.`
                     : isNawaInReview
-                      ? `FEREX admissions team is currently conducting your ${targetWf?.country || 'destination'} qualification and eligibility audit.`
+                      ? `FEREX admissions desk is reviewing your academic transcripts and eligibility for ${targetCountry}.`
                       : inst1Paid
-                        ? `1st Installment cleared. ${targetWf?.authority_acronym || 'Legalization'} process is now queued for review.`
-                        : `Complete 1st Installment payment to unlock ${targetWf?.authority_acronym || 'Legalization'} process.`}
+                        ? `1st Installment verified. ${targetWf?.authority_acronym || 'Legalization'} process is queued for audit.`
+                        : `Complete 1st installment payment to unlock ${targetWf?.authority_acronym || 'Legalization'} process.`}
               </p>
-              <Button size="sm" variant="outline" className="w-full mt-2 text-xs font-bold" onClick={() => navigate('/student/documents')}>
-                View Document Vault
+              <Button size="xs" variant="outline" className="w-full mt-2 font-semibold" onClick={() => navigate('/student/documents')}>
+                Open Document Vault
               </Button>
             </div>
           </Card>
 
           {/* Assigned Counselor Card */}
-          <Card className="p-5 border border-slate-200/70 shadow-xs space-y-3 bg-gradient-to-br from-white to-slate-50/50 text-left">
+          <Card className="p-5 border border-slate-200/80 shadow-subtle space-y-3 bg-white text-left">
             {(() => {
               const rawCounselor = (profile as any)?.assigned_counselor?.trim();
               const hasRealCounselor = rawCounselor && 
@@ -375,28 +401,27 @@ export const StudentDashboard: React.FC = () => {
               if (!hasRealCounselor) {
                 return (
                   <>
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                      <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Dedicated Admissions Counselor</span>
-                      <span className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">● Assignment Pending</span>
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Admissions Counselor</span>
+                      <span className="px-2 py-0.2 rounded text-[9.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200">Pending Assignment</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center font-black text-sm shadow-xs shrink-0 border border-amber-200">
-                        ⏳
+                      <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/80">
+                        <Clock className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-xs font-black text-slate-900 truncate">
-                          Counselor Assignment in Progress
+                        <h4 className="text-xs font-bold text-slate-900 truncate">
+                          Counselor Desk Allocation
                         </h4>
-                        <p className="text-[10.5px] font-bold text-slate-500 truncate">Admissions Team ({targetCountry} Desk)</p>
-                        <p className="text-[9.5px] font-semibold text-slate-400">Target: <span className="font-bold text-slate-700">{targetCountry}</span></p>
+                        <p className="text-[10.5px] font-medium text-slate-500 truncate">Admissions Team ({targetCountry} Desk)</p>
                       </div>
                     </div>
-                    <p className="text-[10.5px] text-slate-500 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                      Your dedicated counselor will be assigned shortly. You can book an introductory advisory session below.
+                    <p className="text-[10.5px] text-slate-500 leading-relaxed bg-slate-50 p-2 rounded-xl border border-slate-200/60">
+                      Your counselor will be assigned shortly. Book an introductory session below.
                     </p>
                     <div className="pt-1">
-                      <Button size="sm" className="w-full text-xs font-bold h-8 bg-[#6A1B2E] text-white cursor-pointer" onClick={() => navigate('/student/meetings')}>
-                        📅 Book Advisory Session
+                      <Button size="sm" className="w-full text-xs font-semibold h-8" onClick={() => navigate('/student/meetings')} icon={<Calendar className="w-3.5 h-3.5" />}>
+                        Book Advisory Session
                       </Button>
                     </div>
                   </>
@@ -406,47 +431,40 @@ export const StudentDashboard: React.FC = () => {
               const namePart = rawCounselor.split('(')[0].trim();
               const titlePart = rawCounselor.includes('(')
                 ? rawCounselor.split('(')[1].replace(')', '').trim()
-                : `${targetCountry} Admissions & Visa Desk`;
+                : `${targetCountry} Desk`;
               const initials = namePart.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'FX';
 
               return (
                 <>
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Dedicated Admissions Counselor</span>
-                    <span className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">● Active & Available</span>
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Admissions Counselor</span>
+                    <span className="px-2 py-0.2 rounded text-[9.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#6A1B2E] to-[#4A101E] text-amber-300 flex items-center justify-center font-black text-sm shadow-sm shrink-0 border border-rose-900/30">
+                    <div className="w-9 h-9 rounded-xl bg-[#58051E] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                       {initials}
                     </div>
                     <div className="min-w-0">
-                      <h4 className="text-xs font-black text-slate-900 truncate">
+                      <h4 className="text-xs font-bold text-slate-900 truncate">
                         {namePart}
                       </h4>
-                      <p className="text-[10.5px] font-bold text-[#6A1B2E] truncate">{titlePart}</p>
-                      <p className="text-[9.5px] font-semibold text-slate-500">Destination: <span className="font-bold text-slate-800">{targetCountry}</span></p>
+                      <p className="text-[10.5px] font-medium text-[#58051E] truncate">{titlePart}</p>
                     </div>
                   </div>
                   {config.branding.operating_hours && (
-                    <div className="p-2.5 rounded-xl bg-slate-100/70 border border-slate-200/60 text-[10px] font-bold text-slate-600 space-y-0.5">
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60 text-[10px] font-medium text-slate-600 space-y-0.5">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Desk Hours:</span>
-                        <span className="text-slate-800 font-extrabold">{config.branding.operating_hours}</span>
+                        <span className="text-slate-800 font-semibold">{config.branding.operating_hours}</span>
                       </div>
-                      {config.branding.support_phone && (
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">Direct Helpline:</span>
-                          <span className="text-slate-800 font-extrabold">{config.branding.support_phone}</span>
-                        </div>
-                      )}
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2 pt-1">
-                    <Button size="sm" variant="outline" className="text-xs font-bold h-8 cursor-pointer" onClick={() => navigate('/student/meetings')}>
-                      💬 Chat / Notes
+                    <Button size="xs" variant="outline" className="h-8" onClick={() => navigate('/student/meetings')} icon={<MessageSquare className="w-3.5 h-3.5" />}>
+                      Chat / Notes
                     </Button>
-                    <Button size="sm" className="text-xs font-bold h-8 bg-[#6A1B2E] text-white cursor-pointer" onClick={() => navigate('/student/meetings')}>
-                      📅 Book Session
+                    <Button size="xs" className="h-8" onClick={() => navigate('/student/meetings')} icon={<Calendar className="w-3.5 h-3.5" />}>
+                      Book Session
                     </Button>
                   </div>
                 </>
@@ -454,29 +472,30 @@ export const StudentDashboard: React.FC = () => {
             })()}
           </Card>
 
-          <Card className="p-6 border border-slate-200/70 shadow-xs space-y-4">
-            <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3">Upcoming Counselor Session</h3>
+          {/* Upcoming Session */}
+          <Card className="p-5 border border-slate-200/80 shadow-subtle space-y-3">
+            <h3 className="text-xs font-bold text-slate-900 border-b border-slate-100 pb-2">Next Scheduled Session</h3>
             {upcomingMeeting ? (
-              <div className="p-4 bg-[#6A1B2E]/5 rounded-xl border border-[#6A1B2E]/10 space-y-2">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold uppercase text-[#6A1B2E] tracking-wider">Scheduled Session</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">{upcomingMeeting.status || 'Confirmed'}</span>
+                  <span className="text-[9.5px] font-bold uppercase text-[#58051E]">Confirmed</span>
+                  <span className="text-[9.5px] font-bold px-2 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">{upcomingMeeting.status || 'Confirmed'}</span>
                 </div>
-                <h4 className="text-xs font-black text-slate-900">{upcomingMeeting.subject || 'European Admissions Strategy'}</h4>
-                <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500">
-                  <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-[#6A1B2E]" /> {upcomingMeeting.scheduled_date || 'Tomorrow'}</span>
-                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-[#6A1B2E]" /> {upcomingMeeting.start_time || '3:00 PM'}</span>
+                <h4 className="text-xs font-bold text-slate-900">{upcomingMeeting.subject || 'Admissions Strategy'}</h4>
+                <div className="flex items-center gap-3 text-[11px] font-medium text-slate-500">
+                  <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-[#58051E]" /> {upcomingMeeting.scheduled_date || 'Upcoming'}</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-[#58051E]" /> {upcomingMeeting.start_time || '3:00 PM'}</span>
                 </div>
-                <Button size="sm" className="w-full mt-2 text-xs font-bold bg-[#6A1B2E] text-white" onClick={() => navigate('/student/meetings')}>
-                  Join Session Portal
+                <Button size="xs" className="w-full mt-1.5" onClick={() => navigate('/student/meetings')}>
+                  Join Session
                 </Button>
               </div>
             ) : (
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-center space-y-2">
-                <Clock className="w-8 h-8 text-slate-300 mx-auto" />
-                <p className="text-xs font-semibold text-slate-500">No upcoming meetings scheduled.</p>
-                <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => navigate('/student/meetings')}>
-                  Schedule Counselor Meeting
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/60 text-center space-y-2">
+                <Clock className="w-6 h-6 text-slate-300 mx-auto" />
+                <p className="text-xs font-medium text-slate-500">No session scheduled currently.</p>
+                <Button size="xs" variant="outline" onClick={() => navigate('/student/meetings')}>
+                  Schedule Session
                 </Button>
               </div>
             )}
@@ -486,3 +505,4 @@ export const StudentDashboard: React.FC = () => {
     </motion.div>
   );
 };
+

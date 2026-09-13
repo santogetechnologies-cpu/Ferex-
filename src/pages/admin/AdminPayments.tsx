@@ -152,7 +152,7 @@ export const AdminPayments: React.FC = () => {
       setVerifyModalItem(null);
       setVerifyNotes('');
 
-      showToast(`🎉 Payment of INR ${verifyModalItem.amount.toLocaleString()} for ${verifyModalItem.student_name || 'Student'} verified! Tax Invoice & Receipt generated.`);
+      showToast(`Payment of INR ${verifyModalItem.amount.toLocaleString()} for ${verifyModalItem.student_name || 'Student'} verified. Tax Invoice & Receipt generated.`);
       fetchAll();
     } catch (err: any) {
       showToast(`Error verifying payment: ${err.message || 'Verification failed'}`);
@@ -211,7 +211,7 @@ export const AdminPayments: React.FC = () => {
 
       setRefundPaymentItem(null); setRefundAmount(''); setRefundReason('');
       if (viewPayment?.id === refundPaymentItem.id) setViewPayment(null);
-      showToast(`🎉 Refund of INR ${amt.toLocaleString()} issued successfully! Credit note PDF downloaded.`);
+      showToast(`Refund of INR ${amt.toLocaleString()} issued successfully. Credit note PDF downloaded.`);
       fetchAll();
     } catch (err: any) { showToast(`Error issuing refund: ${err.message}`); } finally { setIsProcessing(null); }
   };
@@ -240,7 +240,7 @@ export const AdminPayments: React.FC = () => {
         await verifyPayment(created.id, `Offline payment recorded by Admin via ${manualMethod}. UTR: ${manualUtr || 'N/A'}`);
       }
 
-      showToast(`🎉 Payment of INR ${amt.toLocaleString()} recorded for ${manualStudentName}!`);
+      showToast(`Payment of INR ${amt.toLocaleString()} recorded for ${manualStudentName}.`);
       setShowManualModal(false);
       setManualStudentName('');
       setManualStudentId('');
@@ -327,7 +327,7 @@ export const AdminPayments: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-[#6A1B2E]" /> Payment & Billing Control Console
+            <CreditCard className="w-5 h-5 text-[#58051E]" /> Payment & Billing Control Console
           </h1>
           <p className="text-xs font-semibold text-slate-400 mt-0.5">
             Manually verify payments, record offline entries, issue refunds with credit notes, download invoices & receipts.
@@ -336,7 +336,7 @@ export const AdminPayments: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowManualModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] shadow-xs transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-xs transition-all"
           >
             <Plus className="w-4 h-4" /> Record Payment
           </button>
@@ -378,7 +378,7 @@ export const AdminPayments: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search student name, ID, UTR number, ref no, description..."
-              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
+              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40" />
           </div>
           <div className="flex items-center gap-2">
             <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -396,7 +396,7 @@ export const AdminPayments: React.FC = () => {
           {(['All','Pending Verification','Paid','Rejected','Refunded','Partial'] as FilterStatus[]).map(tab => (
             <button key={tab} onClick={() => setFilterStatus(tab)}
               className={`px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border ${
-                filterStatus === tab ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200/60'
+                filterStatus === tab ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200/60'
               }`}>
               {tab === 'All' ? `All Payments (${displayPayments.length})` :
                tab === 'Pending Verification' ? `Pending (${pendingCount})` :
@@ -459,7 +459,7 @@ export const AdminPayments: React.FC = () => {
                         <p className="font-bold text-slate-900">{p.title || p.description || 'Installment Fee'}</p>
                         <p className="text-[10px] text-slate-400">{p.payment_type || 'Installment'}</p>
                         {(p as any).milestone_step && (
-                          <span className="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-[#6A1B2E]/10 text-[#6A1B2E] border border-[#6A1B2E]/20">
+                          <span className="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20">
                             Journey Step {(p as any).milestone_step}
                           </span>
                         )}
@@ -675,7 +675,7 @@ export const AdminPayments: React.FC = () => {
               className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-black">
+                  <div className="w-8 h-8 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black">
                     <Plus className="w-5 h-5" />
                   </div>
                   <div>
@@ -710,14 +710,14 @@ export const AdminPayments: React.FC = () => {
                   </select>
                   <input type="text" required value={manualStudentName} onChange={e => setManualStudentName(e.target.value)}
                     placeholder="e.g. Rahul Sharma"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]" />
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Amount (INR) *</label>
                     <input type="number" required min={1} value={manualAmount} onChange={e => setManualAmount(e.target.value)}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]" />
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Payment Method *</label>
@@ -762,7 +762,7 @@ export const AdminPayments: React.FC = () => {
                   <button type="button" onClick={() => setShowManualModal(false)}
                     className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
                   <button type="submit" disabled={isProcessing === 'manual'}
-                    className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-black rounded-xl hover:bg-[#521221] shadow-sm cursor-pointer disabled:opacity-50">
+                    className="flex-1 h-9 bg-[#58051E] text-white text-xs font-black rounded-xl hover:bg-[#430316] shadow-sm cursor-pointer disabled:opacity-50">
                     {isProcessing === 'manual' ? 'Saving...' : 'Record Payment'}
                   </button>
                 </div>
@@ -792,7 +792,7 @@ export const AdminPayments: React.FC = () => {
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Rejection Reason *</label>
                   <textarea required rows={3} value={rejectionNotes} onChange={e => setRejectionNotes(e.target.value)}
                     placeholder="e.g. UTR reference not found in bank statement. Please re-upload valid payment proof."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40" />
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40" />
                 </div>
                 <div className="flex gap-2 pt-2 border-t border-slate-100">
                   <button type="button" onClick={() => setRejectPaymentItem(null)}

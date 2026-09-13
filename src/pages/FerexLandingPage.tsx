@@ -42,16 +42,16 @@ export function formatFeeEURandINR(feeStr?: string): string {
 
 // Country metadata helper for rich destination cards
 const COUNTRY_DETAILS: Record<string, { flag: string; schengen: string; workRights: string; stayBack: string; avgLiving: string }> = {
-  Poland: { flag: '🇵🇱', schengen: '27 Schengen Nations', workRights: '20 hrs/week + Full-time Summer', stayBack: '15 Months Post-Study Work', avgLiving: '€350 - €500 / mo' },
-  Germany: { flag: '🇩🇪', schengen: '27 Schengen Nations', workRights: '140 Full or 280 Half Days/yr', stayBack: '18 Months Post-Study Job Search', avgLiving: '€850 - €1,100 / mo' },
-  'Czech Republic': { flag: '🇨🇿', schengen: '27 Schengen Nations', workRights: 'Free Labor Market for Graduates', stayBack: '9 Months Job Seeking Visa', avgLiving: '€400 - €650 / mo' },
-  Italy: { flag: '🇮🇹', schengen: '27 Schengen Nations', workRights: '20 hrs/week Legal Work', stayBack: '12 Months Permit to Stay', avgLiving: '€500 - €750 / mo' },
-  Spain: { flag: '🇪🇸', schengen: '27 Schengen Nations', workRights: '30 hrs/week Part-time', stayBack: '12 Months Job Search Residence', avgLiving: '€550 - €800 / mo' },
-  France: { flag: '🇫🇷', schengen: '27 Schengen Nations', workRights: '60% of Annual Legal Hours', stayBack: '12-24 Months APS Visa', avgLiving: '€700 - €1,000 / mo' },
-  Lithuania: { flag: '🇱🇹', schengen: '27 Schengen Nations', workRights: '20 hrs/week during studies', stayBack: '12 Months TRC Extension', avgLiving: '€350 - €500 / mo' },
-  Hungary: { flag: '🇭🇺', schengen: '27 Schengen Nations', workRights: '24 hrs/week Part-time', stayBack: '9 Months Study-to-Work Permit', avgLiving: '€400 - €550 / mo' },
-  Austria: { flag: '🇦🇹', schengen: '27 Schengen Nations', workRights: '20 hrs/week with permit', stayBack: '12 Months Red-White-Red Card', avgLiving: '€800 - €1,100 / mo' },
-  Netherlands: { flag: '🇳🇱', schengen: '27 Schengen Nations', workRights: '16 hrs/week Part-time', stayBack: '12 Months Orientation Year', avgLiving: '€900 - €1,300 / mo' },
+  Poland: { flag: 'PL', schengen: '27 Schengen Nations', workRights: '20 hrs/week + Full-time Summer', stayBack: '15 Months Post-Study Work', avgLiving: '€350 - €500 / mo' },
+  Germany: { flag: 'DE', schengen: '27 Schengen Nations', workRights: '140 Full or 280 Half Days/yr', stayBack: '18 Months Post-Study Job Search', avgLiving: '€850 - €1,100 / mo' },
+  'Czech Republic': { flag: 'CZ', schengen: '27 Schengen Nations', workRights: 'Free Labor Market for Graduates', stayBack: '9 Months Job Seeking Visa', avgLiving: '€400 - €650 / mo' },
+  Italy: { flag: 'IT', schengen: '27 Schengen Nations', workRights: '20 hrs/week Legal Work', stayBack: '12 Months Permit to Stay', avgLiving: '€500 - €750 / mo' },
+  Spain: { flag: 'ES', schengen: '27 Schengen Nations', workRights: '30 hrs/week Part-time', stayBack: '12 Months Job Search Residence', avgLiving: '€550 - €800 / mo' },
+  France: { flag: 'FR', schengen: '27 Schengen Nations', workRights: '60% of Annual Legal Hours', stayBack: '12-24 Months APS Visa', avgLiving: '€700 - €1,000 / mo' },
+  Lithuania: { flag: 'LT', schengen: '27 Schengen Nations', workRights: '20 hrs/week during studies', stayBack: '12 Months TRC Extension', avgLiving: '€350 - €500 / mo' },
+  Hungary: { flag: 'HU', schengen: '27 Schengen Nations', workRights: '24 hrs/week Part-time', stayBack: '9 Months Study-to-Work Permit', avgLiving: '€400 - €550 / mo' },
+  Austria: { flag: 'AT', schengen: '27 Schengen Nations', workRights: '20 hrs/week with permit', stayBack: '12 Months Red-White-Red Card', avgLiving: '€800 - €1,100 / mo' },
+  Netherlands: { flag: 'NL', schengen: '27 Schengen Nations', workRights: '16 hrs/week Part-time', stayBack: '12 Months Orientation Year', avgLiving: '€900 - €1,300 / mo' },
 };
 
 export const FerexLandingPage: React.FC = () => {
@@ -155,7 +155,7 @@ export const FerexLandingPage: React.FC = () => {
       country,
       count: data.count,
       minFee: data.minFee === 99999 ? 3000 : data.minFee,
-      meta: COUNTRY_DETAILS[country] || { flag: '🇪🇺', schengen: 'Schengen Member', workRights: '20 hrs/week legal', stayBack: '12 Months Post-Study', avgLiving: '€400 - €600 / mo' }
+      meta: COUNTRY_DETAILS[country] || { flag: 'EU', schengen: 'Schengen Member', workRights: '20 hrs/week legal', stayBack: '12 Months Post-Study', avgLiving: '€400 - €600 / mo' }
     }));
   }, [universities]);
 
@@ -765,7 +765,7 @@ export const FerexLandingPage: React.FC = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <span className="text-[10px] font-black uppercase tracking-wider text-[#58051E] bg-[#58051E]/10 px-2.5 py-0.5 rounded-full inline-block mb-1.5 border border-[#58051E]/20">
-                          {uni.country} 🇪🇺
+                          {uni.country}
                         </span>
                         <h3 className="text-base font-serif font-black text-slate-900 group-hover:text-[#58051E] transition-colors leading-tight">
                           {uni.name}
@@ -949,7 +949,7 @@ export const FerexLandingPage: React.FC = () => {
               <h5 className="font-bold text-slate-900 uppercase text-[11px] tracking-wider">European Headquarters</h5>
               <p className="text-slate-500 font-medium leading-relaxed">
                 Al. Jerozolimskie 81, 02-001<br />
-                Warsaw, Republic of Poland 🇵🇱<br />
+                Warsaw, Republic of Poland (PL)<br />
                 Tel: +48 22 890 1234
               </p>
             </div>
@@ -958,7 +958,7 @@ export const FerexLandingPage: React.FC = () => {
               <h5 className="font-bold text-slate-900 uppercase text-[11px] tracking-wider">India Admissions Center</h5>
               <p className="text-slate-500 font-medium leading-relaxed">
                 Bandra-Kurla Complex (BKC)<br />
-                Mumbai, Maharashtra, India 🇮🇳<br />
+                Mumbai, Maharashtra, India (IN)<br />
                 Email: admissions@ferex.education
               </p>
             </div>

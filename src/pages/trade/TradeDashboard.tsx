@@ -123,7 +123,7 @@ export const TradeDashboard: React.FC = () => {
       )}
 
       {/* Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-6 md:p-8 shadow-xl border border-[#6A1B2E]/30">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#2E030F] text-white p-6 md:p-8 shadow-xl border border-[#58051E]/30">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
@@ -148,7 +148,7 @@ export const TradeDashboard: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <button
               onClick={() => navigate('/trade/shipments')}
-              className="h-10 px-5 rounded-xl text-xs font-black text-[#6A1B2E] bg-white hover:bg-slate-100 transition-all shadow-md flex items-center gap-2 cursor-pointer"
+              className="h-10 px-5 rounded-xl text-xs font-black text-[#58051E] bg-white hover:bg-slate-100 transition-all shadow-md flex items-center gap-2 cursor-pointer"
             >
               Track Active Containers <ArrowUpRight className="w-4 h-4" />
             </button>
@@ -168,7 +168,7 @@ export const TradeDashboard: React.FC = () => {
           { title: 'Containers in Transit', value: `${stats.activeContainersCount} Units`, sub: `${shipments.length} Total Shipments in DB`, icon: Truck, color: 'text-indigo-600 bg-indigo-50 border-indigo-100', badge: 'Live Ports', path: '/trade/shipments' },
           { title: 'Total Trade Volume', value: stats.totalVolumeStr, sub: `${invoices.length} Commercial Invoices`, icon: Globe, color: 'text-blue-600 bg-blue-50 border-blue-100', badge: 'Active Ledger', path: '/trade/invoices' },
           { title: 'Open Letters of Credit', value: stats.openLCsStr, sub: 'Verified Banking Guarantees', icon: Building2, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', badge: 'Banking Lines', path: '/trade/letters-of-credit' },
-          { title: 'Cleared Payments', value: stats.clearedPaymentsStr, sub: 'Settled SWIFT Transactions', icon: CreditCard, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20', badge: '100% Cleared', path: '/trade/payments' },
+          { title: 'Cleared Payments', value: stats.clearedPaymentsStr, sub: 'Settled SWIFT Transactions', icon: CreditCard, color: 'text-[#58051E] bg-[#58051E]/10 border-[#58051E]/20', badge: '100% Cleared', path: '/trade/payments' },
         ].map((stat, idx) => (
           <Card key={idx} onClick={() => navigate(stat.path)} className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group flex flex-col justify-between h-full">
             <div>
@@ -201,7 +201,7 @@ export const TradeDashboard: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-[#6A1B2E]" /> Active Maritime Shipments Ledger
+                  <Truck className="w-4 h-4 text-[#58051E]" /> Active Maritime Shipments Ledger
                 </h3>
                 <p className="text-xs text-slate-400 font-semibold mt-0.5">Real-time container movements and customs clearance updates</p>
               </div>
@@ -215,7 +215,7 @@ export const TradeDashboard: React.FC = () => {
                 <Truck className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                 <p className="text-xs font-bold text-slate-600">No active shipments in the database</p>
                 <p className="text-[11px] text-slate-400 mt-0.5">Book a new container shipment to start tracking freight.</p>
-                <Button size="sm" className="mt-3 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => navigate('/trade/shipments')}>
+                <Button size="sm" className="mt-3 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => navigate('/trade/shipments')}>
                   <Plus className="w-3.5 h-3.5 mr-1" /> Book Container Shipment
                 </Button>
               </div>
@@ -257,9 +257,9 @@ export const TradeDashboard: React.FC = () => {
           <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <Anchor className="w-4 h-4 text-[#6A1B2E]" /> Global Port Hubs Status
+                <Anchor className="w-4 h-4 text-[#58051E]" /> Global Port Hubs Status
               </h3>
-              <button onClick={() => navigate('/trade/shipments')} className="text-xs font-bold text-[#6A1B2E] hover:underline">
+              <button onClick={() => navigate('/trade/shipments')} className="text-xs font-bold text-[#58051E] hover:underline">
                 Explore Ports
               </button>
             </div>
@@ -278,9 +278,9 @@ export const TradeDashboard: React.FC = () => {
                 ))
               ) : (
                 [
-                  { port: 'Port of Gdansk', country: '🇵🇱 Poland', status: 'Customs Clear' },
-                  { port: 'Port of Hamburg', country: '🇩🇪 Germany', status: 'In Transit' },
-                  { port: 'Port of Rotterdam', country: '🇳🇱 Netherlands', status: 'Docking Cleared' },
+                  { port: 'Port of Gdansk', country: 'Poland (PL)', status: 'Customs Clear' },
+                  { port: 'Port of Hamburg', country: 'Germany (DE)', status: 'In Transit' },
+                  { port: 'Port of Rotterdam', country: 'Netherlands (NL)', status: 'Docking Cleared' },
                 ].map((p, idx) => (
                   <div key={idx} className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
                     <div className="text-[10px] font-black uppercase text-slate-400">{p.country}</div>
@@ -316,21 +316,21 @@ export const TradeDashboard: React.FC = () => {
                 <button
                   key={idx}
                   onClick={() => navigate(act.path)}
-                  className="p-3 rounded-xl border border-slate-200/80 hover:border-[#6A1B2E]/40 hover:bg-slate-50 transition-all cursor-pointer group text-left flex items-center gap-2.5"
+                  className="p-3 rounded-xl border border-slate-200/80 hover:border-[#58051E]/40 hover:bg-slate-50 transition-all cursor-pointer group text-left flex items-center gap-2.5"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-[#6A1B2E]/10 text-[#6A1B2E] group-hover:bg-[#6A1B2E] group-hover:text-white flex items-center justify-center transition-colors shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-[#58051E]/10 text-[#58051E] group-hover:bg-[#58051E] group-hover:text-white flex items-center justify-center transition-colors shrink-0">
                     <act.icon className="w-3.5 h-3.5" />
                   </div>
-                  <span className="text-xs font-bold text-slate-900 group-hover:text-[#6A1B2E] truncate">{act.title}</span>
+                  <span className="text-xs font-bold text-slate-900 group-hover:text-[#58051E] truncate">{act.title}</span>
                 </button>
               ))}
             </div>
           </Card>
 
           {/* Pending LC Authorization Widget */}
-          <Card className="p-5 border-l-4 border-l-[#6A1B2E] border-slate-200/70 shadow-xs">
+          <Card className="p-5 border-l-4 border-l-[#58051E] border-slate-200/70 shadow-xs">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3">
-              <h3 className="text-xs font-black text-[#6A1B2E] uppercase tracking-wider flex items-center gap-1.5">
+              <h3 className="text-xs font-black text-[#58051E] uppercase tracking-wider flex items-center gap-1.5">
                 <Building2 className="w-4 h-4" /> Letter of Credit Active
               </h3>
               <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
@@ -347,7 +347,7 @@ export const TradeDashboard: React.FC = () => {
               </div>
             </div>
 
-            <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => navigate('/trade/letters-of-credit')}>
+            <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => navigate('/trade/letters-of-credit')}>
               Manage Letters of Credit
             </Button>
           </Card>

@@ -32,6 +32,8 @@ import {
   CheckCircle2,
   Lock,
   MessageCircle,
+  Zap,
+  X,
 } from 'lucide-react';
 
 export const RimiCustomerPortal: React.FC = () => {
@@ -502,13 +504,15 @@ export const RimiCustomerPortal: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         {o.payment_status === 'Paid' ? (
-                          <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md">✓ Settled</span>
+                          <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md flex items-center justify-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Settled
+                          </span>
                         ) : (
                           <button
                             onClick={() => setPayingOrder(o)}
                             className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-[11px] shadow-sm active:scale-95 transition-all"
                           >
-                            ⚡ Pay (UPI/Stripe)
+                            <Zap className="w-3.5 h-3.5" /> Pay (UPI/Stripe)
                           </button>
                         )}
                       </td>
@@ -711,7 +715,7 @@ export const RimiCustomerPortal: React.FC = () => {
                 onClick={() => setShowOrderModal(false)}
                 className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 

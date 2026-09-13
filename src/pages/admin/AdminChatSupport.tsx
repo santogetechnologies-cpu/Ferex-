@@ -136,7 +136,7 @@ export const AdminChatSupport: React.FC = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search chat threads..."
-              className="w-full h-8.5 pl-8.5 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#6A1B2E]/40"
+              className="w-full h-8.5 pl-8.5 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#58051E]/40"
             />
           </div>
         </div>
@@ -152,11 +152,11 @@ export const AdminChatSupport: React.FC = () => {
                 key={c.id}
                 onClick={() => setActiveId(c.id)}
                 className={`p-3.5 flex items-center gap-3 cursor-pointer transition-colors ${
-                  activeId === c.id ? 'bg-[#6A1B2E]/5 border-l-4 border-l-[#6A1B2E]' : 'hover:bg-slate-50'
+                  activeId === c.id ? 'bg-[#58051E]/5 border-l-4 border-l-[#58051E]' : 'hover:bg-slate-50'
                 }`}
               >
                 <div className="relative shrink-0">
-                  <div className="w-9 h-9 rounded-xl bg-[#6A1B2E] text-white flex items-center justify-center text-xs font-black">
+                  <div className="w-9 h-9 rounded-xl bg-[#58051E] text-white flex items-center justify-center text-xs font-black">
                     {c.avatar}
                   </div>
                   {c.online && <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />}
@@ -182,7 +182,7 @@ export const AdminChatSupport: React.FC = () => {
             {/* Header */}
             <div className="px-6 py-3.5 bg-white border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-[#6A1B2E] text-white flex items-center justify-center text-xs font-black">
+                <div className="w-8 h-8 rounded-xl bg-[#58051E] text-white flex items-center justify-center text-xs font-black">
                   {active.avatar}
                 </div>
                 <div>
@@ -202,7 +202,7 @@ export const AdminChatSupport: React.FC = () => {
                 messages.map(m => (
                   <div key={m.id} className={`flex ${m.self ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[70%] p-3.5 rounded-2xl text-xs leading-relaxed font-semibold shadow-xs ${
-                      m.self ? 'bg-[#6A1B2E] text-white rounded-br-xs' : 'bg-white border border-slate-200/80 text-slate-800 rounded-bl-xs'
+                      m.self ? 'bg-[#58051E] text-white rounded-br-xs' : 'bg-white border border-slate-200/80 text-slate-800 rounded-bl-xs'
                     }`}>
                       <p>{m.text}</p>
                       <span className={`text-[9px] font-bold block mt-1 text-right ${m.self ? 'text-white/60' : 'text-slate-400'}`}>
@@ -221,11 +221,11 @@ export const AdminChatSupport: React.FC = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type your reply here..."
-                className="flex-1 h-10 px-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#6A1B2E]/40"
+                className="flex-1 h-10 px-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#58051E]/40"
               />
               <button
                 type="submit"
-                className="h-10 px-5 bg-[#6A1B2E] text-white rounded-xl text-xs font-bold hover:bg-[#4A101E] transition-colors flex items-center gap-1.5 shadow-sm"
+                className="h-10 px-5 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] transition-colors flex items-center gap-1.5 shadow-sm"
               >
                 Send <Send className="w-3.5 h-3.5" />
               </button>

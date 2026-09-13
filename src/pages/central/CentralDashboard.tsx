@@ -330,7 +330,7 @@ export const CentralDashboard: React.FC = () => {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{toast}</span>
@@ -340,53 +340,44 @@ export const CentralDashboard: React.FC = () => {
 
       {/* 1. TOP EXECUTIVE COMMAND BANNER */}
       <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#360812] text-white p-6 md:p-8 shadow-xl border border-[#6A1B2E]/40">
-          
-          {/* Subtle Ambient Background Visual */}
-          <div className="absolute -right-8 -bottom-8 opacity-10 pointer-events-none">
-            <svg width="280" height="280" viewBox="0 0 100 100" fill="none">
-              <circle cx="50" cy="50" r="45" stroke="white" strokeWidth="2" strokeDasharray="6 4" />
-              <circle cx="50" cy="50" r="30" stroke="white" strokeWidth="1.5" />
-              <path d="M50 15 L50 85 M15 50 L85 50" stroke="white" strokeWidth="1.5" />
-            </svg>
-          </div>
-
+        <div className="relative overflow-hidden rounded-xl bg-slate-900 text-white p-6 md:p-8 shadow-card border border-slate-800">
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-2.5 max-w-3xl">
+            <div className="space-y-2 max-w-3xl">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white flex items-center gap-1.5">
-                  <Shield className="w-3 h-3 text-amber-300" /> Super Admin Central Command
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/10 border border-white/10 text-white flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-slate-300" /> Super Admin Central Command
                 </span>
-                <span className="text-[10px] font-black text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-400/30 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> 4 Subsidiary Apps Connected
+                <span className="text-xs font-medium text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-400/20 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> 4 Subsidiary Portals Connected
                 </span>
-                <span className="text-[10px] font-bold text-white/70 bg-white/10 px-2.5 py-1 rounded-full border border-white/10">
+                <span className="text-xs text-slate-400 bg-white/5 px-2.5 py-1 rounded-full border border-white/10">
                   Synced: {lastSyncTime}
                 </span>
               </div>
 
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white leading-tight">
                 Consolidated Enterprise Command & Financials
               </h1>
-              <p className="text-xs md:text-sm text-white/85 font-medium leading-relaxed">
-                Single pane of glass governing <strong className="text-white font-bold">Ferex Education</strong>, <strong className="text-white font-bold">Global Trade ERP</strong>, <strong className="text-white font-bold">Rimi Frozen FMCG</strong>, and <strong className="text-white font-bold">Ferex Digital Agency</strong>.
+              <p className="text-xs md:text-sm text-slate-300 font-normal leading-relaxed">
+                Centralized oversight governing <span className="text-white font-medium">Ferex Education</span>, <span className="text-white font-medium">Global Trade ERP</span>, <span className="text-white font-medium">Rimi Frozen FMCG</span>, and <span className="text-white font-medium">Ferex Digital Agency</span>.
               </p>
             </div>
 
             {/* Top Action Buttons */}
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <button
+                type="button"
                 onClick={() => navigate('/central/roles-users')}
-                className="h-9.5 px-4 rounded-xl text-xs font-black text-[#6A1B2E] bg-white hover:bg-slate-100 transition-all shadow-md flex items-center gap-1.5 active:scale-98 cursor-pointer"
+                className="h-9 px-4 rounded-lg text-xs font-semibold text-slate-900 bg-white hover:bg-slate-100 transition-colors shadow-subtle flex items-center gap-1.5 cursor-pointer"
               >
-                <ShieldCheck className="w-4 h-4 text-[#6A1B2E]" /> Division Admins
+                <ShieldCheck className="w-4 h-4 text-[#58051E]" /> Division Admins
               </button>
 
-
               <button
+                type="button"
                 onClick={handleRefreshSync}
                 disabled={isSyncing}
-                className="p-2.5 rounded-xl text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all cursor-pointer disabled:opacity-50"
+                className="p-2.5 rounded-lg text-slate-300 bg-white/10 hover:bg-white/15 border border-white/10 transition-colors cursor-pointer disabled:opacity-50"
                 title="Refresh Live Metrics"
               >
                 <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -403,7 +394,7 @@ export const CentralDashboard: React.FC = () => {
           {/* Left: Date Preset Pills */}
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
             <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-500 mr-1">
-              <Calendar className="w-4 h-4 text-[#6A1B2E]" />
+              <Calendar className="w-4 h-4 text-[#58051E]" />
               <span>Timeframe:</span>
             </div>
 
@@ -419,7 +410,7 @@ export const CentralDashboard: React.FC = () => {
                   onClick={() => setDateFilter(f.key as DateFilterType)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
                     dateFilter === f.key
-                      ? 'bg-[#6A1B2E] text-white shadow-xs'
+                      ? 'bg-[#58051E] text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                   }`}
                 >
@@ -473,7 +464,7 @@ export const CentralDashboard: React.FC = () => {
             {/* Download Report */}
             <button
               onClick={handleExportSummary}
-              className="h-8.5 px-3 rounded-xl bg-slate-900 hover:bg-[#6A1B2E] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              className="h-8.5 px-3 rounded-xl bg-slate-900 hover:bg-[#58051E] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
               title="Download Executive JSON/CSV Summary"
             >
               <Download className="w-3.5 h-3.5" /> Export Audit
@@ -490,7 +481,7 @@ export const CentralDashboard: React.FC = () => {
           <Card className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between h-full bg-gradient-to-br from-white to-rose-50/30">
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="w-11 h-11 rounded-2xl bg-[#6A1B2E]/10 border border-[#6A1B2E]/20 text-[#6A1B2E] flex items-center justify-center font-black">
+                <div className="w-11 h-11 rounded-2xl bg-[#58051E]/10 border border-[#58051E]/20 text-[#58051E] flex items-center justify-center font-black">
                   <CreditCard className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
@@ -509,7 +500,7 @@ export const CentralDashboard: React.FC = () => {
               <span className="text-[10px] font-extrabold text-slate-500">
                 {totalTransactionsCount} Settlements Processed
               </span>
-              <span className="text-[10px] font-black text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] font-black text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-md">
                 4 Divisions
               </span>
             </div>
@@ -580,15 +571,15 @@ export const CentralDashboard: React.FC = () => {
 
         {/* Card 4: Executive Super Admin Control */}
         <motion.div variants={itemVariants}>
-          <Card className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between h-full bg-gradient-to-br from-[#6A1B2E]/5 to-transparent">
+          <Card className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between h-full bg-gradient-to-br from-[#58051E]/5 to-transparent">
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="w-11 h-11 rounded-2xl bg-[#6A1B2E]/10 border border-[#6A1B2E]/20 text-[#6A1B2E] flex items-center justify-center">
+                <div className="w-11 h-11 rounded-2xl bg-[#58051E]/10 border border-[#58051E]/20 text-[#58051E] flex items-center justify-center">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <button
                   onClick={() => navigate('/central/roles-users')}
-                  className="text-[10px] font-black text-[#6A1B2E] hover:underline cursor-pointer flex items-center gap-1"
+                  className="text-[10px] font-black text-[#58051E] hover:underline cursor-pointer flex items-center gap-1"
                 >
                   Manage Admins →
                 </button>
@@ -605,7 +596,7 @@ export const CentralDashboard: React.FC = () => {
               <span className="text-[10px] font-bold text-slate-500">
                 Role-Based Access Control
               </span>
-              <span className="text-[10px] font-bold text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-md">
                 4 Portals Protected
               </span>
             </div>
@@ -618,7 +609,7 @@ export const CentralDashboard: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
           <div>
             <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-[#6A1B2E]" /> 4 Subsidiary Enterprise Applications — Status & Performance
+              <Layers className="w-5 h-5 text-[#58051E]" /> 4 Subsidiary Enterprise Applications — Status & Performance
             </h2>
             <p className="text-xs text-slate-500 font-medium">
               Metrics calculated for timeframe: <strong className="text-slate-800">{dateRangeLabel}</strong>
@@ -627,7 +618,7 @@ export const CentralDashboard: React.FC = () => {
 
           <button
             onClick={() => navigate('/central/roles-users')}
-            className="text-xs font-bold text-[#6A1B2E] bg-[#6A1B2E]/10 hover:bg-[#6A1B2E]/20 px-3 py-1.5 rounded-xl border border-[#6A1B2E]/20 transition-all cursor-pointer self-start sm:self-auto"
+            className="text-xs font-bold text-[#58051E] bg-[#58051E]/10 hover:bg-[#58051E]/20 px-3 py-1.5 rounded-xl border border-[#58051E]/20 transition-all cursor-pointer self-start sm:self-auto"
           >
             Provision Division Logins
           </button>
@@ -659,7 +650,7 @@ export const CentralDashboard: React.FC = () => {
 
                   {/* Division Title & Tagline */}
                   <div>
-                    <h3 className="text-base font-black text-slate-900 group-hover:text-[#6A1B2E] transition-colors">
+                    <h3 className="text-base font-black text-slate-900 group-hover:text-[#58051E] transition-colors">
                       {div.name}
                     </h3>
                     <span className={`inline-block text-[9.5px] font-bold px-2 py-0.5 rounded-md border mt-1 ${div.badgeColor}`}>
@@ -685,7 +676,7 @@ export const CentralDashboard: React.FC = () => {
                       <span className="text-xl font-black text-slate-900">
                         {div.revenueFormatted}
                       </span>
-                      <span className="text-xs font-black text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded-md">
+                      <span className="text-xs font-black text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-md">
                         {revenueShare}%
                       </span>
                     </div>
@@ -711,7 +702,7 @@ export const CentralDashboard: React.FC = () => {
                 <div className="mt-4 pt-3 border-t border-slate-100">
                   <button
                     onClick={() => navigate(div.route)}
-                    className="w-full h-9 rounded-xl bg-slate-900 hover:bg-[#6A1B2E] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full h-9 rounded-xl bg-slate-900 hover:bg-[#58051E] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     Open {div.name} <ArrowUpRight className="w-3.5 h-3.5" />
                   </button>
@@ -731,7 +722,7 @@ export const CentralDashboard: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 mb-5 gap-3">
               <div>
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-[#6A1B2E]" /> Consolidated Revenue Velocity & Division Flow
+                  <TrendingUp className="w-4 h-4 text-[#58051E]" /> Consolidated Revenue Velocity & Division Flow
                 </h3>
                 <p className="text-xs text-slate-400 font-semibold mt-0.5">
                   Dynamic multi-app volume breakdown for {dateRangeLabel} ({currency})
@@ -752,7 +743,7 @@ export const CentralDashboard: React.FC = () => {
                     onClick={() => setSelectedChartDivision(item.key as any)}
                     className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                       selectedChartDivision === item.key
-                        ? 'bg-[#6A1B2E] text-white shadow-xs'
+                        ? 'bg-[#58051E] text-white shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
@@ -767,8 +758,8 @@ export const CentralDashboard: React.FC = () => {
               <svg className="w-full h-full" viewBox="0 0 600 200" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="central-chart-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6A1B2E" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#6A1B2E" stopOpacity="0.0" />
+                    <stop offset="0%" stopColor="#58051E" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#58051E" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
 
@@ -787,18 +778,18 @@ export const CentralDashboard: React.FC = () => {
                     <path
                       d="M 0 170 Q 120 140, 220 110 T 420 50 T 600 30"
                       fill="none"
-                      stroke="#6A1B2E"
+                      stroke="#58051E"
                       strokeWidth="3.5"
                       strokeLinecap="round"
                     />
-                    <circle cx="220" cy="110" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
-                    <circle cx="420" cy="50" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
-                    <circle cx="600" cy="30" r="5" fill="#6A1B2E" stroke="white" strokeWidth="2" />
+                    <circle cx="220" cy="110" r="5" fill="#58051E" stroke="white" strokeWidth="2" />
+                    <circle cx="420" cy="50" r="5" fill="#58051E" stroke="white" strokeWidth="2" />
+                    <circle cx="600" cy="30" r="5" fill="#58051E" stroke="white" strokeWidth="2" />
                   </>
                 ) : (
                   <>
-                    <line x1="0" y1="180" x2="600" y2="180" stroke="#6A1B2E" strokeWidth="2" strokeDasharray="6 6" />
-                    <circle cx="300" cy="180" r="4" fill="#6A1B2E" />
+                    <line x1="0" y1="180" x2="600" y2="180" stroke="#58051E" strokeWidth="2" strokeDasharray="6 6" />
+                    <circle cx="300" cy="180" r="4" fill="#58051E" />
                   </>
                 )}
               </svg>
@@ -820,13 +811,13 @@ export const CentralDashboard: React.FC = () => {
 
         {/* Right 1 Column: Consolidated Real-Time Cross-App Activity & Approvals */}
         <motion.div variants={itemVariants} className="space-y-6">
-          <Card className="p-5 border-l-4 border-l-[#6A1B2E] border-slate-200/80 shadow-xs h-full flex flex-col justify-between">
+          <Card className="p-5 border-l-4 border-l-[#58051E] border-slate-200/80 shadow-xs h-full flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Activity className="w-4 h-4 text-[#6A1B2E]" /> Cross-App Activity & Settlements
+                  <Activity className="w-4 h-4 text-[#58051E]" /> Cross-App Activity & Settlements
                 </h3>
-                <span className="text-[10px] font-bold text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded-md">
+                <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-md">
                   Live Stream
                 </span>
               </div>
@@ -860,7 +851,7 @@ export const CentralDashboard: React.FC = () => {
                       {act.canApprove ? (
                         <button
                           onClick={() => handleApproveActivity(act.id, act.title)}
-                          className="w-full h-7 rounded-lg bg-[#6A1B2E] hover:bg-[#521221] text-white text-[10px] font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1"
+                          className="w-full h-7 rounded-lg bg-[#58051E] hover:bg-[#430316] text-white text-[10px] font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1"
                         >
                           Authorize Settlement
                         </button>
@@ -888,7 +879,7 @@ export const CentralDashboard: React.FC = () => {
                 onClick={() => navigate('/central/roles-users')}
                 className="w-full h-8.5 rounded-xl border border-slate-200 hover:border-slate-300 text-xs font-black text-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-[#6A1B2E]" /> Manage Universal Division Admins
+                <ShieldCheck className="w-3.5 h-3.5 text-[#58051E]" /> Manage Universal Division Admins
               </button>
             </div>
           </Card>

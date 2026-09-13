@@ -54,7 +54,7 @@ export const CentralDocuments: React.FC = () => {
     <div className="space-y-6 text-left">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -64,7 +64,7 @@ export const CentralDocuments: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Folder className="w-5 h-5 text-[#6A1B2E]" /> Central Document Inspection Vault
+            <Folder className="w-5 h-5 text-[#58051E]" /> Central Document Inspection Vault
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Super Admin Console • Global document compliance, passports, IELTS scorecards, and NAWA transcripts.
@@ -75,7 +75,7 @@ export const CentralDocuments: React.FC = () => {
       <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search file name or student..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search file name or student..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
         </div>
         <span className="text-xs font-bold text-slate-400">{filteredDocs.length} Vault Files</span>
       </Card>
@@ -89,7 +89,7 @@ export const CentralDocuments: React.FC = () => {
           <Card key={doc.id} className="p-5 border border-slate-200/70 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
             <div>
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center">
                   <FileText className="w-5 h-5" />
                 </div>
                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${doc.statusBadge}`}>
@@ -107,7 +107,7 @@ export const CentralDocuments: React.FC = () => {
 
             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400">{doc.date}</span>
-              <button onClick={() => setSelectedDoc(doc)} className="flex items-center gap-1 text-xs font-bold text-[#6A1B2E] hover:underline">
+              <button onClick={() => setSelectedDoc(doc)} className="flex items-center gap-1 text-xs font-bold text-[#58051E] hover:underline">
                 <Eye className="w-3.5 h-3.5" /> Inspect File
               </button>
             </div>
@@ -127,7 +127,7 @@ export const CentralDocuments: React.FC = () => {
               </div>
 
               <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200/80 text-center space-y-3 mb-4">
-                <FileText className="w-12 h-12 text-[#6A1B2E] mx-auto" />
+                <FileText className="w-12 h-12 text-[#58051E] mx-auto" />
                 <div>
                   <h4 className="text-sm font-black text-slate-900">{selectedDoc.name}</h4>
                   <p className="text-xs font-semibold text-slate-500">{selectedDoc.type} · {selectedDoc.student}</p>
@@ -140,7 +140,7 @@ export const CentralDocuments: React.FC = () => {
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setSelectedDoc(null)}>Close</Button>
                 {selectedDoc.status !== 'Verified' && (
-                  <Button size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => handleVerifyDoc(selectedDoc.id)}>
+                  <Button size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => handleVerifyDoc(selectedDoc.id)}>
                     <ShieldCheck className="w-4 h-4 mr-1.5" /> Approve Document
                   </Button>
                 )}

@@ -28,16 +28,16 @@ interface StudentItem {
 }
 
 const COUNTRY_FLAGS: Record<string, { flag: string; authority: string }> = {
-  'Poland': { flag: '🇵🇱', authority: 'NAWA Legalization' },
-  'Germany': { flag: '🇩🇪', authority: 'APS Certificate' },
-  'United Kingdom': { flag: '🇬🇧', authority: 'CAS / UKVI' },
-  'UK': { flag: '🇬🇧', authority: 'CAS / UKVI' },
-  'France': { flag: '🇫🇷', authority: 'Campus France EEF' },
-  'Italy': { flag: '🇮🇹', authority: 'CIMEA / Universitaly' },
-  'United States': { flag: '🇺🇸', authority: 'I-20 / SEVIS' },
-  'USA': { flag: '🇺🇸', authority: 'I-20 / SEVIS' },
-  'Canada': { flag: '🇨🇦', authority: 'PAL / SDS' },
-  'Hungary': { flag: '🇭🇺', authority: 'EU Direct' },
+  'Poland': { flag: 'PL', authority: 'NAWA Legalization' },
+  'Germany': { flag: 'DE', authority: 'APS Certificate' },
+  'United Kingdom': { flag: 'UK', authority: 'CAS / UKVI' },
+  'UK': { flag: 'UK', authority: 'CAS / UKVI' },
+  'France': { flag: 'FR', authority: 'Campus France EEF' },
+  'Italy': { flag: 'IT', authority: 'CIMEA / Universitaly' },
+  'United States': { flag: 'US', authority: 'I-20 / SEVIS' },
+  'USA': { flag: 'US', authority: 'I-20 / SEVIS' },
+  'Canada': { flag: 'CA', authority: 'PAL / SDS' },
+  'Hungary': { flag: 'HU', authority: 'EU Direct' },
 };
 
 export const AdminStudents: React.FC = () => {
@@ -98,7 +98,7 @@ export const AdminStudents: React.FC = () => {
     const mapped = dbStudents.map((s) => {
       const studentApp = dbApps.find(a => a.student_id === s.id);
       const rawCountry = studentApp?.universities?.country || (studentApp as any)?.country || (studentApp?.university_name?.includes('Warsaw') || studentApp?.university_name?.includes('Poland') ? 'Poland' : studentApp?.university_name?.includes('Munich') || studentApp?.university_name?.includes('Berlin') ? 'Germany' : 'Poland');
-      const countryMeta = COUNTRY_FLAGS[rawCountry] || { flag: '🇪🇺', authority: 'Academic Legalization' };
+      const countryMeta = COUNTRY_FLAGS[rawCountry] || { flag: 'EU', authority: 'Academic Legalization' };
       
       const assignedCounselor = (s.assigned_counselor && s.assigned_counselor !== 'Admin' && s.assigned_counselor !== '--')
         ? s.assigned_counselor
@@ -117,7 +117,7 @@ export const AdminStudents: React.FC = () => {
         course: studentApp?.program_name || studentApp?.course || 'B.Sc Computer Science & Higher Studies',
         intake: studentApp?.intake || 'October 2026',
         status: studentApp?.status || 'Active',
-        statusColor: studentApp?.status === 'Offer Issued' ? 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100',
+        statusColor: studentApp?.status === 'Offer Issued' ? 'bg-[#58051E]/10 text-[#58051E] border-[#58051E]/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100',
         counselor: assignedCounselor,
         joined: s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently',
         appStatus: studentApp?.status || 'Submitted',
@@ -214,7 +214,7 @@ export const AdminStudents: React.FC = () => {
       const list = await getJourneyStages(viewStudent.id);
       setStudentStages(list);
 
-      showToast(`🎉 Journey step "${stage.stage_name}" confirmed! Automated email sent to ${viewStudent.email}.`);
+      showToast(`Journey step "${stage.stage_name}" confirmed. Automated notification sent to ${viewStudent.email}.`);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to confirm journey stage'}`);
     }
@@ -284,7 +284,7 @@ export const AdminStudents: React.FC = () => {
       setAddName('');
       setAddEmail('');
       setAddPhone('');
-      showToast(`🎉 Student ${addName} added successfully! Assigned to ${chosenCounselor}`);
+      showToast(`Student ${addName} added successfully. Assigned to ${chosenCounselor}.`);
     } catch (err: any) {
       showToast(`Error adding student: ${err.message || 'Failed'}`);
     } finally {
@@ -301,7 +301,7 @@ export const AdminStudents: React.FC = () => {
         setViewStudent({ ...viewStudent, counselor: counselorName });
       }
       setCounselorModalStudent(null);
-      showToast(`✅ Assigned ${counselorName} to ${student.name}!`);
+      showToast(`Assigned ${counselorName} to ${student.name}.`);
     } catch (err: any) {
       showToast(`Error assigning counselor: ${err.message || 'Failed'}`);
     } finally {
@@ -338,7 +338,7 @@ export const AdminStudents: React.FC = () => {
         await handleQuickAssignCounselor(counselorModalStudent, assignedLabel);
       }
 
-      showToast(`🎉 Counselor ${newCounselorName} created & login provisioned (Password: ${newCounselorPassword})!`);
+      showToast(`Counselor ${newCounselorName} created & login provisioned.`);
       setShowCreateCounselorForm(false);
       setNewCounselorName('');
       setNewCounselorEmail('');
@@ -381,9 +381,9 @@ export const AdminStudents: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <GraduationCap className="w-6 h-6 text-[#6A1B2E]" /> Student Directory & Enrollments
+              <GraduationCap className="w-6 h-6 text-[#58051E]" /> Student Directory & Enrollments
             </h1>
-            <span className="text-[10px] font-extrabold bg-[#6A1B2E]/10 text-[#6A1B2E] px-2.5 py-0.5 rounded-full border border-[#6A1B2E]/20">
+            <span className="text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
               Multi-Country CRM
             </span>
           </div>
@@ -395,7 +395,7 @@ export const AdminStudents: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 h-9.5 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] active:scale-98 transition-all shadow-md shadow-[#6A1B2E]/20 cursor-pointer"
+            className="flex items-center gap-1.5 h-9.5 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] active:scale-98 transition-all shadow-md shadow-[#58051E]/20 cursor-pointer"
           >
             <UserPlus className="w-4 h-4" /> Add Student
           </button>
@@ -405,10 +405,10 @@ export const AdminStudents: React.FC = () => {
       {/* Multi-Country Destination Filter Bar */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
         <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
-          <Globe className="w-3.5 h-3.5 text-[#6A1B2E]" /> Destination:
+          <Globe className="w-3.5 h-3.5 text-[#58051E]" /> Destination:
         </span>
         {ALL_DESTINATIONS.map(c => {
-          const flag = COUNTRY_FLAGS[c]?.flag || '🌍';
+          const flag = COUNTRY_FLAGS[c]?.flag || 'ALL';
           const isActive = countryFilter === c;
           return (
             <button
@@ -416,11 +416,11 @@ export const AdminStudents: React.FC = () => {
               onClick={() => { setCountryFilter(c); setCurrentPage(1); }}
               className={`h-8 px-3 rounded-xl text-xs font-bold shrink-0 transition-all flex items-center gap-1.5 ${
                 isActive
-                  ? 'bg-[#6A1B2E] text-white shadow-xs'
+                  ? 'bg-[#58051E] text-white shadow-xs'
                   : 'bg-white border border-slate-200/80 text-slate-600 hover:bg-slate-50'
               }`}
             >
-              <span>{flag}</span>
+              <span className={`text-[9.5px] font-mono font-black px-1.5 py-0.5 rounded ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>{flag}</span>
               <span>{c === 'United Kingdom' ? 'UK' : c === 'United States' ? 'USA' : c}</span>
             </button>
           );
@@ -434,7 +434,7 @@ export const AdminStudents: React.FC = () => {
           <input
             value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
             placeholder="Search by student name, ID, email, destination or university..."
-            className="w-full h-10 pl-9.5 pr-4 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#6A1B2E]/40 focus:ring-4 focus:ring-[#6A1B2E]/5 transition-all shadow-xs"
+            className="w-full h-10 pl-9.5 pr-4 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#58051E]/40 focus:ring-4 focus:ring-[#58051E]/5 transition-all shadow-xs"
           />
         </div>
 
@@ -454,7 +454,7 @@ export const AdminStudents: React.FC = () => {
         <div className="sm:col-span-3 flex gap-1.5">
           {['All', 'Active', 'Pending'].map(f => (
             <button key={f} onClick={() => { setStatusFilter(f); setCurrentPage(1); }}
-              className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all duration-150 active:scale-98 ${statusFilter === f ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-sm shadow-[#6A1B2E]/20' : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'}`}>
+              className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all duration-150 active:scale-98 ${statusFilter === f ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm shadow-[#58051E]/20' : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'}`}>
               {f}
             </button>
           ))}
@@ -483,7 +483,7 @@ export const AdminStudents: React.FC = () => {
                 <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#6A1B2E] text-white flex items-center justify-center font-black text-xs shadow-2xs">
+                      <div className="w-8 h-8 rounded-full bg-[#58051E] text-white flex items-center justify-center font-black text-xs shadow-2xs">
                         {s.name[0]?.toUpperCase() || 'S'}
                       </div>
                       <div>
@@ -498,7 +498,7 @@ export const AdminStudents: React.FC = () => {
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="text-sm">{s.targetFlag}</span>
+                      <span className="text-[10px] font-mono font-black text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{s.targetFlag}</span>
                       <span className="font-black text-slate-900">{s.targetCountry}</span>
                       <span className="text-[9px] font-extrabold bg-blue-50 text-blue-700 px-1.5 py-0.2 rounded border border-blue-200">
                         {s.workflowAuthority}
@@ -518,11 +518,11 @@ export const AdminStudents: React.FC = () => {
                       className="group cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 transition-colors"
                       title="Click to change or reassign counselor"
                     >
-                      <Headphones className="w-3 h-3 text-[#6A1B2E]" />
-                      <span className="text-[11px] font-bold text-slate-800 group-hover:text-[#6A1B2E] max-w-[140px] truncate">
+                      <Headphones className="w-3 h-3 text-[#58051E]" />
+                      <span className="text-[11px] font-bold text-slate-800 group-hover:text-[#58051E] max-w-[140px] truncate">
                         {s.counselor.split('(')[0].trim()}
                       </span>
-                      <span className="text-[9px] font-extrabold text-[#6A1B2E] underline ml-1">Change</span>
+                      <span className="text-[9px] font-extrabold text-[#58051E] underline ml-1">Change</span>
                     </div>
                   </td>
                   <td className="px-4 py-3.5 text-slate-500 font-semibold">{s.joined}</td>
@@ -531,7 +531,7 @@ export const AdminStudents: React.FC = () => {
                       <button
                         onClick={() => { setCounselorModalStudent(s); setSelectedCounselorToAssign(s.counselor); }}
                         title="Assign Counselor"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-rose-50 transition-colors"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#58051E] hover:bg-rose-50 transition-colors"
                       >
                         <UserCheck className="w-3.5 h-3.5" />
                       </button>
@@ -566,7 +566,7 @@ export const AdminStudents: React.FC = () => {
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-50 border-l border-slate-100 p-6 overflow-y-auto">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#6A1B2E] text-white flex items-center justify-center font-black text-lg shadow-md">{viewStudent.name[0]}</div>
+                  <div className="w-12 h-12 rounded-2xl bg-[#58051E] text-white flex items-center justify-center font-black text-lg shadow-md">{viewStudent.name[0]}</div>
                   <div>
                     <h3 className="text-base font-extrabold text-slate-900">{viewStudent.name}</h3>
                     <p className="text-xs font-semibold text-slate-400">{viewStudent.email}</p>
@@ -593,7 +593,7 @@ export const AdminStudents: React.FC = () => {
                         setEditStudent(sToEdit);
                         setEditTemp({ ...sToEdit });
                       }}
-                      className="text-[10px] font-extrabold text-[#6A1B2E] hover:underline"
+                      className="text-[10px] font-extrabold text-[#58051E] hover:underline"
                     >
                       Change Counselor
                     </button>
@@ -687,7 +687,7 @@ export const AdminStudents: React.FC = () => {
 
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setEditStudent(null)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
-                <button onClick={handleSaveEdit} className="flex-1 h-9 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] flex items-center justify-center gap-1.5">
+                <button onClick={handleSaveEdit} className="flex-1 h-9 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] flex items-center justify-center gap-1.5">
                   <Save className="w-3.5 h-3.5" /> Save Changes
                 </button>
               </div>
@@ -704,7 +704,7 @@ export const AdminStudents: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-[#6A1B2E]" />
+                  <UserPlus className="w-5 h-5 text-[#58051E]" />
                   <h3 className="text-base font-black text-slate-900">Add New Student Profile</h3>
                 </div>
                 <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
@@ -829,7 +829,7 @@ export const AdminStudents: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSubmittingAdd}
-                    className="h-9 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] shadow-xs"
+                    className="h-9 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-xs"
                   >
                     {isSubmittingAdd ? 'Adding Student...' : 'Create Student Profile'}
                   </button>
@@ -846,13 +846,13 @@ export const AdminStudents: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-[#6A1B2E] text-white flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-2xl bg-[#58051E] text-white flex items-center justify-center">
                     <UserCheck className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-base font-black text-slate-900">Assign Dedicated Counselor</h3>
                     <p className="text-xs font-semibold text-slate-400">
-                      Student: <span className="text-slate-800 font-bold">{counselorModalStudent.name}</span> ({counselorModalStudent.targetFlag} {counselorModalStudent.targetCountry})
+                      Student: <span className="text-slate-800 font-bold">{counselorModalStudent.name}</span> ({counselorModalStudent.targetCountry})
                     </p>
                   </div>
                 </div>
@@ -884,7 +884,7 @@ export const AdminStudents: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowCreateCounselorForm(!showCreateCounselorForm)}
-                    className="px-2.5 py-1 text-[10px] font-bold text-[#6A1B2E] bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 flex items-center gap-1 cursor-pointer transition-colors"
+                    className="px-2.5 py-1 text-[10px] font-bold text-[#58051E] bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 flex items-center gap-1 cursor-pointer transition-colors"
                   >
                     <UserPlus className="w-3 h-3" />
                     {showCreateCounselorForm ? 'Close Form' : '+ Add New Counselor & Login'}
@@ -895,7 +895,7 @@ export const AdminStudents: React.FC = () => {
                   <form onSubmit={handleCreateAndAssignCounselor} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                        <UserPlus className="w-3.5 h-3.5 text-[#6A1B2E]" />
+                        <UserPlus className="w-3.5 h-3.5 text-[#58051E]" />
                         Create Counselor & Provision Login
                       </span>
                       <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
@@ -912,7 +912,7 @@ export const AdminStudents: React.FC = () => {
                           value={newCounselorName}
                           onChange={(e) => setNewCounselorName(e.target.value)}
                           placeholder="e.g. Dr. Maria Kowalska"
-                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
                         />
                       </div>
                       <div>
@@ -923,7 +923,7 @@ export const AdminStudents: React.FC = () => {
                           value={newCounselorEmail}
                           onChange={(e) => setNewCounselorEmail(e.target.value)}
                           placeholder="counselor@ferex.com"
-                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
                         />
                       </div>
                     </div>
@@ -952,7 +952,7 @@ export const AdminStudents: React.FC = () => {
                           value={newCounselorRole}
                           onChange={(e) => setNewCounselorRole(e.target.value)}
                           placeholder="Senior Admissions Lead"
-                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
                         />
                       </div>
                     </div>
@@ -964,7 +964,7 @@ export const AdminStudents: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setNewCounselorPassword(`ferex${Math.floor(1000 + Math.random() * 9000)}!`)}
-                            className="text-[9px] font-bold text-[#6A1B2E] hover:underline"
+                            className="text-[9px] font-bold text-[#58051E] hover:underline"
                           >
                             Generate
                           </button>
@@ -973,7 +973,7 @@ export const AdminStudents: React.FC = () => {
                           type="text"
                           value={newCounselorPassword}
                           onChange={(e) => setNewCounselorPassword(e.target.value)}
-                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
                         />
                       </div>
                       <div>
@@ -983,7 +983,7 @@ export const AdminStudents: React.FC = () => {
                           value={newCounselorPhone}
                           onChange={(e) => setNewCounselorPhone(e.target.value)}
                           placeholder="+48 22 123 4567"
-                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
                         />
                       </div>
                     </div>
@@ -999,7 +999,7 @@ export const AdminStudents: React.FC = () => {
                       <button
                         type="submit"
                         disabled={isCreatingCounselor}
-                        className="h-7 px-3 bg-[#6A1B2E] text-white text-[10px] font-bold rounded-lg hover:bg-[#521221] flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        className="h-7 px-3 bg-[#58051E] text-white text-[10px] font-bold rounded-lg hover:bg-[#430316] flex items-center gap-1 cursor-pointer disabled:opacity-50"
                       >
                         <ShieldCheck className="w-3 h-3" />
                         {isCreatingCounselor ? 'Provisioning...' : 'Create & Assign to Student'}
@@ -1022,13 +1022,13 @@ export const AdminStudents: React.FC = () => {
                         onClick={() => setSelectedCounselorToAssign(counselorVal)}
                         className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                           isSelected
-                            ? 'bg-rose-50/70 border-[#6A1B2E] ring-2 ring-[#6A1B2E]/10'
+                            ? 'bg-rose-50/70 border-[#58051E] ring-2 ring-[#58051E]/10'
                             : 'bg-white border-slate-200/80 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
-                            isSelected ? 'bg-[#6A1B2E] text-white' : 'bg-slate-100 text-slate-600'
+                            isSelected ? 'bg-[#58051E] text-white' : 'bg-slate-100 text-slate-600'
                           }`}>
                             {(s.full_name || s.email)[0]}
                           </div>
@@ -1041,13 +1041,13 @@ export const AdminStudents: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                            <p className="text-[10px] font-bold text-[#6A1B2E]">{deskLabel}</p>
+                            <p className="text-[10px] font-bold text-[#58051E]">{deskLabel}</p>
                             <p className="text-[9.5px] font-semibold text-slate-400">{s.role} • {s.email}</p>
                           </div>
                         </div>
 
                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                          isSelected ? 'border-[#6A1B2E] bg-[#6A1B2E] text-white' : 'border-slate-300'
+                          isSelected ? 'border-[#58051E] bg-[#58051E] text-white' : 'border-slate-300'
                         }`}>
                           {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
@@ -1069,7 +1069,7 @@ export const AdminStudents: React.FC = () => {
                   type="button"
                   disabled={!selectedCounselorToAssign || isAssigningCounselor}
                   onClick={() => handleQuickAssignCounselor(counselorModalStudent, selectedCounselorToAssign)}
-                  className="h-9 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="h-9 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <UserCheck className="w-4 h-4" />
                   {isAssigningCounselor ? 'Assigning...' : 'Assign & Notify Student'}

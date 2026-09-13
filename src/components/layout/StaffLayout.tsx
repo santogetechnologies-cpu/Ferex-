@@ -71,76 +71,76 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased select-none font-sans">
       {/* Top Staff Navigation Header */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 px-4 lg:px-8 py-3 flex items-center justify-between shadow-2xs">
-        <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 px-4 sm:px-6 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100"
+            className="lg:hidden p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 cursor-pointer"
           >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileOpen ? <X className="w-4.5 h-4.5" /> : <Menu className="w-4.5 h-4.5" />}
           </button>
 
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white flex items-center justify-center font-black text-xs shadow-md shadow-[#6A1B2E]/20">
+          <div className="flex items-center gap-2">
+            <div className="w-7.5 h-7.5 rounded-lg bg-[#58051E] text-white flex items-center justify-center font-bold text-xs shadow-xs">
               FX
             </div>
             <div>
-              <span className="font-black text-slate-900 text-sm tracking-tight block">FEREX STAFF</span>
-              <span className="text-[9.5px] text-slate-400 font-black uppercase tracking-widest block">Enterprise Console</span>
+              <span className="font-bold text-slate-900 text-xs tracking-tight block leading-none">FEREX STAFF</span>
+              <span className="text-[9px] text-slate-400 font-medium uppercase tracking-wider block mt-0.5">Counselor Workspace</span>
             </div>
           </div>
         </div>
 
         {/* Search Bar & Profile Header */}
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-full text-xs font-bold text-slate-600 w-64">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-3 h-8.5 rounded-xl text-xs font-medium text-slate-600 w-56">
             <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <input
               type="text"
-              placeholder="Search assigned tasks, students..."
-              className="bg-transparent border-none text-xs focus:outline-none w-full text-slate-900 placeholder:text-slate-400 font-semibold"
+              placeholder="Search tasks, students..."
+              className="bg-transparent border-none text-xs focus:outline-none w-full text-slate-900 placeholder:text-slate-400 font-medium"
             />
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 bg-[#6A1B2E]/10 border border-[#6A1B2E]/20 px-3 py-1 rounded-full text-xs font-bold text-[#6A1B2E]">
-            <Shield className="w-3.5 h-3.5" />
+          <div className="hidden sm:flex items-center gap-1.5 bg-[#58051E]/5 border border-[#58051E]/15 px-2.5 py-1 rounded-md text-[10px] font-bold text-[#58051E]">
+            <Shield className="w-3 h-3" />
             <span>{staffRole.toUpperCase()}</span>
           </div>
 
-          {/* Google-Style 9-Dots 4-App Switcher */}
+          {/* 4-App Switcher */}
           <AppSwitcher />
 
-          <Link to="/staff/notifications" className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 relative">
-            <Bell className="w-4.5 h-4.5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#6A1B2E] animate-pulse" />
+          <Link to="/staff/notifications" className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 relative">
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#58051E]" />
           </Link>
 
-          <Link to="/staff/profile" className="flex items-center gap-2.5 p-1.5 rounded-2xl hover:bg-slate-100 transition-all">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6A1B2E] to-[#3B0B16] text-white font-black flex items-center justify-center text-xs shadow-2xs">
+          <Link to="/staff/profile" className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-100 transition-all">
+            <div className="w-7.5 h-7.5 rounded-lg bg-[#58051E] text-white font-bold flex items-center justify-center text-xs shadow-2xs">
               {staffName.slice(0, 2).toUpperCase()}
             </div>
             <div className="hidden md:block text-left">
-              <span className="text-xs font-black text-slate-900 block leading-tight">{staffName}</span>
-              <span className="text-[9.5px] font-bold text-emerald-600 block">● Active Staff</span>
+              <span className="text-xs font-bold text-slate-900 block leading-tight">{staffName}</span>
+              <span className="text-[9px] font-medium text-emerald-600 block">Active Staff</span>
             </div>
           </Link>
 
           <button
             onClick={handleLogout}
-            className="p-2 rounded-xl text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100 transition-all"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
             title="Logout"
           >
-            <LogOut className="w-4.5 h-4.5" />
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
 
       <div className="flex-1 flex">
         {/* Left Categorized Enterprise Sidebar */}
-        <aside className="hidden lg:flex flex-col w-64 border-r border-slate-200/80 bg-white p-4 space-y-6 shrink-0 text-left">
+        <aside className="hidden lg:flex flex-col w-60 border-r border-slate-200/80 bg-white p-3 space-y-4 shrink-0 text-left">
           {navSections.map((sec, idx) => (
-            <div key={idx} className="space-y-1">
-              <div className="px-3 py-1.5 text-[9.5px] font-black uppercase tracking-widest text-slate-400">
+            <div key={idx} className="space-y-0.5">
+              <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-slate-400">
                 {sec.title}
               </div>
               {sec.items.map(item => {
@@ -150,17 +150,17 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center justify-between px-3.5 py-2 rounded-2xl text-xs font-bold transition-all ${active
-                        ? 'bg-[#6A1B2E] text-white shadow-md shadow-[#6A1B2E]/20'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${active
+                        ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]'
+                        : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
                       }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <IconComp className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-400'}`} />
+                    <div className="flex items-center gap-2.5">
+                      <IconComp className={`w-4 h-4 ${active ? 'text-[#58051E]' : 'text-slate-400'}`} />
                       <span>{item.name}</span>
                     </div>
                     {item.badge && (
-                      <span className={`text-[9.5px] font-black px-2 py-0.5 rounded-full ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
                         {item.badge}
                       </span>
                     )}

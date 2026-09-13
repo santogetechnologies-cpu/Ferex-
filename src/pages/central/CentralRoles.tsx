@@ -18,7 +18,7 @@ export const CentralRoles: React.FC = () => {
       members: 1,
       accessLevel: 'Full Enterprise Command',
       desc: 'Master governance across Ferex Education, Global Trade ERP, Rimi Frozen Distribution, and Ferex Digital. Controls user provisioning, financial ledgers, and division delegation.',
-      badge: 'bg-[#6A1B2E] text-white',
+      badge: 'bg-[#58051E] text-white',
       modules: ['User & Admin Management', '4-App Executive Switcher', 'Financial Payouts', 'Audit Logs', 'Global SLA Governance']
     },
     {
@@ -95,7 +95,7 @@ export const CentralRoles: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -105,13 +105,13 @@ export const CentralRoles: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <UserCheck className="w-6 h-6 text-[#6A1B2E]" /> Enterprise Roles & RBAC Matrix
+            <UserCheck className="w-6 h-6 text-[#58051E]" /> Enterprise Roles & RBAC Matrix
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Super Admin Console • Permission boundaries and operational scopes across all 4 enterprise divisions.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold shadow-md" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md" onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Define Custom Role
         </Button>
       </div>
@@ -124,7 +124,7 @@ export const CentralRoles: React.FC = () => {
               <div>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-[#6A1B2E]">
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-[#58051E]">
                       <Icon className="w-4.5 h-4.5" />
                     </div>
                     <div>
@@ -138,7 +138,7 @@ export const CentralRoles: React.FC = () => {
                 </div>
 
                 <div className="mb-3">
-                  <span className="text-[10.5px] font-extrabold uppercase text-[#6A1B2E] tracking-wider block mb-1">
+                  <span className="text-[10.5px] font-extrabold uppercase text-[#58051E] tracking-wider block mb-1">
                     {role.accessLevel}
                   </span>
                   <p className="text-xs text-slate-600 font-medium leading-relaxed">
@@ -164,7 +164,7 @@ export const CentralRoles: React.FC = () => {
                 </span>
                 <button
                   onClick={() => showToastMsg(`Permissions synced for ${role.name}`)}
-                  className="text-[#6A1B2E] hover:underline cursor-pointer text-xs font-black"
+                  className="text-[#58051E] hover:underline cursor-pointer text-xs font-black"
                 >
                   Verify Audit
                 </button>
@@ -215,7 +215,7 @@ export const CentralRoles: React.FC = () => {
                     placeholder="Brief description of responsibilities and scope"
                     value={newRole.desc}
                     onChange={(e) => setNewRole({ ...newRole, desc: e.target.value })}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:bg-white focus:border-[#6A1B2E]"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:bg-white focus:border-[#58051E]"
                     required
                   />
                 </div>
@@ -224,7 +224,7 @@ export const CentralRoles: React.FC = () => {
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowAddModal(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-white font-bold">
+                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white font-bold">
                     Save Role
                   </Button>
                 </div>

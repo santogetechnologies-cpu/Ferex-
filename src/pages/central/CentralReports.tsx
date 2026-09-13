@@ -137,7 +137,7 @@ export const CentralReports: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      showToastMsg(`📥 Downloaded: ${reportTitle} (CSV)`);
+      showToastMsg(`Downloaded: ${reportTitle} (CSV)`);
     } catch {
       showToastMsg(`Failed to generate CSV for ${reportTitle}`);
     }
@@ -158,9 +158,9 @@ export const CentralReports: React.FC = () => {
           <title>${reportTitle} - Ferex Enterprise HQ</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 40px; color: #0f172a; }
-            .header { border-bottom: 2px solid #6A1B2E; padding-bottom: 20px; margin-bottom: 30px; }
-            .logo { font-size: 22px; font-weight: 900; color: #6A1B2E; }
-            .badge { display: inline-block; padding: 4px 10px; background: #fef2f2; color: #6A1B2E; border: 1px solid #fecaca; border-radius: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-top: 5px; }
+            .header { border-bottom: 2px solid #58051E; padding-bottom: 20px; margin-bottom: 30px; }
+            .logo { font-size: 22px; font-weight: 900; color: #58051E; }
+            .badge { display: inline-block; padding: 4px 10px; background: #fef2f2; color: #58051E; border: 1px solid #fecaca; border-radius: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-top: 5px; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
             th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-size: 13px; }
             th { background: #f8fafc; font-weight: 800; text-transform: uppercase; font-size: 11px; color: #64748b; }
@@ -226,7 +226,7 @@ export const CentralReports: React.FC = () => {
 
     printWindow.document.write(html);
     printWindow.document.close();
-    showToastMsg(`📄 Generated ${reportTitle} Print / PDF View`);
+    showToastMsg(`Generated ${reportTitle} Print / PDF View`);
   };
 
   return (
@@ -238,7 +238,7 @@ export const CentralReports: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
@@ -251,9 +251,9 @@ export const CentralReports: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <BarChart3 className="w-6 h-6 text-[#6A1B2E]" /> Executive Intelligence & Financial Reports
+              <BarChart3 className="w-6 h-6 text-[#58051E]" /> Executive Intelligence & Financial Reports
             </h1>
-            <span className="text-[10px] font-black bg-[#6A1B2E]/10 text-[#6A1B2E] border border-[#6A1B2E]/20 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
               Live Supabase Analytics
             </span>
           </div>
@@ -277,7 +277,7 @@ export const CentralReports: React.FC = () => {
                 key={tf}
                 onClick={() => setTimeframe(tf)}
                 className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                  timeframe === tf ? 'bg-[#6A1B2E] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  timeframe === tf ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {tf === 'Annual' ? '2026 Annual' : tf}
@@ -349,7 +349,7 @@ export const CentralReports: React.FC = () => {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-            <FileText className="w-4 h-4 text-[#6A1B2E]" /> Live Audited Executive Reports
+            <FileText className="w-4 h-4 text-[#58051E]" /> Live Audited Executive Reports
           </h2>
 
           <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
@@ -359,7 +359,7 @@ export const CentralReports: React.FC = () => {
                 onClick={() => setSelectedDivision(div)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                   selectedDivision === div
-                    ? 'bg-[#6A1B2E] text-white shadow-xs'
+                    ? 'bg-[#58051E] text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -434,7 +434,7 @@ export const CentralReports: React.FC = () => {
                 <Button
                   size="sm"
                   onClick={() => handleDownloadPdf(rep.title)}
-                  className="flex-1 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold text-white shadow-xs cursor-pointer"
+                  className="flex-1 bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs cursor-pointer"
                 >
                   <FileText className="w-3.5 h-3.5 mr-1" /> PDF / Print
                 </Button>

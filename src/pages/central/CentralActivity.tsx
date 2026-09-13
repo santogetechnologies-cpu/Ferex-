@@ -46,7 +46,7 @@ export const CentralActivity: React.FC = () => {
             item.division === 'Trade' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
             item.division === 'Rimi' ? 'bg-cyan-50 text-cyan-700 border-cyan-200' :
             item.division === 'Digital' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-            'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20',
+            'bg-[#58051E]/10 text-[#58051E] border-[#58051E]/20',
           action: item.action || item.title || 'System Action',
           details: item.details || item.description || 'System event recorded in central audit trail.',
           actor: item.actor || item.user_email || 'System User',
@@ -116,7 +116,7 @@ export const CentralActivity: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -126,7 +126,7 @@ export const CentralActivity: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Activity className="w-5 h-5 text-[#6A1B2E]" /> Central Security & Multi-App Audit Trail
+            <Activity className="w-5 h-5 text-[#58051E]" /> Central Security & Multi-App Audit Trail
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Super Admin Console • Live immutable ledger of administrative actions, API webhooks, and settlements across all 4 subsidiaries.
@@ -137,7 +137,7 @@ export const CentralActivity: React.FC = () => {
           <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadLogs}>
             <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loading ? 'animate-spin' : ''}`} /> Refresh Feed
           </Button>
-          <Button size="sm" className="bg-slate-900 text-white hover:bg-[#6A1B2E] text-xs font-bold" onClick={handleExportAudit}>
+          <Button size="sm" className="bg-slate-900 text-white hover:bg-[#58051E] text-xs font-bold" onClick={handleExportAudit}>
             <Download className="w-3.5 h-3.5 mr-1.5" /> Export Audit (CSV)
           </Button>
         </div>
@@ -152,7 +152,7 @@ export const CentralActivity: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search action, actor, IP, or ID..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
           />
         </div>
 
@@ -165,7 +165,7 @@ export const CentralActivity: React.FC = () => {
                 onClick={() => setSelectedDivision(div)}
                 className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                   selectedDivision === div
-                    ? 'bg-[#6A1B2E] text-white shadow-xs'
+                    ? 'bg-[#58051E] text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >

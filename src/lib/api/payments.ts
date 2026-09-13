@@ -414,8 +414,8 @@ export async function verifyPayment(id: string, reviewerNotes?: string): Promise
       const { createNotification } = await import('./notifications');
       await createNotification({
         user_id: updatedPayment.student_id,
-        title: '🎉 Payment Verified & Approved!',
-        body: `Your payment of ₹${Number(updatedPayment.amount || 0).toLocaleString()} for ${updatedPayment.title || 'Tuition Fee'} has been verified and approved by FEREX Finance Board. New journey stages have been unlocked!`,
+        title: 'Payment Verified & Approved',
+        body: `Your payment of ₹${Number(updatedPayment.amount || 0).toLocaleString()} for ${updatedPayment.title || 'Tuition Fee'} has been verified and approved by FEREX Finance Board. New journey stages have been unlocked.`,
         category: 'Payment'
       });
     } catch (err) {}

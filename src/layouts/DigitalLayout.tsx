@@ -200,27 +200,27 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
 
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col bg-white border-r border-slate-200/80 fixed top-0 bottom-0 left-0 z-30 transition-all duration-300 ${
-          sidebarOpen ? 'w-64' : 'w-20'
+        className={`hidden lg:flex flex-col bg-white border-r border-slate-200/80 fixed top-0 bottom-0 left-0 z-30 transition-all duration-200 select-none ${
+          sidebarOpen ? 'w-60' : 'w-18'
         }`}
       >
         {/* Brand Header */}
-        <div className="h-16 px-5 border-b border-slate-100 flex items-center shrink-0">
+        <div className="h-14 px-4 border-b border-slate-100 flex items-center shrink-0">
           <Link to="/digital/dashboard" className="flex items-center gap-3 overflow-hidden">
             {!sidebarOpen ? (
               <Logo variant="icon" size="sm" />
             ) : (
-              <Logo variant="compact" size="sm" subtitle="DIGITAL" />
+              <Logo variant="compact" size="sm" subtitle="FEREX DIGITAL" />
             )}
           </Link>
         </div>
 
         {/* Navigation Sections */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4 scrollbar-thin">
           {navSections.map((section, sIdx) => (
-            <div key={sIdx} className="space-y-1">
+            <div key={sIdx} className="space-y-0.5">
               {sidebarOpen && (
-                <span className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1.5">
+                <span className="px-2.5 text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                   {section.title}
                 </span>
               )}
@@ -236,17 +236,17 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                         navigate(item.path);
                       }
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all group ${
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition-all group cursor-pointer ${
                       isActive
-                        ? 'bg-[#6A1B2E] text-white shadow-md shadow-[#6A1B2E]/20'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]'
+                        : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
                     }`}
                     title={!sidebarOpen ? item.label : undefined}
                   >
-                    <item.icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : 'text-[#6A1B2E]'}`} />
+                    <item.icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'}`} />
                     {sidebarOpen && <span className="truncate flex-1 text-left">{item.label}</span>}
                     {sidebarOpen && item.badge && (
-                      <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white text-[#6A1B2E]' : 'bg-[#6A1B2E]/10 text-[#6A1B2E]'}`}>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-600">
                         {item.badge}
                       </span>
                     )}
@@ -260,18 +260,18 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
         {/* User Card Bottom */}
         {sidebarOpen && (
           <div className="p-3 border-t border-slate-100 bg-slate-50/50">
-            <div className="flex items-center gap-3 p-2 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
-              <div className="w-8 h-8 rounded-lg bg-[#6A1B2E] text-white text-xs font-black flex items-center justify-center overflow-hidden shrink-0">
+            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-[#58051E] text-white text-xs font-bold flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
                 {profilePhoto ? <img src={profilePhoto} alt="Digital User" className="w-full h-full object-cover" /> : initials}
               </div>
-              <div className="flex flex-col truncate">
-                <span className="text-xs font-black text-slate-900 truncate">{userName || roleLabel}</span>
-                <span className="text-[10px] font-semibold text-slate-400 truncate">{userEmail}</span>
+              <div className="flex flex-col truncate flex-1 min-w-0">
+                <span className="text-xs font-bold text-slate-900 truncate">{userName || roleLabel}</span>
+                <span className="text-[9.5px] font-medium text-slate-400 truncate">{userEmail}</span>
               </div>
             </div>
             {isStaff && (
-              <div className="mt-1.5 px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg">
-                <span className="text-[9px] font-extrabold text-amber-700 uppercase tracking-wider">Staff Access</span>
+              <div className="mt-1 px-2 py-0.5 bg-amber-50 border border-amber-200/70 rounded-md">
+                <span className="text-[8.5px] font-bold text-amber-700 uppercase tracking-wider">Staff Access</span>
               </div>
             )}
           </div>
@@ -279,34 +279,34 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       </aside>
 
       {/* Main Workspace Layout */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarOpen ? 'lg:pl-64' : 'lg:pl-20'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${sidebarOpen ? 'lg:pl-60' : 'lg:pl-18'}`}>
         
         {/* Top Navbar */}
-        <header className="h-16 bg-white border-b border-slate-200/80 sticky top-0 z-20 px-4 md:px-6 flex items-center justify-between gap-4 shadow-2xs">
-          <div className="flex items-center gap-3">
+        <header className="h-14 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 sticky top-0 z-20 px-4 sm:px-6 flex items-center justify-between gap-3 select-none">
+          <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100"
+              className="lg:hidden p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 cursor-pointer"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4.5 h-4.5" />
             </button>
-            <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-400">
-              <span className="text-slate-700">Ferex Digital</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-              <span className="text-[#6A1B2E] font-black">{activeItem?.label || 'Console'}</span>
+            <div className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-slate-400">
+              <span className="text-slate-500 font-semibold">Ferex Digital</span>
+              <ChevronRight className="w-3 h-3 text-slate-300" />
+              <span className="text-slate-800 font-bold bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/60 truncate">{activeItem?.label || 'Console'}</span>
             </div>
           </div>
 
           {/* Top Bar Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Search Bar Trigger */}
             <button
               onClick={() => setShowSearchModal(true)}
-              className="flex items-center gap-2 h-9 px-3 bg-slate-100/80 hover:bg-slate-100 rounded-xl text-xs font-semibold text-slate-400 border border-slate-200/60 transition-all w-36 sm:w-64"
+              className="flex items-center gap-2 h-8.5 px-3 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-medium text-slate-400 border border-slate-200/80 transition-all w-36 sm:w-56 cursor-pointer"
             >
               <Search className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-              <span className="truncate">Search clients, projects...</span>
-              <kbd className="hidden sm:inline-block ml-auto text-[9px] font-extrabold bg-white text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">⌘K</kbd>
+              <span className="truncate">Search clients...</span>
+              <kbd className="hidden sm:inline-block ml-auto text-[9px] font-bold bg-white text-slate-400 px-1.5 py-0.2 rounded border border-slate-200">⌘K</kbd>
             </button>
 
             {/* Google-Style 9-Dots 4-App Switcher */}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Globe, Search, Ship, FileText, CreditCard, CheckCircle2,
-  Anchor, RefreshCw
+  Anchor, RefreshCw, X
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -91,7 +91,7 @@ export const CentralTrade: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
@@ -145,7 +145,7 @@ export const CentralTrade: React.FC = () => {
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
-              activeTab === tab.id ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              activeTab === tab.id ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             <tab.icon className="w-3.5 h-3.5" />
@@ -189,7 +189,7 @@ export const CentralTrade: React.FC = () => {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase text-slate-400">
                     <th className="py-3 px-4">Shipment & Container</th>
-                    <th className="py-3 px-4">Origin ➔ Destination</th>
+                    <th className="py-3 px-4">Origin / Destination</th>
                     <th className="py-3 px-4">Carrier & Vessel</th>
                     <th className="py-3 px-4 text-center">Status</th>
                     <th className="py-3 px-4">Assigned Staff</th>
@@ -205,7 +205,7 @@ export const CentralTrade: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="text-slate-800">{s.origin_port || 'Port of Gdansk, Poland'}</div>
-                        <span className="text-[10px] text-slate-400">➔ {s.destination_port || 'Port of Rotterdam, NL'}</span>
+                        <span className="text-[10px] text-slate-400">To: {s.destination_port || 'Port of Rotterdam, NL'}</span>
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="text-slate-800 font-bold">{s.carrier || 'Maersk Line'}</div>
@@ -225,7 +225,7 @@ export const CentralTrade: React.FC = () => {
                           <strong className="text-slate-800">{s.assigned_staff || 'Marek Kowalski'}</strong>
                           <button
                             onClick={() => setReassignModal(s)}
-                            className="text-[10px] font-bold text-[#6A1B2E] hover:underline"
+                            className="text-[10px] font-bold text-[#58051E] hover:underline"
                           >
                             (Reassign)
                           </button>
@@ -283,7 +283,7 @@ export const CentralTrade: React.FC = () => {
                   <p className="text-[11px] text-slate-500">SWIFT & Customs Audit Compliant</p>
                   <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-[11px] font-bold text-indigo-600">
                     <span>Status: Verified (100%)</span>
-                    <span>Ready ➔</span>
+                    <span>Ready →</span>
                   </div>
                 </div>
               );
@@ -334,7 +334,7 @@ export const CentralTrade: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                 <h3 className="text-sm font-black text-slate-900">Reassign Global Trade Staff</h3>
-                <button onClick={() => setReassignModal(null)} className="p-1 text-slate-400 hover:text-slate-600">✕</button>
+                <button onClick={() => setReassignModal(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
               <div className="space-y-4 text-xs">
                 <p className="font-bold text-slate-700">Shipment: <span className="text-slate-900">{reassignModal.shipment_no || reassignModal.id}</span></p>
@@ -356,7 +356,7 @@ export const CentralTrade: React.FC = () => {
                   <Button
                     type="button"
                     size="sm"
-                    className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]"
+                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
                     onClick={() => {
                       setShipments(prev => prev.map(s => s.id === reassignModal.id ? { ...s, assigned_staff: newStaff } : s));
                       setReassignModal(null);

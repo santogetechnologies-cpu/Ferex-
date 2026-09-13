@@ -131,7 +131,7 @@ export const AdminDocumentReview: React.FC = () => {
               document_type: targetDoc.category || targetDoc.docType,
               notes: 'Mandatory documents verified. NAWA legalization & admission initiation started.'
             });
-            showToast(`🎉 Document approved & NAWA legalization + student application initiated!`);
+            showToast(`Document approved & legalization initialized.`);
             return;
           } catch (e) {}
         }
@@ -147,7 +147,7 @@ export const AdminDocumentReview: React.FC = () => {
     e.preventDefault();
     if (!reuploadModalDoc) return;
     if (!reuploadNotesInput.trim()) {
-      showToast('⚠️ Re-upload reason notes are required for student instructions.');
+      showToast('Re-upload reason notes are required for student instructions.');
       return;
     }
 
@@ -160,7 +160,7 @@ export const AdminDocumentReview: React.FC = () => {
         setViewDoc(prev => prev ? { ...prev, status: 'Rejected', comment: notes } : null);
       }
       setReuploadModalDoc(null);
-      showToast(`🎉 Re-upload/rejection request with notes sent to student!`);
+      showToast(`Re-upload request with notes sent to student.`);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to send rejection'}`);
     } finally {
@@ -204,7 +204,7 @@ export const AdminDocumentReview: React.FC = () => {
           <button
             key={label}
             onClick={() => setStatusFilter(label)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${statusFilter === label ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/60'
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${statusFilter === label ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/60'
               }`}
           >
             <span>{label}</span>
@@ -224,7 +224,7 @@ export const AdminDocumentReview: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by student name, document title, or category..."
-            className="w-full h-10 pl-9.5 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+            className="w-full h-10 pl-9.5 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
           />
         </div>
       </div>
@@ -244,7 +244,7 @@ export const AdminDocumentReview: React.FC = () => {
               <tr key={d.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40 transition-colors">
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-[#6A1B2E] flex items-center justify-center text-white text-[9px] font-extrabold shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#58051E] flex items-center justify-center text-white text-[9px] font-extrabold shrink-0">
                       {d.studentName.split(' ').map(n => n[0]).join('')}
                     </div>
                     <span className="font-extrabold text-slate-900">{d.studentName}</span>
@@ -393,7 +393,7 @@ export const AdminDocumentReview: React.FC = () => {
                     )
                   ) : (
                     <div className="text-center p-4">
-                      <FileText className="w-12 h-12 text-[#6A1B2E]/40 mx-auto mb-2" />
+                      <FileText className="w-12 h-12 text-[#58051E]/40 mx-auto mb-2" />
                       <p className="text-xs font-bold text-slate-600">Compliance Document File Registered</p>
                       <p className="text-[10px] text-slate-400 mt-1">{viewDoc.docType}</p>
                     </div>
@@ -406,7 +406,7 @@ export const AdminDocumentReview: React.FC = () => {
                           const signed = await getSignedFileUrl('student-documents', viewDoc.fileUrl || '');
                           if (signed) window.open(signed, '_blank');
                         }}
-                        className="px-3.5 py-1.5 bg-[#6A1B2E] text-white text-xs font-bold rounded-lg hover:bg-[#521221] transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        className="px-3.5 py-1.5 bg-[#58051E] text-white text-xs font-bold rounded-lg hover:bg-[#430316] transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
                       >
                         <Eye className="w-3.5 h-3.5" /> Open Full Screen / Download
                       </button>
@@ -430,8 +430,8 @@ export const AdminDocumentReview: React.FC = () => {
                 </div>
 
                 {viewDoc.comment && (
-                  <div className="p-3 bg-[#6A1B2E]/5 border border-[#6A1B2E]/20 rounded-xl">
-                    <p className="text-[10px] font-extrabold text-[#6A1B2E] uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <div className="p-3 bg-[#58051E]/5 border border-[#58051E]/20 rounded-xl">
+                    <p className="text-[10px] font-extrabold text-[#58051E] uppercase tracking-wider mb-1 flex items-center gap-1">
                       <MessageSquare className="w-3.5 h-3.5" /> Admin Feedback Notes
                     </p>
                     <p className="text-xs font-semibold text-slate-800">{viewDoc.comment}</p>

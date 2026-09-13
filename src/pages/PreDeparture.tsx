@@ -30,51 +30,51 @@ export const PreDeparture: React.FC = () => {
   // If payment not verified, show locked state
   if (!paymentAccess.allowed) {
     return (
-      <div className="space-y-6 text-left">
+      <div className="space-y-6 text-left py-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-2xl mx-auto"
+          className="max-w-xl mx-auto"
         >
-          <Card className="p-8 text-center space-y-6 bg-gradient-to-br from-green-50 via-white to-emerald-50 border-2 border-green-200">
-            <div className="w-20 h-20 rounded-full bg-green-100 border-4 border-green-300 mx-auto flex items-center justify-center">
-              <Lock className="w-10 h-10 text-green-600" />
+          <Card className="p-8 text-center space-y-6 bg-white border border-slate-200/80 shadow-card">
+            <div className="w-14 h-14 rounded-xl bg-slate-100 text-slate-600 mx-auto flex items-center justify-center">
+              <Lock className="w-6 h-6" />
             </div>
             
-            <div className="space-y-3">
-              <h2 className="text-2xl font-black text-slate-900">
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-slate-900">
                 Pre-Departure Checklist Locked
               </h2>
-              <p className="text-base font-semibold text-slate-600 max-w-lg mx-auto">
-                {paymentAccess.reason || 'Complete 3rd Installment (Agency & VFS Fee) to unlock pre-departure planning.'}
+              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                {paymentAccess.reason || 'Complete 3rd Installment (Agency & VFS Fee) to unlock pre-departure planning and airport logistics.'}
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl border-2 border-green-200 p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-slate-700">Required Payment:</span>
-                <span className="text-sm font-extrabold text-green-700">{payment3Status.requiredPayment}</span>
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3 text-left">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-slate-600">Required Settlement:</span>
+                <span className="font-semibold text-slate-900">{payment3Status.requiredPayment}</span>
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-slate-700">Status:</span>
-                <span className={`text-sm font-extrabold px-3 py-1 rounded-full ${
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-slate-600">Status:</span>
+                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded ${
                   payment3Status.paymentStatus === 'pending' 
-                    ? 'bg-amber-100 text-amber-700 border border-amber-300'
-                    : 'bg-red-100 text-red-700 border border-red-300'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
                 }`}>
                   {payment3Status.paymentStatus === 'pending' ? 'Pending Verification' : 'Not Submitted'}
                 </span>
               </div>
 
               {payment3Status.paymentStatus === 'pending' && (
-                <div className="pt-4 border-t border-green-200">
-                  <div className="flex items-start gap-3 bg-amber-50 rounded-xl p-4 border border-amber-200">
-                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="text-left">
-                      <p className="text-xs font-bold text-amber-900 mb-1">Payment Under Review</p>
-                      <p className="text-xs font-semibold text-amber-700">
-                        Your final payment is being verified. Pre-departure access will be granted upon approval.
+                <div className="pt-3 border-t border-slate-200">
+                  <div className="flex items-start gap-2.5 bg-white rounded-lg p-3 border border-slate-200">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-left text-xs">
+                      <p className="font-semibold text-slate-800">Payment Under Review</p>
+                      <p className="text-slate-500 mt-0.5">
+                        Your final installment is being verified. Pre-departure access will be granted upon approval.
                       </p>
                     </div>
                   </div>
@@ -82,20 +82,20 @@ export const PreDeparture: React.FC = () => {
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+            <div className="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
               {payment3Status.paymentStatus === 'not_found' && (
                 <button
                   onClick={() => navigate('/student/payments')}
-                  className="px-6 py-3 bg-[#6A1B2E] text-white rounded-xl font-bold text-sm hover:bg-[#521221] transition-all shadow-lg flex items-center justify-center gap-2"
+                  className="px-5 py-2.5 bg-[#58051E] text-white rounded-lg font-semibold text-xs hover:bg-[#430417] transition-colors shadow-subtle flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <CreditCard className="w-5 h-5" />
-                  Make Final Payment
+                  <CreditCard className="w-4 h-4" />
+                  Settle Final Installment
                 </button>
               )}
               
               <button
                 onClick={() => navigate('/student/dashboard')}
-                className="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-300 transition-all"
+                className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-lg font-medium text-xs hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 Return to Dashboard
               </button>
@@ -193,78 +193,79 @@ export const PreDeparture: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left relative min-h-[600px] pb-10">
-      {/* Header Banner */}
-      <div className="p-6 md:p-8 bg-gradient-to-r from-[#6A1B2E] via-wine-950 to-slate-950 text-white rounded-3xl shadow-xl border border-[#6A1B2E]/30 relative overflow-hidden">
-        <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 opacity-10 pointer-events-none">
-          <Plane className="w-96 h-96 text-white" />
-        </div>
+      {/* Executive Header Banner */}
+      <div className="p-6 md:p-8 bg-slate-900 text-white rounded-xl shadow-card border border-slate-800 relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-black text-amber-300 border border-white/15 mb-3">
-            <Sparkles className="w-3.5 h-3.5" /> Travel Tracker & Arrival Pipeline
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-slate-200 border border-white/10 mb-3">
+            <Plane className="w-3.5 h-3.5 text-slate-300" /> Phase 03 • Pre-Departure & Arrival Protocol
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
-            Travel, Campus Arrival & Post-Arrival Support
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white">
+            Travel, Campus Arrival & Welfare Support
           </h1>
-          <p className="text-xs md:text-sm font-medium text-slate-200 mt-2 leading-relaxed">
-            Manage your confirmed flight itinerary, university dormitory housing, airport concierge pickup, and complete the 9-stage campus arrival checklist.
+          <p className="text-xs md:text-sm text-slate-300 mt-1.5 leading-relaxed">
+            Manage your confirmed flight itinerary, university dormitory housing, airport concierge pickup, and complete the campus arrival checklist.
           </p>
 
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <span className={`px-4 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border ${
+          <div className="mt-4 flex flex-wrap items-center gap-2.5">
+            <span className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border ${
               activeDepRecord.clearance_status === 'Clearance Granted' || activeDepRecord.clearance_status === 'Departed'
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
             }`}>
-              <CheckCircle2 className="w-4 h-4" /> {activeDepRecord.clearance_status}
+              <CheckCircle2 className="w-3.5 h-3.5" /> {activeDepRecord.clearance_status}
             </span>
-            <span className="text-xs font-bold text-slate-200 bg-white/10 px-4 py-1.5 rounded-xl border border-white/15 flex items-center gap-1.5">
-              <Building className="w-3.5 h-3.5 text-amber-300" /> Target: {activeDepRecord.university_name || targetUniversity}
+            <span className="text-xs font-medium text-slate-300 bg-white/10 px-3 py-1 rounded-lg border border-white/10 flex items-center gap-1.5">
+              <Building className="w-3.5 h-3.5 text-slate-300" /> Target: {activeDepRecord.university_name || targetUniversity}
             </span>
           </div>
         </div>
       </div>
 
       {/* Tabs Toolbar */}
-      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2 flex-wrap">
+      <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2.5 flex-wrap">
         <button
+          type="button"
           onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2.5 text-xs font-extrabold rounded-xl transition-all flex items-center gap-2 ${
+          className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'overview'
-              ? 'bg-[#6A1B2E] text-white shadow-xs'
+              ? 'bg-[#58051E] text-white shadow-subtle'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <Plane className="w-4 h-4" /> Flight & Airport Pickup
+          <Plane className="w-3.5 h-3.5" /> Flight & Transfer
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('dorm')}
-          className={`px-4 py-2.5 text-xs font-extrabold rounded-xl transition-all flex items-center gap-2 ${
+          className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'dorm'
-              ? 'bg-[#6A1B2E] text-white shadow-xs'
+              ? 'bg-[#58051E] text-white shadow-subtle'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <Home className="w-4 h-4" /> Dormitory & Housing
+          <Home className="w-3.5 h-3.5" /> Residence Allotment
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('checklist')}
-          className={`px-4 py-2.5 text-xs font-extrabold rounded-xl transition-all flex items-center gap-2 ${
+          className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'checklist'
-              ? 'bg-[#6A1B2E] text-white shadow-xs'
+              ? 'bg-[#58051E] text-white shadow-subtle'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <FileCheck className="w-4 h-4" /> Arrival Checklist ({completedChecklistCount}/{checklistItems.length})
+          <FileCheck className="w-3.5 h-3.5" /> Arrival Checklist ({completedChecklistCount}/{checklistItems.length})
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('contacts')}
-          className={`px-4 py-2.5 text-xs font-extrabold rounded-xl transition-all flex items-center gap-2 ${
+          className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'contacts'
-              ? 'bg-[#6A1B2E] text-white shadow-xs'
+              ? 'bg-[#58051E] text-white shadow-subtle'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <PhoneCall className="w-4 h-4" /> Emergency Contacts
+          <PhoneCall className="w-3.5 h-3.5" /> Welfare Contacts
         </button>
       </div>
 
@@ -286,7 +287,7 @@ export const PreDeparture: React.FC = () => {
               {/* Flight Ticket Card */}
               <Card className="p-6 border border-slate-200/80 bg-white space-y-5 shadow-xs">
                 <div className="flex items-center gap-3.5 border-b border-slate-100 pb-4">
-                  <div className="w-11 h-11 rounded-2xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-black shrink-0 border border-[#6A1B2E]/20">
+                  <div className="w-11 h-11 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black shrink-0 border border-[#58051E]/20">
                     <Plane className="w-5 h-5" />
                   </div>
                   <div>
@@ -307,7 +308,7 @@ export const PreDeparture: React.FC = () => {
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <span className="text-slate-500 font-medium">Departure Date:</span>
                     <span className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-[#6A1B2E]" /> {activeDepRecord.departure_date}
+                      <Calendar className="w-3.5 h-3.5 text-[#58051E]" /> {activeDepRecord.departure_date}
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -344,7 +345,7 @@ export const PreDeparture: React.FC = () => {
                     <span className="text-slate-500 font-medium">Hotline Contact:</span>
                     <a
                       href={`tel:${activeDepRecord.pickup_contact || '+48225520999'}`}
-                      className="font-extrabold text-[#6A1B2E] hover:underline flex items-center gap-1"
+                      className="font-extrabold text-[#58051E] hover:underline flex items-center gap-1"
                     >
                       <PhoneCall className="w-3.5 h-3.5" /> {activeDepRecord.pickup_contact || '+48 22 552 0999'}
                     </a>
@@ -471,7 +472,7 @@ export const PreDeparture: React.FC = () => {
                 <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-3">24/7 European Student Support & Emergency Helpline</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold">
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-start gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-black shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black shrink-0">
                       <PhoneCall className="w-5 h-5" />
                     </div>
                     <div>
@@ -479,7 +480,7 @@ export const PreDeparture: React.FC = () => {
                       <p className="text-slate-500 mt-1">{activeDepRecord.pickup_contact || '+48 22 552 0999'} | support@ferex.com</p>
                       <a
                         href={`tel:${activeDepRecord.pickup_contact || '+48225520999'}`}
-                        className="inline-flex items-center gap-1.5 text-xs font-black text-[#6A1B2E] mt-2 hover:underline"
+                        className="inline-flex items-center gap-1.5 text-xs font-black text-[#58051E] mt-2 hover:underline"
                       >
                         <PhoneCall className="w-3.5 h-3.5" /> Call Hotline Now
                       </a>

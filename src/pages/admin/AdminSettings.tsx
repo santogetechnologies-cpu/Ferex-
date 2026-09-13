@@ -45,7 +45,7 @@ export const AdminSettings: React.FC = () => {
     newStudent: true, appUpdate: true, docReview: true, payment: false, support: true, staffLeave: false,
   });
   const [theme, setTheme] = useState('Light');
-  const [accentColor, setAccentColor] = useState('#6A1B2E');
+  const [accentColor, setAccentColor] = useState('#58051E');
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
@@ -63,26 +63,26 @@ export const AdminSettings: React.FC = () => {
           <div key={key}>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">{label}</label>
             <input value={org[key]} onChange={(e) => setOrg({ ...org, [key]: e.target.value })}
-              className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/50 transition-all" />
+              className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/50 transition-all" />
           </div>
         ))}
         <div>
           <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Timezone</label>
           <select value={org.timezone} onChange={(e) => setOrg({ ...org, timezone: e.target.value })}
-            className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/50">
+            className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/50">
             <option>IST (UTC+5:30)</option><option>UTC</option><option>GST (UTC+4)</option><option>CET (UTC+1)</option>
           </select>
         </div>
         <div>
           <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Language</label>
           <select value={org.language} onChange={(e) => setOrg({ ...org, language: e.target.value })}
-            className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/50">
+            className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/50">
             <option>English</option><option>Arabic</option><option>Hindi</option>
           </select>
         </div>
       </div>
       <button onClick={() => showToast('Organization settings saved!')}
-        className="flex items-center gap-1.5 h-10 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all shadow-sm">
+        className="flex items-center gap-1.5 h-10 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all shadow-sm">
         <Save className="w-4 h-4" /> Save Settings
       </button>
     </div>
@@ -92,18 +92,18 @@ export const AdminSettings: React.FC = () => {
     <div className="space-y-3">
       {EMAIL_TEMPLATES.map((t) => (
         <div key={t.id} className="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-xl shadow-sm">
-          <Mail className="w-5 h-5 text-[#6A1B2E]/60 shrink-0" />
+          <Mail className="w-5 h-5 text-[#58051E]/60 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-extrabold text-slate-900">{t.name}</p>
             <p className="text-[10px] font-semibold text-slate-400">Trigger: {t.trigger}</p>
           </div>
           <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold border ${t.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>{t.status}</span>
           <button onClick={() => showToast(`Opened template editor for "${t.name}"`)}
-            className="shrink-0 text-[10px] font-bold text-[#6A1B2E] hover:underline">Edit</button>
+            className="shrink-0 text-[10px] font-bold text-[#58051E] hover:underline">Edit</button>
         </div>
       ))}
       <button onClick={() => showToast('New template editor opened.')}
-        className="w-full flex items-center justify-center gap-2 h-10 border-2 border-dashed border-slate-200 text-xs font-bold text-slate-400 rounded-xl hover:border-[#6A1B2E]/30 hover:text-[#6A1B2E] transition-all">
+        className="w-full flex items-center justify-center gap-2 h-10 border-2 border-dashed border-slate-200 text-xs font-bold text-slate-400 rounded-xl hover:border-[#58051E]/30 hover:text-[#58051E] transition-all">
         <Plus className="w-4 h-4" /> Add New Template
       </button>
     </div>
@@ -123,13 +123,13 @@ export const AdminSettings: React.FC = () => {
         <div key={key} className="flex items-center justify-between p-3.5 bg-white border border-slate-100 rounded-xl">
           <p className="text-xs font-bold text-slate-700">{label}</p>
           <button onClick={() => setNotifPrefs(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
-            className={`w-10 h-5.5 rounded-full transition-all relative flex items-center px-0.5 ${notifPrefs[key as keyof typeof notifPrefs] ? 'bg-[#6A1B2E]' : 'bg-slate-200'}`}>
+            className={`w-10 h-5.5 rounded-full transition-all relative flex items-center px-0.5 ${notifPrefs[key as keyof typeof notifPrefs] ? 'bg-[#58051E]' : 'bg-slate-200'}`}>
             <span className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${notifPrefs[key as keyof typeof notifPrefs] ? 'translate-x-4' : 'translate-x-0'}`} />
           </button>
         </div>
       ))}
       <button onClick={() => showToast('Notification preferences saved!')}
-        className="flex items-center gap-1.5 h-9 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all mt-3">
+        className="flex items-center gap-1.5 h-9 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all mt-3">
         <Save className="w-3.5 h-3.5" /> Save Preferences
       </button>
     </div>
@@ -139,17 +139,17 @@ export const AdminSettings: React.FC = () => {
     <div className="space-y-3">
       {ROLES.map((r) => (
         <div key={r.name} className="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-xl shadow-sm">
-          <div className="w-9 h-9 rounded-xl bg-[#6A1B2E]/10 flex items-center justify-center shrink-0"><Shield className="w-4.5 h-4.5 text-[#6A1B2E]" /></div>
+          <div className="w-9 h-9 rounded-xl bg-[#58051E]/10 flex items-center justify-center shrink-0"><Shield className="w-4.5 h-4.5 text-[#58051E]" /></div>
           <div className="flex-1">
             <p className="text-xs font-extrabold text-slate-900">{r.name}</p>
             <p className="text-[10px] font-semibold text-slate-400">{r.count} member{r.count > 1 ? 's' : ''} · {r.permissions} permissions</p>
           </div>
           <button onClick={() => showToast(`Opened permissions editor for "${r.name}"`)}
-            className="text-[10px] font-bold text-[#6A1B2E] hover:underline">Edit</button>
+            className="text-[10px] font-bold text-[#58051E] hover:underline">Edit</button>
         </div>
       ))}
       <button onClick={() => showToast('New role creation form opened.')}
-        className="w-full flex items-center justify-center gap-2 h-10 border-2 border-dashed border-slate-200 text-xs font-bold text-slate-400 rounded-xl hover:border-[#6A1B2E]/30 hover:text-[#6A1B2E] transition-all">
+        className="w-full flex items-center justify-center gap-2 h-10 border-2 border-dashed border-slate-200 text-xs font-bold text-slate-400 rounded-xl hover:border-[#58051E]/30 hover:text-[#58051E] transition-all">
         <Plus className="w-4 h-4" /> Add New Role
       </button>
     </div>
@@ -163,19 +163,19 @@ export const AdminSettings: React.FC = () => {
           <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Require 2FA for all admin logins</p>
         </div>
         <button onClick={() => { setTwoFA(!twoFA); showToast(`2FA ${!twoFA ? 'enabled' : 'disabled'}.`); }}
-          className={`w-10 h-5 rounded-full transition-all relative flex items-center px-0.5 ${twoFA ? 'bg-[#6A1B2E]' : 'bg-slate-200'}`}>
+          className={`w-10 h-5 rounded-full transition-all relative flex items-center px-0.5 ${twoFA ? 'bg-[#58051E]' : 'bg-slate-200'}`}>
           <span className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${twoFA ? 'translate-x-5' : 'translate-x-0'}`} />
         </button>
       </div>
       <div className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm">
         <p className="text-xs font-extrabold text-slate-900 mb-2">Session Timeout</p>
         <select value={sessionTimeout} onChange={(e) => setSessionTimeout(e.target.value)}
-          className="h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/50 w-full">
+          className="h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/50 w-full">
           <option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option><option value="120">2 hours</option>
         </select>
       </div>
       <button onClick={() => showToast('Security settings updated!')}
-        className="flex items-center gap-1.5 h-9 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all">
+        className="flex items-center gap-1.5 h-9 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all">
         <Lock className="w-3.5 h-3.5" /> Save Security Settings
       </button>
     </div>
@@ -188,7 +188,7 @@ export const AdminSettings: React.FC = () => {
         <div className="flex gap-2">
           {['Light', 'Dark', 'Auto'].map(t => (
             <button key={t} onClick={() => setTheme(t)}
-              className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all ${theme === t ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+              className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all ${theme === t ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
               {t}
             </button>
           ))}
@@ -197,7 +197,7 @@ export const AdminSettings: React.FC = () => {
       <div>
         <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Accent Color</label>
         <div className="flex items-center gap-3">
-          {['#6A1B2E', '#1E40AF', '#065F46', '#7C3AED', '#B45309'].map(c => (
+          {['#58051E', '#1E40AF', '#065F46', '#7C3AED', '#B45309'].map(c => (
             <button key={c} onClick={() => setAccentColor(c)}
               className={`w-9 h-9 rounded-xl transition-transform ${accentColor === c ? 'scale-110 ring-2 ring-offset-2 ring-slate-400' : 'hover:scale-105'}`}
               style={{ backgroundColor: c }} />
@@ -207,7 +207,7 @@ export const AdminSettings: React.FC = () => {
         </div>
       </div>
       <button onClick={() => showToast('Appearance settings saved!')}
-        className="flex items-center gap-1.5 h-9 px-4 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all">
+        className="flex items-center gap-1.5 h-9 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] transition-all">
         <Palette className="w-3.5 h-3.5" /> Save Appearance
       </button>
     </div>
@@ -246,7 +246,7 @@ export const AdminSettings: React.FC = () => {
           {TABS.map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`w-full flex items-center gap-2.5 h-9 px-3 rounded-xl text-xs font-bold transition-all
-                ${activeTab === tab ? 'bg-[#6A1B2E] text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}>
+                ${activeTab === tab ? 'bg-[#58051E] text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}>
               {TAB_ICONS[tab]}
               <span className="truncate">{tab}</span>
             </button>

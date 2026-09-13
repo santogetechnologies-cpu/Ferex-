@@ -153,8 +153,8 @@ export const DigitalMobileApps: React.FC = () => {
             ))}
           </select>
         </div>
-        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-          ✓ iOS (SwiftUI) & Android (Kotlin/RN) Target Active
+        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1.5">
+          <CheckCircle2 className="w-3.5 h-3.5" /> iOS (SwiftUI) & Android (Kotlin/RN) Target Active
         </span>
       </Card>
 

@@ -81,7 +81,7 @@ export const DigitalWebDevelopment: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             {toast}
@@ -93,12 +93,12 @@ export const DigitalWebDevelopment: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase bg-[#6A1B2E]/10 text-[#6A1B2E] px-2.5 py-0.5 rounded-full border border-[#6A1B2E]/20">
+            <span className="text-[10px] font-black uppercase bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
               GitHub + Vercel + Next.js Workspace
             </span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 mt-1">
-            <Code className="w-6 h-6 text-[#6A1B2E]" /> Web Engineering & DevOps Workspace
+            <Code className="w-6 h-6 text-[#58051E]" /> Web Engineering & DevOps Workspace
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
             Live browser viewport, Vercel build pipeline, Git commits, API latency monitor, and DevTools console.
@@ -109,7 +109,7 @@ export const DigitalWebDevelopment: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           {projects.length > 0 && (
             <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
-              <FolderKanban className="w-3.5 h-3.5 text-[#6A1B2E]" />
+              <FolderKanban className="w-3.5 h-3.5 text-[#58051E]" />
               <select
                 value={selectedProjectId}
                 onChange={e => {
@@ -127,13 +127,13 @@ export const DigitalWebDevelopment: React.FC = () => {
               <button
                 key={item}
                 onClick={() => { setEnv(item); showToast(`Switched environment to ${item}`); }}
-                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${env === item ? 'bg-[#6A1B2E] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${env === item ? 'bg-[#58051E] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 {item}
               </button>
             ))}
           </div>
-          <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowTerminal(true)}>
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowTerminal(true)}>
             <Terminal className="w-4 h-4 mr-1.5" /> Vercel CLI Terminal
           </Button>
         </div>
@@ -145,7 +145,7 @@ export const DigitalWebDevelopment: React.FC = () => {
           { label: 'Lighthouse Performance', value: '98 / 100', sub: 'PageSpeed LCP 0.7s', color: 'text-emerald-700' },
           { label: 'Lighthouse Accessibility', value: '100 / 100', sub: 'WCAG 2.1 AA Compliant', color: 'text-blue-700' },
           { label: 'Best Practices Score', value: '98 / 100', sub: 'Strict CSP & HTTPS Headers', color: 'text-purple-700' },
-          { label: 'Lighthouse SEO Score', value: '100 / 100', sub: 'Structured JSON-LD Schema', color: 'text-[#6A1B2E]' },
+          { label: 'Lighthouse SEO Score', value: '100 / 100', sub: 'Structured JSON-LD Schema', color: 'text-[#58051E]' },
         ].map((card, idx) => (
           <Card key={idx} className="p-4 border border-slate-200/80 shadow-xs rounded-2xl bg-white">
             <span className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">{card.label}</span>
@@ -179,9 +179,9 @@ export const DigitalWebDevelopment: React.FC = () => {
               DevTools Console
             </button>
             <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-700">
-              <button onClick={() => setViewport('desktop')} className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewport === 'desktop' ? 'bg-[#6A1B2E] text-white' : 'text-slate-400 hover:text-white'}`}><Laptop className="w-4 h-4" /></button>
-              <button onClick={() => setViewport('tablet')} className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewport === 'tablet' ? 'bg-[#6A1B2E] text-white' : 'text-slate-400 hover:text-white'}`}><Tablet className="w-4 h-4" /></button>
-              <button onClick={() => setViewport('mobile')} className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewport === 'mobile' ? 'bg-[#6A1B2E] text-white' : 'text-slate-400 hover:text-white'}`}><Smartphone className="w-4 h-4" /></button>
+              <button onClick={() => setViewport('desktop')} className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewport === 'desktop' ? 'bg-[#58051E] text-white' : 'text-slate-400 hover:text-white'}`}><Laptop className="w-4 h-4" /></button>
+              <button onClick={() => setViewport('tablet')} className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewport === 'tablet' ? 'bg-[#58051E] text-white' : 'text-slate-400 hover:text-white'}`}><Tablet className="w-4 h-4" /></button>
+              <button onClick={() => setViewport('mobile')} className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewport === 'mobile' ? 'bg-[#58051E] text-white' : 'text-slate-400 hover:text-white'}`}><Smartphone className="w-4 h-4" /></button>
             </div>
           </div>
         </div>
@@ -192,18 +192,18 @@ export const DigitalWebDevelopment: React.FC = () => {
             <div className="p-6 space-y-6 text-left">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-[#6A1B2E] text-white flex items-center justify-center font-black text-xs">FX</div>
+                  <div className="w-8 h-8 rounded-xl bg-[#58051E] text-white flex items-center justify-center font-black text-xs">FX</div>
                   <span className="font-black text-slate-900 text-sm">{activeProject.title}</span>
                 </div>
                 <div className="flex items-center gap-3 text-xs font-bold text-slate-600">
-                  <span className="text-[#6A1B2E]">Services</span>
+                  <span className="text-[#58051E]">Services</span>
                   <span>Solutions</span>
                   <span>Architecture</span>
-                  <span className="bg-[#6A1B2E] text-white px-3 py-1 rounded-lg text-[11px]">{activeProject.progress || 88}% Built</span>
+                  <span className="bg-[#58051E] text-white px-3 py-1 rounded-lg text-[11px]">{activeProject.progress || 88}% Built</span>
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-gradient-to-r from-slate-900 to-[#6A1B2E] text-white p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="rounded-2xl bg-gradient-to-r from-slate-900 to-[#58051E] text-white p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-400/20 px-2 py-0.5 rounded">High-Throughput Production Stack</span>
                   <h2 className="text-lg font-black text-white">{activeProject.title}</h2>
@@ -237,7 +237,7 @@ export const DigitalWebDevelopment: React.FC = () => {
         {/* API Health Monitor */}
         <Card className="p-5 border border-slate-200/80 shadow-xs space-y-3 rounded-2xl bg-white">
           <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-            <Server className="w-4 h-4 text-[#6A1B2E]" /> REST & GraphQL API Health Monitor
+            <Server className="w-4 h-4 text-[#58051E]" /> REST & GraphQL API Health Monitor
           </h3>
           <div className="space-y-2 text-xs font-mono">
             {apiEndpoints.map((api, i) => (
@@ -258,7 +258,7 @@ export const DigitalWebDevelopment: React.FC = () => {
         {/* Git Branch Commits */}
         <Card className="p-5 border border-slate-200/80 shadow-xs space-y-3 rounded-2xl bg-white">
           <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-            <GitBranch className="w-4 h-4 text-[#6A1B2E]" /> Active Git Commits Stream
+            <GitBranch className="w-4 h-4 text-[#58051E]" /> Active Git Commits Stream
           </h3>
           <div className="space-y-2 text-xs font-mono">
             {commitsList.map((c, i) => (
@@ -287,9 +287,9 @@ export const DigitalWebDevelopment: React.FC = () => {
               </div>
               <div className="space-y-2 leading-relaxed">
                 <p className="text-slate-400">$ vercel deploy --prod</p>
-                <p>✓ Injecting environment variables for {activeProject.title}</p>
-                <p className="text-white">✓ Compiled 2,318 modules in 244ms</p>
-                <p className="text-emerald-400">✓ Production Ready: https://{activeProject.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.ferex.digital</p>
+                <p>Injecting environment variables for {activeProject.title}</p>
+                <p className="text-white">Compiled 2,318 modules in 244ms</p>
+                <p className="text-emerald-400">Production Ready: https://{activeProject.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.ferex.digital</p>
               </div>
               <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-slate-950 font-black text-xs" onClick={() => { showToast('Deployment confirmed!'); setShowTerminal(false); }}>
                 Confirm Release Build

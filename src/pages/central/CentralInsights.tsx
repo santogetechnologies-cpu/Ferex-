@@ -51,7 +51,7 @@ export const CentralInsights: React.FC = () => {
     <div className="space-y-6 text-left">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -62,13 +62,13 @@ export const CentralInsights: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-[#6A1B2E]" /> Executive Insights & CEO Command Matrix
+            <TrendingUp className="w-5 h-5 text-[#58051E]" /> Executive Insights & CEO Command Matrix
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Super Admin Console • Platform health score, revenue forecasting models, and executive recommendations.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => showToastMsg('Generated Executive Intelligence Brief (PDF)')}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => showToastMsg('Generated Executive Intelligence Brief (PDF)')}>
           <ArrowUpRight className="w-4 h-4 mr-1.5" /> Download CEO Intelligence Deck
         </Button>
       </div>
@@ -110,7 +110,7 @@ export const CentralInsights: React.FC = () => {
         <Card className="p-6 border border-slate-200/70 shadow-xs flex flex-col justify-between">
           <div>
             <span className="text-[10px] font-extrabold uppercase text-slate-400">Conversion Velocity</span>
-            <span className="text-3xl font-black text-[#6A1B2E] block mt-1">65.2%</span>
+            <span className="text-3xl font-black text-[#58051E] block mt-1">65.2%</span>
             <span className="text-xs font-bold text-slate-600 mt-1 block">
               Offer Letter to Visa Clearance Rate ({stats.totalStudents || 960} Enrolled)
             </span>
@@ -152,11 +152,11 @@ export const CentralInsights: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-black text-slate-900">{rec.title}</span>
-                  <span className="text-[10px] font-extrabold text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded">{rec.impact}</span>
+                  <span className="text-[10px] font-extrabold text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">{rec.impact}</span>
                 </div>
                 <p className="text-xs text-slate-500 font-semibold mt-0.5">{rec.desc}</p>
               </div>
-              <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shrink-0 self-end sm:self-center" onClick={() => handleApplyRec(rec.title)}>
+              <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shrink-0 self-end sm:self-center" onClick={() => handleApplyRec(rec.title)}>
                 {rec.action}
               </Button>
             </div>

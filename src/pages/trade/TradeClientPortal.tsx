@@ -34,7 +34,11 @@ import {
   Anchor,
   MessageCircle,
   ExternalLink,
-  Navigation
+  Navigation,
+  CheckCircle2,
+  Zap,
+  ArrowRight,
+  X
 } from 'lucide-react';
 
 export const TradeClientPortal: React.FC = () => {
@@ -363,7 +367,10 @@ export const TradeClientPortal: React.FC = () => {
                         </td>
                         <td className="py-3 px-4 text-slate-300">
                           <div className="text-[11px]">{s.origin_port || 'Port of Gdansk, Poland'}</div>
-                          <div className="text-[10px] text-slate-500">➔ {s.destination_port || 'Port of Rotterdam, Netherlands'}</div>
+                          <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                            <ArrowRight className="w-2.5 h-2.5 text-slate-500 shrink-0" />
+                            <span>{s.destination_port || 'Port of Rotterdam, Netherlands'}</span>
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-slate-300 max-w-xs truncate">{s.cargo_description || 'Industrial Machinery'}</td>
                         <td className="py-3 px-4 text-slate-300 font-mono">{s.eta || '2026-09-20'}</td>
@@ -476,7 +483,7 @@ export const TradeClientPortal: React.FC = () => {
                       </div>
                       <div className="text-[11px] text-slate-300 flex items-center justify-between">
                         <span>{c.port_of_loading}</span>
-                        <span className="text-slate-500">➔</span>
+                        <ArrowRight className="w-3 h-3 text-slate-500" />
                         <span>{c.port_of_discharge}</span>
                       </div>
                       <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
@@ -598,13 +605,15 @@ export const TradeClientPortal: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         {inv.status === 'Paid' ? (
-                          <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md">✓ Settled</span>
+                          <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md flex items-center gap-1 justify-center">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Settled
+                          </span>
                         ) : (
                           <button
                             onClick={() => setPayingInvoice(inv)}
                             className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold text-[11px] shadow-sm active:scale-95 transition-all"
                           >
-                            ⚡ Settle (Stripe/UPI)
+                            <Zap className="w-3.5 h-3.5" /> Settle (Stripe/UPI)
                           </button>
                         )}
                       </td>
@@ -706,7 +715,7 @@ export const TradeClientPortal: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-[11px] text-slate-300 space-y-1 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                    <p>Port: <strong>{bl.port_of_loading || 'Gdansk'} ➔ {bl.port_of_discharge || 'Rotterdam'}</strong></p>
+                    <p className="flex items-center gap-1">Port: <strong>{bl.port_of_loading || 'Gdansk'}</strong> <ArrowRight className="w-3 h-3 text-slate-500 inline shrink-0" /> <strong>{bl.port_of_discharge || 'Rotterdam'}</strong></p>
                     <p>Status: <span className="text-emerald-400 font-semibold">{bl.status || 'Clean On-Board Signed'}</span></p>
                   </div>
                   <button className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all">
@@ -816,7 +825,7 @@ export const TradeClientPortal: React.FC = () => {
                 onClick={() => setSelectedShipment(null)}
                 className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
             <div className="space-y-2 text-slate-300">

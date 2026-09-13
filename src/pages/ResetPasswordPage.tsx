@@ -130,7 +130,7 @@ export const ResetPasswordPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 bg-gradient-to-r from-[#58051E] via-[#6A1B2E] to-[#58051E] hover:from-[#430316] hover:to-[#58051E] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#58051E]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2"
+              className="w-full h-12 bg-[#58051E] hover:bg-[#430316] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#58051E]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2"
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">

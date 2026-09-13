@@ -101,7 +101,7 @@ export const AdminFeeConfig: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2"
+            className="fixed top-6 right-6 z-50 bg-[#58051E] text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4 text-amber-300" /> {toast}
           </motion.div>
@@ -112,7 +112,7 @@ export const AdminFeeConfig: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <span className="w-8 h-8 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-bold text-sm">
+            <span className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold text-sm">
               ₹
             </span>
             Fee & Intake Global Configuration
@@ -124,7 +124,7 @@ export const AdminFeeConfig: React.FC = () => {
 
         <button
           onClick={handleSaveAll}
-          className="flex items-center gap-2 h-9.5 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] shadow-md shadow-[#6A1B2E]/20 self-start sm:self-auto transition-all"
+          className="flex items-center gap-2 h-9.5 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-sm shadow-[#58051E]/20 self-start sm:self-auto transition-all cursor-pointer"
         >
           <Save className="w-4 h-4" /> Save Global Configuration
         </button>
@@ -137,7 +137,7 @@ export const AdminFeeConfig: React.FC = () => {
           <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[#6A1B2E]" /> Mandatory Advance & Registration Fee
+                <DollarSign className="w-4 h-4 text-[#58051E]" /> Mandatory Advance & Registration Fee
               </h3>
               <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                 Student Portal Enforced
@@ -150,7 +150,7 @@ export const AdminFeeConfig: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-extrabold text-[#6A1B2E] uppercase tracking-wider mb-1">
+                <label className="block text-[10px] font-extrabold text-[#58051E] uppercase tracking-wider mb-1">
                   Advance Amount (₹ INR)
                 </label>
                 <input
@@ -159,7 +159,7 @@ export const AdminFeeConfig: React.FC = () => {
                   value={advanceRegInr}
                   onChange={(e) => setAdvanceRegInr(Number(e.target.value))}
                   placeholder="15000"
-                  className="w-full h-10 px-3.5 bg-rose-50/40 border border-[#6A1B2E]/30 rounded-xl text-xs font-extrabold text-[#6A1B2E] focus:outline-none focus:border-[#6A1B2E]"
+                  className="w-full h-10 px-3.5 bg-rose-50/40 border border-[#58051E]/30 rounded-xl text-xs font-extrabold text-[#58051E] focus:outline-none focus:border-[#58051E]"
                 />
               </div>
 
@@ -173,7 +173,7 @@ export const AdminFeeConfig: React.FC = () => {
                   value={advanceRegEur}
                   onChange={(e) => setAdvanceRegEur(Number(e.target.value))}
                   placeholder="150"
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
                 />
               </div>
             </div>
@@ -194,7 +194,7 @@ export const AdminFeeConfig: React.FC = () => {
                           type="number"
                           value={feeObj.registration_fee_inr}
                           onChange={(e) => handleCountryFeeChange(country, Number(e.target.value), feeObj.registration_fee_eur)}
-                          className="w-18 h-7 text-center bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#6A1B2E]"
+                          className="w-18 h-7 text-center bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#58051E]"
                         />
                       </div>
                       <div className="flex items-center gap-0.5">
@@ -216,7 +216,7 @@ export const AdminFeeConfig: React.FC = () => {
           {/* Section 2: Default Agency & Visa Fees in INR */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
             <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <DollarSign className="w-4 h-4 text-[#6A1B2E]" /> Additional Service & Embassy Fees
+              <DollarSign className="w-4 h-4 text-[#58051E]" /> Additional Service & Embassy Fees
             </h3>
 
             <div className="space-y-4">
@@ -242,7 +242,7 @@ export const AdminFeeConfig: React.FC = () => {
                   value={vfsFee}
                   onChange={(e) => setVfsFee(e.target.value)}
                   placeholder="e.g. ₹15,000"
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
                 />
               </div>
             </div>
@@ -251,25 +251,25 @@ export const AdminFeeConfig: React.FC = () => {
           {/* Section 2: Global Active Intakes Configurator */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
             <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Calendar className="w-4 h-4 text-[#6A1B2E]" /> Active Global Admissions Intakes
+              <Calendar className="w-4 h-4 text-[#58051E]" /> Active Global Admissions Intakes
             </h3>
 
             <p className="text-xs font-semibold text-slate-500">
-              Manage global admissions intakes. Click the <span className="font-bold text-red-600">✕</span> icon to remove any intake.
+              Manage global admissions intakes. Click the remove icon button to delete any intake.
             </p>
 
             <div className="flex flex-wrap gap-2">
               {intakes.map(intake => (
                 <div
                   key={intake}
-                  className="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-[#6A1B2E] text-white border border-[#6A1B2E] shadow-xs flex items-center gap-2"
+                  className="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-[#58051E] text-white border border-[#58051E] shadow-xs flex items-center gap-2"
                 >
-                  <span>✓ {intake}</span>
+                  <span>{intake}</span>
                   <button
                     type="button"
                     onClick={() => setIntakes(prev => prev.filter(i => i !== intake))}
                     title={`Remove ${intake}`}
-                    className="w-4 h-4 rounded-full bg-white/20 hover:bg-red-500 text-white flex items-center justify-center transition-colors"
+                    className="w-4 h-4 rounded-full bg-white/20 hover:bg-rose-600 text-white flex items-center justify-center transition-colors cursor-pointer"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -284,12 +284,12 @@ export const AdminFeeConfig: React.FC = () => {
                 value={newIntakeInput}
                 onChange={(e) => setNewIntakeInput(e.target.value)}
                 placeholder="Add custom intake (e.g. March 2026)..."
-                className="flex-1 h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                className="flex-1 h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
               />
               <button
                 type="button"
                 onClick={handleAddIntake}
-                className="h-9 px-4 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 flex items-center gap-1"
+                className="h-9 px-4 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Add
               </button>
@@ -303,7 +303,7 @@ export const AdminFeeConfig: React.FC = () => {
           <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                <Percent className="w-4 h-4 text-[#6A1B2E]" /> Payment Installment Percentage Splits
+                <Percent className="w-4 h-4 text-[#58051E]" /> Payment Installment Percentage Splits
               </h3>
               <span className={`text-xs font-black px-2.5 py-0.5 rounded-full border ${
                 totalPct === 100 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
@@ -329,7 +329,7 @@ export const AdminFeeConfig: React.FC = () => {
                     max="100"
                     value={inst1Pct}
                     onChange={(e) => setInst1Pct(Number(e.target.value))}
-                    className="w-16 h-8 text-center bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-[#6A1B2E]"
+                    className="w-16 h-8 text-center bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-[#58051E]"
                   />
                   <span className="text-xs font-extrabold text-slate-600">%</span>
                 </div>
@@ -347,7 +347,7 @@ export const AdminFeeConfig: React.FC = () => {
                     max="100"
                     value={inst2Pct}
                     onChange={(e) => setInst2Pct(Number(e.target.value))}
-                    className="w-16 h-8 text-center bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-[#6A1B2E]"
+                    className="w-16 h-8 text-center bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-[#58051E]"
                   />
                   <span className="text-xs font-extrabold text-slate-600">%</span>
                 </div>
@@ -365,7 +365,7 @@ export const AdminFeeConfig: React.FC = () => {
                     max="100"
                     value={inst3Pct}
                     onChange={(e) => setInst3Pct(Number(e.target.value))}
-                    className="w-16 h-8 text-center bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-[#6A1B2E]"
+                    className="w-16 h-8 text-center bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-[#58051E]"
                   />
                   <span className="text-xs font-extrabold text-slate-600">%</span>
                 </div>

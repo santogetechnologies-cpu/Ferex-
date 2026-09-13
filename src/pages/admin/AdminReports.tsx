@@ -88,12 +88,12 @@ export const AdminReports: React.FC = () => {
           {['This Week', 'This Month', 'This Year'].map(p => (
             <button key={p} onClick={() => setPeriod(p)}
               className={`h-8 px-3 rounded-xl text-[10px] font-extrabold border transition-all
-                ${period === p ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
+                ${period === p ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
               {p}
             </button>
           ))}
           <button onClick={() => handleExport('Full')}
-            className="flex items-center gap-1.5 h-8 px-3.5 bg-[#6A1B2E] text-white text-[10px] font-bold rounded-xl hover:bg-[#4A101E] transition-all shadow-sm">
+            className="flex items-center gap-1.5 h-8 px-3.5 bg-[#58051E] text-white text-[10px] font-bold rounded-xl hover:bg-[#4A101E] transition-all shadow-sm">
             <Download className="w-3.5 h-3.5" /> Export All
           </button>
         </div>
@@ -126,18 +126,18 @@ export const AdminReports: React.FC = () => {
               <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Monthly application volume — {period}</p>
             </div>
             <button onClick={() => handleExport('Applications')}
-              className="flex items-center gap-1 text-[10px] font-bold text-[#6A1B2E] hover:underline">
+              className="flex items-center gap-1 text-[10px] font-bold text-[#58051E] hover:underline">
               <Download className="w-3 h-3" /> Export
             </button>
           </div>
-          <BarChart data={appData} labels={monthLabels} color="bg-[#6A1B2E]/70" />
+          <BarChart data={appData} labels={monthLabels} color="bg-[#58051E]/70" />
         </div>
 
         {/* Document status donut-style */}
         <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-extrabold text-slate-900">Document Status</h3>
-            <button onClick={() => handleExport('Documents')} className="flex items-center gap-1 text-[10px] font-bold text-[#6A1B2E] hover:underline">
+            <button onClick={() => handleExport('Documents')} className="flex items-center gap-1 text-[10px] font-bold text-[#58051E] hover:underline">
               <Download className="w-3 h-3" /> Export
             </button>
           </div>
@@ -168,7 +168,7 @@ export const AdminReports: React.FC = () => {
         <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-extrabold text-slate-900">Students by Country</h3>
-            <button onClick={() => handleExport('Countries')} className="flex items-center gap-1 text-[10px] font-bold text-[#6A1B2E] hover:underline">
+            <button onClick={() => handleExport('Countries')} className="flex items-center gap-1 text-[10px] font-bold text-[#58051E] hover:underline">
               <Download className="w-3 h-3" /> Export
             </button>
           </div>
@@ -184,7 +184,7 @@ export const AdminReports: React.FC = () => {
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6 }}
-                      className="h-full rounded-full bg-[#6A1B2E]/60" />
+                      className="h-full rounded-full bg-[#58051E]/60" />
                   </div>
                 </div>
               ))
@@ -196,7 +196,7 @@ export const AdminReports: React.FC = () => {
         <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-extrabold text-slate-900">Top Universities</h3>
-            <button onClick={() => handleExport('Universities')} className="flex items-center gap-1 text-[10px] font-bold text-[#6A1B2E] hover:underline">
+            <button onClick={() => handleExport('Universities')} className="flex items-center gap-1 text-[10px] font-bold text-[#58051E] hover:underline">
               <Download className="w-3 h-3" /> Export
             </button>
           </div>
@@ -225,7 +225,7 @@ export const AdminReports: React.FC = () => {
             <h3 className="text-sm font-extrabold text-slate-900">Payment Revenue (₹ thousands)</h3>
             <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Monthly payment collection — {period}</p>
           </div>
-          <button onClick={() => handleExport('Payments')} className="flex items-center gap-1 text-[10px] font-bold text-[#6A1B2E] hover:underline">
+          <button onClick={() => handleExport('Payments')} className="flex items-center gap-1 text-[10px] font-bold text-[#58051E] hover:underline">
             <Download className="w-3 h-3" /> Export
           </button>
         </div>

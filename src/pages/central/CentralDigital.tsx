@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Monitor, Search, FolderKanban, FileText, Users,
-  CheckCircle2, RefreshCw
+  CheckCircle2, RefreshCw, X
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -90,7 +90,7 @@ export const CentralDigital: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
@@ -143,7 +143,7 @@ export const CentralDigital: React.FC = () => {
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
-              activeTab === tab.id ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              activeTab === tab.id ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             <tab.icon className="w-3.5 h-3.5" />
@@ -223,7 +223,7 @@ export const CentralDigital: React.FC = () => {
                             <strong className="text-slate-800">{p.lead_developer || 'Priya Nair'}</strong>
                             <button
                               onClick={() => setReassignProject(p)}
-                              className="text-[10px] font-bold text-[#6A1B2E] hover:underline cursor-pointer"
+                              className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
                             >
                               (Reassign)
                             </button>
@@ -324,7 +324,7 @@ export const CentralDigital: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                 <h3 className="text-sm font-black text-slate-900">Reassign Digital Tech Lead</h3>
-                <button onClick={() => setReassignProject(null)} className="p-1 text-slate-400 hover:text-slate-600">✕</button>
+                <button onClick={() => setReassignProject(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
               <div className="space-y-4 text-xs">
                 <p className="font-bold text-slate-700">Project: <span className="text-slate-900">{reassignProject.title}</span></p>
@@ -346,7 +346,7 @@ export const CentralDigital: React.FC = () => {
                   <Button
                     type="button"
                     size="sm"
-                    className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]"
+                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
                     onClick={() => {
                       setProjects(prev => prev.map(p => p.id === reassignProject.id ? { ...p, lead_developer: newLeadDev } : p));
                       setReassignProject(null);

@@ -4,7 +4,7 @@ import {
   Mail, CheckCircle2, Send, Terminal, Globe, Server,
   Key, Save, Copy, Check,
   Zap, Database, Eye, EyeOff, Sliders, RefreshCw,
-  GraduationCap, Snowflake, Monitor
+  GraduationCap, Snowflake, Monitor, X
 } from 'lucide-react';
 import {
   type EmailProviderType,
@@ -127,7 +127,7 @@ export const CentralEmailSettings: React.FC = () => {
     try {
       const saved = await saveGlobalEmailConfig(config, 'Super Admin HQ');
       setConfig(saved);
-      showToastMsg(`✓ Email provider settings saved! Active Provider: ${saved.activeProvider.toUpperCase()}`);
+      showToastMsg(`Email provider settings saved! Active Provider: ${saved.activeProvider.toUpperCase()}`);
     } catch {
       showToastMsg('Failed to save email configuration');
     } finally {
@@ -181,7 +181,7 @@ export const CentralEmailSettings: React.FC = () => {
       });
       setTestResult(result);
       if (result.success) {
-        showToastMsg(`✓ Test email delivered to ${testRecipient}! (Latency: ${result.latencyMs}ms)`);
+        showToastMsg(`Test email delivered to ${testRecipient}! (Latency: ${result.latencyMs}ms)`);
       }
     } finally {
       setTestingDispatch(false);
@@ -207,7 +207,7 @@ export const CentralEmailSettings: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
@@ -220,9 +220,9 @@ export const CentralEmailSettings: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Mail className="w-6 h-6 text-[#6A1B2E]" /> Superadmin Email Provider & SMTP Settings
+              <Mail className="w-6 h-6 text-[#58051E]" /> Superadmin Email Provider & SMTP Settings
             </h1>
-            <span className="text-[10px] font-black bg-[#6A1B2E]/10 text-[#6A1B2E] border border-[#6A1B2E]/20 px-2.5 py-0.5 rounded-full uppercase">
+            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full uppercase">
               RLS SuperAdmin Protected
             </span>
           </div>
@@ -234,14 +234,14 @@ export const CentralEmailSettings: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setShowTestModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-[#6A1B2E] bg-[#6A1B2E]/10 hover:bg-[#6A1B2E]/15 border border-[#6A1B2E]/20 rounded-xl transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-[#58051E] bg-[#58051E]/10 hover:bg-[#58051E]/15 border border-[#58051E]/20 rounded-xl transition-all cursor-pointer"
           >
             <Send className="w-3.5 h-3.5" /> Send Test Email
           </button>
           <button
             onClick={() => handleSave()}
             disabled={saving}
-            className="flex items-center gap-1.5 px-5 py-2 text-xs font-black text-white bg-[#6A1B2E] hover:bg-[#521221] rounded-xl shadow-md shadow-[#6A1B2E]/20 transition-all cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-5 py-2 text-xs font-black text-white bg-[#58051E] hover:bg-[#430316] rounded-xl shadow-md shadow-[#58051E]/20 transition-all cursor-pointer disabled:opacity-50"
           >
             <Save className="w-3.5 h-3.5" /> {saving ? 'Saving...' : 'Save Configuration'}
           </button>
@@ -249,7 +249,7 @@ export const CentralEmailSettings: React.FC = () => {
       </div>
 
       {/* Active Provider Indicator Bar */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-[#6A1B2E] text-white p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-[#58051E] text-white p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-emerald-400 font-black">
             <Zap className="w-5 h-5" />
@@ -305,7 +305,7 @@ export const CentralEmailSettings: React.FC = () => {
               onClick={() => setActiveSection(tab.id as any)}
               className={`flex items-center gap-2 px-4 py-3 text-xs font-black border-b-2 transition-all cursor-pointer ${
                 isActive
-                  ? 'border-[#6A1B2E] text-[#6A1B2E]'
+                  ? 'border-[#58051E] text-[#58051E]'
                   : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
               }`}
             >
@@ -338,7 +338,7 @@ export const CentralEmailSettings: React.FC = () => {
                     onClick={() => setSelectedProviderTab(provider.id)}
                     className={`p-4 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between ${
                       isSelected
-                        ? 'bg-slate-50/80 border-[#6A1B2E] shadow-md shadow-[#6A1B2E]/5'
+                        ? 'bg-slate-50/80 border-[#58051E] shadow-md shadow-[#58051E]/5'
                         : 'bg-white border-slate-200/80 hover:border-slate-300 hover:shadow-xs'
                     }`}
                   >
@@ -371,7 +371,7 @@ export const CentralEmailSettings: React.FC = () => {
                             e.stopPropagation();
                             setActiveProvider(provider.id);
                           }}
-                          className="px-2.5 py-1 text-[10px] font-black text-slate-700 bg-slate-100 hover:bg-[#6A1B2E] hover:text-white rounded-lg transition-colors cursor-pointer"
+                          className="px-2.5 py-1 text-[10px] font-black text-slate-700 bg-slate-100 hover:bg-[#58051E] hover:text-white rounded-lg transition-colors cursor-pointer"
                         >
                           Set as Active
                         </button>
@@ -400,7 +400,7 @@ export const CentralEmailSettings: React.FC = () => {
                 {config.activeProvider !== selectedProviderTab ? (
                   <button
                     onClick={() => setActiveProvider(selectedProviderTab)}
-                    className="flex items-center gap-1 px-3.5 py-1.5 text-xs font-black text-white bg-[#6A1B2E] hover:bg-[#521221] rounded-xl shadow-xs transition-colors cursor-pointer"
+                    className="flex items-center gap-1 px-3.5 py-1.5 text-xs font-black text-white bg-[#58051E] hover:bg-[#430316] rounded-xl shadow-xs transition-colors cursor-pointer"
                   >
                     <Check className="w-3.5 h-3.5" /> Set {currentTabMeta.name} as Active Provider
                   </button>
@@ -428,7 +428,7 @@ export const CentralEmailSettings: React.FC = () => {
                         value={config.providers.resend.apiKey || ''}
                         onChange={(e) => updateProviderCreds('resend', 'apiKey', e.target.value)}
                         placeholder="re_live_..."
-                        className="w-full h-10 pl-9 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+                        className="w-full h-10 pl-9 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                       />
                       <button
                         type="button"
@@ -480,7 +480,7 @@ export const CentralEmailSettings: React.FC = () => {
                         value={config.providers.brevo.apiKey || ''}
                         onChange={(e) => updateProviderCreds('brevo', 'apiKey', e.target.value)}
                         placeholder="xkeysib-..."
-                        className="w-full h-10 pl-9 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+                        className="w-full h-10 pl-9 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                       />
                       <button
                         type="button"
@@ -943,7 +943,7 @@ export const CentralEmailSettings: React.FC = () => {
                 type="checkbox"
                 checked={config.enforceTls}
                 onChange={(e) => setConfig({ ...config, enforceTls: e.target.checked })}
-                className="w-5 h-5 accent-[#6A1B2E] rounded cursor-pointer"
+                className="w-5 h-5 accent-[#58051E] rounded cursor-pointer"
               />
             </div>
 
@@ -956,7 +956,7 @@ export const CentralEmailSettings: React.FC = () => {
                 type="checkbox"
                 checked={config.trackOpensAndClicks}
                 onChange={(e) => setConfig({ ...config, trackOpensAndClicks: e.target.checked })}
-                className="w-5 h-5 accent-[#6A1B2E] rounded cursor-pointer"
+                className="w-5 h-5 accent-[#58051E] rounded cursor-pointer"
               />
             </div>
 
@@ -994,10 +994,10 @@ export const CentralEmailSettings: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <Database className="w-4 h-4 text-[#6A1B2E]" /> Supabase Table Schema & Row Level Security
+                <Database className="w-4 h-4 text-[#58051E]" /> Supabase Table Schema & Row Level Security
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Table <code className="text-[#6A1B2E] font-bold">email_configurations</code> with strict SuperAdmin write isolation.
+                Table <code className="text-[#58051E] font-bold">email_configurations</code> with strict SuperAdmin write isolation.
               </p>
             </div>
             <button
@@ -1029,7 +1029,7 @@ export const CentralEmailSettings: React.FC = () => {
             >
               <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                 <div className="flex items-center gap-2">
-                  <Send className="w-4 h-4 text-[#6A1B2E]" />
+                  <Send className="w-4 h-4 text-[#58051E]" />
                   <span className="text-xs font-black text-slate-900 uppercase">
                     Test Gateway Dispatcher ({config.activeProvider.toUpperCase()})
                   </span>
@@ -1038,7 +1038,7 @@ export const CentralEmailSettings: React.FC = () => {
                   onClick={() => setShowTestModal(false)}
                   className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
@@ -1053,7 +1053,7 @@ export const CentralEmailSettings: React.FC = () => {
                       value={testRecipient}
                       onChange={(e) => setTestRecipient(e.target.value)}
                       placeholder="admin@yourdomain.com"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
                   </div>
 
@@ -1079,12 +1079,12 @@ export const CentralEmailSettings: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <Server className="w-4 h-4 text-slate-500" />
                     <span className="font-bold text-slate-700">Active Target Gateway:</span>
-                    <span className="font-black text-[#6A1B2E]">{activeProviderMeta.name}</span>
+                    <span className="font-black text-[#58051E]">{activeProviderMeta.name}</span>
                   </div>
                   <button
                     onClick={handleSendTest}
                     disabled={testingDispatch}
-                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-black text-white bg-[#6A1B2E] hover:bg-[#521221] rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-black text-white bg-[#58051E] hover:bg-[#430316] rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {testingDispatch ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                     {testingDispatch ? 'Testing Gateway...' : 'Dispatch Test Email'}
@@ -1099,7 +1099,7 @@ export const CentralEmailSettings: React.FC = () => {
                         <Terminal className="w-3.5 h-3.5" /> Edge Gateway Diagnostic Log
                       </span>
                       <span className={testResult.success ? 'text-emerald-600' : 'text-red-600'}>
-                        {testResult.success ? `✓ HTTP ${testResult.statusCode} OK (${testResult.latencyMs}ms)` : '✕ Dispatch Failed'}
+                        {testResult.success ? `HTTP ${testResult.statusCode} OK (${testResult.latencyMs}ms)` : 'Dispatch Failed'}
                       </span>
                     </div>
 

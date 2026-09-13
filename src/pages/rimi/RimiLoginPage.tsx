@@ -148,7 +148,7 @@ export const RimiLoginPage: React.FC = () => {
             }`}
           >
             <Snowflake className="w-4 h-4 text-[#58051E]" />
-            <span className="text-[11px] font-black">❄️ Rimi Admin</span>
+            <span className="text-[11px] font-black">Rimi Admin</span>
             <span className="text-[9px] text-slate-400 font-normal">rimi@ferex.com</span>
           </button>
           <button
@@ -161,7 +161,7 @@ export const RimiLoginPage: React.FC = () => {
             }`}
           >
             <Store className="w-4 h-4 text-blue-600" />
-            <span className="text-[11px] font-black">🏪 Customer Portal</span>
+            <span className="text-[11px] font-black">Customer Portal</span>
             <span className="text-[9px] text-slate-400 font-normal">customer@rimi.com</span>
           </button>
         </div>

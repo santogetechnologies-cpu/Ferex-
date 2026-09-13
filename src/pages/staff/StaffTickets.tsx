@@ -38,7 +38,7 @@ export const StaffTickets: React.FC = () => {
     <div className="space-y-6 text-left antialiased select-none">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />{toast}
           </motion.div>
         )}
@@ -47,7 +47,7 @@ export const StaffTickets: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <Ticket className="w-5 h-5 text-[#6A1B2E]" /> Enterprise Ticket Support Inbox
+            <Ticket className="w-5 h-5 text-[#58051E]" /> Enterprise Ticket Support Inbox
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Student application queries, SLA countdown timers, and document clarification support queue.</p>
         </div>
@@ -72,7 +72,7 @@ export const StaffTickets: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black uppercase text-[#6A1B2E]">{ticketId} • {student}</span>
+                      <span className="text-[10px] font-black uppercase text-[#58051E]">{ticketId} • {student}</span>
                       <span className="text-[9.5px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1">
                         <Clock className="w-3 h-3 text-amber-600" /> Active SLA
                       </span>
@@ -86,8 +86,8 @@ export const StaffTickets: React.FC = () => {
 
                 <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-bold">
                   <span className="text-slate-500">{commentsCount} Discussion Responses</span>
-                  <button onClick={() => setSelectedTicket(ticket)} className="text-[#6A1B2E] font-black hover:underline flex items-center gap-1">
-                    Reply to Ticket →
+                  <button onClick={() => setSelectedTicket(ticket)} className="text-[#58051E] font-black hover:underline flex items-center gap-1 cursor-pointer">
+                    Reply to Ticket
                   </button>
                 </div>
               </Card>
@@ -104,17 +104,17 @@ export const StaffTickets: React.FC = () => {
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl space-y-4 text-left">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="text-sm font-black text-slate-900">{selectedTicket.subject || selectedTicket.title} ({selectedTicket.id?.slice(0, 8)})</h3>
-                <button onClick={() => setSelectedTicket(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+                <button onClick={() => setSelectedTicket(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
 
               <textarea
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder="Type your official staff response..."
-                className="w-full h-24 p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                className="w-full h-24 p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
               />
 
-              <Button size="sm" className="w-full bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={handleSendReply}>
+              <Button size="sm" className="w-full bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={handleSendReply}>
                 <Send className="w-3.5 h-3.5 mr-1.5" /> Dispatch Official Reply
               </Button>
             </motion.div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff, Ship, Globe } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Logo } from '../../components/Logo';
 import { supabase } from '../../lib/supabase';
@@ -164,7 +164,7 @@ export const TradeLoginPage: React.FC = () => {
                     : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                🚢 Trade Admin
+                <Ship className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" /> Trade Admin
               </button>
               <button
                 type="button"
@@ -175,7 +175,7 @@ export const TradeLoginPage: React.FC = () => {
                     : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                🌍 Client / Buyer
+                <Globe className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" /> Client / Buyer
               </button>
             </div>
           </div>

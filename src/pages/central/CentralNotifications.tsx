@@ -99,7 +99,7 @@ export const CentralNotifications: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
@@ -112,9 +112,9 @@ export const CentralNotifications: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Bell className="w-6 h-6 text-[#6A1B2E]" /> Executive Alerts & Dispatch Desk
+              <Bell className="w-6 h-6 text-[#58051E]" /> Executive Alerts & Dispatch Desk
             </h1>
-            <span className="text-[10px] font-black bg-[#6A1B2E]/10 text-[#6A1B2E] border border-[#6A1B2E]/20 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
               4-App Broadcast
             </span>
           </div>
@@ -144,7 +144,7 @@ export const CentralNotifications: React.FC = () => {
               onClick={() => setSelectedFilter(tab)}
               className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
                 selectedFilter === tab
-                  ? 'bg-[#6A1B2E] text-white shadow-xs'
+                  ? 'bg-[#58051E] text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -165,7 +165,7 @@ export const CentralNotifications: React.FC = () => {
             key={alert.id}
             className={`p-5 border transition-all ${
               !alert.read
-                ? 'border-l-4 border-l-[#6A1B2E] border-slate-200/90 bg-white shadow-sm'
+                ? 'border-l-4 border-l-[#58051E] border-slate-200/90 bg-white shadow-sm'
                 : 'border-slate-200/60 bg-slate-50/50'
             }`}
           >

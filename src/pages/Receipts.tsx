@@ -74,7 +74,7 @@ export const Receipts: React.FC = () => {
         {toastMessage && (
           <motion.div
             initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white px-4 py-3 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2"
+            className="fixed top-6 right-6 z-50 bg-[#58051E] text-white px-4 py-3 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4 text-amber-300" /> {toastMessage}
           </motion.div>
@@ -85,7 +85,7 @@ export const Receipts: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1 flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-[#6A1B2E]/5 text-[#6A1B2E] flex items-center justify-center">
+            <span className="w-8 h-8 rounded-lg bg-[#58051E]/5 text-[#58051E] flex items-center justify-center">
               <FileCheck className="w-5 h-5" />
             </span>
             Payment Receipts
@@ -109,7 +109,7 @@ export const Receipts: React.FC = () => {
           <input
             type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search by receipt number or description..."
-            className="w-full h-10 pl-9 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+            className="w-full h-10 pl-9 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
           />
         </div>
       </div>
@@ -130,7 +130,7 @@ export const Receipts: React.FC = () => {
               <div>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
-                    <span className="text-[10px] font-black text-[#6A1B2E] uppercase font-mono tracking-wide">{rec.receipt_no || rec.id}</span>
+                    <span className="text-[10px] font-black text-[#58051E] uppercase font-mono tracking-wide">{rec.receipt_no || rec.id}</span>
                     <h3 className="text-sm font-black text-slate-900 leading-snug mt-0.5">{rec.description || 'Payment Receipt'}</h3>
                   </div>
                   <span className="text-[9.5px] uppercase font-extrabold tracking-wider px-2.5 py-0.5 border rounded-full bg-emerald-50 text-emerald-700 border-emerald-200 shrink-0">

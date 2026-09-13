@@ -17,7 +17,7 @@ export const TradeCertificates: React.FC = () => {
   const [newCert, setNewCert] = useState({
     title: 'EU Certificate of Origin (Form A)',
     authority: 'Chamber of Commerce Warsaw',
-    country: 'Poland 🇵🇱',
+    country: 'Poland (PL)',
     validity_months: 12
   });
 
@@ -31,7 +31,7 @@ export const TradeCertificates: React.FC = () => {
           rawId: d.id,
           title: d.title,
           authority: d.authority,
-          country: d.country || 'Poland 🇵🇱',
+          country: d.country || 'Poland (PL)',
           issueDate: d.issue_date || '2026-07-10',
           expiryDate: d.expiry_date || '2027-07-10',
           status: d.status || 'Verified & Active',
@@ -108,7 +108,7 @@ export const TradeCertificates: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -118,13 +118,13 @@ export const TradeCertificates: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Award className="w-5 h-5 text-[#6A1B2E]" /> Trade Certificates & Compliance Vault
+            <Award className="w-5 h-5 text-[#58051E]" /> Trade Certificates & Compliance Vault
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Ferex Trade Console • EU Certificates of Origin, Phytosanitary clearances, ISO certifications, and chamber seals.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Register Certificate
         </Button>
       </div>
@@ -132,7 +132,7 @@ export const TradeCertificates: React.FC = () => {
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search cert #, title, or authority..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search cert #, title, or authority..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
         </div>
         <span className="text-xs font-bold text-slate-400">{filteredCerts.length} Verified Certificates</span>
       </Card>
@@ -146,7 +146,7 @@ export const TradeCertificates: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
             {searchQuery ? 'No certificates match your query.' : 'There are no active certificates in the compliance vault. Register a new certificate below.'}
           </p>
-          <Button size="sm" className="mt-4 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
             <Plus className="w-3.5 h-3.5 mr-1" /> Register Certificate
           </Button>
         </Card>
@@ -169,7 +169,7 @@ export const TradeCertificates: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-slate-900 leading-snug">{c.title}</h3>
-                  <p className="text-xs font-bold text-[#6A1B2E] mt-0.5">{c.authority}</p>
+                  <p className="text-xs font-bold text-[#58051E] mt-0.5">{c.authority}</p>
                   <p className="text-[11px] font-semibold text-slate-500 mt-0.5">{c.country}</p>
                 </div>
                 <div className="text-[10.5px] font-bold text-slate-400 pt-1 flex justify-between">
@@ -179,14 +179,14 @@ export const TradeCertificates: React.FC = () => {
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <button onClick={() => setSelectedCert(c)} className="text-xs font-bold text-[#6A1B2E] hover:underline flex items-center gap-1">
+                <button onClick={() => setSelectedCert(c)} className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer">
                   <Eye className="w-3.5 h-3.5" /> Inspect Seal
                 </button>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => showToastMsg(`Downloading Certificate ${c.id}...`)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100" title="Download PDF">
+                  <button onClick={() => showToastMsg(`Downloading Certificate ${c.id}...`)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#58051E] hover:bg-slate-100 cursor-pointer" title="Download PDF">
                     <Download className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => handleDeleteCert(c.id, c.rawId)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete Certificate">
+                  <button onClick={() => handleDeleteCert(c.id, c.rawId)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Delete Certificate">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -227,7 +227,7 @@ export const TradeCertificates: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Save Certificate</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Certificate</Button>
                 </div>
               </form>
             </motion.div>
@@ -243,12 +243,12 @@ export const TradeCertificates: React.FC = () => {
             <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-md bg-white z-50 shadow-2xl p-6 overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                 <h3 className="text-sm font-black text-slate-900">Certificate Verification Seal</h3>
-                <button onClick={() => setSelectedCert(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-4 h-4" /></button>
+                <button onClick={() => setSelectedCert(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
 
               <div className="space-y-4 text-left">
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-black text-[#6A1B2E] uppercase">{selectedCert.id}</span>
+                  <span className="text-[10px] font-black text-[#58051E] uppercase">{selectedCert.id}</span>
                   <h4 className="text-base font-black text-slate-900">{selectedCert.title}</h4>
                   <p className="text-xs font-semibold text-slate-500">{selectedCert.authority} · {selectedCert.country}</p>
                 </div>
@@ -264,7 +264,7 @@ export const TradeCertificates: React.FC = () => {
                   Official Digital Stamp & Customs Clearance Verified
                 </div>
 
-                <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => {
+                <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => {
                   showToastMsg(`Exported Verified Seal for ${selectedCert.id}`);
                 }}>
                   Export Verified Certificate (PDF)

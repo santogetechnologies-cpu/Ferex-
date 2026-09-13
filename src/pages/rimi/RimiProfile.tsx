@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Trash2, Eye, CheckCircle2, ShieldCheck, Building2, Globe, Lock, User, Save } from 'lucide-react';
+import { Camera, Trash2, Eye, CheckCircle2, ShieldCheck, Building2, Globe, Lock, User, Save, X } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 
@@ -215,7 +215,7 @@ export const RimiProfile: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-5 rounded-2xl shadow-2xl z-50 max-w-sm w-full text-center border border-slate-100 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                 <h4 className="text-xs font-black text-slate-900">Profile Photo Preview</h4>
-                <button onClick={() => setShowPreviewModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+                <button onClick={() => setShowPreviewModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
               <img src={profilePhoto} alt="Preview" className="w-56 h-56 rounded-2xl object-cover mx-auto shadow-md border border-slate-100" />
               <Button size="sm" variant="outline" className="w-full text-xs font-bold" onClick={() => setShowPreviewModal(false)}>Close Preview</Button>

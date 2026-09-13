@@ -10,6 +10,7 @@ import {
   getDigitalMeetings,
 } from '../../lib/api/digital';
 import { UnifiedPaymentModal } from '../../components/UnifiedPaymentModal';
+import { Layers, CheckCircle2, CreditCard, Clock, Calendar, MessageSquare, Receipt, Zap } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ClientData {
@@ -144,10 +145,10 @@ const DigitalClientPortal: React.FC = () => {
   }
 
   const tabs: { key: typeof activeTab; label: string; count?: number }[] = [
-    { key: 'overview', label: '📊 Overview' },
-    { key: 'projects', label: '🚀 Projects', count: projects.length },
-    { key: 'invoices', label: '🧾 Invoices', count: invoices.length },
-    { key: 'meetings', label: '📅 Meetings', count: meetings.length },
+    { key: 'overview', label: 'Overview' },
+    { key: 'projects', label: 'Projects', count: projects.length },
+    { key: 'invoices', label: 'Invoices', count: invoices.length },
+    { key: 'meetings', label: 'Meetings', count: meetings.length },
   ];
 
   return (
@@ -216,15 +217,15 @@ const DigitalClientPortal: React.FC = () => {
         <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div>
             <h1 style={{ fontSize: 26, fontWeight: 700, color: '#f1f5f9', margin: 0 }}>
-              Welcome back, {client?.contact_person?.split(' ')[0] || 'Client'} 👋
+              Welcome back, {client?.contact_person?.split(' ')[0] || 'Client'}
             </h1>
             <p style={{ color: '#64748b', fontSize: 14, marginTop: 6 }}>
               Here's a real-time overview of your engagement with {digitalConfig.branding.agency_name || 'FEREX Digital'}.
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ padding: '6px 12px', borderRadius: 20, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', fontSize: 12, fontWeight: 700 }}>
-              ⚡ {digitalConfig.client_policies.guaranteed_sla_response_hours}h SLA Response Guaranteed
+            <span style={{ padding: '6px 12px', borderRadius: 20, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Zap style={{ width: 14, height: 14 }} /> {digitalConfig.client_policies.guaranteed_sla_response_hours}h SLA Response Guaranteed
             </span>
           </div>
         </div>
@@ -232,19 +233,26 @@ const DigitalClientPortal: React.FC = () => {
         {/* ── Stat Cards ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 16, marginBottom: 32 }}>
           {[
-            { label: 'Active Projects', value: activeProjects, icon: '🚀', color: '#3b82f6' },
-            { label: 'Completed', value: completedProjects, icon: '✅', color: '#22c55e' },
-            { label: 'Total Invoiced', value: fmt(totalInvoiced), icon: '💰', color: '#a78bfa' },
-            { label: 'Pending Payment', value: fmt(pendingPayment), icon: '⏳', color: '#f59e0b' },
-            { label: 'Meetings', value: upcomingMeetings, icon: '📅', color: '#06b6d4' },
-          ].map((card) => (
-            <div key={card.label} style={{ background: '#1e293b', borderRadius: 14, padding: '20px 22px', border: `1px solid ${card.color}22`, position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: -10, right: -10, fontSize: 44, opacity: 0.08 }}>{card.icon}</div>
-              <div style={{ fontSize: 22, marginBottom: 8 }}>{card.icon}</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: card.color }}>{card.value}</div>
-              <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{card.label}</div>
-            </div>
-          ))}
+            { label: 'Active Projects', value: activeProjects, icon: Layers, color: '#3b82f6' },
+            { label: 'Completed', value: completedProjects, icon: CheckCircle2, color: '#22c55e' },
+            { label: 'Total Invoiced', value: fmt(totalInvoiced), icon: CreditCard, color: '#a78bfa' },
+            { label: 'Pending Payment', value: fmt(pendingPayment), icon: Clock, color: '#f59e0b' },
+            { label: 'Meetings', value: upcomingMeetings, icon: Calendar, color: '#06b6d4' },
+          ].map((card) => {
+            const Icon = card.icon;
+            return (
+              <div key={card.label} style={{ background: '#1e293b', borderRadius: 14, padding: '20px 22px', border: `1px solid ${card.color}22`, position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
+                  <Icon size={48} color={card.color} />
+                </div>
+                <div style={{ marginBottom: 10, color: card.color }}>
+                  <Icon size={22} />
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: card.color }}>{card.value}</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{card.label}</div>
+              </div>
+            );
+          })}
         </div>
 
         {/* ── Tabs ── */}
@@ -275,7 +283,7 @@ const DigitalClientPortal: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             {/* Recent Projects */}
             <div style={{ background: '#1e293b', borderRadius: 14, padding: 22, border: '1px solid #334155' }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>🚀 Your Projects</h3>
+              <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Your Projects</h3>
               {projects.length === 0
                 ? <p style={{ color: '#475569', fontSize: 13 }}>No projects yet. Contact your account manager.</p>
                 : projects.slice(0, 4).map((p) => (
@@ -295,7 +303,7 @@ const DigitalClientPortal: React.FC = () => {
 
             {/* Recent Invoices */}
             <div style={{ background: '#1e293b', borderRadius: 14, padding: 22, border: '1px solid #334155' }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>🧾 Recent Invoices</h3>
+              <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Recent Invoices</h3>
               {invoices.length === 0
                 ? <p style={{ color: '#475569', fontSize: 13 }}>No invoices yet.</p>
                 : invoices.slice(0, 5).map((inv) => (
@@ -315,14 +323,14 @@ const DigitalClientPortal: React.FC = () => {
 
             {/* Upcoming Meetings */}
             <div style={{ background: '#1e293b', borderRadius: 14, padding: 22, border: '1px solid #334155', gridColumn: '1 / -1' }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>📅 Upcoming Meetings</h3>
+              <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Upcoming Meetings</h3>
               {meetings.length === 0
                 ? <p style={{ color: '#475569', fontSize: 13 }}>No meetings scheduled. Your account manager will reach out soon.</p>
                 : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
                     {meetings.slice(0, 4).map((m) => (
                       <div key={m.id} style={{ background: '#0f172a', borderRadius: 10, padding: '14px 16px', border: '1px solid #1e3a5f' }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>{m.title}</div>
-                        {m.scheduled_at && <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>📅 {new Date(m.scheduled_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>}
+                        {m.scheduled_at && <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>{new Date(m.scheduled_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>}
                         {m.agenda && <div style={{ fontSize: 12, color: '#94a3b8' }}>{m.agenda}</div>}
                         <span style={{ fontSize: 11, color: statusColor[m.status || 'Scheduled'] || '#a78bfa', fontWeight: 700 }}>{m.status || 'Scheduled'}</span>
                       </div>
@@ -339,7 +347,7 @@ const DigitalClientPortal: React.FC = () => {
             <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>All Your Projects</h3>
             {projects.length === 0
               ? <div style={{ textAlign: 'center', padding: 48, color: '#475569' }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>🚀</div>
+                  <Layers size={36} color="#64748b" style={{ margin: '0 auto 12px' }} />
                   <p>No projects yet. Your account manager will onboard you soon.</p>
                 </div>
               : projects.map((p) => (
@@ -369,7 +377,7 @@ const DigitalClientPortal: React.FC = () => {
             <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Invoice History & Payment Gateway</h3>
             {invoices.length === 0
               ? <div style={{ textAlign: 'center', padding: 48, color: '#475569' }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>🧾</div>
+                  <div style={{ marginBottom: 12 }}><Receipt style={{ width: 36, height: 36, margin: '0 auto', color: '#64748b' }} /></div>
                   <p>No invoices found for your account.</p>
                 </div>
               : <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -392,7 +400,9 @@ const DigitalClientPortal: React.FC = () => {
                         </td>
                         <td style={{ padding: '14px 12px' }}>
                           {inv.status === 'Paid' ? (
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', background: 'rgba(34,197,94,0.1)', padding: '4px 10px', borderRadius: 6 }}>✓ Settled</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', background: 'rgba(34,197,94,0.1)', padding: '4px 10px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <CheckCircle2 style={{ width: 12, height: 12 }} /> Settled
+                            </span>
                           ) : (
                             <button
                               onClick={() => setPayingInvoice(inv)}
@@ -407,10 +417,10 @@ const DigitalClientPortal: React.FC = () => {
                                 cursor: 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 4
+                                gap: 6
                               }}
                             >
-                              ⚡ Pay with Stripe / UPI
+                              <Zap style={{ width: 12, height: 12 }} /> Pay with Stripe / UPI
                             </button>
                           )}
                         </td>
@@ -428,7 +438,7 @@ const DigitalClientPortal: React.FC = () => {
             <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Scheduled Meetings</h3>
             {meetings.length === 0
               ? <div style={{ textAlign: 'center', padding: 48, color: '#475569' }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
+                  <Calendar size={36} color="#64748b" style={{ margin: '0 auto 12px' }} />
                   <p>No meetings scheduled. Your account manager will reach out soon.</p>
                 </div>
               : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
@@ -440,7 +450,7 @@ const DigitalClientPortal: React.FC = () => {
                       </div>
                       {m.scheduled_at && (
                         <div style={{ fontSize: 13, color: '#a78bfa', marginBottom: 8, fontWeight: 600 }}>
-                          📅 {new Date(m.scheduled_at).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          {new Date(m.scheduled_at).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </div>
                       )}
                       {m.agenda && <p style={{ fontSize: 12, color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>{m.agenda}</p>}
@@ -478,7 +488,7 @@ const DigitalClientPortal: React.FC = () => {
             border: '2px solid rgba(255,255,255,0.2)'
           }}
         >
-          <span>💬</span>
+          <MessageSquare size={14} />
           <span>Tech Support</span>
         </a>
       )}

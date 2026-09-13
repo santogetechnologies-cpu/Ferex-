@@ -60,7 +60,7 @@ interface Document {
 // ─── Helper Components ────────────────────────────────────────────────────────
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.12em] mb-4 flex items-center gap-2">
-    <span className="w-4 h-[2px] bg-[#6A1B2E]/30 rounded-full" />
+    <span className="w-4 h-[2px] bg-[#58051E]/30 rounded-full" />
     {children}
   </h3>
 );
@@ -81,7 +81,7 @@ const FieldGroup: React.FC<{
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/50 focus:ring-4 focus:ring-[#6A1B2E]/5 transition-all placeholder-slate-300"
+        className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/50 focus:ring-4 focus:ring-[#58051E]/5 transition-all placeholder-slate-300"
       />
     ) : (
       <div className="w-full h-10 px-3.5 bg-slate-50/70 border border-slate-100 rounded-lg text-sm font-semibold text-slate-700 flex items-center">
@@ -104,7 +104,7 @@ const SelectGroup: React.FC<{
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/50 focus:ring-4 focus:ring-[#6A1B2E]/5 transition-all cursor-pointer appearance-none"
+        className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/50 focus:ring-4 focus:ring-[#58051E]/5 transition-all cursor-pointer appearance-none"
       >
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
@@ -133,7 +133,7 @@ const StatusBadge: React.FC<{ status: 'Verified' | 'Pending' | 'Missing' }> = ({
 const Toggle: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked, onChange }) => (
   <button type="button" onClick={onChange} className="focus:outline-none">
     {checked
-      ? <ToggleRight className="w-10 h-10 text-[#6A1B2E]" />
+      ? <ToggleRight className="w-10 h-10 text-[#58051E]" />
       : <ToggleLeft className="w-10 h-10 text-slate-300" />}
   </button>
 );
@@ -473,7 +473,7 @@ export const MyProfile: React.FC = () => {
         className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm mb-6 bg-white"
       >
         {/* Banner */}
-        <div className="h-40 bg-gradient-to-br from-[#6A1B2E] via-[#7d2036] to-[#4A101E] relative overflow-hidden">
+        <div className="h-40 bg-gradient-to-br from-[#58051E] via-[#430316] to-[#2E030F] relative overflow-hidden">
           {/* decorative circles */}
           <div className="absolute -top-10 -right-10 w-52 h-52 rounded-full bg-white/5" />
           <div className="absolute top-8 -right-4 w-32 h-32 rounded-full bg-white/5" />
@@ -501,7 +501,7 @@ export const MyProfile: React.FC = () => {
         <div className="px-6 pb-6 -mt-14 relative z-10 flex flex-col sm:flex-row items-start sm:items-end gap-4">
           {/* Avatar */}
           <div className="relative shrink-0 group">
-            <div className="w-[88px] h-[88px] rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-[#6A1B2E] flex items-center justify-center">
+            <div className="w-[88px] h-[88px] rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-[#58051E] flex items-center justify-center">
               {profilePhoto
                 ? <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
                 : <span className="text-white font-extrabold text-3xl select-none">{initials}</span>
@@ -578,7 +578,7 @@ export const MyProfile: React.FC = () => {
             }}
             className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
               ${activeTab === tab
-                ? 'bg-[#6A1B2E] text-white shadow-sm'
+                ? 'bg-[#58051E] text-white shadow-sm'
                 : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
               }`}
           >
@@ -697,7 +697,7 @@ export const MyProfile: React.FC = () => {
                   { label: 'Country', value: education.studyCountry, icon: Globe, color: 'text-blue-600 bg-blue-50' },
                   { label: 'Intake', value: education.intake, icon: Clock, color: 'text-violet-600 bg-violet-50' },
                   { label: 'Student Number', value: education.studentNumber, icon: User, color: 'text-amber-600 bg-amber-50' },
-                  { label: 'Counselor', value: education.counselor, icon: Info, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10' },
+                  { label: 'Counselor', value: education.counselor, icon: Info, color: 'text-[#58051E] bg-[#58051E]/10' },
                 ].map(({ label, value, icon: Icon, color }) => (
                   <Card key={label} className="p-4">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${color} mb-3`}>
@@ -720,8 +720,8 @@ export const MyProfile: React.FC = () => {
                       { label: 'Campus', value: education.campus, icon: MapPin },
                     ].map(({ label, value, icon: Icon }) => (
                       <div key={label} className="flex items-center gap-3 p-3 bg-slate-50/50 border border-slate-100 rounded-xl">
-                        <div className="w-9 h-9 rounded-lg bg-[#6A1B2E]/10 flex items-center justify-center shrink-0">
-                          <Icon className="w-4 h-4 text-[#6A1B2E]" />
+                        <div className="w-9 h-9 rounded-lg bg-[#58051E]/10 flex items-center justify-center shrink-0">
+                          <Icon className="w-4 h-4 text-[#58051E]" />
                         </div>
                         <div>
                           <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{label}</p>
@@ -804,8 +804,8 @@ export const MyProfile: React.FC = () => {
                       className="border border-slate-100 rounded-xl p-4 bg-slate-50/40 hover:border-slate-200 hover:bg-white transition-all group"
                     >
                       <div className="flex items-start justify-between mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#6A1B2E]/10 flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-[#6A1B2E]" />
+                        <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-[#58051E]" />
                         </div>
                         <StatusBadge status={doc.status} />
                       </div>
@@ -817,7 +817,7 @@ export const MyProfile: React.FC = () => {
                       <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-slate-100">
                         <button
                           onClick={() => setDocToPreview(doc)}
-                          className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-[#6A1B2E]/30 hover:text-[#6A1B2E] transition-all"
+                          className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-[#58051E]/30 hover:text-[#58051E] transition-all"
                         >
                           <Eye className="w-3 h-3" /> Preview
                         </button>
@@ -828,7 +828,7 @@ export const MyProfile: React.FC = () => {
                             a.download = `${doc.name.replace(/\s+/g, '_')}.pdf`;
                             a.click();
                           }}
-                          className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-[#6A1B2E]/30 hover:text-[#6A1B2E] transition-all"
+                          className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-[#58051E]/30 hover:text-[#58051E] transition-all"
                         >
                           <Download className="w-3 h-3" /> Download
                         </button>
@@ -881,7 +881,7 @@ export const MyProfile: React.FC = () => {
                 {/* Guardian card */}
                 {!editingEmergency && (
                   <div className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-xl mb-6">
-                    <div className="w-14 h-14 rounded-xl bg-[#6A1B2E] flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-xl bg-[#58051E] flex items-center justify-center">
                       <span className="text-white font-extrabold text-xl">{emergency.guardianName[0]}</span>
                     </div>
                     <div>
@@ -939,8 +939,8 @@ export const MyProfile: React.FC = () => {
                   {/* Password */}
                   <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#6A1B2E]/10 flex items-center justify-center">
-                        <Lock className="w-4.5 h-4.5 text-[#6A1B2E]" />
+                      <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 flex items-center justify-center">
+                        <Lock className="w-4.5 h-4.5 text-[#58051E]" />
                       </div>
                       <div>
                         <p className="text-xs font-extrabold text-slate-900">Password</p>
@@ -988,7 +988,7 @@ export const MyProfile: React.FC = () => {
                     <h3 className="text-base font-extrabold text-slate-900">Recent Login Activity</h3>
                     <p className="text-xs font-semibold text-slate-400 mt-0.5">Devices and sessions for your account</p>
                   </div>
-                  <span className="text-[10px] font-bold text-[#6A1B2E] bg-[#6A1B2E]/10 px-2.5 py-1 rounded-full">{recentLogins.length} Sessions</span>
+                  <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/10 px-2.5 py-1 rounded-full">{recentLogins.length} Sessions</span>
                 </div>
                 <div className="space-y-3">
                   {recentLogins.map((log, idx) => {
@@ -1126,7 +1126,7 @@ export const MyProfile: React.FC = () => {
 
               {/* Preview */}
               <div className="p-5 flex flex-col items-center gap-4">
-                <div className="w-24 h-24 rounded-2xl border-4 border-slate-100 shadow overflow-hidden bg-[#6A1B2E] flex items-center justify-center">
+                <div className="w-24 h-24 rounded-2xl border-4 border-slate-100 shadow overflow-hidden bg-[#58051E] flex items-center justify-center">
                   {profilePhoto
                     ? <img src={profilePhoto} alt="Preview" className="w-full h-full object-cover" />
                     : <span className="text-white font-extrabold text-3xl">{initials}</span>}
@@ -1136,7 +1136,7 @@ export const MyProfile: React.FC = () => {
               <div className="px-5 pb-5 space-y-2">
                 <button
                   onClick={() => photoInputRef.current?.click()}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 hover:border-[#6A1B2E]/30 hover:bg-[#6A1B2E]/5 text-sm font-bold text-slate-700 hover:text-[#6A1B2E] transition-all"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 hover:border-[#58051E]/30 hover:bg-[#58051E]/5 text-sm font-bold text-slate-700 hover:text-[#58051E] transition-all"
                 >
                   <Upload className="w-4 h-4" />
                   {profilePhoto ? 'Replace Photo' : 'Upload Photo'}
@@ -1219,8 +1219,8 @@ export const MyProfile: React.FC = () => {
               className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#6A1B2E]/10 flex items-center justify-center">
-                    <Lock className="w-5 h-5 text-[#6A1B2E]" />
+                  <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-[#58051E]" />
                   </div>
                   <h3 className="text-sm font-extrabold text-slate-900">Change Password</h3>
                 </div>
@@ -1241,7 +1241,7 @@ export const MyProfile: React.FC = () => {
                       required
                       value={passwordForm[field]}
                       onChange={(e) => setPasswordForm(p => ({ ...p, [field]: e.target.value }))}
-                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]/50 focus:ring-4 focus:ring-[#6A1B2E]/5 transition-all"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]/50 focus:ring-4 focus:ring-[#58051E]/5 transition-all"
                     />
                   </div>
                 ))}
@@ -1324,7 +1324,7 @@ export const MyProfile: React.FC = () => {
               </div>
               <div className="p-6 flex flex-col items-center gap-4">
                 <div className="w-full h-40 bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-xl flex flex-col items-center justify-center gap-3">
-                  <FileText className="w-12 h-12 text-[#6A1B2E]/30" />
+                  <FileText className="w-12 h-12 text-[#58051E]/30" />
                   <p className="text-xs font-bold text-slate-400">Preview Simulation</p>
                 </div>
                 <div className="w-full space-y-2 text-xs font-semibold text-slate-600">

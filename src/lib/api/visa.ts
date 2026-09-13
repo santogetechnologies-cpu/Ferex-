@@ -205,7 +205,7 @@ export async function updateVisaStatus(
 
       await createNotification({
         user_id: upsertPayload.student_id,
-        title: isApproved ? '🎉 Visa Approved & Stamped!' : isRejected ? '⚠️ Visa Decision Update' : '🛡️ VFS Visa Tracking Updated',
+        title: isApproved ? 'Visa Approved & Stamped' : isRejected ? 'Visa Decision Update' : 'VFS Visa Tracking Updated',
         body: isApproved
           ? 'Your Poland National Student D-Visa has been officially approved & stamped by the Embassy!'
           : isRejected

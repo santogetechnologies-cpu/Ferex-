@@ -173,7 +173,7 @@ export const CentralTasks: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
@@ -186,9 +186,9 @@ export const CentralTasks: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <CheckSquare className="w-6 h-6 text-[#6A1B2E]" /> Cross-Divisional Operations & Task Center
+              <CheckSquare className="w-6 h-6 text-[#58051E]" /> Cross-Divisional Operations & Task Center
             </h1>
-            <span className="text-[10px] font-black bg-[#6A1B2E]/10 text-[#6A1B2E] border border-[#6A1B2E]/20 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
               Live Governance
             </span>
           </div>
@@ -201,7 +201,7 @@ export const CentralTasks: React.FC = () => {
           <Button
             size="sm"
             onClick={() => setShowAddModal(true)}
-            className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold text-white shadow-xs"
+            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs"
           >
             <Plus className="w-4 h-4 mr-1.5" /> Create Executive Task
           </Button>
@@ -220,7 +220,7 @@ export const CentralTasks: React.FC = () => {
                   onClick={() => setSelectedDivision(div)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                     selectedDivision === div
-                      ? 'bg-[#6A1B2E] text-white shadow-xs'
+                      ? 'bg-[#58051E] text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -255,7 +255,7 @@ export const CentralTasks: React.FC = () => {
               placeholder="Search tasks, assignees..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-[#6A1B2E]"
+              className="w-full h-9 pl-9 pr-3 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-[#58051E]"
             />
           </div>
         </div>
@@ -297,7 +297,7 @@ export const CentralTasks: React.FC = () => {
                 <strong className="text-slate-800">{t.assignee}</strong>
                 <button
                   onClick={() => setReassignTask(t)}
-                  className="text-[10px] font-extrabold text-[#6A1B2E] hover:underline cursor-pointer ml-1"
+                  className="text-[10px] font-extrabold text-[#58051E] hover:underline cursor-pointer ml-1"
                 >
                   (Reassign)
                 </button>
@@ -309,10 +309,16 @@ export const CentralTasks: React.FC = () => {
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     t.status === 'Completed'
                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                      : 'bg-[#6A1B2E] text-white hover:bg-[#521221] shadow-xs'
+                      : 'bg-[#58051E] text-white hover:bg-[#430316] shadow-xs'
                   }`}
                 >
-                  {t.status === 'Completed' ? 'Completed ✓' : 'Mark Done'}
+                  {t.status === 'Completed' ? (
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Completed
+                    </span>
+                  ) : (
+                    'Mark Done'
+                  )}
                 </button>
                 <button
                   onClick={() => handleDeleteTask(t.id)}
@@ -375,7 +381,7 @@ export const CentralTasks: React.FC = () => {
                   <Button
                     type="button"
                     size="sm"
-                    className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]"
+                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
                     onClick={() => {
                       const updatedAssignee = reassignName || reassignTask.assignee;
                       setTasks(prev => prev.map(t => t.id === reassignTask.id ? { ...t, assignee: updatedAssignee } : t));
@@ -480,7 +486,7 @@ export const CentralTasks: React.FC = () => {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">
                     Create Task
                   </Button>
                 </div>

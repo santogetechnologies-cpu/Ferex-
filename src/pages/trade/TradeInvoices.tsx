@@ -122,7 +122,7 @@ export const TradeInvoices: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -132,13 +132,13 @@ export const TradeInvoices: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-[#6A1B2E]" /> Commercial Invoices & Export Billing
+            <FileSpreadsheet className="w-5 h-5 text-[#58051E]" /> Commercial Invoices & Export Billing
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Ferex Trade Console • International commercial invoice generation, customs tax codes, and export billing.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => setShowCreateModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Create Commercial Invoice
         </Button>
       </div>
@@ -146,7 +146,7 @@ export const TradeInvoices: React.FC = () => {
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search buyer or invoice ID..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search buyer or invoice ID..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
         </div>
         <span className="text-xs font-bold text-slate-400">{filteredInvoices.length} Invoices Listed</span>
       </Card>
@@ -160,7 +160,7 @@ export const TradeInvoices: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
             {searchQuery ? 'No invoices match your search query.' : 'There are no active invoices recorded in Supabase. Create your first invoice below.'}
           </p>
-          <Button size="sm" className="mt-4 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
+          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => setShowCreateModal(true)}>
             <Plus className="w-3.5 h-3.5 mr-1" /> Create Commercial Invoice
           </Button>
         </Card>
@@ -201,10 +201,10 @@ export const TradeInvoices: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => setSelectedInv(inv)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Inspect Invoice">
+                        <button onClick={() => setSelectedInv(inv)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer" title="Inspect Invoice">
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button onClick={() => showToastMsg(`Downloading PDF for ${inv.id}...`)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#6A1B2E] hover:bg-slate-100" title="Download PDF">
+                        <button onClick={() => showToastMsg(`Downloading PDF for ${inv.id}...`)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#58051E] hover:bg-slate-100 cursor-pointer" title="Download PDF">
                           <Download className="w-4 h-4" />
                         </button>
                         <button onClick={() => handleDeleteInvoice(inv.id, inv.rawId)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete Invoice">
@@ -261,8 +261,8 @@ export const TradeInvoices: React.FC = () => {
                   </div>
                 </div>
                 <div className="pt-3 flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Generate Invoice</Button>
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold cursor-pointer" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316] cursor-pointer">Generate Invoice</Button>
                 </div>
               </form>
             </motion.div>
@@ -278,12 +278,12 @@ export const TradeInvoices: React.FC = () => {
             <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-md bg-white z-50 shadow-2xl p-6 overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                 <h3 className="text-sm font-black text-slate-900">Commercial Invoice Document</h3>
-                <button onClick={() => setSelectedInv(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-4 h-4" /></button>
+                <button onClick={() => setSelectedInv(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
 
               <div className="space-y-4 text-left">
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-black text-[#6A1B2E] uppercase">{selectedInv.id}</span>
+                  <span className="text-[10px] font-black text-[#58051E] uppercase">{selectedInv.id}</span>
                   <h4 className="text-base font-black text-slate-900">{selectedInv.buyer}</h4>
                   <p className="text-xs font-semibold text-slate-500">Incoterms: {selectedInv.incoterms} · Due: {selectedInv.dueDate}</p>
                 </div>
@@ -295,7 +295,7 @@ export const TradeInvoices: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 pt-2">
-                  <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => window.print()}>
+                  <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316] cursor-pointer" onClick={() => window.print()}>
                     <Download className="w-3.5 h-3.5 mr-1" /> Print / Save Commercial Invoice PDF
                   </Button>
                   <Button size="sm" variant="outline" className="w-full text-xs font-bold" onClick={() => setSelectedInv(null)}>

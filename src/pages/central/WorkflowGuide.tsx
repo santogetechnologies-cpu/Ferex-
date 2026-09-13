@@ -33,7 +33,7 @@ export const WorkflowGuide: React.FC = () => {
   };
 
   const apps = [
-    { id: 'ferex-edu', name: 'Ferex Education', icon: GraduationCap, color: 'bg-[#6A1B2E]', available: true },
+    { id: 'ferex-edu', name: 'Ferex Education', icon: GraduationCap, color: 'bg-[#58051E]', available: true },
     { id: 'trade', name: 'Global Trade', icon: Globe, color: 'bg-blue-600', available: false },
     { id: 'rimi', name: 'Rimi Frozen', icon: Building2, color: 'bg-emerald-600', available: false },
     { id: 'digital', name: 'Ferex Digital', icon: Zap, color: 'bg-purple-600', available: false },
@@ -107,7 +107,7 @@ export const WorkflowGuide: React.FC = () => {
             </button>
           </div>
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#6A1B2E] text-white flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-[#58051E] text-white flex items-center justify-center">
               <GraduationCap className="w-6 h-6" />
             </div>
             <div>
@@ -136,7 +136,7 @@ export const WorkflowGuide: React.FC = () => {
                       onClick={() => setSelectedSection(section.id)}
                       className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all text-left ${
                         isActive
-                          ? 'bg-[#6A1B2E] text-white'
+                          ? 'bg-[#58051E] text-white'
                           : 'text-slate-600 hover:bg-slate-100'
                       }`}
                     >
@@ -201,7 +201,7 @@ const OverviewSection: React.FC = () => (
           const Icon = item.icon;
           return (
             <div key={idx} className="bg-white rounded-xl p-4 border border-slate-200">
-              <Icon className="w-5 h-5 text-[#6A1B2E] mb-2" />
+              <Icon className="w-5 h-5 text-[#58051E] mb-2" />
               <h4 className="text-xs font-black text-slate-900">{item.title}</h4>
               <p className="text-xs font-semibold text-slate-500 mt-1">{item.desc}</p>
             </div>
@@ -378,7 +378,7 @@ const PaymentsSection: React.FC<FlowSectionProps> = ({ expandedFlows, toggleFlow
             </div>
             <ArrowRight className="w-5 h-5 text-slate-400" />
             <div className="flex-1 bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-              <p className="text-xs font-black text-emerald-900">Status: Paid ✓</p>
+              <p className="text-xs font-black text-emerald-900 flex items-center gap-1">Status: Paid <CheckCircle2 className="w-3.5 h-3.5" /></p>
               <p className="text-xs font-semibold text-emerald-700">Invoice generated, stages unlocked</p>
             </div>
           </div>
@@ -410,9 +410,9 @@ const PaymentCard: React.FC<{
   unlocks: string[];
   methods: string[];
 }> = ({ stage, amount, title, unlocks, methods }) => (
-  <Card className="p-4 border-2 border-[#6A1B2E]/20 hover:border-[#6A1B2E]/40 transition-all">
+  <Card className="p-4 border-2 border-[#58051E]/20 hover:border-[#58051E]/40 transition-all">
     <div className="flex items-center justify-between mb-3">
-      <span className="text-xs font-black uppercase text-[#6A1B2E]">{stage}</span>
+      <span className="text-xs font-black uppercase text-[#58051E]">{stage}</span>
       <span className="text-lg font-black text-slate-900">{amount}</span>
     </div>
     <h4 className="text-sm font-black text-slate-900 mb-3">{title}</h4>
@@ -533,7 +533,7 @@ const FlowStep: React.FC<{
     </div>
     <div className="flex-1 bg-white rounded-lg p-4 border border-slate-200">
       <div className="flex items-center gap-3">
-        <Icon className="w-5 h-5 text-[#6A1B2E]" />
+        <Icon className="w-5 h-5 text-[#58051E]" />
         <div>
           <h4 className="text-sm font-black text-slate-900">{title}</h4>
           <p className="text-xs font-semibold text-slate-500">{description}</p>

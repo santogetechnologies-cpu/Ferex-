@@ -56,7 +56,7 @@ export const AdminUniversities: React.FC = () => {
   const [editingCountryId, setEditingCountryId] = useState<string | null>(null);
   const [newCountryName, setNewCountryName] = useState('');
   const [newCountryCode, setNewCountryCode] = useState('');
-  const [newCountryFlag, setNewCountryFlag] = useState('🌍');
+  const [newCountryFlag, setNewCountryFlag] = useState('EU');
   const [newCountryCurrency, setNewCountryCurrency] = useState('EUR');
   const [newCountryAuthority, setNewCountryAuthority] = useState('');
   const [newCountryAcronym, setNewCountryAcronym] = useState('');
@@ -160,7 +160,7 @@ export const AdminUniversities: React.FC = () => {
         const res = await uploadFileToBucket('digital-assets', file, `uni_${Date.now()}`);
         if (res.url && !res.url.startsWith('blob:')) {
           setImageUrl(res.url);
-          showToast('🎉 Cover picture uploaded! Click "Save Changes" below to save.');
+          showToast('Cover picture uploaded. Click "Save Changes" below to save.');
           return;
         }
       } catch (uploadErr) {
@@ -169,7 +169,7 @@ export const AdminUniversities: React.FC = () => {
 
       // 3. Fallback to compressed Data URL (permanent, works on all browsers and offline)
       setImageUrl(dataUrl);
-      showToast('🎉 Picture updated! Click "Save Changes" below to apply.');
+      showToast('Picture updated. Click "Save Changes" below to apply.');
     } catch (err: any) {
       showToast(`Could not process image: ${err.message || 'Please choose a different photo'}`);
     } finally {
@@ -209,7 +209,7 @@ export const AdminUniversities: React.FC = () => {
     setEditingCountryId(c.id);
     setNewCountryName(c.name);
     setNewCountryCode(c.code);
-    setNewCountryFlag(c.flag || '🌍');
+    setNewCountryFlag(c.flag || 'EU');
     setNewCountryCurrency(c.currency || 'EUR');
     setNewCountryAuthority(c.authority || '');
     setNewCountryAcronym(c.acronym || '');
@@ -222,7 +222,7 @@ export const AdminUniversities: React.FC = () => {
     setEditingCountryId(null);
     setNewCountryName('');
     setNewCountryCode('');
-    setNewCountryFlag('🌍');
+    setNewCountryFlag('EU');
     setNewCountryCurrency('EUR');
     setNewCountryAuthority('');
     setNewCountryAcronym('');
@@ -247,7 +247,7 @@ export const AdminUniversities: React.FC = () => {
         await editDestination(editingCountryId, {
           name: trimmed,
           code: newCountryCode.trim().toUpperCase() || trimmed.substring(0, 2).toUpperCase(),
-          flag: newCountryFlag.trim() || '🌍',
+          flag: newCountryFlag.trim() || 'EU',
           currency: newCountryCurrency.trim() || 'EUR',
           authority: newCountryAuthority.trim() || `${trimmed} Higher Education Ministry`,
           acronym: newCountryAcronym.trim() || trimmed.substring(0, 4).toUpperCase(),
@@ -257,12 +257,12 @@ export const AdminUniversities: React.FC = () => {
           badge: 'Accredited',
           is_active: true
         });
-        showToast(`🎉 Destination "${trimmed}" updated successfully!`);
+        showToast(`Destination "${trimmed}" updated successfully.`);
       } else {
         await addDestination({
           name: trimmed,
           code: newCountryCode.trim().toUpperCase() || trimmed.substring(0, 2).toUpperCase(),
-          flag: newCountryFlag.trim() || '🌍',
+          flag: newCountryFlag.trim() || 'EU',
           currency: newCountryCurrency.trim() || 'EUR',
           authority: newCountryAuthority.trim() || `${trimmed} Higher Education Ministry`,
           acronym: newCountryAcronym.trim() || trimmed.substring(0, 4).toUpperCase(),
@@ -272,7 +272,7 @@ export const AdminUniversities: React.FC = () => {
           badge: 'Accredited',
           is_active: true
         });
-        showToast(`🎉 Destination "${trimmed}" registered successfully!`);
+        showToast(`Destination "${trimmed}" registered successfully.`);
       }
 
       setShowAddCountryModal(false);
@@ -297,7 +297,7 @@ export const AdminUniversities: React.FC = () => {
   };
 
   const handleClearAllData = async () => {
-    if (!window.confirm("⚠️ Clear All University & Destination Data?\n\nThis will purge all universities and destination countries from Supabase and clear local caches for a completely fresh start. Continue?")) {
+    if (!window.confirm("Clear All University & Destination Data?\n\nThis will purge all universities and destination countries from Supabase and clear local caches for a completely fresh start. Continue?")) {
       return;
     }
     try {
@@ -305,7 +305,7 @@ export const AdminUniversities: React.FC = () => {
         clearAllUniversitiesData(),
         clearAllDestinationsData()
       ]);
-      showToast('✨ All university & destination data purged. Clean slate ready.');
+      showToast('All university & destination data purged. Clean slate ready.');
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Could not purge data'}`);
     }
@@ -512,7 +512,7 @@ export const AdminUniversities: React.FC = () => {
     <div className="space-y-6 relative text-left">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-3">
+        <div className="fixed top-6 right-6 z-50 bg-[#58051E] text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-3">
           <CheckCircle2 className="w-5 h-5 text-emerald-400" /> {toast}
         </div>
       )}
@@ -557,7 +557,7 @@ export const AdminUniversities: React.FC = () => {
           </button>
           <button
             onClick={() => handleOpenAddModal()}
-            className="flex items-center gap-1.5 h-9.5 px-4 bg-[#6A1B2E] rounded-xl text-xs font-bold text-white hover:bg-[#521221] active:scale-98 transition-all shadow-md shadow-[#6A1B2E]/20 cursor-pointer"
+            className="flex items-center gap-1.5 h-9.5 px-4 bg-[#58051E] rounded-xl text-xs font-bold text-white hover:bg-[#430316] active:scale-98 transition-all shadow-md shadow-[#58051E]/20 cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Add University
           </button>
@@ -570,7 +570,7 @@ export const AdminUniversities: React.FC = () => {
           onClick={() => setActiveMainTab('universities')}
           className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all flex items-center gap-2 ${
             activeMainTab === 'universities'
-              ? 'bg-[#6A1B2E] text-white shadow-xs'
+              ? 'bg-[#58051E] text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -580,7 +580,7 @@ export const AdminUniversities: React.FC = () => {
           onClick={() => setActiveMainTab('countries')}
           className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all flex items-center gap-2 ${
             activeMainTab === 'countries'
-              ? 'bg-[#6A1B2E] text-white shadow-xs'
+              ? 'bg-[#58051E] text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -600,7 +600,7 @@ export const AdminUniversities: React.FC = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by university name, city, or country..."
-                className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
               />
             </div>
 
@@ -636,7 +636,7 @@ export const AdminUniversities: React.FC = () => {
               </p>
               <button
                 onClick={() => handleOpenAddModal(countryFilter !== 'All' ? countryFilter : undefined)}
-                className="px-4 py-2 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221]"
+                className="px-4 py-2 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316]"
               >
                 + Add University to {countryFilter !== 'All' ? countryFilter : 'Catalog'}
               </button>
@@ -669,7 +669,7 @@ export const AdminUniversities: React.FC = () => {
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
                         
-                        <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#6A1B2E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/40 shadow-xs">
+                        <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#58051E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/40 shadow-xs">
                           {u.badge || 'Top Choice'}
                         </span>
 
@@ -683,7 +683,7 @@ export const AdminUniversities: React.FC = () => {
                       <div className="p-4 space-y-3">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <h3 className="text-sm font-black text-slate-900 leading-snug group-hover:text-[#6A1B2E] transition-colors">
+                            <h3 className="text-sm font-black text-slate-900 leading-snug group-hover:text-[#58051E] transition-colors">
                               {u.name}
                             </h3>
                             <p className="text-[11px] font-semibold text-slate-400 flex items-center gap-1 mt-0.5">
@@ -721,7 +721,7 @@ export const AdminUniversities: React.FC = () => {
                         <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
                           <div className="flex justify-between items-center">
                             <span className="text-slate-400 font-medium">Tuition Fee:</span>
-                            <span className="font-extrabold text-[#6A1B2E]">
+                            <span className="font-extrabold text-[#58051E]">
                               {formatFeeEURandINR(u.tuition_range || u.university_fee)}
                             </span>
                           </div>
@@ -750,7 +750,7 @@ export const AdminUniversities: React.FC = () => {
                       </span>
                       <button
                         onClick={() => handleOpenEditModal(u)}
-                        className="font-extrabold text-[#6A1B2E] hover:underline flex items-center gap-1"
+                        className="font-extrabold text-[#58051E] hover:underline flex items-center gap-1"
                       >
                         Manage Programs & Fees →
                       </button>
@@ -779,7 +779,7 @@ export const AdminUniversities: React.FC = () => {
             </div>
             <button
               onClick={() => setShowAddCountryModal(true)}
-              className="h-9 px-4 bg-[#6A1B2E] text-white rounded-xl text-xs font-bold hover:bg-[#521221] flex items-center gap-1.5 shadow-xs"
+              className="h-9 px-4 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] flex items-center gap-1.5 shadow-xs"
             >
               <Plus className="w-4 h-4" /> Add New Country
             </button>
@@ -794,7 +794,7 @@ export const AdminUniversities: React.FC = () => {
               </p>
               <button
                 onClick={() => setShowAddCountryModal(true)}
-                className="px-4 py-2 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221]"
+                className="px-4 py-2 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316]"
               >
                 + Register First Destination Country
               </button>
@@ -816,7 +816,7 @@ export const AdminUniversities: React.FC = () => {
                           </div>
                         </div>
 
-                        <span className="px-2 py-0.5 bg-[#6A1B2E]/10 text-[#6A1B2E] rounded-md text-[10px] font-extrabold border border-[#6A1B2E]/20">
+                        <span className="px-2 py-0.5 bg-[#58051E]/10 text-[#58051E] rounded-md text-[10px] font-extrabold border border-[#58051E]/20">
                           {c.acronym}
                         </span>
                       </div>
@@ -853,7 +853,7 @@ export const AdminUniversities: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handleOpenAddModal(c.name)}
-                          className="px-2.5 py-1 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                          className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
                         >
                           + Add Uni
                         </button>
@@ -889,7 +889,7 @@ export const AdminUniversities: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-[#6A1B2E]" />
+                  <Globe className="w-5 h-5 text-[#58051E]" />
                   <h3 className="text-base font-black text-slate-900">
                     {editingCountryId ? 'Edit Destination Country' : 'Register New Destination Country'}
                   </h3>
@@ -912,13 +912,13 @@ export const AdminUniversities: React.FC = () => {
 
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Flag Emoji</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Region / Code</label>
                     <input
                       type="text"
                       value={newCountryFlag}
                       onChange={(e) => setNewCountryFlag(e.target.value)}
-                      placeholder="🇨🇭"
-                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-center focus:outline-none"
+                      placeholder="EU"
+                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-center focus:outline-none"
                     />
                   </div>
                   <div>
@@ -989,7 +989,7 @@ export const AdminUniversities: React.FC = () => {
 
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                   <button type="button" onClick={() => setShowAddCountryModal(false)} className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
-                  <button type="submit" className="h-9 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] shadow-xs cursor-pointer">
+                  <button type="submit" className="h-9 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-xs cursor-pointer">
                     {editingCountryId ? 'Save Country Changes' : 'Register Country'}
                   </button>
                 </div>
@@ -1028,7 +1028,7 @@ export const AdminUniversities: React.FC = () => {
                     type="button"
                     onClick={() => setActiveFormTab(t.id as any)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
-                      activeFormTab === t.id ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                      activeFormTab === t.id ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     {t.label}
@@ -1109,7 +1109,7 @@ export const AdminUniversities: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setShowUrlInput(!showUrlInput)}
-                          className="text-[10px] font-bold text-[#6A1B2E] hover:underline"
+                          className="text-[10px] font-bold text-[#58051E] hover:underline"
                         >
                           {showUrlInput ? 'Hide URL input' : 'Paste custom image URL'}
                         </button>
@@ -1145,7 +1145,7 @@ export const AdminUniversities: React.FC = () => {
                                 disabled={uploadingImage}
                                 className="px-3 py-1.5 bg-white/90 hover:bg-white text-slate-900 rounded-xl text-xs font-bold shadow-md flex items-center gap-1 cursor-pointer transition-colors"
                               >
-                                <Upload className="w-3.5 h-3.5 text-[#6A1B2E]" />
+                                <Upload className="w-3.5 h-3.5 text-[#58051E]" />
                                 {uploadingImage ? 'Uploading...' : 'Change Picture'}
                               </button>
                               <button
@@ -1162,9 +1162,9 @@ export const AdminUniversities: React.FC = () => {
                       ) : (
                         <div
                           onClick={() => fileInputRef.current?.click()}
-                          className="border-2 border-dashed border-slate-300 hover:border-[#6A1B2E] bg-slate-50/70 hover:bg-slate-50 rounded-2xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
+                          className="border-2 border-dashed border-slate-300 hover:border-[#58051E] bg-slate-50/70 hover:bg-slate-50 rounded-2xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
                         >
-                          <div className="w-12 h-12 rounded-2xl bg-[#6A1B2E]/10 group-hover:bg-[#6A1B2E] text-[#6A1B2E] group-hover:text-white flex items-center justify-center transition-colors">
+                          <div className="w-12 h-12 rounded-2xl bg-[#58051E]/10 group-hover:bg-[#58051E] text-[#58051E] group-hover:text-white flex items-center justify-center transition-colors">
                             {uploadingImage ? (
                               <RefreshCw className="w-6 h-6 animate-spin" />
                             ) : (
@@ -1182,7 +1182,7 @@ export const AdminUniversities: React.FC = () => {
                           <button
                             type="button"
                             disabled={uploadingImage}
-                            className="mt-1 px-4 py-1.5 bg-[#6A1B2E] hover:bg-[#521221] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5"
+                            className="mt-1 px-4 py-1.5 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5"
                           >
                             <ImageIcon className="w-3.5 h-3.5" /> Choose Picture File
                           </button>
@@ -1223,7 +1223,7 @@ export const AdminUniversities: React.FC = () => {
                       <button
                         type="button"
                         onClick={handleAddCourseProgram}
-                        className="px-3 py-1.5 bg-[#6A1B2E] text-white text-xs font-bold rounded-lg hover:bg-[#521221] flex items-center gap-1"
+                        className="px-3 py-1.5 bg-[#58051E] text-white text-xs font-bold rounded-lg hover:bg-[#430316] flex items-center gap-1"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Program
                       </button>
@@ -1328,7 +1328,7 @@ export const AdminUniversities: React.FC = () => {
                       <button
                         type="button"
                         onClick={handleAddInstallment}
-                        className="px-3 py-1.5 bg-[#6A1B2E] text-white text-xs font-bold rounded-lg hover:bg-[#521221] flex items-center gap-1"
+                        className="px-3 py-1.5 bg-[#58051E] text-white text-xs font-bold rounded-lg hover:bg-[#430316] flex items-center gap-1"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Milestone
                       </button>
@@ -1396,7 +1396,7 @@ export const AdminUniversities: React.FC = () => {
                   <button
                     form="university-admin-form"
                     type="submit"
-                    className="h-9 px-6 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] shadow-md flex items-center gap-1.5 cursor-pointer transition-all active:scale-98"
+                    className="h-9 px-6 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-md flex items-center gap-1.5 cursor-pointer transition-all active:scale-98"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     {editingId ? 'Save Changes' : 'Publish University'}
@@ -1426,7 +1426,7 @@ export const AdminUniversities: React.FC = () => {
                 <div className="h-32 rounded-xl overflow-hidden relative">
                   <img src={viewUniversity.image_url} alt={viewUniversity.name} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <span className="absolute bottom-2 left-2.5 px-2 py-0.5 bg-[#6A1B2E] text-amber-300 rounded text-[10px] font-black">
+                  <span className="absolute bottom-2 left-2.5 px-2 py-0.5 bg-[#58051E] text-amber-300 rounded text-[10px] font-black">
                     {viewUniversity.badge || 'Top Choice'}
                   </span>
                 </div>
@@ -1434,7 +1434,7 @@ export const AdminUniversities: React.FC = () => {
 
               <div className="space-y-3 text-xs">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
-                  <div className="flex justify-between"><span>Annual Tuition:</span><span className="font-bold text-[#6A1B2E]">{formatFeeEURandINR(viewUniversity.university_fee || viewUniversity.tuition_range)}</span></div>
+                  <div className="flex justify-between"><span>Annual Tuition:</span><span className="font-bold text-[#58051E]">{formatFeeEURandINR(viewUniversity.university_fee || viewUniversity.tuition_range)}</span></div>
                   <div className="flex justify-between"><span>VFS Govt Fee:</span><span className="font-bold text-slate-800">{viewUniversity.vfs_fee || '₹15,000'}</span></div>
                   <div className="flex justify-between"><span>Agency Fee:</span><span className="font-bold text-slate-800">{viewUniversity.agency_fee || '₹25,000'}</span></div>
                 </div>
@@ -1445,7 +1445,7 @@ export const AdminUniversities: React.FC = () => {
                     {(viewUniversity.course_programs || viewUniversity.programs || []).map((p: any, idx: number) => (
                       <div key={idx} className="p-2 bg-slate-50 rounded-lg flex justify-between font-semibold">
                         <span>{typeof p === 'string' ? p : p.name}</span>
-                        {typeof p !== 'string' && <span className="text-[#6A1B2E] font-bold">{p.tuition_fee}</span>}
+                        {typeof p !== 'string' && <span className="text-[#58051E] font-bold">{p.tuition_fee}</span>}
                       </div>
                     ))}
                   </div>

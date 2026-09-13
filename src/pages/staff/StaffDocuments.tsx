@@ -106,7 +106,7 @@ export const StaffDocuments: React.FC = () => {
     try {
       setIsProcessing(true);
       await changeStatus(doc.id, 'Approved', 'Verified by Admissions Counselor');
-      showToast(`✅ "${doc.title}" for ${doc.student} approved!`);
+      showToast(`"${doc.title}" for ${doc.student} approved.`);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to approve document'}`);
     } finally {
@@ -121,7 +121,7 @@ export const StaffDocuments: React.FC = () => {
       setIsProcessing(true);
       const notes = rejectionNote.trim() || 'Re-upload requested: please provide a clearer scan with valid stamps.';
       await changeStatus(rejectionModalDoc.id, 'Re-upload Requested', notes);
-      showToast(`✕ Re-upload requested for "${rejectionModalDoc.title}"`);
+      showToast(`Re-upload requested for "${rejectionModalDoc.title}"`);
       setRejectionModalDoc(null);
       setRejectionNote('');
     } catch (err: any) {
@@ -135,7 +135,7 @@ export const StaffDocuments: React.FC = () => {
     <div className="space-y-6 text-left antialiased select-none min-h-[600px]">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />{toast}
           </motion.div>
         )}
@@ -144,7 +144,7 @@ export const StaffDocuments: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#6A1B2E]" /> Document Verification Workspace
+            <FileText className="w-5 h-5 text-[#58051E]" /> Document Verification Workspace
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Review student visa files, academic transcripts, bank solvency letters, and apostille authentications.</p>
         </div>
@@ -168,7 +168,7 @@ export const StaffDocuments: React.FC = () => {
             <Card
               key={folder.key}
               className={`p-4 border transition-all flex items-center gap-3 cursor-pointer ${
-                isSelected ? 'ring-2 ring-[#6A1B2E] bg-rose-50/40 border-[#6A1B2E]' : 'border-slate-200/80 shadow-xs hover:shadow-md'
+                isSelected ? 'ring-2 ring-[#58051E] bg-rose-50/40 border-[#58051E]' : 'border-slate-200/80 shadow-xs hover:shadow-md'
               }`}
               onClick={() => setSelectedFolder(isSelected ? null : folder.key)}
             >
@@ -192,7 +192,7 @@ export const StaffDocuments: React.FC = () => {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                activeTab === tab ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                activeTab === tab ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               {tab}
@@ -207,7 +207,7 @@ export const StaffDocuments: React.FC = () => {
             placeholder="Search documents or student..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#6A1B2E]/20"
+            className="w-full pl-9 pr-4 py-1.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#58051E]/20"
           />
         </div>
       </div>
@@ -350,7 +350,7 @@ export const StaffDocuments: React.FC = () => {
               </div>
 
               <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-3">
-                <FileText className="w-12 h-12 text-[#6A1B2E] mx-auto opacity-80" />
+                <FileText className="w-12 h-12 text-[#58051E] mx-auto opacity-80" />
                 <div>
                   <p className="text-xs font-black text-slate-800">{previewDoc.title}</p>
                   <p className="text-[11px] text-slate-400 mt-0.5">Status: <span className="font-bold">{previewDoc.status}</span></p>
@@ -360,7 +360,7 @@ export const StaffDocuments: React.FC = () => {
                     href={previewDoc.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#6A1B2E] text-white text-xs font-bold hover:bg-[#521221] transition-all"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#58051E] text-white text-xs font-bold hover:bg-[#430316] transition-all"
                   >
                     Open Document File ↗
                   </a>

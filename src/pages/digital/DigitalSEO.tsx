@@ -13,19 +13,19 @@ import { supabase } from '../../lib/supabase';
 // ── Crawler Modal Steps ─────────────────────────────────────────────────────
 const crawlerSteps = [
   'Initializing Ahrefs & Search Console Crawler Engine...',
-  '✓ Connecting to Google Search Console API',
-  '✓ Fetching Sitemap.xml (2,420 URLs Submitted)',
-  '✓ Crawling Website Pages & Depth Architecture',
-  '✓ Checking Robots.txt Directives & Indexing Rules',
-  '✓ Verifying SSL RSA 2048-bit Encryption Certificate',
-  '✓ Checking Canonical Tags & 301 Redirect Chains',
-  '✓ Validating Schema.org JSON-LD Structured Data',
-  '✓ Detecting Broken Links & HTTP 404 Exceptions',
-  '✓ Measuring Core Web Vitals (LCP, CLS, INP)',
-  '✓ Checking Mobile Responsiveness & Viewport Tags',
-  '✓ Auditing Meta Titles & Description Duplicates',
-  '✓ Generating AI Score Recommendations',
-  '✓ Technical Crawler Scan Completed (100% Passed)'
+  'Connecting to Google Search Console API',
+  'Fetching Sitemap.xml (2,420 URLs Submitted)',
+  'Crawling Website Pages & Depth Architecture',
+  'Checking Robots.txt Directives & Indexing Rules',
+  'Verifying SSL RSA 2048-bit Encryption Certificate',
+  'Checking Canonical Tags & 301 Redirect Chains',
+  'Validating Schema.org JSON-LD Structured Data',
+  'Detecting Broken Links & HTTP 404 Exceptions',
+  'Measuring Core Web Vitals (LCP, CLS, INP)',
+  'Checking Mobile Responsiveness & Viewport Tags',
+  'Auditing Meta Titles & Description Duplicates',
+  'Generating AI Score Recommendations',
+  'Technical Crawler Scan Completed (100% Passed)'
 ];
 
 export const DigitalSEO: React.FC = () => {
@@ -209,7 +209,7 @@ export const DigitalSEO: React.FC = () => {
           <motion.div key={healthScore} initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-2xl font-black text-emerald-600">
             {healthScore} / 100
           </motion.div>
-          <span className="text-[9.5px] font-bold text-emerald-700 mt-1 block">✓ All Core Vitals Passed</span>
+          <span className="text-[9.5px] font-bold text-emerald-700 mt-1 block">All Core Vitals Passed</span>
         </Card>
 
         <Card className="p-4 border border-slate-200/70 shadow-xs text-center">
@@ -290,7 +290,7 @@ export const DigitalSEO: React.FC = () => {
                 Discover enterprise mobile apps, secure cloud infrastructure, and AI engineering services tailored for scalability.
               </p>
               <div className="flex items-center justify-between border-t border-slate-200/60 pt-2 text-[10.5px] font-bold text-emerald-700">
-                <span>✓ Organic Position #1</span>
+                <span>Organic Position #1</span>
                 <span>Search Volume: 140,000/mo</span>
               </div>
             </div>
@@ -323,7 +323,7 @@ export const DigitalSEO: React.FC = () => {
 
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
             <span className="text-[10px] font-black uppercase text-slate-400 block">Google Knowledge Panel</span>
-            <div className="h-36 rounded-xl bg-gradient-to-br from-[#6A1B2E] to-[#3B0B16] text-white p-4 flex flex-col justify-between">
+            <div className="h-36 rounded-xl bg-gradient-to-br from-[#58051E] to-[#2E030F] text-white p-4 flex flex-col justify-between">
               <span className="text-[9px] uppercase font-bold text-white/70">Verified Entity</span>
               <h4 className="text-lg font-black text-white">{clientName}</h4>
               <span className="text-[10px] text-white/80 font-bold">Enterprise Client Account</span>
@@ -331,7 +331,7 @@ export const DigitalSEO: React.FC = () => {
             <div className="space-y-1.5 text-xs font-semibold text-slate-700">
               <p>Contact: <span className="font-bold text-slate-900">{selectedClient?.phone || '+91 98765 43210'}</span></p>
               <p>Email: <span className="font-bold text-slate-900">{selectedClient?.email || 'info@client.com'}</span></p>
-              <p>Client Category: <span className="font-bold text-[#6A1B2E]">{selectedClient?.category || 'Enterprise Account'}</span></p>
+              <p>Client Category: <span className="font-bold text-[#58051E]">{selectedClient?.category || 'Enterprise Account'}</span></p>
             </div>
           </div>
         </div>
@@ -341,7 +341,7 @@ export const DigitalSEO: React.FC = () => {
       <Card className="p-6 border border-slate-200/80 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
-            <span className="text-[10px] font-black uppercase text-[#6A1B2E]">Post-Scan AI Audit Findings</span>
+            <span className="text-[10px] font-black uppercase text-[#58051E]">Post-Scan AI Audit Findings</span>
             <h3 className="text-base font-black text-slate-900">AI SEO Recommendation Engine</h3>
           </div>
           <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
@@ -355,7 +355,7 @@ export const DigitalSEO: React.FC = () => {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[9.5px] font-black uppercase px-2 py-0.5 rounded bg-white">{rec.priority}</span>
-                  <span className="text-xs font-black text-emerald-700">{rec.fixed ? '✓ Fixed' : rec.impact}</span>
+                  <span className="text-xs font-black text-emerald-700">{rec.fixed ? 'Fixed' : rec.impact}</span>
                 </div>
                 <h4 className="text-xs font-black text-slate-900">{rec.title}</h4>
                 <p className="text-[11px] font-semibold text-slate-600 leading-relaxed">{rec.desc}</p>
@@ -363,9 +363,9 @@ export const DigitalSEO: React.FC = () => {
               <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-[10px] font-bold text-slate-500">
                 <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-slate-400" />{rec.time}</span>
                 {rec.fixed ? (
-                  <span className="text-emerald-700 font-black">Applied ✓</span>
+                  <span className="text-emerald-700 font-black">Applied</span>
                 ) : (
-                  <button onClick={() => handleApplyFix(rec.id, rec.title)} className="text-[#6A1B2E] font-black hover:underline">Apply Fix →</button>
+                  <button onClick={() => handleApplyFix(rec.id, rec.title)} className="text-[#58051E] font-black hover:underline">Apply Fix →</button>
                 )}
               </div>
             </div>
@@ -402,7 +402,7 @@ export const DigitalSEO: React.FC = () => {
               {/* Progress Bar */}
               <div className="space-y-1">
                 <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-2 rounded-full bg-gradient-to-r from-[#6A1B2E] to-emerald-500 transition-all duration-300" style={{ width: `${scanProgress}%` }} />
+                  <div className="h-2 rounded-full bg-gradient-to-r from-[#58051E] to-emerald-500 transition-all duration-300" style={{ width: `${scanProgress}%` }} />
                 </div>
               </div>
 
@@ -411,7 +411,7 @@ export const DigitalSEO: React.FC = () => {
                 <p className="text-slate-400">$ screaming-frog --crawl {clientDomain}</p>
                 <p className="text-slate-300">{crawlerSteps[scanStepIndex]}</p>
                 {scanProgress >= 100 && (
-                  <p className="text-emerald-400 font-bold">✓ Complete: All 2,420 URLs scanned successfully with 0 critical errors!</p>
+                  <p className="text-emerald-400 font-bold">Complete: All 2,420 URLs scanned successfully with 0 critical errors!</p>
                 )}
               </div>
             </motion.div>

@@ -100,7 +100,7 @@ export const TradeNotifications: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -110,7 +110,7 @@ export const TradeNotifications: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Bell className="w-5 h-5 text-[#6A1B2E]" /> Global Trade Notification Center
+            <Bell className="w-5 h-5 text-[#58051E]" /> Global Trade Notification Center
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Real-time port alerts, LC banking clearances, customs inspection notices, and swift wire confirms.
@@ -124,7 +124,7 @@ export const TradeNotifications: React.FC = () => {
           }}>
             <Check className="w-4 h-4 mr-1.5" /> Mark All as Read
           </Button>
-          <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-1.5" /> Broadcast Alert
           </Button>
         </div>
@@ -133,7 +133,7 @@ export const TradeNotifications: React.FC = () => {
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search notifications..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search notifications..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -146,7 +146,7 @@ export const TradeNotifications: React.FC = () => {
               key={tab.key}
               onClick={() => setFilterTab(tab.key as any)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                filterTab === tab.key ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                filterTab === tab.key ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               {tab.label}
@@ -171,15 +171,15 @@ export const TradeNotifications: React.FC = () => {
             <Card
               key={n.id}
               className={`p-4 border transition-all ${
-                !n.read ? 'border-[#6A1B2E]/30 bg-[#6A1B2E]/5 shadow-xs' : 'border-slate-200/70 bg-white'
+                !n.read ? 'border-[#58051E]/30 bg-[#58051E]/5 shadow-xs' : 'border-slate-200/70 bg-white'
               }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded border border-[#6A1B2E]/20">{n.category}</span>
+                    <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded border border-[#58051E]/20">{n.category}</span>
                     <h4 className="text-xs font-black text-slate-900">{n.title}</h4>
-                    {!n.read && <span className="w-2 h-2 rounded-full bg-[#6A1B2E]" />}
+                    {!n.read && <span className="w-2 h-2 rounded-full bg-[#58051E]" />}
                   </div>
                   <p className="text-xs font-medium text-slate-600 leading-relaxed">{n.desc}</p>
                 </div>
@@ -233,7 +233,7 @@ export const TradeNotifications: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Broadcast Alert</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Broadcast Alert</Button>
                 </div>
               </form>
             </motion.div>

@@ -275,7 +275,7 @@ export const SupportTickets: React.FC = () => {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 h-9 px-4 bg-[#6A1B2E] hover:bg-[#4A101E] text-white text-xs font-bold rounded-xl transition-all shadow-xs shrink-0 cursor-pointer self-start sm:self-auto"
+          className="flex items-center gap-2 h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl transition-all shadow-xs shrink-0 cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" /> Create Ticket
         </button>
@@ -292,9 +292,9 @@ export const SupportTickets: React.FC = () => {
               <button
                 key={label}
                 onClick={() => setFilter(label)}
-                className={`h-7 px-2.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 transition-all whitespace-nowrap border ${
+                className={`h-7 px-2.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 transition-all whitespace-nowrap border cursor-pointer ${
                   filter === label 
-                    ? 'bg-[#6A1B2E] text-white border-[#6A1B2E]' 
+                    ? 'bg-[#58051E] text-white border-[#58051E]' 
                     : 'bg-white text-slate-500 hover:bg-slate-105 border-slate-200/80'
                 }`}
               >
@@ -313,7 +313,7 @@ export const SupportTickets: React.FC = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by subject or ticket ID..."
-              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-202 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/30"
+              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-202 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/30"
             />
           </div>
 
@@ -337,7 +337,7 @@ export const SupportTickets: React.FC = () => {
                     onClick={() => setSelectedTicketId(t.id)}
                     className={`p-4 text-left cursor-pointer transition-all hover:bg-slate-50/70 border-l-4 ${
                       isSelected 
-                        ? 'bg-rose-50/15 border-[#6A1B2E]' 
+                        ? 'bg-rose-50/15 border-[#58051E]' 
                         : 'border-transparent bg-white'
                     }`}
                   >
@@ -371,7 +371,7 @@ export const SupportTickets: React.FC = () => {
               {/* Thread Header */}
               <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#6A1B2E] text-white flex items-center justify-center font-black text-sm shadow-sm">
+                  <div className="w-9 h-9 rounded-xl bg-[#58051E] text-white flex items-center justify-center font-black text-sm shadow-sm">
                     {activeTicket.ticketNo[0]}
                   </div>
                   <div>
@@ -413,13 +413,13 @@ export const SupportTickets: React.FC = () => {
                     {replies.slice(1).map((msg, idx) => (
                       <div key={idx} className={`flex gap-3 ${msg.self ? 'flex-row-reverse' : ''}`}>
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
-                          msg.self ? 'bg-[#6A1B2E] text-white' : 'bg-slate-105 text-slate-600 border border-slate-200'
+                          msg.self ? 'bg-[#58051E] text-white' : 'bg-slate-105 text-slate-600 border border-slate-200'
                         }`}>
                           {msg.sender[0]}
                         </div>
                         <div className={`max-w-[75%] p-3.5 rounded-2xl text-xs space-y-1 ${
                           msg.self 
-                            ? 'bg-[#6A1B2E] text-white rounded-tr-none' 
+                            ? 'bg-[#58051E] text-white rounded-tr-none' 
                             : 'bg-slate-50 border border-slate-150 text-slate-800 rounded-tl-none'
                         }`}>
                           <div className={`flex items-center justify-between gap-3 border-b pb-1 mb-1 ${
@@ -445,7 +445,7 @@ export const SupportTickets: React.FC = () => {
                               key={idx}
                               disabled={isReplying}
                               onClick={() => handleSendReplyText(replyText)}
-                              className="h-7 px-3 bg-slate-50 hover:bg-[#6A1B2E]/10 border border-slate-200/80 hover:border-[#6A1B2E]/30 text-slate-600 hover:text-[#6A1B2E] text-[9.5px] font-black rounded-lg transition-all whitespace-nowrap cursor-pointer disabled:opacity-50"
+                              className="h-7 px-3 bg-slate-50 hover:bg-[#58051E]/10 border border-slate-200/80 hover:border-[#58051E]/30 text-slate-600 hover:text-[#58051E] text-[9.5px] font-black rounded-lg transition-all whitespace-nowrap cursor-pointer disabled:opacity-50"
                             >
                               {replyText}
                             </button>
@@ -458,12 +458,12 @@ export const SupportTickets: React.FC = () => {
                             value={replyText} 
                             onChange={(e) => setReplyText(e.target.value)}
                             placeholder="Type your message here..."
-                            className="flex-1 h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E] placeholder-slate-350" 
+                            className="flex-1 h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E] placeholder-slate-350" 
                           />
                           <button 
                             onClick={handleSendReply}
                             disabled={isReplying}
-                            className="h-10 px-4 bg-[#6A1B2E] hover:bg-[#4A101E] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                            className="h-10 px-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
                           >
                             <Send className="w-3.5 h-3.5" />
                           </button>
@@ -549,7 +549,7 @@ export const SupportTickets: React.FC = () => {
                     value={newSubject}
                     onChange={(e) => setNewSubject(e.target.value)}
                     required
-                    className="w-full h-10 px-3.5 border border-slate-200 rounded-xl text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:border-[#6A1B2E] text-xs font-semibold"
+                    className="w-full h-10 px-3.5 border border-slate-200 rounded-xl text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:border-[#58051E] text-xs font-semibold"
                   />
                 </div>
 
@@ -559,7 +559,7 @@ export const SupportTickets: React.FC = () => {
                     <select
                       value={newCategory}
                       onChange={(e) => setNewCategory(e.target.value)}
-                      className="w-full h-10 px-3 border border-slate-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:border-[#6A1B2E]"
+                      className="w-full h-10 px-3 border border-slate-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:border-[#58051E]"
                     >
                       <option value="Admissions Assistance">Admissions Help</option>
                       <option value="Billing & Payments">Billing & Payments</option>
@@ -573,7 +573,7 @@ export const SupportTickets: React.FC = () => {
                     <select
                       value={newPriority}
                       onChange={(e: any) => setNewPriority(e.target.value)}
-                      className="w-full h-10 px-3 border border-slate-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:border-[#6A1B2E]"
+                      className="w-full h-10 px-3 border border-slate-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:border-[#58051E]"
                     >
                       <option value="Low">Low</option>
                       <option value="Medium">Medium</option>
@@ -590,15 +590,15 @@ export const SupportTickets: React.FC = () => {
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
                     required
-                    className="w-full p-3.5 border border-slate-200 rounded-xl text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:border-[#6A1B2E] resize-none text-xs font-semibold leading-relaxed"
+                    className="w-full p-3.5 border border-slate-200 rounded-xl text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:border-[#58051E] resize-none text-xs font-semibold leading-relaxed"
                   />
                 </div>
 
                 <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-                  <Button type="button" variant="outline" size="sm" className="text-xs h-9 px-4 rounded-xl" onClick={() => setShowCreateModal(false)}>
+                  <Button type="button" variant="outline" size="sm" className="text-xs h-9 px-4 rounded-xl cursor-pointer" onClick={() => setShowCreateModal(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" size="sm" className="text-xs bg-[#6A1B2E] hover:bg-[#4A101E] text-white h-9 px-5 rounded-xl">
+                  <Button type="submit" size="sm" className="text-xs bg-[#58051E] hover:bg-[#430316] text-white h-9 px-5 rounded-xl cursor-pointer">
                     File Ticket
                   </Button>
                 </div>

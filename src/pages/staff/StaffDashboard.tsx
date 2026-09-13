@@ -47,7 +47,7 @@ export const StaffDashboard: React.FC = () => {
     <div className="space-y-8 text-left antialiased select-none">
 
       {/* Executive Hero Banner — real counselor name */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-8 shadow-xl relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#2E030F] text-white p-8 shadow-xl relative overflow-hidden">
         <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 70% 50%, white 0%, transparent 70%)' }} />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2 max-w-2xl">
@@ -73,8 +73,8 @@ export const StaffDashboard: React.FC = () => {
               {staffInitials}
             </div>
             <Link to="/staff/tasks">
-              <Button size="sm" className="bg-white text-[#6A1B2E] hover:bg-slate-100 font-black text-xs">
-                Task Board <ArrowRight className="w-3.5 h-3.5 ml-1.5 text-[#6A1B2E]" />
+              <Button size="sm" className="bg-white text-[#58051E] hover:bg-slate-100 font-black text-xs">
+                Task Board <ArrowRight className="w-3.5 h-3.5 ml-1.5 text-[#58051E]" />
               </Button>
             </Link>
           </div>
@@ -110,7 +110,7 @@ export const StaffDashboard: React.FC = () => {
             val: isLoading ? '—' : `${completedTasks.length} Done`,
             sub: isLoading ? 'Loading...' : completedTasks.length === 0 ? 'No tasks completed yet' : 'Great progress!',
             progress: isLoading ? 0 : Math.round((completedTasks.length / Math.max(tasks.length, 1)) * 100),
-            color: 'text-[#6A1B2E]', bg: 'bg-[#6A1B2E]', path: '/staff/documents'
+            color: 'text-[#58051E]', bg: 'bg-[#58051E]', path: '/staff/documents'
           },
         ].map((card, idx) => (
           <Card key={idx} onClick={() => navigate(card.path)} className="p-5 border border-slate-200/70 shadow-xs hover:shadow-md transition-all space-y-3 cursor-pointer group hover:border-slate-300">
@@ -137,7 +137,7 @@ export const StaffDashboard: React.FC = () => {
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-blue-600" /> Upcoming Consultations
               </h3>
-              <Link to="/staff/meetings" className="text-xs font-bold text-[#6A1B2E] hover:underline">View Calendar →</Link>
+              <Link to="/staff/meetings" className="text-xs font-bold text-[#58051E] hover:underline">View Calendar →</Link>
             </div>
 
             {meetingsLoading ? (
@@ -155,7 +155,7 @@ export const StaffDashboard: React.FC = () => {
                 {upcomingMeetings.slice(0, 3).map((m, idx) => (
                   <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-100/80 transition-all">
                     <div>
-                      <span className="text-[10px] font-black text-[#6A1B2E] uppercase">
+                      <span className="text-[10px] font-black text-[#58051E] uppercase">
                         {m.scheduled_date}{m.start_time ? ` • ${m.start_time}` : ''}
                       </span>
                       <h4 className="text-xs font-black text-slate-900">{m.subject || 'Counselling Session'}</h4>
@@ -163,7 +163,7 @@ export const StaffDashboard: React.FC = () => {
                         Student: {(m as any).student_name || m.student_id?.slice(0, 8) || 'Assigned Student'}
                       </span>
                     </div>
-                    <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shrink-0" onClick={() => navigate('/staff/meetings')}>
+                    <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shrink-0" onClick={() => navigate('/staff/meetings')}>
                       <Video className="w-3.5 h-3.5 mr-1" /> View Details
                     </Button>
                   </div>
@@ -176,9 +176,9 @@ export const StaffDashboard: React.FC = () => {
           <Card className="p-6 border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <CheckSquare className="w-4 h-4 text-[#6A1B2E]" /> Assigned Tasks Workload
+                <CheckSquare className="w-4 h-4 text-[#58051E]" /> Assigned Tasks Workload
               </h3>
-              <Link to="/staff/tasks" className="text-xs font-bold text-[#6A1B2E] hover:underline">Open Task Board →</Link>
+              <Link to="/staff/tasks" className="text-xs font-bold text-[#58051E] hover:underline">Open Task Board →</Link>
             </div>
 
             {tasksLoading ? (
@@ -239,7 +239,7 @@ export const StaffDashboard: React.FC = () => {
             <div className="space-y-2">
               <Link to="/staff/students">
                 <Button size="sm" variant="outline" className="w-full text-xs font-bold justify-start">
-                  <Users className="w-4 h-4 mr-2 text-[#6A1B2E]" /> View Assigned Students
+                  <Users className="w-4 h-4 mr-2 text-[#58051E]" /> View Assigned Students
                 </Button>
               </Link>
               <Link to="/staff/documents">
@@ -314,7 +314,7 @@ export const StaffDashboard: React.FC = () => {
                   })),
                 ].slice(0, 3).map((act, i) => (
                   <div key={i} className="relative space-y-0.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#6A1B2E] absolute -left-[21px] top-1 border-2 border-white" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#58051E] absolute -left-[21px] top-1 border-2 border-white" />
                     <span className="text-[10px] text-slate-400 font-bold block">{act.time}</span>
                     <span className="font-bold text-slate-900 block">{act.title}</span>
                     <span className="text-[10.5px] text-slate-500 block">{act.sub}</span>

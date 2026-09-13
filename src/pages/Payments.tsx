@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, CheckCircle2, Lock, Sparkles, X, Upload, Clock, AlertCircle, FileText, Eye, QrCode } from 'lucide-react';
+import {
+  CreditCard, CheckCircle2, Lock, X, Upload, Clock,
+  AlertCircle, FileText, Eye, QrCode, ArrowRight, ShieldCheck
+} from 'lucide-react';
 import { Card } from '../components/Card';
+import { Button } from '../components/Button';
+import { Badge } from '../components/Badge';
 import { useAuth } from '../contexts/AuthContext';
 import { usePayments } from '../hooks/usePayments';
 import { useApplications } from '../hooks/useApplications';
@@ -56,14 +61,13 @@ export const Payments: React.FC = () => {
   const selectedCourse = activeApp?.course || activeApp?.program_name || 'Selected European Program';
   const selectedUniversity = (activeApp?.university_name && activeApp.university_name !== 'Pending University Selection') ? activeApp.university_name : (activeApp?.universities?.name || 'University Applied For');
 
-  // Robust Course Tuition Fee Parser (handles "€3,500", "₹3,15,000", "3.15 Lakhs", "315000", "3500")
+  // Course Tuition Fee Parser
   const parseCourseFee = (val?: any): { inr: number; formatted: string } => {
     if (!val || !hasCourseSelected) return { inr: 0, formatted: 'Pending University Selection' };
 
     const str = String(val).trim();
     const lower = str.toLowerCase();
 
-    // 1. If expressed in Euros (€3,500 or 3500 EUR)
     if (str.includes('€') || lower.includes('eur') || lower.includes('euro')) {
       const cleaned = str.replace(/[^0-9.]/g, '');
       const num = parseFloat(cleaned);
@@ -76,7 +80,6 @@ export const Payments: React.FC = () => {
       }
     }
 
-    // 2. If expressed in Lakhs (e.g. "3.15 Lakhs", "3.15L", "7.5 Lakhs")
     if (lower.includes('lakh') || lower.includes('l') || lower.includes('lac')) {
       const match = str.match(/([0-9.]+)/);
       if (match) {
@@ -92,11 +95,9 @@ export const Payments: React.FC = () => {
       }
     }
 
-    // 3. Raw numbers (e.g. "315000", "₹3,15,000", "3500")
     const cleaned = str.replace(/[^0-9.]/g, '');
     const num = parseFloat(cleaned);
     if (!isNaN(num) && num > 0) {
-      // If number is small like 3500 (Euros), convert with x90
       if (num < 20000) {
         const inrAmount = Math.round(num * 90);
         return {
@@ -104,7 +105,6 @@ export const Payments: React.FC = () => {
           formatted: `₹${inrAmount.toLocaleString('en-IN')} (€${num.toLocaleString()}/yr)`
         };
       }
-      // If number is small like 3.15 (Lakhs), convert with x100000
       if (num < 100) {
         const inrAmount = Math.round(num * 100000);
         const euroApprox = Math.round(inrAmount / 90);
@@ -113,7 +113,6 @@ export const Payments: React.FC = () => {
           formatted: `₹${inrAmount.toLocaleString('en-IN')} (€${euroApprox.toLocaleString()}/yr)`
         };
       }
-      // Direct INR amount (e.g. 315000)
       const euroApprox = Math.round(num / 90);
       return {
         inr: Math.round(num),
@@ -127,7 +126,6 @@ export const Payments: React.FC = () => {
   const rawFee = (activeApp as any)?.tuition_fee || (activeApp as any)?.course_fee || (activeApp as any)?.fee;
   const { inr: courseTuitionFee, formatted: formattedTuitionFee } = parseCourseFee(rawFee);
 
-  // Extract Admin Fee & Intake Config values (Agency Fee & VFS Fee)
   const parseFeeNum = (strVal?: string, fallback: number = 0) => {
     if (!strVal) return fallback;
     const cleaned = String(strVal).replace(/[^0-9.]/g, '');
@@ -138,27 +136,20 @@ export const Payments: React.FC = () => {
   const configuredAgencyFee = parseFeeNum(config.default_agency_fee, 25000);
   const configuredVfsFee = parseFeeNum(config.default_vfs_fee, 28000);
 
-  // Exact Fee & Intake Config Installment Structure:
-  // 1st Installment: Registration & Legalization Audit Deposit (Configured in Admin Fee Config)
-  // 2nd Installment: Full University Tuition Fee (100% Selected Course Tuition Fee)
-  // 3rd Installment: Agency Service & VFS Visa Clearance Fee (Configured in Admin Fee & Intake Config)
   const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || (activeApp as any)?.country || 'Poland';
   const countryFeeObj = config.country_fees?.[targetCountry] || config.country_fees?.[targetCountry.replace('United Kingdom', 'UK').replace('United States', 'USA')];
   const inst1Amount = countryFeeObj?.registration_fee_inr || config.advance_registration_fee_inr || 15000;
   const inst2Amount = courseTuitionFee;
   const inst3Amount = configuredAgencyFee + configuredVfsFee;
 
-  // Helper to find DB record for stage
   const getStagePayment = (stageNum: number) => {
     return dbPayments.find(p => {
-      // 1. Direct stage_number property matching if present
       if ((p as any).stage_number !== undefined && (p as any).stage_number !== null) {
         return Number((p as any).stage_number) === stageNum;
       }
       if ((p as any).installment_stage !== undefined && (p as any).installment_stage !== null) {
         return Number((p as any).installment_stage) === stageNum;
       }
-      // 2. Strict ordinal word matching (1st, 2nd, 3rd)
       const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
       if (stageNum === 1) return text.includes('1st') || text.includes('stage 1') || text.includes('registration fee') || text.includes('advance') || text.includes('audit deposit');
       if (stageNum === 2) return text.includes('2nd') || text.includes('stage 2') || text.includes('tuition fee');
@@ -179,10 +170,10 @@ export const Payments: React.FC = () => {
     {
       id: 1,
       stageNum: 1,
-      title: `1st Installment — Advance Registration & Advisory Fee (₹${inst1Amount.toLocaleString('en-IN')})`,
+      title: `1st Installment — Advance Registration Fee (₹${inst1Amount.toLocaleString('en-IN')})`,
       stageName: 'Initial Registration & Audit',
       amount: inst1Amount,
-      description: `Advance advisory fee, country eligibility check (${targetCountry}), university choice allocation, and document legalization audit. Unlocks university selection.`,
+      description: `Advance advisory fee, country eligibility check (${targetCountry}), university allocation, and document legalization audit.`,
       dueDateStr: 'Due Before University Application',
       status: p1Paid
         ? 'Paid'
@@ -204,7 +195,7 @@ export const Payments: React.FC = () => {
       stageName: 'After Course Selection & Offer Letter',
       amount: hasCourseSelected ? inst2Amount : 0,
       description: hasCourseSelected
-        ? `Selected Course Tuition Fee (${formattedTuitionFee}) for ${selectedCourse} at ${selectedUniversity}. Required for Official Final Acceptance Letter.`
+        ? `Course Tuition Fee (${formattedTuitionFee}) for ${selectedCourse} at ${selectedUniversity}. Required for Official Final Acceptance Letter.`
         : 'Selected Course Tuition Fee will be calculated automatically once you select your university and course in the Applications portal.',
       dueDateStr: 'Due After Offer Letter Released',
       status: p2Paid
@@ -274,7 +265,7 @@ export const Payments: React.FC = () => {
       const { uploadFileToBucket } = await import('../lib/storage');
       const res = await uploadFileToBucket('receipts', file, 'payment_receipt');
       setReceiptUrl(res.url || URL.createObjectURL(file));
-      showToast(`Receipt screenshot "${file.name}" uploaded successfully!`);
+      showToast(`Receipt proof "${file.name}" uploaded successfully.`);
     }
   };
 
@@ -301,9 +292,9 @@ export const Payments: React.FC = () => {
       setIsSubmitting(false);
       setSelectedInst(null);
 
-      showToast(`⌛ Payment of ₹${selectedInst.amount.toLocaleString()} Submitted! Sent to Admin for Verification & Clearance.`);
+      showToast(`Payment of ₹${selectedInst.amount.toLocaleString()} submitted and logged for verification.`);
 
-      // Trigger automatic branded PDF download immediately
+      // Trigger automatic branded PDF download
       const generatedInvoiceNo = `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`;
       const pdfBlob = createValidInvoicePdfBlob({
         invoice_no: generatedInvoiceNo,
@@ -323,9 +314,7 @@ export const Payments: React.FC = () => {
       element.click();
       document.body.removeChild(element);
 
-      // Notify other parts of the app
       window.dispatchEvent(new Event('ferex_payment_change'));
-
     } catch (err: any) {
       setIsSubmitting(false);
       showToast(`Error: ${err.message || 'Payment failed'}`);
@@ -361,7 +350,7 @@ export const Payments: React.FC = () => {
       setSelectedInst(null);
       setUtrNumber('');
       setReceiptUrl('');
-      showToast(`Payment proof for ${selectedInst.title} submitted! Sent to Admin for verification.`);
+      showToast(`Payment proof for Stage ${selectedInst.stageNum} submitted for review.`);
     } catch (err: any) {
       setIsSubmitting(false);
       showToast(`Error submitting payment: ${err.message || 'Submission failed'}`);
@@ -386,117 +375,118 @@ export const Payments: React.FC = () => {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-    showToast(`🎉 Downloaded Tax Invoice & Receipt PDF for Stage ${inst.stageNum}`);
+    showToast(`Tax invoice PDF generated for Stage ${inst.stageNum}.`);
   };
 
   return (
-    <div className="space-y-6 text-left relative min-h-[600px]">
-      {/* Toast */}
+    <div className="space-y-6 text-left relative min-h-[600px] pb-10">
+      {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2"
+            className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-card text-xs font-semibold flex items-center gap-2 border border-slate-700"
           >
-            <Sparkles className="w-4 h-4 text-amber-300" />
+            <CreditCard className="w-4 h-4 text-[#58051E]" />
             {toastMessage}
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1.5 flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-[#6A1B2E]/5 text-[#6A1B2E] flex items-center justify-center">
-              <CreditCard className="w-5 h-5" />
-            </span>
-            Installment Payment & Verification Portal
-          </h1>
-          <p className="text-sm font-semibold text-slate-500">
-            Submit payment proof, UTR transaction numbers, and receipts for admin approval.
+          <div className="flex items-center gap-2.5 mb-1">
+            <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
+              <CreditCard className="w-4 h-4" />
+            </div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Fee Schedule & Settlements
+            </h1>
+          </div>
+          <p className="text-xs text-slate-500">
+            Submit milestone payments, upload UTR proofs, and access official tax invoices.
           </p>
         </div>
       </div>
-      {/* Dynamic Course Tuition Banner vs Initial Registration Notice */}
-      {!hasCourseSelected ? (
-        <div className="p-5 bg-gradient-to-r from-slate-900 via-[#6A1B2E] to-[#4A101E] text-white rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md border border-white/10">
-          <div>
-            <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-amber-300 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-300/20">
-              Stage 1 — Initial Registration Deposit
-            </span>
-            <h2 className="text-base md:text-lg font-black mt-1.5 text-white">
-              Registration & Legalization Audit Deposit
-            </h2>
-            <p className="text-xs text-slate-300 font-semibold mt-0.5">
-              Clear the initial registration deposit below to unlock accredited university selection and course applications.
-            </p>
-          </div>
-          <div className="text-left sm:text-right shrink-0 bg-white/10 px-4 py-2.5 rounded-xl border border-white/10 w-full sm:w-auto">
-            <span className="text-[10px] uppercase font-extrabold text-slate-300 block">Initial Amount Required</span>
-            <span className="text-xl font-black text-amber-300">₹{inst1Amount.toLocaleString()}</span>
-          </div>
-        </div>
-      ) : (
-        <div className="p-5 bg-gradient-to-r from-slate-900 via-[#6A1B2E] to-[#4A101E] text-white rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md border border-white/10">
-          <div>
-            <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-amber-300 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-300/20">
-              Selected Course Tuition Schedule
-            </span>
-            <h2 className="text-base md:text-lg font-black mt-1.5 text-white">
-              {selectedCourse}
-            </h2>
-            <p className="text-xs text-slate-300 font-semibold mt-0.5">
-              Target Institution: <span className="font-extrabold text-white">{selectedUniversity}</span> — Full Tuition Fee paid in 2nd Installment.
-            </p>
-          </div>
-          <div className="text-left sm:text-right shrink-0 bg-white/10 px-4 py-2.5 rounded-xl border border-white/10 w-full sm:w-auto">
-            <span className="text-[10px] uppercase font-extrabold text-slate-300 block">Total Program Package</span>
-            <span className="text-xl font-black text-amber-300">₹{totalFee.toLocaleString()}</span>
-          </div>
-        </div>
-      )}
 
-      {/* Progress & Summary Banner */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-5 border border-slate-200/80 bg-white">
-          <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">
-            {!hasCourseSelected ? 'Initial Required Fee' : 'Total Package Fee'}
+      {/* Tuition / Program Overview Banner */}
+      <div className="p-5 bg-slate-900 text-white rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-slate-800 shadow-card">
+        <div>
+          <span className="text-[11px] font-semibold text-slate-300 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10">
+            {!hasCourseSelected ? 'Stage 01 Registration Deposit' : 'Program Fee Schedule'}
           </span>
-          <span className="text-2xl font-black text-slate-900 leading-none">
+          <h2 className="text-base font-semibold mt-2 text-white">
+            {!hasCourseSelected ? 'Registration & Legalization Audit Deposit' : selectedCourse}
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {!hasCourseSelected
+              ? `Clear the initial registration deposit below to unlock accredited university selection (${targetCountry}).`
+              : `Institution: ${selectedUniversity} — Tuition fee structured into milestone installments.`}
+          </p>
+        </div>
+        <div className="text-left sm:text-right shrink-0 bg-white/5 px-4 py-2.5 rounded-lg border border-white/10 w-full sm:w-auto">
+          <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+            {!hasCourseSelected ? 'Deposit Amount' : 'Total Program Fee'}
+          </span>
+          <span className="text-xl font-bold text-white">
             ₹{(!hasCourseSelected ? inst1Amount : totalFee).toLocaleString()}
           </span>
-          <span className="text-[10.5px] font-extrabold text-slate-500 block mt-2">
-            {!hasCourseSelected ? 'Stage 1 Registration Deposit' : 'Structured into 3 Milestones'}
+        </div>
+      </div>
+
+      {/* Financial Metrics Bento */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="p-4 border border-slate-200/80 bg-white">
+          <span className="text-xs font-semibold text-slate-500 block mb-1">
+            {!hasCourseSelected ? 'Initial Required Fee' : 'Total Package Fee'}
+          </span>
+          <span className="text-2xl font-bold text-slate-900 leading-none">
+            ₹{(!hasCourseSelected ? inst1Amount : totalFee).toLocaleString()}
+          </span>
+          <span className="text-xs text-slate-400 block mt-2">
+            {!hasCourseSelected ? 'Stage 1 Deposit' : 'Structured into 3 Milestones'}
           </span>
         </Card>
 
-        <Card className="p-5 border border-emerald-100 bg-emerald-50/50">
-          <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-emerald-700 block mb-1">Verified & Paid</span>
-          <span className="text-2xl font-black text-emerald-800 leading-none">₹{paidTotal.toLocaleString()}</span>
-          <div className="w-full bg-emerald-200 h-1.5 rounded-full mt-2.5 overflow-hidden">
-            <div className="bg-emerald-600 h-full transition-all" style={{ width: `${(paidTotal / (!hasCourseSelected ? inst1Amount : totalFee)) * 100}%` }} />
+        <Card className="p-4 border border-slate-200/80 bg-white">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold text-slate-500">Verified & Paid</span>
+            <Badge variant="success">Cleared</Badge>
+          </div>
+          <span className="text-2xl font-bold text-slate-900 leading-none">₹{paidTotal.toLocaleString()}</span>
+          <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
+            <div
+              className="bg-emerald-600 h-full transition-all"
+              style={{ width: `${(paidTotal / (!hasCourseSelected ? inst1Amount : totalFee)) * 100}%` }}
+            />
           </div>
         </Card>
 
-        <Card className="p-5 border border-amber-100 bg-amber-50/50">
-          <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-amber-700 block mb-1">Pending Balance</span>
-          <span className="text-2xl font-black text-amber-800 leading-none">₹{pendingTotal.toLocaleString()}</span>
-          <span className="text-[10.5px] font-extrabold text-amber-700 block mt-2">
-            {installments.filter(i => i.status === 'Pending' || i.status === 'Pending Verification').length} Milestone(s) Remaining
-          </span>
+        <Card className="p-4 border border-slate-200/80 bg-white">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold text-slate-500">Pending Balance</span>
+            <Badge variant="neutral">
+              {installments.filter(i => i.status === 'Pending' || i.status === 'Pending Verification').length} Remaining
+            </Badge>
+          </div>
+          <span className="text-2xl font-bold text-slate-900 leading-none">₹{pendingTotal.toLocaleString()}</span>
+          <span className="text-xs text-slate-400 block mt-2">Due across subsequent phases</span>
         </Card>
       </div>
 
       {/* 3 Installment Cards */}
-      <div className="space-y-4">
-        <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
-          3-Stage Installment Payment & Verification Schedule
-        </h3>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h2 className="text-sm font-semibold text-slate-900">
+            Installment Payment & Verification Schedule
+          </h2>
+          <span className="text-xs text-slate-400">3 Structured Milestones</span>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {installments.map((inst) => {
             const isPaid = inst.status === 'Paid';
             const isPendingVerification = inst.status === 'Pending Verification';
@@ -506,84 +496,76 @@ export const Payments: React.FC = () => {
             return (
               <Card
                 key={inst.id}
-                className={`p-6 flex flex-col justify-between transition-all select-none relative overflow-hidden border ${
+                className={`p-5 flex flex-col justify-between transition-all select-none relative bg-white border ${
                   isPaid
-                    ? 'border-emerald-200 bg-emerald-50/20'
+                    ? 'border-emerald-200/80 bg-emerald-50/10'
                     : isPendingVerification
-                    ? 'border-amber-200 bg-amber-50/20 shadow-xs'
+                    ? 'border-amber-200/80 bg-amber-50/10'
                     : isRejected
-                    ? 'border-red-200 bg-red-50/20'
+                    ? 'border-red-200/80 bg-red-50/10'
                     : isPending
-                    ? 'border-[#6A1B2E]/30 bg-white shadow-md'
-                    : 'border-slate-200/60 bg-slate-50/60 opacity-80'
+                    ? 'border-[#58051E]/30 shadow-subtle'
+                    : 'border-slate-200/60 bg-slate-50/50 opacity-75'
                 }`}
               >
                 <div>
-                  {/* Top Stage Indicator */}
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="w-8 h-8 rounded-xl bg-[#6A1B2E] text-white font-black flex items-center justify-center text-xs shadow-xs">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="w-7 h-7 rounded-lg bg-[#58051E] text-white font-semibold flex items-center justify-center text-xs">
                       {inst.stageNum}
                     </span>
-                    <span className={`text-[9px] uppercase font-extrabold tracking-wider px-2.5 py-1 rounded-full border ${
-                      isPaid
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : isPendingVerification
-                        ? 'bg-amber-100 text-amber-900 border-amber-300 font-black animate-pulse'
-                        : isRejected
-                        ? 'bg-red-100 text-red-800 border-red-200 font-extrabold'
-                        : isPending
-                        ? 'bg-blue-50 text-blue-700 border-blue-200'
-                        : 'bg-slate-100 text-slate-400 border-slate-200'
-                    }`}>
-                      {isPendingVerification ? '⏳ Pending Verification' : inst.status}
+                    {isPaid && <Badge variant="success" dot>Paid</Badge>}
+                    {isPendingVerification && <Badge variant="brand" dot>In Verification</Badge>}
+                    {isRejected && <Badge variant="error" dot>Action Required</Badge>}
+                    {isPending && <Badge variant="neutral">Pending</Badge>}
+                    {!isPaid && !isPendingVerification && !isRejected && !isPending && (
+                      <Badge variant="neutral">Locked</Badge>
+                    )}
+                  </div>
+
+                  <h3 className="text-sm font-semibold text-slate-900 leading-snug mb-1">{inst.title}</h3>
+                  <p className="text-xs text-[#58051E] font-medium mb-3">{inst.stageName}</p>
+
+                  <div className="my-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span className="text-[10px] uppercase font-semibold text-slate-400 block">Milestone Amount</span>
+                    <span className="text-xl font-bold text-slate-900">
+                      {inst.amount > 0 ? `₹${inst.amount.toLocaleString('en-IN')}` : 'Pending Selection'}
                     </span>
                   </div>
 
-                  <h3 className="text-sm font-black text-slate-900 leading-snug mb-1">{inst.title}</h3>
-                  <p className="text-[11px] font-bold text-[#6A1B2E] mb-3">{inst.stageName}</p>
+                  <p className="text-xs text-slate-500 leading-relaxed mb-4">{inst.description}</p>
 
-                  <div className="my-3 p-3 bg-slate-50/90 rounded-xl border border-slate-100">
-                    <span className="text-[10px] uppercase font-extrabold text-slate-400 block tracking-wider">Installment Amount</span>
-                    <span className="text-2xl font-black text-slate-900">
-                      {inst.amount > 0 ? `₹${inst.amount.toLocaleString('en-IN')}` : 'Pending University Selection'}
-                    </span>
-                  </div>
-
-                  <p className="text-xs font-semibold text-slate-500 leading-relaxed mb-4">{inst.description}</p>
-
-                  {/* Rejection Notes Notice */}
                   {isRejected && inst.notes && (
-                    <div className="p-3 mb-3 bg-red-100/70 border border-red-200 rounded-xl text-xs font-semibold text-red-900 flex items-start gap-2">
+                    <div className="p-3 mb-3 bg-red-50/80 border border-red-200 rounded-lg text-xs text-red-900 flex items-start gap-2">
                       <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-extrabold block">Admin Notes:</span>
+                        <span className="font-semibold block">Admin Notes:</span>
                         {inst.notes}
                       </div>
                     </div>
                   )}
 
-                  {/* Pending Verification Notice */}
                   {isPendingVerification && (
-                    <div className="p-3 mb-3 bg-amber-100/70 border border-amber-200 rounded-xl text-xs font-semibold text-amber-900 flex items-start gap-2">
+                    <div className="p-3 mb-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
                       <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-extrabold block">Verification Underway</span>
-                        UTR: <span className="font-black">{inst.utr || 'Submitted'}</span>. Admin will review and issue receipt shortly.
+                        <span className="font-semibold block">Under Verification</span>
+                        Reference: <span className="font-mono font-semibold">{inst.utr || 'Submitted'}</span>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Bottom Actions */}
                 <div className="pt-4 border-t border-slate-100">
                   {isPaid ? (
                     <div className="space-y-2">
-                      <div className="w-full h-10 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-200" /> Payment Verified & Approved
+                      <div className="w-full h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Settled & Verified
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          className="flex-1"
                           onClick={() => setViewInvoice({
                             invoice_no: `FE/2026-27/${Math.floor(1000 + Math.random() * 9000)}`,
                             student_name: studentName,
@@ -596,45 +578,50 @@ export const Payments: React.FC = () => {
                             sac_code: '9992',
                             place_of_supply: 'Kerala'
                           })}
-                          className="flex-1 h-9 bg-[#58051E] hover:bg-[#6b0027] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                          leftIcon={<Eye className="w-3.5 h-3.5" />}
                         >
-                          <Eye className="w-3.5 h-3.5" /> View Invoice
-                        </button>
-                        <button
-                          type="button"
+                          Invoice
+                        </Button>
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          className="flex-1"
                           onClick={() => handleDownloadInvoice(inst)}
-                          className="flex-1 h-9 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                          leftIcon={<FileText className="w-3.5 h-3.5" />}
                         >
-                          <FileText className="w-3.5 h-3.5 text-[#6A1B2E]" /> Download PDF
-                        </button>
+                          PDF
+                        </Button>
                       </div>
                     </div>
                   ) : isPendingVerification ? (
-                    <div className="w-full h-10 bg-amber-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2">
-                      <Clock className="w-4 h-4 animate-spin" /> Awaiting Admin Approval
+                    <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Admin Approval
                     </div>
                   ) : inst.unlocked ? (
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <button
+                      <Button
+                        size="sm"
+                        className="flex-1"
                         onClick={() => setOnlinePayInst(inst)}
-                        className="flex-1 h-10 bg-emerald-600 text-white rounded-xl text-xs font-black hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                        leftIcon={<QrCode className="w-3.5 h-3.5" />}
                       >
-                        <QrCode className="w-3.5 h-3.5" /> Pay via Stripe / UPI
-                      </button>
-                      <button
+                        Pay Online
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() => {
                           setSelectedInst(inst);
                           setUtrNumber('');
                         }}
-                        className="h-10 px-3 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                        title="Upload offline NEFT / Wire transfer receipt"
+                        leftIcon={<Upload className="w-3.5 h-3.5" />}
                       >
-                        <Upload className="w-3.5 h-3.5" /> Proof
-                      </button>
+                        Proof
+                      </Button>
                     </div>
                   ) : (
-                    <div className="w-full h-10 bg-slate-100 text-slate-400 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
-                      <Lock className="w-4 h-4" /> Unlocks After Stage {inst.stageNum - 1} Approved
+                    <div className="w-full h-9 bg-slate-100 text-slate-400 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5" /> Unlocks After Stage {inst.stageNum - 1}
                     </div>
                   )}
                 </div>
@@ -656,62 +643,66 @@ export const Payments: React.FC = () => {
               onClick={() => setSelectedInst(null)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left"
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="relative bg-white rounded-xl p-6 w-full max-w-md shadow-card border border-slate-200 z-10 text-left"
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                 <div>
-                  <h3 className="text-base font-black text-slate-900">Make Milestone Payment</h3>
-                  <p className="text-xs font-semibold text-slate-400 truncate max-w-[280px]">{selectedInst.title}</p>
+                  <h3 className="text-base font-semibold text-slate-900">Settle Milestone</h3>
+                  <p className="text-xs text-slate-500 truncate max-w-[280px]">{selectedInst.title}</p>
                 </div>
-                <button onClick={() => setSelectedInst(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400">
+                <button
+                  type="button"
+                  onClick={() => setSelectedInst(null)}
+                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer"
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Tab Selector */}
-              <div className="flex gap-2 mb-4 p-1 bg-slate-100 rounded-xl">
+              {/* Segmented Mode Selector */}
+              <div className="flex gap-1.5 mb-4 p-1 bg-slate-100 rounded-lg">
                 <button
                   type="button"
                   onClick={() => setPaymentMode('gateway')}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center ${
-                    paymentMode === 'gateway' ? 'bg-[#6A1B2E] text-white shadow-xs' : 'text-slate-600 hover:text-slate-950'
+                  className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all text-center cursor-pointer ${
+                    paymentMode === 'gateway' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  💳 Secure Gateway
+                  Direct Gateway
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMode('manual')}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center ${
-                    paymentMode === 'manual' ? 'bg-[#6A1B2E] text-white shadow-xs' : 'text-slate-600 hover:text-slate-950'
+                  className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all text-center cursor-pointer ${
+                    paymentMode === 'manual' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  📄 Bank Transfer
+                  Bank Wire / UTR
                 </button>
               </div>
 
               {paymentMode === 'gateway' ? (
                 <form onSubmit={handleGatewaySubmit} className="space-y-4">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-600">Amount Due:</span>
-                    <span className="text-base font-black text-[#6A1B2E]">₹{selectedInst.amount.toLocaleString()}</span>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center">
+                    <span className="text-xs font-medium text-slate-600">Amount Due:</span>
+                    <span className="text-base font-bold text-[#58051E]">₹{selectedInst.amount.toLocaleString()}</span>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Payment Method</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Payment Method</label>
                     <div className="grid grid-cols-3 gap-2">
                       {['card', 'upi', 'netbanking'].map(type => (
                         <button
                           key={type}
                           type="button"
                           onClick={() => setGatewayType(type as any)}
-                          className={`h-9 rounded-xl text-xs font-bold border transition-all text-center uppercase tracking-wide ${
+                          className={`h-9 rounded-lg text-xs font-medium border transition-colors text-center uppercase tracking-wide cursor-pointer ${
                             gatewayType === type
                               ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                              : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                           }`}
                         >
                           {type}
@@ -721,18 +712,9 @@ export const Payments: React.FC = () => {
                   </div>
 
                   {gatewayType === 'card' && (
-                    <div className="space-y-3 p-4 bg-slate-50/70 border border-slate-200/50 rounded-2xl">
+                    <div className="space-y-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
                       <div>
-                        <label className="block text-[9px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Cardholder Name</label>
-                        <input
-                          required
-                          type="text"
-                          placeholder="e.g. Rahul Sharma"
-                          className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Card Number</label>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Card Number</label>
                         <input
                           required
                           type="text"
@@ -743,12 +725,12 @@ export const Payments: React.FC = () => {
                             setCardNumber(val);
                           }}
                           placeholder="4111 2222 3333 4444"
-                          className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
+                          className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E]"
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-2.5">
                         <div>
-                          <label className="block text-[9px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Expiry Date</label>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">Expiry Date</label>
                           <input
                             required
                             type="text"
@@ -763,19 +745,19 @@ export const Payments: React.FC = () => {
                               }
                             }}
                             placeholder="MM/YY"
-                            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none text-center"
+                            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] text-center"
                           />
                         </div>
                         <div>
-                          <label className="block text-[9px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">CVV</label>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">CVV</label>
                           <input
                             required
                             type="password"
                             maxLength={3}
                             value={cardCvv}
                             onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ''))}
-                            placeholder="***"
-                            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none text-center"
+                            placeholder="•••"
+                            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] text-center"
                           />
                         </div>
                       </div>
@@ -783,36 +765,25 @@ export const Payments: React.FC = () => {
                   )}
 
                   {gatewayType === 'upi' && (
-                    <div className="p-4 bg-slate-50/75 border border-slate-200/50 rounded-2xl flex flex-col items-center space-y-3">
-                      <div className="w-32 h-32 bg-white p-2 rounded-xl border border-slate-150 flex items-center justify-center shadow-3xs">
-                        <div className="w-full h-full border border-slate-100 flex flex-col items-center justify-center bg-slate-50 rounded-lg relative overflow-hidden select-none">
-                          <span className="text-[10px] font-black text-[#6A1B2E]">FEREX SECURE</span>
-                          <span className="text-[8px] font-bold text-slate-400 mt-1">Scan QR Code</span>
-                          <div className="w-16 h-16 border-2 border-slate-800 rounded-lg mt-1 bg-white flex items-center justify-center">
-                            <div className="w-10 h-10 border border-slate-400 border-dashed rounded bg-slate-50 flex items-center justify-center animate-pulse">
-                              <span className="text-[8px] font-bold text-slate-400">QR</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex flex-col items-center space-y-3">
                       <div className="w-full">
-                        <label className="block text-[9px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Or Enter UPI ID</label>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Enter UPI Virtual Payment Address</label>
                         <input
                           required
                           type="text"
                           value={upiId}
                           onChange={(e) => setUpiId(e.target.value)}
-                          placeholder="rahul@okaxis"
-                          className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
+                          placeholder="e.g. name@okhdfcbank"
+                          className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E]"
                         />
                       </div>
                     </div>
                   )}
 
                   {gatewayType === 'netbanking' && (
-                    <div className="p-4 bg-slate-50/75 border border-[#6A1B2E]/10 rounded-2xl">
-                      <label className="block text-[9px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Select Bank</label>
-                      <select className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-950 focus:outline-none">
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Select Bank</label>
+                      <select className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E]">
                         <option value="sbi">State Bank of India</option>
                         <option value="hdfc">HDFC Bank</option>
                         <option value="icici">ICICI Bank</option>
@@ -822,44 +793,28 @@ export const Payments: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedInst(null)}
-                      className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
-                    >
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setSelectedInst(null)}>
                       Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="h-9.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs flex items-center justify-center gap-1.5 transition-all"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Clock className="w-3.5 h-3.5 animate-spin" /> Gateway Processing...
-                        </>
-                      ) : (
-                        `Pay Instantly (₹${selectedInst.amount.toLocaleString()})`
-                      )}
-                    </button>
+                    </Button>
+                    <Button type="submit" size="sm" disabled={isSubmitting}>
+                      {isSubmitting ? 'Processing...' : `Pay ₹${selectedInst.amount.toLocaleString()}`}
+                    </Button>
                   </div>
                 </form>
               ) : (
                 <form onSubmit={handleProofSubmit} className="space-y-4">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-600">Amount Due:</span>
-                    <span className="text-base font-black text-[#6A1B2E]">₹{selectedInst.amount.toLocaleString()}</span>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center">
+                    <span className="text-xs font-medium text-slate-600">Amount Due:</span>
+                    <span className="text-base font-bold text-[#58051E]">₹{selectedInst.amount.toLocaleString()}</span>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
-                      Payment Method Used *
-                    </label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Payment Method Used</label>
                     <select
                       value={payMethod}
                       onChange={(e) => setPayMethod(e.target.value)}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                      className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E]"
                     >
                       <option value="UPI / GPay / PhonePe">UPI / GPay / PhonePe / Paytm</option>
                       <option value="Bank Wire Transfer (NEFT / IMPS / RTGS)">Bank Wire Transfer (NEFT / IMPS / RTGS)</option>
@@ -869,24 +824,20 @@ export const Payments: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
-                      Transaction UTR / Reference Number *
-                    </label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Transaction UTR / Reference ID</label>
                     <input
                       required
                       type="text"
                       value={utrNumber}
                       onChange={(e) => setUtrNumber(e.target.value)}
                       placeholder="e.g. UTR128491048201 or Ref ID"
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
+                      className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
-                      Upload Receipt / Screenshot Proof
-                    </label>
-                    <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-[#6A1B2E]/40 transition-colors bg-slate-50">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Upload Receipt Proof</label>
+                    <div className="border border-dashed border-slate-200 rounded-lg p-4 text-center hover:border-[#58051E]/50 transition-colors bg-slate-50">
                       <input
                         type="file"
                         accept="image/*,.pdf"
@@ -894,35 +845,26 @@ export const Payments: React.FC = () => {
                         className="hidden"
                         id="receipt-file-input"
                       />
-                      <label htmlFor="receipt-file-input" className="cursor-pointer flex flex-col items-center gap-1.5">
-                        <FileText className="w-6 h-6 text-[#6A1B2E]" />
-                        <span className="text-xs font-bold text-slate-700">Click to upload payment screenshot</span>
-                        <span className="text-[10px] font-semibold text-slate-400">PNG, JPG, PDF up to 10MB</span>
+                      <label htmlFor="receipt-file-input" className="cursor-pointer flex flex-col items-center gap-1">
+                        <FileText className="w-5 h-5 text-[#58051E]" />
+                        <span className="text-xs font-semibold text-slate-700">Click to upload payment proof</span>
+                        <span className="text-[11px] text-slate-400">PNG, JPG, PDF up to 10MB</span>
                       </label>
                     </div>
                     {receiptUrl && (
-                      <p className="text-[10.5px] font-extrabold text-emerald-600 mt-1 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Screenshot attached
+                      <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Proof file attached
                       </p>
                     )}
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedInst(null)}
-                      className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
-                    >
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setSelectedInst(null)}>
                       Cancel
-                    </button>
-
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="h-9 px-5 bg-[#6A1B2E] text-white rounded-xl text-xs font-bold hover:bg-[#521221] shadow-xs flex items-center gap-1.5"
-                    >
-                      {isSubmitting ? 'Submitting Proof...' : 'Submit Payment for Verification'}
-                    </button>
+                    </Button>
+                    <Button type="submit" size="sm" disabled={isSubmitting}>
+                      {isSubmitting ? 'Submitting...' : 'Submit Proof'}
+                    </Button>
                   </div>
                 </form>
               )}
@@ -938,7 +880,7 @@ export const Payments: React.FC = () => {
         invoice={viewInvoice}
       />
 
-      {/* Online Stripe / UPI Checkout Modal */}
+      {/* Online Checkout Modal */}
       {onlinePayInst && (
         <UnifiedPaymentModal
           isOpen={Boolean(onlinePayInst)}

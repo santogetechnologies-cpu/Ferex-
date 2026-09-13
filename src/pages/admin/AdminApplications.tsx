@@ -7,27 +7,27 @@ import { uploadOfferPdfToSupabase } from '../../lib/api/applications';
 import { updateNawaStep } from '../../lib/api/nawa';
 
 export const COUNTRY_AUTHORITIES: Record<string, { acronym: string; name: string; flag: string }> = {
-  'Poland': { acronym: 'NAWA', name: 'Polish National Agency (NAWA)', flag: '🇵🇱' },
-  'Germany': { acronym: 'APS', name: 'German Academic Evaluation (APS)', flag: '🇩🇪' },
-  'United Kingdom': { acronym: 'CAS', name: 'UKVI / CAS Verification', flag: '🇬🇧' },
-  'UK': { acronym: 'CAS', name: 'UKVI / CAS Verification', flag: '🇬🇧' },
-  'France': { acronym: 'Campus France', name: 'Campus France EEF', flag: '🇫🇷' },
-  'Italy': { acronym: 'CIMEA', name: 'CIMEA / Universitaly', flag: '🇮🇹' },
-  'Czech Republic': { acronym: 'Nostrification', name: 'Czech Nostrification Council', flag: '🇨🇿' },
-  'Spain': { acronym: 'UNEDasiss', name: 'UNEDasiss Accreditation', flag: '🇪🇸' },
-  'United States': { acronym: 'SEVIS', name: 'SEVIS / I-20 Compliance', flag: '🇺🇸' },
-  'USA': { acronym: 'SEVIS', name: 'SEVIS / I-20 Compliance', flag: '🇺🇸' },
-  'Canada': { acronym: 'IRCC / PAL', name: 'IRCC PAL Attestation', flag: '🇨🇦' },
-  'Hungary': { acronym: 'OFI', name: 'Hungarian Educational Authority', flag: '🇭🇺' },
+  'Poland': { acronym: 'NAWA', name: 'Polish National Agency (NAWA)', flag: 'PL' },
+  'Germany': { acronym: 'APS', name: 'German Academic Evaluation (APS)', flag: 'DE' },
+  'United Kingdom': { acronym: 'CAS', name: 'UKVI / CAS Verification', flag: 'UK' },
+  'UK': { acronym: 'CAS', name: 'UKVI / CAS Verification', flag: 'UK' },
+  'France': { acronym: 'Campus France', name: 'Campus France EEF', flag: 'FR' },
+  'Italy': { acronym: 'CIMEA', name: 'CIMEA / Universitaly', flag: 'IT' },
+  'Czech Republic': { acronym: 'Nostrification', name: 'Czech Nostrification Council', flag: 'CZ' },
+  'Spain': { acronym: 'UNEDasiss', name: 'UNEDasiss Accreditation', flag: 'ES' },
+  'United States': { acronym: 'SEVIS', name: 'SEVIS / I-20 Compliance', flag: 'US' },
+  'USA': { acronym: 'SEVIS', name: 'SEVIS / I-20 Compliance', flag: 'US' },
+  'Canada': { acronym: 'IRCC / PAL', name: 'IRCC PAL Attestation', flag: 'CA' },
+  'Hungary': { acronym: 'OFI', name: 'Hungarian Educational Authority', flag: 'HU' },
 };
 
 export function getCountryAuthority(country?: string) {
-  if (!country) return { acronym: 'Legalization', name: 'Academic Legalization', flag: '🇪🇺' };
+  if (!country) return { acronym: 'Legalization', name: 'Academic Legalization', flag: 'EU' };
   const foundKey = Object.keys(COUNTRY_AUTHORITIES).find(k =>
     country.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(country.toLowerCase())
   );
   if (foundKey) return COUNTRY_AUTHORITIES[foundKey];
-  return { acronym: 'Legalization', name: `${country} Educational Verification`, flag: '🌍' };
+  return { acronym: 'Legalization', name: `${country} Educational Verification`, flag: 'INT' };
 }
 
 type AppStatus = 'Submitted' | 'NAWA Review' | 'NAWA Submitted' | 'NAWA Approved' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Visa Rejected' | 'Approved' | 'Closed' | 'Rejected' | 'Withdrawn';
@@ -54,7 +54,7 @@ const STATUS_COLORS: Record<AppStatus, string> = {
   'NAWA Submitted': 'bg-indigo-50 text-indigo-800 border-indigo-200 font-black',
   'NAWA Approved': 'bg-emerald-50 text-emerald-800 border-emerald-200 font-black',
   'Under Review': 'bg-blue-50 text-blue-700 border-blue-200',
-  'Offer Issued': 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20 font-black',
+  'Offer Issued': 'bg-[#58051E]/10 text-[#58051E] border-[#58051E]/20 font-black',
   'Accepted': 'bg-emerald-50 text-emerald-800 border-emerald-200 font-black',
   'Final Acceptance Issued': 'bg-teal-50 text-teal-800 border-teal-200 font-black',
   'Visa Processing': 'bg-violet-50 text-violet-700 border-violet-200',
@@ -219,7 +219,7 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
         tuition_fee: '€3,000 / yr',
         course_fee: '€3,000 / yr',
       });
-      showToast('🎉 Sample student application created! View and issue offer letter now.');
+      showToast('Sample student application created. View and issue offer letter now.');
     } catch (err: any) {
       showToast(`Error creating application: ${err.message}`);
     }
@@ -334,7 +334,7 @@ startxref
       }
       setStatusFilter('All');
       setOfferModalApp(null);
-      showToast(`🎉 Official Offer Letter PDF uploaded & saved to Supabase!`);
+      showToast(`Official Offer Letter PDF uploaded successfully.`);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to upload offer letter PDF'}`);
     } finally {
@@ -444,7 +444,7 @@ startxref
       }
       setStatusFilter('All');
       setFinalModalApp(null);
-      showToast(`🎉 Official Final Acceptance Letter PDF uploaded & saved to Supabase!`);
+      showToast(`Official Final Acceptance Letter PDF uploaded successfully.`);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to upload final acceptance PDF'}`);
     } finally {
@@ -537,9 +537,9 @@ startxref
       </div>
 
       {/* Synchronization Banner with Country Workflows & Legalization Desk */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-rose-50/70 via-amber-50/50 to-slate-50 border border-[#6A1B2E]/15 rounded-2xl shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-rose-50/70 via-amber-50/50 to-slate-50 border border-[#58051E]/15 rounded-2xl shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#6A1B2E] text-white flex items-center justify-center shrink-0 shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-[#58051E] text-white flex items-center justify-center shrink-0 shadow-xs">
             <Compass className="w-5 h-5" />
           </div>
           <div>
@@ -556,7 +556,7 @@ startxref
         </div>
         <Link
           to="/admin/nawa-tracker"
-          className="px-3.5 py-2 bg-white border border-[#6A1B2E]/30 hover:bg-[#6A1B2E] hover:text-white text-[#6A1B2E] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer self-start md:self-auto"
+          className="px-3.5 py-2 bg-white border border-[#58051E]/30 hover:bg-[#58051E] hover:text-white text-[#58051E] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer self-start md:self-auto"
         >
           <ShieldCheck className="w-4 h-4" />
           <span>Country Workflows & Legalization Desk</span>
@@ -573,29 +573,29 @@ startxref
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by student name, university, program, or application ID..."
-            className="w-full h-10 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#6A1B2E] transition-all shadow-xs"
+            className="w-full h-10 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#58051E] transition-all shadow-xs"
           />
         </div>
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 h-10 shadow-xs">
-            <Globe className="w-4 h-4 text-[#6A1B2E] shrink-0" />
+            <Globe className="w-4 h-4 text-[#58051E] shrink-0" />
             <select
               value={countryFilter}
               onChange={(e) => setCountryFilter(e.target.value)}
               className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-1"
             >
-              <option value="All">🌍 All Countries (Common Legalization)</option>
-              <option value="Poland">🇵🇱 Poland (NAWA Desk)</option>
-              <option value="Germany">🇩🇪 Germany (APS Desk)</option>
-              <option value="United Kingdom">🇬🇧 United Kingdom (CAS / UKVI)</option>
-              <option value="France">🇫🇷 France (Campus France)</option>
-              <option value="Italy">🇮🇹 Italy (CIMEA / Universitaly)</option>
-              <option value="Czech Republic">🇨🇿 Czech Republic (Nostrification)</option>
-              <option value="United States">🇺🇸 United States (SEVIS / I-20)</option>
-              <option value="Canada">🇨🇦 Canada (IRCC / PAL)</option>
-              <option value="Spain">🇪🇸 Spain (UNEDasiss)</option>
-              <option value="Hungary">🇭🇺 Hungary (OFI)</option>
+              <option value="All">All Countries (Common Legalization)</option>
+              <option value="Poland">Poland (NAWA Desk)</option>
+              <option value="Germany">Germany (APS Desk)</option>
+              <option value="United Kingdom">United Kingdom (CAS / UKVI)</option>
+              <option value="France">France (Campus France)</option>
+              <option value="Italy">Italy (CIMEA / Universitaly)</option>
+              <option value="Czech Republic">Czech Republic (Nostrification)</option>
+              <option value="United States">United States (SEVIS / I-20)</option>
+              <option value="Canada">Canada (IRCC / PAL)</option>
+              <option value="Spain">Spain (UNEDasiss)</option>
+              <option value="Hungary">Hungary (OFI)</option>
             </select>
           </div>
         </div>
@@ -608,7 +608,7 @@ startxref
             key={s.key}
             onClick={() => setStatusFilter(s.key)}
             className={`h-8 px-3.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${statusFilter === s.key
-              ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-xs'
+              ? 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
               : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
               }`}
           >
@@ -643,9 +643,9 @@ startxref
                   <td className="px-5 py-4">
                     <span className="font-bold text-slate-900 block">{a.university}</span>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[11px] text-[#6A1B2E] font-extrabold">{a.course}</span>
+                      <span className="text-[11px] text-[#58051E] font-extrabold">{a.course}</span>
                       <span className="inline-flex items-center gap-1 text-[9.5px] font-black px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200" title={auth.name}>
-                        <span>{auth.flag}</span>
+                        <span className="font-mono text-[9px] text-slate-500">{auth.flag}</span>
                         <span>{auth.acronym}</span>
                       </span>
                     </div>
@@ -696,7 +696,7 @@ startxref
                         }`}
                     >
                       <FileText className="w-3 h-3 text-emerald-600" />
-                      {a.offerLetterUrl ? '✓ Offer PDF Uploaded' : '+ Upload Offer PDF'}
+                      {a.offerLetterUrl ? 'Offer PDF Uploaded' : 'Upload Offer PDF'}
                     </button>
 
                     {/* Final Acceptance Upload Button */}
@@ -712,7 +712,7 @@ startxref
                         }`}
                     >
                       <Award className="w-3 h-3 text-teal-600" />
-                      {a.finalAcceptanceUrl ? '✓ Final Acceptance PDF Uploaded' : '+ Upload Final Acceptance PDF'}
+                      {a.finalAcceptanceUrl ? 'Final Acceptance PDF Uploaded' : 'Upload Final Acceptance PDF'}
                     </button>
                   </div>
                 </td>
@@ -737,7 +737,7 @@ startxref
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-all cursor-pointer ${
                         a.offerLetterUrl || a.status === 'Offer Issued' || a.status === 'Accepted'
                           ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          : 'bg-[#6A1B2E] hover:bg-[#521221] text-white'
+                          : 'bg-[#58051E] hover:bg-[#430316] text-white'
                       }`}
                       title={a.offerLetterUrl ? 'Update Offer Letter' : 'Issue Official Offer Letter'}
                     >
@@ -766,7 +766,7 @@ startxref
               <tr>
                 <td colSpan={7} className="py-16 text-center">
                   <div className="max-w-md mx-auto space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center mx-auto">
+                    <div className="w-12 h-12 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center mx-auto">
                       <FileText className="w-6 h-6" />
                     </div>
                     <div>
@@ -783,7 +783,7 @@ startxref
                       {statusFilter !== 'All' && (
                         <button
                           onClick={() => setStatusFilter('All')}
-                          className="px-4 py-2 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] transition-all shadow-xs cursor-pointer"
+                          className="px-4 py-2 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-all shadow-xs cursor-pointer"
                         >
                           View All Applications ({apps.length})
                         </button>
@@ -819,7 +819,7 @@ startxref
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-black">
+                  <div className="w-9 h-9 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black">
                     <FileText className="w-5 h-5" />
                   </div>
                   <div>
@@ -841,7 +841,7 @@ startxref
                     Upload Official Offer Letter PDF Document *
                   </label>
                   <div className="p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors text-center">
-                    <Upload className="w-6 h-6 text-[#6A1B2E] mx-auto mb-2" />
+                    <Upload className="w-6 h-6 text-[#58051E] mx-auto mb-2" />
                     <input
                       type="file"
                       accept="application/pdf,.pdf"
@@ -851,7 +851,7 @@ startxref
                           setOfferPdfUrlInput('');
                         }
                       }}
-                      className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#6A1B2E] file:text-white hover:file:bg-[#521221] cursor-pointer"
+                      className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#58051E] file:text-white hover:file:bg-[#430316] cursor-pointer"
                     />
                     {offerPdfFile && (
                       <p className="text-xs font-bold text-emerald-700 mt-2 flex items-center justify-center gap-1">
@@ -889,7 +889,7 @@ startxref
 
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                   <button type="button" onClick={() => setOfferModalApp(null)} className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
-                  <button type="submit" disabled={isUploadingOffer} className="h-9 px-5 bg-[#6A1B2E] text-white rounded-xl text-xs font-black hover:bg-[#521221] shadow-xs flex items-center gap-1.5">
+                  <button type="submit" disabled={isUploadingOffer} className="h-9 px-5 bg-[#58051E] text-white rounded-xl text-xs font-black hover:bg-[#430316] shadow-xs flex items-center gap-1.5">
                     {isUploadingOffer ? 'Processing...' : 'Confirm & Issue Offer Letter PDF'}
                   </button>
                 </div>
@@ -1069,7 +1069,7 @@ startxref
                         setOfferPdfFile(null);
                         setOfferModalApp(viewApp);
                       }}
-                      className="w-full h-9.5 bg-[#6A1B2E] hover:bg-[#521221] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                      className="w-full h-9.5 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
                     >
                       <FileText className="w-3.5 h-3.5" /> Issue Official Offer Letter
                     </button>

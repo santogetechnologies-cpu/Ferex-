@@ -140,11 +140,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       </AnimatePresence>
 
       {/* Sidebar Panel */}
-      <aside className={`fixed lg:sticky top-0 left-0 h-screen w-64 bg-white border-r border-slate-200/80 z-50 flex flex-col transition-transform duration-300 ease-out shadow-sm
+      <aside className={`fixed lg:sticky top-0 left-0 h-screen w-60 bg-white border-r border-slate-200/80 z-50 flex flex-col transition-transform duration-200 ease-out select-none
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
 
         {/* Logo Header */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100 shrink-0">
+        <div className="h-14 flex items-center justify-between px-4 border-b border-slate-100 shrink-0">
           <Link to="/admin/dashboard" className="flex items-center gap-3 group">
             <Logo variant="compact" size="sm" subtitle="EDUCATION ADMIN" />
           </Link>
@@ -154,8 +154,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
-          <div className="px-3 pb-2 text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">Navigation</div>
+        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5 scrollbar-thin">
+          <div className="px-2.5 pb-1.5 text-[9.5px] font-bold uppercase tracking-wider text-slate-400">Navigation</div>
           {menuItems.map((item) => {
             const isActive = item.name === active;
             const Icon = item.icon;
@@ -166,28 +166,28 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 key={item.name}
                 to={item.path}
                 onClick={() => setIsMobileOpen(false)}
-                className={`relative flex items-center gap-3 h-9.5 px-3 rounded-xl text-xs font-semibold transition-all duration-200 group
+                className={`relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-semibold transition-all duration-150 group
                   ${isActive
-                    ? 'bg-[#6A1B2E] text-white shadow-md shadow-[#6A1B2E]/15'
+                    ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
               >
-                <Icon className={`w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-[#6A1B2E]'}`} />
+                <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'}`} />
                 <span className="truncate flex-1 flex items-center justify-between">
-                  <span>{item.name}</span>
+                  <span className="truncate">{item.name}</span>
                   {item.hasUpdate && (
-                    <span className="relative flex h-2 w-2 ml-1 shrink-0">
+                    <span className="relative flex h-1.5 w-1.5 ml-1.5 shrink-0">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
                     </span>
                   )}
                 </span>
 
                 {(badgeValue || item.badge) && (
-                  <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-extrabold shrink-0 transition-colors ${isActive
-                      ? 'bg-white/20 text-white'
+                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 transition-colors ${isActive
+                      ? 'bg-[#58051E]/15 text-[#58051E]'
                       : item.badge === 'VERIFY' || item.badge === 'REVIEW'
-                        ? 'bg-amber-100 text-amber-800 border border-amber-300 font-black'
-                        : 'bg-red-50 text-red-700 border border-red-200'
+                        ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                        : 'bg-rose-50 text-rose-700 border border-rose-200'
                     }`}>
                     {badgeValue || item.badge}
                   </span>
@@ -199,23 +199,23 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
         {/* Bottom Profile Info */}
         <div className="p-3 border-t border-slate-100 shrink-0 bg-slate-50/50">
-          <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/60 shadow-xs">
+          <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
             <div className="relative">
-              <div className="w-8 h-8 rounded-lg bg-[#6A1B2E] flex items-center justify-center text-white text-xs font-black shadow-xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-[#58051E] flex items-center justify-center text-white text-xs font-bold shadow-xs">
                 {adminName[0]?.toUpperCase() || 'A'}
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-extrabold text-slate-900 truncate">{adminName}</p>
-              <p className="text-[9.5px] font-semibold text-slate-400 truncate">{adminEmail}</p>
+              <p className="text-xs font-bold text-slate-900 truncate">{adminName}</p>
+              <p className="text-[9.5px] font-medium text-slate-400 truncate">{adminEmail}</p>
             </div>
             <button
               onClick={handleSignOut}
               title="Sign Out"
-              className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors shrink-0"
+              className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0 cursor-pointer"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -225,36 +225,36 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
 
         {/* Sticky Header */}
-        <header className="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 flex items-center px-4 sm:px-6 gap-4 sticky top-0 z-30 shadow-xs">
+        <header className="h-14 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 flex items-center px-4 sm:px-6 gap-3 sticky top-0 z-30 select-none">
 
-          <button onClick={() => setIsMobileOpen(true)} className="lg:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors">
-            <Menu className="w-5 h-5" />
+          <button onClick={() => setIsMobileOpen(true)} className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer">
+            <Menu className="w-4.5 h-4.5" />
           </button>
 
           {/* Breadcrumb & Division Identity */}
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-medium text-slate-400 min-w-0">
-            <Link to="/admin/dashboard" className="hover:text-slate-700 transition-colors flex items-center gap-1.5 text-slate-700 font-bold shrink-0">
-              <GraduationCap className="w-4 h-4 text-[#6A1B2E]" />
-              <span className="hidden sm:inline">{config?.branding?.portal_title || 'Education Admin Portal'}</span>
+            <Link to="/admin/dashboard" className="hover:text-slate-700 transition-colors flex items-center gap-1.5 text-slate-700 font-semibold shrink-0">
+              <GraduationCap className="w-4 h-4 text-[#58051E]" />
+              <span className="hidden sm:inline">{config?.branding?.portal_title || 'Education Admin'}</span>
             </Link>
             {config?.branding?.division_name && (
-              <span className="text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md hidden md:inline-block truncate max-w-[160px]" title={config.branding.division_name}>
+              <span className="text-[9.5px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200/80 px-2 py-0.2 rounded hidden md:inline-block truncate max-w-[160px]" title={config.branding.division_name}>
                 {config.branding.division_name}
               </span>
             )}
-            <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0 hidden sm:inline-block" />
-            <span className="text-slate-900 font-extrabold bg-slate-100 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-slate-200/60 truncate max-w-[110px] sm:max-w-none">{active}</span>
+            <ChevronRight className="w-3 h-3 text-slate-300 shrink-0 hidden sm:inline-block" />
+            <span className="text-slate-800 font-bold bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/60 truncate max-w-[110px] sm:max-w-none">{active}</span>
           </div>
 
-          <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <div className="ml-auto flex items-center gap-2 shrink-0">
             {/* Quick Switch to Central Super Admin Command Center (STRICTLY FOR SUPER ADMINS ONLY) */}
             {isSuperAdmin(profile?.role || user?.role || user?.user_metadata?.role || localSavedUser?.role, adminEmail) && (
               <button
                 onClick={() => navigate('/central/dashboard')}
                 title="Return to Central Super Admin HQ"
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black transition-all shadow-2xs cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold transition-all shadow-2xs cursor-pointer"
               >
-                <Crown className="w-3.5 h-3.5 text-amber-700" />
+                <Crown className="w-3.5 h-3.5 text-amber-600" />
                 <span className="hidden md:inline">Super Admin HQ</span>
               </button>
             )}
