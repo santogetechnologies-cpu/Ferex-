@@ -1,15 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  Building2, ShieldCheck, ArrowRight, LogIn, LogOut, ChevronDown, MapPin,
-  User, Calculator, Search, Check, ArrowUpRight, Sparkles, GraduationCap,
-  Clock, Briefcase, Globe, Award, Star, CheckCircle2, ChevronRight, X
+  Building2, ArrowRight, LogIn, LogOut, ChevronDown, MapPin,
+  User, Calculator, Search, Check, ArrowUpRight,
+  Clock, Briefcase, Globe, Star, X
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUniversities } from '../hooks/useUniversities';
 import { getDashboardRoute } from '../lib/roleRouter';
 import type { University } from '../lib/types';
-import { Logo, FerexVectorMark } from '../components/Logo';
+import { Logo } from '../components/Logo';
 
 // Student images provided by the user
 import heroStudentGirl from '../assets/hero-student-girl.jpg';
@@ -327,13 +327,13 @@ export const FerexLandingPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleAuthAction}
-                  className="h-9 px-4 rounded-xl bg-[#570229] text-white text-xs font-bold hover:bg-[#6F0335] transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  className="h-10 px-4 rounded-xl bg-[#570229] text-white text-xs font-bold hover:bg-[#6F0335] transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
                   <User className="w-3.5 h-3.5" /> Dashboard
                 </button>
                 <button
                   onClick={handleSignOut}
-                  className="h-9 px-3 rounded-xl border border-[#ECE7EA] text-[#6B7280] hover:bg-[#F7F4F2] text-xs font-bold transition-all cursor-pointer"
+                  className="h-10 px-3 rounded-xl border border-[#ECE7EA] text-[#6B7280] hover:bg-[#F7F4F2] text-xs font-bold transition-all cursor-pointer"
                   title="Sign Out"
                 >
                   <LogOut className="w-4 h-4" />
@@ -343,13 +343,13 @@ export const FerexLandingPage: React.FC = () => {
               <div className="flex items-center gap-2.5">
                 <button
                   onClick={() => goToLogin('signin')}
-                  className="h-9 px-4 rounded-xl text-xs font-bold text-[#1F2937] hover:text-[#570229] hover:bg-[#F7F4F2] transition-all cursor-pointer flex items-center gap-1.5 border border-[#ECE7EA]"
+                  className="h-10 px-4 rounded-xl text-xs font-bold text-[#1F2937] hover:text-[#570229] hover:bg-[#F7F4F2] transition-all cursor-pointer flex items-center gap-1.5 border border-[#ECE7EA]"
                 >
                   <LogIn className="w-3.5 h-3.5 text-[#570229]" /> Portal Login
                 </button>
                 <button
                   onClick={() => goToLogin('signup')}
-                  className="h-9 px-5 rounded-xl bg-[#570229] text-white text-xs font-black hover:bg-[#6F0335] transition-all shadow-sm shadow-[#570229]/20 flex items-center gap-1.5 active:scale-98 cursor-pointer"
+                  className="h-10 px-5 rounded-xl bg-[#570229] text-white text-xs font-black hover:bg-[#6F0335] transition-all shadow-md shadow-[#570229]/20 flex items-center gap-1.5 active:scale-98 cursor-pointer"
                 >
                   Apply Online <ArrowRight className="w-3.5 h-3.5" />
                 </button>
@@ -359,16 +359,16 @@ export const FerexLandingPage: React.FC = () => {
         </div>
       </header>
 
-      {/* 3. HERO SECTION (MINIMAL, PURE WHITE, SEAMLESS IMAGE BLENDING) */}
-      <section className="relative bg-white pt-6 pb-10 lg:pt-10 lg:pb-14 border-b border-[#ECE7EA]">
+      {/* 3. HERO SECTION (MINIMAL, COMPACT, PURE WHITE CANVAS, SEAMLESS IMAGE BLEND) */}
+      <section className="relative bg-white py-6 lg:py-10 border-b border-[#ECE7EA]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 items-center">
             
-            {/* Left Column: Headlines, Subtitle & Action Buttons */}
+            {/* Left Column: Headlines, Subtitle, CTAs & Metrics */}
             <div className="lg:col-span-6 space-y-5 text-left">
               
-              {/* Main Headline */}
-              <h1 className="text-3xl sm:text-4xl lg:text-[46px] font-serif font-black tracking-tight text-[#1F2937] leading-[1.15]">
+              {/* Main Headline (Clean, no wavy underline) */}
+              <h1 className="text-3xl sm:text-4xl lg:text-[46px] font-serif font-black tracking-tight text-[#1F2937] leading-[1.16]">
                 Study in <span className="text-[#570229]">Europe</span> with Guaranteed Admission & Visa Support
               </h1>
 
@@ -381,7 +381,7 @@ export const FerexLandingPage: React.FC = () => {
               <div className="flex flex-wrap items-center gap-3.5 pt-1">
                 <button
                   onClick={() => goToLogin('signup')}
-                  className="h-12 px-7 rounded-xl bg-[#570229] hover:bg-[#6F0335] text-white text-xs sm:text-sm font-bold transition-all shadow-md shadow-[#570229]/20 flex items-center gap-2 cursor-pointer active:scale-98"
+                  className="h-12 px-7 rounded-xl bg-[#570229] hover:bg-[#6F0335] text-white text-xs sm:text-sm font-bold transition-all shadow-lg shadow-[#570229]/20 flex items-center gap-2 cursor-pointer active:scale-98"
                 >
                   Apply for Intake 2026-27 <ArrowRight className="w-4 h-4" />
                 </button>
@@ -394,30 +394,30 @@ export const FerexLandingPage: React.FC = () => {
                 </button>
               </div>
 
-              {/* Micro Trust Row */}
+              {/* Micro Trust Indicators Bar */}
               <div className="grid grid-cols-3 gap-4 pt-5 border-t border-[#ECE7EA]">
                 <div>
-                  <div className="text-2xl sm:text-3xl font-black text-[#570229]">45+</div>
-                  <div className="text-xs font-bold text-[#6B7280]">Partner EU Universities</div>
+                  <div className="text-xl sm:text-2xl font-black text-[#570229]">45+</div>
+                  <div className="text-[11px] font-bold text-[#6B7280]">Partner EU Universities</div>
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-black text-[#570229]">100%</div>
-                  <div className="text-xs font-bold text-[#6B7280]">NAWA Legalization</div>
+                  <div className="text-xl sm:text-2xl font-black text-[#570229]">100%</div>
+                  <div className="text-[11px] font-bold text-[#6B7280]">NAWA & MEA Legalized</div>
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-black text-[#570229]">27</div>
-                  <div className="text-xs font-bold text-[#6B7280]">Schengen Nations</div>
+                  <div className="text-xl sm:text-2xl font-black text-[#570229]">27</div>
+                  <div className="text-[11px] font-bold text-[#6B7280]">Schengen Nations</div>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Hero Girl Student Image (Seamless Blend, Pure White, No Card) */}
-            <div className="lg:col-span-6 flex justify-center lg:justify-end items-center">
+            {/* Right Column: Hero Girl Student Image (Seamless Blend onto White, No Card Border/Shadow) */}
+            <div className="lg:col-span-6 flex justify-center lg:justify-end">
               <div className="w-full max-w-[480px]">
                 <img
                   src={heroStudentGirl}
                   alt="European University Student - FEREX Education"
-                  className="w-full h-auto object-contain block mx-auto"
+                  className="w-full h-auto object-contain block select-none pointer-events-none"
                 />
               </div>
             </div>
@@ -426,16 +426,16 @@ export const FerexLandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 4. ABOUT US SECTION (MATCHING ATTACHED MODEL & SCREENSHOT) */}
+      {/* 4. ABOUT US SECTION (MATCHING USER'S ATTACHED SCREENSHOT MODEL WITH SEAMLESS IMAGE BLEND) */}
       <section id="about" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           
           {/* Main 3-Column Layout: Left Text, Center Campus Image, Right Feature List */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
             
             {/* Left Column: Headline, Description & Our Mission CTA */}
-            <div className="lg:col-span-4 space-y-6 text-left">
-              <div className="space-y-2">
+            <div className="lg:col-span-4 space-y-5 text-left">
+              <div className="space-y-1.5">
                 <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F] block">
                   ABOUT FEREX
                 </span>
@@ -444,7 +444,7 @@ export const FerexLandingPage: React.FC = () => {
                 </h2>
               </div>
 
-              <p className="text-sm sm:text-base text-[#6B7280] font-normal leading-relaxed">
+              <p className="text-sm text-[#6B7280] font-normal leading-relaxed">
                 At Ferex Education, we believe that education is more than just learning — it’s a journey of self-discovery, skill-building and endless possibilities.
               </p>
 
@@ -458,27 +458,27 @@ export const FerexLandingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Center Column: 4 Students Campus Image (Seamless Blend, No Card) */}
-            <div className="lg:col-span-4 flex justify-center items-center">
-              <div className="w-full max-w-[360px]">
+            {/* Center Column: 4 Students Campus Image (Seamless Blend, No Card Frame) */}
+            <div className="lg:col-span-4 flex justify-center">
+              <div className="w-full max-w-[340px]">
                 <img
                   src={aboutStudentsCampus}
                   alt="Students walking on European university campus"
-                  className="w-full h-auto object-contain block mx-auto"
+                  className="w-full h-auto object-contain block select-none pointer-events-none"
                 />
               </div>
             </div>
 
-            {/* Right Column: 4 Feature Items with Circular Icon Badges */}
+            {/* Right Column: 4 Feature Items with Circular Badges */}
             <div className="lg:col-span-4 space-y-5 text-left">
               
               {/* Feature 1: Expert Instructors */}
-              <div className="flex items-center gap-4 group">
+              <div className="flex items-center gap-3.5 group">
                 <div className="w-12 h-12 rounded-full bg-[#F7F4F2] border border-[#ECE7EA] group-hover:bg-[#E9D7DF] text-[#570229] flex items-center justify-center shrink-0 transition-colors">
                   <User className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-[#1F2937] leading-tight">
+                  <h4 className="text-sm sm:text-base font-bold text-[#1F2937] leading-tight">
                     Expert Instructors
                   </h4>
                   <p className="text-xs text-[#6B7280] font-medium mt-0.5">
@@ -488,12 +488,12 @@ export const FerexLandingPage: React.FC = () => {
               </div>
 
               {/* Feature 2: Flexible Learning */}
-              <div className="flex items-center gap-4 group">
+              <div className="flex items-center gap-3.5 group">
                 <div className="w-12 h-12 rounded-full bg-[#F7F4F2] border border-[#ECE7EA] group-hover:bg-[#E9D7DF] text-[#570229] flex items-center justify-center shrink-0 transition-colors">
                   <Clock className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-[#1F2937] leading-tight">
+                  <h4 className="text-sm sm:text-base font-bold text-[#1F2937] leading-tight">
                     Flexible Learning
                   </h4>
                   <p className="text-xs text-[#6B7280] font-medium mt-0.5">
@@ -503,12 +503,12 @@ export const FerexLandingPage: React.FC = () => {
               </div>
 
               {/* Feature 3: Career Support */}
-              <div className="flex items-center gap-4 group">
+              <div className="flex items-center gap-3.5 group">
                 <div className="w-12 h-12 rounded-full bg-[#F7F4F2] border border-[#ECE7EA] group-hover:bg-[#E9D7DF] text-[#570229] flex items-center justify-center shrink-0 transition-colors">
                   <Briefcase className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-[#1F2937] leading-tight">
+                  <h4 className="text-sm sm:text-base font-bold text-[#1F2937] leading-tight">
                     Career Support
                   </h4>
                   <p className="text-xs text-[#6B7280] font-medium mt-0.5">
@@ -518,12 +518,12 @@ export const FerexLandingPage: React.FC = () => {
               </div>
 
               {/* Feature 4: Global Community */}
-              <div className="flex items-center gap-4 group">
+              <div className="flex items-center gap-3.5 group">
                 <div className="w-12 h-12 rounded-full bg-[#F7F4F2] border border-[#ECE7EA] group-hover:bg-[#E9D7DF] text-[#570229] flex items-center justify-center shrink-0 transition-colors">
                   <Globe className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-[#1F2937] leading-tight">
+                  <h4 className="text-sm sm:text-base font-bold text-[#1F2937] leading-tight">
                     Global Community
                   </h4>
                   <p className="text-xs text-[#6B7280] font-medium mt-0.5">
@@ -536,17 +536,17 @@ export const FerexLandingPage: React.FC = () => {
 
           </div>
 
-          {/* Bottom Card: "A trusted education partner for 10,000+ students worldwide" */}
-          <div className="bg-[#F7F4F2] rounded-2xl border border-[#ECE7EA] p-5 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xs">
+          {/* Bottom Card (As shown in attached screenshot): "A trusted education partner for 10,000+ students worldwide" */}
+          <div className="bg-[#F7F4F2] rounded-2xl border border-[#ECE7EA] p-6 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-left space-y-1">
               <span className="text-xs sm:text-sm font-semibold text-[#6B7280] block">
                 A trusted education partner for
               </span>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl sm:text-4xl font-serif font-black text-[#570229]">
+                <span className="text-2xl sm:text-3xl font-serif font-black text-[#570229]">
                   10,000+
                 </span>
-                <span className="text-base sm:text-lg font-bold text-[#1F2937]">
+                <span className="text-sm sm:text-base font-bold text-[#1F2937]">
                   students worldwide
                 </span>
               </div>
@@ -557,7 +557,7 @@ export const FerexLandingPage: React.FC = () => {
               className="w-11 h-11 rounded-full bg-white border border-[#ECE7EA] hover:bg-[#570229] hover:text-white text-[#570229] flex items-center justify-center shadow-xs transition-all cursor-pointer group shrink-0"
               title="Explore Partner Universities"
             >
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </button>
           </div>
 
@@ -565,10 +565,10 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 5. SCHENGEN DESTINATION HIGHLIGHTS */}
-      <section id="destinations" className="py-20 bg-[#FCFAFB] border-b border-[#ECE7EA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+      <section id="destinations" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           
-          <div className="text-center max-w-3xl mx-auto space-y-3">
+          <div className="text-center max-w-3xl mx-auto space-y-2">
             <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F]">
               European Study Corridors
             </span>
@@ -584,18 +584,18 @@ export const FerexLandingPage: React.FC = () => {
             {destinationStats.slice(0, 6).map((dest) => (
               <div
                 key={dest.country}
-                className="bg-white rounded-3xl p-6 border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-xl transition-all flex flex-col justify-between space-y-6 group text-left"
+                className="bg-white rounded-2xl p-6 border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-lg transition-all flex flex-col justify-between space-y-6 group text-left"
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-4xl">{dest.meta.flag}</span>
+                    <span className="text-3xl">{dest.meta.flag}</span>
                     <span className="text-[10px] font-black px-3 py-1 rounded-full bg-[#E9D7DF] text-[#570229] border border-[#C85A7C]/20">
                       {dest.meta.schengen}
                     </span>
                   </div>
 
                   <div>
-                    <h3 className="text-xl font-serif font-black text-[#1F2937] group-hover:text-[#570229] transition-colors">
+                    <h3 className="text-lg font-serif font-black text-[#1F2937] group-hover:text-[#570229] transition-colors">
                       Study in {dest.country}
                     </h3>
                     <p className="text-xs text-[#6B7280] font-bold mt-0.5">
@@ -636,10 +636,10 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 6. MULTI-CURRENCY TUITION & LIVING COST CALCULATOR */}
-      <section id="calculator" className="py-20 bg-white border-b border-[#ECE7EA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+      <section id="calculator" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           
-          <div className="text-center max-w-3xl mx-auto space-y-3">
+          <div className="text-center max-w-3xl mx-auto space-y-2">
             <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F]">
               100% Transparent Financials
             </span>
@@ -651,15 +651,15 @@ export const FerexLandingPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="bg-[#FCFAFB] rounded-3xl border border-[#ECE7EA] p-6 md:p-10 shadow-sm">
+          <div className="bg-[#F7F4F2] rounded-3xl border border-[#ECE7EA] p-6 md:p-9 shadow-xs">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
               {/* Left Form Inputs */}
-              <div className="lg:col-span-6 space-y-5 text-left">
+              <div className="lg:col-span-6 space-y-4 text-left">
                 
                 {/* Destination Selector */}
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-2">
+                  <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-1.5">
                     Select Target European Country
                   </label>
                   <select
@@ -675,7 +675,7 @@ export const FerexLandingPage: React.FC = () => {
 
                 {/* University Selector */}
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-2">
+                  <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-1.5">
                     Select European Partner University
                   </label>
                   <select
@@ -691,7 +691,7 @@ export const FerexLandingPage: React.FC = () => {
 
                 {/* Accommodation Preference */}
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-2">
+                  <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-1.5">
                     Accommodation Type
                   </label>
                   <div className="grid grid-cols-2 gap-3">
@@ -704,7 +704,7 @@ export const FerexLandingPage: React.FC = () => {
                           : 'bg-white border border-[#ECE7EA] text-[#1F2937] hover:bg-[#F7F4F2]'
                       }`}
                     >
-                      University Dormitory (~€380/mo)
+                      University Dorm (~€380/mo)
                     </button>
                     <button
                       type="button"
@@ -715,14 +715,14 @@ export const FerexLandingPage: React.FC = () => {
                           : 'bg-white border border-[#ECE7EA] text-[#1F2937] hover:bg-[#F7F4F2]'
                       }`}
                     >
-                      Private Student Studio (~€550/mo)
+                      Private Studio (~€550/mo)
                     </button>
                   </div>
                 </div>
 
                 {/* Currency Switcher */}
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-2">
+                  <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-1.5">
                     Display Currency
                   </label>
                   <div className="flex items-center gap-2">
@@ -734,7 +734,7 @@ export const FerexLandingPage: React.FC = () => {
                         className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                           calcCurrency === curr
                             ? 'bg-[#570229] text-white shadow-xs'
-                            : 'bg-white border border-[#ECE7EA] text-[#6B7280] hover:bg-[#F7F4F2]'
+                            : 'bg-white border border-[#ECE7EA] text-[#6B7280] hover:bg-slate-50'
                         }`}
                       >
                         {curr === 'EUR' ? '€ EUR' : curr === 'INR' ? '₹ INR' : '$ USD'}
@@ -747,9 +747,9 @@ export const FerexLandingPage: React.FC = () => {
 
               {/* Right Output Budget Breakdown Card */}
               <div className="lg:col-span-6">
-                <div className="rounded-3xl bg-white border border-[#ECE7EA] p-6 md:p-8 shadow-md space-y-6 text-left">
+                <div className="rounded-2xl bg-white border border-[#ECE7EA] p-6 sm:p-7 shadow-xs space-y-5 text-left">
                   
-                  <div className="flex items-center justify-between border-b border-[#ECE7EA] pb-4">
+                  <div className="flex items-center justify-between border-b border-[#ECE7EA] pb-3.5">
                     <div>
                       <h4 className="text-base font-serif font-black text-[#1F2937]">
                         1st Year Complete Budget Summary
@@ -763,30 +763,30 @@ export const FerexLandingPage: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="space-y-3 text-xs">
-                    <div className="flex justify-between items-center py-1">
+                  <div className="space-y-2.5 text-xs">
+                    <div className="flex justify-between items-center py-0.5">
                       <span className="text-[#6B7280] font-medium">Annual University Tuition:</span>
                       <span className="font-bold text-[#1F2937]">{convertCurrency(calcValues.tuitionEUR, calcValues.tuitionINR)}</span>
                     </div>
 
                     {calcValues.nawaRequired && (
-                      <div className="flex justify-between items-center py-1">
+                      <div className="flex justify-between items-center py-0.5">
                         <span className="text-[#6B7280] font-medium">NAWA & MEA Apostille Legalization:</span>
                         <span className="font-bold text-[#1F2937]">{convertCurrency(calcValues.nawaEUR, calcValues.nawaINR)}</span>
                       </div>
                     )}
 
-                    <div className="flex justify-between items-center py-1">
+                    <div className="flex justify-between items-center py-0.5">
                       <span className="text-[#6B7280] font-medium">VFS Visa Fee & Consular Insurance:</span>
                       <span className="font-bold text-[#1F2937]">{convertCurrency(calcValues.vfsEUR, calcValues.vfsINR)}</span>
                     </div>
 
-                    <div className="flex justify-between items-center py-1">
+                    <div className="flex justify-between items-center py-0.5">
                       <span className="text-[#6B7280] font-medium">Estimated Annual Living Cost (12 mos):</span>
                       <span className="font-bold text-[#1F2937]">{convertCurrency(calcValues.livingMonthlyEUR * 12, calcValues.livingMonthlyINR * 12)}</span>
                     </div>
 
-                    <div className="pt-4 border-t border-[#ECE7EA] flex justify-between items-baseline">
+                    <div className="pt-3.5 border-t border-[#ECE7EA] flex justify-between items-baseline">
                       <div>
                         <span className="text-xs font-black uppercase text-[#6B7280] block">Total 1st Year Outlay</span>
                         <span className="text-2xl sm:text-3xl font-serif font-black text-[#570229]">
@@ -816,11 +816,11 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 7. PARTNER UNIVERSITIES DIRECTORY */}
-      <section id="universities" className="py-20 bg-[#FCFAFB] border-b border-[#ECE7EA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+      <section id="universities" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 text-left">
-            <div className="space-y-2 max-w-2xl">
+            <div className="space-y-1.5 max-w-2xl">
               <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F]">
                 Direct Partner Directory
               </span>
@@ -833,7 +833,7 @@ export const FerexLandingPage: React.FC = () => {
             </div>
 
             {/* Quick Country Filter Pills */}
-            <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-2xl border border-[#ECE7EA] overflow-x-auto">
+            <div className="flex items-center gap-1.5 bg-[#F7F4F2] p-1.5 rounded-2xl border border-[#ECE7EA] overflow-x-auto">
               {['All', ...availableCountries].map(c => (
                 <button
                   key={c}
@@ -841,7 +841,7 @@ export const FerexLandingPage: React.FC = () => {
                   className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                     selectedCountryFilter === c
                       ? 'bg-[#570229] text-white shadow-xs'
-                      : 'text-[#6B7280] hover:text-[#1F2937] hover:bg-[#F7F4F2]'
+                      : 'text-[#6B7280] hover:text-[#1F2937] hover:bg-white'
                   }`}
                 >
                   {c}
@@ -868,7 +868,7 @@ export const FerexLandingPage: React.FC = () => {
               filteredUniversities.map((uni) => (
                 <div
                   key={uni.id}
-                  className="bg-white rounded-3xl border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-xl transition-all flex flex-col justify-between overflow-hidden group text-left"
+                  className="bg-white rounded-2xl border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden group text-left"
                 >
                   <div className="p-6 space-y-4">
                     <div className="flex items-start justify-between gap-3">
@@ -885,7 +885,7 @@ export const FerexLandingPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-[#FCFAFB] border border-[#ECE7EA] space-y-2 text-xs">
+                    <div className="p-3.5 rounded-xl bg-[#F7F4F2] border border-[#ECE7EA] space-y-2 text-xs">
                       <div className="flex justify-between items-center">
                         <span className="text-[#6B7280] font-semibold">Tuition Range:</span>
                         <span className="font-black text-[#1F2937]">{formatFeeEURandINR(uni.tuition_range || uni.university_fee)}</span>
@@ -912,7 +912,7 @@ export const FerexLandingPage: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="col-span-full py-16 text-center bg-white rounded-3xl border border-[#ECE7EA] p-8 space-y-3">
+              <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-[#ECE7EA] p-8 space-y-3">
                 <Building2 className="w-10 h-10 text-[#6B7280] mx-auto" />
                 <h4 className="text-base font-bold text-[#1F2937]">No partner universities match your search query</h4>
                 <p className="text-xs text-[#6B7280]">Try changing the selected country filter or search term.</p>
@@ -924,10 +924,10 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 8. STEP-BY-STEP ADMISSIONS & VISA ROADMAP */}
-      <section id="roadmap" className="py-20 bg-white border-b border-[#ECE7EA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
+      <section id="roadmap" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           
-          <div className="text-center max-w-3xl mx-auto space-y-3">
+          <div className="text-center max-w-3xl mx-auto space-y-2">
             <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F]">
               From Application to Campus Arrival
             </span>
@@ -943,9 +943,9 @@ export const FerexLandingPage: React.FC = () => {
             {roadmapSteps.slice(0, 4).map((step) => (
               <div
                 key={step.num}
-                className="bg-[#FCFAFB] rounded-3xl p-6 border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-lg transition-all space-y-4"
+                className="bg-[#F7F4F2] rounded-2xl p-6 border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-md transition-all space-y-3.5"
               >
-                <div className="w-10 h-10 rounded-2xl bg-[#570229] text-white font-black text-sm flex items-center justify-center shadow-sm">
+                <div className="w-9 h-9 rounded-xl bg-[#570229] text-white font-black text-xs flex items-center justify-center shadow-xs">
                   0{step.num}
                 </div>
                 <h4 className="text-base font-serif font-black text-[#1F2937]">
@@ -962,9 +962,9 @@ export const FerexLandingPage: React.FC = () => {
             {roadmapSteps.slice(4).map((step) => (
               <div
                 key={step.num}
-                className="bg-[#FCFAFB] rounded-3xl p-6 border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-lg transition-all space-y-4"
+                className="bg-[#F7F4F2] rounded-2xl p-6 border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-md transition-all space-y-3.5"
               >
-                <div className="w-10 h-10 rounded-2xl bg-[#570229] text-white font-black text-sm flex items-center justify-center shadow-sm">
+                <div className="w-9 h-9 rounded-xl bg-[#570229] text-white font-black text-xs flex items-center justify-center shadow-xs">
                   0{step.num}
                 </div>
                 <h4 className="text-base font-serif font-black text-[#1F2937]">
@@ -981,10 +981,10 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 9. STUDENT SUCCESS STORIES / TESTIMONIALS */}
-      <section className="py-20 bg-[#FCFAFB] border-b border-[#ECE7EA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+      <section className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           
-          <div className="text-center max-w-3xl mx-auto space-y-3">
+          <div className="text-center max-w-3xl mx-auto space-y-2">
             <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F]">
               Student Success
             </span>
@@ -1000,22 +1000,22 @@ export const FerexLandingPage: React.FC = () => {
             {testimonials.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-3xl p-7 border border-[#ECE7EA] shadow-xs flex flex-col justify-between space-y-6 hover:shadow-md transition-shadow"
+                className="bg-[#F7F4F2] rounded-2xl p-6 border border-[#ECE7EA] shadow-xs flex flex-col justify-between space-y-5 hover:shadow-sm transition-shadow"
               >
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* Rating Stars */}
                   <div className="flex items-center gap-1 text-[#F59E0B]">
                     {[...Array(item.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-[#F59E0B]" />
+                      <Star key={i} className="w-3.5 h-3.5 fill-[#F59E0B]" />
                     ))}
                   </div>
-                  <p className="text-sm text-[#6B7280] italic leading-relaxed">
+                  <p className="text-xs sm:text-sm text-[#6B7280] italic leading-relaxed">
                     "{item.comment}"
                   </p>
                 </div>
 
-                <div className="pt-4 border-t border-[#ECE7EA] flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#E9D7DF] text-[#570229] font-black text-sm flex items-center justify-center shrink-0">
+                <div className="pt-3.5 border-t border-[#ECE7EA] flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#E9D7DF] text-[#570229] font-black text-xs flex items-center justify-center shrink-0">
                     {item.name.charAt(0)}
                   </div>
                   <div>
@@ -1032,10 +1032,10 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 10. ADMISSIONS FAQ ACCORDION */}
-      <section id="faq" className="py-20 bg-white border-b border-[#ECE7EA]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+      <section id="faq" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           
-          <div className="text-center space-y-3">
+          <div className="text-center space-y-2">
             <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F]">
               Got Questions?
             </span>
@@ -1051,17 +1051,17 @@ export const FerexLandingPage: React.FC = () => {
             {faqs.map((faq, idx) => (
               <div
                 key={idx}
-                className="bg-[#FCFAFB] rounded-2xl border border-[#ECE7EA] overflow-hidden shadow-2xs"
+                className="bg-[#F7F4F2] rounded-xl border border-[#ECE7EA] overflow-hidden"
               >
                 <button
                   onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
-                  className="w-full p-5 text-left flex items-center justify-between gap-4 font-bold text-[#1F2937] hover:text-[#570229] transition-colors cursor-pointer text-sm"
+                  className="w-full p-4.5 text-left flex items-center justify-between gap-4 font-bold text-[#1F2937] hover:text-[#570229] transition-colors cursor-pointer text-sm"
                 >
                   <span>{faq.q}</span>
                   <ChevronDown className={`w-4 h-4 text-[#6B7280] shrink-0 transition-transform ${activeFaq === idx ? 'rotate-180 text-[#570229]' : ''}`} />
                 </button>
                 {activeFaq === idx && (
-                  <div className="px-5 pb-5 text-xs text-[#6B7280] leading-relaxed font-medium border-t border-[#ECE7EA] pt-3">
+                  <div className="px-4.5 pb-4.5 text-xs text-[#6B7280] leading-relaxed font-medium border-t border-[#ECE7EA] pt-3">
                     {faq.a}
                   </div>
                 )}
@@ -1073,12 +1073,8 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 11. BOTTOM CALL TO ACTION BANNER (DEEP ROYAL MAROON #570229) */}
-      <section className="py-16 bg-[#570229] text-white relative overflow-hidden">
-        {/* Glow */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-[#8C1D4F]/30 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-[#C85A7C]/20 blur-3xl pointer-events-none" />
-
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6 relative z-10">
+      <section className="py-14 bg-[#570229] text-white relative overflow-hidden">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-5">
           <Logo variant="white" size="lg" className="mx-auto" />
           <h2 className="text-3xl sm:text-4xl font-serif font-black text-white leading-tight">
             Ready to Begin Your European Higher Education Journey?
@@ -1089,7 +1085,7 @@ export const FerexLandingPage: React.FC = () => {
           <div className="pt-2">
             <button
               onClick={() => goToLogin('signup')}
-              className="h-13 px-8 rounded-2xl bg-white hover:bg-[#F7F4F2] text-[#570229] text-sm font-black transition-all shadow-xl flex items-center gap-2 mx-auto cursor-pointer"
+              className="h-12 px-8 rounded-xl bg-white hover:bg-[#F7F4F2] text-[#570229] text-sm font-black transition-all shadow-xl flex items-center gap-2 mx-auto cursor-pointer"
             >
               Start Free Application Today <ArrowRight className="w-4 h-4 text-[#570229]" />
             </button>
