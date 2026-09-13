@@ -72,7 +72,7 @@ export const DigitalBranding: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             {toast}
@@ -84,13 +84,13 @@ export const DigitalBranding: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <Award className="w-5 h-5 text-[#6A1B2E]" /> Creative Brand Studio & Mockup Showcase
+            <Award className="w-5 h-5 text-[#58051E]" /> Creative Brand Studio & Mockup Showcase
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Dynamic brand mockup generator (Business card, Packaging, Apparel, Billboard), tokenized palette system, and identity assets.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => showToast(`Brand manual compiled for ${clientName}!`)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => showToast(`Brand manual compiled for ${clientName}!`)}>
           <Download className="w-4 h-4 mr-1.5" /> Download Brand Manual (PDF)
         </Button>
       </div>
@@ -98,7 +98,7 @@ export const DigitalBranding: React.FC = () => {
       {/* Client Brand Target Bar */}
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Sparkles className="w-4 h-4 text-[#6A1B2E]" />
+          <Sparkles className="w-4 h-4 text-[#58051E]" />
           <span className="text-xs font-bold text-slate-700">Brand Identity Client:</span>
           <select
             value={selectedClient?.id || ''}

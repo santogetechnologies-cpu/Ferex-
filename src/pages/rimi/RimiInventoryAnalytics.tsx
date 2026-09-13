@@ -37,7 +37,7 @@ export const RimiInventoryAnalytics: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <div>
         <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-[#6A1B2E]" /> Cold Storage Inventory & Telemetry Analytics
+          <TrendingUp className="w-5 h-5 text-[#58051E]" /> Cold Storage Inventory & Telemetry Analytics
         </h1>
         <p className="text-xs font-semibold text-slate-500 mt-1">
           Rimi Cold Chain Intelligence • Stock turn velocity, warehouse utilization, and temperature stability.
@@ -62,7 +62,7 @@ export const RimiInventoryAnalytics: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="p-6 border border-slate-200/70 shadow-xs space-y-3">
           <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-            <Boxes className="w-4 h-4 text-[#6A1B2E]" /> SKU Category Distribution
+            <Boxes className="w-4 h-4 text-[#58051E]" /> SKU Category Distribution
           </h3>
           <div className="space-y-2 text-xs">
             {['Frozen Seafood', 'Frozen Meat & Poultry', 'Frozen Vegetables', 'Processed Food', 'Ice Cream & Dairy'].map((cat, idx) => {
@@ -70,7 +70,7 @@ export const RimiInventoryAnalytics: React.FC = () => {
               return (
                 <div key={idx} className="flex justify-between items-center py-1.5 border-b border-slate-100">
                   <span className="font-semibold text-slate-700">{cat}</span>
-                  <span className="font-bold text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded-full text-[10px]">{count} SKUs</span>
+                  <span className="font-bold text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-full text-[10px]">{count} SKUs</span>
                 </div>
               );
             })}

@@ -141,7 +141,7 @@ export async function uploadDocument(payload: {
     const { createNotification } = await import('./notifications');
     await createNotification({
       user_id: payload.student_id || 'admin',
-      title: '📄 New Document Submitted',
+      title: 'New Document Submitted',
       body: `A new student document (${payload.doc_type || payload.file_name}) was submitted for review & verification.`,
       category: 'Document'
     });
@@ -189,7 +189,7 @@ export async function updateDocumentStatus(
 
       await createNotification({
         user_id: (docResult as StudentDocument).student_id,
-        title: isApproved ? '✅ Document Verified & Approved' : isReupload ? '⚠️ Document Action Required' : '📄 Document Status Updated',
+        title: isApproved ? 'Document Verified & Approved' : isReupload ? 'Document Action Required' : 'Document Status Updated',
         body: isApproved
           ? `Your document "${(docResult as StudentDocument).doc_type || 'Submitted Document'}" has been verified and approved.`
           : `Status for "${(docResult as StudentDocument).doc_type || 'Document'}": ${status}. ${notesText ? 'Notes: ' + notesText : ''}`,

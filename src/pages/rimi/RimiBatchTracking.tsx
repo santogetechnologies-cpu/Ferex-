@@ -126,7 +126,7 @@ export const RimiBatchTracking: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -136,13 +136,13 @@ export const RimiBatchTracking: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <QrCode className="w-5 h-5 text-[#6A1B2E]" /> Lot & Batch Telemetry Tracker
+            <QrCode className="w-5 h-5 text-[#58051E]" /> Lot & Batch Telemetry Tracker
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Rimi Cold Chain Console • Full origin traceability, supplier lot numbers, and manufacturing batch logs.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Register Batch Lot
         </Button>
       </div>
@@ -150,7 +150,7 @@ export const RimiBatchTracking: React.FC = () => {
       <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search Batch Lot # or product..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search Batch Lot # or product..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
         </div>
         <span className="text-xs font-bold text-slate-400">{filteredBatches.length} Batches Registered</span>
       </Card>
@@ -251,7 +251,7 @@ export const RimiBatchTracking: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Save Lot</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Lot</Button>
                 </div>
               </form>
             </motion.div>

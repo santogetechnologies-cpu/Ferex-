@@ -97,7 +97,7 @@ export const DEFAULT_RIMI_CONFIG: RimiCustomizationConfig = {
   },
   broadcast: {
     is_active: true,
-    message: '❄️ Sub-Zero Cold Chain Fleet Operating at 100% capacity. Fresh IQF seafood and frozen dairy stock arrived.',
+    message: 'Sub-Zero Cold Chain Fleet Operating at 100% capacity. Fresh IQF seafood and frozen dairy stock arrived.',
     urgency: 'info',
     target_audience: 'all',
     link_url: '/rimi/customer-portal',

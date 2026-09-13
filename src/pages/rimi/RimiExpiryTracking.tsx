@@ -151,7 +151,7 @@ export const RimiExpiryTracking: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -161,13 +161,13 @@ export const RimiExpiryTracking: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Clock className="w-5 h-5 text-[#6A1B2E]" /> Expiration Risk & Shelf-Life Telemetry
+            <Clock className="w-5 h-5 text-[#58051E]" /> Expiration Risk & Shelf-Life Telemetry
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Rimi Cold Chain Console • Proactive expiration monitoring, early clearance workflows, and FIFO batch rotation.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { setNewBatch(emptyBatch); setShowAddModal(true); }}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewBatch(emptyBatch); setShowAddModal(true); }}>
           <Plus className="w-3.5 h-3.5 mr-1.5" /> Monitor New Perishable Lot
         </Button>
       </div>
@@ -178,7 +178,7 @@ export const RimiExpiryTracking: React.FC = () => {
           <button
             key={r}
             onClick={() => setFilterRisk(r)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${filterRisk === r ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${filterRisk === r ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
           >
             {r === 'Critical' ? 'Critical (<30 Days)' : r === 'Warning' ? 'Warning (<60 Days)' : r === 'Safe' ? 'Safe (>60 Days)' : 'All Shelf-Life Batches'}
           </button>
@@ -213,7 +213,7 @@ export const RimiExpiryTracking: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400 font-semibold">Current State:</span>
-                    <span className="font-extrabold text-[#6A1B2E]">{s.status}</span>
+                    <span className="font-extrabold text-[#58051E]">{s.status}</span>
                   </div>
                 </div>
               </div>
@@ -288,7 +288,7 @@ export const RimiExpiryTracking: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Start Monitoring</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Start Monitoring</Button>
                 </div>
               </form>
             </motion.div>

@@ -98,7 +98,7 @@ export const DigitalMobileApps: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
@@ -107,7 +107,7 @@ export const DigitalMobileApps: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <Smartphone className="w-5 h-5 text-[#6A1B2E]" /> App Development Studio & Device Farm
+            <Smartphone className="w-5 h-5 text-[#58051E]" /> App Development Studio & Device Farm
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Native iOS & Android build automation, TestFlight beta distribution, and live app telemetry for enterprise projects.
@@ -117,7 +117,7 @@ export const DigitalMobileApps: React.FC = () => {
           <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => setShowBuildModal(true)}>
             <Plus className="w-3.5 h-3.5 mr-1.5" /> Register Build
           </Button>
-          <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => showToast('Triggered Xcode & Gradle Cloud CI/CD Pipeline...')}>
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => showToast('Triggered Xcode & Gradle Cloud CI/CD Pipeline...')}>
             <Play className="w-3.5 h-3.5 mr-1.5" /> Trigger Cloud Build
           </Button>
         </div>
@@ -128,7 +128,7 @@ export const DigitalMobileApps: React.FC = () => {
           { label: 'Crash-Free Users %', value: '99.94%', sub: 'Sentry SLA Target: 99.5%', color: 'text-emerald-700' },
           { label: 'Active Beta Testers', value: '142 Devices', sub: 'TestFlight & Internal Play', color: 'text-purple-700' },
           { label: 'Avg Cold Launch Time', value: '0.38 Seconds', sub: 'React Native 0.74 Hermes', color: 'text-blue-700' },
-          { label: 'Total Builds Deployed', value: `${appReleases.length} Builds`, sub: 'Automated CI/CD', color: 'text-[#6A1B2E]' },
+          { label: 'Total Builds Deployed', value: `${appReleases.length} Builds`, sub: 'Automated CI/CD', color: 'text-[#58051E]' },
         ].map((card, idx) => (
           <Card key={idx} className="p-4 border border-slate-200/70 shadow-xs">
             <span className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">{card.label}</span>
@@ -141,7 +141,7 @@ export const DigitalMobileApps: React.FC = () => {
       {/* Project Selector Bar */}
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Smartphone className="w-4 h-4 text-[#6A1B2E]" />
+          <Smartphone className="w-4 h-4 text-[#58051E]" />
           <span className="text-xs font-bold text-slate-700">Active Mobile Project:</span>
           <select
             value={selectedProject?.id || ''}
@@ -168,7 +168,7 @@ export const DigitalMobileApps: React.FC = () => {
           </div>
           <div className="w-60 h-[420px] bg-slate-950 rounded-[40px] p-3.5 shadow-2xl border-4 border-slate-800 relative overflow-hidden text-left">
             <div className="w-20 h-4 bg-slate-800 rounded-full mx-auto mb-3" />
-            <div className="w-full h-[calc(100%-28px)] rounded-[28px] bg-gradient-to-b from-[#6A1B2E] via-[#521221] to-[#2A060E] text-white p-4 flex flex-col justify-between text-xs">
+            <div className="w-full h-[calc(100%-28px)] rounded-[28px] bg-gradient-to-b from-[#58051E] via-[#430316] to-[#2A060E] text-white p-4 flex flex-col justify-between text-xs">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] uppercase font-bold text-white/70 block truncate max-w-[120px]">{activeClientName}</span>
@@ -226,7 +226,7 @@ export const DigitalMobileApps: React.FC = () => {
                       </td>
                       <td className="py-3 px-3 font-bold text-emerald-600">{rel.crashRate}</td>
                       <td className="py-3 px-3 text-right">
-                        <button onClick={() => setSelectedBuild(rel)} className="text-[10px] font-black text-[#6A1B2E] hover:underline bg-[#6A1B2E]/10 px-2.5 py-1 rounded-lg">
+                        <button onClick={() => setSelectedBuild(rel)} className="text-[10px] font-black text-[#58051E] hover:underline bg-[#58051E]/10 px-2.5 py-1 rounded-lg">
                           Beta Invite
                         </button>
                       </td>
@@ -276,7 +276,7 @@ export const DigitalMobileApps: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowBuildModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Dispatch Build</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Dispatch Build</Button>
                 </div>
               </form>
             </motion.div>
@@ -300,7 +300,7 @@ export const DigitalMobileApps: React.FC = () => {
                 <p><span className="font-bold text-slate-900">Crash Rate:</span> {selectedBuild.crashRate}</p>
                 <p><span className="font-bold text-slate-900">Release Notes:</span> {selectedBuild.notes}</p>
               </div>
-              <Button size="sm" className="w-full bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { showToast(`TestFlight Beta invite sent for ${selectedBuild.ver}`); setSelectedBuild(null); }}>
+              <Button size="sm" className="w-full bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { showToast(`TestFlight Beta invite sent for ${selectedBuild.ver}`); setSelectedBuild(null); }}>
                 Send TestFlight Invite <Send className="w-3.5 h-3.5 ml-1.5" />
               </Button>
             </motion.div>

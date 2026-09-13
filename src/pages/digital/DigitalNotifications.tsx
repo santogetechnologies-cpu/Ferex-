@@ -98,7 +98,7 @@ export const DigitalNotifications: React.FC = () => {
     <div className="space-y-6 text-left antialiased max-w-7xl mx-auto">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
@@ -107,14 +107,14 @@ export const DigitalNotifications: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Bell className="w-6 h-6 text-[#6A1B2E]" /> Agency Operations Notification Center
+            <Bell className="w-6 h-6 text-[#58051E]" /> Agency Operations Notification Center
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Ferex Digital ERP • Real-time alerts for retainer invoice payments, sprint milestones, and client meetings.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddModal(true)}>
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-1.5" /> Dispatch Alert
           </Button>
           <Button size="sm" variant="outline" className="text-xs font-bold" onClick={markAllRead}>
@@ -129,7 +129,7 @@ export const DigitalNotifications: React.FC = () => {
             <button
               key={tab}
               onClick={() => setFilterTab(tab)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize transition-all cursor-pointer ${filterTab === tab ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize transition-all cursor-pointer ${filterTab === tab ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
               {tab}
             </button>
@@ -143,7 +143,7 @@ export const DigitalNotifications: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search alerts..."
-            className="w-full h-9 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+            className="w-full h-9 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
           />
         </div>
       </div>
@@ -159,9 +159,9 @@ export const DigitalNotifications: React.FC = () => {
       ) : (
         <div className="space-y-3">
           {filtered.map((n) => (
-            <Card key={n.id} className={`p-4 border transition-all flex items-start justify-between gap-4 rounded-2xl ${!n.unread ? 'bg-white border-slate-200/80 shadow-xs' : 'bg-[#6A1B2E]/5 border-[#6A1B2E]/20 shadow-xs'}`}>
+            <Card key={n.id} className={`p-4 border transition-all flex items-start justify-between gap-4 rounded-2xl ${!n.unread ? 'bg-white border-slate-200/80 shadow-xs' : 'bg-[#58051E]/5 border-[#58051E]/20 shadow-xs'}`}>
               <div className="flex items-start gap-3">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${!n.unread ? 'bg-slate-100 text-slate-500' : 'bg-[#6A1B2E] text-white'}`}>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${!n.unread ? 'bg-slate-100 text-slate-500' : 'bg-[#58051E] text-white'}`}>
                   <Bell className="w-4 h-4" />
                 </div>
                 <div className="space-y-1">
@@ -175,7 +175,7 @@ export const DigitalNotifications: React.FC = () => {
               </div>
 
               {n.unread && (
-                <button onClick={() => handleMarkRead(n.id)} className="p-1.5 text-[#6A1B2E] hover:bg-[#6A1B2E]/10 rounded-lg shrink-0 cursor-pointer" title="Mark Read">
+                <button onClick={() => handleMarkRead(n.id)} className="p-1.5 text-[#58051E] hover:bg-[#58051E]/10 rounded-lg shrink-0 cursor-pointer" title="Mark Read">
                   <Check className="w-4 h-4" />
                 </button>
               )}
@@ -192,7 +192,7 @@ export const DigitalNotifications: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-[#6A1B2E]" /> Dispatch Operations Alert
+                  <Bell className="w-4 h-4 text-[#58051E]" /> Dispatch Operations Alert
                 </h3>
                 <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
@@ -216,7 +216,7 @@ export const DigitalNotifications: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Dispatch Alert</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Dispatch Alert</Button>
                 </div>
               </form>
             </motion.div>

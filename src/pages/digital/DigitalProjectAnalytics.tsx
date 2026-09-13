@@ -96,7 +96,7 @@ export const DigitalProjectAnalytics: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
@@ -106,12 +106,12 @@ export const DigitalProjectAnalytics: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <FolderKanban className="w-5 h-5 text-[#6A1B2E]" /> Project Delivery & Health Analytics
+            <FolderKanban className="w-5 h-5 text-[#58051E]" /> Project Delivery & Health Analytics
             {loading && <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 animate-pulse">Syncing...</span>}
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Real-time delivery health, sprint burndown velocity, team capacity utilization, and milestone completion metrics.</p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => showToast('Exporting Project Performance Audit (PDF)...')}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => showToast('Exporting Project Performance Audit (PDF)...')}>
           <BarChart2 className="w-3.5 h-3.5 mr-1.5" /> Export Delivery Report
         </Button>
       </div>
@@ -122,7 +122,7 @@ export const DigitalProjectAnalytics: React.FC = () => {
           { label: 'Active Running Projects', value: `${projects.length} Projects`, note: `₹${(totalProjectValue / 100000).toFixed(2)} Lakhs Total Value`, color: 'text-blue-700 bg-blue-50' },
           { label: 'Completed Projects', value: `${completedProjectsCount} Delivered`, note: '100% Client Approval Rate', color: 'text-emerald-700 bg-emerald-50' },
           { label: 'Sprint Tasks In Progress', value: `${tasks.filter(t => t.status !== 'Done').length} Tasks`, note: `${tasks.filter(t => t.priority === 'High').length} High Priority`, color: 'text-amber-700 bg-amber-50' },
-          { label: 'Engineers & Designers', value: `${employees.length} Staff`, note: 'Full Capacity Allocated', color: 'text-[#6A1B2E] bg-[#6A1B2E]/10' },
+          { label: 'Engineers & Designers', value: `${employees.length} Staff`, note: 'Full Capacity Allocated', color: 'text-[#58051E] bg-[#58051E]/10' },
         ].map((card, idx) => (
           <Card key={idx} className="p-4 border border-slate-200/70 shadow-xs flex flex-col justify-between">
             <div>
@@ -157,10 +157,10 @@ export const DigitalProjectAnalytics: React.FC = () => {
                 <line x1="20" y1="20" x2="480" y2="160" stroke="#94a3b8" strokeWidth="2" strokeDasharray="5 5" />
 
                 {/* Actual Burndown (Solid Maroon) */}
-                <path d="M 20 20 L 100 45 L 180 75 L 260 95 L 340 120 L 420 145 L 480 155" fill="none" stroke="#6A1B2E" strokeWidth="3.5" strokeLinecap="round" />
+                <path d="M 20 20 L 100 45 L 180 75 L 260 95 L 340 120 L 420 145 L 480 155" fill="none" stroke="#58051E" strokeWidth="3.5" strokeLinecap="round" />
 
                 {[{ x: 20, y: 20 }, { x: 100, y: 45 }, { x: 180, y: 75 }, { x: 260, y: 95 }, { x: 340, y: 120 }, { x: 420, y: 145 }, { x: 480, y: 155 }].map((p, i) => (
-                  <circle key={i} cx={p.x} cy={p.y} r="4" fill="#6A1B2E" stroke="white" strokeWidth="2" />
+                  <circle key={i} cx={p.x} cy={p.y} r="4" fill="#58051E" stroke="white" strokeWidth="2" />
                 ))}
               </svg>
             </div>
@@ -170,7 +170,7 @@ export const DigitalProjectAnalytics: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-center gap-6 pt-2 border-t border-slate-100 text-xs font-bold">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#6A1B2E]" /> Actual Remaining Tasks</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#58051E]" /> Actual Remaining Tasks</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-slate-400 rounded" /> Ideal Burndown Line</span>
             </div>
           </Card>
@@ -209,7 +209,7 @@ export const DigitalProjectAnalytics: React.FC = () => {
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black text-[#6A1B2E]">{p.id}</span>
+                        <span className="text-[10px] font-black text-[#58051E]">{p.id}</span>
                         <h4 className="text-xs font-black text-slate-900">{p.name}</h4>
                       </div>
                       <p className="text-[10.5px] font-semibold text-slate-500">Client: {p.client} • Lead: {p.teamLead}</p>
@@ -224,13 +224,13 @@ export const DigitalProjectAnalytics: React.FC = () => {
                       <span>{p.progress}% Complete</span>
                     </div>
                     <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                      <div className={`h-2 rounded-full ${p.health === 'Delayed' ? 'bg-red-500' : p.health === 'At Risk' ? 'bg-amber-500' : 'bg-[#6A1B2E]'}`} style={{ width: `${p.progress}%` }} />
+                      <div className={`h-2 rounded-full ${p.health === 'Delayed' ? 'bg-red-500' : p.health === 'At Risk' ? 'bg-amber-500' : 'bg-[#58051E]'}`} style={{ width: `${p.progress}%` }} />
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between text-[10.5px] font-semibold text-slate-500 border-t border-slate-200/60 pt-2">
                     <span>Current Milestone: <span className="font-bold text-slate-800">{p.milestone}</span></span>
-                    <button onClick={() => showToast(`Inspecting ${p.name}...`)} className="text-[#6A1B2E] font-extrabold hover:underline">View Timeline →</button>
+                    <button onClick={() => showToast(`Inspecting ${p.name}...`)} className="text-[#58051E] font-extrabold hover:underline">View Timeline →</button>
                   </div>
                 </div>
               ))}
@@ -244,7 +244,7 @@ export const DigitalProjectAnalytics: React.FC = () => {
           <Card className="p-5 border border-slate-200/70 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-[#6A1B2E]" /> Resource Allocation & Workload
+                <Users className="w-4 h-4 text-[#58051E]" /> Resource Allocation & Workload
               </h3>
             </div>
             <div className="space-y-3">
@@ -272,7 +272,7 @@ export const DigitalProjectAnalytics: React.FC = () => {
           {/* Milestone Target Deadlines */}
           <Card className="p-5 border border-slate-200/70 shadow-xs space-y-3">
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-              <Target className="w-4 h-4 text-[#6A1B2E]" /> Upcoming Major Milestones
+              <Target className="w-4 h-4 text-[#58051E]" /> Upcoming Major Milestones
             </h3>
             <div className="space-y-2 text-xs font-semibold">
               <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-100 space-y-0.5">

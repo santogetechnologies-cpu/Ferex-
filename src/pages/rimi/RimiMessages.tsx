@@ -191,7 +191,7 @@ export const RimiMessages: React.FC = () => {
       case 'warehouse': return <Warehouse className="w-3.5 h-3.5 text-blue-600" />;
       case 'fleet': return <Truck className="w-3.5 h-3.5 text-amber-600" />;
       case 'retailer': return <Store className="w-3.5 h-3.5 text-emerald-600" />;
-      default: return <User className="w-3.5 h-3.5 text-[#6A1B2E]" />;
+      default: return <User className="w-3.5 h-3.5 text-[#58051E]" />;
     }
   };
 
@@ -200,13 +200,13 @@ export const RimiMessages: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <MessageSquare className="w-6 h-6 text-[#6A1B2E]" /> FMCG Distribution Communication Desk
+            <MessageSquare className="w-6 h-6 text-[#58051E]" /> FMCG Distribution Communication Desk
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Direct messaging with cold warehouse managers, reefer truck drivers, and key store accounts.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowNewChatModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowNewChatModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Start New Dispatch Chat
         </Button>
       </div>
@@ -221,7 +221,7 @@ export const RimiMessages: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search contacts..."
-              className="w-full h-8 pl-8 pr-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+              className="w-full h-8 pl-8 pr-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
             />
           </div>
 
@@ -257,7 +257,7 @@ export const RimiMessages: React.FC = () => {
         <div className="col-span-2 flex flex-col h-full bg-white">
           <div className="p-3.5 border-b border-slate-100 flex justify-between items-center bg-slate-50/40">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-[#6A1B2E]/10 flex items-center justify-center text-[#6A1B2E] font-black shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-[#58051E]/10 flex items-center justify-center text-[#58051E] font-black shrink-0">
                 {getContactIcon(currConv.type)}
               </div>
               <div>
@@ -278,7 +278,7 @@ export const RimiMessages: React.FC = () => {
               messages.map((m, idx) => (
                 <div key={m.id || idx} className={`flex ${m.is_self ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[75%] p-3 rounded-2xl text-xs font-semibold shadow-xs ${
-                    m.is_self ? 'bg-[#6A1B2E] text-white rounded-br-xs' : 'bg-slate-100 text-slate-900 rounded-bl-xs'
+                    m.is_self ? 'bg-[#58051E] text-white rounded-br-xs' : 'bg-slate-100 text-slate-900 rounded-bl-xs'
                   }`}>
                     <div className="text-[10px] font-extrabold opacity-75 mb-0.5">{m.sender_name}</div>
                     <p className="leading-relaxed whitespace-pre-wrap">{m.message || m.text}</p>
@@ -297,9 +297,9 @@ export const RimiMessages: React.FC = () => {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Type your message or cold chain instruction..."
-              className="flex-1 h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+              className="flex-1 h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
             />
-            <Button type="submit" size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold px-4">
+            <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold px-4">
               <Send className="w-3.5 h-3.5" />
             </Button>
           </form>
@@ -314,7 +314,7 @@ export const RimiMessages: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-[#6A1B2E]" /> Open Communication Channel
+                  <MessageSquare className="w-4 h-4 text-[#58051E]" /> Open Communication Channel
                 </h3>
                 <button onClick={() => setShowNewChatModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
@@ -338,7 +338,7 @@ export const RimiMessages: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowNewChatModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Open Channel</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Open Channel</Button>
                 </div>
               </form>
             </motion.div>

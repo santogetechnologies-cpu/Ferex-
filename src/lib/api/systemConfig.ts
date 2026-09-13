@@ -15,13 +15,13 @@ export const DEFAULT_SYSTEM_CONFIG: SystemCustomizationConfig = {
     emergency_helpline: '+91 99887 76655',
     office_address: 'Plac Bankowy 2, Warsaw, Poland & Central Desk, Bangalore, India',
     operating_hours: 'Mon – Sat: 09:00 AM – 07:00 PM CET / IST',
-    primary_color: '#6A1B2E',
+    primary_color: '#58051E',
     accent_gold: '#E6CA9E'
   },
   broadcast: {
     id: 'bcast-intake-2026',
     is_active: true,
-    message: '🎓 Fall 2026 European Intake Applications Open! Early Legalization (NAWA / APS / CIMEA) deadline is approaching fast.',
+    message: 'Fall 2026 European Intake Applications Open! Early Legalization (NAWA / APS / CIMEA) deadline is approaching fast.',
     urgency: 'info',
     link_url: '/student/select-university',
     link_label: 'Explore Programs',

@@ -168,7 +168,7 @@ export const DigitalExpenses: React.FC = () => {
     <div className="space-y-6 text-left antialiased max-w-7xl mx-auto">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
@@ -177,7 +177,7 @@ export const DigitalExpenses: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Receipt className="w-6 h-6 text-[#6A1B2E]" /> Agency Expenses & Digital Asset Management
+            <Receipt className="w-6 h-6 text-[#58051E]" /> Agency Expenses & Digital Asset Management
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Real-time tracking of AWS/GCP cloud clusters, Figma & SaaS licenses, campaign ad spends, and renewals.
@@ -185,11 +185,11 @@ export const DigitalExpenses: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           {activeTab === 'expenses' ? (
-            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddExpenseModal(true)}>
+            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddExpenseModal(true)}>
               <Plus className="w-4 h-4 mr-1.5" /> Log Operating Expense
             </Button>
           ) : (
-            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddAssetModal(true)}>
+            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddAssetModal(true)}>
               <Plus className="w-4 h-4 mr-1.5" /> Register Cloud / SaaS Asset
             </Button>
           )}
@@ -231,7 +231,7 @@ export const DigitalExpenses: React.FC = () => {
           onClick={() => { setActiveTab('expenses'); setSearch(''); }}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${
             activeTab === 'expenses'
-              ? 'bg-[#6A1B2E] text-white shadow-sm'
+              ? 'bg-[#58051E] text-white shadow-sm'
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
           }`}
         >
@@ -241,7 +241,7 @@ export const DigitalExpenses: React.FC = () => {
           onClick={() => { setActiveTab('assets'); setSearch(''); }}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${
             activeTab === 'assets'
-              ? 'bg-[#6A1B2E] text-white shadow-sm'
+              ? 'bg-[#58051E] text-white shadow-sm'
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
           }`}
         >
@@ -257,7 +257,7 @@ export const DigitalExpenses: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={activeTab === 'expenses' ? "Search expense, category, vendor..." : "Search asset, license, cloud provider, project..."}
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
           />
         </div>
         <span className="text-xs font-bold text-slate-400">
@@ -275,7 +275,7 @@ export const DigitalExpenses: React.FC = () => {
               <Receipt className="w-10 h-10 text-slate-300 mx-auto mb-3" />
               <h3 className="text-sm font-black text-slate-800">No expenses found</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">Log agency vendor payouts, infrastructure costs, and tool subscriptions.</p>
-              <Button size="sm" className="mt-4 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddExpenseModal(true)}>
+              <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddExpenseModal(true)}>
                 <Plus className="w-3.5 h-3.5 mr-1" /> Log Operating Expense
               </Button>
             </Card>
@@ -307,7 +307,7 @@ export const DigitalExpenses: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 font-bold text-slate-800">{exp.vendor}</td>
                         <td className="py-3.5 px-4 font-semibold text-slate-500">{exp.date}</td>
-                        <td className="py-3.5 px-4 font-black text-[#6A1B2E]">₹{Number(exp.amount).toLocaleString('en-IN')}</td>
+                        <td className="py-3.5 px-4 font-black text-[#58051E]">₹{Number(exp.amount).toLocaleString('en-IN')}</td>
                         <td className="py-3.5 px-4 text-right">
                           <button
                             onClick={() => handleDeleteExpense(exp.id)}
@@ -348,7 +348,7 @@ export const DigitalExpenses: React.FC = () => {
                   </div>
                   <h3 className="text-sm font-black text-slate-900 mt-2">{asset.name}</h3>
                   <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
-                    <Server className="w-3.5 h-3.5 text-[#6A1B2E]" /> Provider: <strong className="text-slate-800">{asset.provider}</strong>
+                    <Server className="w-3.5 h-3.5 text-[#58051E]" /> Provider: <strong className="text-slate-800">{asset.provider}</strong>
                   </p>
                 </div>
                 <button
@@ -362,7 +362,7 @@ export const DigitalExpenses: React.FC = () => {
               <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Monthly Burn</span>
-                  <div className="font-black text-[#6A1B2E] text-sm">₹{Number(asset.cost_per_month_inr).toLocaleString('en-IN')}<span className="text-[10px] text-slate-400 font-semibold">/mo</span></div>
+                  <div className="font-black text-[#58051E] text-sm">₹{Number(asset.cost_per_month_inr).toLocaleString('en-IN')}<span className="text-[10px] text-slate-400 font-semibold">/mo</span></div>
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Renewal Date</span>
@@ -402,7 +402,7 @@ export const DigitalExpenses: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-[#6A1B2E]" /> Log Operating Expense
+                  <Receipt className="w-4 h-4 text-[#58051E]" /> Log Operating Expense
                 </h3>
                 <button onClick={() => setShowAddExpenseModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
@@ -439,7 +439,7 @@ export const DigitalExpenses: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddExpenseModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Record Expense</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Record Expense</Button>
                 </div>
               </form>
             </motion.div>
@@ -455,7 +455,7 @@ export const DigitalExpenses: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Server className="w-4 h-4 text-[#6A1B2E]" /> Register Cloud Asset / Subscription
+                  <Server className="w-4 h-4 text-[#58051E]" /> Register Cloud Asset / Subscription
                 </h3>
                 <button onClick={() => setShowAddAssetModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
@@ -503,7 +503,7 @@ export const DigitalExpenses: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddAssetModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Register Asset</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Register Asset</Button>
                 </div>
               </form>
             </motion.div>

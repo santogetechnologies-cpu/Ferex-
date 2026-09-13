@@ -162,7 +162,7 @@ export const RimiCustomerPortal: React.FC = () => {
   const activeDeliveries = deliveries.filter((d) => d.delivery_status !== 'Delivered');
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-[#6A1B2E] selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-[#58051E] selection:text-white">
       {/* Toast Notification */}
       {toastMsg && (
         <div className="fixed top-4 right-4 z-50 bg-emerald-500 text-slate-950 font-bold px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs animate-bounce">
@@ -197,13 +197,13 @@ export const RimiCustomerPortal: React.FC = () => {
       {/* ── Top Header Navigation ── */}
       <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between shadow-2xl">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6A1B2E] to-[#8B263E] flex items-center justify-center shadow-lg shadow-[#6A1B2E]/30 text-white font-black text-xl tracking-wider">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#58051E] to-[#8B263E] flex items-center justify-center shadow-lg shadow-[#58051E]/30 text-white font-black text-xl tracking-wider">
             <Snowflake className="w-6 h-6 text-cyan-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-base tracking-wide text-white uppercase">{rimiConfig.branding.entity_name || 'RIMI FROZEN FOODS'}</span>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#6A1B2E]/40 text-pink-300 border border-[#6A1B2E]">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#58051E]/40 text-pink-300 border border-[#58051E]">
                 {rimiConfig.branding.portal_title || 'B2B Customer Portal'}
               </span>
             </div>
@@ -322,14 +322,14 @@ export const RimiCustomerPortal: React.FC = () => {
             </div>
 
             {/* Quick Catalog Bar & Order Trigger */}
-            <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-[#6A1B2E]/30 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-[#58051E]/30 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
               <div>
                 <h3 className="font-bold text-base text-white">Need to restock your cold storage display?</h3>
                 <p className="text-xs text-slate-300">Place an instant wholesale supply order with verified next-day reefer delivery.</p>
               </div>
               <button
                 onClick={() => setActiveTab('catalog')}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#6A1B2E] to-[#8B263E] hover:from-[#8B263E] hover:to-[#A32D49] text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-[#6A1B2E]/40 transition-all"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#58051E] to-[#8B263E] hover:from-[#8B263E] hover:to-[#A32D49] text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-[#58051E]/40 transition-all"
               >
                 <Plus className="w-4 h-4" /> Browse Catalog & Place Order
               </button>
@@ -445,7 +445,7 @@ export const RimiCustomerPortal: React.FC = () => {
                         setSelectedProduct(p);
                         setShowOrderModal(true);
                       }}
-                      className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#6A1B2E] to-[#8B263E] hover:from-[#8B263E] hover:to-[#A32D49] text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all"
+                      className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#58051E] to-[#8B263E] hover:from-[#8B263E] hover:to-[#A32D49] text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all"
                     >
                       <Plus className="w-3.5 h-3.5" /> Order
                     </button>
@@ -669,7 +669,7 @@ export const RimiCustomerPortal: React.FC = () => {
                       </div>
                       <div className={`p-3 rounded-2xl max-w-md text-xs leading-relaxed ${
                         isMine
-                          ? 'bg-gradient-to-r from-[#6A1B2E] to-[#8B263E] text-white font-medium rounded-tr-none'
+                          ? 'bg-gradient-to-r from-[#58051E] to-[#8B263E] text-white font-medium rounded-tr-none'
                           : 'bg-slate-800 text-slate-100 rounded-tl-none border border-slate-700'
                       }`}>
                         {m.message}
@@ -690,7 +690,7 @@ export const RimiCustomerPortal: React.FC = () => {
                 <button
                   type="submit"
                   disabled={sendingMsg || !newMsg.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#6A1B2E] to-[#8B263E] hover:from-[#8B263E] hover:to-[#A32D49] disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-[#6A1B2E]/30"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#58051E] to-[#8B263E] hover:from-[#8B263E] hover:to-[#A32D49] disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-[#58051E]/30"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Send</span>
@@ -761,7 +761,7 @@ export const RimiCustomerPortal: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submittingOrder}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#6A1B2E] to-[#8B263E] hover:from-[#8B263E] hover:to-[#A32D49] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-[#6A1B2E]/40"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#58051E] to-[#8B263E] hover:from-[#8B263E] hover:to-[#A32D49] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-[#58051E]/40"
                 >
                   {submittingOrder ? 'Submitting...' : 'Confirm Order'}
                 </button>

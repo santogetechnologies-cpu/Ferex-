@@ -229,7 +229,7 @@ export const OfferLetters: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white px-4 py-3 rounded-xl shadow-xl text-xs font-bold flex items-center gap-2 max-w-md"
+            className="fixed top-6 right-6 z-50 bg-[#58051E] text-white px-4 py-3 rounded-xl shadow-xl text-xs font-bold flex items-center gap-2 max-w-md"
           >
             <Sparkles className="w-4 h-4 text-amber-300 shrink-0" />
             {toastMessage}
@@ -241,7 +241,7 @@ export const OfferLetters: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1.5 flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-[#6A1B2E]/5 text-[#6A1B2E] flex items-center justify-center">
+            <span className="w-8 h-8 rounded-lg bg-[#58051E]/5 text-[#58051E] flex items-center justify-center">
               <FileText className="w-5 h-5" />
             </span>
             Offer Letters & Final Acceptance Certificates
@@ -257,7 +257,7 @@ export const OfferLetters: React.FC = () => {
         <div className="py-16 text-center text-xs font-bold text-slate-400">Loading university decisions...</div>
       ) : offerApps.length === 0 ? (
         <div className="bg-white border border-slate-200/70 rounded-2xl p-10 text-center shadow-xs max-w-2xl mx-auto space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center mx-auto">
+          <div className="w-14 h-14 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center mx-auto">
             <GraduationCap className="w-7 h-7" />
           </div>
           <div>
@@ -290,7 +290,7 @@ export const OfferLetters: React.FC = () => {
           <div className="flex items-center justify-center gap-3 pt-2">
             <button
               onClick={() => navigate(applications.length > 0 ? '/student/applications' : '/student/universities')}
-              className="inline-flex items-center gap-2 h-9.5 px-5 bg-[#6A1B2E] text-white text-xs font-bold rounded-xl hover:bg-[#521221] transition-all shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 h-9.5 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-all shadow-sm cursor-pointer"
             >
               {applications.length > 0 ? 'Track Application Milestones' : 'Browse Accredited Universities'} <ArrowRight className="w-4 h-4" />
             </button>
@@ -307,12 +307,12 @@ export const OfferLetters: React.FC = () => {
                 {/* Header Summary */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-[#6A1B2E]/10 text-[#6A1B2E] font-black flex items-center justify-center text-base shadow-xs">
+                    <div className="w-11 h-11 rounded-2xl bg-[#58051E]/10 text-[#58051E] font-black flex items-center justify-center text-base shadow-xs">
                       {app.university_name?.[0] || 'U'}
                     </div>
                     <div>
                       <h3 className="text-base font-extrabold text-slate-900 leading-snug">{app.university_name}</h3>
-                      <p className="text-xs font-extrabold text-[#6A1B2E]">{app.program_name}</p>
+                      <p className="text-xs font-extrabold text-[#58051E]">{app.program_name}</p>
                     </div>
                   </div>
 
@@ -400,7 +400,7 @@ export const OfferLetters: React.FC = () => {
                       </Button>
                       <Button
                         size="sm"
-                        className="w-full justify-center text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221] text-white"
+                        className="w-full justify-center text-xs font-bold bg-[#58051E] hover:bg-[#430316] text-white"
                         onClick={() => handleDownloadFile(app, 'offer')}
                       >
                         <Download className="w-3.5 h-3.5 mr-1" /> Download
@@ -470,7 +470,7 @@ export const OfferLetters: React.FC = () => {
                   <div className="pt-2">
                     <Button
                       size="sm"
-                      className="w-full justify-center text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221] text-white shadow-xs"
+                      className="w-full justify-center text-xs font-bold bg-[#58051E] hover:bg-[#430316] text-white shadow-xs"
                       onClick={() => navigate('/student/visa-tracker')}
                     >
                       <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Proceed to VFS Visa Tracker <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -489,14 +489,14 @@ export const OfferLetters: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs" onClick={() => setPreviewDoc(null)} />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-3xl p-8 w-full max-w-2xl shadow-2xl border border-slate-100 z-10 text-left max-h-[90vh] overflow-y-auto">
-              <div className="flex items-start justify-between border-b-2 border-[#6A1B2E]/20 pb-5 mb-6">
+              <div className="flex items-start justify-between border-b-2 border-[#58051E]/20 pb-5 mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#6A1B2E] text-white flex items-center justify-center font-black text-xl shadow-md">
+                  <div className="w-12 h-12 rounded-2xl bg-[#58051E] text-white flex items-center justify-center font-black text-xl shadow-md">
                     {previewDoc.app.university_name?.[0] || 'U'}
                   </div>
                   <div>
                     <h2 className="text-lg font-black text-slate-900 leading-tight">{previewDoc.app.university_name}</h2>
-                    <p className="text-xs font-bold text-[#6A1B2E] uppercase tracking-wider">{previewDoc.name}</p>
+                    <p className="text-xs font-bold text-[#58051E] uppercase tracking-wider">{previewDoc.name}</p>
                   </div>
                 </div>
                 <button onClick={() => setPreviewDoc(null)} className="p-2 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5" /></button>
@@ -522,7 +522,7 @@ export const OfferLetters: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div><span className="text-slate-400 font-bold block">Student Name:</span><span className="font-black text-slate-900">{previewDoc.app.student_name || studentName}</span></div>
                     <div><span className="text-slate-400 font-bold block">Target Intake:</span><span className="font-black text-slate-900">{previewDoc.app.intake || 'October 2026'}</span></div>
-                    <div><span className="text-slate-400 font-bold block">Degree Program:</span><span className="font-black text-[#6A1B2E]">{previewDoc.app.program_name}</span></div>
+                    <div><span className="text-slate-400 font-bold block">Degree Program:</span><span className="font-black text-[#58051E]">{previewDoc.app.program_name}</span></div>
                     <div><span className="text-slate-400 font-bold block">Document Type:</span><span className="font-black text-teal-800">{previewDoc.name}</span></div>
                   </div>
                 </div>
@@ -532,7 +532,7 @@ export const OfferLetters: React.FC = () => {
                 <Button variant="outline" size="sm" onClick={() => setPreviewDoc(null)} className="text-xs font-bold">
                   Close Preview
                 </Button>
-                <Button size="sm" onClick={() => handleDownloadFile(previewDoc.app, previewDoc.type)} className="bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                <Button size="sm" onClick={() => handleDownloadFile(previewDoc.app, previewDoc.type)} className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm">
                   <Download className="w-4 h-4" /> Download {previewDoc.name}
                 </Button>
               </div>

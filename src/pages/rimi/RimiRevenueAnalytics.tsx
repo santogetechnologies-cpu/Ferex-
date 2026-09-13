@@ -50,7 +50,7 @@ export const RimiRevenueAnalytics: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <div>
         <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <DollarSign className="w-5 h-5 text-[#6A1B2E]" /> Distribution Revenue Analytics & Margins (₹)
+          <DollarSign className="w-5 h-5 text-[#58051E]" /> Distribution Revenue Analytics & Margins (₹)
         </h1>
         <p className="text-xs font-semibold text-slate-500 mt-1">
           Rimi Cold Chain Intelligence • Channel profitability, live sales ledger values, and payment collections.
@@ -64,7 +64,7 @@ export const RimiRevenueAnalytics: React.FC = () => {
           { label: 'Accounts Receivable', val: stats.totalOutstandingStr, sub: 'Outstanding customer balances' },
           { label: 'Average Gross Margin', val: '28.4%', sub: 'High-margin frozen seafood & poultry' },
         ].map((stat, idx) => (
-          <Card key={idx} className="p-4 border-l-4 border-l-[#6A1B2E] border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <Card key={idx} className="p-4 border-l-4 border-l-[#58051E] border-slate-200/80 shadow-xs flex flex-col justify-between">
             <span className="text-[10px] font-black uppercase text-slate-400">{stat.label}</span>
             <div className="text-2xl font-black text-slate-900 my-1">{stat.val}</div>
             <span className="text-[10px] font-extrabold text-slate-500">{stat.sub}</span>

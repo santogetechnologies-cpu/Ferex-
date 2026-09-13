@@ -29,17 +29,17 @@ serve(async (req) => {
     const effectiveSenderName = senderName || "Ferex Ventures Enterprise HQ";
     const fromFormatted = `${effectiveSenderName} <${effectiveSender}>`;
 
-    const testSubject = `🧪 Test Email from Ferex Central [${(provider || "SMTP").toUpperCase()}]`;
+    const testSubject = `Test Email from Ferex Central [${(provider || "SMTP").toUpperCase()}]`;
     const testHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
-        <div style="background: #6A1B2E; padding: 16px 20px; border-radius: 8px; color: #ffffff; margin-bottom: 20px;">
+        <div style="background: #58051E; padding: 16px 20px; border-radius: 8px; color: #ffffff; margin-bottom: 20px;">
           <h2 style="margin: 0; font-size: 18px; font-weight: 800;">FEREX VENTURES ENTERPRISE</h2>
           <p style="margin: 4px 0 0; font-size: 12px; opacity: 0.85;">Central Gateway Verification</p>
         </div>
         <p style="font-size: 14px; color: #1e293b; line-height: 1.6;">
           This is an automated test dispatch to confirm that your <strong>${(provider || "SMTP").toUpperCase()}</strong> gateway configuration is operating successfully.
         </p>
-        <div style="background: #f8fafc; border-left: 4px solid #6A1B2E; padding: 12px 16px; margin: 16px 0; font-size: 13px; color: #334155;">
+        <div style="background: #f8fafc; border-left: 4px solid #58051E; padding: 12px 16px; margin: 16px 0; font-size: 13px; color: #334155;">
           <strong>Target Gateway:</strong> ${(provider || "resend").toUpperCase()}<br/>
           <strong>Sender Identity:</strong> ${fromFormatted}<br/>
           <strong>Environment Mode:</strong> ${(environment || "live").toUpperCase()}<br/>

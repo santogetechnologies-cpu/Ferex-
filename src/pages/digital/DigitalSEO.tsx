@@ -138,7 +138,7 @@ export const DigitalSEO: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             {toast}
@@ -147,7 +147,7 @@ export const DigitalSEO: React.FC = () => {
       </AnimatePresence>
 
       {/* SEO Laboratory Hero Header */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-8 shadow-xl relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#3B0B16] text-white p-8 shadow-xl relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center gap-2">
@@ -168,16 +168,16 @@ export const DigitalSEO: React.FC = () => {
           <Button
             size="sm"
             disabled={isScanning}
-            className={`bg-white text-[#6A1B2E] hover:bg-slate-100 font-black text-xs shrink-0 shadow-lg ${isScanning ? 'opacity-80 cursor-not-allowed' : ''}`}
+            className={`bg-white text-[#58051E] hover:bg-slate-100 font-black text-xs shrink-0 shadow-lg ${isScanning ? 'opacity-80 cursor-not-allowed' : ''}`}
             onClick={startLiveTechnicalScan}
           >
             {isScanning ? (
               <span className="flex items-center gap-1.5">
-                <Loader2 className="w-4 h-4 animate-spin text-[#6A1B2E]" /> Scanning ({scanProgress}%)
+                <Loader2 className="w-4 h-4 animate-spin text-[#58051E]" /> Scanning ({scanProgress}%)
               </span>
             ) : (
               <span className="flex items-center gap-1.5">
-                <Play className="w-4 h-4 text-[#6A1B2E] fill-current" /> Run Live Technical Scan
+                <Play className="w-4 h-4 text-[#58051E] fill-current" /> Run Live Technical Scan
               </span>
             )}
           </Button>
@@ -187,7 +187,7 @@ export const DigitalSEO: React.FC = () => {
       {/* Client Domain Selector Bar */}
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Globe className="w-4 h-4 text-[#6A1B2E]" />
+          <Globe className="w-4 h-4 text-[#58051E]" />
           <span className="text-xs font-bold text-slate-700">Audit Target Domain:</span>
           <select
             value={selectedClient?.id || ''}
@@ -263,7 +263,7 @@ export const DigitalSEO: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-full py-2 pl-4 pr-10 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+              className="w-full bg-slate-50 border border-slate-300 rounded-full py-2 pl-4 pr-10 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
               placeholder="Simulate Live Google Query..."
             />
             <SearchIcon className="w-4 h-4 text-slate-400 absolute right-3.5 top-2.5" />

@@ -133,7 +133,7 @@ export const RimiDeliveries: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -143,13 +143,13 @@ export const RimiDeliveries: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Truck className="w-5 h-5 text-[#6A1B2E]" /> Reefer Truck Deliveries & Cold Chain POD
+            <Truck className="w-5 h-5 text-[#58051E]" /> Reefer Truck Deliveries & Cold Chain POD
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Rimi Cold Chain Console • Live temperature-controlled delivery logs, driver assignments, and proof of delivery.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { setNewDel(emptyDel); setShowAddModal(true); }}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewDel(emptyDel); setShowAddModal(true); }}>
           <Plus className="w-4 h-4 mr-1.5" /> Dispatch Delivery
         </Button>
       </div>
@@ -157,7 +157,7 @@ export const RimiDeliveries: React.FC = () => {
       <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search Delivery #, customer, driver..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search Delivery #, customer, driver..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
         </div>
         <span className="text-xs font-bold text-slate-400">{filteredDeliveries.length} Deliveries Logged</span>
       </Card>
@@ -178,7 +178,7 @@ export const RimiDeliveries: React.FC = () => {
                 <div>
                   <h3 className="text-sm font-black text-slate-900 leading-snug">{d.customer}</h3>
                   <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1">
-                    <Truck className="w-3.5 h-3.5 text-[#6A1B2E]" /> {d.vehicle}
+                    <Truck className="w-3.5 h-3.5 text-[#58051E]" /> {d.vehicle}
                   </p>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
@@ -195,7 +195,7 @@ export const RimiDeliveries: React.FC = () => {
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                 {d.status !== 'Delivered' ? (
-                  <Button size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => handleMarkCompleted(d.rawId, d.id)}>
+                  <Button size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => handleMarkCompleted(d.rawId, d.id)}>
                     Confirm POD
                   </Button>
                 ) : (
@@ -252,7 +252,7 @@ export const RimiDeliveries: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Dispatch Truck</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Dispatch Truck</Button>
                 </div>
               </form>
             </motion.div>

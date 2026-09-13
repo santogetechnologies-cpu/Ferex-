@@ -230,7 +230,7 @@ export async function createMeeting(payload: {
       try {
         await createNotification({
           user_id: payload.student_id,
-          title: '📅 Counseling Session Scheduled',
+          title: 'Counseling Session Scheduled',
           body: `Your session "${payload.subject}" with ${insertData.advisor_name} is set for ${payload.scheduled_date} at ${payload.start_time}.`,
           category: 'Counselor Session'
         });
@@ -241,7 +241,7 @@ export async function createMeeting(payload: {
     try {
       await createNotification({
         user_id: 'admin',
-        title: '📅 New Meeting Session Booked',
+        title: 'New Meeting Session Booked',
         body: `Meeting "${payload.subject}" scheduled with ${insertData.advisor_name} for ${resolvedStudentName || 'Student'} on ${payload.scheduled_date} at ${payload.start_time}.`,
         category: 'Counselor Session'
       });
@@ -303,7 +303,7 @@ export async function updateMeetingStatus(
       try {
         await createNotification({
           user_id: result.student_id,
-          title: status === 'Completed' ? '✅ Counseling Session Completed' : status === 'Cancelled' ? '❌ Session Cancelled' : '📅 Session Rescheduled',
+          title: status === 'Completed' ? 'Counseling Session Completed' : status === 'Cancelled' ? 'Session Cancelled' : 'Session Rescheduled',
           body: `Your counseling session "${result.subject || 'Session'}" status has been updated to "${status}".`,
           category: 'Counselor Session'
         });

@@ -197,7 +197,7 @@ export const DigitalClients: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
@@ -206,13 +206,13 @@ export const DigitalClients: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#6A1B2E]" /> Enterprise Digital Clients Directory
+            <Users className="w-5 h-5 text-[#58051E]" /> Enterprise Digital Clients Directory
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Ferex Digital ERP • Managed enterprise accounts, client portal credential provisioning, and mapped billing ledger.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Add Enterprise Client
         </Button>
       </div>
@@ -225,7 +225,7 @@ export const DigitalClients: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search company, contact person, or email..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
           />
         </div>
         <span className="text-xs font-bold text-slate-400">{filteredClients.length} Verified Accounts</span>
@@ -239,7 +239,7 @@ export const DigitalClients: React.FC = () => {
             <Card key={c.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded-md">{c.type}</span>
+                  <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-md">{c.type}</span>
                   <div className="flex items-center gap-1.5">
                     {c.hasCredentials && (
                       <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
@@ -286,11 +286,11 @@ export const DigitalClients: React.FC = () => {
                     className="text-[11px] font-bold h-8 border-slate-200 hover:border-slate-300"
                     onClick={() => handleOpenDossier(c)}
                   >
-                    <Eye className="w-3 h-3 mr-1 text-[#6A1B2E]" /> Dossier & Services
+                    <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> Dossier & Services
                   </Button>
                   <Button
                     size="sm"
-                    className="text-[11px] font-bold h-8 bg-[#6A1B2E] hover:bg-[#521221]"
+                    className="text-[11px] font-bold h-8 bg-[#58051E] hover:bg-[#430316]"
                     onClick={() => handleProvisionCredentials(c)}
                   >
                     <KeyRound className="w-3 h-3 mr-1 text-amber-300" />
@@ -340,7 +340,7 @@ export const DigitalClients: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Create Client & Provision</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Create Client & Provision</Button>
                 </div>
               </form>
             </motion.div>
@@ -380,7 +380,7 @@ export const DigitalClients: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingClient(null)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Save Changes</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Changes</Button>
                 </div>
               </form>
             </motion.div>
@@ -396,7 +396,7 @@ export const DigitalClients: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-bold">
+                  <div className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
                     <KeyRound className="w-4 h-4" />
                   </div>
                   <div>
@@ -426,7 +426,7 @@ export const DigitalClients: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
                   <span className="text-slate-400">Temporary Password:</span>
-                  <span className="font-mono font-black text-[#6A1B2E] text-sm bg-white px-2 py-0.5 rounded border border-slate-200">{activeCredential.tempPassword}</span>
+                  <span className="font-mono font-black text-[#58051E] text-sm bg-white px-2 py-0.5 rounded border border-slate-200">{activeCredential.tempPassword}</span>
                 </div>
                 <div className="flex justify-between items-center py-1">
                   <span className="text-slate-400">Authorized Role:</span>
@@ -439,7 +439,7 @@ export const DigitalClients: React.FC = () => {
                   {copiedKey ? <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
                   {copiedKey ? 'Copied Details' : 'Copy Access Credentials'}
                 </Button>
-                <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => setActiveCredential(null)}>Done</Button>
+                <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setActiveCredential(null)}>Done</Button>
               </div>
             </motion.div>
           </>
@@ -455,7 +455,7 @@ export const DigitalClients: React.FC = () => {
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                 <div>
                   <h3 className="text-sm font-black text-slate-900">{dossierClient.name}</h3>
-                  <span className="text-[10px] font-bold text-[#6A1B2E] uppercase">Client Service Dossier & Ledger</span>
+                  <span className="text-[10px] font-bold text-[#58051E] uppercase">Client Service Dossier & Ledger</span>
                 </div>
                 <button onClick={() => setDossierClient(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-4 h-4" /></button>
               </div>
@@ -477,14 +477,14 @@ export const DigitalClients: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400 font-semibold">Industry Tier:</span>
-                    <span className="font-bold text-[#6A1B2E]">{dossierClient.type}</span>
+                    <span className="font-bold text-[#58051E]">{dossierClient.type}</span>
                   </div>
                 </div>
 
                 {/* Subscribed Projects */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <FolderKanban className="w-3.5 h-3.5 text-[#6A1B2E]" /> Active Digital Projects ({clientProjects.length})
+                    <FolderKanban className="w-3.5 h-3.5 text-[#58051E]" /> Active Digital Projects ({clientProjects.length})
                   </h4>
                   {clientProjects.length === 0 ? (
                     <div className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center font-medium">No projects currently mapped</div>
@@ -494,7 +494,7 @@ export const DigitalClients: React.FC = () => {
                         <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1.5">
                           <div className="flex justify-between font-bold text-slate-900">
                             <span>{p.title}</span>
-                            <span className="text-[#6A1B2E]">₹{Number(p.budget || 0).toLocaleString('en-IN')}</span>
+                            <span className="text-[#58051E]">₹{Number(p.budget || 0).toLocaleString('en-IN')}</span>
                           </div>
                           <div className="flex justify-between text-[11px] text-slate-500">
                             <span>Category: {p.service_category}</span>
@@ -509,7 +509,7 @@ export const DigitalClients: React.FC = () => {
                 {/* Tasks */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <CheckSquare className="w-3.5 h-3.5 text-[#6A1B2E]" /> Active Engineering Tasks ({clientTasks.length})
+                    <CheckSquare className="w-3.5 h-3.5 text-[#58051E]" /> Active Engineering Tasks ({clientTasks.length})
                   </h4>
                   {clientTasks.length === 0 ? (
                     <div className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center font-medium">All tasks cleared or in queue</div>
@@ -528,7 +528,7 @@ export const DigitalClients: React.FC = () => {
                 {/* Invoices */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-[#6A1B2E]" /> Billing Ledgers ({clientInvoices.length})
+                    <FileText className="w-3.5 h-3.5 text-[#58051E]" /> Billing Ledgers ({clientInvoices.length})
                   </h4>
                   {clientInvoices.length === 0 ? (
                     <div className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center font-medium">No invoices issued yet</div>
@@ -550,7 +550,7 @@ export const DigitalClients: React.FC = () => {
                   )}
                 </div>
 
-                <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => setDossierClient(null)}>
+                <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setDossierClient(null)}>
                   Close Dossier
                 </Button>
               </div>

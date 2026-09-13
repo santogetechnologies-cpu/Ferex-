@@ -165,7 +165,7 @@ export const DigitalInvoices: React.FC = () => {
     <div className="space-y-6 text-left antialiased max-w-7xl mx-auto">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
@@ -174,13 +174,13 @@ export const DigitalInvoices: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <FileText className="w-6 h-6 text-[#6A1B2E]" /> Agency B2B Invoicing & Multi-Project Ledgers
+            <FileText className="w-6 h-6 text-[#58051E]" /> Agency B2B Invoicing & Multi-Project Ledgers
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Consolidated billing across multiple projects for single clients, GST breakdown, and payment reconciliations.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Issue Consolidated Invoice
         </Button>
       </div>
@@ -224,7 +224,7 @@ export const DigitalInvoices: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search invoice #, client company..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
           />
         </div>
         <span className="text-xs font-bold text-slate-400">{filtered.length} Invoices</span>
@@ -239,7 +239,7 @@ export const DigitalInvoices: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
             Generate a new consolidated multi-project invoice for your enterprise clients.
           </p>
-          <Button size="sm" className="mt-4 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
             <Plus className="w-3.5 h-3.5 mr-1" /> Issue Consolidated Invoice
           </Button>
         </Card>
@@ -268,7 +268,7 @@ export const DigitalInvoices: React.FC = () => {
                     <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3.5 px-4 font-extrabold text-slate-900">
                         <div className="flex items-center gap-1.5">
-                          <Building2 className="w-3.5 h-3.5 text-[#6A1B2E]" />
+                          <Building2 className="w-3.5 h-3.5 text-[#58051E]" />
                           {inv.client?.company_name || inv.client?.name || 'Enterprise Client'}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
@@ -282,7 +282,7 @@ export const DigitalInvoices: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 font-black text-slate-900">₹{baseAmt.toLocaleString('en-IN')}</td>
                       <td className="py-3.5 px-4 font-semibold text-slate-500">₹{taxAmt.toLocaleString('en-IN')}</td>
-                      <td className="py-3.5 px-4 font-black text-[#6A1B2E]">₹{total.toLocaleString('en-IN')}</td>
+                      <td className="py-3.5 px-4 font-black text-[#58051E]">₹{total.toLocaleString('en-IN')}</td>
                       <td className="py-3.5 px-4 font-bold text-slate-500">{inv.due_date || 'Net 15'}</td>
                       <td className="py-3.5 px-4">
                         <button
@@ -337,7 +337,7 @@ export const DigitalInvoices: React.FC = () => {
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <div>
                   <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-[#6A1B2E]" /> Multi-Project Single Client Billing
+                    <FileText className="w-4 h-4 text-[#58051E]" /> Multi-Project Single Client Billing
                   </h3>
                   <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
                     Consolidate multiple active sprints, designs, or apps into a single GST tax invoice.
@@ -386,7 +386,7 @@ export const DigitalInvoices: React.FC = () => {
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-                      <FolderKanban className="w-3.5 h-3.5 text-[#6A1B2E]" /> Project Line Items & Milestones ({invoiceItems.length})
+                      <FolderKanban className="w-3.5 h-3.5 text-[#58051E]" /> Project Line Items & Milestones ({invoiceItems.length})
                     </span>
                     <Button type="button" size="sm" variant="outline" className="text-xs font-bold" onClick={handleAddItem}>
                       <Plus className="w-3.5 h-3.5 mr-1" /> Add Project Scope
@@ -480,13 +480,13 @@ export const DigitalInvoices: React.FC = () => {
                   </div>
                   <div className="flex justify-between pt-1 border-t border-slate-200 text-sm font-black text-slate-900">
                     <span>Consolidated Total Payable:</span>
-                    <span className="text-[#6A1B2E]">₹{grandTotal.toLocaleString('en-IN')}</span>
+                    <span className="text-[#58051E]">₹{grandTotal.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
 
                 <div className="pt-2 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Generate & Dispatch Bill</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Generate & Dispatch Bill</Button>
                 </div>
               </form>
             </motion.div>

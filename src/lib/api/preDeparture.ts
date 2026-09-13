@@ -149,7 +149,7 @@ export async function updatePreDepartureField(
     try {
       await createNotification({
         user_id: studentId,
-        title: '✈️ Pre-Departure Briefing Completed',
+        title: 'Pre-Departure Briefing Completed',
         body: 'Your mandatory pre-departure orientation briefing has been verified by the FEREX compliance team. Have a safe journey!',
         category: 'Support'
       });

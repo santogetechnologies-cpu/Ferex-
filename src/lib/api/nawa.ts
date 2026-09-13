@@ -130,7 +130,7 @@ export async function createNawaApplication(payload: {
   try {
     await createNotification({
       user_id: payload.student_id,
-      title: '📜 NAWA Legalization Initiated',
+      title: 'NAWA Legalization Initiated',
       body: `Your degree documents (${docType}) have been submitted to NAWA Warsaw for legalization (Ref: ${refNo}).`,
       category: 'Application'
     });

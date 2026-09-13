@@ -370,12 +370,12 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                       <div className="flex items-center gap-2">
                         <h4 className="text-xs font-extrabold text-slate-900">Notifications</h4>
                         {notifications.filter((n: any) => !n.is_read).length > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-[#6A1B2E] text-white">
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-[#58051E] text-white">
                             {notifications.filter((n: any) => !n.is_read).length} New
                           </span>
                         )}
                       </div>
-                      <button onClick={() => { setShowNotifications(false); navigate('/student/notifications'); }} className="text-[10px] font-bold text-[#6A1B2E] hover:underline">View All</button>
+                      <button onClick={() => { setShowNotifications(false); navigate('/student/notifications'); }} className="text-[10px] font-bold text-[#58051E] hover:underline">View All</button>
                     </div>
                     <div className="space-y-1.5 max-h-72 overflow-y-auto">
                       {((notifications && notifications.length > 0) ? notifications : [
@@ -435,14 +435,14 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                                 </span>
                                 <p className="text-xs font-bold text-slate-900 truncate">{n.title}</p>
                               </div>
-                              {!n.is_read && <span className="w-2 h-2 rounded-full bg-[#6A1B2E] shrink-0" />}
+                              {!n.is_read && <span className="w-2 h-2 rounded-full bg-[#58051E] shrink-0" />}
                             </div>
                             <p className="text-[10.5px] font-semibold text-slate-500 mt-1 line-clamp-2">{n.body}</p>
                             <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-slate-100/60">
                               <span className="text-[9px] font-bold text-slate-400">
                                 {new Date(n.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
-                              <span className="text-[9.5px] font-extrabold text-[#6A1B2E] group-hover:underline flex items-center gap-0.5">
+                              <span className="text-[9.5px] font-extrabold text-[#58051E] group-hover:underline flex items-center gap-0.5">
                                 Open →
                               </span>
                             </div>
@@ -468,7 +468,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                   {profilePhoto ? (
                     <img src={profilePhoto} alt={displayName} className="w-6.5 h-6.5 rounded-lg object-cover border border-slate-200 shadow-2xs" />
                   ) : (
-                    <div className="w-6.5 h-6.5 rounded-lg bg-[#6A1B2E] text-white text-[10px] font-black flex items-center justify-center shadow-xs">
+                    <div className="w-6.5 h-6.5 rounded-lg bg-[#58051E] text-white text-[10px] font-black flex items-center justify-center shadow-xs">
                       {initialLetter}
                     </div>
                   )}

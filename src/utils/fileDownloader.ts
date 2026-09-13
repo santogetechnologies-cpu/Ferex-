@@ -99,7 +99,7 @@ export function downloadPackingListDocument(pl: {
   </div>
 
   <div>
-    <span class="seal">✓ OFFICIAL CARGO MANIFEST VERIFIED & STAMPED</span>
+    <span class="seal">OFFICIAL CARGO MANIFEST VERIFIED & STAMPED</span>
   </div>
 
   <div class="footer">
@@ -221,7 +221,7 @@ export function downloadBillOfLadingDocument(bl: {
   </div>
 
   <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-    <div class="status-stamp">✓ ${status}</div>
+    <div class="status-stamp">${status}</div>
     <div style="text-align: right; font-size: 12px; color: #334155;">
       <div>Authorized Signatory: <strong>Maritime Freight Controller</strong></div>
       <div>Issued at: <strong>Port of Gdansk Maritime Desk</strong></div>
@@ -274,7 +274,7 @@ export function downloadGenericVaultDocument(doc: {
   </div>
 
   <div>
-    <span class="stamp">✓ AUTHENTIC TRADE VAULT DOCUMENT</span>
+    <span class="stamp">AUTHENTIC TRADE VAULT DOCUMENT</span>
   </div>
 </body>
 </html>`;

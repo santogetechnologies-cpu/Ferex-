@@ -55,7 +55,7 @@ export const DigitalRevenueAnalytics: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
@@ -64,13 +64,13 @@ export const DigitalRevenueAnalytics: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-[#6A1B2E]" /> CFO Financial Analytics & Revenue Console
+            <DollarSign className="w-5 h-5 text-[#58051E]" /> CFO Financial Analytics & Revenue Console
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Real-time revenue metrics, profit margins, verified settlement collections, and pipeline valuation.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => showToast('Financial Statement exported (PDF/Excel)!')}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => showToast('Financial Statement exported (PDF/Excel)!')}>
           <Download className="w-3.5 h-3.5 mr-1.5" /> Export CFO Report
         </Button>
       </div>
@@ -82,7 +82,7 @@ export const DigitalRevenueAnalytics: React.FC = () => {
           { label: 'Active Enterprise Clients', val: `${stats.activeClientsCount} Accounts`, sub: 'Retained accounts' },
           { label: 'Average Gross Margin', val: '54.2%', sub: 'High-margin engineering services' },
         ].map((stat, idx) => (
-          <Card key={idx} className="p-4 border-l-4 border-l-[#6A1B2E] border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <Card key={idx} className="p-4 border-l-4 border-l-[#58051E] border-slate-200/80 shadow-xs flex flex-col justify-between">
             <span className="text-[10px] font-black uppercase text-slate-400">{stat.label}</span>
             <div className="text-2xl font-black text-slate-900 my-1">{stat.val}</div>
             <span className="text-[10px] font-extrabold text-slate-500">{stat.sub}</span>

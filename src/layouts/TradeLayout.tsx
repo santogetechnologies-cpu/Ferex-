@@ -155,7 +155,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#6A1B2E]/10 selection:text-[#6A1B2E]">
+    <div className="min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
       
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -304,7 +304,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                   setShowNotifications(false);
                   setShowProfileDropdown(false);
                 }}
-                className="h-9 px-3 rounded-xl bg-[#6A1B2E] text-white hover:bg-[#521221] text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="h-9 px-3 rounded-xl bg-[#58051E] text-white hover:bg-[#430316] text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">New Action</span>
@@ -348,7 +348,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                 className="relative p-2 text-slate-600 hover:bg-slate-100 border border-slate-200/80 rounded-xl transition-colors"
               >
                 <Bell size={18} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#6A1B2E] rounded-full ring-2 ring-white animate-pulse" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#58051E] rounded-full ring-2 ring-white animate-pulse" />
               </button>
 
               <AnimatePresence>
@@ -361,7 +361,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                   >
                     <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-2 select-none px-1">
                       <h4 className="text-xs font-extrabold text-slate-900">Trade Alerts</h4>
-                      <button onClick={() => navigate('/trade/notifications')} className="text-[10px] font-bold text-[#6A1B2E] hover:underline">View All</button>
+                      <button onClick={() => navigate('/trade/notifications')} className="text-[10px] font-bold text-[#58051E] hover:underline">View All</button>
                     </div>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       <div onClick={() => navigate('/trade/shipments')} className="p-2.5 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100">
@@ -394,7 +394,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                   {profilePhoto ? (
                     <img src={profilePhoto} alt="Trade Exec" className="w-6.5 h-6.5 rounded-lg object-cover border border-slate-200 shadow-2xs" />
                   ) : (
-                    <div className="w-6.5 h-6.5 rounded-lg bg-[#6A1B2E] text-white text-[10px] font-black flex items-center justify-center shadow-xs">
+                    <div className="w-6.5 h-6.5 rounded-lg bg-[#58051E] text-white text-[10px] font-black flex items-center justify-center shadow-xs">
                       {initials}
                     </div>
                   )}
@@ -419,7 +419,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                   >
                     <div className="px-3 py-2 border-b border-slate-100">
                       <p className="text-xs font-extrabold text-slate-900">{userName || roleLabel}</p>
-                      <p className="text-[10px] font-bold text-[#6A1B2E]">{roleLabel}</p>
+                      <p className="text-[10px] font-bold text-[#58051E]">{roleLabel}</p>
                       <p className="text-[10px] font-semibold text-slate-400 truncate">{userEmail}</p>
                     </div>
                     <div className="py-1 space-y-0.5 text-xs font-bold text-slate-700">

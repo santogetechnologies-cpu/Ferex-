@@ -239,7 +239,7 @@ export const RimiInventory: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -250,7 +250,7 @@ export const RimiInventory: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Boxes className="w-5 h-5 text-[#6A1B2E]" /> Cold Storage Inventory & Frost Loss Control
+            <Boxes className="w-5 h-5 text-[#58051E]" /> Cold Storage Inventory & Frost Loss Control
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Rimi Cold Chain ERP • Real-time SKU balances, sub-zero warehouse allocations, shrinkage, and frost loss write-offs.
@@ -258,20 +258,20 @@ export const RimiInventory: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="outline" className="text-xs font-bold border-slate-200" onClick={handleExportCSV}>
-            <Download className="w-3.5 h-3.5 mr-1.5 text-[#6A1B2E]" /> Export CSV
+            <Download className="w-3.5 h-3.5 mr-1.5 text-[#58051E]" /> Export CSV
           </Button>
           {activeTab === 'stock' && (
-            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { setNewInward(emptyInward); setShowInwardModal(true); }}>
+            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewInward(emptyInward); setShowInwardModal(true); }}>
               <Plus className="w-3.5 h-3.5 mr-1.5" /> Inward Stock
             </Button>
           )}
           {activeTab === 'frost_loss' && (
-            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { setNewFrostLoss(emptyFrostLoss); setShowFrostLossModal(true); }}>
+            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewFrostLoss(emptyFrostLoss); setShowFrostLossModal(true); }}>
               <Snowflake className="w-3.5 h-3.5 mr-1.5" /> Log New Frost Loss
             </Button>
           )}
           {activeTab === 'adjustments' && (
-            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => { setNewAdjustment(emptyAdjustment); setShowAdjustmentModal(true); }}>
+            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewAdjustment(emptyAdjustment); setShowAdjustmentModal(true); }}>
               <ArrowRightLeft className="w-3.5 h-3.5 mr-1.5" /> Cold Transfer / Adjust
             </Button>
           )}
@@ -306,19 +306,19 @@ export const RimiInventory: React.FC = () => {
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveTab('stock')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'stock' ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'stock' ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
         >
           Live Cold Stock Balances ({stockItems.length})
         </button>
         <button
           onClick={() => setActiveTab('frost_loss')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${activeTab === 'frost_loss' ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${activeTab === 'frost_loss' ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
         >
           <Snowflake className="w-3.5 h-3.5" /> Frost Loss & Shrinkage ({frostLosses.length})
         </button>
         <button
           onClick={() => setActiveTab('adjustments')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${activeTab === 'adjustments' ? 'bg-[#6A1B2E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${activeTab === 'adjustments' ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
         >
           <ArrowRightLeft className="w-3.5 h-3.5" /> Transfers & Adjustments ({adjustments.length})
         </button>
@@ -335,7 +335,7 @@ export const RimiInventory: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search product, batch #, or warehouse..."
-                className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+                className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
               />
             </div>
             <span className="text-xs font-bold text-slate-400">{filteredStock.length} Active Lines</span>
@@ -350,7 +350,7 @@ export const RimiInventory: React.FC = () => {
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
                 There are no active stock batches inwarded. Record your first batch below.
               </p>
-              <Button size="sm" className="mt-4 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowInwardModal(true)}>
+              <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowInwardModal(true)}>
                 <Plus className="w-3.5 h-3.5 mr-1" /> Inward Stock Batch
               </Button>
             </Card>
@@ -413,7 +413,7 @@ export const RimiInventory: React.FC = () => {
                 </p>
               </div>
             </div>
-            <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shrink-0" onClick={() => { setNewFrostLoss(emptyFrostLoss); setShowFrostLossModal(true); }}>
+            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shrink-0" onClick={() => { setNewFrostLoss(emptyFrostLoss); setShowFrostLossModal(true); }}>
               <Plus className="w-3.5 h-3.5 mr-1" /> Log New Frost Loss
             </Button>
           </div>
@@ -552,7 +552,7 @@ export const RimiInventory: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowInwardModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Inward Stock</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Inward Stock</Button>
                 </div>
               </form>
             </motion.div>
@@ -607,7 +607,7 @@ export const RimiInventory: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowFrostLossModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Log Incident</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Log Incident</Button>
                 </div>
               </form>
             </motion.div>
@@ -661,7 +661,7 @@ export const RimiInventory: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAdjustmentModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Execute Adjustment</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Execute Adjustment</Button>
                 </div>
               </form>
             </motion.div>

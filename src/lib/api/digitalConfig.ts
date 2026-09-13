@@ -74,7 +74,7 @@ export const DEFAULT_DIGITAL_CONFIG: DigitalCustomizationConfig = {
     operating_hours: 'Mon – Fri: 09:30 AM – 06:30 PM IST / CET',
     default_currency: 'INR',
     timezone: 'Asia/Kolkata (IST)',
-    primary_color: '#6A1B2E'
+    primary_color: '#58051E'
   },
   client_policies: {
     allow_self_service_payments: true,
@@ -92,7 +92,7 @@ export const DEFAULT_DIGITAL_CONFIG: DigitalCustomizationConfig = {
   },
   broadcast: {
     is_active: true,
-    message: '🚀 FEREX Digital Cloud & Web Engineering Q3 Sprints are now active. All client deliverables are tracked with 99.9% uptime SLA.',
+    message: 'FEREX Digital Cloud & Web Engineering Q3 Sprints are now active. All client deliverables are tracked with 99.9% uptime SLA.',
     urgency: 'info',
     target_audience: 'all',
     link_url: '/digital/projects',

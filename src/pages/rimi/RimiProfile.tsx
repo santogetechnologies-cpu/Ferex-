@@ -59,7 +59,7 @@ export const RimiProfile: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -70,7 +70,7 @@ export const RimiProfile: React.FC = () => {
 
       {/* Hero Header */}
       <Card className="p-0 overflow-hidden border border-slate-200/80 shadow-md text-left bg-white">
-        <div className="min-h-[190px] md:h-52 bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] relative p-6 md:p-8 flex flex-col justify-end text-white overflow-hidden">
+        <div className="min-h-[190px] md:h-52 bg-gradient-to-r from-[#58051E] via-[#430316] to-[#3B0B16] relative p-6 md:p-8 flex flex-col justify-end text-white overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-black/40 pointer-events-none" />
 
           <div className="absolute top-4 right-4 flex items-center gap-2 flex-wrap z-10">
@@ -108,7 +108,7 @@ export const RimiProfile: React.FC = () => {
                 {profilePhoto ? (
                   <img src={profilePhoto} alt="Avatar" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
                 ) : (
-                  <div className="w-full h-full bg-[#6A1B2E] text-white text-2xl font-black flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                  <div className="w-full h-full bg-[#58051E] text-white text-2xl font-black flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     RF
                   </div>
                 )}
@@ -131,7 +131,7 @@ export const RimiProfile: React.FC = () => {
             <Button
               size="sm"
               variant="outline"
-              className="text-xs font-bold h-9 px-4 border-slate-200 hover:border-[#6A1B2E] hover:bg-[#6A1B2E] hover:text-white transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="text-xs font-bold h-9 px-4 border-slate-200 hover:border-[#58051E] hover:bg-[#58051E] hover:text-white transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
             >
               <Camera className="w-3.5 h-3.5" /> {profilePhoto ? 'Change Photo' : 'Upload Photo'}
@@ -160,10 +160,10 @@ export const RimiProfile: React.FC = () => {
               key={t.key}
               onClick={() => setActiveTab(t.key as any)}
               className={`py-3.5 px-4 text-xs font-bold border-b-2 transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
-                activeTab === t.key ? 'border-[#6A1B2E] text-[#6A1B2E] bg-white shadow-xs' : 'border-transparent text-slate-500 hover:text-slate-900'
+                activeTab === t.key ? 'border-[#58051E] text-[#58051E] bg-white shadow-xs' : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
-              <t.icon className={`w-3.5 h-3.5 ${activeTab === t.key ? 'text-[#6A1B2E]' : 'text-slate-400'}`} />
+              <t.icon className={`w-3.5 h-3.5 ${activeTab === t.key ? 'text-[#58051E]' : 'text-slate-400'}`} />
               {t.label}
             </button>
           ))}
@@ -187,7 +187,7 @@ export const RimiProfile: React.FC = () => {
               <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Executive Title</label>
               <input type="text" value={userData.title} onChange={(e) => setUserData({ ...userData, title: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
             </div>
-            <Button type="submit" size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold flex items-center gap-1.5">
+            <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold flex items-center gap-1.5">
               <Save className="w-3.5 h-3.5" /> Save Profile Details
             </Button>
           </form>

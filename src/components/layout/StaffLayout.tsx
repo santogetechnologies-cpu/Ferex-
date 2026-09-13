@@ -209,7 +209,7 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
                           to={item.path}
                           onClick={() => setMobileOpen(false)}
                           className={`flex items-center gap-3 px-3.5 py-2 rounded-2xl text-xs font-bold transition-all ${active
-                              ? 'bg-[#6A1B2E] text-white shadow-md'
+                              ? 'bg-[#58051E] text-white shadow-md'
                               : 'text-slate-600 hover:bg-slate-100'
                             }`}
                         >

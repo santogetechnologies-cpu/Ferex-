@@ -48,14 +48,14 @@ export const DigitalProfile: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Hero Banner Section */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] p-8 md:p-10 text-white shadow-xl overflow-hidden">
+      <div className="relative rounded-3xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#3B0B16] p-8 md:p-10 text-white shadow-xl overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end gap-6">
           {/* Avatar with smooth hover & upload */}
           <div className="relative group shrink-0">
@@ -89,9 +89,9 @@ export const DigitalProfile: React.FC = () => {
       <Card className="p-6 border border-slate-200/70 shadow-xs space-y-5">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
-            <User className="w-4 h-4 text-[#6A1B2E]" /> Account & Personal Information
+            <User className="w-4 h-4 text-[#58051E]" /> Account & Personal Information
           </h2>
-          <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={handleSave}>
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={handleSave}>
             <Save className="w-4 h-4 mr-1.5" /> Save Changes
           </Button>
         </div>
@@ -99,31 +99,31 @@ export const DigitalProfile: React.FC = () => {
         <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Full Display Name</label>
-            <input type="text" value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+            <input type="text" value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
           <div>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Designation & Role</label>
-            <input type="text" value={profile.role} onChange={e => setProfile({...profile, role: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+            <input type="text" value={profile.role} onChange={e => setProfile({...profile, role: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
           <div>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Company / Organization</label>
-            <input type="text" value={profile.company} onChange={e => setProfile({...profile, company: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+            <input type="text" value={profile.company} onChange={e => setProfile({...profile, company: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
           <div>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Email Address</label>
-            <input type="email" value={profile.email} onChange={e => setProfile({...profile, email: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+            <input type="email" value={profile.email} onChange={e => setProfile({...profile, email: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
           <div>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Phone Number</label>
-            <input type="text" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+            <input type="text" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
           <div>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Office Location</label>
-            <input type="text" value={profile.location} onChange={e => setProfile({...profile, location: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+            <input type="text" value={profile.location} onChange={e => setProfile({...profile, location: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
           <div className="md:col-span-2">
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Executive Summary / Bio</label>
-            <textarea rows={3} value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+            <textarea rows={3} value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
         </form>
       </Card>

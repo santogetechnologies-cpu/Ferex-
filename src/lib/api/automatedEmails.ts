@@ -85,7 +85,7 @@ export async function logAutomatedEmail(entry: Omit<EmailLogEntry, 'id' | 'sent_
   try {
     await supabase.from('notifications').insert({
       user_id: null,
-      title: `📧 Automated Email: ${newLog.subject}`,
+      title: `Automated Email: ${newLog.subject}`,
       message: `Sent to ${newLog.recipient_email} (${newLog.template_type})`,
       type: 'email_dispatch',
       is_read: true,
@@ -115,11 +115,11 @@ export async function sendEducationProcessEmail(params: {
     recipient_email: params.studentEmail,
     recipient_name: params.studentName,
     template_type: 'education_process_step',
-    subject: `🎓 Journey Update: Step "${params.stepName}" ${params.stepStatus} — Ferex Education`,
+    subject: `Journey Update: Step "${params.stepName}" ${params.stepStatus} — Ferex Education`,
     body_html: `
       <h2>Dear ${params.studentName},</h2>
       <p>Your university & visa journey milestone has advanced:</p>
-      <div style="background:#f8fafc;padding:16px;border-left:4px solid #6A1B2E;margin:16px 0;">
+      <div style="background:#f8fafc;padding:16px;border-left:4px solid #58051E;margin:16px 0;">
         <strong>Milestone:</strong> ${params.stepName}<br/>
         <strong>Status:</strong> ${params.stepStatus}<br/>
         ${params.notes ? `<strong>Notes:</strong> ${params.notes}<br/>` : ''}
@@ -146,7 +146,7 @@ export async function sendTradeStageEmail(params: {
     recipient_email: params.clientEmail,
     recipient_name: params.clientName,
     template_type: `trade_${params.stage.toLowerCase().replace(/\s+/g, '_')}`,
-    subject: `🚢 Trade Shipment Update [${params.shipmentNo}]: ${params.stage} — Ferex Global Trade`,
+    subject: `Trade Shipment Update [${params.shipmentNo}]: ${params.stage} — Ferex Global Trade`,
     body_html: `
       <h2>Dear ${params.clientName},</h2>
       <p>This is an automated dispatch notice for commercial consignment <strong>${params.shipmentNo}</strong>.</p>
@@ -178,7 +178,7 @@ export async function sendRimiColdChainEmail(params: {
     recipient_email: params.customerEmail,
     recipient_name: params.customerName,
     template_type: `rimi_${params.event.toLowerCase().replace(/\s+/g, '_')}`,
-    subject: `❄️ Rimi Cold Chain Notice [${params.orderNo}]: ${params.event}`,
+    subject: `Rimi Cold Chain Notice [${params.orderNo}]: ${params.event}`,
     body_html: `
       <h2>Dear ${params.customerName},</h2>
       <p>Consignment notification for frozen foods batch <strong>${params.orderNo}</strong>.</p>
@@ -206,11 +206,11 @@ export async function sendDigitalProjectMilestoneEmail(params: {
     recipient_email: params.clientEmail,
     recipient_name: params.clientName,
     template_type: `digital_milestone_${params.stage.toLowerCase()}`,
-    subject: `💻 Project Deliverable Update: "${params.projectTitle}" is ${params.stage} — Ferex Digital`,
+    subject: `Project Deliverable Update: "${params.projectTitle}" is ${params.stage} — Ferex Digital`,
     body_html: `
       <h2>Dear ${params.clientName},</h2>
       <p>Deliverable update for your active engineering & design project <strong>${params.projectTitle}</strong>.</p>
-      <div style="background:#f1f5f9;padding:16px;border-left:4px solid #6A1B2E;margin:16px 0;">
+      <div style="background:#f1f5f9;padding:16px;border-left:4px solid #58051E;margin:16px 0;">
         <p><strong>Current Lifecycle Stage:</strong> ${params.stage}</p>
         ${params.invoiceNo ? `<p><strong>Linked Tax Invoice:</strong> ${params.invoiceNo}</p>` : ''}
         ${params.amount ? `<p><strong>Milestone Fee:</strong> ₹${Number(params.amount).toLocaleString('en-IN')}</p>` : ''}

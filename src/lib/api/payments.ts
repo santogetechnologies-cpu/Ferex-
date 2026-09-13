@@ -238,7 +238,7 @@ export async function submitPaymentProof(payload: {
   try {
     await createNotification({
       user_id: 'admin',
-      title: '💳 New Student Payment Proof Submitted',
+      title: 'New Student Payment Proof Submitted',
       body: `Payment proof of ₹${Number(payload.amount).toLocaleString('en-IN')} submitted by ${payload.student_name || 'Student'} for "${payload.title}" (UTR: ${payload.utr_number || 'Pending Verification'}).`,
       category: 'Payment'
     });
@@ -246,7 +246,7 @@ export async function submitPaymentProof(payload: {
     if (rawStudentId && rawStudentId !== 'admin') {
       await createNotification({
         user_id: rawStudentId,
-        title: '💳 Payment Proof Submitted',
+        title: 'Payment Proof Submitted',
         body: `Your payment proof of ₹${Number(payload.amount).toLocaleString('en-IN')} for "${payload.title}" is under review.`,
         category: 'Payment'
       });

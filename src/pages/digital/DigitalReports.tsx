@@ -191,7 +191,7 @@ export const DigitalReports: React.FC = () => {
     <div className="space-y-6 text-left antialiased max-w-7xl mx-auto">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
@@ -201,7 +201,7 @@ export const DigitalReports: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <FileText className="w-6 h-6 text-[#6A1B2E]" /> Executive Business Reporting Console
+            <FileText className="w-6 h-6 text-[#58051E]" /> Executive Business Reporting Console
             {loading && <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 animate-pulse">Syncing...</span>}
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
@@ -215,7 +215,7 @@ export const DigitalReports: React.FC = () => {
           <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => showToast('Exporting Excel Master Digest...')}>
             <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" /> Export Excel
           </Button>
-          <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => { window.print(); }}>
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => { window.print(); }}>
             <Printer className="w-3.5 h-3.5 mr-1.5" /> Print Report
           </Button>
         </div>
@@ -246,9 +246,9 @@ export const DigitalReports: React.FC = () => {
         <Card className="p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between rounded-2xl bg-white">
           <div>
             <span className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">Retained Accounts</span>
-            <span className="text-2xl font-black text-[#6A1B2E]">{effectiveClients.length} Clients</span>
+            <span className="text-2xl font-black text-[#58051E]">{effectiveClients.length} Clients</span>
           </div>
-          <div className="text-[10px] font-semibold text-[#6A1B2E] mt-2 border-t border-slate-100 pt-1.5">
+          <div className="text-[10px] font-semibold text-[#58051E] mt-2 border-t border-slate-100 pt-1.5">
             100% Client Retention Rate
           </div>
         </Card>
@@ -273,12 +273,12 @@ export const DigitalReports: React.FC = () => {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search report title or ID..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
           />
         </div>
         <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
           <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 shrink-0">
-            <Calendar className="w-3.5 h-3.5 text-[#6A1B2E]" />
+            <Calendar className="w-3.5 h-3.5 text-[#58051E]" />
             <select value={dateRange} onChange={e => setDateRange(e.target.value)} className="bg-transparent focus:outline-none cursor-pointer">
               <option>This Month</option>
               <option>Last Month</option>
@@ -287,7 +287,7 @@ export const DigitalReports: React.FC = () => {
             </select>
           </div>
           <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 shrink-0">
-            <Filter className="w-3.5 h-3.5 text-[#6A1B2E]" />
+            <Filter className="w-3.5 h-3.5 text-[#58051E]" />
             <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="bg-transparent focus:outline-none cursor-pointer">
               <option value="All">All Categories</option>
               <option value="Executive">Executive</option>
@@ -329,7 +329,7 @@ export const DigitalReports: React.FC = () => {
                 </Button>
                 <button
                   onClick={() => showToast(`Exported ${report.title} (${report.format})!`)}
-                  className="px-3 py-1 bg-[#6A1B2E] hover:bg-[#521221] text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                  className="px-3 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
                 >
                   <Download className="w-3 h-3" /> Download
                 </button>
@@ -347,7 +347,7 @@ export const DigitalReports: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <div>
-                  <span className="text-[10px] font-black text-[#6A1B2E] uppercase">{selectedReport.id} · {selectedReport.category} Audit</span>
+                  <span className="text-[10px] font-black text-[#58051E] uppercase">{selectedReport.id} · {selectedReport.category} Audit</span>
                   <h3 className="text-base font-black text-slate-900 leading-tight mt-0.5">{selectedReport.title}</h3>
                 </div>
                 <button onClick={() => setSelectedReport(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
@@ -372,7 +372,7 @@ export const DigitalReports: React.FC = () => {
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => window.print()}>
                     <Printer className="w-3.5 h-3.5 mr-1" /> Print Audit Sheet
                   </Button>
-                  <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => {
+                  <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => {
                     showToast(`Exported ${selectedReport.id}.${selectedReport.format.toLowerCase()}`);
                     setSelectedReport(null);
                   }}>

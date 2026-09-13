@@ -34,7 +34,7 @@ const SERVICE_SELECTION_CARDS: ServiceCardData[] = [
     startingPrice: '₹2,50,000',
     timeline: '4 - 6 Weeks',
     status: 'Popular',
-    badgeColor: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20',
+    badgeColor: 'bg-[#58051E]/10 text-[#58051E] border-[#58051E]/20',
     workspaceTitle: 'Software Delivery Workspace',
   },
   {
@@ -62,7 +62,7 @@ const SERVICE_SELECTION_CARDS: ServiceCardData[] = [
     startingPrice: '₹1,80,000',
     timeline: '3 - 5 Weeks',
     status: 'Popular',
-    badgeColor: 'bg-[#6A1B2E]/10 text-[#6A1B2E] border-[#6A1B2E]/20',
+    badgeColor: 'bg-[#58051E]/10 text-[#58051E] border-[#58051E]/20',
     workspaceTitle: 'Design Studio',
   }
 ];
@@ -85,7 +85,7 @@ export const DigitalServicesHub: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             {toast}
@@ -94,7 +94,7 @@ export const DigitalServicesHub: React.FC = () => {
       </AnimatePresence>
 
       {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-8 md:p-10 shadow-xl">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#3B0B16] text-white p-8 md:p-10 shadow-xl">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-3 max-w-2xl">
             <div className="flex items-center gap-2">
@@ -115,7 +115,7 @@ export const DigitalServicesHub: React.FC = () => {
       {/* Top Service Catalog Stats Bar */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: 'Total Services', value: '6 Workspaces', color: 'text-[#6A1B2E]' },
+          { label: 'Total Services', value: '6 Workspaces', color: 'text-[#58051E]' },
           { label: 'Active Projects', value: '14 Active', color: 'text-blue-600' },
           { label: 'Completed YTD', value: '128 Delivered', color: 'text-emerald-600' },
           { label: 'YTD Revenue (₹)', value: '₹1.82 Crore', color: 'text-purple-600' },
@@ -140,14 +140,14 @@ export const DigitalServicesHub: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <Card className="p-6 border border-slate-200/80 rounded-2xl shadow-xs hover:shadow-xl hover:-translate-y-1.5 hover:border-[#6A1B2E]/40 transition-all duration-300 flex flex-col justify-between h-full group relative overflow-hidden bg-white">
+              <Card className="p-6 border border-slate-200/80 rounded-2xl shadow-xs hover:shadow-xl hover:-translate-y-1.5 hover:border-[#58051E]/40 transition-all duration-300 flex flex-col justify-between h-full group relative overflow-hidden bg-white">
                 {/* Top Maroon Hover Accent Glow */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#6A1B2E] to-[#9B3A50] opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#58051E] to-[#9B3A50] opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 <div className="space-y-4">
                   {/* Header: Icon + Status */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-[#6A1B2E]/10 text-[#6A1B2E] group-hover:bg-[#6A1B2E] group-hover:text-white flex items-center justify-center transition-all duration-300 shrink-0 shadow-2xs">
+                    <div className="w-12 h-12 rounded-2xl bg-[#58051E]/10 text-[#58051E] group-hover:bg-[#58051E] group-hover:text-white flex items-center justify-center transition-all duration-300 shrink-0 shadow-2xs">
                       <IconComp className="w-6 h-6 transition-transform group-hover:scale-110" />
                     </div>
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${svc.badgeColor}`}>
@@ -157,7 +157,7 @@ export const DigitalServicesHub: React.FC = () => {
 
                   {/* Service Title & Desc */}
                   <div>
-                    <h3 className="text-base font-black text-slate-900 group-hover:text-[#6A1B2E] transition-colors">
+                    <h3 className="text-base font-black text-slate-900 group-hover:text-[#58051E] transition-colors">
                       {svc.name}
                     </h3>
                     <p className="text-xs font-semibold text-slate-500 mt-1.5 leading-relaxed">
@@ -184,7 +184,7 @@ export const DigitalServicesHub: React.FC = () => {
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         {svc.activeProjects} Active Projects
                       </span>
-                      <span className="text-[10px] text-[#6A1B2E] font-extrabold">{svc.workspaceTitle}</span>
+                      <span className="text-[10px] text-[#58051E] font-extrabold">{svc.workspaceTitle}</span>
                     </div>
                     <div className="flex items-center gap-1 text-[11px] text-slate-400 font-bold">
                       <Users className="w-3.5 h-3.5 text-slate-400" />
@@ -202,7 +202,7 @@ export const DigitalServicesHub: React.FC = () => {
                         navigate(svc.route);
                       }, 200);
                     }}
-                    className="w-full h-10 px-4 rounded-xl bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#6A1B2E]/20"
+                    className="w-full h-10 px-4 rounded-xl bg-[#58051E] hover:bg-[#430316] text-white text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#58051E]/20"
                   >
                     Open Workspace <ArrowRight className="w-4 h-4" />
                   </button>

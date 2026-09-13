@@ -107,7 +107,7 @@ export const DigitalMarketing: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             {toast}
@@ -119,7 +119,7 @@ export const DigitalMarketing: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <Megaphone className="w-5 h-5 text-[#6A1B2E]" /> Marketing Command Center & Social Creative Studio
+            <Megaphone className="w-5 h-5 text-[#58051E]" /> Marketing Command Center & Social Creative Studio
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Multi-channel Instagram Reels, Google PPC, LinkedIn Sponsored Campaigns, and dynamic ROAS analytics linked to live clients.
@@ -129,7 +129,7 @@ export const DigitalMarketing: React.FC = () => {
           <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => setShowCreateModal(true)}>
             <Plus className="w-4 h-4 mr-1.5" /> Launch Campaign
           </Button>
-          <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => showToast('Omnichannel ROAS Audit exported!')}>
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => showToast('Omnichannel ROAS Audit exported!')}>
             <BarChart3 className="w-4 h-4 mr-1.5" /> Export Campaign ROAS
           </Button>
         </div>
@@ -141,7 +141,7 @@ export const DigitalMarketing: React.FC = () => {
           { label: 'Avg Campaign ROAS', value: '4.8x Return', sub: '₹7.2L Spend YoY', color: 'text-emerald-700' },
           { label: 'Total Social Impressions', value: '2.84 Million', sub: 'Instagram + Meta + LinkedIn', color: 'text-purple-700' },
           { label: 'Total Inbound Leads', value: `${leads.length > 0 ? leads.length : 1420} Leads`, sub: 'Cost Per Lead ₹480', color: 'text-blue-700' },
-          { label: 'Live Active Campaigns', value: `${campaigns.length} Campaigns`, sub: 'All ad channels healthy', color: 'text-[#6A1B2E]' },
+          { label: 'Live Active Campaigns', value: `${campaigns.length} Campaigns`, sub: 'All ad channels healthy', color: 'text-[#58051E]' },
         ].map((card, idx) => (
           <Card key={idx} className="p-4 border border-slate-200/70 shadow-xs">
             <span className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">{card.label}</span>
@@ -154,7 +154,7 @@ export const DigitalMarketing: React.FC = () => {
       {/* Client Brand Target Bar */}
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Sparkles className="w-4 h-4 text-[#6A1B2E]" />
+          <Sparkles className="w-4 h-4 text-[#58051E]" />
           <span className="text-xs font-bold text-slate-700">Client Ad Creative Target:</span>
           <select
             value={selectedClient?.id || ''}
@@ -247,7 +247,7 @@ export const DigitalMarketing: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Deploy Campaign</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Deploy Campaign</Button>
                 </div>
               </form>
             </motion.div>

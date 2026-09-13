@@ -137,7 +137,7 @@ export const RimiSalesOrders: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {toast}
           </motion.div>
@@ -147,13 +147,13 @@ export const RimiSalesOrders: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-[#6A1B2E]" /> B2B Cold Chain Sales Orders
+            <ShoppingCart className="w-5 h-5 text-[#58051E]" /> B2B Cold Chain Sales Orders
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Rimi Cold Chain Console • Live purchase orders from distributors, cold dispatch slips, and fulfillment tracking.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Create Sales Order
         </Button>
       </div>
@@ -161,7 +161,7 @@ export const RimiSalesOrders: React.FC = () => {
       <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search order ID, buyer, status..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search order ID, buyer, status..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
         </div>
         <span className="text-xs font-bold text-slate-400">{filteredOrders.length} Sales Orders</span>
       </Card>
@@ -175,7 +175,7 @@ export const RimiSalesOrders: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
             {searchQuery ? 'No sales orders match your search query.' : 'There are no active orders recorded yet. Create your first sales order below.'}
           </p>
-          <Button size="sm" className="mt-4 bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
+          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
             <Plus className="w-3.5 h-3.5 mr-1" /> Create Sales Order
           </Button>
         </Card>
@@ -210,7 +210,7 @@ export const RimiSalesOrders: React.FC = () => {
                       <select
                         value={o.status}
                         onChange={(e) => handleStatusChange(o.rawId, e.target.value)}
-                        className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-[#6A1B2E]"
+                        className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-[#58051E]"
                       >
                         <option value="Received">Received</option>
                         <option value="Confirmed">Confirmed</option>
@@ -222,7 +222,7 @@ export const RimiSalesOrders: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => setSelectedOrder(o)} className="p-1.5 text-[#6A1B2E] hover:bg-slate-100 rounded" title="View Invoice">
+                        <button onClick={() => setSelectedOrder(o)} className="p-1.5 text-[#58051E] hover:bg-slate-100 rounded" title="View Invoice">
                           <Eye className="w-4 h-4" />
                         </button>
                         <button onClick={() => handleDeleteOrder(o.rawId)} className="p-1.5 text-slate-400 hover:text-red-600 rounded" title="Delete Order">
@@ -312,7 +312,7 @@ export const RimiSalesOrders: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Dispatch Order</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Dispatch Order</Button>
                 </div>
               </form>
             </motion.div>
@@ -333,7 +333,7 @@ export const RimiSalesOrders: React.FC = () => {
 
               <div className="space-y-4 text-left">
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-black text-[#6A1B2E] uppercase">{selectedOrder.id}</span>
+                  <span className="text-[10px] font-black text-[#58051E] uppercase">{selectedOrder.id}</span>
                   <h4 className="text-base font-black text-slate-900">{selectedOrder.buyer}</h4>
                   <p className="text-xs font-semibold text-slate-500">Order Date: {selectedOrder.date}</p>
                 </div>
@@ -341,7 +341,7 @@ export const RimiSalesOrders: React.FC = () => {
                 <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs font-semibold text-slate-700">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Total Invoice Amount:</span>
-                    <span className="font-bold text-slate-900 text-sm text-[#6A1B2E]">{selectedOrder.amount}</span>
+                    <span className="font-bold text-slate-900 text-sm text-[#58051E]">{selectedOrder.amount}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Status:</span>
@@ -363,7 +363,7 @@ export const RimiSalesOrders: React.FC = () => {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => window.print()}>
+                  <Button size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => window.print()}>
                     <Printer className="w-3.5 h-3.5 mr-1" /> Print Slip
                   </Button>
                   <Button size="sm" variant="outline" className="flex-1 text-xs font-bold" onClick={() => setSelectedOrder(null)}>

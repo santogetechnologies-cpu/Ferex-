@@ -137,7 +137,7 @@ export const DigitalSettings: React.FC = () => {
       </AnimatePresence>
 
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#24020B] via-[#3B0C17] to-[#58051E] rounded-2xl p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-[#6A1B2E]/50 shadow-md">
+      <div className="bg-gradient-to-r from-[#24020B] via-[#3B0C17] to-[#58051E] rounded-2xl p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-[#58051E]/50 shadow-md">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="px-2.5 py-0.5 rounded-full bg-[#E6CA9E]/20 text-[#E6CA9E] text-[10px] font-black uppercase tracking-wider border border-[#E6CA9E]/30">
@@ -187,7 +187,7 @@ export const DigitalSettings: React.FC = () => {
               onClick={() => setActiveTab(t.id)}
               className={`px-4 py-2.5 rounded-t-xl text-xs font-bold flex items-center gap-2 border-b-2 whitespace-nowrap transition-all ${
                 isActive
-                  ? 'border-[#6A1B2E] text-[#6A1B2E] bg-white shadow-2xs'
+                  ? 'border-[#58051E] text-[#58051E] bg-white shadow-2xs'
                   : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
@@ -224,7 +224,7 @@ export const DigitalSettings: React.FC = () => {
                     type="text"
                     value={form.branding.agency_name}
                     onChange={e => setForm({ ...form, branding: { ...form.branding, agency_name: e.target.value } })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
                 <div>
@@ -235,7 +235,7 @@ export const DigitalSettings: React.FC = () => {
                     type="text"
                     value={form.branding.portal_title}
                     onChange={e => setForm({ ...form, branding: { ...form.branding, portal_title: e.target.value } })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -246,7 +246,7 @@ export const DigitalSettings: React.FC = () => {
                     type="text"
                     value={form.branding.tagline}
                     onChange={e => setForm({ ...form, branding: { ...form.branding, tagline: e.target.value } })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
                 <div>
@@ -257,7 +257,7 @@ export const DigitalSettings: React.FC = () => {
                     type="email"
                     value={form.branding.support_email}
                     onChange={e => setForm({ ...form, branding: { ...form.branding, support_email: e.target.value } })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
                 <div>
@@ -268,7 +268,7 @@ export const DigitalSettings: React.FC = () => {
                     type="text"
                     value={form.branding.support_phone}
                     onChange={e => setForm({ ...form, branding: { ...form.branding, support_phone: e.target.value } })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
                 <div>
@@ -279,7 +279,7 @@ export const DigitalSettings: React.FC = () => {
                     type="text"
                     value={form.branding.whatsapp_number}
                     onChange={e => setForm({ ...form, branding: { ...form.branding, whatsapp_number: e.target.value } })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
                 <div>
@@ -289,7 +289,7 @@ export const DigitalSettings: React.FC = () => {
                   <select
                     value={form.branding.default_currency}
                     onChange={e => setForm({ ...form, branding: { ...form.branding, default_currency: e.target.value as any } })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   >
                     <option value="INR">₹ (INR - Indian Rupee)</option>
                     <option value="EUR">€ (EUR - Euro)</option>
@@ -304,7 +304,7 @@ export const DigitalSettings: React.FC = () => {
                     type="text"
                     value={form.branding.office_address}
                     onChange={e => setForm({ ...form, branding: { ...form.branding, office_address: e.target.value } })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -315,7 +315,7 @@ export const DigitalSettings: React.FC = () => {
                     type="text"
                     value={form.branding.operating_hours}
                     onChange={e => setForm({ ...form, branding: { ...form.branding, operating_hours: e.target.value } })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
               </div>
@@ -342,7 +342,7 @@ export const DigitalSettings: React.FC = () => {
                       ...form,
                       client_policies: { ...form.client_policies, guaranteed_sla_response_hours: Number(e.target.value) }
                     })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
                 <div>
@@ -356,7 +356,7 @@ export const DigitalSettings: React.FC = () => {
                       ...form,
                       client_policies: { ...form.client_policies, client_review_window_days: Number(e.target.value) }
                     })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
               </div>
@@ -399,7 +399,7 @@ export const DigitalSettings: React.FC = () => {
                         }
                       })}
                       className={`w-10 h-5 rounded-full transition-all relative flex items-center px-0.5 shrink-0 mt-0.5 ${
-                        form.client_policies[item.key] ? 'bg-[#6A1B2E]' : 'bg-slate-300'
+                        form.client_policies[item.key] ? 'bg-[#58051E]' : 'bg-slate-300'
                       }`}
                     >
                       <span className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
@@ -430,7 +430,7 @@ export const DigitalSettings: React.FC = () => {
                     ...form,
                     delivery_rules: { ...form.delivery_rules, default_sprint_weeks: Number(e.target.value) }
                   })}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                 >
                   <option value={1}>1 Week (Rapid prototyping)</option>
                   <option value={2}>2 Weeks (Standard agile sprint)</option>
@@ -472,7 +472,7 @@ export const DigitalSettings: React.FC = () => {
                         }
                       })}
                       className={`w-10 h-5 rounded-full transition-all relative flex items-center px-0.5 shrink-0 mt-0.5 ${
-                        form.delivery_rules[rule.key] ? 'bg-[#6A1B2E]' : 'bg-slate-300'
+                        form.delivery_rules[rule.key] ? 'bg-[#58051E]' : 'bg-slate-300'
                       }`}
                     >
                       <span className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
@@ -493,7 +493,7 @@ export const DigitalSettings: React.FC = () => {
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                 <div>
                   <h2 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
-                    <Megaphone className="w-4 h-4 text-[#6A1B2E]" />
+                    <Megaphone className="w-4 h-4 text-[#58051E]" />
                     Live Digital Agency Broadcast Ticker
                   </h2>
                   <p className="text-[11px] font-medium text-slate-500 mt-0.5">
@@ -525,7 +525,7 @@ export const DigitalSettings: React.FC = () => {
                     rows={3}
                     value={form.broadcast.message}
                     onChange={e => setForm({ ...form, broadcast: { ...form.broadcast, message: e.target.value } })}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
 
@@ -536,7 +536,7 @@ export const DigitalSettings: React.FC = () => {
                   <select
                     value={form.broadcast.urgency}
                     onChange={e => setForm({ ...form, broadcast: { ...form.broadcast, urgency: e.target.value as any } })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   >
                     <option value="info">Info (Blue Notice)</option>
                     <option value="warning">Warning (Amber Maintenance)</option>
@@ -552,7 +552,7 @@ export const DigitalSettings: React.FC = () => {
                   <select
                     value={form.broadcast.target_audience}
                     onChange={e => setForm({ ...form, broadcast: { ...form.broadcast, target_audience: e.target.value as any } })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   >
                     <option value="all">All Portals (Agency Staff & Clients)</option>
                     <option value="clients">Clients Only</option>
@@ -569,7 +569,7 @@ export const DigitalSettings: React.FC = () => {
                     value={form.broadcast.link_url || ''}
                     onChange={e => setForm({ ...form, broadcast: { ...form.broadcast, link_url: e.target.value } })}
                     placeholder="/digital/projects or https://..."
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
 
@@ -582,7 +582,7 @@ export const DigitalSettings: React.FC = () => {
                     value={form.broadcast.link_label || ''}
                     onChange={e => setForm({ ...form, broadcast: { ...form.broadcast, link_label: e.target.value } })}
                     placeholder="e.g. View Sprints"
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
               </div>
@@ -602,7 +602,7 @@ export const DigitalSettings: React.FC = () => {
                 type="button"
                 onClick={handleAddService}
                 size="sm"
-                className="bg-[#6A1B2E] text-white text-xs font-bold"
+                className="bg-[#58051E] text-white text-xs font-bold"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" /> Add Service Package
               </Button>
@@ -696,7 +696,7 @@ export const DigitalSettings: React.FC = () => {
           <Button
             type="submit"
             disabled={isSaving || loading}
-            className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-black h-10 px-6"
+            className="bg-[#58051E] hover:bg-[#430316] text-xs font-black h-10 px-6"
           >
             <Save className="w-4 h-4 mr-2" />
             {isSaving ? 'Publishing Changes...' : 'Save & Publish All Digital Configurations'}

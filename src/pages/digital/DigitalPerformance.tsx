@@ -159,7 +159,7 @@ export const DigitalPerformance: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             {toast}
@@ -171,13 +171,13 @@ export const DigitalPerformance: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <BarChart2 className="w-6 h-6 text-[#6A1B2E]" /> Team Performance & KPI Evaluation
+            <BarChart2 className="w-6 h-6 text-[#58051E]" /> Team Performance & KPI Evaluation
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Real-time appraisal metrics across sprint delivery speed, code quality, UI elegance, and client CSAT ratings.
           </p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddReviewModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddReviewModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Log Appraisal Review
         </Button>
       </div>
@@ -232,7 +232,7 @@ export const DigitalPerformance: React.FC = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search team member by name or role..."
-          className="w-full h-9 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+          className="w-full h-9 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
         />
       </div>
 
@@ -251,7 +251,7 @@ export const DigitalPerformance: React.FC = () => {
             <Card key={emp.id} className="p-4 border border-slate-200/80 bg-white rounded-2xl shadow-xs hover:shadow-md transition-all space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6A1B2E] to-[#9B3A50] text-white flex items-center justify-center text-sm font-black shadow-xs shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#58051E] to-[#9B3A50] text-white flex items-center justify-center text-sm font-black shadow-xs shrink-0">
                     {emp.name.charAt(0)}
                   </div>
                   <div>
@@ -299,7 +299,7 @@ export const DigitalPerformance: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <BarChart2 className="w-4 h-4 text-[#6A1B2E]" /> Record Employee Appraisal
+                  <BarChart2 className="w-4 h-4 text-[#58051E]" /> Record Employee Appraisal
                 </h3>
                 <button onClick={() => setShowAddReviewModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
@@ -339,7 +339,7 @@ export const DigitalPerformance: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddReviewModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Save Appraisal</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Appraisal</Button>
                 </div>
               </form>
             </motion.div>
@@ -360,7 +360,7 @@ export const DigitalPerformance: React.FC = () => {
 
               <div className="space-y-4 text-left text-xs">
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-black text-[#6A1B2E] uppercase">Ferex Digital Talent Directory</span>
+                  <span className="text-[10px] font-black text-[#58051E] uppercase">Ferex Digital Talent Directory</span>
                   <h4 className="text-lg font-black text-slate-900">{selectedEmp.name}</h4>
                   <p className="text-xs font-semibold text-slate-500">{selectedEmp.role} · {selectedEmp.department || 'Engineering'}</p>
                 </div>
@@ -382,7 +382,7 @@ export const DigitalPerformance: React.FC = () => {
                 </div>
 
                 <div className="pt-4">
-                  <Button size="sm" className="w-full text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]" onClick={() => setSelectedEmp(null)}>
+                  <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setSelectedEmp(null)}>
                     Close Dossier
                   </Button>
                 </div>

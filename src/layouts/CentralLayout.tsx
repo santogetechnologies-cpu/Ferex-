@@ -91,7 +91,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#6A1B2E]/10 selection:text-[#6A1B2E]">
+    <div className="min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
       
       {/* MOBILE SIDEBAR DRAWER BACKDROP */}
       <AnimatePresence>
@@ -271,7 +271,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
                 aria-label="View notifications"
               >
                 <Bell size={18} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#6A1B2E] rounded-full ring-2 ring-white animate-pulse" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#58051E] rounded-full ring-2 ring-white animate-pulse" />
               </button>
 
               <AnimatePresence>
@@ -285,7 +285,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
                   >
                     <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-2 select-none px-1">
                       <h4 className="text-xs font-extrabold text-slate-900">Executive Alert Desk</h4>
-                      <span className="text-[10px] font-bold text-[#6A1B2E]">4 High Severity</span>
+                      <span className="text-[10px] font-bold text-[#58051E]">4 High Severity</span>
                     </div>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl">
@@ -319,7 +319,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
                 <span className="text-xs font-extrabold text-slate-800 hidden sm:inline-block">
                   Super Admin
                 </span>
-                <div className="w-7 h-7 rounded-lg bg-[#6A1B2E] text-white flex items-center justify-center font-black text-xs shadow-xs">
+                <div className="w-7 h-7 rounded-lg bg-[#58051E] text-white flex items-center justify-center font-black text-xs shadow-xs">
                   {superAdminName[0]?.toUpperCase() || 'S'}
                 </div>
               </button>
@@ -344,7 +344,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
                     >
-                      <ShieldCheck className="w-3.5 h-3.5 text-[#6A1B2E]" /> Roles & Users
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#58051E]" /> Roles & Users
                     </button>
                     <div className="my-1 border-t border-slate-100" />
                     <button

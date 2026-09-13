@@ -100,7 +100,7 @@ export const DigitalAttendance: React.FC = () => {
     <div className="space-y-6 text-left antialiased max-w-7xl mx-auto">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
@@ -109,11 +109,11 @@ export const DigitalAttendance: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Clock className="w-6 h-6 text-[#6A1B2E]" /> Attendance & Work Hours Tracking
+            <Clock className="w-6 h-6 text-[#58051E]" /> Attendance & Work Hours Tracking
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Monitor daily team attendance, check-in/check-out times, leaves, and attendance rates.</p>
         </div>
-        <Button size="sm" className="bg-[#6A1B2E] hover:bg-[#521221] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowMarkModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowMarkModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Mark Attendance
         </Button>
       </div>
@@ -130,9 +130,9 @@ export const DigitalAttendance: React.FC = () => {
       <Card className="p-4 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row gap-3 rounded-2xl bg-white">
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search employee name..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#6A1B2E]" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search employee name..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
         </div>
-        <select value={filterEmp} onChange={e => setFilterEmp(e.target.value)} className="h-9 px-3 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#6A1B2E] cursor-pointer">
+        <select value={filterEmp} onChange={e => setFilterEmp(e.target.value)} className="h-9 px-3 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E] cursor-pointer">
           <option value="All">All Employees</option>
           {employees.map(e => <option key={e} value={e}>{e}</option>)}
         </select>
@@ -203,7 +203,7 @@ export const DigitalAttendance: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowMarkModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]">Save Attendance</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Attendance</Button>
                 </div>
               </form>
             </motion.div>

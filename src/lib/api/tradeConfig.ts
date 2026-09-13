@@ -95,7 +95,7 @@ export const DEFAULT_TRADE_CONFIG: TradeCustomizationConfig = {
   },
   broadcast: {
     is_active: true,
-    message: '⚓ Ocean Vessel Schedules Operating on standard European & Middle Eastern trade corridors. Zero port congestion reported.',
+    message: 'Ocean Vessel Schedules Operating on standard European & Middle Eastern trade corridors. Zero port congestion reported.',
     urgency: 'info',
     target_audience: 'all',
     link_url: '/trade/shipments',

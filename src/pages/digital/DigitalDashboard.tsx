@@ -86,7 +86,7 @@ export const DigitalDashboard: React.FC = () => {
   const kpis = [
     { title: 'Pipeline Project Value', value: stats.totalPipelineValueStr, sub: `${stats.totalProjectsCount} Total Projects`, icon: FolderKanban, color: 'text-blue-600 bg-blue-50 border-blue-100', badge: 'Live Pipeline', path: '/digital/projects' },
     { title: 'Invoices Collected', value: stats.totalCollectedStr, sub: 'Settled Payments', icon: DollarSign, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', badge: 'Verified', path: '/digital/invoices' },
-    { title: 'Enterprise Clients', value: `${stats.activeClientsCount} Accounts`, sub: 'Active B2B Directory', icon: Users, color: 'text-[#6A1B2E] bg-[#6A1B2E]/10 border-[#6A1B2E]/20', badge: 'Active Directory', path: '/digital/clients' },
+    { title: 'Enterprise Clients', value: `${stats.activeClientsCount} Accounts`, sub: 'Active B2B Directory', icon: Users, color: 'text-[#58051E] bg-[#58051E]/10 border-[#58051E]/20', badge: 'Active Directory', path: '/digital/clients' },
     { title: 'Sprint Tasks', value: `${stats.pendingTasksCount} Open`, sub: 'Realtime Pipeline', icon: CheckSquare, color: 'text-amber-600 bg-amber-50 border-amber-100', badge: 'In Queue', path: '/digital/tasks' },
   ];
 
@@ -112,7 +112,7 @@ export const DigitalDashboard: React.FC = () => {
       )}
 
       {/* Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-6 md:p-8 shadow-xl">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#3B0B16] text-white p-6 md:p-8 shadow-xl">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
@@ -133,7 +133,7 @@ export const DigitalDashboard: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <button
               onClick={() => navigate('/digital/projects')}
-              className="h-10 px-5 rounded-xl text-xs font-black text-[#6A1B2E] bg-white hover:bg-slate-100 transition-all shadow-md flex items-center gap-2 cursor-pointer"
+              className="h-10 px-5 rounded-xl text-xs font-black text-[#58051E] bg-white hover:bg-slate-100 transition-all shadow-md flex items-center gap-2 cursor-pointer"
             >
               View All Projects <ArrowUpRight className="w-4 h-4" />
             </button>
@@ -180,7 +180,7 @@ export const DigitalDashboard: React.FC = () => {
                 <h3 className="text-sm font-black text-slate-900">Active Engineering & Design Sprints</h3>
                 <p className="text-xs text-slate-400 font-semibold mt-0.5">Live project completion telemetry and client deliverables</p>
               </div>
-              <button onClick={() => navigate('/digital/projects')} className="text-xs font-bold text-[#6A1B2E] hover:underline flex items-center gap-1 cursor-pointer">
+              <button onClick={() => navigate('/digital/projects')} className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer">
                 View All Projects <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -204,7 +204,7 @@ export const DigitalDashboard: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-3 text-xs pt-1">
                       <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
-                        <div className="bg-[#6A1B2E] h-full rounded-full transition-all duration-500" style={{ width: `${p.progress || 0}%` }} />
+                        <div className="bg-[#58051E] h-full rounded-full transition-all duration-500" style={{ width: `${p.progress || 0}%` }} />
                       </div>
                       <span className="text-[11px] font-black text-slate-800 shrink-0">{p.progress || 0}%</span>
                     </div>
@@ -220,9 +220,9 @@ export const DigitalDashboard: React.FC = () => {
           <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <CheckSquare className="w-4 h-4 text-[#6A1B2E]" /> Engineering Tasks
+                <CheckSquare className="w-4 h-4 text-[#58051E]" /> Engineering Tasks
               </h3>
-              <button onClick={() => navigate('/digital/tasks')} className="text-[11px] font-bold text-[#6A1B2E] hover:underline cursor-pointer">
+              <button onClick={() => navigate('/digital/tasks')} className="text-[11px] font-bold text-[#58051E] hover:underline cursor-pointer">
                 View All
               </button>
             </div>

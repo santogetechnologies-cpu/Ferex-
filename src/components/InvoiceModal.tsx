@@ -339,7 +339,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
     </div>
 
     <div class="paid-badge">
-      <div style="font-size: 16px; color: #16a34a; font-weight: 900;">✓</div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
       <div>
         <strong>PAYMENT RECEIVED & RECORDED AS PAID</strong><br>
         <span style="font-size: 11px; color: #15803d;">Settled via ${invoice.payment_method || 'Online Bank Transfer / UPI'}${invoice.utr_number ? ` • Ref/UTR: ${invoice.utr_number}` : ''} on ${formattedDate}</span>

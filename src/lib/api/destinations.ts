@@ -62,7 +62,7 @@ export async function createDestination(payload: Omit<DestinationItem, 'id' | 'c
     id: newId,
     name: payload.name.trim(),
     code: (payload.code || payload.name.substring(0, 2)).trim().toUpperCase(),
-    flag: payload.flag || '🌍',
+    flag: payload.flag || '',
     currency: payload.currency || 'EUR',
     authority: payload.authority || `${payload.name} Ministry of Education`,
     acronym: payload.acronym || payload.name.substring(0, 4).toUpperCase(),

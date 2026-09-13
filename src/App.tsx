@@ -197,7 +197,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-[#6A1B2E] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#58051E] border-t-transparent rounded-full animate-spin" />
           <p className="text-sm font-semibold text-slate-500">Authenticating session...</p>
         </div>
       </div>

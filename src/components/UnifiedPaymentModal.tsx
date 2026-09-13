@@ -328,7 +328,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
           className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-6"
         >
           {/* Header Bar */}
-          <div className="bg-gradient-to-r from-[#6A1B2E] via-[#521221] to-[#3B0B16] text-white p-6 relative">
+          <div className="bg-gradient-to-r from-[#58051E] via-[#430316] to-[#2E030F] text-white p-6 relative">
             <button
               onClick={onClose}
               className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
@@ -405,7 +405,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                 <Button
                   size="sm"
                   onClick={onClose}
-                  className="flex-1 text-xs font-bold bg-[#6A1B2E] hover:bg-[#521221]"
+                  className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
                 >
                   Done
                 </Button>
@@ -424,7 +424,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                       : 'text-slate-500 hover:text-slate-900'
                   }`}
                 >
-                  <QrCode className="w-3.5 h-3.5 text-[#6A1B2E]" />
+                  <QrCode className="w-3.5 h-3.5 text-[#58051E]" />
                   <span>UPI Instant</span>
                 </button>
 
@@ -526,7 +526,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                             <a
                               key={app}
                               href={upiUri}
-                              className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-[10.5px] font-black text-slate-800 hover:border-[#6A1B2E] hover:text-[#6A1B2E] transition-all shadow-2xs"
+                              className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-[10.5px] font-black text-slate-800 hover:border-[#58051E] hover:text-[#58051E] transition-all shadow-2xs"
                             >
                               {app}
                             </a>
@@ -548,7 +548,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                         value={utrNumber}
                         onChange={e => setUtrNumber(e.target.value)}
                         placeholder="e.g. 428190348210 or UPI-Ref-9921"
-                        className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                        className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:border-[#58051E]"
                       />
                     </div>
 
@@ -659,7 +659,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                 <div className="space-y-4">
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5 text-xs">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <span className="font-extrabold text-[#6A1B2E] uppercase text-[10px] tracking-wider">Beneficiary Account Details</span>
+                      <span className="font-extrabold text-[#58051E] uppercase text-[10px] tracking-wider">Beneficiary Account Details</span>
                       <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">NEFT / RTGS / IMPS / SWIFT</span>
                     </div>
 
@@ -719,7 +719,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                           value={wireRefNumber}
                           onChange={e => setWireRefNumber(e.target.value)}
                           placeholder="e.g. CMS294810283 or UTR..."
-                          className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                          className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                         />
                       </div>
                       <div>
@@ -775,7 +775,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                           value={chequeNumber}
                           onChange={e => setChequeNumber(e.target.value)}
                           placeholder="e.g. 000412"
-                          className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                          className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                         />
                       </div>
                       <div>
@@ -788,7 +788,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                           value={chequeBankName}
                           onChange={e => setChequeBankName(e.target.value)}
                           placeholder="e.g. HDFC Bank, Kochi Branch"
-                          className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                          className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
                         />
                       </div>
                     </div>
@@ -839,7 +839,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                       <select
                         value={cashBranch}
                         onChange={e => setCashBranch(e.target.value)}
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#6A1B2E]"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                       >
                         <option value="Kochi HQ Advisory Center">Kochi HQ Advisory Center (Kerala)</option>
                         <option value="Bangalore Corporate Desk">Bangalore Corporate Desk (Karnataka)</option>

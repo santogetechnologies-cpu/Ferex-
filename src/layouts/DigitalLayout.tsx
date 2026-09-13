@@ -182,7 +182,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   const activeItem = navSections.flatMap(s => s.items).find(i => i.path === location.pathname);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-left font-sans antialiased text-slate-900 selection:bg-[#6A1B2E] selection:text-white">
+    <div className="min-h-screen bg-slate-50 flex text-left font-sans antialiased text-slate-900 selection:bg-[#58051E] selection:text-white">
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
@@ -190,7 +190,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#6A1B2E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+            className="fixed top-6 right-6 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             {toast}
@@ -316,7 +316,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
             <div className="relative">
               <button
                 onClick={() => setShowQuickActions(!showQuickActions)}
-                className="h-9 px-3 rounded-xl bg-[#6A1B2E] text-white text-xs font-bold hover:bg-[#521221] transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                className="h-9 px-3 rounded-xl bg-[#58051E] text-white text-xs font-bold hover:bg-[#430316] transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">New Action</span>
@@ -333,17 +333,17 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                       className="absolute right-0 top-11 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-40 space-y-1"
                     >
                       <span className="text-[10px] font-black uppercase text-slate-400 px-3 py-1 block">Digital Agency Actions</span>
-                      <button onClick={() => { setShowQuickActions(false); navigate('/digital/clients'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#6A1B2E] flex items-center gap-2">
-                        <Users className="w-3.5 h-3.5 text-[#6A1B2E]" /> Add Client Account
+                      <button onClick={() => { setShowQuickActions(false); navigate('/digital/clients'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#58051E] flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5 text-[#58051E]" /> Add Client Account
                       </button>
-                      <button onClick={() => { setShowQuickActions(false); navigate('/digital/projects'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#6A1B2E] flex items-center gap-2">
-                        <FolderKanban className="w-3.5 h-3.5 text-[#6A1B2E]" /> Create Project
+                      <button onClick={() => { setShowQuickActions(false); navigate('/digital/projects'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#58051E] flex items-center gap-2">
+                        <FolderKanban className="w-3.5 h-3.5 text-[#58051E]" /> Create Project
                       </button>
-                      <button onClick={() => { setShowQuickActions(false); navigate('/digital/tasks'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#6A1B2E] flex items-center gap-2">
-                        <CheckSquare className="w-3.5 h-3.5 text-[#6A1B2E]" /> Assign Task
+                      <button onClick={() => { setShowQuickActions(false); navigate('/digital/tasks'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#58051E] flex items-center gap-2">
+                        <CheckSquare className="w-3.5 h-3.5 text-[#58051E]" /> Assign Task
                       </button>
-                      <button onClick={() => { setShowQuickActions(false); navigate('/digital/invoices'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#6A1B2E] flex items-center gap-2">
-                        <FileText className="w-3.5 h-3.5 text-[#6A1B2E]" /> Issue Invoice (₹)
+                      <button onClick={() => { setShowQuickActions(false); navigate('/digital/invoices'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#58051E] flex items-center gap-2">
+                        <FileText className="w-3.5 h-3.5 text-[#58051E]" /> Issue Invoice (₹)
                       </button>
                     </motion.div>
                   </>
@@ -374,7 +374,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                     >
                       <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                         <span className="text-xs font-black text-slate-900">Agency Activity Alerts</span>
-                        <span className="text-[10px] font-bold text-[#6A1B2E] bg-[#6A1B2E]/10 px-2 py-0.5 rounded-full">4 New</span>
+                        <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-full">4 New</span>
                       </div>
                       <div className="space-y-2 text-xs">
                         <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-100 space-y-0.5">
@@ -386,7 +386,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                           <span className="text-[10.5px] font-semibold text-slate-500 block">Tata Tech rated Web Redesign 5 Stars ⭐⭐⭐⭐⭐</span>
                         </div>
                       </div>
-                      <button onClick={() => { setShowNotifPopover(false); navigate('/digital/notifications'); }} className="w-full text-center text-xs font-bold text-[#6A1B2E] hover:underline pt-1 block">
+                      <button onClick={() => { setShowNotifPopover(false); navigate('/digital/notifications'); }} className="w-full text-center text-xs font-bold text-[#58051E] hover:underline pt-1 block">
                         View All Notifications →
                       </button>
                     </motion.div>
@@ -401,7 +401,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                 className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-100 transition-colors"
               >
-                <div className="w-8 h-8 rounded-lg bg-[#6A1B2E] text-white text-xs font-black flex items-center justify-center overflow-hidden border border-white shadow-2xs">
+                <div className="w-8 h-8 rounded-lg bg-[#58051E] text-white text-xs font-black flex items-center justify-center overflow-hidden border border-white shadow-2xs">
                   {profilePhoto ? <img src={profilePhoto} alt="Digital Profile" className="w-full h-full object-cover" /> : initials}
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
@@ -419,7 +419,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                     >
                       <div className="px-3 py-2 border-b border-slate-100">
                         <span className="text-xs font-black text-slate-900 block">{userName || roleLabel}</span>
-                        <span className="text-[10px] font-semibold text-[#6A1B2E] block font-bold">{roleLabel}</span>
+                        <span className="text-[10px] font-semibold text-[#58051E] block font-bold">{roleLabel}</span>
                         <span className="text-[10px] font-semibold text-slate-400 block">{userEmail}</span>
                       </div>
                       <button onClick={() => { setShowProfileDropdown(false); navigate('/digital/profile'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
@@ -461,7 +461,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search Clients, Projects, Tasks, Invoices..."
-                  className="w-full h-11 pl-10 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#6A1B2E]"
+                  className="w-full h-11 pl-10 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                 />
                 <button onClick={() => setShowSearchModal(false)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
@@ -497,7 +497,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
             <motion.div initial={{ translateX: '-100%' }} animate={{ translateX: 0 }} exit={{ translateX: '-100%' }} transition={{ duration: 0.25 }} className="fixed top-0 left-0 bottom-0 w-64 bg-white z-50 shadow-2xl p-4 overflow-y-auto lg:hidden">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#6A1B2E] text-white flex items-center justify-center font-black">
+                  <div className="w-8 h-8 rounded-lg bg-[#58051E] text-white flex items-center justify-center font-black">
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <span className="text-sm font-black text-slate-900">FEREX DIGITAL</span>
@@ -520,7 +520,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                           }
                         }}
                         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold ${
-                          location.pathname === item.path ? 'bg-[#6A1B2E] text-white' : 'text-slate-700 hover:bg-slate-50'
+                          location.pathname === item.path ? 'bg-[#58051E] text-white' : 'text-slate-700 hover:bg-slate-50'
                         }`}
                       >
                         <item.icon className="w-4 h-4 shrink-0" />
