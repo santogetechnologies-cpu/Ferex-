@@ -7,30 +7,52 @@
   --font-serif: 'Playfair Display', Georgia, Cambria, 'Times New Roman', Times, serif;
   --font-brand: 'Cinzel', Georgia, serif;
   
-  --color-primary: #58051E;
-  --color-primary-hover: #430316;
-  --color-ferex-wine: #58051E;
-  --color-ferex-dark: #3E0213;
-  --color-ferex-light: #730B2A;
-  --color-ferex-accent: #C5A059;
-  --color-ferex-gold: #D4AF37;
+  --color-primary: #570229;
+  --color-primary-hover: #6F0335;
+  --color-ferex-maroon: #570229;
+  --color-ferex-maroon-hover: #6F0335;
+  --color-ferex-plum: #8C1D4F;
+  --color-ferex-rose: #C85A7C;
+  --color-ferex-ivory: #F7F4F2;
+  --color-ferex-blush: #E9D7DF;
+  --color-ferex-slate: #374151;
+  --color-ferex-softgray: #D1D5DB;
+  --color-ferex-success: #0F9D58;
+  --color-ferex-gold: #F59E0B;
+  --color-ferex-blue: #2563EB;
+  --color-ferex-bg: #FCFAFB;
+  --color-ferex-border: #ECE7EA;
+  --color-ferex-heading: #1F2937;
+  --color-ferex-body: #6B7280;
 }
 
 :root {
-  --ferex-wine: #58051E;
-  --ferex-wine-dark: #3E0213;
-  --ferex-wine-light: #730B2A;
-  --ferex-gold: #C5A059;
-  --ferex-wine-50: rgba(88, 5, 30, 0.04);
-  --ferex-wine-100: rgba(88, 5, 30, 0.08);
-  --ferex-wine-200: rgba(88, 5, 30, 0.16);
+  --ferex-maroon: #570229;
+  --ferex-maroon-hover: #6F0335;
+  --ferex-plum: #8C1D4F;
+  --ferex-rose: #C85A7C;
+  --ferex-ivory: #F7F4F2;
+  --ferex-blush: #E9D7DF;
+  --ferex-slate: #374151;
+  --ferex-softgray: #D1D5DB;
+  --ferex-success: #0F9D58;
+  --ferex-gold: #F59E0B;
+  --ferex-blue: #2563EB;
+  --ferex-bg: #FCFAFB;
+  --ferex-border: #ECE7EA;
+  --ferex-heading: #1F2937;
+  --ferex-body: #6B7280;
+
+  --ferex-maroon-50: rgba(87, 2, 41, 0.04);
+  --ferex-maroon-100: rgba(87, 2, 41, 0.08);
+  --ferex-maroon-200: rgba(87, 2, 41, 0.16);
 
   /* Enterprise neutral surface tokens */
-  --surface-canvas: #f8fafc;
+  --surface-canvas: #FCFAFB;
   --surface-card: #ffffff;
-  --surface-subtle: #f1f5f9;
-  --surface-muted: #e2e8f0;
-  --border-hairline: rgba(226, 232, 240, 0.85);
+  --surface-subtle: #F7F4F2;
+  --surface-muted: #ECE7EA;
+  --border-hairline: #ECE7EA;
 
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'tnum';
 }

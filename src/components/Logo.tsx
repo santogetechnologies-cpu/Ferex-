@@ -20,7 +20,7 @@ export const Logo: React.FC<LogoProps> = ({
   align = 'left',
 }) => {
   const isWhite = variant === 'white' || color === 'white';
-  const effectiveColor = isWhite ? '#ffffff' : '#58051E';
+  const effectiveColor = isWhite ? '#ffffff' : '#570229';
 
   // If variant is 'badge', render the signature burgundy rounded brand tile
   if (variant === 'badge') {
@@ -33,7 +33,7 @@ export const Logo: React.FC<LogoProps> = ({
     }[size];
 
     return (
-      <div className={`inline-flex flex-col items-center justify-center bg-[#58051E] text-white shadow-md select-none ${badgePadding} ${className}`}>
+      <div className={`inline-flex flex-col items-center justify-center bg-[#570229] text-white shadow-md select-none ${badgePadding} ${className}`}>
         <FerexVectorMark color="#ffffff" size={size} />
         <div className="text-center mt-1">
           <span className={`font-serif tracking-wider font-extrabold uppercase block leading-none ${
@@ -62,8 +62,8 @@ export const Logo: React.FC<LogoProps> = ({
     );
   }
 
-  const textColor = isWhite ? 'text-white' : 'text-[#58051E]';
-  const subtitleColor = isWhite ? 'text-white/80' : 'text-[#58051E]/90';
+  const textColor = isWhite ? 'text-white' : 'text-[#570229]';
+  const subtitleColor = isWhite ? 'text-white/80' : 'text-[#570229]/90';
   const iconColor = effectiveColor;
 
   const ferexSizeClass = {
