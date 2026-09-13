@@ -244,7 +244,7 @@ export const MyProfile: React.FC = () => {
 
   // Education Details
   const [education] = useState<EducationInfo>({
-    studyCountry: (profile as any)?.target_country || 'Poland',
+    studyCountry: (profile as any)?.target_country || '',
     university: (profile as any)?.target_university || 'University Applied For',
     course: (profile as any)?.desired_program || 'Higher Studies',
     intake: 'Feb 2026',

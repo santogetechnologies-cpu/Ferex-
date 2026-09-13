@@ -76,7 +76,7 @@ export const FerexLandingPage: React.FC = () => {
     return Array.from(new Set(universities.map(u => u.country).filter(Boolean)));
   }, [universities]);
 
-  const [calcCountry, setCalcCountry] = useState<string>(availableCountries[0] || 'Poland');
+  const [calcCountry, setCalcCountry] = useState<string>(availableCountries[0] || '');
 
   React.useEffect(() => {
     if (availableCountries.length > 0 && !availableCountries.includes(calcCountry)) {

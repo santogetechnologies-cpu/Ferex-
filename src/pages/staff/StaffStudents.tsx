@@ -54,7 +54,7 @@ export const StaffStudents: React.FC = () => {
           {students.map(student => {
             const stuName = student.full_name || student.email?.split('@')[0] || 'Student Candidate';
             const stuId = student.id || 'STU';
-            const country = student.country || 'Poland';
+            const country = student.country || student.target_country || 'Not Set';
             const uni = student.target_university || 'European Partner University';
             const course = student.target_course || 'Higher Studies';
             const status = student.status || 'Active Application';

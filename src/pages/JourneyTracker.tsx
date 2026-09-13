@@ -37,8 +37,8 @@ export const JourneyTracker: React.FC = () => {
   );
 
   const activeApp = applications[0];
-  const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || (activeApp as any)?.country || 'Poland';
-  const targetUniversity = activeApp?.university_name || (targetCountry === 'Poland' ? 'Warsaw University of Technology' : `${targetCountry} Partner University`);
+  const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || (activeApp as any)?.country || '';
+  const targetUniversity = activeApp?.university_name || (targetCountry ? `${targetCountry} Partner University` : 'University Applied For');
 
   // Verification helper states
   const hasUploadedDocs = documents.length > 0;

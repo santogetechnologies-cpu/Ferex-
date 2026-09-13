@@ -23,7 +23,7 @@ export const PreDeparture: React.FC = () => {
   const { payments } = usePayments(user?.id);
 
   // Payment Guard Check - 3rd Installment Required for Pre-Departure
-  const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || 'Poland';
+  const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || '';
   const paymentAccess = canAccessPage('/pre-departure', payments, targetCountry);
   const payment3Status = checkPaymentStage(payments, 3, targetCountry);
 

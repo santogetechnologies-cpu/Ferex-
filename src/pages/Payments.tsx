@@ -136,7 +136,7 @@ export const Payments: React.FC = () => {
   const configuredAgencyFee = parseFeeNum(config.default_agency_fee, 25000);
   const configuredVfsFee = parseFeeNum(config.default_vfs_fee, 28000);
 
-  const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || (activeApp as any)?.country || 'Poland';
+  const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || (activeApp as any)?.country || '';
   const countryFeeObj = config.country_fees?.[targetCountry] || config.country_fees?.[targetCountry.replace('United Kingdom', 'UK').replace('United States', 'USA')];
   const inst1Amount = countryFeeObj?.registration_fee_inr || config.advance_registration_fee_inr || 15000;
   const inst2Amount = courseTuitionFee;
