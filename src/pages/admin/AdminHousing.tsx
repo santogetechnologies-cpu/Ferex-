@@ -170,7 +170,7 @@ export const AdminHousing: React.FC = () => {
               <Badge 
                 variant={
                   record.status === 'Confirmed' ? 'success' :
-                  record.status === 'Checked In' ? 'default' :
+                  record.status === 'Checked In' ? 'info' :
                   'warning'
                 }
               >

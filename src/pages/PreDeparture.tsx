@@ -75,13 +75,6 @@ export const PreDeparture: React.FC = () => {
       window.removeEventListener('ferex_predeparture_change', fetchRecord);
     };
   }, [user?.id, user?.email, profile?.full_name, profile?.email]);
-              </button>
-            </div>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
 
   const activeDepRecord = depRecord || {
     student_id: user?.id || 'student',

@@ -432,13 +432,13 @@ export const Documents: React.FC = () => {
             <Card className="p-3">
               <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Approved</p>
               <p className="text-xl font-black text-emerald-600">
-                {documents.filter(d => d.status === 'Approved' || d.status === 'Verified').length}
+                {documents.filter(d => d.status === 'Approved').length}
               </p>
             </Card>
             <Card className="p-3">
               <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Pending</p>
               <p className="text-xl font-black text-amber-600">
-                {documents.filter(d => d.status === 'Pending' || d.status === 'Pending Verification' || d.status === 'Submitted').length}
+                {documents.filter(d => d.status === 'Pending Verification' || d.status === 'Submitted').length}
               </p>
             </Card>
             <Card className="p-3">

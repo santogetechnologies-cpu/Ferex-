@@ -65,52 +65,6 @@ export const VisaTracker: React.FC = () => {
     (user?.id && r.student_id === user.id) ||
     (user?.email && (r as any).student_email && (r as any).student_email.toLowerCase() === user.email.toLowerCase())
   );
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
-              {payment2Status.paymentStatus === 'not_found' && (
-                <Button
-                  size="sm"
-                  onClick={() => navigate('/student/payments')}
-                  leftIcon={<CreditCard className="w-4 h-4" />}
-                >
-                  Settle Tuition Fee
-                </Button>
-              )}
-              
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate('/student/dashboard')}
-              >
-                Return to Dashboard
-              </Button>
-            </div>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // Final Acceptance Letter check
-  const hasFinalAcceptanceDoc = documents.some(d =>
-    d.file_name.toLowerCase().includes('final_acceptance') ||
-    d.file_name.toLowerCase().includes('final acceptance') ||
-    d.reviewer_notes?.toLowerCase().includes('final acceptance')
-  );
-
-  const isFinalAcceptanceUnlocked = hasFinalAcceptanceDoc || applications.some(a =>
-    (a.status as string) === 'Final Acceptance Issued' ||
-    (a.status as string) === 'Enrolled' ||
-    Boolean(a.final_acceptance_url)
-  );
-
-  const foundRecord = records.find(r =>
-    (user?.id && r.student_id === user.id) ||
-    (user?.email && (r as any).student_email && (r as any).student_email.toLowerCase() === user.email.toLowerCase())
-  );
 
   const initialPendingRecord = {
     id: user?.id || 'vfs-pending',

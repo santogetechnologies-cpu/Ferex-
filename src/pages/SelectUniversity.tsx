@@ -1,4 +1,4 @@
-,import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Search, MapPin, Award, Sparkles, Heart, X, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight, Lock, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -107,10 +107,10 @@ export const SelectUniversity: React.FC = () => {
     ? config.country_fees[effectiveCountryKey]
     : config.country_fees?.[effectiveCountryKey.replace('United Kingdom', 'UK').replace('United States', 'USA')];
   const requiredAdvanceInr = countryFeeConfig?.registration_fee_inr || config.advance_registration_fee_inr || 15000;
+  const requiredAdvanceEur = countryFeeConfig?.registration_fee_eur || config.advance_registration_fee_eur || 150;
+
   // Payment status check (for informational display only - no blocking)
-  const payment1Status = checkPaymentStage(payments, 1, effectiveCountryKey);   </div>
-    );
-  }
+  const payment1Status = checkPaymentStage(payments, 1, effectiveCountryKey);
 
   // Dedicated counselor - strictly from admin assignment, NO country defaults
   const assignedCounselorName = (profile as any)?.assigned_counselor && 
@@ -469,7 +469,7 @@ export const SelectUniversity: React.FC = () => {
                       </div>
                     )}
                     <span className="text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200">
-                      {wf.authority_acronym}
+                      {wf?.authority_acronym || 'N/A'}
                     </span>
                   </div>
 
@@ -504,7 +504,7 @@ export const SelectUniversity: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Procedure:</span>
-                    <span className="font-bold text-[#6A1B2E]">{wf.authority_badge}</span>
+                    <span className="font-bold text-[#6A1B2E]">{wf?.authority_badge || 'Standard'}</span>
                   </div>
                 </div>
               </div>
@@ -556,10 +556,10 @@ export const SelectUniversity: React.FC = () => {
                   <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 mb-4 space-y-1">
                     <div className="flex items-center gap-1.5 font-black text-amber-900 text-xs">
                       <ShieldCheck className="w-4 h-4 text-amber-600" />
-                      <span>{uniWf.authority_name}</span>
+                      <span>{uniWf?.authority_name || 'Authority Process'}</span>
                     </div>
                     <p className="text-[11px] text-amber-800 leading-relaxed font-semibold">
-                      {uniWf.authority_description}
+                      {uniWf?.authority_description || 'Standard verification process applies'}
                     </p>
                   </div>
 
@@ -633,7 +633,7 @@ export const SelectUniversity: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-base font-black text-slate-900">Apply to {applyUni.name}</h3>
-                      <p className="text-xs font-semibold text-slate-400">{applyUni.city}, {applyUni.country} • {targetWf.authority_acronym} Authority Flow</p>
+                      <p className="text-xs font-semibold text-slate-400">{applyUni.city}, {applyUni.country} • {targetWf?.authority_acronym || 'Standard'} Authority Flow</p>
                     </div>
                   </div>
                   <button onClick={() => setApplyUni(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"><X className="w-4 h-4" /></button>
@@ -732,7 +732,7 @@ export const SelectUniversity: React.FC = () => {
                   <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1 text-xs">
                     <div className="flex items-center gap-1.5 font-bold text-slate-900">
                       <ShieldCheck className="w-3.5 h-3.5 text-[#6A1B2E]" />
-                      <span>{targetWf.authority_badge} Procedure</span>
+                      <span>{targetWf?.authority_badge || 'Standard'} Procedure</span>
                     </div>
                     <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
                       {hasCounselorAssigned 

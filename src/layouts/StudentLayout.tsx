@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home, Milestone, Target, GraduationCap, FileText, Folder, CreditCard,
   FileSpreadsheet, Calendar, LifeBuoy, Bell, User,
-  Search, Menu, ChevronDown, ChevronRight, LogOut, Settings, X, ShieldCheck, Plane
+  Search, Menu, ChevronDown, ChevronRight, LogOut, Settings, X, ShieldCheck, Plane, MessageCircle
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,7 +12,6 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useSystemConfig } from '../hooks/useSystemConfig';
 import { supabase } from '../lib/supabase';
 import { normalizeRole, getDashboardRoute } from '../lib/roleRouter';
-import { MessageCircle, Home } from 'lucide-react';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
