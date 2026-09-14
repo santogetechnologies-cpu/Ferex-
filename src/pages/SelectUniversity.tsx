@@ -371,54 +371,6 @@ export const SelectUniversity: React.FC = () => {
         </div>
       </div>
 
-      {/* Advance & Registration Fee Status Banner */}
-      <div className={`p-5 rounded-3xl border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs ${
-        inst1Paid
-          ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
-          : 'bg-gradient-to-r from-amber-50 via-rose-50/40 to-slate-50 border-amber-200 text-slate-900'
-      }`}>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            {inst1Paid ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold shadow-xs">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Advance Advisory & Registration Fee Settled
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white text-[10px] font-extrabold shadow-xs">
-                <CreditCard className="w-3.5 h-3.5" /> Step 4: Advance Registration Fee
-              </span>
-            )}
-            <span className="text-xs font-black text-slate-700">
-              Fee: <strong className="text-[#6A1B2E]">₹{requiredAdvanceInr.toLocaleString('en-IN')} (€{requiredAdvanceEur})</strong>
-            </span>
-          </div>
-          <p className="text-xs font-medium text-slate-600 max-w-2xl">
-            {inst1Paid
-              ? 'Your admission file is cleared. You can select your university course and submit formal applications.'
-              : `Covers eligibility audit, SOP/LOR drafting, university fee verification, and embassy visa file preparation for ${selectedCountry === 'All' ? 'European Universities' : selectedCountry}.`}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          {!inst1Paid ? (
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              className="h-10 px-5 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-xl shadow-md shadow-[#6A1B2E]/20 flex items-center gap-2 transition-all cursor-pointer"
-            >
-              <CreditCard className="w-4 h-4 text-amber-300" />
-              <span>Pay Advance Registration (₹{requiredAdvanceInr.toLocaleString('en-IN')})</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate('/student/payments')}
-              className="h-9 px-4 bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-xs"
-            >
-              <Check className="w-4 h-4" /> View Payment Receipt
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* Filter & Search Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
         <div className="relative flex-1">
@@ -771,26 +723,6 @@ export const SelectUniversity: React.FC = () => {
         })()}
       </AnimatePresence>
 
-      {/* Unified Payment Modal for Advance Registration Settlement */}
-      <UnifiedPaymentModal
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        division="education"
-        amount={requiredAdvanceInr}
-        currency="INR"
-        title="Advance Advisory & Registration Fee"
-        invoiceNo={`REG-ADV-${(user?.id || 'GUEST').slice(0, 5).toUpperCase()}-${Date.now().toString().slice(-4)}`}
-        purpose={`Advance Advisory & University Registration Fee for ${selectedCountry === 'All' ? 'European Universities' : selectedCountry}`}
-        payerName={profile?.full_name || user?.email?.split('@')[0] || 'Student Account'}
-        payerEmail={user?.email || 'student@ferex.com'}
-        studentId={user?.id}
-        onSuccess={() => {
-          setShowPaymentModal(false);
-          refreshPayments();
-          setSuccessToast('🎉 Advance Registration Fee paid and verified successfully! You can now apply to any university.');
-          window.dispatchEvent(new Event('ferex_payment_change'));
-        }}
-      />
     </div>
   );
 };

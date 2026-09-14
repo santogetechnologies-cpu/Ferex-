@@ -469,8 +469,8 @@ export const AdminPayments: React.FC = () => {
                         {(p as any).partial_amount != null && p.status === 'Partial' && (
                           <p className="text-[10px] text-blue-600 font-bold">Partial Paid: INR {Number((p as any).partial_amount).toLocaleString('en-IN')}</p>
                         )}
-                        {((p as any).refund_amount != null || isRefunded) && (
-                          <p className="text-[10px] text-violet-600 font-bold">Refunded: INR {Number((p as any).refund_amount || p.amount).toLocaleString('en-IN')}</p>
+                        {isRefunded && (p as any).refund_amount > 0 && (
+                          <p className="text-[10px] text-violet-600 font-bold">Refunded: INR {Number((p as any).refund_amount).toLocaleString('en-IN')}</p>
                         )}
                       </td>
                       <td className="p-3.5">
