@@ -110,10 +110,20 @@ export const RimiBatchTracking: React.FC = () => {
   };
 
   const handleDeleteBatch = async (rawId: string) => {
-    // Optimistic remove first matching rawId or id
-    setBatches(prev => prev.filter(b => b.rawId !== rawId && b.id !== rawId));
-    showToastMsg('Removed batch telemetry record');
-    await deleteRimiBatch(rawId);
+    try {
+      const success = await deleteRimiBatch(rawId);
+      if (success) {
+        setBatches(prev => prev.filter(b => b.rawId !== rawId && b.id !== rawId));
+        showToastMsg('Removed batch telemetry record');
+      } else {
+        showToastMsg('Failed to delete batch');
+      }
+    } catch (error) {
+      console.error('[RimiBatchTracking] Delete error:', error);
+      showToastMsg('Error deleting batch');
+      const updated = await getRimiBatches();
+      setBatches(updated);
+    }
   };
 
   const filteredBatches = batches.filter(b =>

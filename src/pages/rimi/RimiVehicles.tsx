@@ -111,10 +111,20 @@ export const RimiVehicles: React.FC = () => {
   };
 
   const handleDeleteVehicle = async (rawId: string) => {
-    // Optimistic remove first matching rawId or id
-    setVehicles(prev => prev.filter(v => v.rawId !== rawId && v.id !== rawId));
-    showToastMsg('Removed vehicle registry record');
-    await deleteRimiVehicle(rawId);
+    try {
+      const success = await deleteRimiVehicle(rawId);
+      if (success) {
+        setVehicles(prev => prev.filter(v => v.rawId !== rawId && v.id !== rawId));
+        showToastMsg('Removed vehicle registry record');
+      } else {
+        showToastMsg('Failed to delete vehicle');
+      }
+    } catch (error) {
+      console.error('[RimiVehicles] Delete error:', error);
+      showToastMsg('Error deleting vehicle');
+      const updated = await getRimiVehicles();
+      setVehicles(updated);
+    }
   };
 
   const filteredVehicles = vehicles.filter(v =>

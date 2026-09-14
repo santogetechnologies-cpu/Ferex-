@@ -413,9 +413,6 @@ export const RimiInventory: React.FC = () => {
                 </p>
               </div>
             </div>
-            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shrink-0" onClick={() => { setNewFrostLoss(emptyFrostLoss); setShowFrostLossModal(true); }}>
-              <Plus className="w-3.5 h-3.5 mr-1" /> Log New Frost Loss
-            </Button>
           </div>
 
           <Card className="overflow-hidden border border-slate-200/70 shadow-xs">

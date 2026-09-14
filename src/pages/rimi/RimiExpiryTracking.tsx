@@ -102,10 +102,20 @@ export const RimiExpiryTracking: React.FC = () => {
   };
 
   const handleDeleteBatch = async (rawId: string) => {
-    // Optimistic remove first matching rawId or id
-    setExpiringStock(prev => prev.filter(s => s.rawId !== rawId && s.id !== rawId));
-    showToastMsg('Removed batch from monitoring');
-    await deleteRimiBatch(rawId);
+    try {
+      const success = await deleteRimiBatch(rawId);
+      if (success) {
+        setExpiringStock(prev => prev.filter(s => s.rawId !== rawId && s.id !== rawId));
+        showToastMsg('Removed batch from monitoring');
+      } else {
+        showToastMsg('Failed to remove batch');
+      }
+    } catch (error) {
+      console.error('[RimiExpiryTracking] Delete error:', error);
+      showToastMsg('Error removing batch');
+      const updated = await getRimiExpiryBatches();
+      setExpiringStock(updated);
+    }
   };
 
   const handleAddBatch = async (e: React.FormEvent) => {

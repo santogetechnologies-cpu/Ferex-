@@ -116,10 +116,20 @@ export const RimiDeliveries: React.FC = () => {
   };
 
   const handleDeleteDelivery = async (rawId: string) => {
-    // Optimistic remove first matching rawId or id
-    setDeliveries(prev => prev.filter(d => d.rawId !== rawId && d.id !== rawId));
-    showToastMsg('Removed delivery manifest');
-    await deleteRimiDelivery(rawId);
+    try {
+      const success = await deleteRimiDelivery(rawId);
+      if (success) {
+        setDeliveries(prev => prev.filter(d => d.rawId !== rawId && d.id !== rawId));
+        showToastMsg('Removed delivery manifest');
+      } else {
+        showToastMsg('Failed to delete delivery');
+      }
+    } catch (error) {
+      console.error('[RimiDeliveries] Delete error:', error);
+      showToastMsg('Error deleting delivery');
+      const updated = await getRimiDeliveries();
+      setDeliveries(updated);
+    }
   };
 
   const filteredDeliveries = deliveries.filter(d =>

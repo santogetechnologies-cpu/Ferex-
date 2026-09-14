@@ -110,10 +110,20 @@ export const RimiCollections: React.FC = () => {
   };
 
   const handleDeleteCollection = async (rawId: string) => {
-    // Optimistic remove first matching rawId or id
-    setCollections(prev => prev.filter(c => c.rawId !== rawId && c.id !== rawId));
-    showToastMsg('Removed collection record');
-    await deleteRimiCollection(rawId);
+    try {
+      const success = await deleteRimiCollection(rawId);
+      if (success) {
+        setCollections(prev => prev.filter(c => c.rawId !== rawId && c.id !== rawId));
+        showToastMsg('Removed collection record');
+      } else {
+        showToastMsg('Failed to delete collection');
+      }
+    } catch (error) {
+      console.error('[RimiCollections] Delete error:', error);
+      showToastMsg('Error deleting collection');
+      const updated = await getRimiCollections();
+      setCollections(updated);
+    }
   };
 
   const handleExportCSV = () => {
