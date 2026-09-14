@@ -21,6 +21,7 @@ import { Notifications } from './pages/Notifications';
 import { MyProfile } from './pages/MyProfile';
 import { VisaTracker } from './pages/VisaTracker';
 import { PreDeparture } from './pages/PreDeparture';
+import { PostTravelHousing } from './pages/PostTravelHousing';
 
 // Admin imports
 import { AdminLayout } from './layouts/AdminLayout';
@@ -44,6 +45,7 @@ import { AdminMeetings } from './pages/admin/AdminMeetings';
 import { AdminNawaTracker } from './pages/admin/AdminNawaTracker';
 import { AdminDocumentConfig } from './pages/admin/AdminDocumentConfig';
 import { AdminPaymentControl } from './pages/admin/AdminPaymentControl';
+import { AdminHousing } from './pages/admin/AdminHousing';
 
 // Central imports
 import { CentralLayout } from './layouts/CentralLayout';
@@ -288,12 +290,14 @@ function App() {
           <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><MyProfile /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/visa-tracker" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><VisaTracker /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/pre-departure" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><PreDeparture /></StudentLayout></ProtectedRoute>} />
+          <Route path="/student/housing" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><PostTravelHousing /></StudentLayout></ProtectedRoute>} />
 
           {/* ── Admin Routes ── */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/students" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminStudents /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/universities" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminUniversities /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/visa-tracker" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminVisaTracker /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/housing" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminHousing /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/pre-departure" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPreDeparture /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/tasks" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminTaskManagement /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/applications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminApplications /></AdminLayout></ProtectedRoute>} />
