@@ -64,14 +64,51 @@ export const Documents: React.FC = () => {
     type: d.doc_type,
     size: d.file_size || '1.2 MB',
     date: new Date(d.uploaded_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+    uploadedAt: d.uploaded_at || Date.now(),
     status: d.status,
     reviewerNotes: d.reviewer_notes || '',
     url: d.file_url || '',
+    studentName: profile?.full_name || user?.email?.split('@')[0] || 'Student',
   }));
+
+  // Group documents by student name (for folder view)
+  const documentsByStudent = useMemo(() => {
+    const grouped = new Map<string, typeof documents>();
+    documents.forEach(doc => {
+      const name = doc.studentName;
+      if (!grouped.has(name)) {
+        grouped.set(name, []);
+      }
+      grouped.get(name)!.push(doc);
+    });
+    return grouped;
+  }, [documents]);
+
+  // Date filtering helper
+  const filterByDate = (doc: typeof documents[0]) => {
+    if (dateFilter === 'All') return true;
+    const docDate = new Date(doc.uploadedAt);
+    const now = new Date();
+    
+    if (dateFilter === 'Today') {
+      return docDate.toDateString() === now.toDateString();
+    } else if (dateFilter === 'Last 7 Days') {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return docDate >= sevenDaysAgo;
+    } else if (dateFilter === 'Last 30 Days') {
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      return docDate >= thirtyDaysAgo;
+    } else if (dateFilter === 'This Year') {
+      return docDate.getFullYear() === now.getFullYear();
+    }
+    return true;
+  };
 
   // Input states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [dateFilter, setDateFilter] = useState('All');
+  const [selectedFolder, setSelectedFolder] = useState<string>('all'); // 'all' or student name
   const [previewDoc, setPreviewDoc] = useState<any | null>(null);
   const [resolvedPreviewUrl, setResolvedPreviewUrl] = useState<string>('');
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -100,7 +137,13 @@ export const Documents: React.FC = () => {
       statusFilter === 'All' ||
       statusFilter === normStatus;
 
-    return matchesSearch && matchesStatus;
+    const matchesDate = filterByDate(doc);
+
+    const matchesFolder = 
+      selectedFolder === 'all' ||
+      doc.studentName === selectedFolder;
+
+    return matchesSearch && matchesStatus && matchesDate && matchesFolder;
   });
 
   const handleOpenPreview = async (doc: any) => {
@@ -332,6 +375,80 @@ export const Documents: React.FC = () => {
         </div>
       )}
 
+      {/* Filter Bar with Date and Folder Filters */}
+      <div className="flex flex-col lg:flex-row gap-3">
+        {/* Folder Sidebar */}
+        <Card className="lg:w-64 p-4 space-y-3 shrink-0">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+            <Folder className="w-4 h-4 text-[#58051E]" />
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Folders</h3>
+          </div>
+          
+          <button
+            onClick={() => setSelectedFolder('all')}
+            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+              selectedFolder === 'all'
+                ? 'bg-[#58051E] text-white'
+                : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span>All Documents</span>
+              <span className="text-[10px] opacity-80">{documents.length}</span>
+            </div>
+          </button>
+
+          {Array.from(documentsByStudent.entries()).map(([studentName, docs]) => (
+            <button
+              key={studentName}
+              onClick={() => setSelectedFolder(studentName)}
+              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                selectedFolder === studentName
+                  ? 'bg-[#58051E] text-white'
+                  : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-md bg-amber-100 text-amber-700 flex items-center justify-center text-[10px] font-bold shrink-0">
+                    {studentName.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="truncate">{studentName}</span>
+                </div>
+                <span className="text-[10px] opacity-80">{docs.length}</span>
+              </div>
+            </button>
+          ))}
+        </Card>
+
+        {/* Main Content */}
+        <div className="flex-1 space-y-4">
+          {/* Document Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Card className="p-3">
+              <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Total</p>
+              <p className="text-xl font-black text-slate-900">{documents.length}</p>
+            </Card>
+            <Card className="p-3">
+              <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Approved</p>
+              <p className="text-xl font-black text-emerald-600">
+                {documents.filter(d => d.status === 'Approved' || d.status === 'Verified').length}
+              </p>
+            </Card>
+            <Card className="p-3">
+              <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Pending</p>
+              <p className="text-xl font-black text-amber-600">
+                {documents.filter(d => d.status === 'Pending' || d.status === 'Pending Verification' || d.status === 'Submitted').length}
+              </p>
+            </Card>
+            <Card className="p-3">
+              <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Rejected</p>
+              <p className="text-xl font-black text-red-600">
+                {documents.filter(d => d.status === 'Rejected' || d.status === 'Re-upload Requested').length}
+              </p>
+            </Card>
+          </div>
+
       {/* Search & Filter Toolbar */}
       <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-subtle flex flex-col sm:flex-row items-center gap-2.5">
         <div className="relative flex-1 w-full">
@@ -346,7 +463,7 @@ export const Documents: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
-          {['All', 'Submitted', 'Under Review', 'Approved', 'Rejected'].map(s => {
+          {['All', 'Submitted', 'Approved', 'Rejected'].map(s => {
             const isSelected = statusFilter === s;
             return (
               <button
@@ -364,6 +481,19 @@ export const Documents: React.FC = () => {
             );
           })}
         </div>
+
+        {/* Date Filter */}
+        <select
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+          className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E]/40 cursor-pointer"
+        >
+          <option value="All">All Time</option>
+          <option value="Today">Today</option>
+          <option value="Last 7 Days">Last 7 Days</option>
+          <option value="Last 30 Days">Last 30 Days</option>
+          <option value="This Year">This Year</option>
+        </select>
       </div>
 
       {/* Documents Grid */}
@@ -461,6 +591,8 @@ export const Documents: React.FC = () => {
           })}
         </div>
       )}
+        </div>
+      </div>
 
       {/* Upload File Modal */}
       <AnimatePresence>

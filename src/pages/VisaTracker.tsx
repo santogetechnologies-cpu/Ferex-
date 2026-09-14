@@ -46,58 +46,25 @@ export const VisaTracker: React.FC = () => {
   const inst2Paid = payments.some(p => checkPaymentStage(p, 2) && (p.status === 'Paid' || p.status === 'Verified'));
 
   const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || '';
-  const paymentAccess = canAccessPage('/visa-tracker', payments, targetCountry);
   const payment2Status = checkPayment(payments, 2, targetCountry);
 
-  // If payment not verified, show locked state
-  if (!paymentAccess.allowed) {
-    return (
-      <div className="space-y-6 text-left py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-xl mx-auto"
-        >
-          <Card className="p-8 text-center space-y-6 bg-white border border-slate-200/80 shadow-card">
-            <div className="w-14 h-14 rounded-xl bg-slate-100 text-slate-600 mx-auto flex items-center justify-center">
-              <Lock className="w-6 h-6" />
-            </div>
-            
-            <div className="space-y-2">
-              <h2 className="text-xl font-bold text-slate-900">
-                Consular Visa Tracker Locked
-              </h2>
-              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                {paymentAccess.reason || 'Complete the 2nd Installment (University Tuition) payment to activate consular file preparation and VFS scheduling.'}
-              </p>
-            </div>
+  // Final Acceptance Letter check
+  const hasFinalAcceptanceDoc = documents.some(d =>
+    d.file_name.toLowerCase().includes('final_acceptance') ||
+    d.file_name.toLowerCase().includes('final acceptance') ||
+    d.reviewer_notes?.toLowerCase().includes('final acceptance')
+  );
 
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3 text-left">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-slate-600">Prerequisite Settlement:</span>
-                <span className="font-semibold text-slate-900">{payment2Status.requiredPayment}</span>
-              </div>
+  const isFinalAcceptanceUnlocked = hasFinalAcceptanceDoc || applications.some(a =>
+    (a.status as string) === 'Final Acceptance Issued' ||
+    (a.status as string) === 'Enrolled' ||
+    Boolean(a.final_acceptance_url)
+  );
 
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-slate-600">Status:</span>
-                {payment2Status.paymentStatus === 'pending' ? (
-                  <Badge variant="brand" dot>Under Verification</Badge>
-                ) : (
-                  <Badge variant="error">Not Submitted</Badge>
-                )}
-              </div>
-
-              {payment2Status.paymentStatus === 'pending' && (
-                <div className="pt-3 border-t border-slate-200">
-                  <div className="flex items-start gap-2.5 bg-white rounded-lg p-3 border border-slate-200">
-                    <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="text-left text-xs">
-                      <p className="font-semibold text-slate-800">Verification in Progress</p>
-                      <p className="text-slate-500 mt-0.5">
-                        Your tuition payment is being verified by admin. Visa tracker access will unlock once approved.
-                      </p>
-                    </div>
-                  </div>
+  const foundRecord = records.find(r =>
+    (user?.id && r.student_id === user.id) ||
+    (user?.email && (r as any).student_email && (r as any).student_email.toLowerCase() === user.email.toLowerCase())
+  );
                 </div>
               )}
             </div>

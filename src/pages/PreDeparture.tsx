@@ -28,7 +28,6 @@ export const PreDeparture: React.FC = () => {
   const [checkedMap, setCheckedMap] = useState<Record<string, boolean>>({});
 
   const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || '';
-  const paymentAccess = canAccessPage('/pre-departure', payments, targetCountry);
   const payment3Status = checkPaymentStage(payments, 3, targetCountry);
 
   const activeApp = applications[0];
@@ -76,78 +75,6 @@ export const PreDeparture: React.FC = () => {
       window.removeEventListener('ferex_predeparture_change', fetchRecord);
     };
   }, [user?.id, user?.email, profile?.full_name, profile?.email]);
-
-  // If payment not verified, show locked state
-  if (!paymentAccess.allowed) {
-    return (
-      <div className="space-y-6 text-left py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-xl mx-auto"
-        >
-          <Card className="p-8 text-center space-y-6 bg-white border border-slate-200/80 shadow-card">
-            <div className="w-14 h-14 rounded-xl bg-slate-100 text-slate-600 mx-auto flex items-center justify-center">
-              <Lock className="w-6 h-6" />
-            </div>
-            
-            <div className="space-y-2">
-              <h2 className="text-xl font-bold text-slate-900">
-                Pre-Departure Checklist Locked
-              </h2>
-              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                {paymentAccess.reason || 'Complete 3rd Installment (Agency & VFS Fee) to unlock pre-departure planning and airport logistics.'}
-              </p>
-            </div>
-
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3 text-left">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-slate-600">Required Settlement:</span>
-                <span className="font-semibold text-slate-900">{payment3Status.requiredPayment}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-slate-600">Status:</span>
-                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded ${
-                  payment3Status.paymentStatus === 'pending' 
-                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                    : 'bg-red-50 text-red-700 border border-red-200'
-                }`}>
-                  {payment3Status.paymentStatus === 'pending' ? 'Pending Verification' : 'Not Submitted'}
-                </span>
-              </div>
-
-              {payment3Status.paymentStatus === 'pending' && (
-                <div className="pt-3 border-t border-slate-200">
-                  <div className="flex items-start gap-2.5 bg-white rounded-lg p-3 border border-slate-200">
-                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="text-left text-xs">
-                      <p className="font-semibold text-slate-800">Payment Under Review</p>
-                      <p className="text-slate-500 mt-0.5">
-                        Your final installment is being verified. Pre-departure access will be granted upon approval.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
-              {payment3Status.paymentStatus === 'not_found' && (
-                <button
-                  onClick={() => navigate('/student/payments')}
-                  className="px-5 py-2.5 bg-[#58051E] text-white rounded-lg font-semibold text-xs hover:bg-[#430417] transition-colors shadow-subtle flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  Settle Final Installment
-                </button>
-              )}
-              
-              <button
-                onClick={() => navigate('/student/dashboard')}
-                className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-lg font-medium text-xs hover:bg-slate-200 transition-colors cursor-pointer"
-              >
-                Return to Dashboard
               </button>
             </div>
           </Card>

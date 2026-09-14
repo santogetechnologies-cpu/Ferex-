@@ -50,8 +50,11 @@ function getCustomUniversities(): University[] {
 }
 
 export async function getUniversities(): Promise<University[]> {
+  console.log('[Universities API] getUniversities() called');
   const deletedIds = getDeletedUniversityIds();
+  console.log('[Universities API] Deleted IDs:', deletedIds.length);
   const customUnis = getCustomUniversities();
+  console.log('[Universities API] Custom universities:', customUnis.length);
 
   let fetchedFromDb: University[] = [];
   try {
@@ -60,12 +63,22 @@ export async function getUniversities(): Promise<University[]> {
       .select('*')
       .order('ranking', { ascending: true });
 
-    if (!error && data && Array.isArray(data)) {
+    if (error) {
+      console.error('[Universities API] Supabase error:', error);
+    } else if (data && Array.isArray(data)) {
       fetchedFromDb = data as University[];
-      console.log('[Universities API] Fetched from DB:', fetchedFromDb.length);
+      console.log('[Universities API] ✅ Fetched from Supabase:', fetchedFromDb.length);
+      
+      // IMMEDIATELY cache Supabase data to ensure persistence
+      try {
+        localStorage.setItem('ferex_local_universities', JSON.stringify(fetchedFromDb));
+        console.log('[Universities API] ✅ Cached to localStorage:', fetchedFromDb.length);
+      } catch (e) {
+        console.error('[Universities API] ❌ LocalStorage cache failed:', e);
+      }
     }
   } catch (err) {
-    console.warn('[getUniversities DB Warning]:', err);
+    console.error('[getUniversities DB Error]:', err);
   }
 
   // IMPORTANT: Prioritize Supabase data over localStorage
@@ -91,14 +104,8 @@ export async function getUniversities(): Promise<University[]> {
     merged.push(u);
   }
 
-  console.log('[Universities API] Final merged:', merged.length);
-
-  // Cache result
-  try {
-    localStorage.setItem('ferex_local_universities', JSON.stringify(merged));
-  } catch (e) {
-    console.error('[Universities API] LocalStorage error:', e);
-  }
+  console.log('[Universities API] ✅ Final merged count:', merged.length);
+  console.log('[Universities API] University names:', merged.map(u => u.name).join(', '));
 
   return merged;
 }
@@ -126,6 +133,8 @@ export async function createUniversity(payload: {
   installments?: PaymentInstallment[];
   semesters?: CourseSemester[];
 }): Promise<University> {
+  console.log('[createUniversity] Creating:', payload.name, 'in', payload.country);
+  
   const newId = generateUUID();
   const createdObj: University = {
     id: newId,
@@ -133,7 +142,7 @@ export async function createUniversity(payload: {
     country: payload.country.trim(),
     city: payload.city?.trim() || '',
     logo_url: payload.logo_url || '',
-    image_url: payload.image_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80',
+    image_url: payload.image_url || '',
     badge: payload.badge || 'Top Choice',
     category: payload.category || 'Engineering',
     description: payload.description || `${payload.name} offers accredited degree programs with global post-study work opportunities.`,
@@ -163,13 +172,21 @@ export async function createUniversity(payload: {
   try {
     const customList = getCustomUniversities().filter(u => u.id !== newId && u.name.toLowerCase() !== createdObj.name.toLowerCase());
     localStorage.setItem('ferex_custom_universities', JSON.stringify([createdObj, ...customList]));
-  } catch (e) {}
+    console.log('[createUniversity] ✅ Saved to custom localStorage');
+  } catch (e) {
+    console.error('[createUniversity] ❌ localStorage save failed:', e);
+  }
 
-  // 3. Attempt Supabase Insert
+  // 3. CRITICAL: Persist to Supabase FIRST (most important)
   try {
-    await supabase.from('universities').insert(createdObj);
+    const { data, error } = await supabase.from('universities').insert(createdObj).select();
+    if (error) {
+      console.error('[createUniversity] ❌ Supabase insert failed:', error);
+    } else {
+      console.log('[createUniversity] ✅ Successfully inserted to Supabase:', data);
+    }
   } catch (err: any) {
-    console.warn('[createUniversity Supabase Insert Notice]:', err?.message || err);
+    console.error('[createUniversity] ❌ Supabase error:', err?.message || err);
   }
 
   // 4. Update local cache
@@ -178,14 +195,20 @@ export async function createUniversity(payload: {
     const existing: University[] = local ? JSON.parse(local) : [];
     const updated = [createdObj, ...existing.filter(u => u.id !== newId && u.name.toLowerCase() !== createdObj.name.toLowerCase())];
     localStorage.setItem('ferex_local_universities', JSON.stringify(updated));
-  } catch (e) {}
+    console.log('[createUniversity] ✅ Updated local cache');
+  } catch (e) {
+    console.error('[createUniversity] ❌ Local cache update failed:', e);
+  }
 
   window.dispatchEvent(new Event('ferex_university_change'));
   window.dispatchEvent(new Event('storage'));
+  console.log('[createUniversity] ✅ Complete - dispatched events');
   return createdObj;
 }
 
 export async function updateUniversityRecord(id: string, payload: Partial<University>): Promise<University> {
+  console.log('[updateUniversityRecord] Updating:', id);
+  
   let existingList: University[] = [];
   try {
     const local = localStorage.getItem('ferex_local_universities');
@@ -201,7 +224,7 @@ export async function updateUniversityRecord(id: string, payload: Partial<Univer
     country: payload.country ?? current?.country ?? 'Poland',
     city: payload.city ?? current?.city ?? '',
     logo_url: payload.logo_url ?? current?.logo_url ?? '',
-    image_url: payload.image_url ?? current?.image_url ?? 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80',
+    image_url: payload.image_url ?? current?.image_url ?? '',
     badge: payload.badge ?? current?.badge ?? 'Accredited',
     category: payload.category ?? current?.category ?? 'General',
     description: payload.description ?? current?.description ?? '',
@@ -231,16 +254,24 @@ export async function updateUniversityRecord(id: string, payload: Partial<Univer
       newCustomList = [updatedObj, ...customUnis.filter(u => u.id !== id)];
     }
     localStorage.setItem('ferex_custom_universities', JSON.stringify(newCustomList));
-  } catch {}
+    console.log('[updateUniversityRecord] ✅ Updated custom localStorage');
+  } catch (e) {
+    console.error('[updateUniversityRecord] ❌ Custom update failed:', e);
+  }
 
-  // Update Supabase in background
+  // Update Supabase - CRITICAL
   try {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     if (isUuid) {
-      await supabase.from('universities').update(payload).eq('id', id);
+      const { error } = await supabase.from('universities').update(payload).eq('id', id);
+      if (error) {
+        console.error('[updateUniversityRecord] ❌ Supabase update failed:', error);
+      } else {
+        console.log('[updateUniversityRecord] ✅ Supabase updated');
+      }
     }
   } catch (err) {
-    console.warn('[updateUniversityRecord Supabase Warning]:', err);
+    console.error('[updateUniversityRecord] ❌ Supabase error:', err);
   }
 
   // Update local cache
@@ -249,10 +280,14 @@ export async function updateUniversityRecord(id: string, payload: Partial<Univer
       ? existingList.map(u => u.id === id ? updatedObj : u)
       : [updatedObj, ...existingList];
     localStorage.setItem('ferex_local_universities', JSON.stringify(updated));
-  } catch (e) {}
+    console.log('[updateUniversityRecord] ✅ Updated local cache');
+  } catch (e) {
+    console.error('[updateUniversityRecord] ❌ Cache update failed:', e);
+  }
 
   window.dispatchEvent(new Event('ferex_university_change'));
   window.dispatchEvent(new Event('storage'));
+  console.log('[updateUniversityRecord] ✅ Complete');
   return updatedObj;
 }
 
