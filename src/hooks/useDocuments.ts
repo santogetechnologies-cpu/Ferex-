@@ -16,13 +16,17 @@ export function useDocuments(studentId?: string) {
       let data: StudentDocument[] = [];
       if (studentId) {
         data = await getDocumentsForStudent(studentId);
+        console.log('[useDocuments] Fetched documents:', data.length, 'for student:', studentId);
       } else {
         data = await getDocumentsForAdmin();
+        console.log('[useDocuments] Fetched admin documents:', data.length);
       }
 
       setDocuments(data || []);
     } catch (err: any) {
+      console.error('[useDocuments] Error:', err);
       setError(err.message || 'Failed to load documents');
+      setDocuments([]);
     } finally {
       setLoading(false);
     }
@@ -46,17 +50,26 @@ export function useDocuments(studentId?: string) {
           filter: filterStr,
         },
         () => {
+          console.log('[useDocuments] Realtime change detected');
           fetchDocs();
         }
       )
       .subscribe();
 
-    const handleLocalEvent = () => fetchDocs();
+    const handleLocalEvent = () => {
+      console.log('[useDocuments] Change event detected');
+      fetchDocs();
+    };
+
     window.addEventListener('ferex_document_change', handleLocalEvent);
+    window.addEventListener('ferex_documents_change', handleLocalEvent);
+    window.addEventListener('storage', handleLocalEvent);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_document_change', handleLocalEvent);
+      window.removeEventListener('ferex_documents_change', handleLocalEvent);
+      window.removeEventListener('storage', handleLocalEvent);
     };
   }, [fetchDocs, studentId]);
 

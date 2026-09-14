@@ -25,6 +25,7 @@ export function useUniversities() {
     fetchUniversities();
 
     const handleDataChange = () => {
+      console.log('[useUniversities] Data change event received');
       fetchUniversities(true);
     };
 

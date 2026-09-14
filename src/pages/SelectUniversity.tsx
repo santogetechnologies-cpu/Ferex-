@@ -558,7 +558,7 @@ export const SelectUniversity: React.FC = () => {
                       </div>
                     )}
                     <span className="text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200">
-                      {wf.authority_acronym}
+                      {wf?.authority_acronym || 'Legalization'}
                     </span>
                   </div>
 
@@ -593,7 +593,7 @@ export const SelectUniversity: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Procedure:</span>
-                    <span className="font-bold text-[#58051E]">{wf.authority_badge}</span>
+                    <span className="font-bold text-[#58051E]">{wf?.authority_badge || 'Academic Legalization'}</span>
                   </div>
                 </div>
               </div>
@@ -645,10 +645,10 @@ export const SelectUniversity: React.FC = () => {
                   <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 mb-4 space-y-1">
                     <div className="flex items-center gap-1.5 font-black text-amber-900 text-xs">
                       <ShieldCheck className="w-4 h-4 text-amber-600" />
-                      <span>{uniWf.authority_name}</span>
+                      <span>{uniWf?.authority_name || 'Academic Legalization'}</span>
                     </div>
                     <p className="text-[11px] text-amber-800 leading-relaxed font-semibold">
-                      {uniWf.authority_description}
+                      {uniWf?.authority_description || 'Mandatory qualification and document audit for higher education.'}
                     </p>
                   </div>
 
@@ -687,17 +687,16 @@ export const SelectUniversity: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100">
+                <div className="pt-4 border-t border-slate-100 mt-6 flex items-center gap-3">
                   <button
                     onClick={() => {
-                      const u = drawerUni;
+                      const uniToApply = drawerUni;
                       setDrawerUni(null);
-                      handleOpenApply(u);
+                      handleOpenApply(uniToApply);
                     }}
-                    className="w-full h-10 text-xs font-black rounded-xl shadow-md bg-[#58051E] text-white hover:bg-[#430316] flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full h-11 bg-[#58051E] hover:bg-[#430316] text-white font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    <span>Proceed to Course Application</span>
-                    <ArrowRight className="w-4 h-4" />
+                    Start Admission Application <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </motion.div>
@@ -722,7 +721,7 @@ export const SelectUniversity: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-base font-black text-slate-900">Apply to {applyUni.name}</h3>
-                      <p className="text-xs font-semibold text-slate-400">{applyUni.city}, {applyUni.country} • {targetWf.authority_acronym} Authority Flow</p>
+                      <p className="text-xs font-semibold text-slate-400">{applyUni.city}, {applyUni.country} • {targetWf?.authority_acronym || 'Legalization'} Authority Flow</p>
                     </div>
                   </div>
                   <button onClick={() => setApplyUni(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"><X className="w-4 h-4" /></button>
@@ -821,7 +820,7 @@ export const SelectUniversity: React.FC = () => {
                   <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1 text-xs">
                     <div className="flex items-center gap-1.5 font-bold text-slate-900">
                       <ShieldCheck className="w-3.5 h-3.5 text-[#58051E]" />
-                      <span>{targetWf.authority_badge} Procedure</span>
+                      <span>{targetWf?.authority_badge || 'Legalization'} Procedure</span>
                     </div>
                     <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
                       {hasCounselorAssigned 

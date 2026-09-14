@@ -62,39 +62,43 @@ export async function getUniversities(): Promise<University[]> {
 
     if (!error && data && Array.isArray(data)) {
       fetchedFromDb = data as University[];
+      console.log('[Universities API] Fetched from DB:', fetchedFromDb.length);
     }
   } catch (err) {
     console.warn('[getUniversities DB Warning]:', err);
   }
 
-  // Base list only uses live Supabase database records
-  const basePool = fetchedFromDb;
-
-  // Merge: custom additions first, then DB records (avoiding duplicates by id or name)
+  // IMPORTANT: Prioritize Supabase data over localStorage
+  const merged: University[] = [];
   const seenIds = new Set<string>();
   const seenNames = new Set<string>();
-  const merged: University[] = [];
 
+  // First add database universities
+  for (const u of fetchedFromDb) {
+    if (!u || !u.id || isDeletedUniversity(u, deletedIds)) continue;
+    seenIds.add(u.id);
+    if (u.name) seenNames.add(u.name.toLowerCase().trim());
+    merged.push(u);
+  }
+
+  // Then add custom universities that aren't in database
   for (const u of customUnis) {
     if (!u || !u.id || isDeletedUniversity(u, deletedIds)) continue;
-    seenIds.add(u.id);
-    seenNames.add((u.name || '').toLowerCase().trim());
-    merged.push(u);
-  }
-
-  for (const u of basePool) {
-    if (!u || !u.id || isDeletedUniversity(u, deletedIds)) continue;
     const nameKey = (u.name || '').toLowerCase().trim();
-    if (seenIds.has(u.id) || seenNames.has(nameKey)) continue;
+    if (seenIds.has(u.id) || (nameKey && seenNames.has(nameKey))) continue; // Skip duplicates
     seenIds.add(u.id);
-    seenNames.add(nameKey);
+    if (nameKey) seenNames.add(nameKey);
     merged.push(u);
   }
 
-  // Cache to localStorage
+  console.log('[Universities API] Final merged:', merged.length);
+
+  // Cache result
   try {
     localStorage.setItem('ferex_local_universities', JSON.stringify(merged));
-  } catch (e) {}
+  } catch (e) {
+    console.error('[Universities API] LocalStorage error:', e);
+  }
 
   return merged;
 }

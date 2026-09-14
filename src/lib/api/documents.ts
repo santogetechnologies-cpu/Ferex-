@@ -7,34 +7,37 @@ const isValidUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[
 
 // ─── Get documents for a specific student (Student View) ───────────────────────
 export async function getDocumentsForStudent(studentId: string): Promise<StudentDocument[]> {
-  try {
-    if (studentId && isValidUuid(studentId)) {
-      const { data, error } = await supabase
-        .from('student_documents')
-        .select('*')
-        .eq('student_id', studentId)
-        .order('uploaded_at', { ascending: false });
-      
-      if (!error && data && data.length > 0) {
-        try {
-          localStorage.setItem(`ferex_docs_${studentId}`, JSON.stringify(data));
-        } catch (e) {}
-        return (data ?? []) as unknown as StudentDocument[];
-      }
-    }
+  if (!studentId) return [];
 
-    // Local storage fallback
-    const local = localStorage.getItem(`ferex_docs_${studentId}`) || localStorage.getItem('ferex_student_docs');
-    if (local) {
+  try {
+    const { data, error } = await supabase
+      .from('student_documents')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('uploaded_at', { ascending: false });
+    
+    if (error) {
+      console.error('[getDocuments] Supabase error:', error);
+    } else if (data) {
+      console.log('[getDocuments] Retrieved:', data.length, 'documents for student:', studentId);
       try {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed)) return parsed;
+        localStorage.setItem(`ferex_docs_${studentId}`, JSON.stringify(data));
       } catch (e) {}
+      return (data ?? []) as unknown as StudentDocument[];
     }
-    return [];
   } catch (err) {
-    return [];
+    console.error('[getDocuments] Error:', err);
   }
+
+  // Local storage fallback
+  const local = localStorage.getItem(`ferex_docs_${studentId}`) || localStorage.getItem('ferex_student_docs');
+  if (local) {
+    try {
+      const parsed = JSON.parse(local);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {}
+  }
+  return [];
 }
 
 // ─── Get all documents across the system (Admin View) ──────────────────────────
@@ -45,7 +48,10 @@ export async function getDocumentsForAdmin(): Promise<StudentDocument[]> {
       .select('*, users:student_id(id, full_name, email, phone)')
       .order('uploaded_at', { ascending: false });
 
-    if (!error && data && data.length > 0) {
+    if (error) {
+      console.error('[getDocumentsForAdmin] Supabase error:', error);
+    } else if (data) {
+      console.log('[getDocuments] Retrieved (Admin):', data.length, 'documents');
       return (data ?? []) as unknown as StudentDocument[];
     }
 
@@ -59,6 +65,7 @@ export async function getDocumentsForAdmin(): Promise<StudentDocument[]> {
 
     return (data ?? []) as unknown as StudentDocument[];
   } catch (err) {
+    console.error('[getDocumentsForAdmin] Error:', err);
     return [];
   }
 }

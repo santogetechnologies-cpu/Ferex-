@@ -32,7 +32,7 @@ export const StudentDashboard: React.FC = () => {
   const { getWorkflowForCountry } = useCountryWorkflows();
 
   const targetCountry = localStorage.getItem('ferex_student_target_country') || applications[0]?.universities?.country || (applications[0] as any)?.country || '';
-  const targetWf = getWorkflowForCountry(targetCountry);
+  const targetWf = targetCountry ? getWorkflowForCountry(targetCountry) : null;
 
   const [nawaRecord, setNawaRecord] = React.useState<NawaRecord | null>(null);
 
@@ -222,8 +222,30 @@ export const StudentDashboard: React.FC = () => {
         ))}
       </div>
 
+      {/* Missing Target Country Prompt */}
+      {!targetCountry && (
+        <motion.div variants={itemVariants}>
+          <div className="p-5 bg-amber-50 border-2 border-amber-300 rounded-2xl text-left flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-subtle">
+            <div>
+              <p className="font-bold text-amber-900 text-sm">
+                ⚠️ Please select your target country to see specific compliance protocols & requirements
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                Your admission roadmap, country-specific legalization rules, and embassy documentation checklist will configure automatically.
+              </p>
+            </div>
+            <button 
+              onClick={() => navigate('/student/profile')}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs shrink-0 cursor-pointer shadow-xs transition-colors"
+            >
+              Select Country in Profile
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Country Legalization Progress Banner */}
-      {nawaRecord && (
+      {nawaRecord && targetWf && (
         <motion.div variants={itemVariants}>
           <div className="p-4 rounded-2xl border border-slate-200/80 bg-white shadow-subtle">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -343,7 +365,12 @@ export const StudentDashboard: React.FC = () => {
 
             <div className="p-3.5 rounded-xl border bg-slate-50 border-slate-200/70 space-y-1.5">
               <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                {isLegalizationApproved ? (
+                {!targetCountry ? (
+                  <>
+                    <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>Target Country Required</span>
+                  </>
+                ) : isLegalizationApproved ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>{targetWf?.authority_acronym || 'Authority'} Legalization Approved</span>
@@ -371,15 +398,17 @@ export const StudentDashboard: React.FC = () => {
                 )}
               </p>
               <p className="text-[11px] font-normal text-slate-500 leading-relaxed">
-                {isLegalizationApproved
-                  ? `Your educational credentials and ${targetWf?.authority_acronym || 'legalization'} audit are officially verified.`
-                  : isLegalizationSubmitted
-                    ? `Files dispatched to ${targetWf?.authority_name || 'the evaluation board'} for official equivalency verification.`
-                    : isLegalizationInReview
-                      ? `FEREX admissions desk is reviewing your academic transcripts and eligibility for ${targetCountry}.`
-                      : inst1Paid
-                        ? `1st Installment verified. ${targetWf?.authority_acronym || 'Legalization'} process is queued for audit.`
-                        : `Complete 1st installment payment to unlock ${targetWf?.authority_acronym || 'Legalization'} process.`}
+                {!targetCountry
+                  ? 'Select your target European country in your student profile to initialize your authority qualification audit.'
+                  : isLegalizationApproved
+                    ? `Your educational credentials and ${targetWf?.authority_acronym || 'legalization'} audit are officially verified.`
+                    : isLegalizationSubmitted
+                      ? `Files dispatched to ${targetWf?.authority_name || 'the evaluation board'} for official equivalency verification.`
+                      : isLegalizationInReview
+                        ? `FEREX admissions desk is reviewing your academic transcripts and eligibility for ${targetCountry}.`
+                        : inst1Paid
+                          ? `1st Installment verified. ${targetWf?.authority_acronym || 'Legalization'} process is queued for audit.`
+                          : `Complete 1st installment payment to unlock ${targetWf?.authority_acronym || 'Legalization'} process.`}
               </p>
               <Button size="xs" variant="outline" className="w-full mt-2 font-semibold" onClick={() => navigate('/student/documents')}>
                 Open Document Vault

@@ -38,7 +38,9 @@ export const JourneyTracker: React.FC = () => {
 
   const activeApp = applications[0];
   const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || (activeApp as any)?.country || '';
-  const targetUniversity = activeApp?.university_name || (targetCountry ? `${targetCountry} Partner University` : 'University Applied For');
+  const targetUniversity = activeApp?.university_name || 
+    activeApp?.universities?.name || 
+    (targetCountry && targetCountry !== '' ? `${targetCountry} Partner University` : 'No University Selected');
 
   // Verification helper states
   const hasUploadedDocs = documents.length > 0;
@@ -371,7 +373,7 @@ export const JourneyTracker: React.FC = () => {
 
           <div className="mt-5 flex items-center gap-3 flex-wrap text-xs font-medium text-slate-300">
             <span className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-1.5">
-              <Building className="w-3.5 h-3.5 text-slate-300" /> {targetUniversity} ({targetCountry})
+              <Building className="w-3.5 h-3.5 text-slate-300" /> {targetUniversity}{targetCountry ? ` (${targetCountry})` : ''}
             </span>
             <span className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-slate-300" /> Student: {studentName}
@@ -379,6 +381,22 @@ export const JourneyTracker: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {(!activeApp && !targetCountry) && (
+        <div className="p-8 bg-white rounded-2xl border-2 border-slate-200 text-center shadow-subtle space-y-3">
+          <GraduationCap className="w-12 h-12 text-slate-400 mx-auto" />
+          <h3 className="font-bold text-slate-900 text-base">No Journey Data Yet</h3>
+          <p className="text-sm text-slate-600 max-w-md mx-auto">
+            Select a target country or university and submit an application to start tracking your customized 3-pillar journey.
+          </p>
+          <button
+            onClick={() => navigate('/student/select-university')}
+            className="mt-2 px-6 py-2.5 bg-[#58051E] hover:bg-[#6A1B2E] text-white rounded-xl font-bold text-xs cursor-pointer shadow-xs transition-colors inline-block"
+          >
+            Browse Universities
+          </button>
+        </div>
+      )}
 
       {/* 3 Pillar Bento Selectors */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

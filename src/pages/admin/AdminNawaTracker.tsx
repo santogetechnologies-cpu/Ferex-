@@ -106,7 +106,7 @@ export const AdminNawaTracker: React.FC = () => {
       setIsSubmitting(true);
       const studentObj = students.find(s => s.id === selectedStudentId);
       const targetWorkflow = getWorkflowForCountry(selectedTargetCountry);
-      const refPrefix = targetWorkflow.authority_acronym.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4) || 'AUTH';
+      const refPrefix = targetWorkflow?.authority_acronym ? targetWorkflow.authority_acronym.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4) : 'AUTH';
       const autoRef = nawaRefNo.trim() || `${refPrefix}/${selectedTargetCountry.slice(0, 3).toUpperCase()}/2026/${Math.floor(1000 + Math.random() * 9000)}`;
 
       const newRec = await createNawaRecord({
@@ -114,13 +114,13 @@ export const AdminNawaTracker: React.FC = () => {
         student_name: studentObj?.full_name || studentObj?.email?.split('@')[0] || 'Student',
         student_email: studentObj?.email,
         nawa_ref_no: autoRef,
-        document_type: `${selectedTargetCountry} - ${documentType} (${targetWorkflow.authority_acronym})`,
-        notes: notes.trim() || `Initiated ${targetWorkflow.authority_name} legalization and document audit.`,
+        document_type: `${selectedTargetCountry} - ${documentType} (${targetWorkflow?.authority_acronym || 'Legalization'})`,
+        notes: notes.trim() || `Initiated ${targetWorkflow?.authority_name || 'Legalization'} legalization and document audit.`,
       });
 
       setRecords(prev => [newRec, ...prev]);
       setShowAddModal(false);
-      showToast(`Student ${newRec.student_name} added to ${targetWorkflow.authority_acronym} Legalization queue!`);
+      showToast(`Student ${newRec.student_name} added to ${targetWorkflow?.authority_acronym || 'Legalization'} queue!`);
     } catch (err: any) {
       showToast(`Error adding student: ${err.message || 'Failed'}`);
     } finally {
@@ -388,8 +388,8 @@ export const AdminNawaTracker: React.FC = () => {
               {filtered.map(rec => {
                 const country = resolveStudentCountry(rec);
                 const wf = getWorkflowForCountry(country);
-                const maxSteps = wf.stages?.length || 5;
-                const currentStageObj = wf.stages?.[rec.current_step - 1] || wf.stages?.[0];
+                const maxSteps = wf?.stages?.length || 5;
+                const currentStageObj = wf?.stages?.[rec.current_step - 1] || wf?.stages?.[0];
 
                 return (
                   <motion.div
@@ -407,7 +407,7 @@ export const AdminNawaTracker: React.FC = () => {
                               {country}
                             </span>
                             <span className="text-[10px] font-black uppercase bg-[#58051E]/10 text-[#58051E] px-2 py-0.5 rounded border border-[#58051E]/20">
-                              {wf.authority_acronym}
+                              {wf?.authority_acronym || 'Legalization'}
                             </span>
                           </div>
                           <h3 className="text-sm font-black text-slate-900 group-hover:text-[#58051E] transition-colors">

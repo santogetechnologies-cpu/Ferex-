@@ -519,10 +519,12 @@ export function getCountryWorkflows(): CountryWorkflowConfig[] {
   return DEFAULT_COUNTRY_WORKFLOWS;
 }
 
-export function getWorkflowForCountry(countryName?: string): CountryWorkflowConfig {
-  const workflows = getCountryWorkflows();
-  if (!countryName) return workflows[0] || DEFAULT_COUNTRY_WORKFLOWS[0];
+export function getWorkflowForCountry(countryName?: string): CountryWorkflowConfig | null {
+  if (!countryName || !countryName.trim()) {
+    return null;
+  }
 
+  const workflows = getCountryWorkflows();
   const matched = workflows.find(
     w => w.country.toLowerCase().trim() === countryName.toLowerCase().trim()
   );

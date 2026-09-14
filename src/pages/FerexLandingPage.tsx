@@ -66,8 +66,8 @@ export const FerexLandingPage: React.FC = () => {
 
   // State
   const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>('All');
-  const [activeCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeCategory, setActiveCategory] = useState<string>('All');
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [isMissionModalOpen, setIsMissionModalOpen] = useState<boolean>(false);
 
@@ -91,9 +91,13 @@ export const FerexLandingPage: React.FC = () => {
   const [calcUniId, setCalcUniId] = useState<string>('');
 
   React.useEffect(() => {
+    console.log('[Cost Calculator] Universities in country:', universitiesInCalcCountry.length);
     if (universitiesInCalcCountry.length > 0) {
-      if (!universitiesInCalcCountry.some(u => u.id === calcUniId)) {
-        setCalcUniId(universitiesInCalcCountry[0].id);
+      const currentUniValid = universitiesInCalcCountry.some(u => u.id === calcUniId);
+      if (!currentUniValid) {
+        const firstUni = universitiesInCalcCountry[0];
+        console.log('[Cost Calculator] Setting to first uni:', firstUni.name);
+        setCalcUniId(firstUni.id);
       }
     } else {
       setCalcUniId('');
@@ -133,13 +137,17 @@ export const FerexLandingPage: React.FC = () => {
 
   // Filtered universities for the grid
   const filteredUniversities = useMemo(() => {
-    return universities.filter(u => {
+    const list = universities.filter(u => {
       const matchCountry = selectedCountryFilter === 'All' || u.country === selectedCountryFilter;
       const matchCat = activeCategory === 'All' || u.category === activeCategory || (u.programs && u.programs.some(p => p.toLowerCase().includes(activeCategory.toLowerCase())));
       const q = searchQuery.toLowerCase().trim();
       const matchSearch = !q || u.name.toLowerCase().includes(q) || u.city?.toLowerCase().includes(q) || u.country?.toLowerCase().includes(q);
       return matchCountry && matchCat && matchSearch;
     });
+    console.log('[Landing Page] Universities loaded:', universities.length);
+    console.log('[Landing Page] Filtered universities:', list.length);
+    console.log('[Landing Page] Filters:', { selectedCountryFilter, activeCategory, searchQuery });
+    return list;
   }, [universities, selectedCountryFilter, activeCategory, searchQuery]);
 
   // Destination country statistics
@@ -678,15 +686,23 @@ export const FerexLandingPage: React.FC = () => {
                   <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-1.5">
                     Select European Partner University
                   </label>
-                  <select
-                    value={calcUniId}
-                    onChange={(e) => setCalcUniId(e.target.value)}
-                    className="w-full h-11 px-3.5 bg-white border border-[#ECE7EA] rounded-xl text-xs font-bold text-[#1F2937] focus:outline-none focus:border-[#570229]"
-                  >
-                    {universitiesInCalcCountry.map(u => (
-                      <option key={u.id} value={u.id}>{u.name} ({u.city})</option>
-                    ))}
-                  </select>
+                  {universitiesInCalcCountry.length === 0 ? (
+                    <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-left">
+                      <p className="text-xs text-amber-800 font-bold">
+                        No universities available for {calcCountry || 'this country'}.
+                      </p>
+                    </div>
+                  ) : (
+                    <select
+                      value={calcUniId}
+                      onChange={(e) => setCalcUniId(e.target.value)}
+                      className="w-full h-11 px-3.5 bg-white border border-[#ECE7EA] rounded-xl text-xs font-bold text-[#1F2937] focus:outline-none focus:border-[#570229]"
+                    >
+                      {universitiesInCalcCountry.map(u => (
+                        <option key={u.id} value={u.id}>{u.name} ({u.city || u.country})</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 {/* Accommodation Preference */}
@@ -912,10 +928,28 @@ export const FerexLandingPage: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-[#ECE7EA] p-8 space-y-3">
+              <div className="col-span-full py-12 text-center bg-white rounded-2xl border border-[#ECE7EA] p-8 space-y-4">
                 <Building2 className="w-10 h-10 text-[#6B7280] mx-auto" />
-                <h4 className="text-base font-bold text-[#1F2937]">No partner universities match your search query</h4>
-                <p className="text-xs text-[#6B7280]">Try changing the selected country filter or search term.</p>
+                <h4 className="text-base font-bold text-[#1F2937]">No partner universities match your filter criteria</h4>
+                <p className="text-xs text-[#6B7280]">
+                  {universities.length > 0 
+                    ? `${universities.length} universities are loaded in the database, but none match current filters (Country: ${selectedCountryFilter} | Category: ${activeCategory} | Search: "${searchQuery || 'None'}").`
+                    : 'No universities currently active in the database.'}
+                </p>
+                {universities.length > 0 && (
+                  <div className="pt-2">
+                    <button 
+                      onClick={() => {
+                        setSelectedCountryFilter('All');
+                        setActiveCategory('All');
+                        setSearchQuery('');
+                      }}
+                      className="px-5 py-2.5 bg-[#570229] hover:bg-[#6F0335] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer inline-flex items-center gap-2"
+                    >
+                      Reset All Filters
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
