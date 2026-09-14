@@ -48,6 +48,11 @@ export const AdminUniversities: React.FC = () => {
   const { destinations: countryList, addDestination, editDestination, removeDestination, clearAll: clearAllDestinationsData, refresh: refreshDestinations } = useDestinations();
   const { config } = useFeeConfig();
 
+  // DEBUG: Log universities state changes
+  React.useEffect(() => {
+    console.log('[AdminUniversities] Universities state updated:', universities.length, universities.map(u => u.name));
+  }, [universities]);
+
   // Top view tab: 'universities' or 'countries'
   const [activeMainTab, setActiveMainTab] = useState<'universities' | 'countries'>('universities');
 
@@ -502,6 +507,17 @@ export const AdminUniversities: React.FC = () => {
     const matchesCountry = countryFilter === 'All' || u.country === countryFilter;
     return matchesSearch && matchesCountry;
   });
+
+  // DEBUG: Log filter results
+  React.useEffect(() => {
+    console.log('[AdminUniversities] Filtered:', {
+      total: universities.length,
+      filtered: filteredUniversities.length,
+      search,
+      countryFilter,
+      universities: universities.map(u => ({ name: u.name, country: u.country }))
+    });
+  }, [universities, filteredUniversities.length, search, countryFilter]);
 
   // Filter logic for countries
   const filteredCountries = countryList.filter(c => {
