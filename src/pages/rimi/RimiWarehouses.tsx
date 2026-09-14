@@ -18,9 +18,9 @@ export const RimiWarehouses: React.FC = () => {
     name: '',
     city: '',
     address: '',
-    cold_room_temp_celsius: -18.0,
-    total_capacity_pallets: 500,
-    utilized_pallets: 0,
+    cold_room_temp_celsius: '' as any,
+    total_capacity_pallets: '' as any,
+    utilized_pallets: '' as any,
     manager_name: ''
   };
   const [newWh, setNewWh] = useState(emptyWh);
