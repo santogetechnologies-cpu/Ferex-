@@ -113,7 +113,13 @@ export const AdminPreDeparture: React.FC = () => {
   const handleSaveUpdate = async (record: PreDepartureRecord) => {
     try {
       const saved = await savePreDepartureRecord(record);
-      setRecords(prev => prev.map(r => r.student_id === saved.student_id ? saved : r));
+      setRecords(prev => {
+        const matches = (r: PreDepartureRecord) => r.id === saved.id || r.student_id === saved.student_id || (Boolean(r.student_email) && r.student_email === saved.student_email);
+        if (prev.some(matches)) {
+          return prev.map(r => matches(r) ? saved : r);
+        }
+        return [saved, ...prev];
+      });
       setSelectedStudent(null);
       showToast(`Pre-departure packet saved for ${record.student_name}!`);
     } catch (err: any) {

@@ -54,7 +54,7 @@ function saveLocalPreDepartureRecords(records: PreDepartureRecord[]) {
   } catch {}
 }
 
-export async function getPreDepartureRecords(studentId?: string): Promise<PreDepartureRecord[]> {
+export async function getPreDepartureRecords(studentIdentifier?: string): Promise<PreDepartureRecord[]> {
   const local = getLocalPreDepartureRecords();
   try {
     let query = supabase
@@ -62,30 +62,34 @@ export async function getPreDepartureRecords(studentId?: string): Promise<PreDep
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (studentId) {
-      query = query.eq('student_id', studentId);
-    }
-
     const { data, error } = await query;
 
-    if (error || !data || data.length === 0) {
-      if (studentId) {
-        return local.filter(r => r.student_id === studentId);
-      }
-      return local;
+    let allRecs: PreDepartureRecord[] = [];
+    if (!error && data && data.length > 0) {
+      const dbRecs = data as PreDepartureRecord[];
+      const dbIds = new Set(dbRecs.map(r => r.id || r.student_id));
+      allRecs = [...dbRecs, ...local.filter(r => !dbIds.has(r.id) && !dbIds.has(r.student_id))];
+    } else {
+      allRecs = local;
     }
 
-    const dbRecs = data as PreDepartureRecord[];
-    const dbIds = new Set(dbRecs.map(r => r.id || r.student_id));
-    const merged = [...dbRecs, ...local.filter(r => !dbIds.has(r.id) && !dbIds.has(r.student_id))];
-
-    if (studentId) {
-      return merged.filter(r => r.student_id === studentId);
+    if (studentIdentifier) {
+      const idLower = studentIdentifier.toLowerCase().trim();
+      return allRecs.filter(r =>
+        (r.student_id && r.student_id.toLowerCase().trim() === idLower) ||
+        (r.student_email && r.student_email.toLowerCase().trim() === idLower) ||
+        (r.id && r.id.toLowerCase().trim() === idLower)
+      );
     }
-    return merged;
+    return allRecs;
   } catch (err) {
-    if (studentId) {
-      return local.filter(r => r.student_id === studentId);
+    if (studentIdentifier) {
+      const idLower = studentIdentifier.toLowerCase().trim();
+      return local.filter(r =>
+        (r.student_id && r.student_id.toLowerCase().trim() === idLower) ||
+        (r.student_email && r.student_email.toLowerCase().trim() === idLower) ||
+        (r.id && r.id.toLowerCase().trim() === idLower)
+      );
     }
     return local;
   }
@@ -95,59 +99,67 @@ export async function savePreDepartureRecord(payload: Partial<PreDepartureRecord
   const now = new Date().toISOString();
   const newId = payload.id || generateUUID();
 
-  // Compute progress percentage
-  const checklistItems = [
-    payload.flight_booked,
-    payload.airport_pickup_opted,
-    payload.dorm_assigned,
-    payload.insurance_purchased,
-    payload.forex_card_ready,
-    payload.sim_card_ready,
-    payload.luggage_packed,
-    payload.emergency_contacts_saved,
-    payload.briefing_attended
-  ];
-  const completedCount = checklistItems.filter(Boolean).length;
-  const progressPercent = Math.round((completedCount / checklistItems.length) * 100);
+  const hasFlight = Boolean(payload.flight_no && payload.flight_no.trim().length > 0);
+  const hasDorm = Boolean(payload.dorm_name && payload.dorm_name.trim().length > 0);
+  const hasPickup = Boolean(payload.pickup_driver && payload.pickup_driver.trim().length > 0);
 
   const fullRecord: PreDepartureRecord = {
     id: newId,
     student_id: payload.student_id,
     student_name: payload.student_name,
-    student_email: payload.student_email || '',
+    student_email: (payload.student_email || '').toLowerCase().trim(),
     university_name: payload.university_name || '',
-    flight_booked: payload.flight_booked ?? false,
+    flight_booked: payload.flight_booked ?? hasFlight,
     airline: payload.airline || '',
     flight_no: payload.flight_no || '',
     departure_date: payload.departure_date || '',
     arrival_date: payload.arrival_date || '',
     arrival_city: payload.arrival_city || '',
     flight_details: payload.flight_details || '',
-    airport_pickup_opted: payload.airport_pickup_opted ?? false,
+    airport_pickup_opted: payload.airport_pickup_opted ?? hasPickup,
     pickup_driver: payload.pickup_driver || '',
     pickup_contact: payload.pickup_contact || '',
     pickup_details: payload.pickup_details || '',
-    dorm_assigned: payload.dorm_assigned ?? false,
+    dorm_assigned: payload.dorm_assigned ?? hasDorm,
     dorm_name: payload.dorm_name || '',
     room_no: payload.room_no || '',
     dorm_address: payload.dorm_address || '',
     dorm_details: payload.dorm_details || '',
-    insurance_purchased: payload.insurance_purchased ?? false,
+    insurance_purchased: payload.insurance_purchased ?? true,
     forex_card_ready: payload.forex_card_ready ?? false,
     sim_card_ready: payload.sim_card_ready ?? false,
     luggage_packed: payload.luggage_packed ?? false,
     emergency_contacts_saved: payload.emergency_contacts_saved ?? false,
     briefing_attended: payload.briefing_attended ?? false,
-    overall_progress: progressPercent,
-    clearance_status: payload.clearance_status || (progressPercent >= 80 ? 'Cleared' : 'In Progress'),
+    overall_progress: 0,
+    clearance_status: payload.clearance_status || (hasFlight && hasDorm ? 'Clearance Granted' : 'In Progress'),
     notes: payload.notes || 'Pre-departure status updated.',
     created_at: payload.created_at || now,
     updated_at: now
   };
 
+  // Compute progress percentage
+  const checklistItems = [
+    fullRecord.flight_booked,
+    fullRecord.airport_pickup_opted,
+    fullRecord.dorm_assigned,
+    fullRecord.insurance_purchased,
+    fullRecord.forex_card_ready,
+    fullRecord.sim_card_ready,
+    fullRecord.luggage_packed,
+    fullRecord.emergency_contacts_saved,
+    fullRecord.briefing_attended
+  ];
+  const completedCount = checklistItems.filter(Boolean).length;
+  fullRecord.overall_progress = Math.round((completedCount / checklistItems.length) * 100);
+
   // 1. Save to Local Storage cache
   const local = getLocalPreDepartureRecords();
-  const existingIdx = local.findIndex(r => r.id === newId || r.student_id === fullRecord.student_id);
+  const existingIdx = local.findIndex(r =>
+    (newId && r.id === newId) ||
+    (fullRecord.student_id && r.student_id === fullRecord.student_id) ||
+    (fullRecord.student_email && r.student_email && r.student_email.toLowerCase() === fullRecord.student_email.toLowerCase())
+  );
   if (existingIdx >= 0) {
     local[existingIdx] = { ...local[existingIdx], ...fullRecord };
   } else {

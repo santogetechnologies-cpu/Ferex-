@@ -45,14 +45,16 @@ export const PreDeparture: React.FC = () => {
     const fetchRecord = async () => {
       setLoading(true);
       try {
-        const recs = await getPreDepartureRecords(user?.id);
-        const myEmail = user?.email?.toLowerCase();
-        const myId = user?.id;
+        const recs = await getPreDepartureRecords();
+        const myEmail = (user?.email || profile?.email || '').toLowerCase().trim();
+        const myId = (user?.id || profile?.id || '').toLowerCase().trim();
+        const myName = (profile?.full_name || (user as any)?.user_metadata?.full_name || '').toLowerCase().trim();
 
         const found = recs.find(r =>
-          (myId && (r.student_id === myId || r.id === myId)) ||
-          (myEmail && r.student_email?.toLowerCase() === myEmail)
-        ) || null;
+          (myId && (r.student_id?.toLowerCase().trim() === myId || r.id?.toLowerCase().trim() === myId)) ||
+          (myEmail && r.student_email && r.student_email.toLowerCase().trim() === myEmail) ||
+          (myName && r.student_name && r.student_name.toLowerCase().trim() === myName)
+        ) || (recs.length === 1 && myEmail ? recs[0] : null);
 
         if (found) {
           setDepRecord(found);
@@ -73,7 +75,7 @@ export const PreDeparture: React.FC = () => {
       window.removeEventListener('ferex_pre_departure_change', fetchRecord);
       window.removeEventListener('ferex_predeparture_change', fetchRecord);
     };
-  }, [user?.id, user?.email, profile?.full_name]);
+  }, [user?.id, user?.email, profile?.full_name, profile?.email]);
 
   // If payment not verified, show locked state
   if (!paymentAccess.allowed) {
