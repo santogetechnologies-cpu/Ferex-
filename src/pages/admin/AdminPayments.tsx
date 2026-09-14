@@ -727,7 +727,7 @@ export const AdminPayments: React.FC = () => {
                       <option value="Cheque / Demand Draft (DD)">Cheque / Demand Draft (DD)</option>
                       <option value="Bank Wire Transfer (NEFT/RTGS/IMPS)">Bank Wire Transfer (NEFT/RTGS/IMPS)</option>
                       <option value="UPI / Instant QR">UPI / Instant QR</option>
-                      <option value="Stripe / Card Payment">Stripe / Card Payment</option>
+                      <option value="PhonePe UPI / Online Payment">PhonePe UPI / Online Payment</option>
                     </select>
                   </div>
                 </div>

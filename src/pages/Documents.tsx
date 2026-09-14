@@ -42,15 +42,29 @@ export const Documents: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [configuredReqs, setConfiguredReqs] = useState<DocumentRequirement[]>([]);
 
-  // Target country resolution
+  // Target country resolution - dynamically bound to selected university & country
   const targetCountry = useMemo(() => {
+    try {
+      const storedCourse = localStorage.getItem('ferex_selected_course');
+      if (storedCourse) {
+        const parsed = JSON.parse(storedCourse);
+        if (parsed?.country) return parsed.country;
+        if (parsed?.university?.country) return parsed.university.country;
+      }
+      const storedUni = localStorage.getItem('ferex_student_selected_uni');
+      if (storedUni) {
+        const parsed = JSON.parse(storedUni);
+        if (parsed?.country) return parsed.country;
+      }
+    } catch (e) {}
+
     return (
+      applications[0]?.universities?.country ||
+      (applications[0] as any)?.country ||
       (profile as any)?.target_country ||
       (profile as any)?.country ||
       localStorage.getItem('ferex_student_target_country') ||
-      applications[0]?.universities?.country ||
-      (applications[0] as any)?.country ||
-      'Poland'
+      'International'
     );
   }, [profile, applications]);
 

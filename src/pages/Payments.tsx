@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CreditCard, CheckCircle2, Lock, X, Upload, Clock,
@@ -261,9 +261,35 @@ export const Payments: React.FC = () => {
     },
   ];
 
-  const totalFee = inst1Amount + inst2Amount + inst3Amount;
-  const paidTotal = installments.filter(i => i.status === 'Paid').reduce((acc, i) => acc + i.amount, 0);
-  const pendingTotal = installments.filter(i => i.status === 'Pending' || i.status === 'Pending Verification').reduce((acc, i) => acc + i.amount, 0);
+  // Active fee components based on configuration toggles
+  const activeInstallments = useMemo(() => {
+    const list: Installment[] = [installments[0]]; // Stage 1 Advance Registration Fee
+
+    if (isSeparateAgencyFeeEnabled) {
+      list.push({
+        ...installments[2],
+        id: 3,
+        stageNum: 3,
+        title: `Agency Professional & Relocation Fee (${config.agency_fee_model === 'milestones' ? 'Milestone Schedule' : `₹${inst3Amount.toLocaleString('en-IN')}`})`,
+        stageName: 'Direct Agency Advisory, Visa Filing & Relocation',
+        description: 'Dedicated agency consulting, dossier verification, VFS appointment booking, and arrival concierge.',
+        amount: inst3Amount,
+      });
+    }
+
+    if (isInstallmentScheduleEnabled) {
+      list.push(installments[1]); // Stage 2 Tuition
+      if (!isSeparateAgencyFeeEnabled) {
+        list.push(installments[2]); // Bundled agency / vfs stage if not separated
+      }
+    }
+
+    return list;
+  }, [installments, isSeparateAgencyFeeEnabled, isInstallmentScheduleEnabled, inst3Amount]);
+
+  const totalFee = activeInstallments.reduce((acc: number, i: Installment) => acc + (i.amount || 0), 0);
+  const paidTotal = activeInstallments.filter((i: Installment) => i.status === 'Paid').reduce((acc: number, i: Installment) => acc + (i.amount || 0), 0);
+  const pendingTotal = activeInstallments.filter((i: Installment) => i.status === 'Pending' || i.status === 'Pending Verification').reduce((acc: number, i: Installment) => acc + (i.amount || 0), 0);
 
   // Modal & Toast states
   const [selectedInst, setSelectedInst] = useState<Installment | null>(null);
@@ -468,13 +494,13 @@ export const Payments: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4 border border-slate-200/80 bg-white">
           <span className="text-xs font-semibold text-slate-500 block mb-1">
-            {!hasCourseSelected ? 'Initial Required Fee' : 'Total Package Fee'}
+            {!hasCourseSelected ? 'Initial Required Fee' : isInstallmentScheduleEnabled ? 'Total Package Fee' : 'Active Fees Total'}
           </span>
           <span className="text-2xl font-bold text-slate-900 leading-none">
             ₹{(!hasCourseSelected ? inst1Amount : totalFee).toLocaleString()}
           </span>
           <span className="text-xs text-slate-400 block mt-2">
-            {!hasCourseSelected ? 'Stage 1 Deposit' : 'Structured into 3 Milestones'}
+            {!hasCourseSelected ? 'Stage 1 Deposit' : isInstallmentScheduleEnabled ? 'Structured Milestones' : 'Registration & Direct Institutional'}
           </span>
         </Card>
 
@@ -504,17 +530,26 @@ export const Payments: React.FC = () => {
         </Card>
       </div>
 
-      {/* 3 Installment Cards */}
+      {/* ── SECTION 1: Advanced Registration Fee (Stage 01) ── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <h2 className="text-sm font-semibold text-slate-900">
-            Installment Payment & Verification Schedule
-          </h2>
-          <span className="text-xs text-slate-400">3 Structured Milestones</span>
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-[#58051E] text-white font-bold flex items-center justify-center text-xs">
+              01
+            </span>
+            <h2 className="text-sm font-bold text-slate-900">
+              Advanced Registration Fee
+            </h2>
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              Includes 18% GST (SAC 9983)
+            </span>
+          </div>
+          <span className="text-xs text-slate-400">Phase 01 • Seat Reservation & Dossier Audit</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {installments.map((inst) => {
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+          {(() => {
+            const inst = installments[0];
             const isPaid = inst.status === 'Paid';
             const isPendingVerification = inst.status === 'Pending Verification';
             const isRejected = inst.status === 'Rejected';
@@ -537,29 +572,27 @@ export const Payments: React.FC = () => {
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#58051E] text-white font-semibold flex items-center justify-center text-xs">
-                      {inst.stageNum}
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#58051E] bg-[#58051E]/10 px-2.5 py-1 rounded-md">
+                      Registration Deposit
                     </span>
-                    {isPaid && <Badge variant="success" dot>Paid</Badge>}
+                    {isPaid && <Badge variant="success" dot>Paid & Cleared</Badge>}
                     {isPendingVerification && <Badge variant="brand" dot>In Verification</Badge>}
                     {isRejected && <Badge variant="error" dot>Action Required</Badge>}
-                    {isPending && <Badge variant="neutral">Pending</Badge>}
-                    {!isPaid && !isPendingVerification && !isRejected && !isPending && (
-                      <Badge variant="neutral">Locked</Badge>
-                    )}
+                    {isPending && <Badge variant="neutral">Payment Pending</Badge>}
                   </div>
 
-                  <h3 className="text-sm font-semibold text-slate-900 leading-snug mb-1">{inst.title}</h3>
-                  <p className="text-xs text-[#58051E] font-medium mb-3">{inst.stageName}</p>
-
-                  <div className="my-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-[10px] uppercase font-semibold text-slate-400 block">Milestone Amount</span>
-                    <span className="text-xl font-bold text-slate-900">
-                      {inst.amount > 0 ? `₹${inst.amount.toLocaleString('en-IN')}` : 'Pending Selection'}
-                    </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-2">
+                    <div>
+                      <h3 className="text-base font-black text-slate-900 leading-snug">{inst.title}</h3>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">{inst.description}</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left sm:text-right shrink-0">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Required Deposit</span>
+                      <span className="text-2xl font-black text-slate-900">
+                        {inst.amount > 0 ? `₹${inst.amount.toLocaleString('en-IN')}` : 'Waived'}
+                      </span>
+                    </div>
                   </div>
-
-                  <p className="text-xs text-slate-500 leading-relaxed mb-4">{inst.description}</p>
 
                   {isRejected && inst.notes && (
                     <div className="p-3 mb-3 bg-red-50/80 border border-red-200 rounded-lg text-xs text-red-900 flex items-start gap-2">
@@ -582,17 +615,16 @@ export const Payments: React.FC = () => {
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-slate-100">
+                <div className="pt-4 border-t border-slate-100 mt-2">
                   {isPaid ? (
-                    <div className="space-y-2">
-                      <div className="w-full h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                      <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Settled & Verified
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Button
-                          size="xs"
+                          size="sm"
                           variant="outline"
-                          className="flex-1"
                           onClick={() => setViewInvoice({
                             invoice_no: `FE/2026-27/${Math.floor(1000 + Math.random() * 9000)}`,
                             student_name: studentName,
@@ -600,39 +632,38 @@ export const Payments: React.FC = () => {
                             currency: 'INR',
                             description: inst.title,
                             date: new Date().toISOString(),
-                            payment_method: 'Bank Transfer / UPI',
+                            payment_method: 'PhonePe UPI / Bank Transfer',
                             utr_number: inst.utr || 'VERIFIED-BANK-UTR-84920',
-                            sac_code: '9992',
-                            place_of_supply: 'Kerala'
+                            sac_code: '9983',
+                            place_of_supply: 'India'
                           })}
                           leftIcon={<Eye className="w-3.5 h-3.5" />}
                         >
-                          Invoice
+                          Invoice (18% GST)
                         </Button>
                         <Button
-                          size="xs"
+                          size="sm"
                           variant="outline"
-                          className="flex-1"
                           onClick={() => handleDownloadInvoice(inst)}
                           leftIcon={<FileText className="w-3.5 h-3.5" />}
                         >
-                          PDF
+                          PDF Receipt
                         </Button>
                       </div>
                     </div>
                   ) : isPendingVerification ? (
                     <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Admin Approval
+                      <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Admin Verification
                     </div>
                   ) : inst.unlocked ? (
-                    <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2.5">
                       <Button
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold"
                         onClick={() => setOnlinePayInst(inst)}
                         leftIcon={<QrCode className="w-3.5 h-3.5" />}
                       >
-                        Pay Online
+                        Pay Online (PhonePe UPI / Card)
                       </Button>
                       <Button
                         size="sm"
@@ -643,20 +674,276 @@ export const Payments: React.FC = () => {
                         }}
                         leftIcon={<Upload className="w-3.5 h-3.5" />}
                       >
-                        Proof
+                        Upload Bank Transfer Proof
                       </Button>
                     </div>
                   ) : (
                     <div className="w-full h-9 bg-slate-100 text-slate-400 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5" /> Unlocks After Stage {inst.stageNum - 1}
+                      <Lock className="w-3.5 h-3.5" /> Locked
                     </div>
                   )}
                 </div>
               </Card>
             );
-          })}
+          })()}
         </div>
       </div>
+
+      {/* ── SECTION 2: Separate Agency Fee (Configurable via Admin Governance) ── */}
+      {isSeparateAgencyFeeEnabled && (
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-bold flex items-center justify-center text-xs">
+                AG
+              </span>
+              <h2 className="text-sm font-bold text-slate-900">
+                Agency Fee & Processing Milestones
+              </h2>
+              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                Independent Agency Billing
+              </span>
+            </div>
+            <span className="text-xs text-slate-400">
+              Model: {config.agency_fee_model === 'milestones' ? 'Milestone Split' : (config.agency_fee_model as string) === 'milestone_plus_fee' ? 'Milestones + Base Fee' : 'Fixed Fee'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            {(() => {
+              const inst = installments[2];
+              const isPaid = inst.status === 'Paid';
+              const isPendingVerification = inst.status === 'Pending Verification';
+              const isRejected = inst.status === 'Rejected';
+
+              return (
+                <Card className="p-5 bg-white border border-indigo-100 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-200">
+                          Agency Consulting & Visa Dossier
+                        </span>
+                        {isPaid && <Badge variant="success" dot>Paid</Badge>}
+                        {isPendingVerification && <Badge variant="brand" dot>Under Review</Badge>}
+                      </div>
+                      <h3 className="text-base font-black text-slate-900 leading-snug">{inst.title}</h3>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">{inst.description}</p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left sm:text-right shrink-0">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Agency Outlay</span>
+                      <span className="text-2xl font-black text-slate-900">
+                        ₹{inst3Amount.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions for Agency Fee */}
+                  <div className="pt-4 border-t border-slate-100 mt-4 flex flex-col sm:flex-row items-center gap-2">
+                    {isPaid ? (
+                      <div className="w-full h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Agency Clearance Settled
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 w-full">
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+                          onClick={() => setOnlinePayInst(inst)}
+                          leftIcon={<QrCode className="w-3.5 h-3.5" />}
+                        >
+                          Settle Agency Fee Online
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedInst(inst);
+                            setUtrNumber('');
+                          }}
+                          leftIcon={<Upload className="w-3.5 h-3.5" />}
+                        >
+                          Proof
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* ── SECTION 3: University Tuition & Installment Payment Schedule ── */}
+      {isInstallmentScheduleEnabled ? (
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
+                02
+              </span>
+              <h2 className="text-sm font-bold text-slate-900">
+                Installment Payment & Verification Schedule
+              </h2>
+            </div>
+            <span className="text-xs text-slate-400">University Tuition Distribution</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[installments[1], !isSeparateAgencyFeeEnabled ? installments[2] : null].filter(Boolean).map((inst) => {
+              if (!inst) return null;
+              const isPaid = inst.status === 'Paid';
+              const isPendingVerification = inst.status === 'Pending Verification';
+              const isRejected = inst.status === 'Rejected';
+              const isPending = inst.status === 'Pending';
+
+              return (
+                <Card
+                  key={inst.id}
+                  className={`p-5 flex flex-col justify-between transition-all select-none relative bg-white border ${
+                    isPaid
+                      ? 'border-emerald-200/80 bg-emerald-50/10'
+                      : isPendingVerification
+                      ? 'border-amber-200/80 bg-amber-50/10'
+                      : isRejected
+                      ? 'border-red-200/80 bg-red-50/10'
+                      : isPending
+                      ? 'border-[#58051E]/30 shadow-subtle'
+                      : 'border-slate-200/60 bg-slate-50/50 opacity-75'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="w-7 h-7 rounded-lg bg-[#58051E] text-white font-semibold flex items-center justify-center text-xs">
+                        {inst.stageNum}
+                      </span>
+                      {isPaid && <Badge variant="success" dot>Paid</Badge>}
+                      {isPendingVerification && <Badge variant="brand" dot>In Verification</Badge>}
+                      {isRejected && <Badge variant="error" dot>Action Required</Badge>}
+                      {isPending && <Badge variant="neutral">Pending</Badge>}
+                      {!isPaid && !isPendingVerification && !isRejected && !isPending && (
+                        <Badge variant="neutral">Locked</Badge>
+                      )}
+                    </div>
+
+                    <h3 className="text-sm font-semibold text-slate-900 leading-snug mb-1">{inst.title}</h3>
+                    <p className="text-xs text-[#58051E] font-medium mb-3">{inst.stageName}</p>
+
+                    <div className="my-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                      <span className="text-[10px] uppercase font-semibold text-slate-400 block">Milestone Amount</span>
+                      <span className="text-xl font-bold text-slate-900">
+                        {inst.amount > 0 ? `₹${inst.amount.toLocaleString('en-IN')}` : 'Pending Selection'}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-500 leading-relaxed mb-4">{inst.description}</p>
+
+                    {isRejected && inst.notes && (
+                      <div className="p-3 mb-3 bg-red-50/80 border border-red-200 rounded-lg text-xs text-red-900 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold block">Admin Notes:</span>
+                          {inst.notes}
+                        </div>
+                      </div>
+                    )}
+
+                    {isPendingVerification && (
+                      <div className="p-3 mb-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold block">Under Verification</span>
+                          Reference: <span className="font-mono font-semibold">{inst.utr || 'Submitted'}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100">
+                    {isPaid ? (
+                      <div className="space-y-2">
+                        <div className="w-full h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Settled & Verified
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setViewInvoice({
+                              invoice_no: `FE/2026-27/${Math.floor(1000 + Math.random() * 9000)}`,
+                              student_name: studentName,
+                              amount: inst.amount,
+                              currency: 'INR',
+                              description: inst.title,
+                              date: new Date().toISOString(),
+                              payment_method: 'Bank Transfer / UPI',
+                              utr_number: inst.utr || 'VERIFIED-BANK-UTR-84920',
+                              sac_code: '9992',
+                              place_of_supply: 'India'
+                            })}
+                            leftIcon={<Eye className="w-3.5 h-3.5" />}
+                          >
+                            Invoice
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => handleDownloadInvoice(inst)}
+                            leftIcon={<FileText className="w-3.5 h-3.5" />}
+                          >
+                            PDF
+                          </Button>
+                        </div>
+                      </div>
+                    ) : isPendingVerification ? (
+                      <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Admin Approval
+                      </div>
+                    ) : inst.unlocked ? (
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setOnlinePayInst(inst)}
+                          leftIcon={<QrCode className="w-3.5 h-3.5" />}
+                        >
+                          Pay Online
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedInst(inst);
+                            setUtrNumber('');
+                          }}
+                          leftIcon={<Upload className="w-3.5 h-3.5" />}
+                        >
+                          Proof
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="w-full h-9 bg-slate-100 text-slate-400 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5" /> Unlocks After Stage {inst.stageNum - 1}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 font-medium flex items-center gap-2.5">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>
+            Installment Payment & Verification Schedule is disabled by administrative policy. University tuition is settled directly with the destination institution.
+          </span>
+        </div>
+      )}
 
       {/* Submit Payment Proof Modal */}
       <AnimatePresence>

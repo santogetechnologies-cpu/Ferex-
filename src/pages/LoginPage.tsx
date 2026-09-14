@@ -782,7 +782,7 @@ export const LoginPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* ── MANDATORY STUDENT DOCUMENT PROCESSING & NAWA CONSENT MODAL ───────── */}
+      {/* ── MANDATORY STUDENT DOCUMENT PROCESSING & LEGALIZATION CONSENT MODAL ───────── */}
       <AnimatePresence>
         {showConsentModal && (
           <>

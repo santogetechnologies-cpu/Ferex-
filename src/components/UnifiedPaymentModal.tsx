@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CreditCard, QrCode, ShieldCheck, CheckCircle2, Copy, Check,
+  QrCode, ShieldCheck, CheckCircle2, Copy, Check,
   Lock, Download, X, Clock, Landmark, FileText, Banknote
 } from 'lucide-react';
 import { Button } from './Button';
@@ -51,16 +51,10 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
   customerId,
 }) => {
   const [gateways, setGateways] = useState<GlobalPaymentGatewayConfig>(DEFAULT_PAYMENT_GATEWAYS);
-  const [activeTab, setActiveTab] = useState<'upi' | 'stripe' | 'wire' | 'cheque' | 'cash'>('upi');
+  const [activeTab, setActiveTab] = useState<'upi' | 'wire' | 'cash'>('upi');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState<any | null>(null);
-
-  // Stripe card state
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvc, setCardCvc] = useState('');
-  const [cardName, setCardName] = useState(payerName);
 
   // UPI state
   const [utrNumber, setUtrNumber] = useState('');
@@ -69,10 +63,6 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
   const [wireRefNumber, setWireRefNumber] = useState('');
   const [remitterBank, setRemitterBank] = useState('');
 
-  // Cheque / DD state
-  const [chequeNumber, setChequeNumber] = useState('');
-  const [chequeBankName, setChequeBankName] = useState('');
-  const [chequeDate, setChequeDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Cash state
   const [cashBranch, setCashBranch] = useState('Kochi HQ Advisory Center');
@@ -85,13 +75,12 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
       setIsProcessing(false);
       setUtrNumber('');
       setWireRefNumber('');
-      setChequeNumber('');
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const divisionSettings = gateways.divisions[division] || { allowStripe: true, allowUpi: true };
+  const divisionSettings = gateways.divisions[division] || { allowStripe: false, allowUpi: true };
   const upiId = divisionSettings.customUpiId || gateways.upi.upiId;
   const merchantName = divisionSettings.customMerchantName || gateways.upi.merchantName;
   const note = purpose || invoiceNo || 'Ferex Invoice Settlement';
@@ -112,59 +101,6 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2500);
-  };
-
-  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 16);
-    const formatted = val.replace(/(\d{4})(?=\d)/g, '$1 ');
-    setCardNumber(formatted);
-  };
-
-  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/\D/g, '').slice(0, 4);
-    if (val.length >= 2) {
-      val = `${val.slice(0, 2)}/${val.slice(2)}`;
-    }
-    setCardExpiry(val);
-  };
-
-  const handleStripeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!cardNumber || !cardExpiry || !cardCvc) return;
-
-    setIsProcessing(true);
-    setTimeout(async () => {
-      const receiptNo = `RCP-STR-${Date.now().toString().slice(-6)}`;
-      const stripeRef = `pi_3M${Math.random().toString(36).substring(2, 12)}_${Date.now()}`;
-
-      const receipt = await recordUnifiedPayment({
-        division,
-        amount,
-        currency,
-        paymentMethod: 'Stripe',
-        gatewayRef: stripeRef,
-        receiptNumber: receiptNo,
-        studentId,
-        studentName: payerName,
-        clientId,
-        clientName: payerName,
-        customerId,
-        customerName: payerName,
-        invoiceId,
-        invoiceNo: effectiveInvoiceNo,
-        purpose: note,
-        metadata: {
-          cardLast4: cardNumber.slice(-4) || '4242',
-          cardBrand: 'Visa / Mastercard',
-          stripeEnvironment: gateways.stripe.environment,
-          payerEmail,
-        }
-      });
-
-      setIsProcessing(false);
-      setPaymentSuccess(receipt);
-      if (onSuccess) onSuccess(receipt);
-    }, 1200);
   };
 
   const handleUpiSubmit = async (e: React.FormEvent) => {
@@ -239,42 +175,6 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
     }, 1000);
   };
 
-  const handleChequeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chequeNumber.trim() || !chequeBankName.trim()) return;
-
-    setIsProcessing(true);
-    setTimeout(async () => {
-      const receiptNo = `RCP-CHQ-${Date.now().toString().slice(-6)}`;
-      const receipt = await recordUnifiedPayment({
-        division,
-        amount,
-        currency,
-        paymentMethod: 'Cheque',
-        gatewayRef: `CHQ-${chequeNumber.trim()}`,
-        receiptNumber: receiptNo,
-        studentId,
-        studentName: payerName,
-        clientId,
-        clientName: payerName,
-        customerId,
-        customerName: payerName,
-        invoiceId,
-        invoiceNo: effectiveInvoiceNo,
-        purpose: note,
-        metadata: {
-          chequeNumber: chequeNumber.trim(),
-          bankName: chequeBankName.trim(),
-          chequeDate,
-          payerEmail,
-        }
-      });
-
-      setIsProcessing(false);
-      setPaymentSuccess(receipt);
-      if (onSuccess) onSuccess(receipt);
-    }, 1000);
-  };
 
   const handleCashSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -543,90 +443,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                 </div>
               )}
 
-              {/* ─── TAB 2: STRIPE PAYMENT (ONLINE) ────────────────────────── */}
-              {activeTab === 'stripe' && (
-                <form onSubmit={handleStripeSubmit} className="space-y-4 text-left">
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">
-                      Cardholder Full Name
-                    </label>
-                    <input
-                      required
-                      type="text"
-                      value={cardName}
-                      onChange={e => setCardName(e.target.value)}
-                      placeholder="e.g. John Doe"
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
 
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">
-                      Card Number (Visa / Mastercard / Amex)
-                    </label>
-                    <div className="relative">
-                      <input
-                        required
-                        type="text"
-                        value={cardNumber}
-                        onChange={handleCardNumberChange}
-                        placeholder="4242 4242 4242 4242"
-                        className="w-full h-10 pl-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-blue-500"
-                      />
-                      <CreditCard className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Expiry (MM/YY)</label>
-                      <input
-                        required
-                        type="text"
-                        value={cardExpiry}
-                        onChange={handleExpiryChange}
-                        placeholder="12/28"
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-blue-500 text-center"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">CVC / CVV</label>
-                      <input
-                        required
-                        type="password"
-                        maxLength={4}
-                        value={cardCvc}
-                        onChange={e => setCardCvc(e.target.value.replace(/\D/g, ''))}
-                        placeholder="•••"
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-blue-500 text-center"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 flex items-center justify-between text-[11px] font-semibold text-blue-900">
-                    <span className="flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-blue-600" /> Stripe 3DS Secured Checkout
-                    </span>
-                    <span className="text-[10px] font-mono text-blue-700">
-                      {gateways.stripe.environment === 'production' ? 'Live Gateway' : 'Test Mode'}
-                    </span>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={isProcessing}
-                    className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black shadow-md rounded-xl"
-                  >
-                    {isProcessing ? (
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="w-4 h-4 animate-spin" /> Authorizing via Stripe...
-                      </span>
-                    ) : (
-                      `Pay via Stripe (${formatAmount(amount)})`
-                    )}
-                  </Button>
-                </form>
-              )}
 
               {/* ─── TAB 3: BANK WIRE / NEFT / RTGS / IMPS ─────────────────── */}
               {activeTab === 'wire' && (
@@ -727,74 +544,6 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                 </div>
               )}
 
-              {/* ─── TAB 4: CHEQUE / DEMAND DRAFT ──────────────────────────── */}
-              {activeTab === 'cheque' && (
-                <div className="space-y-4">
-                  <div className="p-3.5 bg-purple-50/70 border border-purple-200/80 rounded-2xl text-xs text-purple-900 space-y-1">
-                    <span className="font-black text-[10px] uppercase tracking-wider block text-purple-800">Cheque / DD Instructions</span>
-                    <p className="font-semibold text-[11px]">Make Cheque / DD in favor of: <strong className="font-black text-slate-900">FEREX VENTURES PRIVATE LIMITED</strong></p>
-                    <p className="text-slate-600 text-[10px]">Cheque will be credited to student ledger upon clearance from the clearing house (CTS-2010).</p>
-                  </div>
-
-                  <form onSubmit={handleChequeSubmit} className="space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">
-                          6-Digit Cheque / DD Number *
-                        </label>
-                        <input
-                          required
-                          type="text"
-                          maxLength={8}
-                          value={chequeNumber}
-                          onChange={e => setChequeNumber(e.target.value)}
-                          placeholder="e.g. 000412"
-                          className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">
-                          Drawn On Bank & Branch *
-                        </label>
-                        <input
-                          required
-                          type="text"
-                          value={chequeBankName}
-                          onChange={e => setChequeBankName(e.target.value)}
-                          placeholder="e.g. HDFC Bank, Kochi Branch"
-                          className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">
-                        Cheque Date
-                      </label>
-                      <input
-                        type="date"
-                        value={chequeDate}
-                        onChange={e => setChequeDate(e.target.value)}
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
-                      />
-                    </div>
-
-                    <Button
-                      type="submit"
-                      disabled={isProcessing || !chequeNumber.trim() || !chequeBankName.trim()}
-                      className="w-full h-10 bg-purple-700 hover:bg-purple-800 text-white text-xs font-black shadow-md rounded-xl"
-                    >
-                      {isProcessing ? (
-                        <span className="flex items-center gap-1.5">
-                          <Clock className="w-4 h-4 animate-spin" /> Generating Cheque Voucher...
-                        </span>
-                      ) : (
-                        `Generate Cheque Deposit Voucher (${formatAmount(amount)})`
-                      )}
-                    </Button>
-                  </form>
-                </div>
-              )}
 
               {/* ─── TAB 5: CASH PAYMENT (COUNTER VOUCHER) ─────────────────── */}
               {activeTab === 'cash' && (

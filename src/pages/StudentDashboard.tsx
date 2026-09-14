@@ -34,19 +34,23 @@ export const StudentDashboard: React.FC = () => {
   const targetCountry = localStorage.getItem('ferex_student_target_country') || applications[0]?.universities?.country || (applications[0] as any)?.country || '';
   const targetWf = targetCountry ? getWorkflowForCountry(targetCountry) : null;
 
-  const [nawaRecord, setNawaRecord] = React.useState<NawaRecord | null>(null);
+  const [legalizationRecord, setLegalizationRecord] = React.useState<NawaRecord | null>(null);
 
   React.useEffect(() => {
-    const fetchNawa = () => {
+    const fetchLegalization = () => {
       getNawaRecords(user?.id).then(recs => {
         const myRec = recs.find(r => r.student_id === user?.id || (user?.email && r.student_email === user.email) || r.id === user?.id);
-        if (myRec) setNawaRecord(myRec);
+        if (myRec) setLegalizationRecord(myRec);
       });
     };
 
-    fetchNawa();
-    window.addEventListener('ferex_nawa_change', fetchNawa);
-    return () => window.removeEventListener('ferex_nawa_change', fetchNawa);
+    fetchLegalization();
+    window.addEventListener('ferex_nawa_change', fetchLegalization);
+    window.addEventListener('ferex_legalization_change', fetchLegalization);
+    return () => {
+      window.removeEventListener('ferex_nawa_change', fetchLegalization);
+      window.removeEventListener('ferex_legalization_change', fetchLegalization);
+    };
   }, [user?.id, user?.email]);
 
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
@@ -138,10 +142,10 @@ export const StudentDashboard: React.FC = () => {
   );
 
   const isLegalizationApproved = applications.some(a =>
-    ['Legalization Cleared', 'Legalization Approved', 'APS Approved', 'NAWA Approved', 'Approved', 'Under Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved'].includes(String(a.status || ''))
+    ['Legalization Cleared', 'Legalization Approved', 'APS Approved', 'Approved', 'Under Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved'].includes(String(a.status || ''))
   );
-  const isLegalizationSubmitted = applications.some(a => String(a.status || '') === 'Legalization Lodged' || String(a.status || '') === 'Legalization Submitted' || String(a.status || '') === 'NAWA Submitted');
-  const isLegalizationInReview = applications.some(a => String(a.status || '') === 'Legalization Reviewed' || String(a.status || '') === 'Legalization Review' || String(a.status || '') === 'NAWA Review');
+  const isLegalizationSubmitted = applications.some(a => String(a.status || '') === 'Legalization Lodged' || String(a.status || '') === 'Legalization Submitted');
+  const isLegalizationInReview = applications.some(a => String(a.status || '') === 'Legalization Reviewed' || String(a.status || '') === 'Legalization Review');
 
   const checklistItems = [
     { title: '1. Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },
@@ -245,7 +249,7 @@ export const StudentDashboard: React.FC = () => {
       )}
 
       {/* Country Legalization Progress Banner */}
-      {nawaRecord && targetWf && (
+      {legalizationRecord && targetWf && (
         <motion.div variants={itemVariants}>
           <div className="p-4 rounded-2xl border border-slate-200/80 bg-white shadow-subtle">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -257,11 +261,11 @@ export const StudentDashboard: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-900">{targetWf?.authority_badge || 'Legalization Audit'}</span>
                     <span className="px-2 py-0.2 rounded text-[9.5px] font-bold bg-slate-100 text-slate-700 uppercase border border-slate-200">
-                      {nawaRecord.ref_no || nawaRecord.nawa_ref_no}
+                      {legalizationRecord.ref_no || legalizationRecord.nawa_ref_no}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Stage Progress: <span className="font-semibold text-slate-800">Step {nawaRecord.current_step} of 4 — {nawaRecord.status}</span>
+                    Stage Progress: <span className="font-semibold text-slate-800">Step {legalizationRecord.current_step} of 4 — {legalizationRecord.status}</span>
                   </p>
                 </div>
               </div>

@@ -7,7 +7,7 @@ import { uploadOfferPdfToSupabase } from '../../lib/api/applications';
 import { updateNawaStep } from '../../lib/api/nawa';
 
 export const COUNTRY_AUTHORITIES: Record<string, { acronym: string; name: string; flag: string }> = {
-  'Poland': { acronym: 'NAWA', name: 'Polish National Agency (NAWA)', flag: 'PL' },
+  'Poland': { acronym: 'Legalization', name: 'Polish Ministry of Science & Legalization', flag: 'PL' },
   'Germany': { acronym: 'APS', name: 'German Academic Evaluation (APS)', flag: 'DE' },
   'United Kingdom': { acronym: 'CAS', name: 'UKVI / CAS Verification', flag: 'UK' },
   'UK': { acronym: 'CAS', name: 'UKVI / CAS Verification', flag: 'UK' },
@@ -553,12 +553,12 @@ startxref
               </span>
             </div>
             <p className="text-[10.5px] font-medium text-slate-500 mt-0.5">
-              Legalization stages adapt dynamically by destination country: Poland (NAWA) • Germany (APS) • UK (CAS) • France (Campus France) • Italy (CIMEA) • USA (SEVIS) • Canada (PAL)
+              Legalization stages adapt dynamically by destination country: Poland (Legalization) • Germany (APS) • UK (CAS) • France (Campus France) • Italy (CIMEA) • USA (SEVIS) • Canada (PAL)
             </p>
           </div>
         </div>
         <Link
-          to="/admin/nawa-tracker"
+          to="/admin/legalization"
           className="px-3.5 py-2 bg-white border border-[#58051E]/30 hover:bg-[#58051E] hover:text-white text-[#58051E] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer self-start md:self-auto"
         >
           <ShieldCheck className="w-4 h-4" />

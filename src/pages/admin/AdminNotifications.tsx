@@ -26,7 +26,7 @@ const CATEGORY_MAP: Record<string, { icon: React.FC<{ className?: string }>; rou
   Applications: { icon: GraduationCap, route: '/admin/applications', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'University Applications' },
   Payments: { icon: CreditCard, route: '/admin/payments', color: 'bg-purple-50 text-purple-700 border-purple-200', label: 'Fee Payments' },
   Visa: { icon: ShieldCheck, route: '/admin/visa-tracker', color: 'bg-amber-50 text-amber-700 border-amber-200', label: 'VFS Visa Tracker' },
-  Legalization: { icon: FileText, route: '/admin/nawa', color: 'bg-teal-50 text-teal-700 border-teal-200', label: 'NAWA Workflows' },
+  Legalization: { icon: FileText, route: '/admin/legalization', color: 'bg-teal-50 text-teal-700 border-teal-200', label: 'Document Legalization' },
   Tasks: { icon: ClipboardCheck, route: '/admin/tasks', color: 'bg-indigo-50 text-indigo-700 border-indigo-200', label: 'Task Management' },
   Support: { icon: Headphones, route: '/admin/support', color: 'bg-rose-50 text-rose-700 border-rose-200', label: 'Support Tickets' },
   Meetings: { icon: Calendar, route: '/admin/meetings', color: 'bg-cyan-50 text-cyan-700 border-cyan-200', label: 'Admissions Planner' },
@@ -181,7 +181,7 @@ export const AdminNotifications: React.FC = () => {
     { label: 'Documents Review', cat: 'Documents', icon: FolderOpen, count: countByCategory['Documents'] || 0, color: 'text-blue-700' },
     { label: 'Fee Payments', cat: 'Payments', icon: CreditCard, count: countByCategory['Payments'] || 0, color: 'text-purple-700' },
     { label: 'VFS Visa Tracker', cat: 'Visa', icon: ShieldCheck, count: countByCategory['Visa'] || 0, color: 'text-amber-700' },
-    { label: 'NAWA Legalization', cat: 'Legalization', icon: FileText, count: countByCategory['Legalization'] || 0, color: 'text-teal-700' },
+    { label: 'Legalization Workflows', cat: 'Legalization', icon: FileText, count: countByCategory['Legalization'] || 0, color: 'text-teal-700' },
     { label: 'Meetings & Planner', cat: 'Meetings', icon: Calendar, count: countByCategory['Meetings'] || 0, color: 'text-cyan-700' },
     { label: 'Support Tickets', cat: 'Support', icon: Headphones, count: countByCategory['Support'] || 0, color: 'text-rose-700' },
   ];
@@ -190,7 +190,7 @@ export const AdminNotifications: React.FC = () => {
     { label: 'Review Applications', path: '/admin/applications', icon: GraduationCap, color: 'text-emerald-600 bg-emerald-50' },
     { label: 'Verify Payments', path: '/admin/payments', icon: CreditCard, color: 'text-purple-600 bg-purple-50' },
     { label: 'VFS Visa Tracker', path: '/admin/visa-tracker', icon: ShieldCheck, color: 'text-amber-600 bg-amber-50' },
-    { label: 'NAWA Legalization', path: '/admin/nawa', icon: FileText, color: 'text-teal-600 bg-teal-50' },
+    { label: 'Legalization Desk', path: '/admin/legalization', icon: FileText, color: 'text-teal-600 bg-teal-50' },
     { label: 'Document Review', path: '/admin/documents', icon: FolderOpen, color: 'text-blue-600 bg-blue-50' },
     { label: 'Pre-Departure Stage 12', path: '/admin/pre-departure', icon: Plane, color: 'text-sky-600 bg-sky-50' },
   ];
@@ -217,7 +217,7 @@ export const AdminNotifications: React.FC = () => {
               Education Notifications & Communications Hub
             </h1>
             <p className="text-xs md:text-sm font-medium text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Monitor real-time alerts across university applications, student tuition payments, VFS Visa filings, NAWA verification, and publish broadcast announcements.
+              Monitor real-time alerts across university applications, student tuition payments, VFS Visa filings, document legalization, and publish broadcast announcements.
             </p>
           </div>
 

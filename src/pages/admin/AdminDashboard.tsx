@@ -93,7 +93,7 @@ export const AdminDashboard: React.FC = () => {
             <Badge variant="brand">Education Division</Badge>
           </div>
           <p className="text-xs text-slate-500">
-            Admissions pipeline, NAWA legalization dossiers, tuition ledgers, and consular mobility tracking.
+            Admissions pipeline, multi-country legalization dossiers, tuition ledgers, and consular mobility tracking.
           </p>
         </div>
 

@@ -449,7 +449,7 @@ const DocumentsSection: React.FC<FlowSectionProps> = ({ expandedFlows, toggleFlo
   <Card className="p-6">
     <h2 className="text-xl font-black text-slate-900 mb-4">Document Upload & Approval Workflow</h2>
     <p className="text-sm font-semibold text-slate-600 mb-6">
-      Student uploads → Admin reviews → Approved documents trigger NAWA legalization process
+      Student uploads → Admin reviews → Approved documents trigger country legalization process
     </p>
     {/* Add document workflow diagram */}
   </Card>
@@ -459,7 +459,7 @@ const LegalizationSection: React.FC<FlowSectionProps> = ({ expandedFlows, toggle
   <Card className="p-6">
     <h2 className="text-xl font-black text-slate-900 mb-4">Multi-Country Legalization Workflows</h2>
     <p className="text-sm font-semibold text-slate-600 mb-6">
-      Country-specific document legalization: NAWA (Poland), APS (Germany), CAS (UK), Campus France, etc.
+      Country-specific document legalization: Official Legalization Desk (Poland), APS (Germany), CAS (UK), Campus France, etc.
     </p>
     {/* Add country workflow configurations */}
   </Card>
@@ -469,7 +469,7 @@ const ApplicationsSection: React.FC<FlowSectionProps> = ({ expandedFlows, toggle
   <Card className="p-6">
     <h2 className="text-xl font-black text-slate-900 mb-4">University Application Workflow</h2>
     <p className="text-sm font-semibold text-slate-600 mb-6">
-      Application submission → Admin review → NAWA sync → University decision
+      Application submission → Admin review → Legalization sync → University decision
     </p>
   </Card>
 );

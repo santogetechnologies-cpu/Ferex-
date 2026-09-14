@@ -172,7 +172,7 @@ export const CentralStudents: React.FC = () => {
                   </td>
                   <td className="py-3.5 px-4">
                     <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-rose-50 text-rose-700 border-rose-200">
-                      {student.stage || 'NAWA Process'}
+                      {student.stage || 'Legalization Process'}
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-center">

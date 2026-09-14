@@ -103,7 +103,7 @@ export const AdminPaymentControl: React.FC = () => {
   // Method Breakdown
   const methodStats = useMemo(() => {
     const res: Record<string, { count: number; total: number }> = {
-      Stripe: { count: 0, total: 0 },
+      PhonePe: { count: 0, total: 0 },
       UPI: { count: 0, total: 0 },
       Cash: { count: 0, total: 0 },
       Bank: { count: 0, total: 0 },
@@ -114,10 +114,10 @@ export const AdminPaymentControl: React.FC = () => {
       const isPaid = p.status === 'Paid' || p.status === 'Verified';
       const amt = Number(p.amount) || 0;
 
-      if (m.includes('stripe') || m.includes('card')) {
-        res.Stripe.count += 1;
-        if (isPaid) res.Stripe.total += amt;
-      } else if (m.includes('upi') || m.includes('qr') || m.includes('gpay') || m.includes('phonepe')) {
+      if (m.includes('phonepe') || m.includes('stripe') || m.includes('card') || m.includes('online')) {
+        res.PhonePe.count += 1;
+        if (isPaid) res.PhonePe.total += amt;
+      } else if (m.includes('upi') || m.includes('qr') || m.includes('gpay')) {
         res.UPI.count += 1;
         if (isPaid) res.UPI.total += amt;
       } else if (m.includes('cash')) {
@@ -142,7 +142,7 @@ export const AdminPaymentControl: React.FC = () => {
       // Method Filter
       if (activeMethodFilter !== 'All') {
         const m = (p.payment_method || '').toLowerCase();
-        if (activeMethodFilter === 'Stripe' && !m.includes('stripe') && !m.includes('card')) return false;
+        if (activeMethodFilter === 'PhonePe' && !m.includes('phonepe') && !m.includes('stripe') && !m.includes('card') && !m.includes('online')) return false;
         if (activeMethodFilter === 'UPI' && !m.includes('upi') && !m.includes('qr')) return false;
         if (activeMethodFilter === 'Cash' && !m.includes('cash')) return false;
         if (activeMethodFilter === 'Bank' && !m.includes('bank') && !m.includes('wire') && !m.includes('neft')) return false;
@@ -291,7 +291,7 @@ export const AdminPaymentControl: React.FC = () => {
               Payment & Billing Control Console
             </h1>
             <p className="text-xs font-medium text-slate-500">
-              Manage student UPI verifications, online Stripe settlements, cash receipts, and direct bank wires.
+              Manage student PhonePe UPI verifications, online gateway settlements, cash receipts, and direct bank wires.
             </p>
           </div>
         </div>
@@ -384,20 +384,20 @@ export const AdminPaymentControl: React.FC = () => {
       {/* Payment Method Channels Breakdown Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div
-          onClick={() => { setActiveMethodFilter('Stripe'); setActiveTab('all'); }}
+          onClick={() => { setActiveMethodFilter('PhonePe'); setActiveTab('all'); }}
           className={`p-4 rounded-2xl border transition-all cursor-pointer ${
-            activeMethodFilter === 'Stripe' ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white border-slate-200 hover:bg-slate-50'
+            activeMethodFilter === 'PhonePe' ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white border-slate-200 hover:bg-slate-50'
           }`}
         >
           <div className="flex items-center justify-between mb-1.5">
-            <CreditCard className={`w-4 h-4 ${activeMethodFilter === 'Stripe' ? 'text-white' : 'text-[#58051E]'}`} />
-            <span className={`text-[10px] font-black uppercase ${activeMethodFilter === 'Stripe' ? 'text-white/80' : 'text-slate-400'}`}>
-              Stripe Auto
+            <CreditCard className={`w-4 h-4 ${activeMethodFilter === 'PhonePe' ? 'text-white' : 'text-[#58051E]'}`} />
+            <span className={`text-[10px] font-black uppercase ${activeMethodFilter === 'PhonePe' ? 'text-white/80' : 'text-slate-400'}`}>
+              PhonePe UPI
             </span>
           </div>
-          <p className="text-xs font-bold">₹{methodStats.Stripe.total.toLocaleString('en-IN')}</p>
-          <p className={`text-[10px] ${activeMethodFilter === 'Stripe' ? 'text-white/70' : 'text-slate-400'}`}>
-            {methodStats.Stripe.count} Transactions
+          <p className="text-xs font-bold">₹{methodStats.PhonePe.total.toLocaleString('en-IN')}</p>
+          <p className={`text-[10px] ${activeMethodFilter === 'PhonePe' ? 'text-white/70' : 'text-slate-400'}`}>
+            {methodStats.PhonePe.count} Transactions
           </p>
         </div>
 
@@ -513,8 +513,8 @@ export const AdminPaymentControl: React.FC = () => {
               className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white"
             >
               <option value="All">All Gateways</option>
-              <option value="Stripe">Stripe Card</option>
-              <option value="UPI">UPI Payment</option>
+              <option value="PhonePe">PhonePe UPI</option>
+              <option value="UPI">UPI QR / ID</option>
               <option value="Cash">Cash Receipt</option>
               <option value="Bank">Bank Wire</option>
             </select>

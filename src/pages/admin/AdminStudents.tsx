@@ -28,7 +28,7 @@ interface StudentItem {
 }
 
 const COUNTRY_FLAGS: Record<string, { flag: string; authority: string }> = {
-  'Poland': { flag: 'PL', authority: 'NAWA Legalization' },
+  'Poland': { flag: 'PL', authority: 'Document Legalization' },
   'Germany': { flag: 'DE', authority: 'APS Certificate' },
   'United Kingdom': { flag: 'UK', authority: 'CAS / UKVI' },
   'UK': { flag: 'UK', authority: 'CAS / UKVI' },
@@ -69,7 +69,7 @@ export const AdminStudents: React.FC = () => {
   const [newCounselorEmail, setNewCounselorEmail] = useState('');
   const [newCounselorPassword, setNewCounselorPassword] = useState('ferex2026!');
   const [newCounselorRole, setNewCounselorRole] = useState('Senior Admissions Counselor');
-  const [newCounselorDesk, setNewCounselorDesk] = useState('Poland & NAWA Desk');
+  const [newCounselorDesk, setNewCounselorDesk] = useState('Poland & European Desk');
   const [newCounselorPhone, setNewCounselorPhone] = useState('');
   const [isCreatingCounselor, setIsCreatingCounselor] = useState(false);
 
@@ -149,7 +149,7 @@ export const AdminStudents: React.FC = () => {
 
         const REQUIRED_STAGES = [
           { stage_number: 1, stage_name: 'Application Submitted', status: 'In Progress', notes: 'Initial submission of visa & university application files.' },
-          { stage_number: 2, stage_name: 'NAWA Process',          status: 'Pending',     notes: 'Verification of eligibility and NAWA apostille/legalization audit.' },
+          { stage_number: 2, stage_name: 'Document Legalization', status: 'Pending',     notes: 'Verification of eligibility and consular/legalization audit.' },
           { stage_number: 3, stage_name: 'Decision',              status: 'Pending',     notes: 'University admissions and visa officer eligibility decision.' },
           { stage_number: 4, stage_name: 'Visa Outcome',          status: 'Pending',     notes: 'Passport stamping and visa grant status.' },
         ];
@@ -388,7 +388,7 @@ export const AdminStudents: React.FC = () => {
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Global Student Applications • Destination Routing, Auto Counselor Assignment, Document Audit & NAWA/APS Legalization.
+            Global Student Applications • Destination Routing, Auto Counselor Assignment, Document Audit & Country Legalization.
           </p>
         </div>
 
@@ -936,7 +936,7 @@ export const AdminStudents: React.FC = () => {
                           onChange={(e) => setNewCounselorDesk(e.target.value)}
                           className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
                         >
-                          <option value="Poland & NAWA Desk">Poland & NAWA Desk</option>
+                          <option value="Poland & European Desk">Poland & European Desk</option>
                           <option value="Germany APS & Technical Desk">Germany APS & Technical Desk</option>
                           <option value="UK CAS & Ireland Desk">UK CAS & Ireland Desk</option>
                           <option value="France & Italy Desk">France & Italy Desk</option>

@@ -6,11 +6,13 @@ import { Button } from '../../components/Button';
 import { useStudents } from '../../hooks/useStudents';
 import { getApplications, updateApplicationStatus } from '../../lib/api/applications';
 import { useVisa } from '../../hooks/useVisa';
+import { useApplications } from '../../hooks/useApplications';
 import { generateUUID } from '../../utils/uuid';
 
 export const AdminVisaTracker: React.FC = () => {
   const { students } = useStudents();
   const { records, refresh, saveVisaUpdate } = useVisa();
+  const { applications } = useApplications();
 
   // Selected student state
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
@@ -300,7 +302,7 @@ export const AdminVisaTracker: React.FC = () => {
     8: 'Visa Result Confirmed',
   };
 
-  // Build unified roster merging all students and existing records
+  // Build unified roster merging all students, applications and existing records
   const enrolledStudentIds = new Set(students.map(s => s.id));
   const studentRows = students.map(st => {
     const sName = st.full_name || st.email?.split('@')[0] || 'Student';
@@ -309,17 +311,26 @@ export const AdminVisaTracker: React.FC = () => {
       (st.email && ((r as any).student_email === st.email || r.student_id === st.email)) ||
       (r.student_name && r.student_name.toLowerCase() === sName.toLowerCase())
     );
-    const stageNum = rec?.current_stage || 0;
 
+    const studentApp = applications.find(a =>
+      a.student_id === st.id ||
+      (st.email && ((a as any).student_email === st.email || a.student_id === st.email))
+    );
+    const appStatus = String(studentApp?.status || '').toLowerCase();
+    const isAppApproved = appStatus === 'visa approved' || appStatus === 'approved';
+    const isAppRejected = appStatus === 'visa rejected' || appStatus === 'rejected';
+
+    let stageNum = rec?.current_stage || (isAppApproved || isAppRejected ? 8 : (appStatus.includes('visa') ? 1 : 0));
     let decision = rec?.decision_outcome;
-    if (!decision || (decision === 'Pending' && stageNum === 8)) {
-      if (rec?.status_label?.toLowerCase().includes('reject') || rec?.status_label?.toLowerCase().includes('refus')) {
-        decision = 'Rejected';
-      } else if (stageNum === 8 || rec?.status_label?.toLowerCase().includes('approv') || rec?.status_label?.toLowerCase().includes('result confirmed')) {
-        decision = 'Approved';
-      } else {
-        decision = 'Pending';
-      }
+
+    if (isAppApproved || stageNum === 8 || rec?.status_label?.toLowerCase().includes('approv') || rec?.status_label?.toLowerCase().includes('result confirmed')) {
+      decision = 'Approved';
+      if (stageNum < 8) stageNum = 8;
+    } else if (isAppRejected || rec?.status_label?.toLowerCase().includes('reject') || rec?.status_label?.toLowerCase().includes('refus')) {
+      decision = 'Rejected';
+      if (stageNum < 8) stageNum = 8;
+    } else if (!decision || decision === 'Pending') {
+      decision = stageNum > 0 ? 'Pending' : 'Pending';
     }
 
     let statusLabel = rec?.status_label;
@@ -335,18 +346,20 @@ export const AdminVisaTracker: React.FC = () => {
       }
     }
 
+    const hasRecord = Boolean(rec) || isAppApproved || isAppRejected || stageNum > 0;
+
     return {
       key: `std-${st.id}`,
       student_id: st.id,
       student_name: sName,
       email: st.email,
-      vfs_ref_no: rec?.vfs_ref_no || '',
+      vfs_ref_no: rec?.vfs_ref_no || (hasRecord ? `VFS-POL-2026-${st.id.slice(0, 5).toUpperCase()}` : ''),
       embassy_name: rec?.embassy_name || 'Embassy of Poland, New Delhi',
       assigned_counselor: st.assigned_counselor || (rec as any)?.assigned_counselor || 'Admin',
       current_stage: stageNum,
       status_label: statusLabel,
       decision_outcome: decision,
-      hasRecord: Boolean(rec),
+      hasRecord,
     };
   });
 
@@ -845,11 +858,17 @@ export const AdminVisaTracker: React.FC = () => {
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                             : row.decision_outcome === 'Rejected'
                             ? 'bg-red-50 text-red-800 border-red-200'
-                            : row.hasRecord
+                            : (row.hasRecord && row.current_stage > 0)
                             ? 'bg-amber-50 text-amber-800 border-amber-200'
                             : 'bg-slate-50 text-slate-500 border-slate-200'
                         }`}>
-                          {row.hasRecord ? row.decision_outcome : 'Not Initiated'}
+                          {row.decision_outcome === 'Approved'
+                            ? 'Approved'
+                            : row.decision_outcome === 'Rejected'
+                            ? 'Rejected'
+                            : (row.hasRecord && row.current_stage > 0)
+                            ? (row.decision_outcome || 'Pending')
+                            : 'Not Initiated'}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right">

@@ -195,20 +195,20 @@ export const FerexLandingPage: React.FC = () => {
       }
     }
 
-    const nawaRequired = selectedCalcUni?.nawa_required !== false && (selectedCalcUni?.country?.toLowerCase() === 'poland' || selectedCalcUni?.country?.toLowerCase() === 'germany' || selectedCalcUni?.country?.toLowerCase() === 'italy');
-    const nawaEUR = nawaRequired ? 250 : 0;
+    const legalizationRequired = selectedCalcUni?.nawa_required !== false && Boolean(selectedCalcUni?.country);
+    const legalizationEUR = legalizationRequired ? 250 : 0;
     const vfsEUR = 165;
     const agencyEUR = 280;
     const monthlyLivingEUR = calcAccomOption === 'dorm' ? 380 : 550;
     const annualLivingEUR = monthlyLivingEUR * 12;
 
-    const totalFirstYearEUR = tuitionEUR + nawaEUR + vfsEUR + agencyEUR + annualLivingEUR;
+    const totalFirstYearEUR = tuitionEUR + legalizationEUR + vfsEUR + agencyEUR + annualLivingEUR;
 
     return {
       tuitionEUR,
       tuitionINR: tuitionEUR * 90,
-      nawaEUR,
-      nawaINR: nawaEUR * 90,
+      legalizationEUR,
+      legalizationINR: legalizationEUR * 90,
       vfsEUR,
       vfsINR: vfsEUR * 90,
       agencyEUR,
@@ -217,7 +217,7 @@ export const FerexLandingPage: React.FC = () => {
       livingMonthlyINR: monthlyLivingEUR * 90,
       totalFirstYearEUR,
       totalFirstYearINR: totalFirstYearEUR * 90,
-      nawaRequired,
+      legalizationRequired,
     };
   }, [selectedCalcUni, calcProgramIdx, calcAccomOption]);
 
@@ -790,10 +790,10 @@ export const FerexLandingPage: React.FC = () => {
                       <span className="font-bold text-[#1F2937]">{convertCurrency(calcValues.tuitionEUR, calcValues.tuitionINR)}</span>
                     </div>
 
-                    {calcValues.nawaRequired && (
+                    {calcValues.legalizationRequired && (
                       <div className="flex justify-between items-center py-0.5">
                         <span className="text-[#6B7280] font-medium">Government & MEA Apostille Legalization:</span>
-                        <span className="font-bold text-[#1F2937]">{convertCurrency(calcValues.nawaEUR, calcValues.nawaINR)}</span>
+                        <span className="font-bold text-[#1F2937]">{convertCurrency(calcValues.legalizationEUR, calcValues.legalizationINR)}</span>
                       </div>
                     )}
 

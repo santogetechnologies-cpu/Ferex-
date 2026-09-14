@@ -171,7 +171,7 @@ export const StaffMeetings: React.FC = () => {
           const { createNotification } = await import('../../lib/api/notifications');
 
           const stages = await getJourneyStages(completingMeeting.student_id);
-          const counsellingStage = stages.find(s => s.stage_number === 2 || s.stage_name?.toLowerCase().includes('counsel') || s.stage_name?.toLowerCase().includes('nawa'));
+          const counsellingStage = stages.find(s => s.stage_number === 2 || s.stage_name?.toLowerCase().includes('counsel') || s.stage_name?.toLowerCase().includes('legaliz'));
           if (counsellingStage && counsellingStage.status !== 'Completed') {
             await updateJourneyStageStatus(counsellingStage.id, 'Completed');
           }

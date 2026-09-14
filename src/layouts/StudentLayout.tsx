@@ -399,7 +399,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                         {
                           id: 'pop-3',
                           title: 'VFS Visa Process Active',
-                          body: 'Stage 3: NAWA clearance & VFS Slot booking is active. View live tracking on VFS Tracker.',
+                          body: 'Document Legalization clearance & VFS Slot booking is active. View live tracking on VFS Tracker.',
                           category: 'VFS Visa',
                           is_read: true,
                           created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
