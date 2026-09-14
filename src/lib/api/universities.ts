@@ -179,14 +179,18 @@ export async function createUniversity(payload: {
 
   // 3. CRITICAL: Persist to Supabase FIRST (most important)
   try {
+    console.log('[createUniversity] 🔄 Attempting Supabase insert...', { id: newId, name: createdObj.name, country: createdObj.country });
     const { data, error } = await supabase.from('universities').insert(createdObj).select();
     if (error) {
-      console.error('[createUniversity] ❌ Supabase insert failed:', error);
+      console.error('[createUniversity] ❌ Supabase insert failed:', error.message, error.details, error.hint);
+      // Continue anyway - localStorage will serve as backup
+    } else if (data && data.length > 0) {
+      console.log('[createUniversity] ✅ Successfully inserted to Supabase:', data[0].id, data[0].name);
     } else {
-      console.log('[createUniversity] ✅ Successfully inserted to Supabase:', data);
+      console.warn('[createUniversity] ⚠️ Supabase insert returned no data (might be RLS issue)');
     }
   } catch (err: any) {
-    console.error('[createUniversity] ❌ Supabase error:', err?.message || err);
+    console.error('[createUniversity] ❌ Supabase exception:', err?.message || err);
   }
 
   // 4. Update local cache

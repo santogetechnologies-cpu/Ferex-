@@ -19,7 +19,14 @@ export const Documents: React.FC = () => {
   const { applications } = useApplications(user?.id);
   const { getWorkflowForCountry } = useCountryWorkflows();
 
+  // Check if user is admin/staff to show all documents
+  const userRole = profile?.role || 'student';
+  const isAdminOrStaff = ['admin', 'super_admin', 'staff', 'counselor'].includes(userRole.toLowerCase());
+
   const activeStudentId = (() => {
+    // If admin/staff, don't filter by student - show all documents
+    if (isAdminOrStaff) return undefined;
+    
     if (user?.id) return user.id;
     try {
       const raw = localStorage.getItem('ferex_user');
@@ -58,18 +65,28 @@ export const Documents: React.FC = () => {
   }, [targetCountry, getWorkflowForCountry]);
 
   // Map DB docs or fall back to empty list if none
-  const documents = dbDocs.map(d => ({
-    id: d.id,
-    name: d.file_name,
-    type: d.doc_type,
-    size: d.file_size || '1.2 MB',
-    date: new Date(d.uploaded_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-    uploadedAt: d.uploaded_at || Date.now(),
-    status: d.status,
-    reviewerNotes: d.reviewer_notes || '',
-    url: d.file_url || '',
-    studentName: profile?.full_name || user?.email?.split('@')[0] || 'Student',
-  }));
+  const documents = dbDocs.map(d => {
+    // Extract student name from joined users data or fall back to profile
+    const studentName = d.users?.full_name || 
+                        d.users?.email?.split('@')[0] || 
+                        profile?.full_name || 
+                        user?.email?.split('@')[0] || 
+                        'Unknown Student';
+    
+    return {
+      id: d.id,
+      name: d.file_name,
+      type: d.doc_type,
+      size: d.file_size || '1.2 MB',
+      date: new Date(d.uploaded_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      uploadedAt: d.uploaded_at || Date.now(),
+      status: d.status,
+      reviewerNotes: d.reviewer_notes || '',
+      url: d.file_url || '',
+      studentName,
+      studentId: d.student_id,
+    };
+  });
 
   // Group documents by student name (for folder view)
   const documentsByStudent = useMemo(() => {

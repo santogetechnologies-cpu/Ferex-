@@ -469,15 +469,25 @@ export const AdminUniversities: React.FC = () => {
       };
 
       if (editingId) {
+        console.log('[AdminUniversities] Updating university:', editingId, name);
         await updateUniversity(editingId, payload);
         showToast(`University "${name}" updated successfully!`);
       } else {
-        await addUniversity(payload);
+        console.log('[AdminUniversities] Adding new university:', name, 'in', targetCountry);
+        const result = await addUniversity(payload);
+        console.log('[AdminUniversities] Add university result:', result);
         showToast(`University "${name}" created and published!`);
       }
 
+      console.log('[AdminUniversities] Closing modal, refreshing list');
       setShowAddModal(false);
       setEditingId(null);
+      
+      // Force a refresh after a short delay to ensure events have propagated
+      setTimeout(() => {
+        console.log('[AdminUniversities] Forcing refresh after add/update');
+        refresh();
+      }, 500);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to save university'}`);
     }
