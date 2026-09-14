@@ -112,8 +112,8 @@ export const AdminUniversities: React.FC = () => {
       reader.onerror = reject;
 
       img.onload = () => {
-        const maxWidth = 1200;
-        const maxHeight = 800;
+        const maxWidth = 800;
+        const maxHeight = 500;
         let { width, height } = img;
 
         if (width > maxWidth) {
@@ -134,7 +134,7 @@ export const AdminUniversities: React.FC = () => {
           return;
         }
         ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.70);
         resolve(dataUrl);
       };
       img.onerror = reject;
@@ -1080,16 +1080,36 @@ export const AdminUniversities: React.FC = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Country</label>
-                        <select
-                          value={country}
-                          onChange={(e) => setCountry(e.target.value)}
-                          className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
-                        >
-                          {availableCountryNames.map(c => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
-                        </select>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Country</label>
+                          <button
+                            type="button"
+                            onClick={() => setIsCustomCountry(!isCustomCountry)}
+                            className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                          >
+                            {isCustomCountry ? '← Choose Existing' : '+ Type Custom Country'}
+                          </button>
+                        </div>
+                        {isCustomCountry ? (
+                          <input
+                            type="text"
+                            required
+                            value={customCountryInput}
+                            onChange={(e) => setCustomCountryInput(e.target.value)}
+                            placeholder="e.g. Canada, Switzerland, UK..."
+                            className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                          />
+                        ) : (
+                          <select
+                            value={country}
+                            onChange={(e) => setCountry(e.target.value)}
+                            className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                          >
+                            {availableCountryNames.map(c => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                        )}
                       </div>
 
                       <div>
@@ -1111,7 +1131,7 @@ export const AdminUniversities: React.FC = () => {
                           type="text"
                           value={badge}
                           onChange={(e) => setBadge(e.target.value)}
-                          placeholder="e.g. Top Choice / NAWA Verified"
+                          placeholder="e.g. Top Choice / Accredited Partner"
                           className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
                         />
                       </div>

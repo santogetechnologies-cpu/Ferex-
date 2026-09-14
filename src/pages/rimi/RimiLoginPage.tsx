@@ -56,7 +56,9 @@ export const RimiLoginPage: React.FC = () => {
             full_name: 'Rimi Cold Chain Manager',
             updated_at: new Date().toISOString()
           }, { onConflict: 'email' });
-        } catch {}
+        } catch (err) {
+          console.error('Failed to sync user profile:', err);
+        }
 
         setSuccessMsg('Authenticated as Rimi Cold Chain Admin. Loading Console...');
         setTimeout(() => {
@@ -81,7 +83,9 @@ export const RimiLoginPage: React.FC = () => {
             department: 'Rimi:HyperCity Retail Hub',
             updated_at: new Date().toISOString()
           }, { onConflict: 'email' });
-        } catch {}
+        } catch (err) {
+          console.error('Failed to sync user profile:', err);
+        }
 
         setSuccessMsg('Authenticated as Rimi Wholesale Customer. Loading Customer Portal...');
         setTimeout(() => {

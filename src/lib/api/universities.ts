@@ -184,6 +184,15 @@ const MASTER_STORAGE_KEY = 'ferex_custom_universities';
 const LOCAL_CACHE_KEY = 'ferex_local_universities';
 const DELETED_STORAGE_KEY = 'ferex_deleted_university_ids';
 
+// Fallback campus images if custom image is missing or excessively large
+export const DEFAULT_CAMPUS_IMAGES = [
+  'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1562774053-701939374585?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1517935703635-27c946452f7b?w=800&auto=format&fit=crop&q=80'
+];
+
 export function getDeletedUniversityIds(): string[] {
   try {
     const raw = localStorage.getItem(DELETED_STORAGE_KEY);
@@ -200,6 +209,7 @@ export function isDeletedUniversity(
   deletedList: string[]
 ): boolean {
   if (!u) return true;
+  if (!deletedList || deletedList.length === 0) return false;
   const uid = (u.id || '').trim().toLowerCase();
   const uname = (u.name || '').trim().toLowerCase();
   const cleanUname = uname.replace(/[^a-z0-9]/g, '');
@@ -217,7 +227,7 @@ export function isDeletedUniversity(
 
 function getStoredCustomUniversities(): University[] {
   try {
-    const raw = localStorage.getItem(MASTER_STORAGE_KEY);
+    const raw = localStorage.getItem(MASTER_STORAGE_KEY) || sessionStorage.getItem(MASTER_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) return parsed;
@@ -226,10 +236,43 @@ function getStoredCustomUniversities(): University[] {
   return [];
 }
 
+function sanitizeUniversityForStorage(u: University): University {
+  let img = u.image_url || '';
+  // If base64 image exceeds 80KB, fallback to CDN image to avoid filling up 5MB localStorage quota
+  if (img.startsWith('data:') && img.length > 85000) {
+    img = DEFAULT_CAMPUS_IMAGES[Math.floor(Math.random() * DEFAULT_CAMPUS_IMAGES.length)];
+  }
+  let logo = u.logo_url || '';
+  if (logo.startsWith('data:') && logo.length > 40000) {
+    logo = '';
+  }
+  return {
+    ...u,
+    image_url: img,
+    logo_url: logo
+  };
+}
+
 function saveStoredCustomUniversities(list: University[]) {
+  const sanitizedList = list.map(sanitizeUniversityForStorage);
   try {
-    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(list));
-    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(list));
+    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(sanitizedList));
+    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(sanitizedList));
+  } catch (storageErr) {
+    console.warn('[universities API] localStorage save warning, applying compact storage:', storageErr);
+    try {
+      // Further reduce to preserve all critical university data without large images
+      const minimalList = sanitizedList.map(u => ({
+        ...u,
+        image_url: u.image_url?.startsWith('data:') ? DEFAULT_CAMPUS_IMAGES[0] : u.image_url,
+        logo_url: ''
+      }));
+      localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(minimalList));
+      localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(minimalList));
+    } catch {}
+  }
+  try {
+    sessionStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(sanitizedList));
   } catch {}
 }
 
@@ -314,16 +357,19 @@ export async function createUniversity(payload: {
   semesters?: CourseSemester[];
 }): Promise<University> {
   const newId = generateUUID();
+  const trimmedName = payload.name.trim();
+  const targetCountry = payload.country.trim() || 'Poland';
+  
   const createdObj: University = {
     id: newId,
-    name: payload.name.trim(),
-    country: payload.country.trim(),
-    city: payload.city?.trim() || '',
+    name: trimmedName,
+    country: targetCountry,
+    city: payload.city?.trim() || 'Campus Center',
     logo_url: payload.logo_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=150&auto=format&fit=crop&q=80',
-    image_url: payload.image_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&auto=format&fit=crop&q=80',
+    image_url: payload.image_url || DEFAULT_CAMPUS_IMAGES[0],
     badge: payload.badge || 'Accredited Partner',
     category: payload.category || 'General Studies',
-    description: payload.description || `${payload.name} offers accredited degree programs with global post-study work opportunities.`,
+    description: payload.description || `${trimmedName} offers accredited degree programs with global post-study work opportunities.`,
     ranking: payload.ranking || 100,
     rating: payload.rating || 4.8,
     programs: payload.programs && payload.programs.length > 0 ? payload.programs : ['Computer Science', 'Business Management'],
@@ -334,7 +380,7 @@ export async function createUniversity(payload: {
     vfs_fee: payload.vfs_fee || '₹15,000',
     agency_fee: payload.agency_fee || '₹25,000',
     living_cost_monthly: payload.living_cost_monthly || '€450 - €650 / mo',
-    nawa_required: payload.nawa_required !== undefined ? payload.nawa_required : payload.country.toLowerCase() === 'poland',
+    nawa_required: payload.nawa_required !== undefined ? payload.nawa_required : targetCountry.toLowerCase() === 'poland',
     course_programs: payload.course_programs && payload.course_programs.length > 0 ? payload.course_programs : [
       { id: generateUUID(), name: 'Bachelor of Science (Honours)', degree: 'Bachelor', duration: '3 Years', tuition_fee: payload.university_fee || '€3,500 / yr', intake: 'October 2026', language: 'English' }
     ],
@@ -342,25 +388,83 @@ export async function createUniversity(payload: {
     semesters: payload.semesters || [],
   };
 
-  // 1. Remove from deleted tracking if previously deleted
+  // 1. Un-delete if this name was previously removed
   try {
-    const deletedIds = getDeletedUniversityIds().filter(id => id.toLowerCase() !== newId.toLowerCase() && id.toLowerCase() !== createdObj.name.toLowerCase());
+    const deletedIds = getDeletedUniversityIds().filter(
+      id => id.toLowerCase() !== newId.toLowerCase() && id.toLowerCase() !== trimmedName.toLowerCase()
+    );
     localStorage.setItem(DELETED_STORAGE_KEY, JSON.stringify(deletedIds));
   } catch {}
 
   // 2. Persist in master custom universities store (survives logout & refreshes)
   try {
-    const customList = getStoredCustomUniversities().filter(u => u.id !== newId && u.name.toLowerCase() !== createdObj.name.toLowerCase());
+    const customList = getStoredCustomUniversities().filter(
+      u => u.id !== newId && u.name.toLowerCase() !== trimmedName.toLowerCase()
+    );
     const updated = [createdObj, ...customList];
     saveStoredCustomUniversities(updated);
   } catch {}
 
-  // 3. Attempt Supabase insert
+  // 3. Attempt Supabase insert with sanitized payload
   try {
-    await supabase.from('universities').insert(createdObj);
+    const dbPayload = {
+      id: createdObj.id,
+      name: createdObj.name,
+      country: createdObj.country,
+      city: createdObj.city,
+      logo_url: createdObj.logo_url?.startsWith('data:') ? '' : createdObj.logo_url,
+      image_url: createdObj.image_url?.startsWith('data:') ? DEFAULT_CAMPUS_IMAGES[0] : createdObj.image_url,
+      badge: createdObj.badge,
+      category: createdObj.category,
+      description: createdObj.description,
+      living_cost_monthly: createdObj.living_cost_monthly,
+      nawa_required: createdObj.nawa_required,
+      ranking: createdObj.ranking,
+      rating: createdObj.rating,
+      programs: createdObj.programs,
+      tuition_range: createdObj.tuition_range,
+      intakes: createdObj.intakes,
+      university_fee: createdObj.university_fee,
+      vfs_fee: createdObj.vfs_fee,
+      agency_fee: createdObj.agency_fee,
+      course_programs: createdObj.course_programs,
+      installments: createdObj.installments,
+      semesters: createdObj.semesters,
+      is_active: true
+    };
+    await supabase.from('universities').insert(dbPayload);
+  } catch (dbErr) {
+    console.warn('[universities API] Supabase insert warning (persisted locally):', dbErr);
+  }
+
+  // 4. Auto-register destination country in local registry if not already present
+  try {
+    const rawDest = localStorage.getItem('ferex_destinations_registry');
+    const existingDests = rawDest ? JSON.parse(rawDest) : [];
+    if (Array.isArray(existingDests)) {
+      const alreadyHas = existingDests.some((d: any) => d.name?.toLowerCase() === targetCountry.toLowerCase());
+      if (!alreadyHas) {
+        existingDests.push({
+          id: 'dest_' + Date.now(),
+          name: targetCountry,
+          code: targetCountry.substring(0, 2).toUpperCase(),
+          flag: '🌍',
+          currency: 'EUR',
+          authority: `${targetCountry} Higher Education & Legalization Authority`,
+          acronym: targetCountry.substring(0, 4).toUpperCase(),
+          processing: '15-30 Days',
+          fee: '€50',
+          desk: `${targetCountry} Admissions Desk`,
+          badge: 'Accredited Partner Country',
+          is_active: true
+        });
+        localStorage.setItem('ferex_destinations_registry', JSON.stringify(existingDests));
+        window.dispatchEvent(new Event('ferex_destinations_change'));
+      }
+    }
   } catch {}
 
-  // Broadcast update events immediately
+  // Broadcast update events immediately across components and tabs
   window.dispatchEvent(new Event('ferex_university_change'));
   window.dispatchEvent(new Event('storage'));
 

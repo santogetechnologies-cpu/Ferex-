@@ -28,7 +28,9 @@ export const RimiDeliveryRoutes: React.FC = () => {
       try {
         setRoutes(JSON.parse(saved));
         return;
-      } catch {}
+      } catch (err) {
+        console.error('Failed to parse saved routes:', err);
+      }
     }
 
     const defaultRoutes = [

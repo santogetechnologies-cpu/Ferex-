@@ -50,9 +50,13 @@ export const DigitalEmployees: React.FC = () => {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    await deleteDigitalEmployee(id);
-    setEmployees(prev => prev.filter(e => e.id !== id));
-    showToast(`Removed team member ${name}`);
+    try {
+      await deleteDigitalEmployee(id);
+      setEmployees(prev => prev.filter(e => e.id !== id));
+      showToast(`Removed team member ${name}`);
+    } catch (err: any) {
+      showToast(`Error deleting employee: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const filtered = employees.filter(e =>

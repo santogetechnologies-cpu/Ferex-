@@ -93,15 +93,23 @@ export const TradeLettersOfCredit: React.FC = () => {
   };
 
   const handleStatusChange = async (id: string, rawId: string, newStatus: string) => {
-    await updateTradeLetterOfCreditStatus(rawId || id, newStatus);
-    showToastMsg(`LC status updated to ${newStatus}`);
-    await loadData();
+    try {
+      await updateTradeLetterOfCreditStatus(rawId || id, newStatus);
+      showToastMsg(`LC status updated to ${newStatus}`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Error updating LC status: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteLC = async (id: string, rawId?: string) => {
-    await deleteTradeLetterOfCredit(rawId || id);
-    setLcs(prev => prev.filter(l => l.id !== id && l.rawId !== rawId));
-    showToastMsg(`Deleted Letter of Credit ${id}`);
+    try {
+      await deleteTradeLetterOfCredit(rawId || id);
+      setLcs(prev => prev.filter(l => l.id !== id && l.rawId !== rawId));
+      showToastMsg(`Deleted Letter of Credit ${id}`);
+    } catch (err: any) {
+      showToastMsg(`Error deleting LC: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const filteredLCs = lcs.filter(l =>

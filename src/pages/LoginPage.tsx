@@ -137,7 +137,7 @@ export const LoginPage: React.FC = () => {
       }
 
       if (!agreeConsent) {
-        newErrors.consent = 'Document Processing & NAWA Authorization consent is mandatory to proceed';
+        newErrors.consent = 'Document Processing & Academic Legalization Authorization consent is mandatory to proceed';
       }
     }
 
@@ -484,7 +484,7 @@ export const LoginPage: React.FC = () => {
               </h2>
               <p className="text-xs sm:text-sm font-semibold text-slate-500">
                 {authMode === 'signin'
-                  ? 'Access your university applications, NAWA legalizations, tuition payments, and VFS visa updates.'
+                  ? 'Access your university applications, academic legalizations, tuition payments, and VFS visa updates.'
                   : 'Start your European higher education journey with Ferex Education.'}
               </p>
             </div>
@@ -643,7 +643,7 @@ export const LoginPage: React.FC = () => {
                   {errors.terms && <p className="text-[11px] font-bold text-red-600 mt-1">{errors.terms}</p>}
                 </div>
 
-                {/* Document Processing & NAWA Consent Card */}
+                {/* Document Processing & Academic Legalization Consent Card */}
                 <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-2 text-left">
                   <div className="flex items-start gap-2.5">
                     <input
@@ -655,7 +655,7 @@ export const LoginPage: React.FC = () => {
                       className="w-4 h-4 mt-0.5 rounded accent-[#58051E] text-[#58051E] cursor-pointer"
                     />
                     <label htmlFor="agreeConsentBox" className="text-xs font-medium text-slate-700 leading-snug cursor-pointer">
-                      I consent to FEREX Education processing my academic transcripts, passport, and financial documents for Polish NAWA Legalization, University Admissions, and VFS Visa Filing.
+                      I consent to FEREX Education processing my academic transcripts, passport, and financial documents for Country Academic Legalization, University Admissions, and VFS Visa Filing.
                     </label>
                   </div>
 
@@ -838,10 +838,10 @@ export const LoginPage: React.FC = () => {
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
                   <div className="font-black text-slate-900 flex items-center gap-1.5">
                     <span className="w-5 h-5 rounded-full bg-[#58051E] text-white text-[10px] flex items-center justify-center font-bold">2</span>
-                    NAWA Legalization & University Representation Authorization
+                    Academic Legalization & University Representation Authorization
                   </div>
                   <p className="text-[11.5px] text-slate-600 pl-6.5">
-                    You grant FEREX Education full power of representation to submit your certified academic dossiers to the <strong>Polish National Agency for Academic Exchange (NAWA)</strong> in Warsaw, accredited partner European universities, and VFS Global / European Consular Embassies for admission, apostille, and National D visa processing.
+                    You grant FEREX Education full power of representation to submit your certified academic dossiers to national education recognition authorities, accredited partner European universities, and VFS Global / European Consular Embassies for admission, apostille, and National D visa processing.
                   </p>
                 </div>
 

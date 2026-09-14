@@ -35,7 +35,9 @@ export const DigitalWebDevelopment: React.FC = () => {
       if (Array.isArray(empData) && empData.length > 0) {
         setEmployees(empData);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to load web development data:', err);
+    }
   };
 
   useEffect(() => {

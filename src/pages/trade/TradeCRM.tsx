@@ -161,10 +161,16 @@ export const TradeCRM: React.FC = () => {
   };
 
   const handleDeleteCompany = async (id: string, rawId?: string) => {
-    // Optimistic remove first
-    setCompanies(prev => prev.filter(c => c.id !== id && c.rawId !== rawId));
-    showToastMsg(`Removed partner record ${id}`);
-    await deleteTradeCRMContact(rawId || id);
+    try {
+      // Optimistic remove first
+      setCompanies(prev => prev.filter(c => c.id !== id && c.rawId !== rawId));
+      showToastMsg(`Removed partner record ${id}`);
+      await deleteTradeCRMContact(rawId || id);
+    } catch (err: any) {
+      showToastMsg(`Error deleting partner: ${err.message || 'Unknown error'}`);
+      // Reload to sync state
+      await loadData();
+    }
   };
 
   const handleProvisionCredentials = async (company: any) => {

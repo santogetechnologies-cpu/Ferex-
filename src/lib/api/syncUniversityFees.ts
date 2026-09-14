@@ -73,8 +73,8 @@ export async function syncUniversityFeesToStudent(
         );
 
         if (!exists) {
-          const amount = parseFeeToINR(installment.amount);
-          const stageNum = extractStageNumber(installment.due_stage);
+          const amount = parseFeeToINR(String(installment.amount || '0'));
+          const stageNum = extractStageNumber(String(installment.due_stage || installment.stage || ''));
 
           await supabase.from('payments').insert({
             id: generateUUID(),

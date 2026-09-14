@@ -12,7 +12,7 @@ export const DigitalLeads: React.FC = () => {
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
-  const [newLead, setNewLead] = useState({ company: '', contact: '', email: '', service: 'Web & App Development', value: 850000 });
+  const [newLead, setNewLead] = useState({ company: '', contact: '', email: '', service: 'Web & App Development', value: 0 });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -91,9 +91,13 @@ export const DigitalLeads: React.FC = () => {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    await deleteDigitalClient(id);
-    setLeads(prev => prev.filter(l => l.id !== id));
-    showToast(`Removed lead ${name}`);
+    try {
+      await deleteDigitalClient(id);
+      setLeads(prev => prev.filter(l => l.id !== id));
+      showToast(`Removed lead ${name}`);
+    } catch (err: any) {
+      showToast(`Error deleting lead: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const filtered = leads.filter(l =>

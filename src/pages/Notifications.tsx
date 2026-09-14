@@ -280,7 +280,7 @@ export const Notifications: React.FC = () => {
               Official Portal Updates & Action Center
             </h1>
             <p className="text-xs md:text-sm font-medium text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Real-time updates for university admissions, offer letters, registration fee invoices, counselor calls, NAWA verification, and VFS visa steps.
+              Real-time updates for university admissions, offer letters, registration fee invoices, counselor calls, academic legalization verification, and VFS visa steps.
             </p>
           </div>
 

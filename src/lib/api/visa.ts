@@ -185,12 +185,11 @@ export async function updateVisaStatus(
   saveLocalVisaRecords(local);
 
   // 2. Try update existing row in Supabase
+  let finalRecord: VisaTrackingRecord = upsertPayload;
   try {
     const { data: upsData, error: upsErr } = await supabase.from('visa_tracking').upsert(upsertPayload).select('*');
     if (!upsErr && upsData && upsData.length > 0) {
-      const updated = { ...upsData[0], decision_outcome: updates.decision_outcome } as VisaTrackingRecord;
-      window.dispatchEvent(new Event('ferex_visa_change'));
-      return updated;
+      finalRecord = { ...upsData[0], decision_outcome: updates.decision_outcome || upsertPayload.decision_outcome } as VisaTrackingRecord;
     }
   } catch (e) {}
 
@@ -241,7 +240,7 @@ export async function updateVisaStatus(
   window.dispatchEvent(new Event('ferex_visa_change'));
   window.dispatchEvent(new Event('ferex_application_change'));
   window.dispatchEvent(new Event('ferex_notification_change'));
-  return upsertPayload;
+  return finalRecord;
 }
 
 export const updateVisaRecord = updateVisaStatus;

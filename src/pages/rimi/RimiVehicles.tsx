@@ -104,10 +104,14 @@ export const RimiVehicles: React.FC = () => {
   };
 
   const handleToggleStatus = async (rawId: string, currentStatus: string) => {
-    const nextStatus = currentStatus === 'On Route' ? 'Stationed' : 'On Route';
-    await updateRimiVehicleStatus(rawId, nextStatus);
-    setVehicles(prev => prev.map(v => (v.rawId === rawId || v.id === rawId) ? { ...v, status: nextStatus } : v));
-    showToastMsg(`Vehicle status updated to ${nextStatus}`);
+    try {
+      const nextStatus = currentStatus === 'On Route' ? 'Stationed' : 'On Route';
+      await updateRimiVehicleStatus(rawId, nextStatus);
+      setVehicles(prev => prev.map(v => (v.rawId === rawId || v.id === rawId) ? { ...v, status: nextStatus } : v));
+      showToastMsg(`Vehicle status updated to ${nextStatus}`);
+    } catch (err: any) {
+      showToastMsg(`Error updating vehicle status: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteVehicle = async (rawId: string) => {

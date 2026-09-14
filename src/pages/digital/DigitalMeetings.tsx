@@ -61,9 +61,13 @@ export const DigitalMeetings: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await deleteDigitalMeeting(id);
-    setMeetings(prev => prev.filter(m => m.id !== id));
-    showToast('Meeting cancelled');
+    try {
+      await deleteDigitalMeeting(id);
+      setMeetings(prev => prev.filter(m => m.id !== id));
+      showToast('Meeting cancelled');
+    } catch (err: any) {
+      showToast(`Error deleting meeting: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const filtered = meetings.filter(m =>

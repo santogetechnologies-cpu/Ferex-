@@ -21,7 +21,6 @@ import { Notifications } from './pages/Notifications';
 import { MyProfile } from './pages/MyProfile';
 import { VisaTracker } from './pages/VisaTracker';
 import { PreDeparture } from './pages/PreDeparture';
-import { PostTravelHousing } from './pages/PostTravelHousing';
 
 // Admin imports
 import { AdminLayout } from './layouts/AdminLayout';
@@ -45,7 +44,6 @@ import { AdminMeetings } from './pages/admin/AdminMeetings';
 import { AdminNawaTracker } from './pages/admin/AdminNawaTracker';
 import { AdminDocumentConfig } from './pages/admin/AdminDocumentConfig';
 import { AdminPaymentControl } from './pages/admin/AdminPaymentControl';
-import { AdminHousing } from './pages/admin/AdminHousing';
 
 // Central imports
 import { CentralLayout } from './layouts/CentralLayout';

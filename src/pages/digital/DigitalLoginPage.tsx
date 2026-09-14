@@ -52,7 +52,9 @@ export const DigitalLoginPage: React.FC = () => {
             full_name: 'Ferex Digital Director',
             updated_at: new Date().toISOString()
           }, { onConflict: 'email' });
-        } catch {}
+        } catch (err) {
+          console.error('Failed to sync user profile:', err);
+        }
 
         setSuccessMsg('Authenticated as Ferex Digital Admin. Loading Console...');
         setTimeout(() => {
@@ -76,7 +78,9 @@ export const DigitalLoginPage: React.FC = () => {
             department: 'Digital:Nexus FinTech Global',
             updated_at: new Date().toISOString()
           }, { onConflict: 'email' });
-        } catch {}
+        } catch (err) {
+          console.error('Failed to sync user profile:', err);
+        }
 
         setSuccessMsg('Authenticated as Digital Client. Loading Client Portal...');
         setTimeout(() => {

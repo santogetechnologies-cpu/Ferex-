@@ -54,7 +54,9 @@ export const TradeReports: React.FC = () => {
         paymentTotal: paySum > 0 ? paySum : 60700000,
         certCount: rawCerts.length > 0 ? rawCerts.length : 8,
       });
-    } catch {}
+    } catch (err) {
+      console.error('Failed to load report metrics:', err);
+    }
   };
 
   useEffect(() => {

@@ -84,7 +84,7 @@ export const WorkflowGuide: React.FC = () => {
     { id: 'registration', name: 'Student Registration Flow', icon: UserCheck },
     { id: 'payments', name: 'Payment & Unlocking System', icon: CreditCard },
     { id: 'documents', name: 'Document Approval Workflow', icon: FileCheck },
-    { id: 'legalization', name: 'Country Legalization (NAWA)', icon: Globe },
+    { id: 'legalization', name: 'Country Legalization', icon: Globe },
     { id: 'applications', name: 'University Applications', icon: GraduationCap },
     { id: 'offers', name: 'Offer Letters & Acceptance', icon: FileText },
     { id: 'visa', name: 'VFS Visa Tracking', icon: ShieldCheck },
@@ -247,9 +247,9 @@ const RolesSection: React.FC = () => (
           </div>
         </div>
         <div className="bg-slate-50 rounded-xl p-4 space-y-2 text-xs">
-          <p className="font-semibold text-slate-700"><strong className="text-slate-900">Access:</strong> All student data, payment verification, document review, application management, NAWA workflows, visa tracking, counselor assignment, system settings</p>
+          <p className="font-semibold text-slate-700"><strong className="text-slate-900">Access:</strong> All student data, payment verification, document review, application management, Country Legalization workflows, visa tracking, counselor assignment, system settings</p>
           <p className="font-semibold text-slate-700"><strong className="text-slate-900">Permissions:</strong> Verify/reject payments, approve/reject documents, update application status, assign counselors, configure fees, upload offer letters, manage universities</p>
-          <p className="font-semibold text-slate-700"><strong className="text-slate-900">Workflows:</strong> Payment verification → Invoice generation → Journey unlock, Document approval → NAWA trigger, Application updates → Status sync</p>
+          <p className="font-semibold text-slate-700"><strong className="text-slate-900">Workflows:</strong> Payment verification → Invoice generation → Journey unlock, Document approval → Legalization trigger, Application updates → Status sync</p>
         </div>
       </div>
 
@@ -326,8 +326,8 @@ const PaymentsSection: React.FC<FlowSectionProps> = ({ expandedFlows, toggleFlow
           stage="1st Installment"
           amount="₹15,000"
           title="Registration & Legalization Fee"
-          unlocks={['University Selection', 'Application Submission', 'NAWA Process']}
-          methods={['Stripe', 'UPI', 'Bank Transfer', 'Cash']}
+          unlocks={['University Selection', 'Application Submission', 'Legalization Process']}
+          methods={['PhonePe UPI', 'Bank Transfer', 'Cash']}
         />
         <PaymentCard
           stage="2nd Installment"

@@ -89,10 +89,16 @@ export const TradePackingLists: React.FC = () => {
   };
 
   const handleDeletePL = async (id: string, rawId?: string) => {
-    // Optimistic remove first
-    setLists(prev => prev.filter(l => l.id !== id && l.rawId !== rawId));
-    showToastMsg(`Removed Packing List ${id}`);
-    await deleteTradePackingList(rawId || id);
+    try {
+      // Optimistic remove first
+      setLists(prev => prev.filter(l => l.id !== id && l.rawId !== rawId));
+      showToastMsg(`Removed Packing List ${id}`);
+      await deleteTradePackingList(rawId || id);
+    } catch (err: any) {
+      showToastMsg(`Error deleting packing list: ${err.message || 'Unknown error'}`);
+      // Reload to sync state
+      await loadData();
+    }
   };
 
   const downloadPackingListDocument = (l: any) => {

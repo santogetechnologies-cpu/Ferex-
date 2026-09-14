@@ -148,9 +148,13 @@ export const DigitalInvoices: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await deleteDigitalInvoice(id);
-    setInvoices(prev => prev.filter(i => i.id !== id));
-    showToast('Invoice deleted successfully');
+    try {
+      await deleteDigitalInvoice(id);
+      setInvoices(prev => prev.filter(i => i.id !== id));
+      showToast('Invoice deleted successfully');
+    } catch (err: any) {
+      showToast(`Error deleting invoice: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const filtered = invoices.filter(i => {

@@ -200,55 +200,79 @@ export const TradeShipments: React.FC = () => {
   const handleAddBondedItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBonded.commodity) return;
-    await createTradeBondedItem(newBonded);
-    await loadAllTradeData();
-    setShowAddBondedModal(false);
-    showToastMsg(`Registered ${newBonded.commodity} in customs bonded warehouse!`);
-    setNewBonded({
-      sku: '',
-      commodity: '',
-      category: 'Bulk Energy Commodities',
-      port_location: 'Port of Gdansk, Bonded Bay #4A',
-      warehouse_bay: 'Bay-04 North Terminal',
-      in_stock_metric_tons: 25000,
-      reserved_metric_tons: 5000,
-      unit_value_inr: 15000,
-      customs_bond_no: '',
-      status: 'In Bond'
-    });
+    try {
+      await createTradeBondedItem(newBonded);
+      await loadAllTradeData();
+      setShowAddBondedModal(false);
+      showToastMsg(`Registered ${newBonded.commodity} in customs bonded warehouse!`);
+      setNewBonded({
+        sku: '',
+        commodity: '',
+        category: 'Bulk Energy Commodities',
+        port_location: 'Port of Gdansk, Bonded Bay #4A',
+        warehouse_bay: 'Bay-04 North Terminal',
+        in_stock_metric_tons: 25000,
+        reserved_metric_tons: 5000,
+        unit_value_inr: 15000,
+        customs_bond_no: '',
+        status: 'In Bond'
+      });
+    } catch (err: any) {
+      showToastMsg(`Error adding bonded item: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleAddLoss = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLoss.loss_amount_inr) return;
-    await createTradeCargoLoss(newLoss);
-    await loadAllTradeData();
-    setShowAddLossModal(false);
-    showToastMsg(`Logged incident: ${newLoss.loss_type} (₹${Number(newLoss.loss_amount_inr).toLocaleString('en-IN')})`);
+    try {
+      await createTradeCargoLoss(newLoss);
+      await loadAllTradeData();
+      setShowAddLossModal(false);
+      showToastMsg(`Logged incident: ${newLoss.loss_type} (₹${Number(newLoss.loss_amount_inr).toLocaleString('en-IN')})`);
+    } catch (err: any) {
+      showToastMsg(`Error logging cargo loss: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleStatusChange = async (id: string, rawId: string, newStatus: string) => {
-    await updateTradeShipmentStatus(rawId || id, newStatus);
-    showToastMsg(`Updated shipment status to ${newStatus}`);
-    await loadAllTradeData();
+    try {
+      await updateTradeShipmentStatus(rawId || id, newStatus);
+      showToastMsg(`Updated shipment status to ${newStatus}`);
+      await loadAllTradeData();
+    } catch (err: any) {
+      showToastMsg(`Error updating shipment status: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteShipment = async (id: string, rawId?: string) => {
-    await deleteTradeShipment(rawId || id);
-    setShipments(prev => prev.filter(s => s.id !== id && s.rawId !== rawId));
-    showToastMsg(`Removed shipment record ${id}`);
+    try {
+      await deleteTradeShipment(rawId || id);
+      setShipments(prev => prev.filter(s => s.id !== id && s.rawId !== rawId));
+      showToastMsg(`Removed shipment record ${id}`);
+    } catch (err: any) {
+      showToastMsg(`Error deleting shipment: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteBonded = async (id: string) => {
-    await deleteTradeBondedItem(id);
-    showToastMsg(`Removed bonded inventory SKU ${id}`);
-    await loadAllTradeData();
+    try {
+      await deleteTradeBondedItem(id);
+      showToastMsg(`Removed bonded inventory SKU ${id}`);
+      await loadAllTradeData();
+    } catch (err: any) {
+      showToastMsg(`Error deleting bonded item: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteLoss = async (id: string) => {
-    await deleteTradeCargoLoss(id);
-    showToastMsg(`Archived loss incident record ${id}`);
-    await loadAllTradeData();
+    try {
+      await deleteTradeCargoLoss(id);
+      showToastMsg(`Archived loss incident record ${id}`);
+      await loadAllTradeData();
+    } catch (err: any) {
+      showToastMsg(`Error deleting loss record: ${err.message || 'Unknown error'}`);
+    }
   };
 
   // Computations

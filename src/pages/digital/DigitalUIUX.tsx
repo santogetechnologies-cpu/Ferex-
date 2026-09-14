@@ -29,7 +29,9 @@ export const DigitalUIUX: React.FC = () => {
           setSelectedProjectId(data[0].id);
         }
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to load UI/UX projects:', err);
+    }
   };
 
   useEffect(() => {

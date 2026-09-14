@@ -31,7 +31,7 @@ export const RimiWholesalers: React.FC = () => {
   const [whOrders, setWhOrders] = useState<any[]>([]);
   const [whPayments, setWhPayments] = useState<any[]>([]);
 
-  const [newWh, setNewWh] = useState({ name: '', contact: '', email: '', phone: '', city: 'Navi Mumbai', credit_limit: 3500000 });
+  const [newWh, setNewWh] = useState({ name: '', contact: '', email: '', phone: '', city: 'Navi Mumbai', credit_limit: 0 });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -110,9 +110,13 @@ export const RimiWholesalers: React.FC = () => {
   };
 
   const handleDeleteWh = async (rawId: string) => {
-    await deleteRimiDistributor(rawId);
-    setWholesalers(prev => prev.filter(w => w.rawId !== rawId));
-    showToastMsg('Removed wholesaler partner record');
+    try {
+      await deleteRimiDistributor(rawId);
+      setWholesalers(prev => prev.filter(w => w.rawId !== rawId));
+      showToastMsg('Removed wholesaler partner record');
+    } catch (err: any) {
+      showToastMsg(`Error deleting wholesaler: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleProvisionCredentials = async (wh: any) => {

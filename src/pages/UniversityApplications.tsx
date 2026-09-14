@@ -9,12 +9,18 @@ import { useApplications } from '../hooks/useApplications';
 
 const getStatusStyle = (status: string) => {
   switch (status) {
+    case 'Legalization Cleared':
+    case 'Legalization Approved':
     case 'NAWA Approved':
     case 'Offer Issued':
     case 'Accepted':
       return 'bg-emerald-50 text-emerald-700 border-emerald-100 font-bold';
+    case 'Legalization Lodged':
+    case 'Legalization Submitted':
     case 'NAWA Submitted':
       return 'bg-indigo-50 text-indigo-700 border-indigo-100 font-bold';
+    case 'Legalization Reviewed':
+    case 'Legalization Review':
     case 'NAWA Review':
       return 'bg-amber-50 text-amber-800 border-amber-100 font-bold';
     case 'Under Review':

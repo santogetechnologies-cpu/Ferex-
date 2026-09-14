@@ -35,7 +35,9 @@ export const DigitalBranding: React.FC = () => {
       if (cData && cData.length > 0 && !selectedClient) {
         setSelectedClient(cData[0]);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to load branding clients:', err);
+    }
   }, [selectedClient]);
 
   useEffect(() => {

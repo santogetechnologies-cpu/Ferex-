@@ -44,7 +44,9 @@ export const DigitalMobileApps: React.FC = () => {
         try {
           setAppReleases(JSON.parse(savedReleases));
           return;
-        } catch {}
+        } catch (err) {
+          console.error('Failed to parse saved releases:', err);
+        }
       }
 
       const initialReleases = [

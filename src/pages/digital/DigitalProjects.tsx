@@ -115,7 +115,9 @@ export const DigitalProjects: React.FC = () => {
           amount: Number(editingProject.budget || 0)
         });
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to sync project activity:', err);
+    }
 
     setEditingProject(null);
     showToast(`Updated "${editingProject.title}" to ${editingProject.status} (${editingProject.progress}%)`);
@@ -123,9 +125,13 @@ export const DigitalProjects: React.FC = () => {
   };
 
   const handleDelete = async (id: string, title: string) => {
-    await deleteDigitalProject(id);
-    setProjects(prev => prev.filter(p => p.id !== id));
-    showToast(`Removed project ${title}`);
+    try {
+      await deleteDigitalProject(id);
+      setProjects(prev => prev.filter(p => p.id !== id));
+      showToast(`Removed project ${title}`);
+    } catch (err: any) {
+      showToast(`Error deleting project: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const filtered = projects.filter(p => {

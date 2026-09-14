@@ -38,7 +38,9 @@ export const TradeLoginPage: React.FC = () => {
             role: 'trade_client',
             updated_at: new Date().toISOString()
           }, { onConflict: 'email' });
-        } catch {}
+        } catch (err) {
+          console.error('Failed to sync user profile:', err);
+        }
         navigate('/trade/client-portal', { replace: true });
       } else {
         const userObj = {
@@ -55,7 +57,9 @@ export const TradeLoginPage: React.FC = () => {
             role: 'trade_admin',
             updated_at: new Date().toISOString()
           }, { onConflict: 'email' });
-        } catch {}
+        } catch (err) {
+          console.error('Failed to sync user profile:', err);
+        }
         navigate('/trade/dashboard', { replace: true });
       }
     }, 400);

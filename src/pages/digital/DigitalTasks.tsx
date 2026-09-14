@@ -78,17 +78,27 @@ export const DigitalTasks: React.FC = () => {
   };
 
   const handleToggleStatus = async (task: any) => {
-    const nextStatus = task.status === 'Done' ? 'To Do' : task.status === 'To Do' ? 'In Progress' : 'Done';
-    await updateDigitalTaskStatus(task.id, nextStatus);
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: nextStatus } : t));
-    showToast(`Task status updated to ${nextStatus}`);
+    try {
+      const nextStatus = task.status === 'Done' ? 'To Do' : task.status === 'To Do' ? 'In Progress' : 'Done';
+      await updateDigitalTaskStatus(task.id, nextStatus);
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: nextStatus } : t));
+      showToast(`Task status updated to ${nextStatus}`);
+    } catch (err: any) {
+      showToast(`Error updating task status: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    // Optimistic remove first
-    setTasks(prev => prev.filter(t => t.id !== id));
-    showToast('Task removed from sprint');
-    await deleteDigitalTask(id);
+    try {
+      // Optimistic remove first
+      setTasks(prev => prev.filter(t => t.id !== id));
+      showToast('Task removed from sprint');
+      await deleteDigitalTask(id);
+    } catch (err: any) {
+      showToast(`Error deleting task: ${err.message || 'Unknown error'}`);
+      // Reload to sync state
+      await loadData();
+    }
   };
 
   const filtered = tasks.filter(t => {

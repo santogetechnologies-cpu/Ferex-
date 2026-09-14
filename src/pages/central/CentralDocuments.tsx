@@ -67,7 +67,7 @@ export const CentralDocuments: React.FC = () => {
             <Folder className="w-5 h-5 text-[#58051E]" /> Central Document Inspection Vault
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Super Admin Console • Global document compliance, passports, IELTS scorecards, and NAWA transcripts.
+            Super Admin Console • Global document compliance, passports, IELTS scorecards, and academic legalization transcripts.
           </p>
         </div>
       </div>

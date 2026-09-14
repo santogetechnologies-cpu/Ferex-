@@ -115,16 +115,26 @@ export const RimiSalesOrders: React.FC = () => {
   };
 
   const handleStatusChange = async (rawId: string, newStatus: string) => {
-    await updateRimiOrderStatus(rawId, newStatus);
-    setOrders(prev => prev.map(o => (o.rawId === rawId || o.id === rawId) ? { ...o, status: newStatus } : o));
-    showToastMsg(`Updated order status to "${newStatus}"`);
+    try {
+      await updateRimiOrderStatus(rawId, newStatus);
+      setOrders(prev => prev.map(o => (o.rawId === rawId || o.id === rawId) ? { ...o, status: newStatus } : o));
+      showToastMsg(`Updated order status to "${newStatus}"`);
+    } catch (err: any) {
+      showToastMsg(`Error updating order status: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteOrder = async (rawId: string) => {
-    // Optimistic remove first matching rawId or id
-    setOrders(prev => prev.filter(o => o.rawId !== rawId && o.id !== rawId));
-    showToastMsg('Order record deleted');
-    await deleteRimiSalesOrder(rawId);
+    try {
+      // Optimistic remove first matching rawId or id
+      setOrders(prev => prev.filter(o => o.rawId !== rawId && o.id !== rawId));
+      showToastMsg('Order record deleted');
+      await deleteRimiSalesOrder(rawId);
+    } catch (err: any) {
+      showToastMsg(`Error deleting order: ${err.message || 'Unknown error'}`);
+      // Reload to sync state
+      await loadOrders();
+    }
   };
 
   const filteredOrders = orders.filter(o =>

@@ -130,16 +130,24 @@ export const DigitalExpenses: React.FC = () => {
   };
 
   const handleDeleteExpense = async (id: string) => {
-    await deleteDigitalExpense(id);
-    setExpenses(prev => prev.filter(e => e.id !== id));
-    showToast('Removed expense log');
+    try {
+      await deleteDigitalExpense(id);
+      setExpenses(prev => prev.filter(e => e.id !== id));
+      showToast('Removed expense log');
+    } catch (err: any) {
+      showToast(`Error deleting expense: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteAsset = async (id: string) => {
-    await deleteDigitalAsset(id);
-    setAssets(prev => prev.filter(a => a.id !== id));
-    showToast('Removed digital asset license');
-    await loadData();
+    try {
+      await deleteDigitalAsset(id);
+      setAssets(prev => prev.filter(a => a.id !== id));
+      showToast('Removed digital asset license');
+      await loadData();
+    } catch (err: any) {
+      showToast(`Error deleting asset: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleRenewAsset = async (asset: DigitalAsset) => {

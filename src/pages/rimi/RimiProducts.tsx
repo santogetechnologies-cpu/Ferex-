@@ -112,9 +112,13 @@ export const RimiProducts: React.FC = () => {
   };
 
   const handleDeleteProduct = async (id: string, rawId?: string) => {
-    await deleteRimiProduct(rawId || id);
-    setProducts(prev => prev.filter(p => p.id !== id && p.rawId !== rawId));
-    showToastMsg(`Removed SKU ${id}`);
+    try {
+      await deleteRimiProduct(rawId || id);
+      setProducts(prev => prev.filter(p => p.id !== id && p.rawId !== rawId));
+      showToastMsg(`Removed SKU ${id}`);
+    } catch (err: any) {
+      showToastMsg(`Error deleting product: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const filteredProducts = products.filter(p => {

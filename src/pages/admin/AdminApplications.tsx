@@ -30,7 +30,7 @@ export function getCountryAuthority(country?: string) {
   return { acronym: 'Legalization', name: `${country} Educational Verification`, flag: 'INT' };
 }
 
-type AppStatus = 'Submitted' | 'NAWA Review' | 'NAWA Submitted' | 'NAWA Approved' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Visa Rejected' | 'Approved' | 'Closed' | 'Rejected' | 'Withdrawn';
+type AppStatus = 'Submitted' | 'Legalization Lodged' | 'Legalization Reviewed' | 'Legalization Cleared' | 'NAWA Review' | 'NAWA Submitted' | 'NAWA Approved' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Visa Rejected' | 'Approved' | 'Closed' | 'Rejected' | 'Withdrawn';
 
 interface ApplicationItem {
   id: string;
@@ -50,6 +50,9 @@ interface ApplicationItem {
 
 const STATUS_COLORS: Record<AppStatus, string> = {
   'Submitted': 'bg-slate-50 text-slate-700 border-slate-200',
+  'Legalization Lodged': 'bg-indigo-50 text-indigo-800 border-indigo-200 font-black',
+  'Legalization Reviewed': 'bg-amber-50 text-amber-800 border-amber-200 font-bold',
+  'Legalization Cleared': 'bg-emerald-50 text-emerald-800 border-emerald-200 font-black',
   'NAWA Review': 'bg-amber-50 text-amber-800 border-amber-200 font-bold',
   'NAWA Submitted': 'bg-indigo-50 text-indigo-800 border-indigo-200 font-black',
   'NAWA Approved': 'bg-emerald-50 text-emerald-800 border-emerald-200 font-black',
@@ -664,6 +667,9 @@ startxref
                       className={`h-8 px-2 rounded-lg text-[11px] font-bold border focus:outline-none cursor-pointer ${STATUS_COLORS[a.status]}`}
                     >
                       <option value="Submitted">Submitted</option>
+                      <option value="Legalization Lodged">Legalization Lodged ({auth.acronym})</option>
+                      <option value="Legalization Reviewed">Legalization Reviewed ({auth.acronym})</option>
+                      <option value="Legalization Cleared">Legalization Cleared ({auth.acronym})</option>
                       <option value="NAWA Review">{auth.acronym} Review (Legalization Review)</option>
                       <option value="NAWA Submitted">{auth.acronym} Submitted (Authority Lodged)</option>
                       <option value="NAWA Approved">{auth.acronym} Approved (Legalization Cleared)</option>
@@ -1013,6 +1019,9 @@ startxref
                     className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                   >
                     <option value="Submitted">Submitted</option>
+                    <option value="Legalization Lodged">Legalization Lodged ({getCountryAuthority(viewApp.country).acronym})</option>
+                    <option value="Legalization Reviewed">Legalization Reviewed ({getCountryAuthority(viewApp.country).acronym})</option>
+                    <option value="Legalization Cleared">Legalization Cleared ({getCountryAuthority(viewApp.country).acronym})</option>
                     <option value="NAWA Review">{getCountryAuthority(viewApp.country).acronym} Review (Legalization Review)</option>
                     <option value="NAWA Submitted">{getCountryAuthority(viewApp.country).acronym} Submitted (Authority Lodged)</option>
                     <option value="NAWA Approved">{getCountryAuthority(viewApp.country).acronym} Approved (Legalization Cleared)</option>

@@ -82,11 +82,15 @@ export const TradeNotifications: React.FC = () => {
   const handleCreateNotif = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNotif.title) return;
-    await createTradeNotification(newNotif);
-    setShowAddModal(false);
-    showToastMsg('Broadcasted notification');
-    setNewNotif({ title: '', description: '', category: 'Logistics' });
-    await loadData();
+    try {
+      await createTradeNotification(newNotif);
+      setShowAddModal(false);
+      showToastMsg('Broadcasted notification');
+      setNewNotif({ title: '', description: '', category: 'Logistics' });
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Error creating notification: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const filteredNotifs = notifications.filter(n => {

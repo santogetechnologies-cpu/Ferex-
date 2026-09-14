@@ -102,15 +102,23 @@ export const TradeInvoices: React.FC = () => {
   };
 
   const handleStatusChange = async (id: string, rawId: string, newStatus: string) => {
-    await updateTradeInvoiceStatus(rawId || id, newStatus);
-    showToastMsg(`Invoice status updated to ${newStatus}`);
-    await loadData();
+    try {
+      await updateTradeInvoiceStatus(rawId || id, newStatus);
+      showToastMsg(`Invoice status updated to ${newStatus}`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Error updating invoice status: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteInvoice = async (id: string, rawId?: string) => {
-    await deleteTradeInvoice(rawId || id);
-    setInvoices(prev => prev.filter(i => i.id !== id && i.rawId !== rawId));
-    showToastMsg(`Removed invoice record ${id}`);
+    try {
+      await deleteTradeInvoice(rawId || id);
+      setInvoices(prev => prev.filter(i => i.id !== id && i.rawId !== rawId));
+      showToastMsg(`Removed invoice record ${id}`);
+    } catch (err: any) {
+      showToastMsg(`Error deleting invoice: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const filteredInvoices = invoices.filter(i =>

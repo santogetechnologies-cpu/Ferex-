@@ -136,9 +136,13 @@ export const DigitalClients: React.FC = () => {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    await deleteDigitalClient(id);
-    setClients(prev => prev.filter(c => c.id !== id));
-    showToast(`Deleted ${name}`);
+    try {
+      await deleteDigitalClient(id);
+      setClients(prev => prev.filter(c => c.id !== id));
+      showToast(`Deleted ${name}`);
+    } catch (err: any) {
+      showToast(`Error deleting client: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleProvisionCredentials = async (client: any) => {

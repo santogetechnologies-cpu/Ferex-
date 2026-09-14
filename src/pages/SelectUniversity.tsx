@@ -14,6 +14,27 @@ import { Card } from '../components/Card';
 import { UnifiedPaymentModal } from '../components/UnifiedPaymentModal';
 import { canAccessPage, checkPaymentStage } from '../lib/paymentUnlock';
 
+const COUNTRY_FLAGS: Record<string, string> = {
+  Poland: '🇵🇱',
+  Germany: '🇩🇪',
+  UK: '🇬🇧',
+  'United Kingdom': '🇬🇧',
+  Canada: '🇨🇦',
+  Switzerland: '🇨🇭',
+  France: '🇫🇷',
+  Italy: '🇮🇹',
+  Spain: '🇪🇸',
+  'Czech Republic': '🇨🇿',
+  Netherlands: '🇳🇱',
+  Ireland: '🇮🇪',
+  USA: '🇺🇸',
+  'United States': '🇺🇸',
+  Australia: '🇦🇺',
+  Austria: '🇦🇹',
+  Hungary: '🇭🇺',
+  Lithuania: '🇱🇹'
+};
+
 export const SelectUniversity: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
@@ -32,11 +53,13 @@ export const SelectUniversity: React.FC = () => {
     // Add destinations from registry
     destinations.forEach(d => {
       if (d.name) {
-        destMap.set(d.name.toLowerCase(), {
-          country: d.name,
-          flag: d.flag || '🌍',
-          authority: d.authority || `${d.name} Legalization`,
-          desk: d.desk || `${d.name} Desk`,
+        const key = d.name.trim().toLowerCase();
+        const flag = d.flag && d.flag !== 'EU' && d.flag !== '🌍' ? d.flag : COUNTRY_FLAGS[d.name.trim()] || '🌍';
+        destMap.set(key, {
+          country: d.name.trim(),
+          flag,
+          authority: d.authority || `${d.name.trim()} Legalization Authority`,
+          desk: d.desk || `${d.name.trim()} Desk`,
           badge: d.badge || 'Accredited'
         });
       }
@@ -44,14 +67,18 @@ export const SelectUniversity: React.FC = () => {
 
     // Add any countries from universities not already in destinations
     universities.forEach(u => {
-      if (u.country && !destMap.has(u.country.toLowerCase())) {
-        destMap.set(u.country.toLowerCase(), {
-          country: u.country,
-          flag: '🌍',
-          authority: `${u.country} Higher Education`,
-          desk: `${u.country} Desk`,
-          badge: u.badge || 'Partner'
-        });
+      if (u.country) {
+        const key = u.country.trim().toLowerCase();
+        if (!destMap.has(key)) {
+          const flag = COUNTRY_FLAGS[u.country.trim()] || '🌍';
+          destMap.set(key, {
+            country: u.country.trim(),
+            flag,
+            authority: `${u.country.trim()} Higher Education & Legalization`,
+            desk: `${u.country.trim()} Desk`,
+            badge: u.badge || 'Partner'
+          });
+        }
       }
     });
 
@@ -186,23 +213,33 @@ export const SelectUniversity: React.FC = () => {
     }
   };
 
-  const allCountryNames = ['All', ...Array.from(new Set(universities.map(u => u?.country).filter(Boolean)))];
+  const allCountryNames = useMemo(() => {
+    const names = new Set<string>();
+    names.add('All');
+    availableDestinations.forEach(d => names.add(d.country));
+    universities.forEach(u => {
+      if (u?.country) names.add(u.country.trim());
+    });
+    return Array.from(names);
+  }, [availableDestinations, universities]);
 
-  const filteredUnis = universities.filter(u => {
-    if (!u) return false;
-    const nameStr = (u.name || '').toLowerCase();
-    const cityStr = (u.city || '').toLowerCase();
-    const countryStr = (u.country || '').toLowerCase();
-    const query = searchQuery.toLowerCase().trim();
+  const filteredUnis = useMemo(() => {
+    return universities.filter(u => {
+      if (!u) return false;
+      const nameStr = (u.name || '').toLowerCase();
+      const cityStr = (u.city || '').toLowerCase();
+      const countryStr = (u.country || '').trim().toLowerCase();
+      const query = searchQuery.toLowerCase().trim();
 
-    const matchesSearch = !query ||
-                          nameStr.includes(query) ||
-                          cityStr.includes(query) ||
-                          countryStr.includes(query) ||
-                          (Array.isArray(u.programs) && u.programs.some(p => typeof p === 'string' && p.toLowerCase().includes(query)));
-    const matchesCountry = selectedCountry === 'All' || u.country?.toLowerCase() === selectedCountry.toLowerCase();
-    return matchesSearch && matchesCountry;
-  });
+      const matchesSearch = !query ||
+                            nameStr.includes(query) ||
+                            cityStr.includes(query) ||
+                            countryStr.includes(query) ||
+                            (Array.isArray(u.programs) && u.programs.some(p => typeof p === 'string' && p.toLowerCase().includes(query)));
+      const matchesCountry = selectedCountry === 'All' || countryStr === selectedCountry.trim().toLowerCase();
+      return matchesSearch && matchesCountry;
+    });
+  }, [universities, searchQuery, selectedCountry]);
 
   return (
     <div className="space-y-6 text-left relative min-h-[600px]">
@@ -283,7 +320,7 @@ export const SelectUniversity: React.FC = () => {
             { step: '03', title: 'Document Vault', status: hasMandatoryDocs ? 'Passport & Transcripts Ready' : 'Upload Needed', isDone: hasMandatoryDocs, badge: hasMandatoryDocs ? 'Verified' : 'Action Req', path: '/student/documents' },
             { step: '04', title: 'Registration Fee', status: inst1Paid ? 'Cleared & Verified' : `₹${requiredAdvanceInr.toLocaleString('en-IN')}`, isDone: inst1Paid, badge: inst1Paid ? 'Paid' : 'Due' },
             { step: '05', title: 'Course Application', status: 'Select Program', isDone: false, badge: 'Current' },
-            { step: '06', title: 'Offer & Legalization', status: `${getWorkflowForCountry(effectiveCountryKey)?.authority_acronym || 'NAWA'} / Visa`, isDone: false, badge: 'Next Stage' },
+            { step: '06', title: 'Offer & Legalization', status: `${getWorkflowForCountry(effectiveCountryKey)?.authority_acronym || 'Legalization'} / Visa`, isDone: false, badge: 'Next Stage' },
           ].map((s, idx) => (
             <div
               key={idx}
@@ -420,7 +457,7 @@ export const SelectUniversity: React.FC = () => {
                       </div>
                     )}
                     <span className="text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200">
-                      {wf?.authority_acronym || 'N/A'}
+                      {wf?.authority_acronym || 'Accredited'}
                     </span>
                   </div>
 

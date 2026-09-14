@@ -116,9 +116,13 @@ export const RimiDistributors: React.FC = () => {
   };
 
   const handleDeleteDist = async (rawId: string) => {
-    await deleteRimiDistributor(rawId);
-    setDistributors(prev => prev.filter(d => d.rawId !== rawId));
-    showToastMsg('Removed distributor partner record');
+    try {
+      await deleteRimiDistributor(rawId);
+      setDistributors(prev => prev.filter(d => d.rawId !== rawId));
+      showToastMsg('Removed distributor partner record');
+    } catch (err: any) {
+      showToastMsg(`Error deleting distributor: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleProvisionCredentials = async (dist: any) => {

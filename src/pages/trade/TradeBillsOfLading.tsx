@@ -78,16 +78,26 @@ export const TradeBillsOfLading: React.FC = () => {
   };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
-    await updateTradeBillOfLadingStatus(id, newStatus);
-    showToastMsg(`B/L status updated to ${newStatus}`);
-    await loadData();
+    try {
+      await updateTradeBillOfLadingStatus(id, newStatus);
+      showToastMsg(`B/L status updated to ${newStatus}`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Error updating B/L status: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteBL = async (id: string) => {
-    // Optimistic remove first
-    setBills(prev => prev.filter(b => b.id !== id && b.bl_number !== id));
-    showToastMsg(`Removed Bill of Lading ${id}`);
-    await deleteTradeBillOfLading(id);
+    try {
+      // Optimistic remove first
+      setBills(prev => prev.filter(b => b.id !== id && b.bl_number !== id));
+      showToastMsg(`Removed Bill of Lading ${id}`);
+      await deleteTradeBillOfLading(id);
+    } catch (err: any) {
+      showToastMsg(`Error deleting B/L: ${err.message || 'Unknown error'}`);
+      // Reload to sync state
+      await loadData();
+    }
   };
 
   const downloadBLDocument = (b: any) => {

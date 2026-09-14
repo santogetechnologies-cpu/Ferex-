@@ -25,6 +25,24 @@ export function checkPaymentStage(
   stageNum: 1 | 2 | 3, 
   targetCountry?: string
 ): StageUnlockStatus {
+  const config = getSystemFeeConfig();
+  if (stageNum === 1 && config.advance_registration_fee_enabled === false) {
+    return {
+      isUnlocked: true,
+      requiredPayment: 'Registration Fee (Waived)',
+      paymentStatus: 'paid',
+      message: 'Advance registration fee is waived by administrator.'
+    };
+  }
+  if ((stageNum === 2 || stageNum === 3) && config.installment_schedule_enabled === false) {
+    return {
+      isUnlocked: true,
+      requiredPayment: 'Installment Schedule (Disabled)',
+      paymentStatus: 'paid',
+      message: 'Installment schedule is disabled by administrator.'
+    };
+  }
+
   if (!payments || payments.length === 0) {
     return {
       isUnlocked: false,
@@ -94,7 +112,7 @@ function getPaymentName(stageNum: 1 | 2 | 3, targetCountry?: string): string {
       const countryFee = targetCountry && config.country_fees?.[targetCountry];
       const amount = countryFee 
         ? `₹${countryFee.registration_fee_inr.toLocaleString('en-IN')}`
-        : `₹${config.advance_registration_fee_inr.toLocaleString('en-IN')}`;
+        : `₹${(config.advance_registration_fee_inr || config.advance_registration_fee_amount || 15000).toLocaleString('en-IN')}`;
       return `1st Installment (Registration & Legalization Fee - ${amount})`;
     }
     case 2: {
@@ -120,7 +138,7 @@ export function getExpectedPaymentAmount(stageNum: 1 | 2 | 3, targetCountry?: st
       const countryFee = targetCountry && config.country_fees?.[targetCountry];
       return countryFee 
         ? countryFee.registration_fee_inr 
-        : config.advance_registration_fee_inr;
+        : (config.advance_registration_fee_inr || config.advance_registration_fee_amount || 15000);
     }
     case 2: {
       // Tuition fee - dynamic based on selected course

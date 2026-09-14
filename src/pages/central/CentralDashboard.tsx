@@ -192,8 +192,8 @@ export const CentralDashboard: React.FC = () => {
         keyMetricValue: `${baseMetrics.educationStudents.toLocaleString()} Students`,
         status: 'Optimal',
         statusColor: 'text-emerald-600 bg-emerald-50 border-emerald-200',
-        desc: 'European partner universities, NAWA legalization, tuition wire payouts & VFS visa track.',
-        features: ['Admissions Ledger', 'NAWA Documents', 'Tuition Payouts', 'VFS Tracker']
+        desc: 'European partner universities, country legalization, tuition wire payouts & VFS visa track.',
+        features: ['Admissions Ledger', 'Legalization Documents', 'Tuition Payouts', 'VFS Tracker']
       },
       {
         name: 'Global Trade ERP',

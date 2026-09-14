@@ -413,103 +413,47 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
             </div>
           ) : (
             <div className="p-6 space-y-6">
-              {/* Payment Gateway Tabs */}
-              {division === 'education' ? (
-                <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-2xl">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('upi')}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                      activeTab === 'upi'
-                        ? 'bg-[#58051E] text-white shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900 bg-white/70'
-                    }`}
-                  >
-                    <QrCode className="w-4 h-4" />
-                    <span>UPI (QR Code & ID)</span>
-                  </button>
+              {/* Payment Gateway Tabs - PhonePe UPI, Bank Wire Transfer & Cash */}
+              <div className="grid grid-cols-3 gap-2 p-1.5 bg-slate-100 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('upi')}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    activeTab === 'upi'
+                      ? 'bg-[#58051E] text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 bg-white/70'
+                  }`}
+                >
+                  <QrCode className="w-4 h-4 text-amber-300" />
+                  <span>PhonePe UPI</span>
+                </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('stripe')}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                      activeTab === 'stripe'
-                        ? 'bg-[#58051E] text-white shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900 bg-white/70'
-                    }`}
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    <span>Stripe (Card Payment)</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1.5 bg-slate-100 rounded-2xl">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('upi')}
-                    className={`py-2 px-2.5 rounded-xl text-[11px] font-black transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 cursor-pointer ${
-                      activeTab === 'upi'
-                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
-                        : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    <QrCode className="w-3.5 h-3.5 text-[#58051E]" />
-                    <span>UPI Instant</span>
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('wire')}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    activeTab === 'wire'
+                      ? 'bg-[#58051E] text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 bg-white/70'
+                  }`}
+                >
+                  <Landmark className="w-4 h-4 text-emerald-400" />
+                  <span>Bank Wire / NEFT</span>
+                </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('stripe')}
-                    className={`py-2 px-2.5 rounded-xl text-[11px] font-black transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 cursor-pointer ${
-                      activeTab === 'stripe'
-                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
-                        : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    <CreditCard className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Stripe / Card</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('wire')}
-                    className={`py-2 px-2.5 rounded-xl text-[11px] font-black transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 cursor-pointer ${
-                      activeTab === 'wire'
-                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
-                        : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    <Landmark className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Bank Wire</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('cheque')}
-                    className={`py-2 px-2.5 rounded-xl text-[11px] font-black transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 cursor-pointer ${
-                      activeTab === 'cheque'
-                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
-                        : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    <FileText className="w-3.5 h-3.5 text-purple-600" />
-                    <span>Cheque / DD</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('cash')}
-                    className={`col-span-2 sm:col-span-1 py-2 px-2.5 rounded-xl text-[11px] font-black transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 cursor-pointer ${
-                      activeTab === 'cash'
-                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
-                        : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    <Banknote className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Cash Voucher</span>
-                  </button>
-                </div>
-              )}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('cash')}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    activeTab === 'cash'
+                      ? 'bg-[#58051E] text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 bg-white/70'
+                  }`}
+                >
+                  <Banknote className="w-4 h-4 text-amber-400" />
+                  <span>Cash Deposit</span>
+                </button>
+              </div>
 
               {/* ─── TAB 1: UPI PAYMENT (ONLINE) ────────────────────────────── */}
               {activeTab === 'upi' && (

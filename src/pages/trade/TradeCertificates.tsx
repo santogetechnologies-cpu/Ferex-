@@ -87,15 +87,23 @@ export const TradeCertificates: React.FC = () => {
   };
 
   const handleStatusChange = async (id: string, rawId: string, newStatus: string) => {
-    await updateTradeCertificateStatus(rawId || id, newStatus);
-    showToastMsg(`Certificate status updated to ${newStatus}`);
-    await loadData();
+    try {
+      await updateTradeCertificateStatus(rawId || id, newStatus);
+      showToastMsg(`Certificate status updated to ${newStatus}`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Error updating certificate status: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteCert = async (id: string, rawId?: string) => {
-    await deleteTradeCertificate(rawId || id);
-    setCerts(prev => prev.filter(c => c.id !== id && c.rawId !== rawId));
-    showToastMsg(`Removed certificate record ${id}`);
+    try {
+      await deleteTradeCertificate(rawId || id);
+      setCerts(prev => prev.filter(c => c.id !== id && c.rawId !== rawId));
+      showToastMsg(`Removed certificate record ${id}`);
+    } catch (err: any) {
+      showToastMsg(`Error deleting certificate: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const filteredCerts = certs.filter(c =>

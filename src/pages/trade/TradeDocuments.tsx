@@ -99,7 +99,9 @@ export const TradeDocuments: React.FC = () => {
         stage: 'Document Ready',
         documentTitle: `${cleanName} (${newFileFolder})`
       });
-    } catch {}
+    } catch (err) {
+      console.error('Failed to sync document activity:', err);
+    }
 
     await loadData();
     setShowUploadModal(false);
@@ -108,9 +110,13 @@ export const TradeDocuments: React.FC = () => {
   };
 
   const handleDeleteFile = async (id: string, rawId?: string) => {
-    await deleteTradeDocumentRecord(rawId || id);
-    setFiles(prev => prev.filter(f => f.id !== id && f.rawId !== rawId));
-    showToastMsg(`Deleted document ${id}`);
+    try {
+      await deleteTradeDocumentRecord(rawId || id);
+      setFiles(prev => prev.filter(f => f.id !== id && f.rawId !== rawId));
+      showToastMsg(`Deleted document ${id}`);
+    } catch (err: any) {
+      showToastMsg(`Error deleting document: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const filteredFiles = files.filter(f => {

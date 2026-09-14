@@ -120,7 +120,7 @@ export const AdminDocumentReview: React.FC = () => {
         setViewDoc(prev => prev ? { ...prev, status: newStatus, comment: notes ?? prev.comment } : null);
       }
 
-      // If document is approved, automatically initiate NAWA process & student application in Supabase
+      // If document is approved, automatically initiate Legalization process & student application in Supabase
       if (newStatus === 'Approved') {
         const targetDoc = docs.find(d => d.id === id);
         if (targetDoc && targetDoc.studentId) {
@@ -129,7 +129,7 @@ export const AdminDocumentReview: React.FC = () => {
               student_id: targetDoc.studentId,
               student_name: targetDoc.studentName,
               document_type: targetDoc.category || targetDoc.docType,
-              notes: 'Mandatory documents verified. NAWA legalization & admission initiation started.'
+              notes: 'Mandatory documents verified. Legalization & admission initiation started.'
             });
             showToast(`Document approved & legalization initialized.`);
             return;
@@ -177,6 +177,21 @@ export const AdminDocumentReview: React.FC = () => {
     label: s, count: s === 'All' ? docs.length : docs.filter(d => d.status === s).length
   }));
 
+  const [viewMode, setViewMode] = useState<'folders' | 'table'>('folders');
+  const [selectedStudentFolder, setSelectedStudentFolder] = useState<string | null>(null);
+
+  const studentFolders = React.useMemo(() => {
+    const map = new Map<string, { studentId: string; studentName: string; docs: DocItem[] }>();
+    docs.forEach(d => {
+      const sKey = d.studentId || d.studentName;
+      if (!map.has(sKey)) {
+        map.set(sKey, { studentId: d.studentId, studentName: d.studentName, docs: [] });
+      }
+      map.get(sKey)!.docs.push(d);
+    });
+    return Array.from(map.values());
+  }, [docs]);
+
   return (
     <div className="space-y-5 relative text-left">
       {/* Toast */}
@@ -193,9 +208,34 @@ export const AdminDocumentReview: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <div>
-        <h1 className="text-xl font-extrabold text-slate-900">Student Document Verification Hub</h1>
-        <p className="text-xs font-semibold text-slate-400 mt-0.5">Review, verify, approve, or request re-uploads with mandatory reviewer notes</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-extrabold text-slate-900">Student Document Verification Hub</h1>
+          <p className="text-xs font-semibold text-slate-400 mt-0.5">
+            Review, verify, approve, or request re-uploads with mandatory reviewer notes
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <button
+            type="button"
+            onClick={() => setViewMode('folders')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewMode === 'folders' ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            📁 Student Folders ({studentFolders.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('table')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewMode === 'table' ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            📋 All Documents Table ({docs.length})
+          </button>
+        </div>
       </div>
 
       {/* Filter Pills */}
@@ -215,105 +255,322 @@ export const AdminDocumentReview: React.FC = () => {
         ))}
       </div>
 
-      {/* Search */}
-      <div className="bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs">
-        <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by student name, document title, or category..."
-            className="w-full h-10 pl-9.5 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
-          />
-        </div>
-      </div>
+      {/* FOLDER WORKSPACE VIEW */}
+      {viewMode === 'folders' && (
+        <div className="space-y-4">
+          {selectedStudentFolder ? (
+            /* Inside a specific student's folder */
+            (() => {
+              const currentFolder = studentFolders.find(f => (f.studentId || f.studentName) === selectedStudentFolder);
+              if (!currentFolder) {
+                return (
+                  <div className="p-8 text-center bg-white rounded-2xl border border-slate-200">
+                    <p className="text-xs text-slate-500 font-bold">Student folder not found.</p>
+                    <button onClick={() => setSelectedStudentFolder(null)} className="mt-2 text-xs font-bold text-[#58051E]">← Back to Student Folders</button>
+                  </div>
+                );
+              }
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/70 shadow-xs overflow-hidden">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-slate-50 bg-slate-50/50">
-              {['Student', 'Document', 'Category', 'Status', 'Uploaded', 'Actions'].map(h => (
-                <th key={h} className="text-left px-5 py-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((d) => (
-              <tr key={d.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40 transition-colors">
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-[#58051E] flex items-center justify-center text-white text-[9px] font-extrabold shrink-0">
-                      {d.studentName.split(' ').map(n => n[0]).join('')}
+              // Categorize documents
+              const categories = [
+                { name: 'Identification', label: 'Passport & Identity Proof', icon: '🛂' },
+                { name: 'Academic', label: 'Degrees & Graduation Certificates', icon: '🎓' },
+                { name: 'Transcripts', label: 'Academic Marksheets & Transcripts', icon: '📜' },
+                { name: 'Language', label: 'Medium of Instruction (MOI) / English', icon: '🗣️' },
+                { name: 'Financial', label: 'Bank Statement & Solvency Proof', icon: '💰' },
+                { name: 'Insurance', label: 'Health Insurance & Medical', icon: '🏥' },
+                { name: 'Other', label: 'Other Supporting Documents', icon: '📁' },
+              ];
+
+              return (
+                <div className="space-y-4">
+                  {/* Breadcrumb Navigation */}
+                  <div className="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+                    <div className="flex items-center gap-2 text-xs font-bold">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStudentFolder(null)}
+                        className="text-[#58051E] hover:underline flex items-center gap-1"
+                      >
+                        📁 All Students
+                      </button>
+                      <span className="text-slate-300">/</span>
+                      <span className="text-slate-900 font-black">{currentFolder.studentName}</span>
+                      <span className="text-slate-300">/</span>
+                      <span className="text-slate-500 font-semibold">Document Vault ({currentFolder.docs.length})</span>
                     </div>
-                    <span className="font-extrabold text-slate-900">{d.studentName}</span>
-                  </div>
-                </td>
-                <td className="px-5 py-4 font-bold text-slate-800 max-w-[180px] truncate">{d.docType}</td>
-                <td className="px-5 py-4 text-slate-500 font-semibold">{d.category}</td>
 
-                <td className="px-5 py-4">
-                  <select
-                    value={d.status}
-                    onChange={(e) => {
-                      const newStatus = e.target.value as DocStatus;
-                      if (newStatus === 'Rejected') {
-                        triggerReuploadModal(d);
-                      } else {
-                        updateStatus(d.id, newStatus);
-                      }
-                    }}
-                    className={`h-8 px-2.5 rounded-lg text-[11px] font-bold border focus:outline-none cursor-pointer ${STATUS_COLORS[d.status]}`}
-                  >
-                    <option value="Submitted">Submitted</option>
-                    <option value="Under Review">Under Review</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Rejected">Rejected (Request Re-upload)</option>
-                  </select>
-                </td>
-
-                <td className="px-5 py-4 text-slate-500 font-semibold">{d.uploaded}</td>
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => setViewDoc(d)}
-                      title="Preview Document & Notes"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-650 hover:bg-blue-50 transition-all"
+                      type="button"
+                      onClick={() => setSelectedStudentFolder(null)}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
                     >
-                      <Eye className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => updateStatus(d.id, 'Under Review')}
-                      title="Mark Under Review"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all"
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => updateStatus(d.id, 'Approved')}
-                      title="Approve Document"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => updateStatus(d.id, 'Rejected')}
-                      title="Reject & Request Re-upload"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
+                      ← Back to Folders
                     </button>
                   </div>
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr><td colSpan={6} className="py-12 text-center text-sm font-semibold text-slate-400">No documents match your search.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+
+                  {/* Folder Categories Grid */}
+                  <div className="space-y-4">
+                    {categories.map(cat => {
+                      const catDocs = currentFolder.docs.filter(d =>
+                        d.category.toLowerCase().includes(cat.name.toLowerCase()) ||
+                        (cat.name === 'Other' && !categories.slice(0, 6).some(c => d.category.toLowerCase().includes(c.name.toLowerCase())))
+                      );
+
+                      if (catDocs.length === 0) return null;
+
+                      return (
+                        <div key={cat.name} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{cat.icon}</span>
+                              <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">{cat.label}</h3>
+                            </div>
+                            <span className="text-[10.5px] font-extrabold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                              {catDocs.length} {catDocs.length === 1 ? 'file' : 'files'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {catDocs.map(doc => (
+                              <div
+                                key={doc.id}
+                                className="p-3.5 bg-slate-50 hover:bg-slate-50/80 rounded-xl border border-slate-200/80 flex flex-col justify-between space-y-3 text-left"
+                              >
+                                <div className="space-y-1.5">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <h4 className="text-xs font-black text-slate-900 truncate" title={doc.docType}>
+                                      {doc.docType}
+                                    </h4>
+                                    <span className={`text-[9.5px] px-2 py-0.5 rounded-md border shrink-0 ${STATUS_COLORS[doc.status]}`}>
+                                      {doc.status}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 font-semibold">
+                                    Uploaded: {doc.uploaded} • {doc.size}
+                                  </p>
+                                  {doc.comment && (
+                                    <p className="text-[10px] text-amber-700 bg-amber-50 p-1.5 rounded-lg border border-amber-200/60 font-medium">
+                                      <strong>Notes:</strong> {doc.comment}
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewDoc(doc)}
+                                    className="text-xs font-extrabold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" /> View File
+                                  </button>
+
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => updateStatus(doc.id, 'Approved')}
+                                      className="p-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
+                                      title="Verify & Approve"
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => triggerReuploadModal(doc)}
+                                      className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors"
+                                      title="Reject with Notes"
+                                    >
+                                      <XCircle className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()
+          ) : (
+            /* Overview Grid of all Student Folders */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {studentFolders.length === 0 ? (
+                <div className="col-span-full py-12 text-center bg-white rounded-2xl border border-slate-200 p-8">
+                  <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                  <h3 className="text-sm font-bold text-slate-700">No Student Documents Found</h3>
+                  <p className="text-xs text-slate-400 mt-1">Students will appear here once they upload verification documents.</p>
+                </div>
+              ) : (
+                studentFolders.map(sf => {
+                  const approvedCount = sf.docs.filter(d => d.status === 'Approved').length;
+                  const underReviewCount = sf.docs.filter(d => d.status === 'Under Review' || d.status === 'Submitted').length;
+                  const rejectedCount = sf.docs.filter(d => d.status === 'Rejected').length;
+
+                  return (
+                    <div
+                      key={sf.studentId || sf.studentName}
+                      onClick={() => setSelectedStudentFolder(sf.studentId || sf.studentName)}
+                      className="bg-white rounded-2xl border border-slate-200 hover:border-[#58051E]/40 hover:shadow-md transition-all p-5 flex flex-col justify-between cursor-pointer group text-left"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black text-sm group-hover:bg-[#58051E] group-hover:text-white transition-colors">
+                              {sf.studentName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-black text-slate-900 group-hover:text-[#58051E] transition-colors">
+                                {sf.studentName}
+                              </h3>
+                              <span className="text-[10px] font-bold text-slate-400 block font-mono">
+                                ID: {sf.studentId}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span className="text-xs font-bold text-slate-400">
+                            {sf.docs.length} docs
+                          </span>
+                        </div>
+
+                        {/* Progress Stats */}
+                        <div className="grid grid-cols-3 gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-100 text-center text-xs">
+                          <div>
+                            <span className="text-[9.5px] font-black uppercase text-emerald-600 block">Approved</span>
+                            <span className="font-extrabold text-emerald-700">{approvedCount}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9.5px] font-black uppercase text-amber-600 block">Pending</span>
+                            <span className="font-extrabold text-amber-700">{underReviewCount}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9.5px] font-black uppercase text-rose-600 block">Action Req</span>
+                            <span className="font-extrabold text-rose-700">{rejectedCount}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-100 mt-4 flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-500">Student Folder</span>
+                        <span className="font-extrabold text-[#58051E] group-hover:translate-x-0.5 transition-transform">
+                          Open Folder →
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TABLE VIEW */}
+      {viewMode === 'table' && (
+        <div className="space-y-4">
+          {/* Search */}
+          <div className="bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs">
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by student name, document title, or category..."
+                className="w-full h-10 pl-9.5 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
+              />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200/70 shadow-xs overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-slate-50 bg-slate-50/50">
+                  {['Student', 'Document', 'Category', 'Status', 'Uploaded', 'Actions'].map(h => (
+                    <th key={h} className="text-left px-5 py-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((d) => (
+                  <tr key={d.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40 transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-[#58051E] flex items-center justify-center text-white text-[9px] font-extrabold shrink-0">
+                          {d.studentName.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <span className="font-extrabold text-slate-900">{d.studentName}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 font-bold text-slate-800 max-w-[180px] truncate">{d.docType}</td>
+                    <td className="px-5 py-4 text-slate-500 font-semibold">{d.category}</td>
+
+                    <td className="px-5 py-4">
+                      <select
+                        value={d.status}
+                        onChange={(e) => {
+                          const newStatus = e.target.value as DocStatus;
+                          if (newStatus === 'Rejected') {
+                            triggerReuploadModal(d);
+                          } else {
+                            updateStatus(d.id, newStatus);
+                          }
+                        }}
+                        className={`h-8 px-2.5 rounded-lg text-[11px] font-bold border focus:outline-none cursor-pointer ${STATUS_COLORS[d.status]}`}
+                      >
+                        <option value="Submitted">Submitted</option>
+                        <option value="Under Review">Under Review</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected (Request Re-upload)</option>
+                      </select>
+                    </td>
+
+                    <td className="px-5 py-4 text-slate-500 font-semibold">{d.uploaded}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setViewDoc(d)}
+                          title="Preview Document & Notes"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-650 hover:bg-blue-50 transition-all cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => updateStatus(d.id, 'Under Review')}
+                          title="Mark Under Review"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all cursor-pointer"
+                        >
+                          <Clock className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => updateStatus(d.id, 'Approved')}
+                          title="Approve Document"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => updateStatus(d.id, 'Rejected')}
+                          title="Reject & Request Re-upload"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={6} className="py-12 text-center text-sm font-semibold text-slate-400">No documents match your search.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* MANDATORY RE-UPLOAD FEEDBACK NOTES MODAL */}
       <AnimatePresence>

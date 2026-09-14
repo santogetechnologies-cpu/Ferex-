@@ -47,7 +47,9 @@ export const DigitalMarketing: React.FC = () => {
         try {
           setCampaigns(JSON.parse(savedCampaigns));
           return;
-        } catch {}
+        } catch (err) {
+          console.error('Failed to parse saved campaigns:', err);
+        }
       }
 
       const initialCampaigns = [

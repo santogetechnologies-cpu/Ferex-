@@ -165,8 +165,27 @@ export function saveSystemFeeConfig(config: Partial<SystemFeeConfig>): SystemFee
       key: 'fee_config',
       value: updated,
       updated_at: new Date().toISOString()
-    }).catch(() => {});
+    }).then(() => {}, () => {});
   } catch {}
 
   return updated;
+}
+
+export async function fetchSystemFeeConfigAsync(): Promise<SystemFeeConfig> {
+  const local = getSystemFeeConfig();
+  try {
+    const { data, error } = await supabase
+      .from('system_config')
+      .select('value')
+      .eq('key', 'fee_config')
+      .single();
+    if (!error && data?.value) {
+      const merged = { ...local, ...data.value };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      } catch {}
+      return merged;
+    }
+  } catch {}
+  return local;
 }

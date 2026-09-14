@@ -37,7 +37,8 @@ export const PreDeparture: React.FC = () => {
   const isVisaApproved = Boolean(
     visaRecord?.decision_outcome === 'Approved' ||
     String(visaRecord?.status_label).toLowerCase().includes('approved') ||
-    (visaRecord?.current_stage && visaRecord.current_stage >= 8)
+    (visaRecord?.current_stage && visaRecord.current_stage >= 8) ||
+    applications.some(a => String(a.status || '').toLowerCase().includes('visa approved') || String(a.status || '').toLowerCase() === 'approved')
   );
 
   useEffect(() => {

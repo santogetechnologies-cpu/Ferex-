@@ -6,7 +6,7 @@ export function useFeeConfig() {
 
   const refresh = useCallback(() => {
     setConfig(getSystemFeeConfig());
-    fetchSystemFeeConfigAsync().then(latest => setConfig(latest));
+    fetchSystemFeeConfigAsync().then((latest: SystemFeeConfig) => setConfig(latest));
   }, []);
 
   useEffect(() => {

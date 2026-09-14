@@ -81,7 +81,7 @@ export const TradeMessages: React.FC = () => {
     };
   }, [activeConv, loadMessages]);
 
-  const currConv = contacts.find(c => c.id === activeConv) || contacts[0];
+  const currConv = contacts.find(c => c.id === activeConv) || (contacts.length > 0 ? contacts[0] : null);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();

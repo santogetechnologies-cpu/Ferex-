@@ -100,7 +100,9 @@ export const RimiMessages: React.FC = () => {
       }
 
       setContacts(baseContacts);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to load RIMI messages:', err);
+    }
   }, []);
 
   const loadMessages = useCallback(async () => {

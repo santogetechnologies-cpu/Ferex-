@@ -68,7 +68,9 @@ export const DigitalSEO: React.FC = () => {
       if (cData && cData.length > 0 && !selectedClient) {
         setSelectedClient(cData[0]);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to load SEO clients:', err);
+    }
   }, [selectedClient]);
 
   useEffect(() => {

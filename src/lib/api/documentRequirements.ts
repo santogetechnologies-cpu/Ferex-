@@ -55,13 +55,13 @@ export const DEFAULT_DOCUMENT_REQUIREMENTS: DocumentRequirement[] = [
   {
     id: 'doc-pol-4',
     country: 'Poland',
-    document_name: 'NAWA Recognition Certificate',
+    document_name: 'Legalization Recognition Certificate',
     document_type: 'Legalization',
     is_required: true,
-    description: 'Kwalifikator recognition confirmation issued by NAWA Polish Agency.',
+    description: 'Higher education qualification recognition confirmation issued by Polish Ministry / Legalization Agency.',
     processing_time: '14 - 21 Days',
     authority_fee: '€250',
-    checklist_items: ['Eligibility statement', 'Official NAWA dossier confirmation']
+    checklist_items: ['Eligibility statement', 'Official legalization dossier confirmation']
   },
   {
     id: 'doc-pol-5',
@@ -316,28 +316,107 @@ export const DEFAULT_DOCUMENT_REQUIREMENTS: DocumentRequirement[] = [
     checklist_items: ['CEAC barcode confirmation page']
   },
 
-  // Hungary Requirements
+  // Canada Requirements
   {
-    id: 'doc-hun-1',
-    country: 'Hungary',
-    document_name: 'Official University Admission Letter & Tuition Receipt',
-    document_type: 'Academic',
+    id: 'doc-can-1',
+    country: 'Canada',
+    document_name: 'Valid Passport (Min. 6 months beyond intended stay)',
+    document_type: 'Identification',
     is_required: true,
-    description: 'Letter of acceptance from Hungarian institution + tuition fee payment certificate.',
-    processing_time: '5 - 10 Days',
+    description: 'Biometric page and all pages with prior travel visas and stamps.',
+    processing_time: 'Immediate',
     authority_fee: 'Free',
-    checklist_items: ['Dean / Admissions Director signature', 'Tuition cleared confirmation']
+    checklist_items: ['Biometric page', 'Address page', 'Valid for duration of study']
   },
   {
-    id: 'doc-hun-2',
-    country: 'Hungary',
-    document_name: 'Accomodation Verification (Szálláshely Igazolás)',
-    document_type: 'Consular',
+    id: 'doc-can-2',
+    country: 'Canada',
+    document_name: 'Provincial Attestation Letter (PAL) & Letter of Acceptance (LOA)',
+    document_type: 'Legalization',
     is_required: true,
-    description: 'Dormitory acceptance contract or private lease agreement in Hungary.',
-    processing_time: '2 - 4 Days',
+    description: 'Official DLI acceptance letter and Provincial Attestation Letter required under IRCC regulations.',
+    processing_time: '7 - 14 Days',
     authority_fee: 'Free',
-    checklist_items: ['Contract with address & registration']
+    checklist_items: ['Official DLI Letter of Acceptance', 'Provincial Attestation Letter (PAL) confirmation']
+  },
+  {
+    id: 'doc-can-3',
+    country: 'Canada',
+    document_name: 'Guaranteed Investment Certificate (GIC) / Proof of Funds',
+    document_type: 'Financial',
+    is_required: true,
+    description: 'CAD $20,635+ GIC certificate from Scotiabank / CIBC / ICICI or proof of 1st year living funds + tuition receipt.',
+    processing_time: '3 - 5 Days',
+    authority_fee: 'Bank charges',
+    checklist_items: ['Official GIC confirmation letter', 'First year tuition payment receipt']
+  },
+  {
+    id: 'doc-can-4',
+    country: 'Canada',
+    document_name: 'Academic Transcripts & Degree Certificates',
+    document_type: 'Academic',
+    is_required: true,
+    description: 'Secondary and post-secondary official marksheets and passing degrees.',
+    processing_time: 'Immediate',
+    authority_fee: 'Free',
+    checklist_items: ['10th & 12th marksheets', 'Bachelor degree certificate & consolidated transcript']
+  },
+  {
+    id: 'doc-can-5',
+    country: 'Canada',
+    document_name: 'Language Proficiency / IELTS / MOI Certificate',
+    document_type: 'Language',
+    is_required: true,
+    description: 'IELTS Academic (min. 6.0 bands) or PTE / TOEFL or MOI letter from prior institution.',
+    processing_time: 'Immediate',
+    authority_fee: 'Free',
+    checklist_items: ['Valid scorecard or institutional MOI']
+  },
+  {
+    id: 'doc-can-6',
+    country: 'Canada',
+    document_name: 'Upfront Medical Examination (eMedical Sheet)',
+    document_type: 'Medical',
+    is_required: true,
+    description: 'Immigration medical examination by an IRCC-approved panel physician.',
+    processing_time: '2 - 3 Days',
+    authority_fee: '₹7,500',
+    checklist_items: ['eMedical information sheet with UMI number']
+  },
+
+  // Switzerland Requirements
+  {
+    id: 'doc-che-1',
+    country: 'Switzerland',
+    document_name: 'Valid Passport',
+    document_type: 'Identification',
+    is_required: true,
+    description: 'Passport valid for at least 3 months beyond intended exit from Switzerland.',
+    processing_time: 'Immediate',
+    authority_fee: 'Free',
+    checklist_items: ['Biometric page', 'Signature page']
+  },
+  {
+    id: 'doc-che-2',
+    country: 'Switzerland',
+    document_name: 'Swiss University Certificate of Admission (Zulassungsbestätigung)',
+    document_type: 'Academic',
+    is_required: true,
+    description: 'Confirmation of matriculation from a recognized Swiss higher education institution.',
+    processing_time: '7 - 14 Days',
+    authority_fee: 'Free',
+    checklist_items: ['Official university admission letter', 'Receipt of paid tuition deposit']
+  },
+  {
+    id: 'doc-che-3',
+    country: 'Switzerland',
+    document_name: 'Proof of Financial Resources (CHF 21,000 / year)',
+    document_type: 'Financial',
+    is_required: true,
+    description: 'Solvency certificate from a bank recognized in Switzerland or sponsor guarantee.',
+    processing_time: '3 - 5 Days',
+    authority_fee: 'Bank charges',
+    checklist_items: ['Bank confirmation letter showing CHF 21,000+ equivalent']
   }
 ];
 
@@ -387,18 +466,80 @@ export async function getDocumentRequirements(country?: string): Promise<Documen
     return all;
   }
   const normalized = country.toLowerCase().trim();
-  const matched = all.filter(d => 
-    d.country.toLowerCase().trim() === normalized ||
-    (normalized.includes('poland') && d.country.toLowerCase() === 'poland') ||
-    (normalized.includes('germany') && d.country.toLowerCase() === 'germany') ||
-    ((normalized.includes('uk') || normalized.includes('united kingdom')) && (d.country.toLowerCase() === 'uk' || d.country.toLowerCase() === 'united kingdom')) ||
-    ((normalized.includes('usa') || normalized.includes('united states')) && (d.country.toLowerCase() === 'usa' || d.country.toLowerCase() === 'united states')) ||
-    (normalized.includes('france') && d.country.toLowerCase() === 'france') ||
-    (normalized.includes('italy') && d.country.toLowerCase() === 'italy') ||
-    (normalized.includes('hungary') && d.country.toLowerCase() === 'hungary')
-  );
+  const matched = all.filter(d => {
+    const c = d.country.toLowerCase().trim();
+    return c === normalized ||
+      (normalized.includes('poland') && c === 'poland') ||
+      (normalized.includes('germany') && c === 'germany') ||
+      (normalized.includes('canada') && c === 'canada') ||
+      (normalized.includes('switzerland') && (c === 'switzerland' || c === 'che')) ||
+      ((normalized.includes('uk') || normalized.includes('united kingdom')) && (c === 'uk' || c === 'united kingdom')) ||
+      ((normalized.includes('usa') || normalized.includes('united states')) && (c === 'usa' || c === 'united states')) ||
+      (normalized.includes('france') && c === 'france') ||
+      (normalized.includes('italy') && c === 'italy') ||
+      (normalized.includes('hungary') && c === 'hungary');
+  });
 
-  return matched.length > 0 ? matched : all.filter(d => d.country.toLowerCase() === 'poland');
+  if (matched.length > 0) return matched;
+
+  // Standard universal international student document requirements for any destination
+  return [
+    {
+      id: `doc-gen-${normalized}-1`,
+      country,
+      document_name: 'Valid International Passport',
+      document_type: 'Identification',
+      is_required: true,
+      description: 'Full biometric passport valid for the duration of the degree program.',
+      processing_time: 'Immediate',
+      authority_fee: 'Free',
+      checklist_items: ['Biometric page', 'Prior visas and entry stamps']
+    },
+    {
+      id: `doc-gen-${normalized}-2`,
+      country,
+      document_name: 'Academic Transcripts & Degree Certificates',
+      document_type: 'Academic',
+      is_required: true,
+      description: 'Official academic marksheets with apostille / embassy attestation as required by destination authority.',
+      processing_time: '3 - 7 Days',
+      authority_fee: 'Free',
+      checklist_items: ['Certified transcripts', 'Graduation certificates']
+    },
+    {
+      id: `doc-gen-${normalized}-3`,
+      country,
+      document_name: 'Official Institutional Admission / Offer Letter',
+      document_type: 'Academic',
+      is_required: true,
+      description: `Official acceptance letter issued by destination institution in ${country}.`,
+      processing_time: '7 - 14 Days',
+      authority_fee: 'Free',
+      checklist_items: ['Institutional offer letter', 'Tuition invoice / deposit receipt']
+    },
+    {
+      id: `doc-gen-${normalized}-4`,
+      country,
+      document_name: 'Financial Solvency & Living Cost Proof',
+      document_type: 'Financial',
+      is_required: true,
+      description: `Proof of living expenses and tuition funding compliant with ${country} immigration guidelines.`,
+      processing_time: '3 - 5 Days',
+      authority_fee: 'Bank charges',
+      checklist_items: ['Bank statement / GIC / Solvency certificate', 'Affidavit of financial sponsorship']
+    },
+    {
+      id: `doc-gen-${normalized}-5`,
+      country,
+      document_name: 'Destination Legalization / Attestation Dossier',
+      document_type: 'Legalization',
+      is_required: true,
+      description: `Academic recognition and consular attestation required for ${country} visa processing.`,
+      processing_time: '14 - 21 Days',
+      authority_fee: 'As per authority',
+      checklist_items: ['Legalized documents', 'Ministry clearance statement']
+    }
+  ];
 }
 
 export async function addDocumentRequirement(

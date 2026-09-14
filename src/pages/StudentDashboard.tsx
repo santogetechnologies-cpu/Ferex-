@@ -138,10 +138,10 @@ export const StudentDashboard: React.FC = () => {
   );
 
   const isLegalizationApproved = applications.some(a =>
-    ['Legalization Approved', 'APS Approved', 'NAWA Approved', 'Approved', 'Under Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved'].includes(String(a.status || ''))
+    ['Legalization Cleared', 'Legalization Approved', 'APS Approved', 'NAWA Approved', 'Approved', 'Under Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved'].includes(String(a.status || ''))
   );
-  const isLegalizationSubmitted = applications.some(a => String(a.status || '') === 'Legalization Submitted' || String(a.status || '') === 'NAWA Submitted');
-  const isLegalizationInReview = applications.some(a => String(a.status || '') === 'Legalization Review' || String(a.status || '') === 'NAWA Review');
+  const isLegalizationSubmitted = applications.some(a => String(a.status || '') === 'Legalization Lodged' || String(a.status || '') === 'Legalization Submitted' || String(a.status || '') === 'NAWA Submitted');
+  const isLegalizationInReview = applications.some(a => String(a.status || '') === 'Legalization Reviewed' || String(a.status || '') === 'Legalization Review' || String(a.status || '') === 'NAWA Review');
 
   const checklistItems = [
     { title: '1. Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },

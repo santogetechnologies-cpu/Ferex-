@@ -31,7 +31,7 @@ export const RimiRetailers: React.FC = () => {
   const [retOrders, setRetOrders] = useState<any[]>([]);
   const [retPayments, setRetPayments] = useState<any[]>([]);
 
-  const [newRet, setNewRet] = useState({ store: '', owner: '', email: '', phone: '', city: 'Mumbai Suburban', creditLimit: 500000 });
+  const [newRet, setNewRet] = useState({ store: '', owner: '', email: '', phone: '', city: 'Mumbai Suburban', creditLimit: 0 });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -109,9 +109,13 @@ export const RimiRetailers: React.FC = () => {
   };
 
   const handleDeleteRet = async (rawId: string) => {
-    await deleteRimiDistributor(rawId);
-    setRetailers(prev => prev.filter(r => r.rawId !== rawId));
-    showToastMsg('Removed retailer account');
+    try {
+      await deleteRimiDistributor(rawId);
+      setRetailers(prev => prev.filter(r => r.rawId !== rawId));
+      showToastMsg('Removed retailer account');
+    } catch (err: any) {
+      showToastMsg(`Error deleting retailer: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleProvisionCredentials = async (ret: any) => {

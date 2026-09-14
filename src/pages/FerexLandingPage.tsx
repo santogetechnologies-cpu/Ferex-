@@ -49,6 +49,10 @@ export function formatFeeEURandINR(feeStr?: string): string {
 const COUNTRY_DETAILS: Record<string, { flag: string; schengen: string; workRights: string; stayBack: string; avgLiving: string }> = {
   Poland: { flag: '🇵🇱', schengen: '27 Schengen Nations', workRights: '20 hrs/week + Full-time Summer', stayBack: '15 Months Post-Study Work', avgLiving: '€350 - €500 / mo' },
   Germany: { flag: '🇩🇪', schengen: '27 Schengen Nations', workRights: '140 Full or 280 Half Days/yr', stayBack: '18 Months Post-Study Job Search', avgLiving: '€850 - €1,100 / mo' },
+  UK: { flag: '🇬🇧', schengen: 'Graduate Route Visa', workRights: '20 hrs/week Term-time', stayBack: '24 Months Graduate Route', avgLiving: '£1,000 - £1,400 / mo' },
+  'United Kingdom': { flag: '🇬🇧', schengen: 'Graduate Route Visa', workRights: '20 hrs/week Term-time', stayBack: '24 Months Graduate Route', avgLiving: '£1,000 - £1,400 / mo' },
+  Canada: { flag: '🇨🇦', schengen: 'PGWP Eligible', workRights: '24 hrs/week Off-campus', stayBack: 'Up to 3 Years PGWP', avgLiving: 'CAD $1,100 - $1,500 / mo' },
+  Switzerland: { flag: '🇨🇭', schengen: 'Schengen Area', workRights: '15 hrs/week Part-time', stayBack: '6 Months Job Search Permit', avgLiving: 'CHF 1,400 - 1,800 / mo' },
   'Czech Republic': { flag: '🇨🇿', schengen: '27 Schengen Nations', workRights: 'Free Labor Market for Graduates', stayBack: '9 Months Job Seeking Visa', avgLiving: '€400 - €650 / mo' },
   Italy: { flag: '🇮🇹', schengen: '27 Schengen Nations', workRights: '20 hrs/week Legal Work', stayBack: '12 Months Permit to Stay', avgLiving: '€500 - €750 / mo' },
   Spain: { flag: '🇪🇸', schengen: '27 Schengen Nations', workRights: '30 hrs/week Part-time', stayBack: '12 Months Job Search Residence', avgLiving: '€550 - €800 / mo' },
@@ -57,6 +61,10 @@ const COUNTRY_DETAILS: Record<string, { flag: string; schengen: string; workRigh
   Hungary: { flag: '🇭🇺', schengen: '27 Schengen Nations', workRights: '24 hrs/week Part-time', stayBack: '9 Months Study-to-Work Permit', avgLiving: '€400 - €550 / mo' },
   Austria: { flag: '🇦🇹', schengen: '27 Schengen Nations', workRights: '20 hrs/week with permit', stayBack: '12 Months Red-White-Red Card', avgLiving: '€800 - €1,100 / mo' },
   Netherlands: { flag: '🇳🇱', schengen: '27 Schengen Nations', workRights: '16 hrs/week Part-time', stayBack: '12 Months Orientation Year', avgLiving: '€900 - €1,300 / mo' },
+  Ireland: { flag: '🇮🇪', schengen: 'European Union', workRights: '20 hrs/week Term-time', stayBack: '24 Months Third Level Scheme', avgLiving: '€900 - €1,300 / mo' },
+  USA: { flag: '🇺🇸', schengen: 'F-1 OPT Approved', workRights: '20 hrs/week On-campus', stayBack: '12-36 Months STEM OPT', avgLiving: '$1,200 - $1,800 / mo' },
+  'United States': { flag: '🇺🇸', schengen: 'F-1 OPT Approved', workRights: '20 hrs/week On-campus', stayBack: '12-36 Months STEM OPT', avgLiving: '$1,200 - $1,800 / mo' },
+  Australia: { flag: '🇦🇺', schengen: 'Subclass 500', workRights: '48 hrs/fortnight', stayBack: '2-4 Years Post-Study Work', avgLiving: 'AUD $1,400 - $1,900 / mo' },
 };
 
 export const FerexLandingPage: React.FC = () => {
@@ -73,19 +81,19 @@ export const FerexLandingPage: React.FC = () => {
 
   // Fee Calculator State
   const availableCountries = useMemo(() => {
-    return Array.from(new Set(universities.map(u => u.country).filter(Boolean)));
+    return Array.from(new Set(universities.map(u => u.country?.trim()).filter(Boolean)));
   }, [universities]);
 
   const [calcCountry, setCalcCountry] = useState<string>(availableCountries[0] || '');
 
   React.useEffect(() => {
-    if (availableCountries.length > 0 && !availableCountries.includes(calcCountry)) {
+    if (availableCountries.length > 0 && !availableCountries.some(c => c.toLowerCase() === calcCountry.toLowerCase())) {
       setCalcCountry(availableCountries[0]);
     }
   }, [availableCountries, calcCountry]);
 
   const universitiesInCalcCountry = useMemo(() => {
-    return universities.filter(u => u.country === calcCountry);
+    return universities.filter(u => u.country?.trim().toLowerCase() === calcCountry.trim().toLowerCase());
   }, [universities, calcCountry]);
 
   const [calcUniId, setCalcUniId] = useState<string>('');
@@ -187,7 +195,7 @@ export const FerexLandingPage: React.FC = () => {
       }
     }
 
-    const nawaRequired = selectedCalcUni?.nawa_required !== false && selectedCalcUni?.country?.toLowerCase() === 'poland';
+    const nawaRequired = selectedCalcUni?.nawa_required !== false && (selectedCalcUni?.country?.toLowerCase() === 'poland' || selectedCalcUni?.country?.toLowerCase() === 'germany' || selectedCalcUni?.country?.toLowerCase() === 'italy');
     const nawaEUR = nawaRequired ? 250 : 0;
     const vfsEUR = 165;
     const agencyEUR = 280;
@@ -229,7 +237,7 @@ export const FerexLandingPage: React.FC = () => {
     { num: 2, title: 'Direct University Application', desc: 'Direct dossier submission to accredited European partner institutions with fast-track processing and guaranteed document review.' },
     { num: 3, title: 'Official Offer Letter Release', desc: 'Receipt of unconditional admission offer letter from partner universities issued directly within 7 to 14 business days.' },
     { num: 4, title: 'Tuition Wire Clearance & Receipt', desc: 'Safe, zero-markup tuition deposit wire to university bank account with official payment confirmation voucher generated.' },
-    { num: 5, title: 'NAWA / MEA Apostille Legalization', desc: 'Complete government authentication of high school/bachelor degrees for Polish Ministry (NAWA) & EU equivalency validation.' },
+    { num: 5, title: 'Government & MEA Apostille Legalization', desc: 'Complete government authentication of high school/bachelor degrees for Ministry equivalency validation.' },
     { num: 6, title: 'VFS Global Filing & Visa Coaching', desc: 'Appointment booking at VFS visa centers with personalized dossier compilation, financial sponsor proof, and consular mock coaching.' },
     { num: 7, title: 'Schengen Arrival & Dorm Check-in', desc: 'Airport pickup in Warsaw/Krakow/Berlin, student dormitory check-in, TRC residence permit filing, and SIM/bank account setup.' },
   ];
@@ -237,7 +245,7 @@ export const FerexLandingPage: React.FC = () => {
   const faqs = [
     { q: 'What are the main intake seasons for European Universities?', a: 'European universities primarily operate two major intake cycles: Autumn Intake (September/October) and Spring Intake (February/March). Autumn is the flagship intake offering all bachelor, master, and doctoral programs.' },
     { q: 'Is IELTS or TOEFL mandatory for admission in Poland and Germany?', a: 'Many of our partner universities accept Medium of Instruction (MOI) certificates from your previous high school or college, or conduct their own internal English proficiency interview, allowing you to secure admission without mandatory IELTS.' },
-    { q: 'What is NAWA Legalization and why is it needed?', a: 'NAWA (Polish National Agency for Academic Exchange) verifies foreign educational certificates to confirm they meet Polish academic standards. FEREX manages the entire legalization and apostille chain end-to-end on your behalf.' },
+    { q: 'What is Academic Legalization and why is it needed?', a: 'National Academic Recognition authorities verify foreign educational certificates to confirm they meet official higher education standards. FEREX manages the entire legalization and apostille chain end-to-end on your behalf.' },
     { q: 'Can students work legally while studying in Europe?', a: 'Yes! International students in Schengen countries (like Poland, Germany, Czechia) have legal part-time work rights (typically 20 hours/week during semesters and full-time during holidays) with generous 9-18 months post-study stay-back visas.' },
     { q: 'What is the total estimated annual cost for tuition and living in Poland?', a: 'Tuition fees at reputable public and private universities range between €2,500 - €4,500 per year (~₹2.2L - ₹4.0L/yr). Monthly student living expenses including dormitory accommodation, food, and transport average €350 - €500 (~₹31k - ₹45k/mo).' },
   ];
@@ -249,7 +257,7 @@ export const FerexLandingPage: React.FC = () => {
       uni: 'Warsaw University of Technology, Poland',
       intake: 'Autumn Intake 2025',
       rating: 5,
-      comment: 'FEREX took care of my application, NAWA recognition, and VFS visa appointment smoothly. Got my visa stamped on the very first attempt!'
+      comment: 'FEREX took care of my application, academic legalization recognition, and VFS visa appointment smoothly. Got my visa stamped on the very first attempt!'
     },
     {
       name: 'Ananya Sharma',
@@ -379,7 +387,7 @@ export const FerexLandingPage: React.FC = () => {
 
               {/* Subtitle */}
               <p className="text-sm sm:text-base text-[#6B7280] font-normal leading-relaxed max-w-lg">
-                Direct university applications across <strong className="text-[#1F2937] font-bold">Poland, Germany, Czechia, Italy, Spain & France</strong>. End-to-end NAWA apostille, university wire verification, and 1-on-1 consular visa mock interviews.
+                Direct university applications across <strong className="text-[#1F2937] font-bold">Poland, Germany, Czechia, Italy, Spain & France</strong>. End-to-end government academic apostille, university wire verification, and 1-on-1 consular visa mock interviews.
               </p>
 
               {/* Action Buttons */}
@@ -407,7 +415,7 @@ export const FerexLandingPage: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-xl sm:text-2xl font-black text-[#570229]">100%</div>
-                  <div className="text-[11px] font-bold text-[#6B7280]">NAWA & MEA Legalized</div>
+                  <div className="text-[11px] font-bold text-[#6B7280]">Govt & MEA Legalized</div>
                 </div>
                 <div>
                   <div className="text-xl sm:text-2xl font-black text-[#570229]">27</div>
@@ -652,7 +660,7 @@ export const FerexLandingPage: React.FC = () => {
               Interactive European Study Cost Estimator
             </h2>
             <p className="text-sm text-[#6B7280] font-medium">
-              Calculate your complete 1st-year budget including university tuition, official NAWA legalization, visa filing fees, and monthly living costs.
+              Calculate your complete 1st-year budget including university tuition, official academic legalization, visa filing fees, and monthly living costs.
             </p>
           </div>
 
@@ -784,7 +792,7 @@ export const FerexLandingPage: React.FC = () => {
 
                     {calcValues.nawaRequired && (
                       <div className="flex justify-between items-center py-0.5">
-                        <span className="text-[#6B7280] font-medium">NAWA & MEA Apostille Legalization:</span>
+                        <span className="text-[#6B7280] font-medium">Government & MEA Apostille Legalization:</span>
                         <span className="font-bold text-[#1F2937]">{convertCurrency(calcValues.nawaEUR, calcValues.nawaINR)}</span>
                       </div>
                     )}
@@ -905,10 +913,12 @@ export const FerexLandingPage: React.FC = () => {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-[#6B7280] font-semibold">Flagship Intakes:</span>
-                        <span className="font-bold text-[#1F2937]">{uni.intakes || (uni as any).intake || 'Autumn 2026 / Spring 2027'}</span>
+                        <span className="font-bold text-[#1F2937]">
+                          {Array.isArray(uni.intakes) ? uni.intakes.join(' • ') : (uni.intakes || (uni as any).intake || 'October 2026 • February 2027')}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-[#6B7280] font-semibold">NAWA Legalization:</span>
+                        <span className="text-[#6B7280] font-semibold">Legalization & Visa:</span>
                         <span className="font-bold text-[#0F9D58]">Supported by FEREX</span>
                       </div>
                     </div>
@@ -1074,7 +1084,7 @@ export const FerexLandingPage: React.FC = () => {
               Frequently Asked Admissions Questions
             </h2>
             <p className="text-sm text-[#6B7280] font-medium">
-              Everything you need to know about European university eligibility, fees, NAWA authentication, and visa procedures.
+              Everything you need to know about European university eligibility, fees, academic legalization authentication, and visa procedures.
             </p>
           </div>
 
@@ -1111,7 +1121,7 @@ export const FerexLandingPage: React.FC = () => {
             Ready to Begin Your European Higher Education Journey?
           </h2>
           <p className="text-sm text-white/80 max-w-2xl mx-auto font-medium">
-            Create your free student account now to upload your transcripts, unlock guaranteed university offer letters, and track your NAWA & VFS visa filing in real-time.
+            Create your free student account now to upload your transcripts, unlock guaranteed university offer letters, and track your Legalization & VFS visa filing in real-time.
           </p>
           <div className="pt-2">
             <button
@@ -1171,7 +1181,7 @@ export const FerexLandingPage: React.FC = () => {
             <div className="flex items-center gap-6">
               <a href="#destinations" className="hover:text-[#1F2937]">Privacy Policy</a>
               <a href="#destinations" className="hover:text-[#1F2937]">Terms of Admission</a>
-              <a href="#destinations" className="hover:text-[#1F2937]">NAWA Verification</a>
+              <a href="#destinations" className="hover:text-[#1F2937]">Academic Legalization</a>
             </div>
           </div>
         </div>

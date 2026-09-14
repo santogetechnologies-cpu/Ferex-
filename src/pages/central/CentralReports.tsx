@@ -123,7 +123,7 @@ export const CentralReports: React.FC = () => {
         csvContent += 'Metric,Count,Category,Timeframe\n';
         csvContent += `Registered Students,${stats.totalStudents},Admissions,${timeframe}\n`;
         csvContent += `Active Applications,${stats.totalApplications},Pipeline,${timeframe}\n`;
-        csvContent += `Visa & NAWA Approved,${stats.visaApprovedCount},Conversion,${timeframe}\n`;
+        csvContent += `Visa & Legalization Approved,${stats.visaApprovedCount},Conversion,${timeframe}\n`;
         csvContent += `Partner Universities,${stats.totalUniversities},Institutional,${timeframe}\n`;
       } else {
         csvContent += 'Division,Active Admins & Staff,Operational Scope,Timeframe\n';

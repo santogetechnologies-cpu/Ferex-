@@ -20,10 +20,15 @@ export interface UserProfile {
 }
 
 export interface PaymentInstallment {
-  id: string;
-  title: string;
-  amount: string;
-  due_stage: string;
+  id?: string;
+  title?: string;
+  name?: string;
+  installment_number?: number;
+  percentage?: number;
+  amount: string | number;
+  due_stage?: string;
+  due_trigger?: string;
+  stage?: number | string;
 }
 
 export interface CourseSemester {
@@ -36,9 +41,12 @@ export interface CourseSemester {
 export interface CourseProgram {
   id: string;
   name: string;
-  degree_level: string;
+  degree_level?: string;
+  degree?: string;
   tuition_fee: string;
   duration?: string;
+  intake?: string;
+  language?: string;
 }
 
 export interface University {
@@ -72,7 +80,7 @@ export interface Application {
   student_id: string;
   university_id: string;
   course: string;
-  status: 'Draft' | 'Submitted' | 'NAWA Review' | 'NAWA Submitted' | 'NAWA Approved' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Visa Rejected' | 'Approved' | 'Enrolled' | 'Closed' | 'Rejected' | 'Withdrawn';
+  status: 'Draft' | 'Submitted' | 'Legalization Lodged' | 'Legalization Reviewed' | 'Legalization Cleared' | 'NAWA Review' | 'NAWA Submitted' | 'NAWA Approved' | 'Under Review' | 'Offer Issued' | 'Accepted' | 'Final Acceptance Issued' | 'Visa Processing' | 'Visa Approved' | 'Visa Rejected' | 'Approved' | 'Enrolled' | 'Closed' | 'Rejected' | 'Withdrawn';
   applied_date?: string;
   notes?: string;
   offer_letter_url?: string;

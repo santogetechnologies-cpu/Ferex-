@@ -86,16 +86,24 @@ export const DigitalPayments: React.FC = () => {
   };
 
   const handleToggleStatus = async (p: any) => {
-    const nextStatus = p.status === 'Received' ? 'Sent' : 'Paid';
-    await updateDigitalInvoiceStatus(p.id, nextStatus);
-    showToast('Payment record updated');
-    await loadData();
+    try {
+      const nextStatus = p.status === 'Received' ? 'Sent' : 'Paid';
+      await updateDigitalInvoiceStatus(p.id, nextStatus);
+      showToast('Payment record updated');
+      await loadData();
+    } catch (err: any) {
+      showToast(`Error updating payment status: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await deleteDigitalInvoice(id);
-    setPayments(prev => prev.filter(p => p.id !== id));
-    showToast('Payment log removed');
+    try {
+      await deleteDigitalInvoice(id);
+      setPayments(prev => prev.filter(p => p.id !== id));
+      showToast('Payment log removed');
+    } catch (err: any) {
+      showToast(`Error deleting payment: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleExportCSV = () => {

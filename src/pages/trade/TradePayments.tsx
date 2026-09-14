@@ -104,15 +104,23 @@ export const TradePayments: React.FC = () => {
   };
 
   const handleStatusChange = async (id: string, rawId: string, newStatus: string) => {
-    await updateTradePaymentStatus(rawId || id, newStatus);
-    showToastMsg(`Transaction status updated to ${newStatus}`);
-    await loadData();
+    try {
+      await updateTradePaymentStatus(rawId || id, newStatus);
+      showToastMsg(`Transaction status updated to ${newStatus}`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Error updating payment status: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeletePayment = async (id: string, rawId?: string) => {
-    await deleteTradePayment(rawId || id);
-    setTransactions(prev => prev.filter(t => t.id !== id && t.rawId !== rawId));
-    showToastMsg(`Removed transaction record ${id}`);
+    try {
+      await deleteTradePayment(rawId || id);
+      setTransactions(prev => prev.filter(t => t.id !== id && t.rawId !== rawId));
+      showToastMsg(`Removed transaction record ${id}`);
+    } catch (err: any) {
+      showToastMsg(`Error deleting payment: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const totalSettled = transactions

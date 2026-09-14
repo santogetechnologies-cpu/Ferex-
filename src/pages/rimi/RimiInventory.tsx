@@ -185,21 +185,33 @@ export const RimiInventory: React.FC = () => {
   };
 
   const handleDeleteItem = async (id: string) => {
-    await deleteRimiInventoryItem(id);
-    setStockItems(prev => prev.filter(s => s.id !== id));
-    showToastMsg('Removed stock record');
+    try {
+      await deleteRimiInventoryItem(id);
+      setStockItems(prev => prev.filter(s => s.id !== id));
+      showToastMsg('Removed stock record');
+    } catch (err: any) {
+      showToastMsg(`Error deleting inventory item: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteFrostLoss = async (id: string) => {
-    await deleteRimiFrostLoss(id);
-    setFrostLosses(prev => prev.filter(f => f.id !== id));
-    showToastMsg('Deleted frost loss record');
+    try {
+      await deleteRimiFrostLoss(id);
+      setFrostLosses(prev => prev.filter(f => f.id !== id));
+      showToastMsg('Deleted frost loss record');
+    } catch (err: any) {
+      showToastMsg(`Error deleting frost loss: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteAdjustment = async (id: string) => {
-    await deleteRimiStockAdjustment(id);
-    setAdjustments(prev => prev.filter(a => a.id !== id));
-    showToastMsg('Removed stock adjustment record');
+    try {
+      await deleteRimiStockAdjustment(id);
+      setAdjustments(prev => prev.filter(a => a.id !== id));
+      showToastMsg('Removed stock adjustment record');
+    } catch (err: any) {
+      showToastMsg(`Error deleting adjustment: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleExportCSV = () => {

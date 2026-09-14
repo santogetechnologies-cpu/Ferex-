@@ -181,13 +181,23 @@ export const AdminVisaTracker: React.FC = () => {
             a.status !== 'Rejected' &&
             a.status !== 'Withdrawn' &&
             (a.status as string) !== 'Closed' &&
-            (a.status as string) !== 'Approved'
+            (a.status as string) !== 'Visa Approved'
           );
           if (activeApp) {
-            await updateApplicationStatus(activeApp.id, 'Approved' as any, 'Visa approved! Application auto-promoted to Approved status.');
+            await updateApplicationStatus(activeApp.id, 'Visa Approved' as any, 'Visa approved! Application auto-promoted to Visa Approved status.');
           }
         } catch (e) {
-          console.warn('Failed to auto-update student application to Approved:', e);
+          console.warn('Failed to auto-update student application to Visa Approved:', e);
+        }
+      } else if (decisionOutcome === 'Rejected') {
+        try {
+          const studentApps = await getApplications(selectedStudentId);
+          const activeApp = studentApps[0];
+          if (activeApp && (activeApp.status as string) !== 'Visa Rejected') {
+            await updateApplicationStatus(activeApp.id, 'Visa Rejected' as any, 'Visa application refused by Embassy.');
+          }
+        } catch (e) {
+          console.warn('Failed to auto-update student application to Visa Rejected:', e);
         }
       } else {
         await autoSetVisaProcessing(selectedStudentId);
@@ -294,7 +304,11 @@ export const AdminVisaTracker: React.FC = () => {
   const enrolledStudentIds = new Set(students.map(s => s.id));
   const studentRows = students.map(st => {
     const sName = st.full_name || st.email?.split('@')[0] || 'Student';
-    const rec = records.find(r => r.student_id === st.id || (r.student_name && r.student_name.toLowerCase() === sName.toLowerCase()));
+    const rec = records.find(r =>
+      r.student_id === st.id ||
+      (st.email && ((r as any).student_email === st.email || r.student_id === st.email)) ||
+      (r.student_name && r.student_name.toLowerCase() === sName.toLowerCase())
+    );
     const stageNum = rec?.current_stage || 0;
 
     let decision = rec?.decision_outcome;

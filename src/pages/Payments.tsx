@@ -45,9 +45,8 @@ export const Payments: React.FC = () => {
     Boolean(a.university_name) &&
     a.course !== 'Higher Studies' &&
     a.course !== 'Academic Recognition & Admission Initiation' &&
-    a.university_name !== 'Pending NAWA Selection' &&
-    a.university_name !== 'Pending University Selection' &&
-    !a.university_name?.includes('NAWA Partner')
+    a.university_name !== 'Pending Legalization Selection' &&
+    a.university_name !== 'Pending University Selection'
   ) || null;
 
   const hasCourseSelected = Boolean(
@@ -55,7 +54,7 @@ export const Payments: React.FC = () => {
     activeApp.course &&
     activeApp.university_name &&
     activeApp.university_name !== 'Pending University Selection' &&
-    activeApp.university_name !== 'Pending NAWA Selection'
+    activeApp.university_name !== 'Pending Legalization Selection'
   );
 
   const selectedCourse = activeApp?.course || activeApp?.program_name || 'Selected European Program';
@@ -137,10 +136,22 @@ export const Payments: React.FC = () => {
   const configuredVfsFee = parseFeeNum(config.default_vfs_fee, 28000);
 
   const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || (activeApp as any)?.country || '';
-  const countryFeeObj = config.country_fees?.[targetCountry] || config.country_fees?.[targetCountry.replace('United Kingdom', 'UK').replace('United States', 'USA')];
-  const inst1Amount = countryFeeObj?.registration_fee_inr || config.advance_registration_fee_inr || 15000;
-  const inst2Amount = courseTuitionFee;
-  const inst3Amount = configuredAgencyFee + configuredVfsFee;
+  
+  // Registration Fee from Admin Config
+  const isAdvanceFeeEnabled = config.advance_registration_fee_enabled !== false;
+  const advanceFeeAmount = Number(config.advance_registration_fee_amount || config.advance_registration_fee_inr || 15000);
+  const inst1Amount = isAdvanceFeeEnabled ? advanceFeeAmount : 0;
+  
+  // Installment Schedule Toggle
+  const isInstallmentScheduleEnabled = config.installment_schedule_enabled !== false;
+  const inst2Amount = (hasCourseSelected && isInstallmentScheduleEnabled) ? courseTuitionFee : 0;
+  
+  // Separate Agency Fee Toggle
+  const isSeparateAgencyFeeEnabled = Boolean(config.separate_agency_fee_enabled);
+  const agencyMilestoneTotal = (config.agency_milestones || []).reduce((acc: number, m: any) => acc + (Number(m.amount) || 0), 0);
+  const inst3Amount = isSeparateAgencyFeeEnabled 
+    ? (agencyMilestoneTotal > 0 ? agencyMilestoneTotal : configuredAgencyFee)
+    : (configuredAgencyFee + configuredVfsFee);
 
   const getStagePayment = (stageNum: number) => {
     return dbPayments.find(p => {
@@ -153,7 +164,7 @@ export const Payments: React.FC = () => {
       const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
       if (stageNum === 1) return text.includes('1st') || text.includes('stage 1') || text.includes('registration fee') || text.includes('advance') || text.includes('audit deposit');
       if (stageNum === 2) return text.includes('2nd') || text.includes('stage 2') || text.includes('tuition fee');
-      if (stageNum === 3) return text.includes('3rd') || text.includes('stage 3') || text.includes('vfs') || text.includes('visa clearance');
+      if (stageNum === 3) return text.includes('3rd') || text.includes('stage 3') || text.includes('agency') || text.includes('vfs') || text.includes('visa clearance');
       return false;
     });
   };
@@ -162,7 +173,7 @@ export const Payments: React.FC = () => {
   const p2 = getStagePayment(2);
   const p3 = getStagePayment(3);
 
-  const p1Paid = p1?.status === 'Paid' || p1?.status === 'Verified';
+  const p1Paid = !isAdvanceFeeEnabled || p1?.status === 'Paid' || p1?.status === 'Verified';
   const p2Paid = p2?.status === 'Paid' || p2?.status === 'Verified';
   const p3Paid = p3?.status === 'Paid' || p3?.status === 'Verified';
 
@@ -170,12 +181,18 @@ export const Payments: React.FC = () => {
     {
       id: 1,
       stageNum: 1,
-      title: `1st Installment — Advance Registration Fee (₹${inst1Amount.toLocaleString('en-IN')})`,
-      stageName: 'Initial Registration & Audit',
+      title: isAdvanceFeeEnabled
+        ? `1st Installment — Advanced Registration Fee (${config.advance_registration_fee_currency || '₹'} ${inst1Amount.toLocaleString('en-IN')})`
+        : '1st Installment — Advanced Registration Fee (Waived)',
+      stageName: 'Initial Registration & Document Audit',
       amount: inst1Amount,
-      description: `Advance advisory fee, country eligibility check (${targetCountry}), university allocation, and document legalization audit.`,
-      dueDateStr: 'Due Before University Application',
-      status: p1Paid
+      description: isAdvanceFeeEnabled
+        ? `Advisory fee, eligibility verification (${targetCountry || 'All Destinations'}), university seat allocation, and legalization audit.`
+        : 'Registration fee has been waived or disabled by administrative policy.',
+      dueDateStr: isAdvanceFeeEnabled ? 'Due Before University Application' : 'Completed',
+      status: !isAdvanceFeeEnabled
+        ? 'Paid'
+        : p1Paid
         ? 'Paid'
         : p1?.status === 'Pending Verification'
         ? 'Pending Verification'
@@ -189,16 +206,22 @@ export const Payments: React.FC = () => {
     {
       id: 2,
       stageNum: 2,
-      title: hasCourseSelected
+      title: !isInstallmentScheduleEnabled
+        ? '2nd Installment — University Tuition (Direct Institutional Payment)'
+        : hasCourseSelected
         ? `2nd Installment — Course Tuition Fee (${formattedTuitionFee})`
         : '2nd Installment — Course Tuition Fee (Pending University Selection)',
-      stageName: 'After Course Selection & Offer Letter',
-      amount: hasCourseSelected ? inst2Amount : 0,
-      description: hasCourseSelected
+      stageName: 'After Course Selection & Offer Letter Release',
+      amount: isInstallmentScheduleEnabled && hasCourseSelected ? inst2Amount : 0,
+      description: !isInstallmentScheduleEnabled
+        ? 'Installment payment schedule is currently disabled by admin. Tuition payments are processed directly with the destination institution.'
+        : hasCourseSelected
         ? `Course Tuition Fee (${formattedTuitionFee}) for ${selectedCourse} at ${selectedUniversity}. Required for Official Final Acceptance Letter.`
         : 'Selected Course Tuition Fee will be calculated automatically once you select your university and course in the Applications portal.',
       dueDateStr: 'Due After Offer Letter Released',
-      status: p2Paid
+      status: !isInstallmentScheduleEnabled
+        ? 'Paid'
+        : p2Paid
         ? 'Paid'
         : p2?.status === 'Pending Verification'
         ? 'Pending Verification'
@@ -214,10 +237,14 @@ export const Payments: React.FC = () => {
     {
       id: 3,
       stageNum: 3,
-      title: '3rd Installment — Agency Service & Visa Clearance Fee',
-      stageName: 'After Receiving Visa Approval',
+      title: isSeparateAgencyFeeEnabled
+        ? `3rd Installment — Separate Agency Fee (${config.agency_fee_model === 'milestones' ? 'Milestone Schedule' : `₹${inst3Amount.toLocaleString('en-IN')}`})`
+        : '3rd Installment — Agency Service & Visa Clearance Fee',
+      stageName: 'After Receiving Visa Clearance / Pre-Departure',
       amount: hasCourseSelected ? inst3Amount : 0,
-      description: `Agency consultancy service fee, embassy VFS appointment booking, pre-departure arrival packet, and visa clearance.`,
+      description: isSeparateAgencyFeeEnabled
+        ? `Independent Agency advisory, consular preparation, and relocation support per administrative agency fee governance.`
+        : `Agency consultancy service fee, embassy VFS appointment booking, pre-departure arrival packet, and visa clearance.`,
       dueDateStr: 'Due After Embassy Visa Approval',
       status: p3Paid
         ? 'Paid'
