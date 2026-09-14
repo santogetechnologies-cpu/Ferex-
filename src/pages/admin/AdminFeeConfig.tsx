@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  DollarSign, Calendar, Percent, Save, Plus, Sparkles, X,
-  CreditCard, Clock, ShieldAlert, FileText, CheckCircle2, RotateCcw,
-  Globe, Landmark, Receipt, AlertTriangle
+  DollarSign, Calendar, Percent, Save, X,
+  CreditCard, Clock, ShieldAlert, CheckCircle2,
+  Globe, Receipt, AlertTriangle
 } from 'lucide-react';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
 import { DEFAULT_FEE_CONFIG } from '../../lib/api/feeConfig';
@@ -11,7 +11,7 @@ import { DEFAULT_FEE_CONFIG } from '../../lib/api/feeConfig';
 export const AdminFeeConfig: React.FC = () => {
   const { config, updateConfig } = useFeeConfig();
 
-  const [activeTab, setActiveTab] = useState<'rates' | 'currency' | 'methods' | 'timing' | 'late_refund' | 'invoice'>('rates');
+  const [activeTab, setActiveTab] = useState<'rates' | 'methods' | 'timing' | 'late_refund' | 'invoice'>('rates');
 
   // Base Fee Settings
   const [agencyFee, setAgencyFee] = useState(config.default_agency_fee || '₹15,000');
@@ -30,11 +30,11 @@ export const AdminFeeConfig: React.FC = () => {
   const [intakes, setIntakes] = useState<string[]>(config.global_active_intakes || ['October 2026', 'February 2027', 'September 2027']);
   const [newIntakeInput, setNewIntakeInput] = useState('');
 
-  // Currency Settings
-  const [defaultCurrency, setDefaultCurrency] = useState<'INR' | 'EUR' | 'USD'>(config.currency_settings?.default_currency || 'INR');
-  const [eurToInrRate, setEurToInrRate] = useState(config.currency_settings?.eur_to_inr_rate ?? 90);
-  const [usdToInrRate, setUsdToInrRate] = useState(config.currency_settings?.usd_to_inr_rate ?? 85);
-  const [multiCurrencyEnabled, setMultiCurrencyEnabled] = useState(config.currency_settings?.multi_currency_enabled ?? true);
+  // Currency Settings (Preserved defaults without tab)
+  const defaultCurrency = config.currency_settings?.default_currency || 'INR';
+  const eurToInrRate = config.currency_settings?.eur_to_inr_rate ?? 90;
+  const usdToInrRate = config.currency_settings?.usd_to_inr_rate ?? 85;
+  const multiCurrencyEnabled = config.currency_settings?.multi_currency_enabled ?? true;
 
   // Payment Methods
   const [stripeEnabled, setStripeEnabled] = useState(config.payment_methods?.stripe_enabled ?? true);
@@ -159,11 +159,19 @@ export const AdminFeeConfig: React.FC = () => {
       }
     });
 
-    showToast('Comprehensive fee, currency, timing, refund and invoice configuration saved successfully!');
+    showToast('Comprehensive fee, payment methods, timing, refund and invoice configuration saved successfully!');
   };
 
+  const TABS_LIST = [
+    { id: 'rates' as const, label: '1. Installment & Country Rates', icon: Percent },
+    { id: 'methods' as const, label: '2. Payment Gateways', icon: CreditCard },
+    { id: 'timing' as const, label: '3. Timing & Automation', icon: Clock },
+    { id: 'late_refund' as const, label: '4. Late Fees & Refunds', icon: ShieldAlert },
+    { id: 'invoice' as const, label: '5. Invoices & Taxation', icon: Receipt },
+  ];
+
   return (
-    <div className="space-y-6 relative text-left pb-12">
+    <div className="space-y-5 relative text-left w-full max-w-full overflow-x-hidden">
       {/* Toast */}
       <AnimatePresence>
         {toast && (
@@ -179,55 +187,49 @@ export const AdminFeeConfig: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
+      {/* Prominent Sticky Header with Save Button */}
+      <div className="sticky top-0 z-20 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 bg-white/95 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-sm">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black shrink-0 border border-[#58051E]/20">
             <DollarSign className="w-5 h-5" />
           </div>
-          <div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">
-              Enterprise Fee & Financial Governance
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight truncate">
+              Fee & Financial Governance
             </h1>
-            <p className="text-xs font-medium text-slate-500">
-              Configure installment thresholds, currency conversions, payment gateways, reminder schedules & refund policies.
+            <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">
+              Configure installment thresholds, payment gateways, reminder schedules & invoices.
             </p>
           </div>
         </div>
 
         <button
+          type="button"
           onClick={handleSaveAll}
-          className="px-5 py-2.5 bg-[#58051E] text-white hover:bg-[#430316] rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+          className="w-full sm:w-auto px-5 py-2.5 bg-[#58051E] hover:bg-[#430316] active:scale-95 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
         >
           <Save className="w-4 h-4" />
           Save All Settings
         </button>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto bg-white p-2 rounded-2xl border border-slate-200/80 shadow-xs scrollbar-thin">
-        {[
-          { id: 'rates', label: '1. Installment & Country Rates', icon: Percent },
-          { id: 'currency', label: '2. Currency & Exchange', icon: Globe },
-          { id: 'methods', label: '3. Payment Gateways', icon: CreditCard },
-          { id: 'timing', label: '4. Timing & Automation', icon: Clock },
-          { id: 'late_refund', label: '5. Late Fees & Refunds', icon: ShieldAlert },
-          { id: 'invoice', label: '6. Invoices & Taxation', icon: Receipt },
-        ].map(tab => {
+      {/* Navigation Sub-Tabs (Clean Wrap, No side scroll barrier) */}
+      <div className="flex flex-wrap gap-1.5 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80">
+        {TABS_LIST.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer ${
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-[#58051E] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-[#58051E] text-white shadow-xs font-black'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
               }`}
             >
-              <Icon className="w-3.5 h-3.5" />
-              {tab.label}
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <span>{tab.label}</span>
             </button>
           );
         })}
@@ -235,77 +237,80 @@ export const AdminFeeConfig: React.FC = () => {
 
       {/* Tab 1: Installment & Country Rates */}
       {activeTab === 'rates' && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Base Advance Fee & Installment Split */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-              <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-3.5">
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-[#58051E]" />
                 Stage 1 Advance Registration Fee Default
               </h2>
-              <p className="text-xs text-slate-500">
-                Mandatory payment required to unlock university application submission when country override is not defined.
+              <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                Mandatory advance fee required to unlock university application dossier filing when country override is not set.
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Fee in INR (₹)</label>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">Fee in INR (₹)</label>
                   <input
                     type="number"
                     value={advanceRegInr}
                     onChange={(e) => setAdvanceRegInr(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Fee in EUR (€)</label>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">Fee in EUR (€)</label>
                   <input
                     type="number"
                     value={advanceRegEur}
                     onChange={(e) => setAdvanceRegEur(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+            <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-3.5">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
                   <Percent className="w-4 h-4 text-[#58051E]" />
                   Total Tuition Installment Split (%)
                 </h2>
-                <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
-                  totalPct === 100 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
+                  totalPct === 100 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
                 }`}>
-                  Total: {totalPct}%
+                  Sum: {totalPct}%
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-2.5">
+              <p className="text-[11px] text-slate-500 font-medium">
+                Distribution ratio across 3 fee stages. Must total 100%.
+              </p>
+              <div className="grid grid-cols-3 gap-2 pt-1">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">1st Installment</label>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1 truncate">1st Inst (%)</label>
                   <input
                     type="number"
                     value={inst1Pct}
                     onChange={(e) => setInst1Pct(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                    className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 text-center"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">2nd Installment</label>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1 truncate">2nd Inst (%)</label>
                   <input
                     type="number"
                     value={inst2Pct}
                     onChange={(e) => setInst2Pct(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                    className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 text-center"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">3rd Installment</label>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1 truncate">3rd Inst (%)</label>
                   <input
                     type="number"
                     value={inst3Pct}
                     onChange={(e) => setInst3Pct(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                    className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 text-center"
                   />
                 </div>
               </div>
@@ -313,35 +318,37 @@ export const AdminFeeConfig: React.FC = () => {
           </div>
 
           {/* Country Overrides */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-            <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-              <Globe className="w-4 h-4 text-[#58051E]" />
-              Country-Specific Advance Registration Fees
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#58051E]" />
+                Country-Specific Advance Registration Fees
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {Object.entries(countryFees).map(([country, details]) => (
-                <div key={country} className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-2">
+                <div key={country} className="p-3.5 rounded-xl border border-slate-200/80 bg-white space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-slate-900">{country}</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Registration</span>
+                    <span className="text-[9.5px] font-bold text-slate-400 uppercase">Stage 1</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <span className="text-[10px] font-bold text-slate-500">INR (₹)</span>
+                      <span className="text-[10px] font-bold text-slate-500 block mb-0.5">INR (₹)</span>
                       <input
                         type="number"
                         value={details.registration_fee_inr}
                         onChange={(e) => handleCountryFeeChange(country, Number(e.target.value), details.registration_fee_eur)}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
+                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
                       />
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold text-slate-500">EUR (€)</span>
+                      <span className="text-[10px] font-bold text-slate-500 block mb-0.5">EUR (€)</span>
                       <input
                         type="number"
                         value={details.registration_fee_eur}
                         onChange={(e) => handleCountryFeeChange(country, details.registration_fee_inr, Number(e.target.value))}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
+                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
                       />
                     </div>
                   </div>
@@ -351,18 +358,18 @@ export const AdminFeeConfig: React.FC = () => {
           </div>
 
           {/* Active Intakes */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-            <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+          <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-3">
+            <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
               <Calendar className="w-4 h-4 text-[#58051E]" />
               Global Active Admission Intakes
             </h2>
             <div className="flex flex-wrap gap-2 items-center">
               {intakes.map(intake => (
-                <span key={intake} className="px-3 py-1.5 bg-rose-50 text-[#58051E] border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-2">
+                <span key={intake} className="px-3 py-1.5 bg-white text-[#58051E] border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs">
                   {intake}
                   <button
                     onClick={() => setIntakes(intakes.filter(i => i !== intake))}
-                    className="text-[#58051E] hover:text-rose-900"
+                    className="text-slate-400 hover:text-rose-700 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -374,156 +381,117 @@ export const AdminFeeConfig: React.FC = () => {
                   placeholder="e.g. March 2027"
                   value={newIntakeInput}
                   onChange={(e) => setNewIntakeInput(e.target.value)}
-                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+                  className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#58051E]"
                 />
                 <button
                   type="button"
                   onClick={handleAddIntake}
-                  className="px-3 py-1.5 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-900"
+                  className="px-3 py-1.5 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
                 >
-                  + Add
+                  + Add Intake
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Tab 2: Currency & Exchange Rates */}
-      {activeTab === 'currency' && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-6">
-          <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-            <Globe className="w-4 h-4 text-[#58051E]" />
-            Multi-Currency Conversion & Base Rates
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Base Platform Currency</label>
-              <select
-                value={defaultCurrency}
-                onChange={(e) => setDefaultCurrency(e.target.value as any)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white"
-              >
-                <option value="INR">INR (₹ - Indian Rupee)</option>
-                <option value="EUR">EUR (€ - Euro)</option>
-                <option value="USD">USD ($ - US Dollar)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">EUR to INR Exchange Rate (₹)</label>
-              <input
-                type="number"
-                value={eurToInrRate}
-                onChange={(e) => setEurToInrRate(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white"
-              />
-              <p className="text-[10px] text-slate-400 mt-1">1 EUR = ₹{eurToInrRate}</p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">USD to INR Exchange Rate (₹)</label>
-              <input
-                type="number"
-                value={usdToInrRate}
-                onChange={(e) => setUsdToInrRate(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white"
-              />
-              <p className="text-[10px] text-slate-400 mt-1">1 USD = ₹{usdToInrRate}</p>
-            </div>
-          </div>
-
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-900">Enable Multi-Currency Display for Overseas Students</p>
-              <p className="text-[11px] text-slate-500">Displays equivalent fee in EUR and USD alongside INR on student payment screens.</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={multiCurrencyEnabled}
-              onChange={(e) => setMultiCurrencyEnabled(e.target.checked)}
-              className="w-5 h-5 rounded text-[#58051E] focus:ring-[#58051E]"
-            />
+          {/* Bottom Save Action */}
+          <div className="flex justify-end pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              className="px-5 py-2.5 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <Save className="w-4 h-4" /> Save Rates & Intake Config
+            </button>
           </div>
         </div>
       )}
 
-      {/* Tab 3: Payment Gateways Control */}
+      {/* Tab 2: Payment Gateways Control */}
       {activeTab === 'methods' && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
-          <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+        <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+          <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-[#58051E]" />
             Active Payment Gateways & Ingestion Channels
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-black text-slate-900">Stripe Online Payment Gateway</span>
-                <p className="text-[11px] text-slate-500">Credit cards, debit cards & international card transactions.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="p-4 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+              <div className="pr-3">
+                <span className="text-xs font-black text-slate-900 block">Stripe Online Payment Gateway</span>
+                <p className="text-[11px] text-slate-500 font-medium">Credit cards, debit cards & international transactions.</p>
               </div>
               <input
                 type="checkbox"
                 checked={stripeEnabled}
                 onChange={(e) => setStripeEnabled(e.target.checked)}
-                className="w-5 h-5 rounded text-[#58051E]"
+                className="w-5 h-5 rounded text-[#58051E] accent-[#58051E] cursor-pointer"
               />
             </div>
 
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-black text-slate-900">UPI Payments (QR Code & VPA)</span>
-                <p className="text-[11px] text-slate-500">Instant UPI QR code generation and UTR verification.</p>
+            <div className="p-4 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+              <div className="pr-3">
+                <span className="text-xs font-black text-slate-900 block">UPI Payments (QR Code & VPA)</span>
+                <p className="text-[11px] text-slate-500 font-medium">Instant UPI QR generation and UTR verification.</p>
               </div>
               <input
                 type="checkbox"
                 checked={upiEnabled}
                 onChange={(e) => setUpiEnabled(e.target.checked)}
-                className="w-5 h-5 rounded text-[#58051E]"
+                className="w-5 h-5 rounded text-[#58051E] accent-[#58051E] cursor-pointer"
               />
             </div>
 
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-black text-slate-900">Direct Bank Wire / NEFT (Admin Verified)</span>
-                <p className="text-[11px] text-slate-500">Official company account wire transfer with admin verification.</p>
+            <div className="p-4 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+              <div className="pr-3">
+                <span className="text-xs font-black text-slate-900 block">Direct Bank Wire / NEFT (Admin Verified)</span>
+                <p className="text-[11px] text-slate-500 font-medium">Official company wire transfer with bank swift proof.</p>
               </div>
               <input
                 type="checkbox"
                 checked={bankTransferEnabled}
                 onChange={(e) => setBankTransferEnabled(e.target.checked)}
-                className="w-5 h-5 rounded text-[#58051E]"
+                className="w-5 h-5 rounded text-[#58051E] accent-[#58051E] cursor-pointer"
               />
             </div>
 
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-black text-slate-900">Physical Cash Receipts (Admin Raised Only)</span>
-                <p className="text-[11px] text-slate-500">Recorded manually by admissions desk with automated tax invoice.</p>
+            <div className="p-4 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+              <div className="pr-3">
+                <span className="text-xs font-black text-slate-900 block">Physical Cash Receipts (Admin Raised Only)</span>
+                <p className="text-[11px] text-slate-500 font-medium">Recorded at admissions desk with automated GST receipt.</p>
               </div>
               <input
                 type="checkbox"
                 checked={cashAdminOnly}
                 onChange={(e) => setCashAdminOnly(e.target.checked)}
-                className="w-5 h-5 rounded text-[#58051E]"
+                className="w-5 h-5 rounded text-[#58051E] accent-[#58051E] cursor-pointer"
               />
             </div>
+          </div>
+
+          <div className="flex justify-end pt-3 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              className="px-5 py-2.5 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <Save className="w-4 h-4" /> Save Payment Gateways
+            </button>
           </div>
         </div>
       )}
 
-      {/* Tab 4: Timing & Automation */}
+      {/* Tab 3: Timing & Automation */}
       {activeTab === 'timing' && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
-          <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+        <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+          <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
             <Clock className="w-4 h-4 text-[#58051E]" />
             Installment Due Timelines & Automated Reminders
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">
                 Days after Offer Release for 2nd Installment
               </label>
               <input
@@ -532,11 +500,11 @@ export const AdminFeeConfig: React.FC = () => {
                 onChange={(e) => setDaysAfterOfferStage2(Number(e.target.value))}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
               />
-              <p className="text-[10px] text-slate-400 mt-1">Student has {daysAfterOfferStage2} days to deposit 2nd installment.</p>
+              <p className="text-[10px] text-slate-400">Student has {daysAfterOfferStage2} days to deposit 2nd installment.</p>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">
                 Days before Visa Appointment for 3rd Installment
               </label>
               <input
@@ -545,49 +513,59 @@ export const AdminFeeConfig: React.FC = () => {
                 onChange={(e) => setDaysBeforeVisaStage3(Number(e.target.value))}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
               />
-              <p className="text-[10px] text-slate-400 mt-1">Due {daysBeforeVisaStage3} days prior to departure clearance.</p>
+              <p className="text-[10px] text-slate-400">Due {daysBeforeVisaStage3} days prior to departure clearance.</p>
             </div>
           </div>
 
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+          <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-slate-900">Automated Due Date Reminder Engine</p>
-                <p className="text-[11px] text-slate-500">Sends in-app notifications and email reminders to students.</p>
+                <p className="text-[11px] text-slate-500 font-medium">Sends in-app notifications and email reminders to students.</p>
               </div>
               <input
                 type="checkbox"
                 checked={autoRemindersEnabled}
                 onChange={(e) => setAutoRemindersEnabled(e.target.checked)}
-                className="w-5 h-5 rounded text-[#58051E]"
+                className="w-5 h-5 rounded text-[#58051E] accent-[#58051E] cursor-pointer"
               />
             </div>
             {autoRemindersEnabled && (
-              <div className="pt-2 border-t border-slate-200">
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">Reminder Trigger Frequency (Days before due date)</label>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-4">
+                <label className="text-xs font-bold text-slate-600">Reminder Trigger Frequency (Days before due date):</label>
                 <input
                   type="number"
                   value={reminderFreqDays}
                   onChange={(e) => setReminderFreqDays(Number(e.target.value))}
-                  className="w-32 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold"
+                  className="w-24 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-right"
                 />
               </div>
             )}
           </div>
+
+          <div className="flex justify-end pt-3 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              className="px-5 py-2.5 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <Save className="w-4 h-4" /> Save Timing & Automation
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Tab 5: Late Payments & Refunds */}
+      {/* Tab 4: Late Payments & Refunds */}
       {activeTab === 'late_refund' && (
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-            <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+        <div className="space-y-4">
+          <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-3">
+            <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600" />
               Late Payment Surcharge & Grace Period
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Late Payment Surcharge Amount (₹)</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Late Payment Surcharge Amount (₹)</label>
                 <input
                   type="number"
                   value={lateFeeAmount}
@@ -595,8 +573,8 @@ export const AdminFeeConfig: React.FC = () => {
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Grace Period Days</label>
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Grace Period (Days)</label>
                 <input
                   type="number"
                   value={gracePeriodDays}
@@ -607,13 +585,13 @@ export const AdminFeeConfig: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-            <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+          <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+            <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-[#58051E]" />
               Refund Policy Rules (% Refundable by Stage)
             </h2>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200">
                 <label className="block text-xs font-bold text-slate-700 mb-1">Stage 1 Refundable %</label>
                 <input
                   type="number"
@@ -621,9 +599,9 @@ export const AdminFeeConfig: React.FC = () => {
                   onChange={(e) => setRefundStage1Pct(Number(e.target.value))}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">Advance Registration Fee (Typically 0%)</p>
+                <p className="text-[10px] text-slate-400 mt-1">Advance Registration Fee</p>
               </div>
-              <div>
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200">
                 <label className="block text-xs font-bold text-slate-700 mb-1">Stage 2 Refundable %</label>
                 <input
                   type="number"
@@ -631,9 +609,9 @@ export const AdminFeeConfig: React.FC = () => {
                   onChange={(e) => setRefundStage2Pct(Number(e.target.value))}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">If university rejects application</p>
+                <p className="text-[10px] text-slate-400 mt-1">If university rejects offer</p>
               </div>
-              <div>
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200">
                 <label className="block text-xs font-bold text-slate-700 mb-1">Stage 3 Refundable %</label>
                 <input
                   type="number"
@@ -641,13 +619,13 @@ export const AdminFeeConfig: React.FC = () => {
                   onChange={(e) => setRefundStage3Pct(Number(e.target.value))}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">If visa is refused by Embassy</p>
+                <p className="text-[10px] text-slate-400 mt-1">If visa is refused</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Fixed Processing Deduction Fee (₹)</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                <label className="block text-xs font-bold text-slate-700 mb-1">Fixed Processing Deduction (₹)</label>
                 <input
                   type="number"
                   value={deductionFee}
@@ -655,7 +633,7 @@ export const AdminFeeConfig: React.FC = () => {
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
                 />
               </div>
-              <div>
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200">
                 <label className="block text-xs font-bold text-slate-700 mb-1">Refund Processing Window (Days)</label>
                 <input
                   type="number"
@@ -666,20 +644,30 @@ export const AdminFeeConfig: React.FC = () => {
               </div>
             </div>
           </div>
+
+          <div className="flex justify-end pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              className="px-5 py-2.5 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <Save className="w-4 h-4" /> Save Refund Policies
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Tab 6: Invoicing & Taxation */}
+      {/* Tab 5: Invoicing & Taxation */}
       {activeTab === 'invoice' && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-          <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+        <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+          <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
             <Receipt className="w-4 h-4 text-[#58051E]" />
             Company Invoicing & GST Compliance Details
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Company GSTIN Number</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+              <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Company GSTIN Number</label>
               <input
                 type="text"
                 value={companyGstin}
@@ -688,8 +676,8 @@ export const AdminFeeConfig: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Company PAN</label>
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+              <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Company PAN</label>
               <input
                 type="text"
                 value={companyPan}
@@ -698,8 +686,8 @@ export const AdminFeeConfig: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Invoice Number Prefix</label>
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+              <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Invoice Number Prefix</label>
               <input
                 type="text"
                 value={invoicePrefix}
@@ -708,8 +696,8 @@ export const AdminFeeConfig: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Tax Rate (% GST)</label>
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+              <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Tax Rate (% GST)</label>
               <input
                 type="number"
                 value={taxRatePct}
@@ -719,8 +707,8 @@ export const AdminFeeConfig: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Official Registered Address</label>
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+            <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Official Registered Address</label>
             <textarea
               rows={2}
               value={companyAddress}
@@ -729,14 +717,24 @@ export const AdminFeeConfig: React.FC = () => {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Invoice Terms & Declaration</label>
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+            <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Invoice Terms & Declaration</label>
             <textarea
               rows={2}
               value={termsConditions}
               onChange={(e) => setTermsConditions(e.target.value)}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900"
             />
+          </div>
+
+          <div className="flex justify-end pt-3 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              className="px-5 py-2.5 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <Save className="w-4 h-4" /> Save Invoicing & GST Settings
+            </button>
           </div>
         </div>
       )}

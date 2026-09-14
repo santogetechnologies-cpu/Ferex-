@@ -165,7 +165,8 @@ export const VisaTracker: React.FC = () => {
 
   const rawOutcome = (visaRecord as any)?.decision_outcome ||
     (visaRecord?.status_label?.toLowerCase().includes('approv') ? 'Approved' :
-     visaRecord?.status_label?.toLowerCase().includes('reject') || visaRecord?.status_label?.toLowerCase().includes('refus') ? 'Rejected' : 'Pending');
+     visaRecord?.status_label?.toLowerCase().includes('reject') || visaRecord?.status_label?.toLowerCase().includes('refus') ? 'Rejected' :
+     (visaRecord?.current_stage === 8 ? 'Approved' : 'Pending'));
 
   const isVerdictApproved = rawOutcome === 'Approved';
   const isVerdictRejected = rawOutcome === 'Rejected';

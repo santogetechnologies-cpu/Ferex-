@@ -66,13 +66,15 @@ export const AdminVisaTracker: React.FC = () => {
       setAppointmentDate(existingRec.appointment_date || '');
       setPassportNo(existingRec.passport_no || 'Z-8901240');
       setCourierTrackingNo(existingRec.courier_tracking_no || '');
-      setCurrentStage(existingRec.current_stage || 1);
+      const loadedStage = existingRec.current_stage || 1;
+      setCurrentStage(loadedStage);
       setNotes(existingRec.notes || '');
-      setDecisionOutcome(
+      const loadedOutcome =
         existingRec.decision_outcome ||
         (existingRec.status_label?.toLowerCase().includes('approv') ? 'Approved' :
-         existingRec.status_label?.toLowerCase().includes('reject') || existingRec.status_label?.toLowerCase().includes('refus') ? 'Rejected' : 'Pending')
-      );
+         existingRec.status_label?.toLowerCase().includes('reject') || existingRec.status_label?.toLowerCase().includes('refus') ? 'Rejected' :
+         loadedStage === 8 ? 'Approved' : 'Pending');
+      setDecisionOutcome(loadedOutcome as any);
     } else {
       // Clean defaults for new student selection
       setVfsRefNo(`VFS-POL-2026-${Math.floor(10000 + Math.random() * 90000)}`);
@@ -90,6 +92,28 @@ export const AdminVisaTracker: React.FC = () => {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
+  };
+
+  const handleStageSelect = (stageNum: number) => {
+    setCurrentStage(stageNum);
+    if (stageNum === 8) {
+      if (decisionOutcome === 'Pending') {
+        setDecisionOutcome('Approved');
+      }
+    } else if (stageNum < 6) {
+      setDecisionOutcome('Pending');
+    }
+  };
+
+  const handleVerdictChange = (val: 'Pending' | 'Approved' | 'Rejected') => {
+    setDecisionOutcome(val);
+    if (val === 'Approved' || val === 'Rejected') {
+      setCurrentStage(8);
+    } else if (val === 'Pending') {
+      if (currentStage === 8) {
+        setCurrentStage(7);
+      }
+    }
   };
 
   const handleSaveVfs = async (e: React.FormEvent) => {
@@ -113,11 +137,14 @@ export const AdminVisaTracker: React.FC = () => {
       setIsSaving(true);
       const existingRec = records.find(r => r.student_id === selectedStudentId || (r.student_name && r.student_name.toLowerCase() === sName.toLowerCase()));
       const recId = existingRec ? existingRec.id : generateUUID();
+      const finalStage = (decisionOutcome === 'Approved' || decisionOutcome === 'Rejected') && currentStage < 8
+        ? 8
+        : currentStage;
       const statusLabel = decisionOutcome === 'Approved'
         ? 'Visa Approved & Stamped'
         : decisionOutcome === 'Rejected'
         ? 'Visa Application Refused by Embassy'
-        : (stagesMap[currentStage] || 'VFS Processing');
+        : (stagesMap[finalStage] || 'VFS Processing');
 
       await saveVisaUpdate(recId, {
         student_id: selectedStudentId,
@@ -127,14 +154,14 @@ export const AdminVisaTracker: React.FC = () => {
         vfs_center: vfsCenter,
         appointment_date: appointmentDate,
         passport_no: passportNo,
-        courier_tracking_no: currentStage >= 5 ? courierTrackingNo : '',
-        current_stage: currentStage,
+        courier_tracking_no: finalStage >= 5 ? courierTrackingNo : '',
+        current_stage: finalStage,
         status_label: statusLabel,
         decision_outcome: decisionOutcome,
         notes: notes,
       });
 
-      showToast(`VFS Visa status and ${decisionOutcome} verdict saved for ${sName}.`);
+      showToast(`VFS Visa status (Stage ${finalStage}) and ${decisionOutcome} verdict saved for ${sName}.`);
       setSelectedStudentId('');
 
       if (decisionOutcome === 'Approved') {
@@ -269,19 +296,26 @@ export const AdminVisaTracker: React.FC = () => {
   // Include any extra historical records not in students list
   const extraRecords = records
     .filter(r => r.student_id && !enrolledStudentIds.has(r.student_id))
-    .map(r => ({
-      key: `rec-${r.id}`,
-      student_id: r.student_id,
-      student_name: r.student_name || 'Student',
-      email: '',
-      vfs_ref_no: r.vfs_ref_no || '',
-      embassy_name: r.embassy_name || 'Embassy of Poland',
-      assigned_counselor: (r as any).assigned_counselor || 'Admin',
-      current_stage: r.current_stage || 1,
-      status_label: r.status_label || 'VFS Processing',
-      decision_outcome: r.decision_outcome || 'Pending',
-      hasRecord: true,
-    }));
+    .map(r => {
+      const decision = r.decision_outcome ||
+        (r.status_label?.toLowerCase().includes('approv') ? 'Approved' :
+         r.status_label?.toLowerCase().includes('reject') || r.status_label?.toLowerCase().includes('refus') ? 'Rejected' :
+         r.current_stage === 8 ? 'Approved' : 'Pending');
+
+      return {
+        key: `rec-${r.id}`,
+        student_id: r.student_id,
+        student_name: r.student_name || 'Student',
+        email: '',
+        vfs_ref_no: r.vfs_ref_no || '',
+        embassy_name: r.embassy_name || 'Embassy of Poland',
+        assigned_counselor: (r as any).assigned_counselor || 'Admin',
+        current_stage: r.current_stage || 1,
+        status_label: r.status_label || 'VFS Processing',
+        decision_outcome: decision,
+        hasRecord: true,
+      };
+    });
 
   const allDisplayRows = [...studentRows, ...extraRecords].filter(row => {
     if (!searchQuery) return true;
@@ -497,12 +531,7 @@ export const AdminVisaTracker: React.FC = () => {
                           <button
                             key={st.num}
                             type="button"
-                            onClick={() => {
-                              setCurrentStage(st.num);
-                              if (st.num !== 8) {
-                                setDecisionOutcome('Pending');
-                              }
-                            }}
+                            onClick={() => handleStageSelect(st.num)}
                             className={`py-2 px-2.5 rounded-xl text-[10px] font-black border transition-all text-center flex items-center justify-center min-h-[44px] cursor-pointer ${
                               isActive
                                 ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm scale-[1.02]'
@@ -521,7 +550,7 @@ export const AdminVisaTracker: React.FC = () => {
                       <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">Consular Processing Stage</label>
                       <select
                         value={currentStage}
-                        onChange={(e) => setCurrentStage(Number(e.target.value))}
+                        onChange={(e) => handleStageSelect(Number(e.target.value))}
                         className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]/40 cursor-pointer"
                       >
                         <option value={1}>Stage 1 — Documents Ready</option>
@@ -541,13 +570,7 @@ export const AdminVisaTracker: React.FC = () => {
                       </label>
                       <select
                         value={decisionOutcome}
-                        onChange={(e) => {
-                          const val = e.target.value as 'Pending' | 'Approved' | 'Rejected';
-                          setDecisionOutcome(val);
-                          if (val !== 'Pending') {
-                            setCurrentStage(6);
-                          }
-                        }}
+                        onChange={(e) => handleVerdictChange(e.target.value as 'Pending' | 'Approved' | 'Rejected')}
                         className={`w-full h-10 px-3 border rounded-xl text-xs font-black focus:outline-none cursor-pointer ${
                           decisionOutcome === 'Approved'
                             ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
