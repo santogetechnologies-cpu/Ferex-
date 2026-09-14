@@ -112,10 +112,24 @@ export const RimiWarehouses: React.FC = () => {
   };
 
   const handleDeleteWh = async (rawId: string) => {
-    // Optimistic remove first, matching rawId or id
-    setFacilities(prev => prev.filter(f => f.rawId !== rawId && f.id !== rawId));
-    showToastMsg('Removed warehouse record');
-    await deleteRimiWarehouse(rawId);
+    try {
+      // Call API first
+      const success = await deleteRimiWarehouse(rawId);
+      
+      if (success) {
+        // Remove from state after successful delete
+        setFacilities(prev => prev.filter(f => f.rawId !== rawId && f.id !== rawId));
+        showToastMsg('Removed warehouse record');
+      } else {
+        showToastMsg('Failed to delete warehouse');
+      }
+    } catch (error) {
+      console.error('[RimiWarehouses] Delete error:', error);
+      showToastMsg('Error deleting warehouse');
+      // Refetch to ensure UI is in sync
+      const updated = await getRimiWarehouses();
+      setFacilities(updated);
+    }
   };
 
   const filteredFacilities = facilities.filter(f =>
