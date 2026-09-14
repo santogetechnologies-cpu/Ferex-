@@ -26,11 +26,10 @@ const baseMenuItems = [
   { name: 'Offer Letters', path: '/admin/offers', icon: FileText, badge: null, hasUpdate: false },
   { name: 'Documents Review', path: '/admin/documents', icon: FolderOpen, badge: null, hasUpdate: false },
   { name: 'Document Config', path: '/admin/document-config', icon: FileText, badge: null, hasUpdate: false },
-  { name: 'Legalization & Workflows', path: '/admin/nawa', icon: FileCheck, badge: null, hasUpdate: false },
+  { name: 'Legalization & Workflows', path: '/admin/legalization', icon: FileCheck, badge: null, hasUpdate: false },
   { name: 'Payment Control', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
   { name: 'Payments Ledger', path: '/admin/payments', icon: CreditCard, badge: null, hasUpdate: false },
   { name: 'VFS Visa Tracker', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },
-  { name: 'Housing Management', path: '/admin/housing', icon: Home, badge: null, hasUpdate: false },
   { name: 'Pre-Departure', path: '/admin/pre-departure', icon: Plane, badge: null, hasUpdate: false },
   { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
   { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },
@@ -95,7 +94,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const hasUnreadApps = hasUnreadCategory('Application') || hasUnreadCategory('App') || hasUnreadCategory('Admission');
   const hasUnreadPayments = hasUnreadCategory('Payment') || hasUnreadCategory('Pay') || hasUnreadCategory('Installment') || hasUnreadCategory('Receipt') || pendingPaymentsCount > 0;
   const hasUnreadVisa = hasUnreadCategory('Visa') || hasUnreadCategory('VFS') || hasUnreadCategory('Embassy');
-  const hasUnreadNawa = hasUnreadCategory('NAWA') || hasUnreadCategory('Legalization');
+  const hasUnreadLegalization = hasUnreadCategory('Legalization') || hasUnreadCategory('Apostille');
 
   const active = baseMenuItems.find(m => location.pathname === m.path)?.name || 'Dashboard';
   const localSavedUser = (() => {
@@ -116,7 +115,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     if (item.path === '/admin/documents') return { ...item, badge: hasUnreadDocs ? 'NEW DOC' : null, hasUpdate: hasUnreadDocs };
     if (item.path === '/admin/payment-control') return { ...item, badge: pendingPaymentsCount > 0 ? `VERIFY (${pendingPaymentsCount})` : null, hasUpdate: pendingPaymentsCount > 0 };
     if (item.path === '/admin/payments') return { ...item, badge: hasUnreadPayments ? (pendingPaymentsCount > 0 ? `VERIFY (${pendingPaymentsCount})` : 'NEW PAYMENT') : null, hasUpdate: hasUnreadPayments };
-    if (item.path === '/admin/nawa') return { ...item, badge: hasUnreadNawa ? 'NAWA' : null, hasUpdate: hasUnreadNawa };
+    if (item.path === '/admin/legalization') return { ...item, badge: hasUnreadLegalization ? 'LEGAL' : null, hasUpdate: hasUnreadLegalization };
     if (item.path === '/admin/visa-tracker') return { ...item, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa };
     if (item.path === '/admin/notifications') return { ...item, badge: totalUnreadCount > 0 ? String(totalUnreadCount) : null, hasUpdate: totalUnreadCount > 0 };
     return item;
@@ -125,7 +124,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const handleSignOut = async () => {
     await signOut();
     try {
-      localStorage.clear();
+      localStorage.removeItem('ferex_user');
+      localStorage.removeItem('ferex_role');
+      localStorage.removeItem('ferex_staff_demo_session');
       sessionStorage.clear();
     } catch (e) {}
     window.location.href = '/#/login';

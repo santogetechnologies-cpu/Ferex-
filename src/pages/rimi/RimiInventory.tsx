@@ -35,8 +35,8 @@ export const RimiInventory: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const emptyInward = { product_id: '', batch_number: '', warehouse_location: '', quantity: '' as any, expiry_date: '' };
-  const emptyFrostLoss = { product_name: '', batch_number: '', warehouse_location: '', quantity_lost_kg: '' as any, loss_reason: 'Freezer Burn' as const, estimated_loss_value: '' as any };
-  const emptyAdjustment = { product_name: '', adjustment_type: 'Inter-Warehouse Transfer' as const, quantity: '' as any, unit: 'KG', source_location: '', target_location: '', reason: '' };
+  const emptyFrostLoss = { product_name: '', batch_number: '', warehouse_location: '', quantity_lost_kg: '' as any, loss_reason: '' as any, estimated_loss_value: '' as any };
+  const emptyAdjustment = { product_name: '', adjustment_type: '' as any, quantity: '' as any, unit: '', source_location: '', target_location: '', reason: '' };
 
   const [newInward, setNewInward] = useState(emptyInward);
   const [newFrostLoss, setNewFrostLoss] = useState(emptyFrostLoss);

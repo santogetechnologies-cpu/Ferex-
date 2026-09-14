@@ -58,9 +58,8 @@ export const SelectUniversity: React.FC = () => {
     return Array.from(destMap.values());
   }, [destinations, universities]);
 
-  // Get current active target country
-  const savedTargetCountry = localStorage.getItem('ferex_student_target_country') || 'All';
-  const [selectedCountry, setSelectedCountry] = useState(savedTargetCountry);
+  // Default to showing All universities across all countries
+  const [selectedCountry, setSelectedCountry] = useState('All');
 
   // Check if mandatory documents (Passport & Marksheets/Transcripts) are uploaded
   const hasPassport = documents.some(d =>

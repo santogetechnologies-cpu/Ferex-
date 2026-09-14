@@ -178,7 +178,6 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     { name: 'Payments', path: '/student/payments', icon: CreditCard, badge: hasUnreadPayment ? 'DUE' : null, hasUpdate: hasUnreadPayment },
     { name: 'VFS Visa Tracker', path: '/student/visa-tracker', icon: ShieldCheck, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa },
     { name: 'Pre-Departure', path: '/student/pre-departure', icon: Plane, badge: null, hasUpdate: false },
-    { name: 'Housing & Travel', path: '/student/housing', icon: Home, badge: null, hasUpdate: false },
     { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null, hasUpdate: false },
     { name: 'Meetings', path: '/student/meetings', icon: Calendar, badge: null, hasUpdate: false },
     { name: 'Support Tickets', path: '/student/support', icon: LifeBuoy, badge: null, hasUpdate: false },
@@ -191,7 +190,9 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   const handleSignOut = async () => {
     await signOut();
     try {
-      localStorage.clear();
+      localStorage.removeItem('ferex_user');
+      localStorage.removeItem('ferex_role');
+      localStorage.removeItem('ferex_staff_demo_session');
       sessionStorage.clear();
     } catch (e) {}
     window.location.href = '/#/login';

@@ -290,14 +290,14 @@ function App() {
           <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><MyProfile /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/visa-tracker" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><VisaTracker /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/pre-departure" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><PreDeparture /></StudentLayout></ProtectedRoute>} />
-          <Route path="/student/housing" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><PostTravelHousing /></StudentLayout></ProtectedRoute>} />
+          <Route path="/student/housing" element={<Navigate to="/student/dashboard" replace />} />
 
           {/* ── Admin Routes ── */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/students" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminStudents /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/universities" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminUniversities /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/visa-tracker" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminVisaTracker /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/housing" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminHousing /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/housing" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/pre-departure" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPreDeparture /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/tasks" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminTaskManagement /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/applications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminApplications /></AdminLayout></ProtectedRoute>} />
@@ -306,9 +306,9 @@ function App() {
           <Route path="/admin/documents" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminDocumentReview /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/document-review" element={<Navigate to="/admin/documents" replace />} />
           <Route path="/admin/document-config" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminDocumentConfig /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/nawa" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminNawaTracker /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/nawa-tracker" element={<Navigate to="/admin/nawa" replace />} />
-          <Route path="/admin/legalization" element={<Navigate to="/admin/nawa" replace />} />
+          <Route path="/admin/legalization" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminNawaTracker /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/nawa" element={<Navigate to="/admin/legalization" replace />} />
+          <Route path="/admin/nawa-tracker" element={<Navigate to="/admin/legalization" replace />} />
           <Route path="/admin/payment-control" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPaymentControl /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/payments" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPayments /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/support" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSupportTickets /></AdminLayout></ProtectedRoute>} />

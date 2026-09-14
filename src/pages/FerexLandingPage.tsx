@@ -138,15 +138,12 @@ export const FerexLandingPage: React.FC = () => {
   // Filtered universities for the grid
   const filteredUniversities = useMemo(() => {
     const list = universities.filter(u => {
-      const matchCountry = selectedCountryFilter === 'All' || u.country === selectedCountryFilter;
-      const matchCat = activeCategory === 'All' || u.category === activeCategory || (u.programs && u.programs.some(p => p.toLowerCase().includes(activeCategory.toLowerCase())));
+      const matchCountry = selectedCountryFilter === 'All' || u.country?.toLowerCase() === selectedCountryFilter.toLowerCase();
+      const matchCat = activeCategory === 'All' || u.category?.toLowerCase() === activeCategory.toLowerCase() || (u.programs && u.programs.some(p => p.toLowerCase().includes(activeCategory.toLowerCase())));
       const q = searchQuery.toLowerCase().trim();
-      const matchSearch = !q || u.name.toLowerCase().includes(q) || u.city?.toLowerCase().includes(q) || u.country?.toLowerCase().includes(q);
+      const matchSearch = !q || u.name?.toLowerCase().includes(q) || u.city?.toLowerCase().includes(q) || u.country?.toLowerCase().includes(q);
       return matchCountry && matchCat && matchSearch;
     });
-    console.log('[Landing Page] Universities loaded:', universities.length);
-    console.log('[Landing Page] Filtered universities:', list.length);
-    console.log('[Landing Page] Filters:', { selectedCountryFilter, activeCategory, searchQuery });
     return list;
   }, [universities, selectedCountryFilter, activeCategory, searchQuery]);
 

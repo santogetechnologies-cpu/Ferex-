@@ -17,7 +17,7 @@ export const RimiExpiryTracking: React.FC = () => {
   const emptyBatch = {
     batch_number: '',
     product_name: '',
-    warehouse_name: 'Central Cold Hub',
+    warehouse_name: '',
     quantity_units: '' as any,
     expiry_date: '',
   };
@@ -113,7 +113,7 @@ export const RimiExpiryTracking: React.FC = () => {
     } catch (error) {
       console.error('[RimiExpiryTracking] Delete error:', error);
       showToastMsg('Error removing batch');
-      const updated = await getRimiExpiryBatches();
+      const updated = await getRimiBatches();
       setExpiringStock(updated);
     }
   };
