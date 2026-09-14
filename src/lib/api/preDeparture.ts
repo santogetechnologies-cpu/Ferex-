@@ -37,7 +37,25 @@ export interface PreDepartureRecord {
   updated_at?: string;
 }
 
+const PRE_DEPARTURE_STORAGE_KEY = 'ferex_pre_departure_records';
+
+function getLocalPreDepartureRecords(): PreDepartureRecord[] {
+  try {
+    const raw = localStorage.getItem(PRE_DEPARTURE_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalPreDepartureRecords(records: PreDepartureRecord[]) {
+  try {
+    localStorage.setItem(PRE_DEPARTURE_STORAGE_KEY, JSON.stringify(records));
+  } catch {}
+}
+
 export async function getPreDepartureRecords(studentId?: string): Promise<PreDepartureRecord[]> {
+  const local = getLocalPreDepartureRecords();
   try {
     let query = supabase
       .from('pre_departure')
@@ -50,15 +68,26 @@ export async function getPreDepartureRecords(studentId?: string): Promise<PreDep
 
     const { data, error } = await query;
 
-    if (error) {
-      console.warn('[getPreDepartureRecords Notice]:', error.message);
-      return [];
+    if (error || !data || data.length === 0) {
+      if (studentId) {
+        return local.filter(r => r.student_id === studentId);
+      }
+      return local;
     }
 
-    return (data ?? []) as PreDepartureRecord[];
+    const dbRecs = data as PreDepartureRecord[];
+    const dbIds = new Set(dbRecs.map(r => r.id || r.student_id));
+    const merged = [...dbRecs, ...local.filter(r => !dbIds.has(r.id) && !dbIds.has(r.student_id))];
+
+    if (studentId) {
+      return merged.filter(r => r.student_id === studentId);
+    }
+    return merged;
   } catch (err) {
-    console.error('[getPreDepartureRecords Error]:', err);
-    return [];
+    if (studentId) {
+      return local.filter(r => r.student_id === studentId);
+    }
+    return local;
   }
 }
 
@@ -116,13 +145,26 @@ export async function savePreDepartureRecord(payload: Partial<PreDepartureRecord
     updated_at: now
   };
 
+  // 1. Save to Local Storage cache
+  const local = getLocalPreDepartureRecords();
+  const existingIdx = local.findIndex(r => r.id === newId || r.student_id === fullRecord.student_id);
+  if (existingIdx >= 0) {
+    local[existingIdx] = { ...local[existingIdx], ...fullRecord };
+  } else {
+    local.unshift(fullRecord);
+  }
+  saveLocalPreDepartureRecords(local);
+
+  // 2. Try Supabase
   try {
     await supabase.from('pre_departure').upsert(fullRecord);
   } catch (e) {
     console.warn('[savePreDepartureRecord DB notice]:', e);
   }
 
+  // Dispatch both event variations
   window.dispatchEvent(new Event('ferex_predeparture_change'));
+  window.dispatchEvent(new Event('ferex_pre_departure_change'));
   return fullRecord;
 }
 

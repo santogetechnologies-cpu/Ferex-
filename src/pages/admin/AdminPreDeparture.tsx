@@ -20,22 +20,22 @@ export const AdminPreDeparture: React.FC = () => {
   const [records, setRecords] = useState<PreDepartureRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Eligible students who completed Stage 11
-  const [eligibleStudents, setEligibleStudents] = useState<Array<{ id: string; name: string; email: string; university: string }>>([]);
+  // Eligible students for Pre-Departure
+  const [eligibleStudents, setEligibleStudents] = useState<Array<{ id: string; name: string; email: string; university: string; isStage11?: boolean }>>([]);
   const [selectedEligibleId, setSelectedEligibleId] = useState<string>('');
 
   const [newPacket, setNewPacket] = useState({
-    airline: 'Lufthansa European Airways',
-    flight_no: 'LH-761',
-    departure_date: 'Oct 1, 2026',
-    arrival_date: 'Oct 2, 2026',
+    airline: '',
+    flight_no: '',
+    departure_date: '',
+    arrival_date: '',
     arrival_city: 'Warsaw Chopin Airport (WAW)',
-    dorm_name: 'WUT Residence Hall 4',
-    dorm_address: 'ul. Rivoli 14, 00-659 Warsaw, Poland',
-    room_no: 'Room 304',
-    pickup_driver: 'FEREX Concierge Lead',
+    dorm_name: '',
+    dorm_address: '',
+    room_no: '',
+    pickup_driver: '',
     pickup_contact: '+48 22 552 0999',
-    pickup_details: 'Driver holding FEREX sign at Terminal 2 Arrivals Exit',
+    pickup_details: 'Airport concierge officer holding FEREX student sign at Arrivals Exit',
     clearance_status: 'Clearance Granted' as const,
     notes: 'Pre-departure flight packet & campus dorm allotment ready.'
   });
@@ -50,8 +50,8 @@ export const AdminPreDeparture: React.FC = () => {
 
       const payments = await getAllPaymentsAdmin();
 
-      // Check which students completed 11 stages
-      const eligible: Array<{ id: string; name: string; email: string; university: string }> = [];
+      // Collect all active registered students, prioritizing Visa Approved / Stage 11 applicants
+      const candidateList: Array<{ id: string; name: string; email: string; university: string; isStage11: boolean }> = [];
 
       dbStudents.forEach((s) => {
         const app = dbApps.find(a => a.student_id === s.id);
@@ -61,9 +61,10 @@ export const AdminPreDeparture: React.FC = () => {
         const visaApproved = Boolean(
           visa?.decision_outcome === 'Approved' ||
           String(visa?.status_label).toLowerCase().includes('approved') ||
-          (visa?.current_stage && visa.current_stage >= 6) ||
+          (visa?.current_stage && visa.current_stage >= 8) ||
           app?.status === 'Visa Approved' ||
-          app?.status === 'Enrolled'
+          app?.status === 'Enrolled' ||
+          app?.status === 'Approved'
         );
 
         const inst3Paid = studentPayments.some(p =>
@@ -71,25 +72,24 @@ export const AdminPreDeparture: React.FC = () => {
           (p.status === 'Paid' || p.status === 'Verified')
         );
 
-        // Stage 11 completed if Visa Approved AND 3rd Installment Paid (or app status is Enrolled/Visa Approved)
-        const stage11Completed = (visaApproved && inst3Paid) || app?.status === 'Enrolled' || app?.status === 'Visa Approved';
+        const isStage11 = visaApproved || inst3Paid;
 
-        if (stage11Completed) {
-          eligible.push({
-            id: s.id,
-            name: s.full_name || s.email.split('@')[0],
-            email: s.email,
-            university: app?.university_name || 'Warsaw University of Technology'
-          });
-        }
+        candidateList.push({
+          id: s.id,
+          name: s.full_name || s.email.split('@')[0],
+          email: s.email,
+          university: app?.university_name || 'European Partner University',
+          isStage11
+        });
       });
 
-      setEligibleStudents(eligible);
-      if (eligible.length > 0 && !selectedEligibleId) {
-        setSelectedEligibleId(eligible[0].id);
+      // Sort with Stage 11 / Visa Approved candidates first
+      candidateList.sort((a, b) => (b.isStage11 ? 1 : 0) - (a.isStage11 ? 1 : 0));
+      setEligibleStudents(candidateList);
+      if (candidateList.length > 0 && !selectedEligibleId) {
+        setSelectedEligibleId(candidateList[0].id);
       }
 
-      // Only show students explicitly added to Stage 12
       setRecords(dbRecs);
     } catch (e) {
       console.warn('[AdminPreDeparture load notice]:', e);
@@ -101,7 +101,11 @@ export const AdminPreDeparture: React.FC = () => {
   useEffect(() => {
     loadAllData();
     window.addEventListener('ferex_pre_departure_change', loadAllData);
-    return () => window.removeEventListener('ferex_pre_departure_change', loadAllData);
+    window.addEventListener('ferex_predeparture_change', loadAllData);
+    return () => {
+      window.removeEventListener('ferex_pre_departure_change', loadAllData);
+      window.removeEventListener('ferex_predeparture_change', loadAllData);
+    };
   }, [dbStudents, dbApps]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
@@ -120,7 +124,7 @@ export const AdminPreDeparture: React.FC = () => {
   const handleAddStudentToStage12 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEligibleId) {
-      showToast('Please select an eligible student who has completed Stage 11.');
+      showToast('Please select a student to enroll.');
       return;
     }
 
@@ -149,6 +153,21 @@ export const AdminPreDeparture: React.FC = () => {
       });
 
       setShowAddModal(false);
+      setNewPacket({
+        airline: '',
+        flight_no: '',
+        departure_date: '',
+        arrival_date: '',
+        arrival_city: 'Warsaw Chopin Airport (WAW)',
+        dorm_name: '',
+        dorm_address: '',
+        room_no: '',
+        pickup_driver: '',
+        pickup_contact: '+48 22 552 0999',
+        pickup_details: 'Airport concierge officer holding FEREX student sign at Arrivals Exit',
+        clearance_status: 'Clearance Granted' as const,
+        notes: 'Pre-departure flight packet & campus dorm allotment ready.'
+      });
       loadAllData();
       showToast(`${studentObj.name} enrolled in Pre-Departure protocol.`);
     } catch (err: any) {
@@ -292,23 +311,32 @@ export const AdminPreDeparture: React.FC = () => {
             <form onSubmit={handleAddStudentToStage12} className="space-y-4 text-xs font-semibold">
               <div>
                 <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">
-                  Select Eligible Student (Stage 11 Completed Only)
+                  Select Registered Student to Enroll
                 </label>
 
                 {eligibleStudents.length === 0 ? (
                   <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-bold flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-                    <span>No students currently have completed all 11 stages (Visa Approval + 3rd Installment).</span>
+                    <span>No registered students found in database.</span>
                   </div>
                 ) : (
                   <select
                     value={selectedEligibleId}
-                    onChange={(e) => setSelectedEligibleId(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedEligibleId(e.target.value);
+                      const chosen = eligibleStudents.find(s => s.id === e.target.value);
+                      if (chosen && chosen.university && !newPacket.dorm_name) {
+                        setNewPacket(prev => ({
+                          ...prev,
+                          dorm_name: `${chosen.university} Student Residence`
+                        }));
+                      }
+                    }}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-extrabold text-slate-900 focus:outline-none focus:border-[#58051E]"
                   >
                     {eligibleStudents.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name} ({s.email}) — {s.university}
+                        {s.name} ({s.email}) — {s.isStage11 ? '✓ Visa Granted / Ready' : 'Enrolled'} — {s.university}
                       </option>
                     ))}
                   </select>

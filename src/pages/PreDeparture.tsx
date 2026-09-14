@@ -22,10 +22,58 @@ export const PreDeparture: React.FC = () => {
   const { applications } = useApplications(user?.id);
   const { payments } = usePayments(user?.id);
 
-  // Payment Guard Check - 3rd Installment Required for Pre-Departure
+  const [depRecord, setDepRecord] = useState<PreDepartureRecord | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<'overview' | 'checklist' | 'dorm' | 'contacts'>('overview');
+  const [checkedMap, setCheckedMap] = useState<Record<string, boolean>>({});
+
   const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || '';
   const paymentAccess = canAccessPage('/pre-departure', payments, targetCountry);
   const payment3Status = checkPaymentStage(payments, 3, targetCountry);
+
+  const activeApp = applications[0];
+  const targetUniversity = activeApp?.university_name || 'European Partner University';
+
+  const visaRecord = visaRecords.find(r => r.student_id === user?.id || r.id === user?.id) || null;
+  const isVisaApproved = Boolean(
+    visaRecord?.decision_outcome === 'Approved' ||
+    String(visaRecord?.status_label).toLowerCase().includes('approved') ||
+    (visaRecord?.current_stage && visaRecord.current_stage >= 8)
+  );
+
+  useEffect(() => {
+    const fetchRecord = async () => {
+      setLoading(true);
+      try {
+        const recs = await getPreDepartureRecords(user?.id);
+        const myEmail = user?.email?.toLowerCase();
+        const myId = user?.id;
+
+        const found = recs.find(r =>
+          (myId && (r.student_id === myId || r.id === myId)) ||
+          (myEmail && r.student_email?.toLowerCase() === myEmail)
+        ) || null;
+
+        if (found) {
+          setDepRecord(found);
+        } else {
+          setDepRecord(null);
+        }
+      } catch (err) {
+        console.warn('[PreDeparture fetch notice]:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecord();
+    window.addEventListener('ferex_pre_departure_change', fetchRecord);
+    window.addEventListener('ferex_predeparture_change', fetchRecord);
+    return () => {
+      window.removeEventListener('ferex_pre_departure_change', fetchRecord);
+      window.removeEventListener('ferex_predeparture_change', fetchRecord);
+    };
+  }, [user?.id, user?.email, profile?.full_name]);
 
   // If payment not verified, show locked state
   if (!paymentAccess.allowed) {
@@ -106,79 +154,37 @@ export const PreDeparture: React.FC = () => {
     );
   }
 
-  const activeApp = applications[0];
-  const targetUniversity = activeApp?.university_name || 'European Partner University';
-
-  const visaRecord = visaRecords.find(r => r.student_id === user?.id || r.id === user?.id) || null;
-  const isVisaApproved = (visaRecord?.decision_outcome === 'Approved') || String(visaRecord?.status_label).toLowerCase().includes('approved');
-
-  const [depRecord, setDepRecord] = useState<PreDepartureRecord | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'checklist' | 'dorm' | 'contacts'>('overview');
-
-  useEffect(() => {
-    const fetchRecord = async () => {
-      setLoading(true);
-      try {
-        const recs = await getPreDepartureRecords(user?.id);
-        const myEmail = user?.email?.toLowerCase();
-        const myId = user?.id;
-
-        const found = recs.find(r =>
-          (myId && (r.student_id === myId || r.id === myId)) ||
-          (myEmail && r.student_email?.toLowerCase() === myEmail)
-        ) || null;
-
-        if (found) {
-          setDepRecord(found);
-        } else {
-          setDepRecord(null);
-        }
-      } catch (err) {
-        console.warn('[PreDeparture fetch notice]:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRecord();
-    window.addEventListener('ferex_pre_departure_change', fetchRecord);
-    return () => window.removeEventListener('ferex_pre_departure_change', fetchRecord);
-  }, [user?.id, user?.email, profile?.full_name]);
-
   const activeDepRecord = depRecord || {
-    student_id: user?.id || 'demo-student',
+    student_id: user?.id || 'student',
     student_name: profile?.full_name || user?.email?.split('@')[0] || 'Student',
     student_email: user?.email || '',
     university_name: targetUniversity,
-    airline: 'Lufthansa / LOT Polish Airlines (Scheduled upon clearance)',
-    flight_no: 'Awaiting Flight Allotment',
-    departure_date: 'Oct 2026 (Tentative)',
-    arrival_date: 'Oct 2026 (Tentative)',
-    arrival_city: 'European Chopin Airport (WAW)',
-    dorm_name: 'University Student Residence Hall',
-    dorm_address: 'Campus Dormitory Block, University Campus',
-    room_no: 'Room Allocation In Progress',
-    pickup_driver: 'FEREX International Concierge Officer',
+    airline: 'Awaiting Counselor Allocation',
+    flight_no: 'Awaiting Flight Ticket',
+    departure_date: 'To be scheduled',
+    arrival_date: 'To be scheduled',
+    arrival_city: 'Airport Destination',
+    dorm_name: 'Campus Housing Allotment Pending',
+    dorm_address: 'Address will be provided upon room allotment',
+    room_no: 'Pending Room Allocation',
+    pickup_driver: 'Concierge Officer (Assigned upon flight confirmation)',
     pickup_contact: '+48 22 552 0999',
-    pickup_details: 'Airport welcome officer holding FEREX student banner at Arrivals terminal.',
+    pickup_details: 'Airport welcome concierge will greet student at arrivals terminal exit.',
     clearance_status: isVisaApproved ? 'Clearance Granted' : 'Pending Verification',
-    notes: 'Pre-departure arrival orientation & housing packet.'
+    notes: 'Pre-departure arrival orientation & housing packet will be issued by FEREX.'
   };
 
   const checklistItems = [
     { id: 'c1', title: '1. Valid Passport & Original Visa Stamping', desc: 'Valid travel passport with official entry visa sticker.', done: isVisaApproved },
-    { id: 'c2', title: '2. Flight Planning & Confirmed Airline Ticket', desc: 'Booked direct or connecting flight tickets with baggage allowance.', done: Boolean(depRecord?.flight_no && !depRecord.flight_no.includes('Awaiting')) },
-    { id: 'c3', title: '3. University Dormitory & Accommodation Allotment', desc: 'Confirmed university residence or approved private housing agreement.', done: Boolean(depRecord?.dorm_name && !depRecord.dorm_name.includes('Pending')) },
-    { id: 'c4', title: '4. European Travel Medical Insurance Coverage', desc: 'Minimum €30,000 Schengen travel health insurance policy.', done: true },
-    { id: 'c5', title: '5. Airport Pickup & Concierge Arrival Support', desc: 'Assigned student welfare driver & airport arrival rendezvous.', done: Boolean(depRecord?.pickup_driver) },
-    { id: 'c6', title: '6. Student Travels & Boarding Verification', desc: 'Boarding pass checked in and currency card ready.', done: false },
+    { id: 'c2', title: '2. Flight Planning & Confirmed Airline Ticket', desc: 'Booked direct or connecting flight tickets with baggage allowance.', done: Boolean(depRecord?.flight_no && !depRecord.flight_no.toLowerCase().includes('awaiting') && !depRecord.flight_no.toLowerCase().includes('pending')) },
+    { id: 'c3', title: '3. University Dormitory & Accommodation Allotment', desc: 'Confirmed university residence or approved private housing agreement.', done: Boolean(depRecord?.dorm_name && !depRecord.dorm_name.toLowerCase().includes('pending')) },
+    { id: 'c4', title: '4. European Travel Medical Insurance Coverage', desc: 'Minimum €30,000 Schengen travel health insurance policy.', done: Boolean(depRecord?.insurance_purchased || isVisaApproved) },
+    { id: 'c5', title: '5. Airport Pickup & Concierge Arrival Support', desc: 'Assigned student welfare driver & airport arrival rendezvous.', done: Boolean(depRecord?.pickup_driver && !depRecord.pickup_driver.toLowerCase().includes('assigned upon')) },
+    { id: 'c6', title: '6. Student Travels & Boarding Verification', desc: 'Boarding pass checked in and currency card ready.', done: Boolean(depRecord?.forex_card_ready) },
     { id: 'c7', title: '7. Arrival Confirmed & Welfare Check-in', desc: 'Safe landing at destination airport and dormitory keys collected.', done: depRecord?.clearance_status === 'Departed' },
     { id: 'c8', title: '8. University Reporting & In-Person Registration', desc: 'Dean office orientation, student ID card issuance, and enrollment stamp.', done: false },
     { id: 'c9', title: '9. Post-Arrival Support & Resident Card (TRC) Briefing', desc: 'Local SIM card, bank account opening, and temporary residence permit guidance.', done: false },
   ];
-
-  const [checkedMap, setCheckedMap] = useState<Record<string, boolean>>({});
 
   const toggleCheck = (id: string) => {
     setCheckedMap(prev => ({ ...prev, [id]: !prev[id] }));
