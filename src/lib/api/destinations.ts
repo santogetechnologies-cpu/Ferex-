@@ -18,31 +18,179 @@ export interface DestinationItem {
   updated_at?: string;
 }
 
-const LOCAL_STORAGE_KEY = 'ferex_destinations_registry';
+export const DEFAULT_STUDY_DESTINATIONS: DestinationItem[] = [
+  {
+    id: '11111111-0000-4000-a000-000000000001',
+    name: 'Poland',
+    code: 'PL',
+    flag: '🇵🇱',
+    currency: 'EUR',
+    authority: 'Polish Ministry of Higher Education & Legalization',
+    acronym: 'Legalization Desk',
+    processing: '14-21 Days',
+    fee: '€250',
+    desk: 'Poland Admissions Desk',
+    badge: 'Schengen Area',
+    is_active: true,
+  },
+  {
+    id: '11111111-0000-4000-a000-000000000002',
+    name: 'Germany',
+    code: 'DE',
+    flag: '🇩🇪',
+    currency: 'EUR',
+    authority: 'Akademische Prüfstelle (APS) & Uni-Assist',
+    acronym: 'APS',
+    processing: '30-45 Days',
+    fee: '€150',
+    desk: 'Germany Admissions Desk',
+    badge: 'Excellence Hub',
+    is_active: true,
+  },
+  {
+    id: '11111111-0000-4000-a000-000000000003',
+    name: 'United Kingdom',
+    code: 'GB',
+    flag: '🇬🇧',
+    currency: 'GBP',
+    authority: 'UK Visas and Immigration (UKVI) & British Council',
+    acronym: 'UKVI',
+    processing: '15-20 Days',
+    fee: '£350',
+    desk: 'UK Admissions Desk',
+    badge: 'Global Ivy',
+    is_active: true,
+  },
+  {
+    id: '11111111-0000-4000-a000-000000000004',
+    name: 'France',
+    code: 'FR',
+    flag: '🇫🇷',
+    currency: 'EUR',
+    authority: 'Campus France & Ministry of Higher Education',
+    acronym: 'EEF',
+    processing: '14-21 Days',
+    fee: '€200',
+    desk: 'France Admissions Desk',
+    badge: 'European Leader',
+    is_active: true,
+  },
+  {
+    id: '11111111-0000-4000-a000-000000000005',
+    name: 'Canada',
+    code: 'CA',
+    flag: '🇨🇦',
+    currency: 'CAD',
+    authority: 'Immigration, Refugees and Citizenship Canada',
+    acronym: 'IRCC',
+    processing: '30-45 Days',
+    fee: 'CAD $150',
+    desk: 'Canada Admissions Desk',
+    badge: 'PGWP Eligible',
+    is_active: true,
+  },
+  {
+    id: '11111111-0000-4000-a000-000000000006',
+    name: 'Switzerland',
+    code: 'CH',
+    flag: '🇨🇭',
+    currency: 'CHF',
+    authority: 'State Secretariat for Education, Research and Innovation',
+    acronym: 'SERI',
+    processing: '20-30 Days',
+    fee: 'CHF 200',
+    desk: 'Swiss Admissions Desk',
+    badge: 'Research Pioneer',
+    is_active: true,
+  },
+  {
+    id: '11111111-0000-4000-a000-000000000007',
+    name: 'Czech Republic',
+    code: 'CZ',
+    flag: '🇨🇿',
+    currency: 'EUR',
+    authority: 'Czech Ministry of Education, Youth and Sports',
+    acronym: 'MŠMT',
+    processing: '15-30 Days',
+    fee: '€100',
+    desk: 'Czech Admissions Desk',
+    badge: 'Central Europe',
+    is_active: true,
+  },
+  {
+    id: '11111111-0000-4000-a000-000000000008',
+    name: 'Italy',
+    code: 'IT',
+    flag: '🇮🇹',
+    currency: 'EUR',
+    authority: 'Italian Ministry of Foreign Affairs (CIMEA)',
+    acronym: 'CIMEA',
+    processing: '15-30 Days',
+    fee: '€150',
+    desk: 'Italy Admissions Desk',
+    badge: 'Heritage & Tech',
+    is_active: true,
+  },
+  {
+    id: '11111111-0000-4000-a000-000000000009',
+    name: 'Spain',
+    code: 'ES',
+    flag: '🇪🇸',
+    currency: 'EUR',
+    authority: 'Spanish Ministry of Universities (UNEDasiss)',
+    acronym: 'UNED',
+    processing: '15-30 Days',
+    fee: '€120',
+    desk: 'Spain Admissions Desk',
+    badge: 'EU Member',
+    is_active: true,
+  },
+  {
+    id: '11111111-0000-4000-a000-000000000010',
+    name: 'Hungary',
+    code: 'HU',
+    flag: '🇭🇺',
+    currency: 'EUR',
+    authority: 'Hungarian Higher Education Accreditation',
+    acronym: 'MAB',
+    processing: '14-21 Days',
+    fee: '€100',
+    desk: 'Hungary Admissions Desk',
+    badge: 'Schengen Area',
+    is_active: true,
+  },
+  {
+    id: '11111111-0000-4000-a000-000000000011',
+    name: 'Austria',
+    code: 'AT',
+    flag: '🇦🇹',
+    currency: 'EUR',
+    authority: 'Federal Ministry of Education, Science and Research',
+    acronym: 'BMBWF',
+    processing: '15-30 Days',
+    fee: '€150',
+    desk: 'Austria Admissions Desk',
+    badge: 'Alpine Quality',
+    is_active: true,
+  },
+  {
+    id: '11111111-0000-4000-a000-000000000012',
+    name: 'Ireland',
+    code: 'IE',
+    flag: '🇮🇪',
+    currency: 'EUR',
+    authority: 'Quality and Qualifications Ireland (QQI)',
+    acronym: 'QQI',
+    processing: '15-20 Days',
+    fee: '€200',
+    desk: 'Ireland Admissions Desk',
+    badge: 'Silicon Isle',
+    is_active: true,
+  }
+];
 
 export async function getDestinations(): Promise<DestinationItem[]> {
-  let dbDestinations: DestinationItem[] = [];
-  try {
-    const { data, error } = await supabase
-      .from('destinations')
-      .select('*')
-      .order('name', { ascending: true });
-
-    if (!error && data && Array.isArray(data)) {
-      dbDestinations = data as DestinationItem[];
-    }
-  } catch (err) {
-    console.warn('[getDestinations DB Notice]:', err);
-  }
-
-  if (dbDestinations.length > 0) {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dbDestinations));
-    } catch {}
-    return dbDestinations;
-  }
-
-  // Check local storage if offline or during transition
+  // 1. Check local storage
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (saved) {
@@ -53,7 +201,31 @@ export async function getDestinations(): Promise<DestinationItem[]> {
     }
   } catch {}
 
-  return [];
+  // 2. Query Supabase destinations table
+  let dbDestinations: DestinationItem[] = [];
+  try {
+    const { data, error } = await supabase
+      .from('destinations')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (!error && data && Array.isArray(data) && data.length > 0) {
+      dbDestinations = data as DestinationItem[];
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dbDestinations));
+      } catch {}
+      return dbDestinations;
+    }
+  } catch (err) {
+    console.warn('[getDestinations DB Notice]:', err);
+  }
+
+  // 3. Fallback to default verified destinations
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(DEFAULT_STUDY_DESTINATIONS));
+  } catch {}
+
+  return DEFAULT_STUDY_DESTINATIONS;
 }
 
 export async function createDestination(payload: Omit<DestinationItem, 'id' | 'created_at' | 'updated_at'>): Promise<DestinationItem> {

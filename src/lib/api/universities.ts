@@ -316,16 +316,6 @@ export async function getUniversities(): Promise<University[]> {
     merged.push(u);
   }
 
-  // 3. Fallback to baseline default universities if needed
-  for (const u of BASELINE_UNIVERSITIES) {
-    if (!u || !u.id || isDeletedUniversity(u, deletedIds)) continue;
-    const nameKey = (u.name || '').toLowerCase().trim();
-    if (seenIds.has(u.id) || (nameKey && seenNames.has(nameKey))) continue;
-    seenIds.add(u.id);
-    if (nameKey) seenNames.add(nameKey);
-    merged.push(u);
-  }
-
   try {
     localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(merged));
   } catch {}
@@ -377,8 +367,8 @@ export async function createUniversity(payload: {
     is_active: true,
     intakes: payload.intakes && payload.intakes.length > 0 ? payload.intakes : ['October 2026', 'February 2027'],
     university_fee: payload.university_fee || payload.tuition_range || '€3,500 / yr',
-    vfs_fee: payload.vfs_fee || '₹15,000',
-    agency_fee: payload.agency_fee || '₹25,000',
+    vfs_fee: payload.vfs_fee || '€150',
+    agency_fee: payload.agency_fee || '€250',
     living_cost_monthly: payload.living_cost_monthly || '€450 - €650 / mo',
     nawa_required: payload.nawa_required !== undefined ? payload.nawa_required : targetCountry.toLowerCase() === 'poland',
     course_programs: payload.course_programs && payload.course_programs.length > 0 ? payload.course_programs : [
@@ -445,7 +435,7 @@ export async function createUniversity(payload: {
       const alreadyHas = existingDests.some((d: any) => d.name?.toLowerCase() === targetCountry.toLowerCase());
       if (!alreadyHas) {
         existingDests.push({
-          id: 'dest_' + Date.now(),
+          id: generateUUID(),
           name: targetCountry,
           code: targetCountry.substring(0, 2).toUpperCase(),
           flag: '🌍',
