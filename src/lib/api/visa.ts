@@ -54,9 +54,17 @@ export async function getVisaRecords(studentId?: string): Promise<VisaTrackingRe
 
     const dbRecs = (data ?? []).map((r: any) => {
       const statusLower = String(r.status_label || r.status || '').toLowerCase();
-      const outcome = r.decision_outcome ||
-        (statusLower.includes('approv') ? 'Approved' :
-         statusLower.includes('reject') || statusLower.includes('refus') ? 'Rejected' : 'Pending');
+      const stageNum = Number(r.current_stage) || 1;
+      let outcome = r.decision_outcome;
+      if (!outcome || (outcome === 'Pending' && stageNum === 8)) {
+        if (statusLower.includes('reject') || statusLower.includes('refus')) {
+          outcome = 'Rejected';
+        } else if (stageNum === 8 || statusLower.includes('approv') || statusLower.includes('result confirmed')) {
+          outcome = 'Approved';
+        } else {
+          outcome = 'Pending';
+        }
+      }
 
       return {
         id: r.id,
@@ -68,8 +76,10 @@ export async function getVisaRecords(studentId?: string): Promise<VisaTrackingRe
         appointment_date: r.appointment_date || 'Scheduled',
         passport_no: r.passport_no || 'Verified',
         courier_tracking_no: r.courier_tracking_no || 'Assigned',
-        current_stage: Number(r.current_stage) || 1,
-        status_label: r.status_label || 'VFS Processing',
+        current_stage: stageNum,
+        status_label: outcome === 'Approved' && (r.status_label === 'Visa Result Confirmed' || !r.status_label)
+          ? 'Visa Approved & Stamped'
+          : (r.status_label || 'VFS Processing'),
         decision_outcome: outcome as 'Pending' | 'Approved' | 'Rejected',
         notes: r.notes || 'VFS tracking updated.',
         updated_at: r.updated_at || new Date().toISOString()
@@ -114,6 +124,18 @@ export async function updateVisaStatus(
     updated_at: new Date().toISOString(),
   };
 
+  const targetStage = updates.current_stage !== undefined ? Number(updates.current_stage) : undefined;
+  let resolvedOutcome = updates.decision_outcome;
+  if (!resolvedOutcome || (resolvedOutcome === 'Pending' && targetStage === 8)) {
+    if (updates.status_label?.toLowerCase().includes('reject') || updates.status_label?.toLowerCase().includes('refus')) {
+      resolvedOutcome = 'Rejected';
+    } else if (targetStage === 8 || updates.status_label?.toLowerCase().includes('approv') || updates.status_label?.toLowerCase().includes('result confirmed')) {
+      resolvedOutcome = 'Approved';
+    } else {
+      resolvedOutcome = 'Pending';
+    }
+  }
+
   if (updates.student_id !== undefined && isValidUuid(updates.student_id)) {
     cleanPayload.student_id = updates.student_id;
   }
@@ -128,9 +150,9 @@ export async function updateVisaStatus(
   if (updates.status_label !== undefined) cleanPayload.status_label = updates.status_label;
   if (updates.notes !== undefined) cleanPayload.notes = updates.notes;
 
-  if (updates.decision_outcome === 'Approved') {
+  if (resolvedOutcome === 'Approved') {
     cleanPayload.status_label = 'Visa Approved & Stamped';
-  } else if (updates.decision_outcome === 'Rejected') {
+  } else if (resolvedOutcome === 'Rejected') {
     cleanPayload.status_label = 'Visa Application Refused by Embassy';
   }
 
@@ -145,9 +167,9 @@ export async function updateVisaStatus(
     appointment_date: cleanDate(updates.appointment_date) || new Date().toISOString().split('T')[0],
     passport_no: updates.passport_no || 'Z-9041284',
     courier_tracking_no: updates.courier_tracking_no || 'BLUEDART-89041256',
-    current_stage: Number(updates.current_stage) || 1,
-    status_label: cleanPayload.status_label || 'VFS Processing',
-    decision_outcome: updates.decision_outcome || 'Pending',
+    current_stage: Number(updates.current_stage) || (resolvedOutcome === 'Approved' || resolvedOutcome === 'Rejected' ? 8 : 1),
+    status_label: cleanPayload.status_label || updates.status_label || (Number(updates.current_stage) === 8 ? 'Visa Approved & Stamped' : 'VFS Processing'),
+    decision_outcome: resolvedOutcome || 'Pending',
     notes: updates.notes || 'VFS tracking updated.',
     updated_at: new Date().toISOString(),
   };

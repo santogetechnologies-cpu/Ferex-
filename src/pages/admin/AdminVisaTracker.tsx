@@ -69,12 +69,22 @@ export const AdminVisaTracker: React.FC = () => {
       const loadedStage = existingRec.current_stage || 1;
       setCurrentStage(loadedStage);
       setNotes(existingRec.notes || '');
-      const loadedOutcome =
-        existingRec.decision_outcome ||
-        (existingRec.status_label?.toLowerCase().includes('approv') ? 'Approved' :
-         existingRec.status_label?.toLowerCase().includes('reject') || existingRec.status_label?.toLowerCase().includes('refus') ? 'Rejected' :
-         loadedStage === 8 ? 'Approved' : 'Pending');
-      setDecisionOutcome(loadedOutcome as any);
+
+      let loadedOutcome = existingRec.decision_outcome;
+      if (!loadedOutcome || (loadedOutcome === 'Pending' && loadedStage === 8)) {
+        if (existingRec.status_label?.toLowerCase().includes('reject') || existingRec.status_label?.toLowerCase().includes('refus')) {
+          loadedOutcome = 'Rejected';
+        } else if (loadedStage === 8 || existingRec.status_label?.toLowerCase().includes('approv') || existingRec.status_label?.toLowerCase().includes('result confirmed')) {
+          loadedOutcome = 'Approved';
+        } else {
+          loadedOutcome = 'Pending';
+        }
+      } else if (existingRec.status_label?.toLowerCase().includes('approv')) {
+        loadedOutcome = 'Approved';
+      } else if (existingRec.status_label?.toLowerCase().includes('reject') || existingRec.status_label?.toLowerCase().includes('refus')) {
+        loadedOutcome = 'Rejected';
+      }
+      setDecisionOutcome((loadedOutcome || 'Pending') as any);
     } else {
       // Clean defaults for new student selection
       setVfsRefNo(`VFS-POL-2026-${Math.floor(10000 + Math.random() * 90000)}`);
@@ -269,14 +279,47 @@ export const AdminVisaTracker: React.FC = () => {
   const activeStudent = students.find(s => s.id === selectedStudentId);
   const activeStudentName = activeStudent?.full_name || activeStudent?.email?.split('@')[0] || 'Student';
 
+  const stagesMap: Record<number, string> = {
+    1: 'Documents Ready',
+    2: 'Visa File Prepared',
+    3: 'VFS Appointment Booked',
+    4: 'VFS Submitted',
+    5: 'Consular Processing',
+    6: 'Decision Made',
+    7: 'Passport Return',
+    8: 'Visa Result Confirmed',
+  };
+
   // Build unified roster merging all students and existing records
   const enrolledStudentIds = new Set(students.map(s => s.id));
   const studentRows = students.map(st => {
     const sName = st.full_name || st.email?.split('@')[0] || 'Student';
     const rec = records.find(r => r.student_id === st.id || (r.student_name && r.student_name.toLowerCase() === sName.toLowerCase()));
-    const decision = rec?.decision_outcome ||
-      (rec?.status_label?.toLowerCase().includes('approv') ? 'Approved' :
-       rec?.status_label?.toLowerCase().includes('reject') || rec?.status_label?.toLowerCase().includes('refus') ? 'Rejected' : 'Pending');
+    const stageNum = rec?.current_stage || 0;
+
+    let decision = rec?.decision_outcome;
+    if (!decision || (decision === 'Pending' && stageNum === 8)) {
+      if (rec?.status_label?.toLowerCase().includes('reject') || rec?.status_label?.toLowerCase().includes('refus')) {
+        decision = 'Rejected';
+      } else if (stageNum === 8 || rec?.status_label?.toLowerCase().includes('approv') || rec?.status_label?.toLowerCase().includes('result confirmed')) {
+        decision = 'Approved';
+      } else {
+        decision = 'Pending';
+      }
+    }
+
+    let statusLabel = rec?.status_label;
+    if (!statusLabel || statusLabel === 'Visa Result Confirmed' || statusLabel === 'Not Initiated') {
+      if (decision === 'Approved') {
+        statusLabel = 'Visa Approved & Stamped';
+      } else if (decision === 'Rejected') {
+        statusLabel = 'Visa Application Refused by Embassy';
+      } else if (stageNum > 0) {
+        statusLabel = stagesMap[stageNum] || 'VFS Processing';
+      } else {
+        statusLabel = 'Not Initiated';
+      }
+    }
 
     return {
       key: `std-${st.id}`,
@@ -286,8 +329,8 @@ export const AdminVisaTracker: React.FC = () => {
       vfs_ref_no: rec?.vfs_ref_no || '',
       embassy_name: rec?.embassy_name || 'Embassy of Poland, New Delhi',
       assigned_counselor: st.assigned_counselor || (rec as any)?.assigned_counselor || 'Admin',
-      current_stage: rec?.current_stage || 0,
-      status_label: rec?.status_label || 'Not Initiated',
+      current_stage: stageNum,
+      status_label: statusLabel,
       decision_outcome: decision,
       hasRecord: Boolean(rec),
     };
@@ -297,10 +340,28 @@ export const AdminVisaTracker: React.FC = () => {
   const extraRecords = records
     .filter(r => r.student_id && !enrolledStudentIds.has(r.student_id))
     .map(r => {
-      const decision = r.decision_outcome ||
-        (r.status_label?.toLowerCase().includes('approv') ? 'Approved' :
-         r.status_label?.toLowerCase().includes('reject') || r.status_label?.toLowerCase().includes('refus') ? 'Rejected' :
-         r.current_stage === 8 ? 'Approved' : 'Pending');
+      const stageNum = r.current_stage || 1;
+      let decision = r.decision_outcome;
+      if (!decision || (decision === 'Pending' && stageNum === 8)) {
+        if (r.status_label?.toLowerCase().includes('reject') || r.status_label?.toLowerCase().includes('refus')) {
+          decision = 'Rejected';
+        } else if (stageNum === 8 || r.status_label?.toLowerCase().includes('approv') || r.status_label?.toLowerCase().includes('result confirmed')) {
+          decision = 'Approved';
+        } else {
+          decision = 'Pending';
+        }
+      }
+
+      let statusLabel = r.status_label;
+      if (!statusLabel || statusLabel === 'Visa Result Confirmed') {
+        if (decision === 'Approved') {
+          statusLabel = 'Visa Approved & Stamped';
+        } else if (decision === 'Rejected') {
+          statusLabel = 'Visa Application Refused by Embassy';
+        } else {
+          statusLabel = stagesMap[stageNum] || 'VFS Processing';
+        }
+      }
 
       return {
         key: `rec-${r.id}`,
@@ -310,8 +371,8 @@ export const AdminVisaTracker: React.FC = () => {
         vfs_ref_no: r.vfs_ref_no || '',
         embassy_name: r.embassy_name || 'Embassy of Poland',
         assigned_counselor: (r as any).assigned_counselor || 'Admin',
-        current_stage: r.current_stage || 1,
-        status_label: r.status_label || 'VFS Processing',
+        current_stage: stageNum,
+        status_label: statusLabel,
         decision_outcome: decision,
         hasRecord: true,
       };
