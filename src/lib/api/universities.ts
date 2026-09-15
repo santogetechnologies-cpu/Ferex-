@@ -1,10 +1,11 @@
 import { supabase } from '../supabase';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../types';
 import { generateUUID } from '../../utils/uuid';
 
 export const BASELINE_UNIVERSITIES: University[] = [
   {
-    id: 'uni-pol-1',
+    id: '22222222-0000-4000-a000-000000000001',
     name: 'Warsaw University of Technology',
     country: 'Poland',
     city: 'Warsaw',
@@ -34,7 +35,7 @@ export const BASELINE_UNIVERSITIES: University[] = [
     ]
   },
   {
-    id: 'uni-pol-2',
+    id: '22222222-0000-4000-a000-000000000002',
     name: 'Vistula University',
     country: 'Poland',
     city: 'Warsaw',
@@ -63,7 +64,7 @@ export const BASELINE_UNIVERSITIES: University[] = [
     ]
   },
   {
-    id: 'uni-ger-1',
+    id: '22222222-0000-4000-a000-000000000003',
     name: 'Technical University of Munich (TUM)',
     country: 'Germany',
     city: 'Munich',
@@ -93,7 +94,7 @@ export const BASELINE_UNIVERSITIES: University[] = [
     ]
   },
   {
-    id: 'uni-ger-2',
+    id: '22222222-0000-4000-a000-000000000004',
     name: 'Berlin International University of Applied Sciences',
     country: 'Germany',
     city: 'Berlin',
@@ -122,9 +123,9 @@ export const BASELINE_UNIVERSITIES: University[] = [
     ]
   },
   {
-    id: 'uni-uk-1',
+    id: '22222222-0000-4000-a000-000000000005',
     name: 'University of Greenwich',
-    country: 'UK',
+    country: 'United Kingdom',
     city: 'London',
     logo_url: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=150&auto=format&fit=crop&q=80',
     image_url: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&auto=format&fit=crop&q=80',
@@ -151,7 +152,7 @@ export const BASELINE_UNIVERSITIES: University[] = [
     ]
   },
   {
-    id: 'uni-can-1',
+    id: '22222222-0000-4000-a000-000000000006',
     name: 'Seneca Polytechnic',
     country: 'Canada',
     city: 'Toronto',
@@ -180,11 +181,9 @@ export const BASELINE_UNIVERSITIES: University[] = [
   }
 ];
 
+const LOCAL_STORAGE_KEY = 'ferex_universities_cache';
 const MASTER_STORAGE_KEY = 'ferex_custom_universities';
-const LOCAL_CACHE_KEY = 'ferex_local_universities';
-const DELETED_STORAGE_KEY = 'ferex_deleted_university_ids';
 
-// Fallback campus images if custom image is missing or excessively large
 export const DEFAULT_CAMPUS_IMAGES = [
   'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80',
@@ -193,94 +192,17 @@ export const DEFAULT_CAMPUS_IMAGES = [
   'https://images.unsplash.com/photo-1517935703635-27c946452f7b?w=800&auto=format&fit=crop&q=80'
 ];
 
-export function getDeletedUniversityIds(): string[] {
-  try {
-    const raw = localStorage.getItem(DELETED_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.filter(x => typeof x === 'string' && x.trim().length > 0);
-    }
-  } catch {}
-  return [];
-}
-
-export function isDeletedUniversity(
-  u: { id?: string; name?: string } | null | undefined,
-  deletedList: string[]
-): boolean {
-  if (!u) return true;
-  if (!deletedList || deletedList.length === 0) return false;
-  const uid = (u.id || '').trim().toLowerCase();
-  const uname = (u.name || '').trim().toLowerCase();
-  const cleanUname = uname.replace(/[^a-z0-9]/g, '');
-
-  return deletedList.some(item => {
-    if (!item) return false;
-    const norm = item.trim().toLowerCase();
-    if (uid && norm === uid) return true;
-    if (uname && norm === uname) return true;
-    const cleanNorm = norm.replace(/[^a-z0-9]/g, '');
-    if (cleanUname && cleanNorm && cleanUname === cleanNorm) return true;
-    return false;
-  });
-}
-
-function getStoredCustomUniversities(): University[] {
-  try {
-    const raw = localStorage.getItem(MASTER_STORAGE_KEY) || sessionStorage.getItem(MASTER_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch {}
-  return [];
-}
-
-function sanitizeUniversityForStorage(u: University): University {
-  let img = u.image_url || '';
-  // If base64 image exceeds 80KB, fallback to CDN image to avoid filling up 5MB localStorage quota
-  if (img.startsWith('data:') && img.length > 85000) {
-    img = DEFAULT_CAMPUS_IMAGES[Math.floor(Math.random() * DEFAULT_CAMPUS_IMAGES.length)];
-  }
-  let logo = u.logo_url || '';
-  if (logo.startsWith('data:') && logo.length > 40000) {
-    logo = '';
-  }
-  return {
-    ...u,
-    image_url: img,
-    logo_url: logo
-  };
-}
-
-function saveStoredCustomUniversities(list: University[]) {
-  const sanitizedList = list.map(sanitizeUniversityForStorage);
-  try {
-    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(sanitizedList));
-    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(sanitizedList));
-  } catch (storageErr) {
-    console.warn('[universities API] localStorage save warning, applying compact storage:', storageErr);
-    try {
-      // Further reduce to preserve all critical university data without large images
-      const minimalList = sanitizedList.map(u => ({
-        ...u,
-        image_url: u.image_url?.startsWith('data:') ? DEFAULT_CAMPUS_IMAGES[0] : u.image_url,
-        logo_url: ''
-      }));
-      localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(minimalList));
-      localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(minimalList));
-    } catch {}
-  }
-  try {
-    sessionStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(sanitizedList));
-  } catch {}
+function isJunkUniversity(u: any): boolean {
+  if (!u || !u.name) return true;
+  const name = u.name.toLowerCase().trim();
+  if (name.startsWith('ssss') || name === 'test warsaw auth' || name === 'probe uni') return true;
+  return false;
 }
 
 export async function getUniversities(): Promise<University[]> {
-  const deletedIds = getDeletedUniversityIds();
-  const customUnis = getStoredCustomUniversities();
+  let list: University[] = [];
 
-  let fetchedFromDb: University[] = [];
+  // 1. SUPABASE DATABASE FIRST: Fetch live rows from Supabase
   try {
     const { data, error } = await supabase
       .from('universities')
@@ -288,39 +210,60 @@ export async function getUniversities(): Promise<University[]> {
       .order('ranking', { ascending: true });
 
     if (!error && data && Array.isArray(data) && data.length > 0) {
-      fetchedFromDb = data as University[];
+      list = data.filter((u: any) => !isJunkUniversity(u)) as University[];
     }
-  } catch {}
-
-  const merged: University[] = [];
-  const seenIds = new Set<string>();
-  const seenNames = new Set<string>();
-
-  // 1. Custom / Admin-created universities take top priority
-  for (const u of customUnis) {
-    if (!u || !u.id || isDeletedUniversity(u, deletedIds)) continue;
-    const nameKey = (u.name || '').toLowerCase().trim();
-    if (seenIds.has(u.id) || (nameKey && seenNames.has(nameKey))) continue;
-    seenIds.add(u.id);
-    if (nameKey) seenNames.add(nameKey);
-    merged.push(u);
+  } catch (err) {
+    console.warn('[getUniversities DB Warning]:', err);
   }
 
-  // 2. Add database universities
-  for (const u of fetchedFromDb) {
-    if (!u || !u.id || isDeletedUniversity(u, deletedIds)) continue;
-    const nameKey = (u.name || '').toLowerCase().trim();
-    if (seenIds.has(u.id) || (nameKey && seenNames.has(nameKey))) continue;
-    seenIds.add(u.id);
-    if (nameKey) seenNames.add(nameKey);
-    merged.push(u);
+  // 2. Check system_config catalog backup if table returned empty
+  if (list.length === 0) {
+    try {
+      const { data: cfg } = await supabase
+        .from('system_config')
+        .select('value')
+        .eq('key', 'ferex_universities_catalog')
+        .maybeSingle();
+
+      if (cfg?.value && Array.isArray(cfg.value) && cfg.value.length > 0) {
+        list = cfg.value.filter((u: any) => !isJunkUniversity(u));
+      }
+    } catch {}
   }
 
+  // 3. Fallback to verified baseline universities
+  if (list.length === 0) {
+    list = [...BASELINE_UNIVERSITIES];
+  }
+
+  // Ensure default baseline universities are present
+  BASELINE_UNIVERSITIES.forEach(def => {
+    if (!list.some(u => u.name.toLowerCase().trim() === def.name.toLowerCase().trim())) {
+      list.push(def);
+    }
+  });
+
+  // Enrich with images/badges if table only stored minimal columns
+  const enrichedList = list.map(u => {
+    const baselineMatch = BASELINE_UNIVERSITIES.find(b => b.name.toLowerCase().trim() === u.name.toLowerCase().trim());
+    return {
+      ...u,
+      image_url: u.image_url || baselineMatch?.image_url || DEFAULT_CAMPUS_IMAGES[0],
+      badge: u.badge || baselineMatch?.badge || 'Accredited Partner',
+      category: u.category || baselineMatch?.category || 'Higher Education',
+      description: u.description || baselineMatch?.description || `${u.name} offers internationally accredited degree programs with global recognition.`,
+      living_cost_monthly: u.living_cost_monthly || baselineMatch?.living_cost_monthly || '€450 - €650 / mo',
+      nawa_required: u.nawa_required !== undefined ? u.nawa_required : (u.country?.toLowerCase() === 'poland'),
+    };
+  });
+
+  // Update local cache
   try {
-    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(merged));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(enrichedList));
+    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(enrichedList));
   } catch {}
 
-  return merged;
+  return enrichedList;
 }
 
 export async function createUniversity(payload: {
@@ -349,8 +292,8 @@ export async function createUniversity(payload: {
   const newId = generateUUID();
   const trimmedName = payload.name.trim();
   const targetCountry = payload.country.trim() || 'Poland';
-  
-  const createdObj: University = {
+
+  const fullObject: University = {
     id: newId,
     name: trimmedName,
     country: targetCountry,
@@ -358,7 +301,7 @@ export async function createUniversity(payload: {
     logo_url: payload.logo_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=150&auto=format&fit=crop&q=80',
     image_url: payload.image_url || DEFAULT_CAMPUS_IMAGES[0],
     badge: payload.badge || 'Accredited Partner',
-    category: payload.category || 'General Studies',
+    category: payload.category || 'Higher Education',
     description: payload.description || `${trimmedName} offers accredited degree programs with global post-study work opportunities.`,
     ranking: payload.ranking || 100,
     rating: payload.rating || 4.8,
@@ -370,7 +313,7 @@ export async function createUniversity(payload: {
     vfs_fee: payload.vfs_fee || '€150',
     agency_fee: payload.agency_fee || '€250',
     living_cost_monthly: payload.living_cost_monthly || '€450 - €650 / mo',
-    nawa_required: payload.nawa_required !== undefined ? payload.nawa_required : targetCountry.toLowerCase() === 'poland',
+    nawa_required: payload.nawa_required !== undefined ? payload.nawa_required : (targetCountry.toLowerCase() === 'poland'),
     course_programs: payload.course_programs && payload.course_programs.length > 0 ? payload.course_programs : [
       { id: generateUUID(), name: 'Bachelor of Science (Honours)', degree: 'Bachelor', duration: '3 Years', tuition_fee: payload.university_fee || '€3,500 / yr', intake: 'October 2026', language: 'English' }
     ],
@@ -378,178 +321,182 @@ export async function createUniversity(payload: {
     semesters: payload.semesters || [],
   };
 
-  // 1. Un-delete if this name was previously removed
-  try {
-    const deletedIds = getDeletedUniversityIds().filter(
-      id => id.toLowerCase() !== newId.toLowerCase() && id.toLowerCase() !== trimmedName.toLowerCase()
-    );
-    localStorage.setItem(DELETED_STORAGE_KEY, JSON.stringify(deletedIds));
-  } catch {}
-
-  // 2. Persist in master custom universities store (survives logout & refreshes)
-  try {
-    const customList = getStoredCustomUniversities().filter(
-      u => u.id !== newId && u.name.toLowerCase() !== trimmedName.toLowerCase()
-    );
-    const updated = [createdObj, ...customList];
-    saveStoredCustomUniversities(updated);
-  } catch {}
-
-  // 3. Attempt Supabase insert with sanitized payload
-  try {
-    const dbPayload = {
-      id: createdObj.id,
-      name: createdObj.name,
-      country: createdObj.country,
-      city: createdObj.city,
-      logo_url: createdObj.logo_url?.startsWith('data:') ? '' : createdObj.logo_url,
-      image_url: createdObj.image_url?.startsWith('data:') ? DEFAULT_CAMPUS_IMAGES[0] : createdObj.image_url,
-      badge: createdObj.badge,
-      category: createdObj.category,
-      description: createdObj.description,
-      living_cost_monthly: createdObj.living_cost_monthly,
-      nawa_required: createdObj.nawa_required,
-      ranking: createdObj.ranking,
-      rating: createdObj.rating,
-      programs: createdObj.programs,
-      tuition_range: createdObj.tuition_range,
-      intakes: createdObj.intakes,
-      university_fee: createdObj.university_fee,
-      vfs_fee: createdObj.vfs_fee,
-      agency_fee: createdObj.agency_fee,
-      course_programs: createdObj.course_programs,
-      installments: createdObj.installments,
-      semesters: createdObj.semesters,
-      is_active: true
-    };
-    await supabase.from('universities').insert(dbPayload);
-  } catch (dbErr) {
-    console.warn('[universities API] Supabase insert warning (persisted locally):', dbErr);
-  }
-
-  // 4. Auto-register destination country in local registry if not already present
-  try {
-    const rawDest = localStorage.getItem('ferex_destinations_registry');
-    const existingDests = rawDest ? JSON.parse(rawDest) : [];
-    if (Array.isArray(existingDests)) {
-      const alreadyHas = existingDests.some((d: any) => d.name?.toLowerCase() === targetCountry.toLowerCase());
-      if (!alreadyHas) {
-        existingDests.push({
-          id: generateUUID(),
-          name: targetCountry,
-          code: targetCountry.substring(0, 2).toUpperCase(),
-          flag: '🌍',
-          currency: 'EUR',
-          authority: `${targetCountry} Higher Education & Legalization Authority`,
-          acronym: targetCountry.substring(0, 4).toUpperCase(),
-          processing: '15-30 Days',
-          fee: '€50',
-          desk: `${targetCountry} Admissions Desk`,
-          badge: 'Accredited Partner Country',
-          is_active: true
-        });
-        localStorage.setItem('ferex_destinations_registry', JSON.stringify(existingDests));
-        window.dispatchEvent(new Event('ferex_destinations_change'));
-      }
-    }
-  } catch {}
-
-  // Broadcast update events immediately across components and tabs
-  window.dispatchEvent(new Event('ferex_university_change'));
-  window.dispatchEvent(new Event('storage'));
-
-  return createdObj;
-}
-
-export async function updateUniversityRecord(id: string, payload: Partial<University>): Promise<University> {
-  const customUnis = getStoredCustomUniversities();
-  const current = customUnis.find(u => u.id === id) || BASELINE_UNIVERSITIES.find(u => u.id === id);
-
-  const updatedObj: University = {
-    id,
-    name: payload.name ?? current?.name ?? 'University',
-    country: payload.country ?? current?.country ?? 'Poland',
-    city: payload.city ?? current?.city ?? '',
-    logo_url: payload.logo_url ?? current?.logo_url ?? '',
-    image_url: payload.image_url ?? current?.image_url ?? '',
-    badge: payload.badge ?? current?.badge ?? 'Accredited',
-    category: payload.category ?? current?.category ?? 'General',
-    description: payload.description ?? current?.description ?? '',
-    ranking: payload.ranking ?? current?.ranking ?? 100,
-    rating: payload.rating ?? current?.rating ?? 4.8,
-    programs: payload.programs ?? current?.programs ?? ['Computer Science'],
-    tuition_range: payload.tuition_range ?? current?.tuition_range ?? '€3,200 / yr',
-    is_active: payload.is_active ?? current?.is_active ?? true,
-    intakes: payload.intakes ?? current?.intakes ?? ['October 2026', 'February 2027'],
-    university_fee: payload.university_fee ?? current?.university_fee ?? '€3,200 / yr',
-    vfs_fee: payload.vfs_fee ?? current?.vfs_fee ?? '₹15,000',
-    agency_fee: payload.agency_fee ?? current?.agency_fee ?? '₹25,000',
-    living_cost_monthly: payload.living_cost_monthly ?? current?.living_cost_monthly ?? '€350 - €500 / mo',
-    nawa_required: payload.nawa_required !== undefined ? payload.nawa_required : current?.nawa_required ?? true,
-    course_programs: payload.course_programs ?? current?.course_programs ?? [],
-    installments: payload.installments ?? current?.installments ?? [],
-    semesters: payload.semesters ?? current?.semesters ?? [],
+  // 1. Database insert with schema-safe columns ONLY
+  const dbPayload = {
+    id: fullObject.id,
+    name: fullObject.name,
+    country: fullObject.country,
+    city: fullObject.city,
+    logo_url: fullObject.logo_url?.startsWith('data:') ? '' : fullObject.logo_url,
+    ranking: fullObject.ranking,
+    rating: fullObject.rating,
+    programs: fullObject.programs,
+    tuition_range: fullObject.tuition_range,
+    intakes: fullObject.intakes,
+    university_fee: fullObject.university_fee,
+    vfs_fee: fullObject.vfs_fee,
+    agency_fee: fullObject.agency_fee,
+    course_programs: fullObject.course_programs,
+    installments: fullObject.installments,
+    semesters: fullObject.semesters,
+    is_active: true
   };
 
   try {
-    const updatedCustom = customUnis.some(u => u.id === id)
-      ? customUnis.map(u => u.id === id ? updatedObj : u)
-      : [updatedObj, ...customUnis];
-    saveStoredCustomUniversities(updatedCustom);
+    const admin = await getAdminSupabaseClient();
+    const { error: insErr } = await admin.from('universities').insert([dbPayload]);
+    if (insErr) {
+      console.warn('[createUniversity DB Warning]:', insErr.message);
+    }
+
+    // Also update system_config catalog backup with full object
+    const currentList = await getUniversities();
+    const updatedCatalog = [fullObject, ...currentList.filter(u => u.name.toLowerCase() !== fullObject.name.toLowerCase())];
+    await admin.from('system_config').upsert({
+      key: 'ferex_universities_catalog',
+      value: updatedCatalog,
+      updated_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('[createUniversity Error]:', err);
+  }
+
+  // 2. Mirror into local caches
+  try {
+    const existing = await getUniversities();
+    const updated = [fullObject, ...existing.filter(u => u.id !== newId && u.name.toLowerCase() !== fullObject.name.toLowerCase())];
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(updated));
   } catch {}
+
+  window.dispatchEvent(new Event('ferex_universities_change'));
+  window.dispatchEvent(new Event('storage'));
+  return fullObject;
+}
+
+export async function updateUniversity(id: string, payload: Partial<University>): Promise<University | null> {
+  const admin = await getAdminSupabaseClient();
+  const dbPayload: any = {};
+  const allowedCols = [
+    'name', 'country', 'city', 'logo_url', 'ranking', 'rating', 'programs',
+    'tuition_range', 'intakes', 'university_fee', 'vfs_fee', 'agency_fee',
+    'course_programs', 'installments', 'semesters', 'is_active'
+  ];
+
+  for (const k of allowedCols) {
+    if ((payload as any)[k] !== undefined) {
+      dbPayload[k] = (payload as any)[k];
+    }
+  }
 
   try {
-    await supabase.from('universities').update(payload).eq('id', id);
+    await admin.from('universities').update(dbPayload).eq('id', id);
+  } catch (err) {
+    console.warn('[updateUniversity DB Warning]:', err);
+  }
+
+  // Update local
+  let updatedObj: University | null = null;
+  try {
+    const current = await getUniversities();
+    const updated = current.map(u => {
+      if (u.id === id) {
+        updatedObj = { ...u, ...payload };
+        return updatedObj;
+      }
+      return u;
+    });
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(updated));
   } catch {}
 
-  window.dispatchEvent(new Event('ferex_university_change'));
+  window.dispatchEvent(new Event('ferex_universities_change'));
   window.dispatchEvent(new Event('storage'));
   return updatedObj;
 }
 
-export async function deleteUniversity(id: string, name?: string) {
-  const toDelete = new Set<string>();
-  if (id) { toDelete.add(id.trim()); toDelete.add(id.trim().toLowerCase()); }
-  if (name) { toDelete.add(name.trim()); toDelete.add(name.trim().toLowerCase()); }
-
-  const deleteItems = Array.from(toDelete).filter(Boolean);
+export async function deleteUniversity(id: string, name?: string): Promise<void> {
+  try {
+    const admin = await getAdminSupabaseClient();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (isUuid) {
+      await admin.from('universities').delete().eq('id', id);
+    }
+    if (name) {
+      await admin.from('universities').delete().ilike('name', name.trim());
+    }
+  } catch (err) {
+    console.warn('[deleteUniversity DB Warning]:', err);
+  }
 
   try {
-    const existingDeleted = getDeletedUniversityIds();
-    localStorage.setItem(DELETED_STORAGE_KEY, JSON.stringify(Array.from(new Set([...existingDeleted, ...deleteItems]))));
+    const current = await getUniversities();
+    const filtered = current.filter(u => u.id !== id && (!name || u.name.toLowerCase() !== name.toLowerCase()));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
+    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(filtered));
   } catch {}
 
-  try {
-    const customList = getStoredCustomUniversities().filter(u => !isDeletedUniversity(u, deleteItems));
-    saveStoredCustomUniversities(customList);
-  } catch {}
-
-  try {
-    await supabase.from('universities').delete().eq('id', id);
-    if (name) await supabase.from('universities').delete().ilike('name', name.trim());
-  } catch {}
-
-  window.dispatchEvent(new Event('ferex_university_change'));
+  window.dispatchEvent(new Event('ferex_universities_change'));
   window.dispatchEvent(new Event('storage'));
 }
 
+export const updateUniversityRecord = updateUniversity;
+
 export async function clearAllUniversities(): Promise<void> {
   try {
-    localStorage.removeItem(MASTER_STORAGE_KEY);
-    localStorage.removeItem(LOCAL_CACHE_KEY);
-    localStorage.removeItem(DELETED_STORAGE_KEY);
+    const admin = await getAdminSupabaseClient();
+    await admin.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await admin.from('system_config').upsert({
+      key: 'ferex_universities_catalog',
+      value: [],
+      updated_at: new Date().toISOString()
+    });
   } catch {}
-  window.dispatchEvent(new Event('ferex_university_change'));
+  try {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    localStorage.removeItem(MASTER_STORAGE_KEY);
+  } catch {}
+  window.dispatchEvent(new Event('ferex_universities_change'));
   window.dispatchEvent(new Event('storage'));
 }
 
 export async function restoreDefaultUniversities(): Promise<University[]> {
+  const admin = await getAdminSupabaseClient();
+  await admin.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  
+  const sanitized = BASELINE_UNIVERSITIES.map(u => ({
+    id: u.id,
+    name: u.name,
+    country: u.country,
+    city: u.city,
+    logo_url: u.logo_url,
+    ranking: u.ranking,
+    rating: u.rating,
+    programs: u.programs,
+    tuition_range: u.tuition_range,
+    intakes: u.intakes,
+    university_fee: u.university_fee,
+    vfs_fee: u.vfs_fee,
+    agency_fee: u.agency_fee,
+    course_programs: u.course_programs,
+    installments: u.installments,
+    semesters: u.semesters,
+    is_active: true
+  }));
+
+  await admin.from('universities').insert(sanitized);
+  await admin.from('system_config').upsert({
+    key: 'ferex_universities_catalog',
+    value: BASELINE_UNIVERSITIES,
+    updated_at: new Date().toISOString()
+  });
+
   try {
-    localStorage.removeItem(DELETED_STORAGE_KEY);
-    localStorage.removeItem(MASTER_STORAGE_KEY);
-    localStorage.removeItem(LOCAL_CACHE_KEY);
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(BASELINE_UNIVERSITIES));
+    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(BASELINE_UNIVERSITIES));
   } catch {}
-  window.dispatchEvent(new Event('ferex_university_change'));
+
+  window.dispatchEvent(new Event('ferex_universities_change'));
   window.dispatchEvent(new Event('storage'));
-  return getUniversities();
+  return BASELINE_UNIVERSITIES;
 }

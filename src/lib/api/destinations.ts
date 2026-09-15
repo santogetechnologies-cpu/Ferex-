@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import { generateUUID } from '../../utils/uuid';
 
 export interface DestinationItem {
@@ -100,9 +101,9 @@ export const DEFAULT_STUDY_DESTINATIONS: DestinationItem[] = [
     authority: 'State Secretariat for Education, Research and Innovation',
     acronym: 'SERI',
     processing: '20-30 Days',
-    fee: 'CHF 200',
+    fee: 'CHF 250',
     desk: 'Swiss Admissions Desk',
-    badge: 'Research Pioneer',
+    badge: 'World Top Tier',
     is_active: true,
   },
   {
@@ -111,12 +112,12 @@ export const DEFAULT_STUDY_DESTINATIONS: DestinationItem[] = [
     code: 'CZ',
     flag: '🇨🇿',
     currency: 'EUR',
-    authority: 'Czech Ministry of Education, Youth and Sports',
+    authority: 'Czech Republic Ministry of Education, Youth and Sports',
     acronym: 'MŠMT',
     processing: '15-30 Days',
     fee: '€100',
     desk: 'Czech Admissions Desk',
-    badge: 'Central Europe',
+    badge: 'Central EU Hub',
     is_active: true,
   },
   {
@@ -127,10 +128,10 @@ export const DEFAULT_STUDY_DESTINATIONS: DestinationItem[] = [
     currency: 'EUR',
     authority: 'Italian Ministry of Foreign Affairs (CIMEA)',
     acronym: 'CIMEA',
-    processing: '15-30 Days',
+    processing: '20-35 Days',
     fee: '€150',
     desk: 'Italy Admissions Desk',
-    badge: 'Heritage & Tech',
+    badge: 'Historic Excellence',
     is_active: true,
   },
   {
@@ -144,7 +145,7 @@ export const DEFAULT_STUDY_DESTINATIONS: DestinationItem[] = [
     processing: '15-30 Days',
     fee: '€120',
     desk: 'Spain Admissions Desk',
-    badge: 'EU Member',
+    badge: 'Mediterranean Gateway',
     is_active: true,
   },
   {
@@ -191,136 +192,61 @@ export const DEFAULT_STUDY_DESTINATIONS: DestinationItem[] = [
   }
 ];
 
+function isJunkDestination(name: string): boolean {
+  if (!name) return true;
+  const lower = name.toLowerCase().trim();
+  if (lower === 'india' || lower === 'nada' || lower.startsWith('ssss')) return true;
+  return false;
+}
+
 export async function getDestinations(): Promise<DestinationItem[]> {
   let list: DestinationItem[] = [];
 
-  // 1. Check local storage
+  // 1. SUPABASE DATABASE FIRST: Always query live shared cloud storage
   try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        list = parsed;
-      }
-    }
-  } catch {}
+    const { data, error } = await supabase
+      .from('destinations')
+      .select('*')
+      .order('name', { ascending: true });
 
-  // 2. Query Supabase destinations table if local storage was empty
-  if (list.length === 0) {
-    try {
-      const { data, error } = await supabase
-        .from('destinations')
-        .select('*')
-        .order('name', { ascending: true });
-
-      if (!error && data && Array.isArray(data) && data.length > 0) {
-        list = data as DestinationItem[];
-      }
-    } catch (err) {
-      console.warn('[getDestinations DB Notice]:', err);
+    if (!error && data && Array.isArray(data) && data.length > 0) {
+      list = data.filter((d: any) => !isJunkDestination(d.name)) as DestinationItem[];
     }
+  } catch (err) {
+    console.warn('[getDestinations DB Notice]:', err);
   }
 
-  // 3. Fallback to default verified destinations if still empty
+  // 2. If destinations table was empty, check system_config catalog
+  if (list.length === 0) {
+    try {
+      const { data: cfg } = await supabase
+        .from('system_config')
+        .select('value')
+        .eq('key', 'ferex_destinations_catalog')
+        .maybeSingle();
+
+      if (cfg?.value && Array.isArray(cfg.value) && cfg.value.length > 0) {
+        list = cfg.value.filter((d: any) => !isJunkDestination(d.name));
+      }
+    } catch {}
+  }
+
+  // 3. Fallback to default verified destinations
   if (list.length === 0) {
     list = [...DEFAULT_STUDY_DESTINATIONS];
   }
 
-  // 4. Ensure all DEFAULT_STUDY_DESTINATIONS are present in the list
+  // Ensure default study destinations are included
   DEFAULT_STUDY_DESTINATIONS.forEach(def => {
     if (!list.some(d => d.name.toLowerCase() === def.name.toLowerCase())) {
       list.push(def);
     }
   });
 
-  // 5. Cross-pollinate any custom countries from country_workflows, universities, or doc_requirements
-  try {
-    const rawWfs = localStorage.getItem('ferex_country_workflows');
-    if (rawWfs) {
-      const wfs = JSON.parse(rawWfs);
-      if (Array.isArray(wfs)) {
-        wfs.forEach((w: any) => {
-          const cName = (w.country || '').trim();
-          if (cName && cName.toLowerCase() !== 'india' && !list.some(d => d.name.toLowerCase() === cName.toLowerCase())) {
-            list.push({
-              id: `dest-${cName.toLowerCase().replace(/\s+/g, '-')}`,
-              name: cName,
-              code: cName.substring(0, 2).toUpperCase(),
-              flag: '🌍',
-              currency: 'EUR',
-              authority: w.authority_name || `${cName} Legalization Authority`,
-              acronym: w.authority_acronym || cName.substring(0, 4).toUpperCase(),
-              processing: w.estimated_processing_days || '15-30 Days',
-              fee: w.authority_fee || '€50',
-              desk: `${cName} Desk`,
-              badge: 'Accredited',
-              is_active: true
-            });
-          }
-        });
-      }
-    }
-  } catch {}
+  // Clean and filter
+  const cleanList = list.filter(d => !isJunkDestination(d.name));
 
-  try {
-    const rawUnis = localStorage.getItem('ferex_universities');
-    if (rawUnis) {
-      const unis = JSON.parse(rawUnis);
-      if (Array.isArray(unis)) {
-        unis.forEach((u: any) => {
-          const cName = (u.country || '').trim();
-          if (cName && cName.toLowerCase() !== 'india' && !list.some(d => d.name.toLowerCase() === cName.toLowerCase())) {
-            list.push({
-              id: `dest-${cName.toLowerCase().replace(/\s+/g, '-')}`,
-              name: cName,
-              code: cName.substring(0, 2).toUpperCase(),
-              flag: '🌍',
-              currency: 'EUR',
-              authority: `${cName} Ministry of Education`,
-              acronym: cName.substring(0, 4).toUpperCase(),
-              processing: '15-30 Days',
-              fee: '€50',
-              desk: `${cName} Desk`,
-              badge: 'Partner',
-              is_active: true
-            });
-          }
-        });
-      }
-    }
-  } catch {}
-
-  try {
-    const rawDocs = localStorage.getItem('ferex_doc_requirements');
-    if (rawDocs) {
-      const docs = JSON.parse(rawDocs);
-      if (Array.isArray(docs)) {
-        docs.forEach((doc: any) => {
-          const cName = (doc.country || '').trim();
-          if (cName && cName.toLowerCase() !== 'india' && !list.some(d => d.name.toLowerCase() === cName.toLowerCase())) {
-            list.push({
-              id: `dest-${cName.toLowerCase().replace(/\s+/g, '-')}`,
-              name: cName,
-              code: cName.substring(0, 2).toUpperCase(),
-              flag: '🌍',
-              currency: 'EUR',
-              authority: `${cName} Ministry of Education`,
-              acronym: cName.substring(0, 4).toUpperCase(),
-              processing: '15-30 Days',
-              fee: '€50',
-              desk: `${cName} Desk`,
-              badge: 'Accredited',
-              is_active: true
-            });
-          }
-        });
-      }
-    }
-  } catch {}
-
-  // Filter out any accidental 'India' destinations and ensure clean list
-  const cleanList = list.filter(d => d.name && d.name.toLowerCase().trim() !== 'india');
-
+  // Mirror to local cache for instant offline renders
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cleanList));
   } catch {}
@@ -330,34 +256,48 @@ export async function getDestinations(): Promise<DestinationItem[]> {
 
 export async function createDestination(payload: Omit<DestinationItem, 'id' | 'created_at' | 'updated_at'>): Promise<DestinationItem> {
   const newId = generateUUID();
+  const cleanName = payload.name.trim();
   const newObj: DestinationItem = {
     id: newId,
-    name: payload.name.trim(),
-    code: (payload.code || payload.name.substring(0, 2)).trim().toUpperCase(),
-    flag: payload.flag || '',
+    name: cleanName,
+    code: (payload.code || cleanName.substring(0, 2)).trim().toUpperCase(),
+    flag: payload.flag || '🌍',
     currency: payload.currency || 'EUR',
-    authority: payload.authority || `${payload.name} Ministry of Education`,
-    acronym: payload.acronym || payload.name.substring(0, 4).toUpperCase(),
+    authority: payload.authority || `${cleanName} Ministry of Education`,
+    acronym: (payload.acronym || cleanName.substring(0, 4)).trim().toUpperCase(),
     processing: payload.processing || '15-30 Days',
     fee: payload.fee || '€50',
-    desk: payload.desk || `${payload.name} Desk`,
+    desk: payload.desk || `${cleanName} Desk`,
     badge: payload.badge || 'Accredited',
     is_active: payload.is_active !== undefined ? payload.is_active : true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
 
-  // 1. Supabase Insert
+  // 1. Supabase Authorized Insert
   try {
-    await supabase.from('destinations').insert(newObj);
+    const admin = await getAdminSupabaseClient();
+    const { error } = await admin.from('destinations').insert([newObj]);
+    if (error) {
+      console.warn('[createDestination DB Warning]:', error.message);
+    }
+
+    // Also update system_config catalog backup
+    const currentList = await getDestinations();
+    const updatedCatalog = [newObj, ...currentList.filter(d => d.name.toLowerCase() !== newObj.name.toLowerCase())];
+    await admin.from('system_config').upsert({
+      key: 'ferex_destinations_catalog',
+      value: updatedCatalog,
+      updated_at: new Date().toISOString()
+    });
   } catch (err) {
-    console.warn('[createDestination DB Warning]:', err);
+    console.warn('[createDestination Error]:', err);
   }
 
-  // 2. Local Storage Sync
+  // 2. Local Storage Sync & Event Dispatch
   try {
-    const existing = await getDestinations();
-    const updated = [newObj, ...existing.filter(d => d.id !== newId && d.name.toLowerCase() !== newObj.name.toLowerCase())];
+    const current = await getDestinations();
+    const updated = [newObj, ...current.filter(d => d.id !== newId && d.name.toLowerCase() !== newObj.name.toLowerCase())];
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
   } catch {}
 
@@ -374,7 +314,8 @@ export async function updateDestination(id: string, payload: Partial<Destination
 
   // 1. Supabase Update
   try {
-    await supabase.from('destinations').update(updatedPayload).eq('id', id);
+    const admin = await getAdminSupabaseClient();
+    await admin.from('destinations').update(updatedPayload).eq('id', id);
   } catch (err) {
     console.warn('[updateDestination DB Warning]:', err);
   }
@@ -401,12 +342,13 @@ export async function updateDestination(id: string, payload: Partial<Destination
 export async function deleteDestination(id: string, name?: string): Promise<void> {
   // 1. Supabase Delete
   try {
+    const admin = await getAdminSupabaseClient();
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     if (isUuid) {
-      await supabase.from('destinations').delete().eq('id', id);
+      await admin.from('destinations').delete().eq('id', id);
     }
     if (name) {
-      await supabase.from('destinations').delete().ilike('name', name.trim());
+      await admin.from('destinations').delete().ilike('name', name.trim());
     }
   } catch (err) {
     console.warn('[deleteDestination DB Warning]:', err);
@@ -425,7 +367,8 @@ export async function deleteDestination(id: string, name?: string): Promise<void
 
 export async function clearAllDestinations(): Promise<void> {
   try {
-    await supabase.from('destinations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    const admin = await getAdminSupabaseClient();
+    await admin.from('destinations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   } catch {}
   try {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
