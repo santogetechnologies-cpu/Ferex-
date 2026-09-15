@@ -14,32 +14,59 @@ import type { DestinationItem } from '../../lib/api/destinations';
 
 export function formatFeeEURandINR(feeStr?: string): string {
   if (!feeStr || feeStr === 'N/A' || feeStr === '—') return '—';
-  if (feeStr.includes('₹') && feeStr.includes('€')) return feeStr;
+  const str = String(feeStr).trim();
+  if (str.includes('~') && (str.includes('₹') || str.includes('€') || str.includes('$') || str.includes('£'))) return str;
 
-  const cleanStr = feeStr.replace(/,/g, '');
-  const numMatch = cleanStr.match(/(\d+)/);
-  if (!numMatch) return feeStr;
-
-  const amount = parseInt(numMatch[1], 10);
-  if (isNaN(amount) || amount === 0) return feeStr;
-
-  const hasPerYear = feeStr.includes('/ yr') || feeStr.includes('/yr') || feeStr.includes('year') || feeStr.includes('/ year');
-  const suffix = hasPerYear ? ' / yr' : '';
-
-  if (feeStr.includes('€') || feeStr.toLowerCase().includes('eur') || feeStr.toLowerCase().includes('euro')) {
-    const inrVal = Math.round(amount * 90);
-    return `€${amount.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
-  } else if (feeStr.includes('₹') || feeStr.toLowerCase().includes('inr') || feeStr.toLowerCase().includes('rs')) {
-    const eurVal = Math.round(amount / 90);
-    return `₹${amount.toLocaleString('en-IN')}${suffix} (~€${eurVal.toLocaleString('en-US')}${suffix})`;
-  } else if (feeStr.includes('$') || feeStr.toLowerCase().includes('usd')) {
-    const eurVal = Math.round(amount * 0.92);
-    const inrVal = Math.round(amount * 83);
-    return `$${amount.toLocaleString('en-US')} (€${eurVal.toLocaleString('en-US')} / ~₹${inrVal.toLocaleString('en-IN')})`;
+  // Handle fee range like "€3,200 - €4,500 / yr"
+  const rangeMatch = str.match(/([€$£₹]?)\s*([\d,]+)\s*[-–]\s*([€$£₹]?)\s*([\d,]+)(.*)/);
+  if (rangeMatch) {
+    const sym = rangeMatch[1] || rangeMatch[3] || '€';
+    const low = parseInt(rangeMatch[2].replace(/,/g, ''), 10);
+    const high = parseInt(rangeMatch[4].replace(/,/g, ''), 10);
+    const suffix = rangeMatch[5] || '';
+    if (!isNaN(low) && !isNaN(high)) {
+      if (sym === '€' || str.toLowerCase().includes('eur')) {
+        const inrLow = Math.round(low * 90);
+        const inrHigh = Math.round(high * 90);
+        return `€${low.toLocaleString('en-US')} - €${high.toLocaleString('en-US')}${suffix} (~₹${inrLow.toLocaleString('en-IN')} - ₹${inrHigh.toLocaleString('en-IN')}${suffix})`;
+      } else if (sym === '₹' || str.toLowerCase().includes('inr')) {
+        const eurLow = Math.round(low / 90);
+        const eurHigh = Math.round(high / 90);
+        return `₹${low.toLocaleString('en-IN')} - ₹${high.toLocaleString('en-IN')}${suffix} (~€${eurLow.toLocaleString('en-US')} - €${eurHigh.toLocaleString('en-US')}${suffix})`;
+      } else if (sym === '£') {
+        const inrLow = Math.round(low * 105);
+        const inrHigh = Math.round(high * 105);
+        return `£${low.toLocaleString('en-US')} - £${high.toLocaleString('en-US')}${suffix} (~₹${inrLow.toLocaleString('en-IN')} - ₹${inrHigh.toLocaleString('en-IN')}${suffix})`;
+      }
+    }
   }
 
-  const inrVal = Math.round(amount * 90);
-  return `€${amount.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+  // Single fee amount
+  const cleanDigits = str.replace(/,/g, '').match(/\d+/);
+  if (!cleanDigits) return str;
+  const num = parseInt(cleanDigits[0], 10);
+  if (isNaN(num) || num === 0) return str;
+
+  const hasYr = str.toLowerCase().includes('/ yr') || str.toLowerCase().includes('per year') || str.toLowerCase().includes('/yr');
+  const hasMo = str.toLowerCase().includes('/ mo') || str.toLowerCase().includes('per month') || str.toLowerCase().includes('/mo');
+  const suffix = hasYr ? ' / yr' : hasMo ? ' / mo' : '';
+
+  if (str.includes('€') || str.toLowerCase().includes('eur')) {
+    const inrVal = Math.round(num * 90);
+    return `€${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+  } else if (str.includes('₹') || str.toLowerCase().includes('inr') || (!str.includes('€') && !str.includes('$') && !str.includes('£') && num > 1000 && !hasYr)) {
+    const eurVal = Math.round(num / 90);
+    return `₹${num.toLocaleString('en-IN')}${suffix} (~€${eurVal.toLocaleString('en-US')}${suffix})`;
+  } else if (str.includes('£')) {
+    const inrVal = Math.round(num * 105);
+    return `£${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+  } else if (str.includes('$') || str.includes('CAD')) {
+    const inrVal = str.includes('CAD') ? Math.round(num * 62) : Math.round(num * 84);
+    return `$${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+  }
+
+  const inrVal = Math.round(num * 90);
+  return `€${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
 }
 
 export type CountryItem = DestinationItem;

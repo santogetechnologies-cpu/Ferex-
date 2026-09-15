@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CreditCard, CheckCircle2, Lock, X, Upload, Clock,
-  AlertCircle, FileText, Eye, QrCode, ShieldCheck, Building2, Briefcase, ChevronRight
+  CreditCard, CheckCircle2, X, Upload, Clock,
+  AlertCircle, FileText, Eye, QrCode, ShieldCheck, Building2, Briefcase, ChevronRight,
+  Landmark, ShieldAlert, Check
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card } from '../components/Card';
@@ -19,27 +20,89 @@ import { UnifiedPaymentModal } from '../components/UnifiedPaymentModal';
 import type { PaymentInstallment } from '../lib/types';
 
 export function formatFeeEURandINR(feeStr?: string | number): string {
-  if (!feeStr || feeStr === 'N/A' || feeStr === '—') return '—';
-  const str = String(feeStr);
-  if (str.includes('₹') && str.includes('€')) return str;
-  const cleanStr = str.replace(/,/g, '');
-  const numMatch = cleanStr.match(/(\d+)/);
-  if (!numMatch) return str;
-  const amount = parseInt(numMatch[1], 10);
-  if (isNaN(amount) || amount === 0) return str;
-  if (str.includes('€') || str.toLowerCase().includes('eur')) {
-    const inrVal = Math.round(amount * 90);
-    return `€${amount.toLocaleString('en-US')} (~₹${inrVal.toLocaleString('en-IN')})`;
-  } else if (str.includes('₹') || str.toLowerCase().includes('inr')) {
-    const eurVal = Math.round(amount / 90);
-    return `₹${amount.toLocaleString('en-IN')} (~€${eurVal.toLocaleString('en-US')})`;
+  if (feeStr === undefined || feeStr === null || feeStr === '' || feeStr === 'N/A' || feeStr === '—') return '—';
+  const str = String(feeStr).trim();
+  if (str.includes('~') && (str.includes('₹') || str.includes('€') || str.includes('$') || str.includes('£'))) return str;
+
+  // Handle fee range like "€3,200 - €4,500 / yr"
+  const rangeMatch = str.match(/([€$£₹]?)\s*([\d,]+)\s*[-–]\s*([€$£₹]?)\s*([\d,]+)(.*)/);
+  if (rangeMatch) {
+    const sym = rangeMatch[1] || rangeMatch[3] || '€';
+    const low = parseInt(rangeMatch[2].replace(/,/g, ''), 10);
+    const high = parseInt(rangeMatch[4].replace(/,/g, ''), 10);
+    const suffix = rangeMatch[5] || '';
+    if (!isNaN(low) && !isNaN(high)) {
+      if (sym === '€' || str.toLowerCase().includes('eur')) {
+        const inrLow = Math.round(low * 90);
+        const inrHigh = Math.round(high * 90);
+        return `€${low.toLocaleString('en-US')} - €${high.toLocaleString('en-US')}${suffix} (~₹${inrLow.toLocaleString('en-IN')} - ₹${inrHigh.toLocaleString('en-IN')}${suffix})`;
+      } else if (sym === '₹' || str.toLowerCase().includes('inr')) {
+        const eurLow = Math.round(low / 90);
+        const eurHigh = Math.round(high / 90);
+        return `₹${low.toLocaleString('en-IN')} - ₹${high.toLocaleString('en-IN')}${suffix} (~€${eurLow.toLocaleString('en-US')} - €${eurHigh.toLocaleString('en-US')}${suffix})`;
+      } else if (sym === '£') {
+        const inrLow = Math.round(low * 105);
+        const inrHigh = Math.round(high * 105);
+        return `£${low.toLocaleString('en-US')} - £${high.toLocaleString('en-US')}${suffix} (~₹${inrLow.toLocaleString('en-IN')} - ₹${inrHigh.toLocaleString('en-IN')}${suffix})`;
+      }
+    }
   }
-  return `€${amount.toLocaleString('en-US')} (~₹${Math.round(amount * 90).toLocaleString('en-IN')})`;
+
+  // Single fee amount
+  const cleanDigits = str.replace(/,/g, '').match(/\d+/);
+  if (!cleanDigits) return str;
+  const num = parseInt(cleanDigits[0], 10);
+  if (isNaN(num) || num === 0) return str;
+
+  const hasYr = str.toLowerCase().includes('/ yr') || str.toLowerCase().includes('per year') || str.toLowerCase().includes('/yr');
+  const hasMo = str.toLowerCase().includes('/ mo') || str.toLowerCase().includes('per month') || str.toLowerCase().includes('/mo');
+  const suffix = hasYr ? ' / yr' : hasMo ? ' / mo' : '';
+
+  if (str.includes('€') || str.toLowerCase().includes('eur')) {
+    const inrVal = Math.round(num * 90);
+    return `€${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+  } else if (str.includes('₹') || str.toLowerCase().includes('inr') || (!str.includes('€') && !str.includes('$') && !str.includes('£') && num > 1000 && !hasYr)) {
+    const eurVal = Math.round(num / 90);
+    return `₹${num.toLocaleString('en-IN')}${suffix} (~€${eurVal.toLocaleString('en-US')}${suffix})`;
+  } else if (str.includes('£')) {
+    const inrVal = Math.round(num * 105);
+    return `£${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+  } else if (str.includes('$') || str.includes('CAD')) {
+    const inrVal = str.includes('CAD') ? Math.round(num * 62) : Math.round(num * 84);
+    return `$${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+  }
+
+  // Default fallback EUR to INR
+  const inrVal = Math.round(num * 90);
+  return `€${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+}
+
+export function parseFeeToINR(feeStr?: string | number): number {
+  if (!feeStr) return 0;
+  if (typeof feeStr === 'number') return feeStr;
+  const str = String(feeStr).replace(/,/g, '');
+  const match = str.match(/\d+/);
+  if (!match) return 0;
+  const num = parseInt(match[0], 10);
+  if (isNaN(num)) return 0;
+  if (str.includes('€') || str.toLowerCase().includes('eur')) {
+    return num * 90;
+  }
+  if (str.includes('£') || str.toLowerCase().includes('gbp')) {
+    return num * 105;
+  }
+  if (str.includes('CAD') || str.toLowerCase().includes('cad')) {
+    return num * 62;
+  }
+  if (str.includes('$') || str.toLowerCase().includes('usd')) {
+    return num * 84;
+  }
+  return num;
 }
 
 export interface PaymentItem {
   id: string;
-  itemType: 'advanced_registration' | 'agency_fee' | 'tuition_installment';
+  itemType: 'advanced_registration' | 'agency_fee' | 'vfs_fee' | 'tuition_installment';
   title: string;
   stageName: string;
   amount: number;
@@ -66,7 +129,7 @@ export const Payments: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<PaymentItem | null>(null);
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
 
-  // 1. Identify student's active application & chosen university
+  // 1. Identify student's active application & chosen destination university
   const activeApp = applications.find(a =>
     Boolean(a.course) &&
     Boolean(a.university_name) &&
@@ -99,45 +162,58 @@ export const Payments: React.FC = () => {
   const selectedCourse = activeApp?.course || activeApp?.program_name || 'Degree Program';
   const selectedUniversityName = appliedUniversity?.name || activeApp?.university_name || 'Selected University';
 
-  // 2. Resolve Payment Records from Database
+  // 2. Identify Payments from Database
   const advPaymentRecord = dbPayments.find(p => {
     const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
     return text.includes('registration') || text.includes('advance') || text.includes('audit deposit') || (p as any).stage_number === 1;
   });
+  const isAdvFeePaid = advPaymentRecord?.status === 'Paid' || advPaymentRecord?.status === 'Verified';
 
   const agencyPaymentRecord = dbPayments.find(p => {
     const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
     return text.includes('agency') && !text.includes('tuition');
   });
-
-  const isAdvFeePaid = config.advance_registration_fee_enabled === false ||
-    advPaymentRecord?.status === 'Paid' || advPaymentRecord?.status === 'Verified';
-
   const isAgencyFeePaid = agencyPaymentRecord?.status === 'Paid' || agencyPaymentRecord?.status === 'Verified';
 
-  // 3. Build Payment Item 1: Advanced Registration Fee (Platform Intake Deposit)
+  const vfsPaymentRecord = dbPayments.find(p => {
+    const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
+    return text.includes('vfs') || text.includes('visa gov') || text.includes('consular fee');
+  });
+  const isVfsFeePaid = vfsPaymentRecord?.status === 'Paid' || vfsPaymentRecord?.status === 'Verified';
+
+  const tuitionSingleRecord = dbPayments.find(p => {
+    const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
+    return text.includes('tuition') && !text.includes('agency') && !text.includes('#');
+  });
+  const isTuitionSinglePaid = tuitionSingleRecord?.status === 'Paid' || tuitionSingleRecord?.status === 'Verified';
+
+  // 3. Item 1: Advanced Registration Fee (Platform Intake Deposit from Governance)
   const isAdvanceFeeEnabled = config.advance_registration_fee_enabled !== false;
-  const advanceFeeAmount = Number(config.advance_registration_fee_amount || config.advance_registration_fee_inr || 15000);
+  const configuredAdvanceAmount = Number(config.advance_registration_fee_amount || config.advance_registration_fee_inr || 15000);
   const advanceFeeCurrency = config.advance_registration_fee_currency || 'INR';
+
+  // Display actual amount paid if paid, or live configured amount if unpaid
+  const advDisplayAmount = isAdvFeePaid && advPaymentRecord?.amount ? Number(advPaymentRecord.amount) : configuredAdvanceAmount;
+  const advDisplayFormatted = isAdvFeePaid && advPaymentRecord?.amount
+    ? `₹${Number(advPaymentRecord.amount).toLocaleString('en-IN')}`
+    : `${advanceFeeCurrency === 'EUR' ? '€' : advanceFeeCurrency === 'USD' ? '$' : '₹'}${configuredAdvanceAmount.toLocaleString('en-IN')}`;
 
   const advFeeItem: PaymentItem = {
     id: 'fee-advance-reg',
     itemType: 'advanced_registration',
-    title: isAdvanceFeeEnabled
-      ? `Advanced Registration Fee (${advanceFeeCurrency === 'EUR' ? '€' : advanceFeeCurrency === 'USD' ? '$' : '₹'} ${advanceFeeAmount.toLocaleString('en-IN')})`
+    title: isAdvFeePaid
+      ? `Advanced Registration Fee (${advDisplayFormatted})`
+      : isAdvanceFeeEnabled
+      ? `Advanced Registration Fee (${advDisplayFormatted})`
       : 'Advanced Registration Fee (Waived by Policy)',
     stageName: 'Initial Platform Intake & Legalization Audit',
-    amount: isAdvanceFeeEnabled ? advanceFeeAmount : 0,
-    amountFormatted: isAdvanceFeeEnabled
-      ? `${advanceFeeCurrency === 'EUR' ? '€' : advanceFeeCurrency === 'USD' ? '$' : '₹'} ${advanceFeeAmount.toLocaleString('en-IN')}`
-      : 'Waived',
+    amount: isAdvFeePaid ? advDisplayAmount : (isAdvanceFeeEnabled ? configuredAdvanceAmount : 0),
+    amountFormatted: advDisplayFormatted,
     description: isAdvanceFeeEnabled
       ? 'Advisory fee, student eligibility verification, institutional seat reservation, and initial compliance audit.'
       : 'Advanced registration deposit has been waived by administrative policy.',
-    dueDateStr: isAdvanceFeeEnabled ? 'Due Before University Application' : 'Cleared',
-    status: !isAdvanceFeeEnabled
-      ? 'Paid'
-      : isAdvFeePaid
+    dueDateStr: isAdvFeePaid ? 'Settled & Verified' : 'Due Before Application Lodging',
+    status: isAdvFeePaid
       ? 'Paid'
       : advPaymentRecord?.status === 'Pending Verification'
       ? 'Pending Verification'
@@ -149,82 +225,118 @@ export const Payments: React.FC = () => {
     utr: advPaymentRecord?.utr_number,
   };
 
-  // 4. Build Payment Item 2: Separate Agency Processing Fee (Varies upon Country & University)
-  const rawAgencyFeeStr = appliedUniversity?.agency_fee || config.default_agency_fee || '€250';
-  const cleanAgencyNum = parseInt(String(rawAgencyFeeStr).replace(/[^0-9]/g, ''), 10) || 250;
-  const agencyFeeInr = rawAgencyFeeStr.includes('€') ? cleanAgencyNum * 90 : cleanAgencyNum;
+  // 4. Item 2: Separate Agency Processing Fee (Varies upon Country & University)
+  const rawAgencyFeeStr = appliedUniversity?.agency_fee || config.default_agency_fee || '₹25,000';
+  const configuredAgencyInr = parseFeeToINR(rawAgencyFeeStr);
+  const agencyDisplayAmount = isAgencyFeePaid && agencyPaymentRecord?.amount ? Number(agencyPaymentRecord.amount) : configuredAgencyInr;
+  const agencyDisplayFormatted = isAgencyFeePaid && agencyPaymentRecord?.amount
+    ? `₹${Number(agencyPaymentRecord.amount).toLocaleString('en-IN')}`
+    : formatFeeEURandINR(rawAgencyFeeStr);
   const agencyFeeDesc = appliedUniversity?.agency_fee_description || 'FEREX Comprehensive Admissions Processing, Document Legalization Guidance & Offer Letter Handling';
 
   const agencyFeeItem: PaymentItem = {
     id: 'fee-agency-processing',
     itemType: 'agency_fee',
-    title: `Agency Processing Fee (${formatFeeEURandINR(rawAgencyFeeStr)})`,
+    title: `Agency Processing Fee (${agencyDisplayFormatted})`,
     stageName: 'Admissions Processing & Consular Support',
-    amount: agencyFeeInr,
-    amountFormatted: formatFeeEURandINR(rawAgencyFeeStr),
+    amount: agencyDisplayAmount,
+    amountFormatted: agencyDisplayFormatted,
     description: agencyFeeDesc,
-    dueDateStr: 'Due After Offer Letter Released',
+    dueDateStr: isAgencyFeePaid ? 'Settled & Verified' : 'Due on University Application Lodging',
     status: isAgencyFeePaid
       ? 'Paid'
       : agencyPaymentRecord?.status === 'Pending Verification'
       ? 'Pending Verification'
       : agencyPaymentRecord?.status === 'Rejected'
       ? 'Rejected'
-      : isAdvFeePaid
-      ? 'Pending'
-      : 'Upcoming',
-    unlocked: isAdvFeePaid,
+      : 'Pending',
+    unlocked: true,
     notes: agencyPaymentRecord?.reviewer_notes,
     utr: agencyPaymentRecord?.utr_number,
   };
 
-  // 5. Build Payment Items 3: University Tuition Installments & Verification Schedule
+  // 5. Item 3: VFS / Visa Gov Fee (Varies upon Country & Embassy)
+  const rawVfsFeeStr = appliedUniversity?.vfs_fee || config.default_vfs_fee || '₹15,000';
+  const configuredVfsInr = parseFeeToINR(rawVfsFeeStr);
+  const vfsDisplayAmount = isVfsFeePaid && vfsPaymentRecord?.amount ? Number(vfsPaymentRecord.amount) : configuredVfsInr;
+  const vfsDisplayFormatted = isVfsFeePaid && vfsPaymentRecord?.amount
+    ? `₹${Number(vfsPaymentRecord.amount).toLocaleString('en-IN')}`
+    : formatFeeEURandINR(rawVfsFeeStr);
+
+  const vfsFeeItem: PaymentItem = {
+    id: 'fee-vfs-gov',
+    itemType: 'vfs_fee',
+    title: `VFS / Visa Gov Fee (${vfsDisplayFormatted})`,
+    stageName: 'Embassy & VFS Biometrics Filing',
+    amount: vfsDisplayAmount,
+    amountFormatted: vfsDisplayFormatted,
+    description: 'Official government visa application charge, biometric enrolment, and consular appointment booking at VFS Global / Embassy.',
+    dueDateStr: isVfsFeePaid ? 'Settled & Verified' : 'Due Prior to Visa Appointment',
+    status: isVfsFeePaid
+      ? 'Paid'
+      : vfsPaymentRecord?.status === 'Pending Verification'
+      ? 'Pending Verification'
+      : vfsPaymentRecord?.status === 'Rejected'
+      ? 'Rejected'
+      : 'Pending',
+    unlocked: true,
+    notes: vfsPaymentRecord?.reviewer_notes,
+    utr: vfsPaymentRecord?.utr_number,
+  };
+
+  // 6. Item 4: University Tuition Fee / Installments
   const installmentsEnabled = appliedUniversity ? (appliedUniversity.installments_enabled !== false) : true;
-  const universityInstallmentsConfig: PaymentInstallment[] = (appliedUniversity?.installments && appliedUniversity.installments.length > 0)
-    ? appliedUniversity.installments
-    : [
-        {
-          id: 'inst-default-1',
-          title: 'Tuition Installment #1 (Initial Seat Deposit)',
-          amount: appliedUniversity?.tuition_range ? '50% of Tuition' : '€1,500',
-          due_stage: 'On Offer Letter Approval',
-          verification_requirement: 'Bank SWIFT Transfer Receipt Upload',
-        },
-        {
-          id: 'inst-default-2',
-          title: 'Tuition Installment #2 (Balance Tuition Fee)',
-          amount: appliedUniversity?.tuition_range ? '50% of Tuition' : '€1,700',
-          due_stage: 'Prior to Visa Filing / On Arrival',
-          verification_requirement: 'University Fee Clearance Ledger Confirmation',
-        }
-      ];
+  const hasMultipleInstallments = Boolean(appliedUniversity?.installments && appliedUniversity.installments.length >= 2);
 
+  // Single University Tuition Fee Item
+  const rawTuitionStr = appliedUniversity?.university_fee || appliedUniversity?.tuition_range || '€3,500 / yr';
+  const configuredTuitionInr = parseFeeToINR(rawTuitionStr);
+  const tuitionDisplayAmount = isTuitionSinglePaid && tuitionSingleRecord?.amount ? Number(tuitionSingleRecord.amount) : configuredTuitionInr;
+  const tuitionDisplayFormatted = isTuitionSinglePaid && tuitionSingleRecord?.amount
+    ? `₹${Number(tuitionSingleRecord.amount).toLocaleString('en-IN')}`
+    : formatFeeEURandINR(rawTuitionStr);
+
+  const singleTuitionItem: PaymentItem = {
+    id: 'fee-university-tuition-single',
+    itemType: 'tuition_installment',
+    title: `University Tuition Fee (${tuitionDisplayFormatted})`,
+    stageName: 'Direct University Tuition / Seat Confirmation',
+    amount: tuitionDisplayAmount,
+    amountFormatted: tuitionDisplayFormatted,
+    description: `Annual institutional tuition fee for ${selectedUniversityName}. Direct university bank SWIFT transfer proof or online fee settlement.`,
+    dueDateStr: isTuitionSinglePaid ? 'Settled & Verified' : 'Due on Unconditional Offer / Prior to Visa Stamping',
+    status: isTuitionSinglePaid
+      ? 'Paid'
+      : tuitionSingleRecord?.status === 'Pending Verification'
+      ? 'Pending Verification'
+      : tuitionSingleRecord?.status === 'Rejected'
+      ? 'Rejected'
+      : 'Pending',
+    unlocked: true,
+    notes: tuitionSingleRecord?.reviewer_notes,
+    utr: tuitionSingleRecord?.utr_number,
+  };
+
+  // Multiple Milestone Tuition Items (if university has configured 2+ milestones)
   const tuitionInstallmentItems: PaymentItem[] = useMemo(() => {
-    if (!installmentsEnabled) return [];
+    if (!installmentsEnabled || !hasMultipleInstallments || !appliedUniversity?.installments) return [];
 
-    return universityInstallmentsConfig.map((inst, index) => {
+    return appliedUniversity.installments.map((inst, index) => {
       const instRecord = dbPayments.find(p => {
         if ((p as any).installment_id === inst.id) return true;
-        const text = (String(p.title || '') + ' ' + String(p.description || '')).toLowerCase();
+        const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
         return (inst.title && text.includes(inst.title.toLowerCase())) ||
-               text.includes(`tuition installment #${index + 1}`) ||
-               text.includes(`installment ${index + 1}`) ||
-               (p as any).stage_number === index + 2;
+               text.includes(`installment #${index + 1}`) ||
+               text.includes(`tuition installment #${index + 1}`);
       });
 
       const isPaid = instRecord?.status === 'Paid' || instRecord?.status === 'Verified';
       const isPendingVerification = instRecord?.status === 'Pending Verification';
       const isRejected = instRecord?.status === 'Rejected';
 
-      const rawAmountStr = String(inst.amount || '€1,500');
-      const numMatch = rawAmountStr.replace(/,/g, '').match(/\d+/);
-      const parsedNum = numMatch ? parseInt(numMatch[0], 10) : 1500;
-      const amountInr = rawAmountStr.includes('€') ? parsedNum * 90 : parsedNum;
-
-      // Stage unlocked if previous stages cleared
-      const previousPaid = index === 0 ? isAdvFeePaid : (
-        dbPayments.some(p => (p.status === 'Paid' || p.status === 'Verified') && String(p.title).includes(`Installment #${index}`))
-      );
+      const rawAmountStr = String(inst.amount || '€1,750');
+      const amountInr = isPaid && instRecord?.amount ? Number(instRecord.amount) : parseFeeToINR(rawAmountStr);
+      const amountFormatted = isPaid && instRecord?.amount ? `₹${Number(instRecord.amount).toLocaleString('en-IN')}` : formatFeeEURandINR(rawAmountStr);
 
       return {
         id: inst.id || `inst-${index + 1}`,
@@ -233,8 +345,8 @@ export const Payments: React.FC = () => {
         title: inst.title || `Tuition Installment #${index + 1}`,
         stageName: inst.due_stage || 'Tuition Milestone',
         amount: amountInr,
-        amountFormatted: formatFeeEURandINR(inst.amount),
-        description: `Institutional tuition fee milestone for ${selectedUniversityName}. Verification Schedule Trigger: ${inst.due_stage || 'On Offer Letter Approval'}.`,
+        amountFormatted,
+        description: `Institutional tuition fee milestone for ${selectedUniversityName}. Verification Schedule Trigger: ${inst.due_stage || 'On Unconditional Offer'}.`,
         dueDateStr: inst.due_stage || 'Milestone Verification',
         verificationRequirement: inst.verification_requirement || 'SWIFT Transfer Receipt Upload',
         status: isPaid
@@ -243,21 +355,35 @@ export const Payments: React.FC = () => {
           ? 'Pending Verification'
           : isRejected
           ? 'Rejected'
-          : previousPaid
-          ? 'Pending'
-          : 'Upcoming',
-        unlocked: Boolean(previousPaid),
+          : 'Pending',
+        unlocked: true,
         notes: instRecord?.reviewer_notes,
         utr: instRecord?.utr_number,
       };
     });
-  }, [installmentsEnabled, universityInstallmentsConfig, dbPayments, isAdvFeePaid, selectedUniversityName]);
+  }, [installmentsEnabled, hasMultipleInstallments, appliedUniversity, dbPayments, selectedUniversityName]);
 
-  // Financial Outlay Totals
-  const totalDueAmount = advFeeItem.amount + (hasCourseSelected ? agencyFeeItem.amount : 0) + tuitionInstallmentItems.reduce((acc, i) => acc + i.amount, 0);
+  // 7. Financial Outlay Totals
+  const tuitionTotalDue = installmentsEnabled
+    ? (hasMultipleInstallments ? tuitionInstallmentItems.reduce((acc, i) => acc + i.amount, 0) : singleTuitionItem.amount)
+    : 0;
+
+  const tuitionTotalPaid = installmentsEnabled
+    ? (hasMultipleInstallments
+        ? tuitionInstallmentItems.filter(i => i.status === 'Paid').reduce((acc, i) => acc + i.amount, 0)
+        : (singleTuitionItem.status === 'Paid' ? singleTuitionItem.amount : 0))
+    : 0;
+
+  const totalDueAmount = advFeeItem.amount +
+    (hasCourseSelected ? agencyFeeItem.amount : 0) +
+    (hasCourseSelected ? vfsFeeItem.amount : 0) +
+    (hasCourseSelected ? tuitionTotalDue : 0);
+
   const totalPaidAmount = (advFeeItem.status === 'Paid' ? advFeeItem.amount : 0) +
-                          (agencyFeeItem.status === 'Paid' ? agencyFeeItem.amount : 0) +
-                          tuitionInstallmentItems.filter(i => i.status === 'Paid').reduce((acc, i) => acc + i.amount, 0);
+    (hasCourseSelected && agencyFeeItem.status === 'Paid' ? agencyFeeItem.amount : 0) +
+    (hasCourseSelected && vfsFeeItem.status === 'Paid' ? vfsFeeItem.amount : 0) +
+    (hasCourseSelected ? tuitionTotalPaid : 0);
+
   const totalPendingAmount = Math.max(0, totalDueAmount - totalPaidAmount);
 
   // Modal Submission Handlers
@@ -300,22 +426,28 @@ export const Payments: React.FC = () => {
       const studentNameVal = profile?.full_name || user?.email?.split('@')[0] || 'Student';
       const methodLabel = gatewayType === 'card' ? 'Debit/Credit Card' : gatewayType === 'upi' ? `UPI (${upiId || 'GPay'})` : 'NetBanking';
 
+      const paymentTypeLabel = selectedItem.itemType === 'advanced_registration'
+        ? 'Advanced Registration Fee'
+        : selectedItem.itemType === 'agency_fee'
+        ? 'Agency Processing Fee'
+        : selectedItem.itemType === 'vfs_fee'
+        ? 'VFS / Visa Gov Fee'
+        : selectedItem.installmentIndex
+        ? `Tuition Installment #${selectedItem.installmentIndex}`
+        : 'University Tuition Fee';
+
       const completedPayment = await processPayment({
         student_id: studentIdVal,
         student_name: studentNameVal,
         title: selectedItem.title,
         amount: selectedItem.amount,
-        payment_type: selectedItem.itemType === 'advanced_registration'
-          ? 'Advanced Registration Fee'
-          : selectedItem.itemType === 'agency_fee'
-          ? 'Agency Processing Fee'
-          : `Tuition Installment #${selectedItem.installmentIndex || 1}`,
+        payment_type: paymentTypeLabel,
         payment_method: `Direct: ${methodLabel}`,
       });
 
       setIsSubmitting(false);
       setSelectedItem(null);
-      showToast(`Payment of ₹${selectedItem.amount.toLocaleString()} submitted and logged for verification.`);
+      showToast(`Payment of ₹${selectedItem.amount.toLocaleString('en-IN')} submitted and logged for verification.`);
 
       // Trigger automatic branded PDF download
       const generatedInvoiceNo = `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -357,16 +489,22 @@ export const Payments: React.FC = () => {
       const studentIdVal = user?.id || 'demo-student-id';
       const studentNameVal = profile?.full_name || user?.email?.split('@')[0] || 'Student';
 
+      const paymentTypeLabel = selectedItem.itemType === 'advanced_registration'
+        ? 'Advanced Registration Fee'
+        : selectedItem.itemType === 'agency_fee'
+        ? 'Agency Processing Fee'
+        : selectedItem.itemType === 'vfs_fee'
+        ? 'VFS / Visa Gov Fee'
+        : selectedItem.installmentIndex
+        ? `Tuition Installment #${selectedItem.installmentIndex}`
+        : 'University Tuition Fee';
+
       await submitProof({
         student_id: studentIdVal,
         student_name: studentNameVal,
         title: selectedItem.title,
         amount: selectedItem.amount,
-        payment_type: selectedItem.itemType === 'advanced_registration'
-          ? 'Advanced Registration Fee'
-          : selectedItem.itemType === 'agency_fee'
-          ? 'Agency Processing Fee'
-          : `Tuition Installment #${selectedItem.installmentIndex || 1}`,
+        payment_type: paymentTypeLabel,
         payment_method: payMethod,
         utr_number: utrNumber.trim(),
         receipt_url: receiptUrl || 'https://via.placeholder.com/150?text=Payment+Receipt',
@@ -436,7 +574,7 @@ export const Payments: React.FC = () => {
             Fee & Payment Schedule
           </h1>
           <p className="text-xs text-slate-500 font-semibold mt-0.5">
-            Manage your Advanced Registration Fee, University Agency Processing, and Tuition Installments.
+            Manage your Advanced Registration Fee, Agency Processing, VFS Visa Fee, and University Tuition Schedule.
           </p>
         </div>
 
@@ -456,7 +594,7 @@ export const Payments: React.FC = () => {
         <Card className="p-4 border border-slate-200/80 bg-white">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-semibold text-slate-500">Total Program Outlay</span>
-            <span className="text-[10px] font-bold text-slate-400">Includes Tuition</span>
+            <span className="text-[10px] font-bold text-slate-400">Total All Stages</span>
           </div>
           <span className="text-2xl font-black text-slate-900 leading-none">
             ₹{totalDueAmount.toLocaleString('en-IN')}
@@ -485,17 +623,17 @@ export const Payments: React.FC = () => {
         <Card className="p-4 border border-slate-200/80 bg-white">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-semibold text-slate-500">Pending Balance</span>
-            <Badge variant="neutral">Milestones</Badge>
+            <Badge variant="neutral">Open Schedule</Badge>
           </div>
           <span className="text-2xl font-black text-slate-900 leading-none">
             ₹{totalPendingAmount.toLocaleString('en-IN')}
           </span>
-          <span className="text-xs text-slate-400 block mt-2">Due across subsequent milestone phases</span>
+          <span className="text-xs text-slate-400 block mt-2">Remaining balance across open stages</span>
         </Card>
       </div>
 
       {/* ─────────────────────────────────────────────────────────── */}
-      {/* ── SECTION 1: Advanced Registration Fee (Default Onboarding) ── */}
+      {/* ── SECTION 1: Advanced Registration Fee (Default Intake) ── */}
       {/* ─────────────────────────────────────────────────────────── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
@@ -510,7 +648,7 @@ export const Payments: React.FC = () => {
               Includes 18% GST (SAC 9983)
             </span>
           </div>
-          <span className="text-xs text-slate-400 font-semibold">Default Platform Onboarding Deposit</span>
+          <span className="text-xs text-slate-400 font-semibold">Fee & Financial Governance</span>
         </div>
 
         <Card
@@ -646,10 +784,10 @@ export const Payments: React.FC = () => {
               02
             </span>
             <h2 className="text-sm font-black text-slate-900">
-              Agency Processing Fee
+              Separate Agency Processing Fee
             </h2>
             <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
-              Customized per University
+              Configured per University
             </span>
           </div>
           <span className="text-xs text-slate-400 font-semibold">Admissions & Visa Filing Support</span>
@@ -670,13 +808,12 @@ export const Payments: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-200">
-                  {selectedUniversityName} Admissions Support
+                  {selectedUniversityName} Admissions Processing
                 </span>
                 {agencyFeeItem.status === 'Paid' && <Badge variant="success" dot>Paid & Cleared</Badge>}
                 {agencyFeeItem.status === 'Pending Verification' && <Badge variant="brand" dot>In Verification</Badge>}
                 {agencyFeeItem.status === 'Rejected' && <Badge variant="error" dot>Action Required</Badge>}
                 {agencyFeeItem.status === 'Pending' && <Badge variant="neutral">Payment Due</Badge>}
-                {agencyFeeItem.status === 'Upcoming' && <Badge variant="neutral">Unlocks After Registration</Badge>}
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-2">
@@ -705,14 +842,24 @@ export const Payments: React.FC = () => {
 
             <div className="pt-4 border-t border-slate-100 mt-2">
               {agencyFeeItem.status === 'Paid' ? (
-                <div className="w-full h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Agency Processing Fee Cleared
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Agency Processing Cleared
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownloadInvoice(agencyFeeItem)}
+                    leftIcon={<FileText className="w-3.5 h-3.5" />}
+                  >
+                    PDF Receipt
+                  </Button>
                 </div>
               ) : agencyFeeItem.status === 'Pending Verification' ? (
                 <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Review
                 </div>
-              ) : agencyFeeItem.unlocked ? (
+              ) : (
                 <div className="flex flex-col sm:flex-row gap-2.5">
                   <Button
                     size="sm"
@@ -720,7 +867,7 @@ export const Payments: React.FC = () => {
                     onClick={() => setOnlinePayItem(agencyFeeItem)}
                     leftIcon={<QrCode className="w-3.5 h-3.5" />}
                   >
-                    Settle Agency Fee Online
+                    Pay Agency Fee Online
                   </Button>
                   <Button
                     size="sm"
@@ -733,10 +880,6 @@ export const Payments: React.FC = () => {
                   >
                     Upload Bank Transfer Proof
                   </Button>
-                </div>
-              ) : (
-                <div className="w-full h-9 bg-slate-100 text-slate-400 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5" /> Complete Advanced Registration Fee to Unlock
                 </div>
               )}
             </div>
@@ -759,27 +902,159 @@ export const Payments: React.FC = () => {
       </div>
 
       {/* ─────────────────────────────────────────────────────────── */}
-      {/* ── SECTION 3: University Tuition Installments & Verification ─ */}
+      {/* ── SECTION 3: VFS / Visa Gov Fee ───────────────────────── */}
+      {/* ─────────────────────────────────────────────────────────── */}
+      <div className="space-y-3 pt-2">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-emerald-700 text-white font-bold flex items-center justify-center text-xs">
+              03
+            </span>
+            <h2 className="text-sm font-black text-slate-900">
+              VFS / Visa Gov Fee
+            </h2>
+            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              Embassy & Biometrics
+            </span>
+          </div>
+          <span className="text-xs text-slate-400 font-semibold">Government Consular Fee</span>
+        </div>
+
+        {hasCourseSelected ? (
+          <Card
+            className={`p-5 flex flex-col justify-between transition-all select-none relative bg-white border ${
+              vfsFeeItem.status === 'Paid'
+                ? 'border-emerald-200/80 bg-emerald-50/10'
+                : vfsFeeItem.status === 'Pending Verification'
+                ? 'border-amber-200/80 bg-amber-50/10'
+                : vfsFeeItem.status === 'Rejected'
+                ? 'border-red-200/80 bg-red-50/10'
+                : 'border-emerald-200/80 shadow-xs'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+                  Consular Visa & Biometrics Fee
+                </span>
+                {vfsFeeItem.status === 'Paid' && <Badge variant="success" dot>Paid & Cleared</Badge>}
+                {vfsFeeItem.status === 'Pending Verification' && <Badge variant="brand" dot>In Verification</Badge>}
+                {vfsFeeItem.status === 'Rejected' && <Badge variant="error" dot>Action Required</Badge>}
+                {vfsFeeItem.status === 'Pending' && <Badge variant="neutral">Payment Due</Badge>}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-2">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 leading-snug">{vfsFeeItem.title}</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">{vfsFeeItem.description}</p>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left sm:text-right shrink-0">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">VFS / Visa Outlay</span>
+                  <span className="text-2xl font-black text-slate-900">
+                    {vfsFeeItem.amountFormatted}
+                  </span>
+                </div>
+              </div>
+
+              {vfsFeeItem.status === 'Pending Verification' && (
+                <div className="p-3 mb-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
+                  <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block">Under Verification</span>
+                    Reference UTR: <span className="font-mono font-semibold">{vfsFeeItem.utr || 'Logged'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 mt-2">
+              {vfsFeeItem.status === 'Paid' ? (
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> VFS / Visa Fee Cleared
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownloadInvoice(vfsFeeItem)}
+                    leftIcon={<FileText className="w-3.5 h-3.5" />}
+                  >
+                    PDF Receipt
+                  </Button>
+                </div>
+              ) : vfsFeeItem.status === 'Pending Verification' ? (
+                <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Review
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
+                    onClick={() => setOnlinePayItem(vfsFeeItem)}
+                    leftIcon={<QrCode className="w-3.5 h-3.5" />}
+                  >
+                    Pay VFS / Visa Fee Online
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedItem(vfsFeeItem);
+                      setUtrNumber('');
+                    }}
+                    leftIcon={<Upload className="w-3.5 h-3.5" />}
+                  >
+                    Upload Payment Proof
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+        ) : (
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div>
+              <h3 className="font-bold text-slate-800">Select Destination University</h3>
+              <p className="text-slate-500 mt-0.5">
+                VFS / Visa Gov Fee is configured based on destination country and consular embassy.
+              </p>
+            </div>
+            <Link to="/student/select-university">
+              <Button size="sm" variant="outline" rightIcon={<ChevronRight className="w-3.5 h-3.5" />}>
+                Browse Universities
+              </Button>
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────── */}
+      {/* ── SECTION 4: University Tuition Fee & Milestone Schedule ─ */}
       {/* ─────────────────────────────────────────────────────────── */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
           <div className="flex items-center gap-2">
             <span className="w-6 h-6 rounded-lg bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
-              03
+              04
             </span>
             <h2 className="text-sm font-black text-slate-900">
-              Tuition Installments & Verification Schedule
+              University Tuition Fee
             </h2>
+            {installmentsEnabled && hasMultipleInstallments && (
+              <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                Milestone Schedule Active
+              </span>
+            )}
           </div>
-          <span className="text-xs text-slate-400 font-semibold">University Fee Distribution</span>
+          <span className="text-xs text-slate-400 font-semibold">Institutional Tuition Settlement</span>
         </div>
 
         {!hasCourseSelected ? (
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-2">
             <Building2 className="w-8 h-8 text-slate-400 mx-auto" />
-            <h3 className="text-xs font-bold text-slate-800">Institution-Specific Tuition Installments</h3>
+            <h3 className="text-xs font-bold text-slate-800">Institution-Specific Tuition Schedule</h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Please choose your destination university in the <strong>Select University</strong> catalog to view the university's official tuition installment milestones and verification schedule triggers.
+              Please choose your destination university in the <strong>Select University</strong> catalog to view the university's official tuition schedule and verification triggers.
             </p>
             <div className="pt-1">
               <Link to="/student/select-university">
@@ -790,20 +1065,18 @@ export const Payments: React.FC = () => {
             </div>
           </div>
         ) : !installmentsEnabled ? (
-          <div className="p-5 bg-amber-50/70 border border-amber-200/90 rounded-2xl space-y-1.5 text-xs text-amber-900">
+          /* Direct Institutional Payment Mode (Toggle Turned Off by Admin) */
+          <div className="p-5 bg-amber-50/70 border border-amber-200/90 rounded-2xl space-y-2 text-xs text-amber-900">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               <h3 className="font-bold text-sm text-slate-900">Direct Institutional Payment Configured</h3>
             </div>
             <p className="text-slate-600 leading-relaxed">
-              Tuition fees for <strong>{selectedUniversityName}</strong> are settled directly with the university's official bank account prior to visa filing or upon arrival. No platform tuition installment submissions are required.
+              Tuition fees for <strong>{selectedUniversityName}</strong> ({formatFeeEURandINR(appliedUniversity?.university_fee || appliedUniversity?.tuition_range)}) are settled directly with the university's official bank account prior to visa filing or upon arrival. Students are not required to submit portal installment proofs.
             </p>
           </div>
-        ) : tuitionInstallmentItems.length === 0 ? (
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500">
-            No installment milestones defined for this university.
-          </div>
-        ) : (
+        ) : hasMultipleInstallments ? (
+          /* Milestone-wise Tuition Installments */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {tuitionInstallmentItems.map((inst) => {
               const isPaid = inst.status === 'Paid';
@@ -821,9 +1094,7 @@ export const Payments: React.FC = () => {
                       ? 'border-amber-200/80 bg-amber-50/10'
                       : isRejected
                       ? 'border-red-200/80 bg-red-50/10'
-                      : isPending
-                      ? 'border-[#58051E]/30 shadow-subtle'
-                      : 'border-slate-200/60 bg-slate-50/50 opacity-75'
+                      : 'border-[#58051E]/30 shadow-subtle'
                   }`}
                 >
                   <div>
@@ -835,9 +1106,6 @@ export const Payments: React.FC = () => {
                       {isPendingVerification && <Badge variant="brand" dot>In Verification</Badge>}
                       {isRejected && <Badge variant="error" dot>Action Required</Badge>}
                       {isPending && <Badge variant="neutral">Pending</Badge>}
-                      {!isPaid && !isPendingVerification && !isRejected && !isPending && (
-                        <Badge variant="neutral">Locked</Badge>
-                      )}
                     </div>
 
                     <h3 className="text-sm font-bold text-slate-900 leading-snug mb-1">{inst.title}</h3>
@@ -860,14 +1128,24 @@ export const Payments: React.FC = () => {
 
                   <div className="pt-3 border-t border-slate-100 mt-2">
                     {isPaid ? (
-                      <div className="w-full h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Verified & Cleared
+                      <div className="flex flex-col sm:flex-row items-center gap-3">
+                        <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Verified & Cleared
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownloadInvoice(inst)}
+                          leftIcon={<FileText className="w-3.5 h-3.5" />}
+                        >
+                          PDF Receipt
+                        </Button>
                       </div>
                     ) : isPendingVerification ? (
                       <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Verification
                       </div>
-                    ) : inst.unlocked ? (
+                    ) : (
                       <div className="flex gap-2">
                         <Button
                           size="sm"
@@ -889,16 +1167,104 @@ export const Payments: React.FC = () => {
                           Upload Proof
                         </Button>
                       </div>
-                    ) : (
-                      <div className="w-full h-9 bg-slate-100 text-slate-400 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
-                        <Lock className="w-3.5 h-3.5" /> Complete Prior Stages to Unlock
-                      </div>
                     )}
                   </div>
                 </Card>
               );
             })}
           </div>
+        ) : (
+          /* Single University Tuition Fee Card */
+          <Card
+            className={`p-5 flex flex-col justify-between transition-all select-none relative bg-white border ${
+              singleTuitionItem.status === 'Paid'
+                ? 'border-emerald-200/80 bg-emerald-50/10'
+                : singleTuitionItem.status === 'Pending Verification'
+                ? 'border-amber-200/80 bg-amber-50/10'
+                : singleTuitionItem.status === 'Rejected'
+                ? 'border-red-200/80 bg-red-50/10'
+                : 'border-[#58051E]/30 shadow-subtle'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#58051E] bg-[#58051E]/10 px-2.5 py-1 rounded-md">
+                  {selectedUniversityName} Full Tuition Fee
+                </span>
+                {singleTuitionItem.status === 'Paid' && <Badge variant="success" dot>Paid & Cleared</Badge>}
+                {singleTuitionItem.status === 'Pending Verification' && <Badge variant="brand" dot>In Verification</Badge>}
+                {singleTuitionItem.status === 'Rejected' && <Badge variant="error" dot>Action Required</Badge>}
+                {singleTuitionItem.status === 'Pending' && <Badge variant="neutral">Payment Due</Badge>}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-2">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 leading-snug">{singleTuitionItem.title}</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">{singleTuitionItem.description}</p>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left sm:text-right shrink-0">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Annual Tuition</span>
+                  <span className="text-2xl font-black text-slate-900">
+                    {singleTuitionItem.amountFormatted}
+                  </span>
+                </div>
+              </div>
+
+              {singleTuitionItem.status === 'Pending Verification' && (
+                <div className="p-3 mb-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
+                  <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block">Under Compliance Review</span>
+                    Reference UTR: <span className="font-mono font-semibold">{singleTuitionItem.utr || 'Logged'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 mt-2">
+              {singleTuitionItem.status === 'Paid' ? (
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Settled & Verified
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownloadInvoice(singleTuitionItem)}
+                    leftIcon={<FileText className="w-3.5 h-3.5" />}
+                  >
+                    PDF Receipt
+                  </Button>
+                </div>
+              ) : singleTuitionItem.status === 'Pending Verification' ? (
+                <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Verification
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold"
+                    onClick={() => setOnlinePayItem(singleTuitionItem)}
+                    leftIcon={<QrCode className="w-3.5 h-3.5" />}
+                  >
+                    Pay Tuition Online
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedItem(singleTuitionItem);
+                      setUtrNumber('');
+                    }}
+                    leftIcon={<Upload className="w-3.5 h-3.5" />}
+                  >
+                    Upload SWIFT / Wire Proof
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
         )}
       </div>
 
@@ -1102,32 +1468,32 @@ export const Payments: React.FC = () => {
                       type="text"
                       value={utrNumber}
                       onChange={(e) => setUtrNumber(e.target.value)}
-                      placeholder="e.g. 423984729182"
-                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      placeholder="e.g. 429381029384"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-semibold text-slate-900 focus:outline-none focus:bg-white"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Payment Method Used</label>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Select Payment Channel</label>
                     <select
                       value={payMethod}
                       onChange={(e) => setPayMethod(e.target.value)}
-                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none cursor-pointer"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none"
                     >
                       <option value="UPI / GPay / PhonePe">UPI / PhonePe / GPay</option>
-                      <option value="NEFT / RTGS Bank Transfer">NEFT / RTGS Bank Wire</option>
-                      <option value="IMPS Immediate Payment">IMPS Transfer</option>
-                      <option value="International SWIFT Wire">International SWIFT Wire</option>
+                      <option value="Direct NEFT / IMPS Bank Wire">Direct NEFT / IMPS Bank Wire</option>
+                      <option value="International SWIFT Wire">International SWIFT Wire (EUR / USD)</option>
+                      <option value="Cash Receipt at Admissions Desk">Cash Receipt at Admissions Desk</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Upload Receipt Screenshot (PDF, JPG)</label>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Upload Receipt Proof (Optional)</label>
                     <input
                       type="file"
-                      accept="image/*,.pdf"
+                      accept="image/*,application/pdf"
                       onChange={handleFileUpload}
-                      className="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer"
+                      className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#58051E]/10 file:text-[#58051E] hover:file:bg-[#58051E]/20"
                     />
                   </div>
 
@@ -1145,7 +1511,7 @@ export const Payments: React.FC = () => {
                       disabled={isSubmitting}
                       className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold"
                     >
-                      {isSubmitting ? 'Uploading...' : 'Submit Proof'}
+                      {isSubmitting ? 'Submitting...' : 'Submit Proof'}
                     </Button>
                   </div>
                 </form>
@@ -1155,7 +1521,7 @@ export const Payments: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Invoice Viewer Modal */}
+      {/* View Invoicing Modal */}
       {viewInvoice && (
         <InvoiceModal
           isOpen={Boolean(viewInvoice)}
@@ -1166,3 +1532,4 @@ export const Payments: React.FC = () => {
     </div>
   );
 };
+export default Payments;
