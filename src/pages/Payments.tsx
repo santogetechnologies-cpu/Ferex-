@@ -285,8 +285,8 @@ export const Payments: React.FC = () => {
   };
 
   // 6. Item 4: University Tuition Fee / Installments
-  const installmentsEnabled = appliedUniversity ? (appliedUniversity.installments_enabled !== false) : true;
-  const hasMultipleInstallments = Boolean(appliedUniversity?.installments && appliedUniversity.installments.length >= 2);
+  const installmentsEnabled = Boolean(appliedUniversity?.installments_enabled);
+  const hasMultipleInstallments = Boolean(appliedUniversity?.installments && appliedUniversity.installments.length > 0);
 
   // Single University Tuition Fee Item
   const rawTuitionStr = appliedUniversity?.university_fee || appliedUniversity?.tuition_range || '€3,500 / yr';
@@ -317,15 +317,19 @@ export const Payments: React.FC = () => {
     utr: tuitionSingleRecord?.utr_number,
   };
 
-  // Multiple Milestone Tuition Items (if university has configured 2+ milestones)
+  // Multiple Milestone Tuition Items (if university has configured milestone schedule)
   const tuitionInstallmentItems: PaymentItem[] = useMemo(() => {
     if (!installmentsEnabled || !hasMultipleInstallments || !appliedUniversity?.installments) return [];
 
     return appliedUniversity.installments.map((inst, index) => {
+      const instTitle = inst.title || inst.name || `Tuition Installment #${index + 1}`;
+      const instStage = inst.due_stage || inst.due_trigger || 'Tuition Milestone';
+
       const instRecord = dbPayments.find(p => {
         if ((p as any).installment_id === inst.id) return true;
         const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
-        return (inst.title && text.includes(inst.title.toLowerCase())) ||
+        return (instTitle && text.includes(instTitle.toLowerCase())) ||
+               (inst.name && text.includes(inst.name.toLowerCase())) ||
                text.includes(`installment #${index + 1}`) ||
                text.includes(`tuition installment #${index + 1}`);
       });
@@ -342,12 +346,12 @@ export const Payments: React.FC = () => {
         id: inst.id || `inst-${index + 1}`,
         itemType: 'tuition_installment',
         installmentIndex: index + 1,
-        title: inst.title || `Tuition Installment #${index + 1}`,
-        stageName: inst.due_stage || 'Tuition Milestone',
+        title: instTitle,
+        stageName: instStage,
         amount: amountInr,
         amountFormatted,
-        description: `Institutional tuition fee milestone for ${selectedUniversityName}. Verification Schedule Trigger: ${inst.due_stage || 'On Unconditional Offer'}.`,
-        dueDateStr: inst.due_stage || 'Milestone Verification',
+        description: `Institutional tuition fee milestone for ${selectedUniversityName}. Verification Schedule Trigger: ${instStage}.`,
+        dueDateStr: instStage,
         verificationRequirement: inst.verification_requirement || 'SWIFT Transfer Receipt Upload',
         status: isPaid
           ? 'Paid'

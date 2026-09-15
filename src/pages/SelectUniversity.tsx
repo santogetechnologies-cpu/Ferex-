@@ -127,13 +127,11 @@ export const SelectUniversity: React.FC = () => {
   const [intake, setIntake] = useState('October 2026');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculate Advance Fee for chosen country - NO DEFAULT
-  const effectiveCountryKey = selectedCountry !== 'All' ? selectedCountry : '';
-  const countryFeeConfig = effectiveCountryKey && config.country_fees?.[effectiveCountryKey] 
-    ? config.country_fees[effectiveCountryKey]
-    : config.country_fees?.[effectiveCountryKey.replace('United Kingdom', 'UK').replace('United States', 'USA')];
-  const requiredAdvanceInr = countryFeeConfig?.registration_fee_inr || config.advance_registration_fee_inr || 15000;
-  const requiredAdvanceEur = countryFeeConfig?.registration_fee_eur || config.advance_registration_fee_eur || 150;
+  // Calculate Advance Fee directly from Fee & Financial Governance
+  const requiredAdvanceInr = Number(config.advance_registration_fee_amount ?? config.advance_registration_fee_inr ?? 1500);
+  const requiredAdvanceEur = config.advance_registration_fee_currency === 'EUR' ? requiredAdvanceInr : Math.max(1, Math.round(requiredAdvanceInr / 90));
+
+  const effectiveCountryKey = selectedCountry === 'All' ? (profile?.country || 'Poland') : selectedCountry;
 
   // Payment status check (for informational display only - no blocking)
   const payment1Status = checkPaymentStage(payments, 1, effectiveCountryKey);

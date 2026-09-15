@@ -449,7 +449,7 @@ export const AdminUniversities: React.FC = () => {
     setVfsFee(config.default_vfs_fee || '€150');
     setAgencyFee(config.default_agency_fee || '€250');
     setAgencyFeeDescription('FEREX Admissions Processing, Document Legalization Guidance & Offer Letter Handling');
-    setInstallmentsEnabled(true);
+    setInstallmentsEnabled(false);
     setCourseProgramsList([
       { id: 'cp-1', name: 'B.Sc Computer Science & Engineering', degree_level: 'Bachelor', tuition_fee: '€3,000 / yr', duration: '3.5 Years' },
       { id: 'cp-2', name: 'M.Sc Artificial Intelligence & Data Systems', degree_level: 'Master', tuition_fee: '€3,500 / yr', duration: '2 Years' }
@@ -486,7 +486,7 @@ export const AdminUniversities: React.FC = () => {
     setVfsFee(u.vfs_fee || config.default_vfs_fee || '€150');
     setAgencyFee(u.agency_fee || config.default_agency_fee || '€250');
     setAgencyFeeDescription(u.agency_fee_description || 'FEREX Admissions Processing, Document Legalization Guidance & Offer Letter Handling');
-    setInstallmentsEnabled(u.installments_enabled !== false);
+    setInstallmentsEnabled(u.installments_enabled === true);
 
     if (u.course_programs && u.course_programs.length > 0) {
       setCourseProgramsList(u.course_programs);
@@ -502,7 +502,15 @@ export const AdminUniversities: React.FC = () => {
       );
     }
 
-    setInstallmentsList(u.installments || []);
+    setInstallmentsList(
+      (u.installments || []).map((inst, idx) => ({
+        id: inst.id || `inst_${idx + 1}`,
+        title: inst.title || inst.name || `Tuition Installment #${idx + 1}`,
+        amount: typeof inst.amount === 'number' ? `€${inst.amount}` : (inst.amount || '€1,000'),
+        due_stage: inst.due_stage || inst.due_trigger || (idx === 0 ? 'On Offer Letter Approval' : 'Prior to Visa Filing'),
+        verification_requirement: inst.verification_requirement || 'Bank SWIFT Transfer Receipt Upload'
+      }))
+    );
     setSemestersList(u.semesters || []);
     setActiveFormTab('general');
     setShowAddModal(true);

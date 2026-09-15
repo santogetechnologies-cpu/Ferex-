@@ -46,7 +46,7 @@ export const AdminPaymentControl: React.FC = () => {
   // Manual Bank Transfer Entry Form State
   const [bankStudentId, setBankStudentId] = useState('');
   const [bankAmount, setBankAmount] = useState('15000');
-  const [bankStage, setBankStage] = useState<1 | 2 | 3>(1);
+  const [bankStage, setBankStage] = useState<1 | 2 | 3 | 4>(1);
   const [bankUtr, setBankUtr] = useState('');
   const [bankName, setBankName] = useState('HDFC Bank');
   const [bankDate, setBankDate] = useState(new Date().toISOString().split('T')[0]);
@@ -224,15 +224,21 @@ export const AdminPaymentControl: React.FC = () => {
 
     setIsProcessing(true);
     try {
-      const stageLabel = bankStage === 1 ? 'Advanced Registration Fee' : bankStage === 2 ? 'Tuition Deposit' : 'Visa & Departure Clearance';
+      const stageMeta = {
+        1: { title: 'Advanced Registration Fee', type: 'Advanced Registration Fee' },
+        2: { title: 'Agency Processing Fee', type: 'Agency Processing Fee' },
+        3: { title: 'VFS / Visa Gov Fee', type: 'VFS / Visa Gov Fee' },
+        4: { title: 'University Tuition Fee', type: 'Tuition Fee' },
+      }[bankStage] || { title: 'Advanced Registration Fee', type: 'Advanced Registration Fee' };
+
       await createAndCompletePayment({
         student_id: bankStudentId,
         student_name: studentObj?.full_name || studentObj?.email?.split('@')[0] || 'Student',
-        title: `${stageLabel} - Direct Bank Wire`,
+        title: `${stageMeta.title} - Direct Bank Wire`,
         description: `Direct Bank Transfer via ${bankName}. UTR #${bankUtr || 'NEFT-' + Date.now().toString().slice(-6)} on ${bankDate}.`,
         amount: numAmt,
         currency: 'INR',
-        payment_type: 'Installment Fee',
+        payment_type: stageMeta.type,
         payment_method: 'Bank Wire Transfer',
         status: 'Paid',
         utr_number: bankUtr || `NEFT-${Date.now().toString().slice(-6)}`,
@@ -739,6 +745,36 @@ export const AdminPaymentControl: React.FC = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* 4 Standardized Payment Stages matching Student Portal */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Payment Category / Stage *</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { num: 1 as const, label: 'Advance Registration', sub: '01. Platform Intake', defAmt: '15000' },
+                      { num: 2 as const, label: 'Agency Processing', sub: '02. Admissions Support', defAmt: '25000' },
+                      { num: 3 as const, label: 'VFS / Visa Gov Fee', sub: '03. Embassy Filing', defAmt: '15000' },
+                      { num: 4 as const, label: 'University Tuition', sub: '04. Tuition Schedule', defAmt: '315000' },
+                    ].map(stage => (
+                      <button
+                        key={stage.num}
+                        type="button"
+                        onClick={() => {
+                          setBankStage(stage.num);
+                          setBankAmount(stage.defAmt);
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          bankStage === stage.num
+                            ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mb-0.5">{stage.sub}</div>
+                        <div className="text-xs font-bold truncate">{stage.label}</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

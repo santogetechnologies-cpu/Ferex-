@@ -25,13 +25,14 @@ export const BASELINE_UNIVERSITIES: University[] = [
     agency_fee: '₹25,000',
     living_cost_monthly: '€350 - €500 / mo',
     nawa_required: true,
+    installments_enabled: false,
     course_programs: [
       { id: 'prog-wut-1', name: 'B.Sc. Computer Science & Information Systems', degree: 'Bachelor', duration: '3.5 Years', tuition_fee: '€3,500 / yr', intake: 'October 2026', language: 'English' },
       { id: 'prog-wut-2', name: 'M.Sc. Artificial Intelligence & Data Science', degree: 'Master', duration: '2 Years', tuition_fee: '€4,000 / yr', intake: 'October 2026', language: 'English' }
     ],
     installments: [
-      { stage: 1, name: 'Tuition Deposit / Seat Confirmation', percentage: 50, amount: '€1,750', due_trigger: 'On Unconditional Offer' },
-      { stage: 2, name: 'Balance Semester 1 Tuition', percentage: 50, amount: '€1,750', due_trigger: 'Before Visa Stamping' }
+      { id: 'inst-wut-1', stage: 1, title: 'Tuition Deposit / Seat Confirmation', name: 'Tuition Deposit / Seat Confirmation', percentage: 50, amount: '€1,750', due_stage: 'On Unconditional Offer', due_trigger: 'On Unconditional Offer', verification_requirement: 'SWIFT Transfer Receipt Upload' },
+      { id: 'inst-wut-2', stage: 2, title: 'Balance Semester 1 Tuition', name: 'Balance Semester 1 Tuition', percentage: 50, amount: '€1,750', due_stage: 'Before Visa Stamping', due_trigger: 'Before Visa Stamping', verification_requirement: 'Bank Wire Confirmation' }
     ]
   },
   {
@@ -55,12 +56,13 @@ export const BASELINE_UNIVERSITIES: University[] = [
     agency_fee: '₹25,000',
     living_cost_monthly: '€350 - €500 / mo',
     nawa_required: true,
+    installments_enabled: false,
     course_programs: [
       { id: 'prog-vis-1', name: 'B.Sc. Software Development & Web Technologies', degree: 'Bachelor', duration: '3 Years', tuition_fee: '€3,000 / yr', intake: 'October 2026', language: 'English' },
       { id: 'prog-vis-2', name: 'B.A. International Business Management', degree: 'Bachelor', duration: '3 Years', tuition_fee: '€2,800 / yr', intake: 'October 2026', language: 'English' }
     ],
     installments: [
-      { stage: 1, name: 'Full Year 1 Tuition Payment', percentage: 100, amount: '€3,000', due_trigger: 'On Admission Acceptance' }
+      { id: 'inst-vis-1', stage: 1, title: 'Full Year 1 Tuition Payment', name: 'Full Year 1 Tuition Payment', percentage: 100, amount: '€3,000', due_stage: 'On Admission Acceptance', due_trigger: 'On Admission Acceptance', verification_requirement: 'SWIFT Transfer Receipt Upload' }
     ]
   },
   {
@@ -84,13 +86,14 @@ export const BASELINE_UNIVERSITIES: University[] = [
     agency_fee: '₹30,000',
     living_cost_monthly: '€850 - €1,100 / mo',
     nawa_required: false,
+    installments_enabled: false,
     course_programs: [
       { id: 'prog-tum-1', name: 'M.Sc. Data Engineering and Analytics', degree: 'Master', duration: '2 Years', tuition_fee: '€4,500 / yr', intake: 'October 2026', language: 'English' },
       { id: 'prog-tum-2', name: 'B.Sc. Management and Data Science', degree: 'Bachelor', duration: '3 Years', tuition_fee: '€4,000 / yr', intake: 'October 2026', language: 'English' }
     ],
     installments: [
-      { stage: 1, name: 'Semester 1 Administrative & Tuition Contribution', percentage: 50, amount: '€2,250', due_trigger: 'On Unconditional Enrollment' },
-      { stage: 2, name: 'Semester 2 Contribution', percentage: 50, amount: '€2,250', due_trigger: 'End of Semester 1' }
+      { id: 'inst-tum-1', stage: 1, title: 'Semester 1 Contribution', name: 'Semester 1 Administrative & Tuition Contribution', percentage: 50, amount: '€2,250', due_stage: 'On Unconditional Enrollment', due_trigger: 'On Unconditional Enrollment', verification_requirement: 'University Fee Receipt' },
+      { id: 'inst-tum-2', stage: 2, title: 'Semester 2 Contribution', name: 'Semester 2 Contribution', percentage: 50, amount: '€2,250', due_stage: 'End of Semester 1', due_trigger: 'End of Semester 1', verification_requirement: 'Bank Wire Confirmation' }
     ]
   },
   {
@@ -114,12 +117,13 @@ export const BASELINE_UNIVERSITIES: University[] = [
     agency_fee: '₹30,000',
     living_cost_monthly: '€850 - €1,100 / mo',
     nawa_required: false,
+    installments_enabled: false,
     course_programs: [
       { id: 'prog-biu-1', name: 'B.Sc. Data Science and Business Analytics', degree: 'Bachelor', duration: '3 Years', tuition_fee: '€7,800 / yr', intake: 'October 2026', language: 'English' }
     ],
     installments: [
-      { stage: 1, name: 'Semester 1 Tuition & Registration Deposit', percentage: 50, amount: '€3,900', due_trigger: 'On Contract Signing' },
-      { stage: 2, name: 'Semester 2 Tuition Fee', percentage: 50, amount: '€3,900', due_trigger: 'Prior to Semester 2 start' }
+      { id: 'inst-biu-1', stage: 1, title: 'Semester 1 Tuition & Registration Deposit', name: 'Semester 1 Tuition & Registration Deposit', percentage: 50, amount: '€3,900', due_stage: 'On Contract Signing', due_trigger: 'On Contract Signing', verification_requirement: 'SWIFT Transfer Receipt Upload' },
+      { id: 'inst-biu-2', stage: 2, title: 'Semester 2 Tuition Fee', name: 'Semester 2 Tuition Fee', percentage: 50, amount: '€3,900', due_stage: 'Prior to Semester 2 start', due_trigger: 'Prior to Semester 2 start', verification_requirement: 'Bank Wire Confirmation' }
     ]
   },
   {
@@ -143,12 +147,13 @@ export const BASELINE_UNIVERSITIES: University[] = [
     agency_fee: '₹35,000',
     living_cost_monthly: '£1,100 - £1,400 / mo',
     nawa_required: false,
+    installments_enabled: false,
     course_programs: [
       { id: 'prog-grw-1', name: 'MSc Data Science & AI', degree: 'Master', duration: '1 Year', tuition_fee: '£16,000 / yr', intake: 'September 2026', language: 'English' }
     ],
     installments: [
-      { stage: 1, name: 'Initial CAS Tuition Deposit', percentage: 50, amount: '£8,000', due_trigger: 'For CAS Issuance' },
-      { stage: 2, name: 'Enrollment Balance on Arrival', percentage: 50, amount: '£8,000', due_trigger: 'During Campus Enrollment' }
+      { id: 'inst-grw-1', stage: 1, title: 'Initial CAS Tuition Deposit', name: 'Initial CAS Tuition Deposit', percentage: 50, amount: '£8,000', due_stage: 'For CAS Issuance', due_trigger: 'For CAS Issuance', verification_requirement: 'CAS Statement with Fee Deposit' },
+      { id: 'inst-grw-2', stage: 2, title: 'Enrollment Balance on Arrival', name: 'Enrollment Balance on Arrival', percentage: 50, amount: '£8,000', due_stage: 'During Campus Enrollment', due_trigger: 'During Campus Enrollment', verification_requirement: 'Campus Finance Receipt' }
     ]
   },
   {
@@ -172,11 +177,12 @@ export const BASELINE_UNIVERSITIES: University[] = [
     agency_fee: '₹35,000',
     living_cost_monthly: 'CAD $1,200 - $1,600 / mo',
     nawa_required: false,
+    installments_enabled: false,
     course_programs: [
       { id: 'prog-sen-1', name: 'Advanced Diploma in Software Development', degree: 'Diploma', duration: '3 Years', tuition_fee: 'CAD $17,500 / yr', intake: 'September 2026', language: 'English' }
     ],
     installments: [
-      { stage: 1, name: 'Year 1 Tuition Deposit for PAL / LOA', percentage: 100, amount: 'CAD $17,500', due_trigger: 'On Unconditional Offer' }
+      { id: 'inst-sen-1', stage: 1, title: 'Year 1 Tuition Deposit for PAL / LOA', name: 'Year 1 Tuition Deposit for PAL / LOA', percentage: 100, amount: 'CAD $17,500', due_stage: 'On Unconditional Offer', due_trigger: 'On Unconditional Offer', verification_requirement: 'Flywire / CIBC Receipt' }
     ]
   }
 ];
@@ -254,6 +260,7 @@ export async function getUniversities(): Promise<University[]> {
       description: u.description || baselineMatch?.description || `${u.name} offers internationally accredited degree programs with global recognition.`,
       living_cost_monthly: u.living_cost_monthly || baselineMatch?.living_cost_monthly || '€450 - €650 / mo',
       nawa_required: u.nawa_required !== undefined ? u.nawa_required : (u.country?.toLowerCase() === 'poland'),
+      installments_enabled: u.installments_enabled !== undefined ? u.installments_enabled : (baselineMatch?.installments_enabled ?? false),
     };
   });
 
@@ -283,6 +290,8 @@ export async function createUniversity(payload: {
   university_fee?: string;
   vfs_fee?: string;
   agency_fee?: string;
+  agency_fee_description?: string;
+  installments_enabled?: boolean;
   living_cost_monthly?: string;
   nawa_required?: boolean;
   course_programs?: CourseProgram[];
@@ -312,6 +321,8 @@ export async function createUniversity(payload: {
     university_fee: payload.university_fee || payload.tuition_range || '€3,500 / yr',
     vfs_fee: payload.vfs_fee || '€150',
     agency_fee: payload.agency_fee || '€250',
+    agency_fee_description: payload.agency_fee_description,
+    installments_enabled: payload.installments_enabled ?? false,
     living_cost_monthly: payload.living_cost_monthly || '€450 - €650 / mo',
     nawa_required: payload.nawa_required !== undefined ? payload.nawa_required : (targetCountry.toLowerCase() === 'poland'),
     course_programs: payload.course_programs && payload.course_programs.length > 0 ? payload.course_programs : [
@@ -380,7 +391,7 @@ export async function updateUniversity(id: string, payload: Partial<University>)
   const allowedCols = [
     'name', 'country', 'city', 'logo_url', 'ranking', 'rating', 'programs',
     'tuition_range', 'intakes', 'university_fee', 'vfs_fee', 'agency_fee',
-    'course_programs', 'installments', 'semesters', 'is_active'
+    'course_programs', 'installments', 'semesters', 'installments_enabled', 'is_active'
   ];
 
   for (const k of allowedCols) {

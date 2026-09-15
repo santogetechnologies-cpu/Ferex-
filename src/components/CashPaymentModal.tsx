@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Banknote, X, CheckCircle2, DollarSign, Calendar,
-  User, FileText, Sparkles, Receipt, Hash
+  User, FileText, Sparkles, Receipt, Hash, Building2
 } from 'lucide-react';
 import { getStudents } from '../lib/api/students';
 import { createAndCompletePayment } from '../lib/api/payments';
 import type { UserProfile } from '../lib/types';
 import { useFeeConfig } from '../hooks/useFeeConfig';
+import { parseFeeToINR } from '../pages/Payments';
 
 interface CashPaymentModalProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ export const CashPaymentModal: React.FC<CashPaymentModalProps> = ({
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
-  const [stageNumber, setStageNumber] = useState<1 | 2 | 3>(1);
+  const [stageNumber, setStageNumber] = useState<1 | 2 | 3 | 4>(1);
   const [amount, setAmount] = useState('15000');
   const [receiptNumber, setReceiptNumber] = useState('');
   const [dateReceived, setDateReceived] = useState(new Date().toISOString().split('T')[0]);
@@ -56,9 +57,13 @@ export const CashPaymentModal: React.FC<CashPaymentModalProps> = ({
       const advFee = config.advance_registration_fee_inr || config.advance_registration_fee_amount;
       setAmount(String(advFee && advFee >= 100 ? advFee : 15000));
     } else if (stageNumber === 2) {
-      setAmount('150000');
+      const agencyFee = config.default_agency_fee ? parseFeeToINR(config.default_agency_fee) : 25000;
+      setAmount(String(agencyFee || 25000));
     } else if (stageNumber === 3) {
-      setAmount('50000');
+      const vfsFee = config.default_vfs_fee ? parseFeeToINR(config.default_vfs_fee) : 15000;
+      setAmount(String(vfsFee || 15000));
+    } else if (stageNumber === 4) {
+      setAmount('315000'); // Default ~€3,500 tuition
     }
   }, [stageNumber, config]);
 
@@ -87,16 +92,21 @@ export const CashPaymentModal: React.FC<CashPaymentModalProps> = ({
     setIsSubmitting(true);
     try {
       const studentName = selectedStudent?.full_name || selectedStudent?.email?.split('@')[0] || 'Student';
-      const stageLabel = stageNumber === 1 ? 'Advanced Registration Fee' : stageNumber === 2 ? 'Tuition Deposit' : 'Visa & Departure Clearance';
+      const stageMeta = {
+        1: { title: 'Advanced Registration Fee', type: 'Advanced Registration Fee' },
+        2: { title: 'Agency Processing Fee', type: 'Agency Processing Fee' },
+        3: { title: 'VFS / Visa Gov Fee', type: 'VFS / Visa Gov Fee' },
+        4: { title: 'University Tuition Fee', type: 'Tuition Fee' },
+      }[stageNumber] || { title: 'Advanced Registration Fee', type: 'Advanced Registration Fee' };
 
       await createAndCompletePayment({
         student_id: selectedStudentId,
         student_name: studentName,
-        title: `${stageLabel} - Cash Settlement`,
+        title: `${stageMeta.title} - Cash Settlement`,
         description: `Cash received on ${dateReceived}. Receipt #${receiptNumber}. ${notes}`,
         amount: numericAmount,
         currency: 'INR',
-        payment_type: 'Installment Fee',
+        payment_type: stageMeta.type,
         payment_method: 'Cash Payment',
         status: 'Paid',
         utr_number: receiptNumber,
@@ -116,6 +126,13 @@ export const CashPaymentModal: React.FC<CashPaymentModalProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  const STAGE_OPTIONS: { num: 1 | 2 | 3 | 4; label: string; sub: string; tag: string }[] = [
+    { num: 1, label: 'Advance Registration', sub: '01. Platform Intake', tag: 'SAC 9983' },
+    { num: 2, label: 'Agency Processing', sub: '02. Admissions Desk', tag: 'Admissions' },
+    { num: 3, label: 'VFS / Visa Gov Fee', sub: '03. Embassy Filing', tag: 'Consular' },
+    { num: 4, label: 'University Tuition', sub: '04. Tuition Schedule', tag: 'Tuition' },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
@@ -181,27 +198,33 @@ export const CashPaymentModal: React.FC<CashPaymentModalProps> = ({
             </div>
           </div>
 
-          {/* Installment Stage */}
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { num: 1, label: 'Stage 1: Advance Fee' },
-              { num: 2, label: 'Stage 2: Tuition Deposit' },
-              { num: 3, label: 'Stage 3: Departure' },
-            ].map(stage => (
-              <button
-                key={stage.num}
-                type="button"
-                onClick={() => setStageNumber(stage.num as any)}
-                className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                  stageNumber === stage.num
-                    ? 'bg-[#58051E] text-white border-[#58051E] font-bold shadow-xs'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 font-semibold hover:bg-slate-100'
-                }`}
-              >
-                <div className="text-[10px] font-black uppercase tracking-wider opacity-80">Stage {stage.num}</div>
-                <div className="text-[11px] font-bold truncate">{stage.label.split(':')[1]}</div>
-              </button>
-            ))}
+          {/* 4 Standardized Payment Stages matching Student Portal */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Payment Category / Stage *</label>
+            <div className="grid grid-cols-2 gap-2">
+              {STAGE_OPTIONS.map(stage => (
+                <button
+                  key={stage.num}
+                  type="button"
+                  onClick={() => setStageNumber(stage.num)}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    stageNumber === stage.num
+                      ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[10px] font-black uppercase tracking-wider opacity-80">{stage.sub}</span>
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold ${
+                      stageNumber === stage.num ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {stage.tag}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold truncate">{stage.label}</div>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Amount & Receipt Number */}
@@ -279,14 +302,14 @@ export const CashPaymentModal: React.FC<CashPaymentModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50"
+              className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] transition-all disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               {isSubmitting ? 'Recording...' : 'Record & Issue Invoice'}
