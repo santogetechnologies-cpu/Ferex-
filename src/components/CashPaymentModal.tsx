@@ -53,7 +53,8 @@ export const CashPaymentModal: React.FC<CashPaymentModalProps> = ({
 
   useEffect(() => {
     if (stageNumber === 1) {
-      setAmount(String(config.advance_registration_fee_inr || 15000));
+      const advFee = config.advance_registration_fee_inr || config.advance_registration_fee_amount;
+      setAmount(String(advFee && advFee >= 100 ? advFee : 15000));
     } else if (stageNumber === 2) {
       setAmount('150000');
     } else if (stageNumber === 3) {
