@@ -74,6 +74,7 @@ export const TradeShipments: React.FC = () => {
   const [showAddBondedModal, setShowAddBondedModal] = useState(false);
   const [showAddLossModal, setShowAddLossModal] = useState(false);
   const [selectedBondedItem, setSelectedBondedItem] = useState<BondedCargoItem | null>(null);
+  const [customPartnerMode, setCustomPartnerMode] = useState(false);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -86,10 +87,16 @@ export const TradeShipments: React.FC = () => {
     try {
       const [shipData, partners, bondData, lossData, lossSum] = await Promise.all([
         getTradeShipments(),
-        getTradeCRMContacts(),
-        getTradeBondedInventory(),
-        getTradeCargoLosses(),
-        getTradeCargoLossSummary()
+        getTradeCRMContacts().catch(() => []),
+        getTradeBondedInventory().catch(() => []),
+        getTradeCargoLosses().catch(() => []),
+        getTradeCargoLossSummary().catch(() => ({
+          totalLossInr: 0,
+          totalDemurrageInr: 0,
+          totalShrinkageTons: 0,
+          recoveredInr: 0,
+          totalLossesCount: 0
+        }))
       ]);
 
       if (Array.isArray(shipData)) {
@@ -98,14 +105,14 @@ export const TradeShipments: React.FC = () => {
           rawId: d.id,
           partner_name: d.partner_name || 'Global Trade Partner',
           partner_id: d.partner_id || '',
-          container: d.container_no,
+          container: d.container_no || 'Cont. Pending',
           carrier: d.carrier || 'Maersk Line',
           carrier_vessel: d.carrier_vessel || 'MSC Gülsün',
           voyage_no: d.voyage_no || 'VY-2026-088',
           origin: d.origin_port || 'Port of Gdansk, Poland',
           destination: d.destination_port || 'Port of Nhava Sheva (JNPT), India',
           cargo: d.cargo_description || 'General Trade Cargo',
-          weight: `${Number(d.cargo_weight_kg || 20000).toLocaleString()} kg`,
+          weight: `${Number(d.cargo_weight_kg || 20000).toLocaleString('en-IN')} kg`,
           rawWeight: Number(d.cargo_weight_kg || 20000),
           incoterm: d.incoterm || 'CIF (Cost, Insurance and Freight)',
           etd: d.etd || '2026-09-01',
@@ -124,10 +131,16 @@ export const TradeShipments: React.FC = () => {
         setShipments([]);
       }
 
-      setCrmPartners(partners || []);
-      setBondedInventory(bondData || []);
-      setCargoLosses(lossData || []);
-      setLossSummary(lossSum);
+      setCrmPartners(Array.isArray(partners) ? partners : []);
+      setBondedInventory(Array.isArray(bondData) ? bondData : []);
+      setCargoLosses(Array.isArray(lossData) ? lossData : []);
+      setLossSummary(lossSum || {
+        totalLossInr: 0,
+        totalDemurrageInr: 0,
+        totalShrinkageTons: 0,
+        recoveredInr: 0,
+        totalLossesCount: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -163,7 +176,15 @@ export const TradeShipments: React.FC = () => {
     if (!selectedShipment) return;
     const fetchDossier = async () => {
       const res = await getTradeDossier('shipment', selectedShipment.id);
-      setDossierData(res);
+      setDossierData(res || {
+        invoices: [],
+        packingLists: [],
+        billsOfLading: [],
+        certificates: [],
+        lettersOfCredit: [],
+        payments: [],
+        documents: []
+      });
     };
     fetchDossier();
   }, [selectedShipment]);
@@ -243,6 +264,7 @@ export const TradeShipments: React.FC = () => {
     });
 
     setNewShipment(initialShipment);
+    setCustomPartnerMode(false);
     setShowAddShipmentModal(false);
     showToastMsg(`Shipment ${created.shipment_no} booked successfully`);
     await loadAllTradeData();
@@ -294,13 +316,13 @@ export const TradeShipments: React.FC = () => {
 
   const filteredShipments = shipments.filter(s => {
     const matchesSearch =
-      s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.container.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.partner_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.carrier.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.cargo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.origin.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.destination.toLowerCase().includes(searchQuery.toLowerCase());
+      (s.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.container || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.partner_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.carrier || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.cargo || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.origin || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.destination || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesMode = filterMode === 'All' || s.mode === filterMode;
     const matchesStatus = filterStatus === 'All' || s.status === filterStatus;
     return matchesSearch && matchesMode && matchesStatus;
@@ -340,7 +362,11 @@ export const TradeShipments: React.FC = () => {
             <Button
               size="sm"
               className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
-              onClick={() => setShowAddShipmentModal(true)}
+              onClick={() => {
+                setNewShipment(initialShipment);
+                setCustomPartnerMode(false);
+                setShowAddShipmentModal(true);
+              }}
             >
               <Plus className="w-4 h-4 mr-1.5" /> Book New Shipment
             </Button>
@@ -447,7 +473,11 @@ export const TradeShipments: React.FC = () => {
               <Button
                 size="sm"
                 className="mt-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold cursor-pointer"
-                onClick={() => setShowAddShipmentModal(true)}
+                onClick={() => {
+                  setNewShipment(initialShipment);
+                  setCustomPartnerMode(false);
+                  setShowAddShipmentModal(true);
+                }}
               >
                 <Plus className="w-3.5 h-3.5 mr-1" /> Book New Shipment
               </Button>
@@ -471,7 +501,7 @@ export const TradeShipments: React.FC = () => {
                   <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                     {filteredShipments.map((s) => (
                       <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3.5 px-4 font-black text-[#58051E] whitespace-nowrap">
+                        <td className="py-3.5 px-4 font-black text-[#58051E] whitespace-nowrap font-mono">
                           {s.id}
                         </td>
                         <td className="py-3.5 px-4 font-extrabold text-slate-900 max-w-[150px] truncate" title={s.partner_name}>
@@ -489,7 +519,7 @@ export const TradeShipments: React.FC = () => {
                           <div className="truncate text-slate-900 font-bold">{s.cargo}</div>
                           <div className="text-[10px] text-slate-400">{s.weight} • {s.incoterm?.split(' ')[0]}</div>
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap text-slate-600 text-[11px]">
+                        <td className="py-3.5 px-4 whitespace-nowrap text-slate-600 text-[11px] font-mono">
                           {s.eta}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
@@ -568,7 +598,7 @@ export const TradeShipments: React.FC = () => {
 
                   <div className="text-xs space-y-1 font-semibold text-slate-600 bg-white p-2 rounded-xl border border-slate-100">
                     <div><span className="text-slate-400">Customs Bond:</span> {item.customs_bond_no}</div>
-                    <div><span className="text-slate-400">Total Valuation:</span> ₹{item.total_valuation_inr.toLocaleString('en-IN')}</div>
+                    <div><span className="text-slate-400">Total Valuation:</span> ₹{Number(item.total_valuation_inr || 0).toLocaleString('en-IN')}</div>
                     <div><span className="text-slate-400">Last Inspection:</span> {item.last_inspected_at}</div>
                   </div>
                 </div>
@@ -593,11 +623,11 @@ export const TradeShipments: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3.5 bg-rose-50 rounded-2xl border border-rose-200">
               <span className="text-[10px] font-bold text-rose-600 uppercase block">Total Direct Loss</span>
-              <span className="text-base font-black text-rose-950">₹{lossSummary.totalLossInr.toLocaleString('en-IN')}</span>
+              <span className="text-base font-black text-rose-950">₹{Number(lossSummary.totalLossInr || 0).toLocaleString('en-IN')}</span>
             </div>
             <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200">
               <span className="text-[10px] font-bold text-amber-700 uppercase block">Demurrage Incurred</span>
-              <span className="text-base font-black text-amber-950">₹{lossSummary.totalDemurrageInr.toLocaleString('en-IN')}</span>
+              <span className="text-base font-black text-amber-950">₹{Number(lossSummary.totalDemurrageInr || 0).toLocaleString('en-IN')}</span>
             </div>
             <div className="p-3.5 bg-blue-50 rounded-2xl border border-blue-200">
               <span className="text-[10px] font-bold text-blue-700 uppercase block">Shrinkage Quantity</span>
@@ -605,7 +635,7 @@ export const TradeShipments: React.FC = () => {
             </div>
             <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200">
               <span className="text-[10px] font-bold text-emerald-700 uppercase block">Insurance Recovered</span>
-              <span className="text-base font-black text-emerald-950">₹{lossSummary.recoveredInr.toLocaleString('en-IN')}</span>
+              <span className="text-base font-black text-emerald-950">₹{Number(lossSummary.recoveredInr || 0).toLocaleString('en-IN')}</span>
             </div>
           </div>
 
@@ -625,14 +655,16 @@ export const TradeShipments: React.FC = () => {
               <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                 {cargoLosses.map((l) => (
                   <tr key={l.id} className="hover:bg-slate-50/80">
-                    <td className="py-3.5 px-4 font-black text-rose-700">{l.incident_ref}</td>
+                    <td className="py-3.5 px-4 font-black text-rose-700 font-mono">{l.incident_ref}</td>
                     <td className="py-3.5 px-4 font-extrabold text-slate-900">{l.shipment_no} ({l.container_no})</td>
                     <td className="py-3.5 px-4 text-slate-700">{l.loss_type}</td>
-                    <td className="py-3.5 px-4 font-bold text-rose-700">₹{(l.demurrage_incurred_inr || l.direct_financial_loss_inr).toLocaleString('en-IN')}</td>
+                    <td className="py-3.5 px-4 font-bold text-rose-700 font-mono">
+                      ₹{Number(l.demurrage_incurred_inr || l.direct_financial_loss_inr || 0).toLocaleString('en-IN')}
+                    </td>
                     <td className="py-3.5 px-4"><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">{l.insurance_claim_status}</span></td>
-                    <td className="py-3.5 px-4 text-slate-500">{l.incident_date}</td>
+                    <td className="py-3.5 px-4 text-slate-500 font-mono">{l.incident_date}</td>
                     <td className="py-3.5 px-4 text-right">
-                      <button onClick={() => deleteTradeCargoLoss(l.id)} className="p-1 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => deleteTradeCargoLoss(l.id)} className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"><Trash2 className="w-4 h-4" /></button>
                     </td>
                   </tr>
                 ))}
@@ -656,25 +688,51 @@ export const TradeShipments: React.FC = () => {
               </div>
 
               <form onSubmit={handleCreateShipment} className="space-y-3.5">
-                {/* Partner Selection */}
+                {/* Partner Selection (Direct Dropdown from CRM + Custom Toggle) */}
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Trade CRM Partner Entity *</label>
-                  <input
-                    type="text"
-                    required
-                    list="shipment-partner-list"
-                    value={newShipment.partner_name}
-                    onChange={(e) => setNewShipment({ ...newShipment, partner_name: e.target.value })}
-                    placeholder="Select or type Trade Partner..."
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                  />
-                  <datalist id="shipment-partner-list">
-                    {crmPartners.map(p => (
-                      <option key={p.id} value={p.company_name || p.name}>
-                        {p.company_name || p.name} ({p.category})
-                      </option>
-                    ))}
-                  </datalist>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase">Trade CRM Partner Entity *</label>
+                    <button
+                      type="button"
+                      onClick={() => setCustomPartnerMode(!customPartnerMode)}
+                      className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                    >
+                      {customPartnerMode ? '← Choose from CRM List' : '+ Type Custom Partner Name'}
+                    </button>
+                  </div>
+
+                  {customPartnerMode ? (
+                    <input
+                      type="text"
+                      required
+                      value={newShipment.partner_name}
+                      onChange={(e) => setNewShipment({ ...newShipment, partner_name: e.target.value })}
+                      placeholder="Type custom partner company name..."
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                  ) : (
+                    <select
+                      required
+                      value={newShipment.partner_name}
+                      onChange={(e) => {
+                        if (e.target.value === '__custom__') {
+                          setCustomPartnerMode(true);
+                          setNewShipment({ ...newShipment, partner_name: '' });
+                        } else {
+                          setNewShipment({ ...newShipment, partner_name: e.target.value });
+                        }
+                      }}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    >
+                      <option value="">-- Select Registered CRM Partner ({crmPartners.length} Available) --</option>
+                      {crmPartners.map(p => (
+                        <option key={p.id} value={p.company_name || p.name}>
+                          {p.company_name || p.name} — {p.category || 'Partner'} ({p.city || p.country || 'Global'})
+                        </option>
+                      ))}
+                      <option value="__custom__">+ Type Custom / Unregistered Partner...</option>
+                    </select>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -701,26 +759,38 @@ export const TradeShipments: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Ports with Preset Dropdown & Freeform Input */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Port of Loading (Origin)</label>
-                    <select
+                    <input
+                      type="text"
+                      required
+                      list="master-origin-ports"
                       value={newShipment.origin}
                       onChange={(e) => setNewShipment({ ...newShipment, origin: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
-                    >
+                      placeholder="Select or type origin port..."
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                    <datalist id="master-origin-ports">
                       {TRADE_MASTER_PORTS.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
+                    </datalist>
                   </div>
+
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Port of Discharge (Destination)</label>
-                    <select
+                    <input
+                      type="text"
+                      required
+                      list="master-dest-ports"
                       value={newShipment.destination}
                       onChange={(e) => setNewShipment({ ...newShipment, destination: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
-                    >
+                      placeholder="Select or type destination port..."
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                    <datalist id="master-dest-ports">
                       {TRADE_MASTER_PORTS.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
+                    </datalist>
                   </div>
                 </div>
 
@@ -862,14 +932,14 @@ export const TradeShipments: React.FC = () => {
                   <h4 className="text-xs font-black uppercase text-slate-700 mb-2 flex items-center gap-1.5">
                     <FileSpreadsheet className="w-3.5 h-3.5 text-[#58051E]" /> Linked Commercial Invoices
                   </h4>
-                  {dossierData.invoices.length === 0 ? (
+                  {!dossierData?.invoices || dossierData.invoices.length === 0 ? (
                     <p className="text-xs text-slate-400 bg-slate-50 p-2.5 rounded-xl border border-slate-100">No invoice created against this shipment yet.</p>
                   ) : (
                     <div className="space-y-1.5">
                       {dossierData.invoices.map((inv: any) => (
                         <div key={inv.id} className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
                           <span className="font-bold text-slate-900">{inv.invoice_no || inv.id} ({inv.buyer_name})</span>
-                          <span className="font-black text-slate-900">₹{Number(inv.amount).toLocaleString('en-IN')}</span>
+                          <span className="font-black text-slate-900">₹{Number(inv.amount || 0).toLocaleString('en-IN')}</span>
                         </div>
                       ))}
                     </div>
@@ -881,7 +951,7 @@ export const TradeShipments: React.FC = () => {
                   <h4 className="text-xs font-black uppercase text-slate-700 mb-2 flex items-center gap-1.5">
                     <FileCheck2 className="w-3.5 h-3.5 text-[#58051E]" /> Bills of Lading (Ocean / Air)
                   </h4>
-                  {dossierData.billsOfLading.length === 0 ? (
+                  {!dossierData?.billsOfLading || dossierData.billsOfLading.length === 0 ? (
                     <p className="text-xs text-slate-400 bg-slate-50 p-2.5 rounded-xl border border-slate-100">No B/L registered for this shipment.</p>
                   ) : (
                     <div className="space-y-1.5">

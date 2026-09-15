@@ -126,6 +126,7 @@ export const TradeInvoices: React.FC = () => {
   };
 
   const [newInv, setNewInv] = useState(initialInv);
+  const [isCustomBuyer, setIsCustomBuyer] = useState(false);
 
   // Form State for Record Payment Modal
   const [paymentForm, setPaymentForm] = useState({
@@ -413,7 +414,7 @@ export const TradeInvoices: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className={`font-black ${inv.outstandingAmount > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
-                        ₹{inv.outstandingAmount.toLocaleString('en-IN')}
+                        ₹{Number(inv.outstandingAmount || 0).toLocaleString('en-IN')}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap text-slate-500 text-[11px]">
@@ -489,18 +490,50 @@ export const TradeInvoices: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Buyer / Consignee *</label>
-                    <input
-                      type="text"
-                      required
-                      list="invoice-buyer-list"
-                      value={newInv.buyer}
-                      onChange={(e) => setNewInv({ ...newInv, buyer: e.target.value })}
-                      placeholder="Select or type buyer..."
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    />
-                    <datalist id="invoice-buyer-list">
-                      {crmPartners.map(p => <option key={p.id} value={p.company_name || p.name}>{p.company_name || p.name}</option>)}
-                    </datalist>
+                    {!isCustomBuyer ? (
+                      <select
+                        required
+                        value={newInv.buyer}
+                        onChange={(e) => {
+                          if (e.target.value === '__CUSTOM__') {
+                            setIsCustomBuyer(true);
+                            setNewInv({ ...newInv, buyer: '' });
+                          } else {
+                            setNewInv({ ...newInv, buyer: e.target.value });
+                          }
+                        }}
+                        className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      >
+                        <option value="">-- Select Registered CRM Partner --</option>
+                        {crmPartners.map(p => (
+                          <option key={p.id} value={p.company_name || p.name}>
+                            {p.company_name || p.name} ({p.category || p.partner_type || 'Partner'})
+                          </option>
+                        ))}
+                        <option value="__CUSTOM__">➕ + Type Custom Buyer Name...</option>
+                      </select>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          required
+                          value={newInv.buyer}
+                          onChange={(e) => setNewInv({ ...newInv, buyer: e.target.value })}
+                          placeholder="Enter custom buyer company..."
+                          className="flex-1 h-8.5 px-3 bg-white border border-[#58051E] rounded-xl text-xs font-semibold focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomBuyer(false);
+                            setNewInv({ ...newInv, buyer: '' });
+                          }}
+                          className="px-2.5 py-1 text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer"
+                        >
+                          Select
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Linked Shipment</label>
@@ -594,7 +627,7 @@ export const TradeInvoices: React.FC = () => {
                 {/* Grand Total Bar */}
                 <div className="p-3 bg-slate-900 text-white rounded-xl flex items-center justify-between">
                   <span className="text-xs font-extrabold">Calculated Grand Total</span>
-                  <span className="text-base font-black text-amber-300">₹{calculatedGrandTotal.toLocaleString('en-IN')}</span>
+                  <span className="text-base font-black text-amber-300">₹{Number(calculatedGrandTotal || 0).toLocaleString('en-IN')}</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -645,7 +678,7 @@ export const TradeInvoices: React.FC = () => {
               <form onSubmit={handleRecordInvoicePayment} className="space-y-3">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
                   <div className="text-slate-500">Buyer: <strong>{payingInvoice.buyer}</strong></div>
-                  <div className="text-slate-500 mt-0.5">Outstanding Balance: <strong className="text-amber-700">₹{payingInvoice.outstandingAmount.toLocaleString('en-IN')}</strong></div>
+                  <div className="text-slate-500 mt-0.5">Outstanding Balance: <strong className="text-amber-700">₹{Number(payingInvoice.outstandingAmount || 0).toLocaleString('en-IN')}</strong></div>
                 </div>
 
                 <div>
@@ -747,20 +780,20 @@ export const TradeInvoices: React.FC = () => {
 
                 {/* Financial Summary */}
                 <div className="border border-slate-200 rounded-xl p-3 space-y-2">
-                  <div className="flex justify-between text-slate-600"><span>Commodity Subtotal:</span> <span>₹{selectedInv.subtotal.toLocaleString('en-IN')}</span></div>
-                  <div className="flex justify-between text-slate-600"><span>Ocean Freight:</span> <span>₹{selectedInv.freight.toLocaleString('en-IN')}</span></div>
-                  <div className="flex justify-between text-slate-600"><span>Marine Insurance:</span> <span>₹{selectedInv.insurance.toLocaleString('en-IN')}</span></div>
+                  <div className="flex justify-between text-slate-600"><span>Commodity Subtotal:</span> <span>₹{Number(selectedInv.subtotal || 0).toLocaleString('en-IN')}</span></div>
+                  <div className="flex justify-between text-slate-600"><span>Ocean Freight:</span> <span>₹{Number(selectedInv.freight || 0).toLocaleString('en-IN')}</span></div>
+                  <div className="flex justify-between text-slate-600"><span>Marine Insurance:</span> <span>₹{Number(selectedInv.insurance || 0).toLocaleString('en-IN')}</span></div>
                   <div className="border-t border-slate-100 pt-2 flex justify-between font-black text-sm text-slate-900">
                     <span>Total Invoice Value:</span>
                     <span>{selectedInv.amount}</span>
                   </div>
                   <div className="flex justify-between text-emerald-700 font-bold">
                     <span>Amount Cleared:</span>
-                    <span>₹{selectedInv.amountPaid.toLocaleString('en-IN')}</span>
+                    <span>₹{Number(selectedInv.amountPaid || 0).toLocaleString('en-IN')}</span>
                   </div>
                   <div className="flex justify-between text-amber-700 font-black">
                     <span>Outstanding Receivable:</span>
-                    <span>₹{selectedInv.outstandingAmount.toLocaleString('en-IN')}</span>
+                    <span>₹{Number(selectedInv.outstandingAmount || 0).toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               </div>

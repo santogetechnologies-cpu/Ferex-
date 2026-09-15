@@ -50,6 +50,7 @@ export const TradeBillsOfLading: React.FC = () => {
   };
 
   const [newBL, setNewBL] = useState(initialBL);
+  const [isCustomConsignee, setIsCustomConsignee] = useState(false);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -466,41 +467,81 @@ export const TradeBillsOfLading: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Port of Loading (POL)</label>
-                    <select
+                    <input
+                      type="text"
+                      list="bl-master-pol-ports"
                       value={newBL.pol}
                       onChange={(e) => setNewBL({ ...newBL, pol: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
-                    >
+                      placeholder="Select or enter custom port..."
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                    <datalist id="bl-master-pol-ports">
                       {TRADE_MASTER_PORTS.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
+                    </datalist>
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Port of Discharge (POD)</label>
-                    <select
+                    <input
+                      type="text"
+                      list="bl-master-pod-ports"
                       value={newBL.pod}
                       onChange={(e) => setNewBL({ ...newBL, pod: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
-                    >
+                      placeholder="Select or enter custom port..."
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                    <datalist id="bl-master-pod-ports">
                       {TRADE_MASTER_PORTS.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
+                    </datalist>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Consignee (Importer) *</label>
-                    <input
-                      type="text"
-                      required
-                      list="bl-consignee-list"
-                      value={newBL.consignee}
-                      onChange={(e) => setNewBL({ ...newBL, consignee: e.target.value })}
-                      placeholder="e.g. Baltic Grain Sp. z o.o."
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    />
-                    <datalist id="bl-consignee-list">
-                      {crmPartners.map(p => <option key={p.id} value={p.company_name || p.name}>{p.company_name || p.name}</option>)}
-                    </datalist>
+                    {!isCustomConsignee ? (
+                      <select
+                        required
+                        value={newBL.consignee}
+                        onChange={(e) => {
+                          if (e.target.value === '__CUSTOM__') {
+                            setIsCustomConsignee(true);
+                            setNewBL({ ...newBL, consignee: '' });
+                          } else {
+                            setNewBL({ ...newBL, consignee: e.target.value });
+                          }
+                        }}
+                        className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      >
+                        <option value="">-- Select Registered CRM Partner --</option>
+                        {crmPartners.map(p => (
+                          <option key={p.id} value={p.company_name || p.name}>
+                            {p.company_name || p.name} ({p.category || p.partner_type || 'Partner'})
+                          </option>
+                        ))}
+                        <option value="__CUSTOM__">➕ + Type Custom Consignee Name...</option>
+                      </select>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          required
+                          value={newBL.consignee}
+                          onChange={(e) => setNewBL({ ...newBL, consignee: e.target.value })}
+                          placeholder="Enter custom consignee company..."
+                          className="flex-1 h-8.5 px-3 bg-white border border-[#58051E] rounded-xl text-xs font-semibold focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomConsignee(false);
+                            setNewBL({ ...newBL, consignee: '' });
+                          }}
+                          className="px-2.5 py-1 text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer"
+                        >
+                          Select
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Notify Party</label>

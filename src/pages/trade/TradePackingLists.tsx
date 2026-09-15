@@ -42,6 +42,7 @@ export const TradePackingLists: React.FC = () => {
   };
 
   const [newPL, setNewPL] = useState(initialPL);
+  const [isCustomBuyer, setIsCustomBuyer] = useState(false);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -383,15 +384,51 @@ export const TradePackingLists: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Buyer / Consignee Entity</label>
-                  <input
-                    type="text"
-                    required
-                    value={newPL.buyer_name}
-                    onChange={(e) => setNewPL({ ...newPL, buyer_name: e.target.value })}
-                    placeholder="e.g. Baltic Grain Sp. z o.o."
-                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                  />
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Buyer / Consignee Entity *</label>
+                  {!isCustomBuyer ? (
+                    <select
+                      required
+                      value={newPL.buyer_name}
+                      onChange={(e) => {
+                        if (e.target.value === '__CUSTOM__') {
+                          setIsCustomBuyer(true);
+                          setNewPL({ ...newPL, buyer_name: '' });
+                        } else {
+                          setNewPL({ ...newPL, buyer_name: e.target.value });
+                        }
+                      }}
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    >
+                      <option value="">-- Select Registered CRM Partner --</option>
+                      {crmPartners.map(p => (
+                        <option key={p.id} value={p.company_name || p.name}>
+                          {p.company_name || p.name} ({p.category || p.partner_type || 'Partner'})
+                        </option>
+                      ))}
+                      <option value="__CUSTOM__">➕ + Type Custom Buyer Name...</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        required
+                        value={newPL.buyer_name}
+                        onChange={(e) => setNewPL({ ...newPL, buyer_name: e.target.value })}
+                        placeholder="Enter custom buyer company..."
+                        className="flex-1 h-8.5 px-3 bg-white border border-[#58051E] rounded-xl text-xs font-semibold focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomBuyer(false);
+                          setNewPL({ ...newPL, buyer_name: '' });
+                        }}
+                        className="px-2.5 py-1 text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer"
+                      >
+                        Select
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div>

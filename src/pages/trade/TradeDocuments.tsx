@@ -59,6 +59,7 @@ export const TradeDocuments: React.FC = () => {
   const [newDocShipment, setNewDocShipment] = useState('');
   const [newDocInvoice, setNewDocInvoice] = useState('');
   const [newDocPartner, setNewDocPartner] = useState('');
+  const [isCustomPartner, setIsCustomPartner] = useState(false);
   const [fileDataUrl, setFileDataUrl] = useState<string>('');
   const [fileSizeStr, setFileSizeStr] = useState<string>('1.8 MB');
   const [isDragging, setIsDragging] = useState(false);
@@ -482,17 +483,48 @@ export const TradeDocuments: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Partner Entity</label>
-                    <input
-                      type="text"
-                      list="doc-partner-list"
-                      value={newDocPartner}
-                      onChange={(e) => setNewDocPartner(e.target.value)}
-                      placeholder="e.g. Baltic Grain Sp. z o.o."
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
-                    />
-                    <datalist id="doc-partner-list">
-                      {crmPartners.map(p => <option key={p.id} value={p.company_name || p.name}>{p.company_name || p.name}</option>)}
-                    </datalist>
+                    {!isCustomPartner ? (
+                      <select
+                        value={newDocPartner}
+                        onChange={(e) => {
+                          if (e.target.value === '__CUSTOM__') {
+                            setIsCustomPartner(true);
+                            setNewDocPartner('');
+                          } else {
+                            setNewDocPartner(e.target.value);
+                          }
+                        }}
+                        className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      >
+                        <option value="">-- Select Registered CRM Partner --</option>
+                        {crmPartners.map(p => (
+                          <option key={p.id} value={p.company_name || p.name}>
+                            {p.company_name || p.name} ({p.category || p.partner_type || 'Partner'})
+                          </option>
+                        ))}
+                        <option value="__CUSTOM__">➕ + Type Custom Partner Name...</option>
+                      </select>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newDocPartner}
+                          onChange={(e) => setNewDocPartner(e.target.value)}
+                          placeholder="Enter custom partner name..."
+                          className="flex-1 h-8.5 px-3 bg-white border border-[#58051E] rounded-xl text-xs font-semibold focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomPartner(false);
+                            setNewDocPartner('');
+                          }}
+                          className="px-2.5 py-1 text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer"
+                        >
+                          Select
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
