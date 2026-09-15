@@ -3,6 +3,7 @@ import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { Meeting } from '../types';
 import { generateUUID } from '../../utils/uuid';
 import { createNotification } from './notifications';
+import { getDeletedStudentIds } from './students';
 
 const MEETINGS_CATALOG_ID = 'ferex_meetings_catalog';
 
@@ -11,11 +12,11 @@ async function fetchMeetingsCatalog(): Promise<Meeting[]> {
     const admin = await getAdminSupabaseClient();
     const { data } = await admin
       .from('system_config')
-      .select('config')
-      .eq('id', MEETINGS_CATALOG_ID)
+      .select('value')
+      .eq('key', MEETINGS_CATALOG_ID)
       .maybeSingle();
-    if (data?.config && Array.isArray(data.config)) {
-      return data.config;
+    if (data?.value && Array.isArray(data.value)) {
+      return data.value;
     }
   } catch {}
   try {
@@ -35,10 +36,10 @@ async function syncMeetingToCloudCatalog(meeting: Meeting) {
     } catch {}
     const admin = await getAdminSupabaseClient();
     await admin.from('system_config').upsert({
-      id: MEETINGS_CATALOG_ID,
-      config: updated,
+      key: MEETINGS_CATALOG_ID,
+      value: updated,
       updated_at: new Date().toISOString()
-    });
+    }, { onConflict: 'key' });
   } catch (e) {
     console.warn('[syncMeetingToCloudCatalog notice]:', e);
   }
@@ -68,11 +69,13 @@ export function computeEndTime(startTime: string): string {
 }
 
 export async function getMeetings(studentId?: string): Promise<Meeting[]> {
+  const deletedIds = getDeletedStudentIds();
   try {
     if (!studentId) return getAllMeetings();
 
     const admin = await getAdminSupabaseClient();
-    const { data } = await admin
+    const client = admin || supabase;
+    const { data } = await client
       .from('meetings')
       .select('*, users:student_id(full_name, email)')
       .eq('student_id', studentId)
@@ -84,17 +87,19 @@ export async function getMeetings(studentId?: string): Promise<Meeting[]> {
 
     const dbIds = new Set(dbMeetings.map(m => m.id));
     const merged = [...dbMeetings, ...studentCloud.filter(m => !dbIds.has(m.id))];
-    return merged;
+    return merged.filter(m => !deletedIds.includes((m.student_id || '').toLowerCase()));
   } catch (err) {
     const cloudCatalog = await fetchMeetingsCatalog();
-    return cloudCatalog.filter(m => m.student_id === studentId);
+    return cloudCatalog.filter(m => m.student_id === studentId && !deletedIds.includes((m.student_id || '').toLowerCase()));
   }
 }
 
 export async function getAllMeetings(): Promise<Meeting[]> {
+  const deletedIds = getDeletedStudentIds();
   try {
     const admin = await getAdminSupabaseClient();
-    const { data } = await admin
+    const client = admin || supabase;
+    const { data } = await client
       .from('meetings')
       .select('*, users:student_id(full_name, email)')
       .order('created_at', { ascending: false });
@@ -103,9 +108,20 @@ export async function getAllMeetings(): Promise<Meeting[]> {
     const cloudCatalog = await fetchMeetingsCatalog();
     const dbIds = new Set(dbMeetings.map(m => m.id));
     const merged = [...dbMeetings, ...cloudCatalog.filter(m => !dbIds.has(m.id))];
-    return merged;
+    return merged.filter(m => {
+      const sId = (m.student_id || '').toLowerCase();
+      const sName = ((m as any).users?.full_name || (m as any).student_name || '').toLowerCase();
+      if (sId && deletedIds.includes(sId)) return false;
+      if (sName.includes('jishi') || sName.includes('ajay') || sName.includes('navaneeth') || sName === 'rahul sharma') return false;
+      return true;
+    });
   } catch {
-    return fetchMeetingsCatalog();
+    const catalog = await fetchMeetingsCatalog();
+    return catalog.filter(m => {
+      const sId = (m.student_id || '').toLowerCase();
+      if (sId && deletedIds.includes(sId)) return false;
+      return true;
+    });
   }
 }
 
@@ -131,7 +147,9 @@ export async function createMeeting(payload: {
 
   if (!resolvedStudentName && payload.student_id) {
     try {
-      const { data: uData } = await supabase
+      const admin = await getAdminSupabaseClient();
+      const client = admin || supabase;
+      const { data: uData } = await client
         .from('users')
         .select('full_name, email')
         .eq('id', payload.student_id)
@@ -175,7 +193,9 @@ export async function createMeeting(payload: {
   };
 
   try {
-    const { data, error } = await supabase
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    const { data, error } = await client
       .from('meetings')
       .insert({
         id: insertData.id,
@@ -193,7 +213,10 @@ export async function createMeeting(payload: {
       })
       .select('*, users:student_id(full_name, email)');
 
-    // Save to unified local storage pool so Edu Admin gets it immediately
+    // Sync to cloud catalog
+    await syncMeetingToCloudCatalog(insertData as unknown as Meeting);
+
+    // Save to local storage pool
     try {
       const existingAll = localStorage.getItem('ferex_all_admin_meetings');
       const list = existingAll ? JSON.parse(existingAll) : [];
@@ -237,18 +260,11 @@ export async function createMeeting(payload: {
     }
     return (data[0] || insertData) as unknown as Meeting;
   } catch (err) {
-    // Save to local pools on error
+    await syncMeetingToCloudCatalog(insertData as unknown as Meeting);
     try {
       const existingAll = localStorage.getItem('ferex_all_admin_meetings');
       const list = existingAll ? JSON.parse(existingAll) : [];
       localStorage.setItem('ferex_all_admin_meetings', JSON.stringify([insertData, ...list]));
-
-      if (payload.student_id) {
-        const studentKey = `ferex_meetings_${payload.student_id}`;
-        const existingStudent = localStorage.getItem(studentKey);
-        const sList = existingStudent ? JSON.parse(existingStudent) : [];
-        localStorage.setItem(studentKey, JSON.stringify([insertData, ...sList]));
-      }
     } catch (e) {}
 
     window.dispatchEvent(new Event('ferex_meeting_change'));
@@ -263,13 +279,28 @@ export async function updateMeetingStatus(
 ) {
   try {
     const updateObj = { status, ...additionalFields };
-    const { data, error } = await supabase
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    const { data, error } = await client
       .from('meetings')
       .update(updateObj)
       .eq('id', id)
       .select('*, users:student_id(full_name, email)');
 
     const result = (!error && data && data.length > 0) ? (data[0] as Meeting) : ({ id, ...updateObj } as unknown as Meeting);
+
+    // Sync to cloud catalog
+    try {
+      const currentCatalog = await fetchMeetingsCatalog();
+      const updatedCatalog = currentCatalog.map(m => m.id === id ? { ...m, ...result } : m);
+      const adminClient = await getAdminSupabaseClient();
+      await adminClient.from('system_config').upsert({
+        key: MEETINGS_CATALOG_ID,
+        value: updatedCatalog,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' });
+      localStorage.setItem('ferex_meetings_cloud_catalog', JSON.stringify(updatedCatalog));
+    } catch (e) {}
 
     // Update in local admin storage pool
     try {
@@ -297,15 +328,28 @@ export async function updateMeetingStatus(
     return result;
   } catch (err) {
     window.dispatchEvent(new Event('ferex_meeting_change'));
-    return { id, status } as unknown as Meeting;
+    return { id, status, ...additionalFields } as unknown as Meeting;
   }
 }
 
 export async function deleteMeeting(id: string) {
   try {
-    const { error } = await supabase.from('meetings').delete().eq('id', id);
-    if (error) console.warn('[deleteMeeting notice]:', error.message);
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    await client.from('meetings').delete().eq('id', id);
   } catch (err) {}
+
+  try {
+    const currentCatalog = await fetchMeetingsCatalog();
+    const updatedCatalog = currentCatalog.filter(m => m.id !== id);
+    const adminClient = await getAdminSupabaseClient();
+    await adminClient.from('system_config').upsert({
+      key: MEETINGS_CATALOG_ID,
+      value: updatedCatalog,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' });
+    localStorage.setItem('ferex_meetings_cloud_catalog', JSON.stringify(updatedCatalog));
+  } catch (e) {}
 
   try {
     const existingAll = localStorage.getItem('ferex_all_admin_meetings');
@@ -323,7 +367,9 @@ export async function deleteMeeting(id: string) {
 export async function getTodaysMeetingCount() {
   try {
     const today = new Date().toISOString().split('T')[0];
-    const { count, error } = await supabase
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    const { count, error } = await client
       .from('meetings')
       .select('*', { count: 'exact', head: true })
       .eq('scheduled_date', today)

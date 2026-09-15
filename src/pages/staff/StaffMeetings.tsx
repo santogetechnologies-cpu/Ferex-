@@ -225,6 +225,8 @@ export const StaffMeetings: React.FC = () => {
     try {
       setIsSubmittingSchedule(true);
       const computedEnd = computeEndTime(scheduleTime);
+      const targetStudent = students.find(s => s.id === scheduleStudentId);
+
       await addMeeting({
         student_id: scheduleStudentId,
         subject: scheduleSubject.trim(),
@@ -232,11 +234,11 @@ export const StaffMeetings: React.FC = () => {
         scheduled_date: scheduleDate,
         start_time: scheduleTime,
         end_time: computedEnd,
-        meeting_link: scheduleLink,
+        meeting_link: scheduleLink || 'https://meet.google.com/fer-counselor-desk',
         notes: scheduleNotes || `Scheduled by ${counselorName} for student advisory.`,
       });
 
-      showToast(`Consultation session scheduled successfully!`);
+      showToast(`Consultation session with ${targetStudent?.full_name || 'student'} scheduled successfully!`);
       setShowScheduleModal(false);
       setScheduleSubject('Admissions & Visa Strategy Consultation');
       setScheduleNotes('');

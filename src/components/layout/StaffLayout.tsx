@@ -42,27 +42,18 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
 
   const navSections: NavSection[] = [
     {
-      title: 'WORKSPACE',
+      title: 'COUNSELOR WORKSPACE',
       items: [
         { name: 'Dashboard', path: '/staff/dashboard', icon: LayoutDashboard },
-        { name: 'Tasks', path: '/staff/tasks', icon: CheckSquare },
-        { name: 'Students / Clients', path: '/staff/students', icon: Users },
+        { name: 'Operational Tasks', path: '/staff/tasks', icon: CheckSquare },
+        { name: 'Assigned Students', path: '/staff/students', icon: Users },
         { name: 'Meetings & Planner', path: '/staff/meetings', icon: Calendar },
-        { name: 'Documents', path: '/staff/documents', icon: FileText },
-        { name: 'Tickets', path: '/staff/tickets', icon: Ticket },
+        { name: 'Support Tickets', path: '/staff/tickets', icon: Ticket },
       ]
     },
     {
-      title: 'KNOWLEDGE & NOTES',
+      title: 'ACCOUNT & PREFERENCES',
       items: [
-        { name: 'Notes & Checklists', path: '/staff/notes', icon: StickyNote },
-        { name: 'SOP & Document Hub', path: '/staff/documents', icon: BookOpen },
-      ]
-    },
-    {
-      title: 'COMMUNICATION & SYSTEM',
-      items: [
-        { name: 'Notifications', path: '/staff/notifications', icon: Bell },
         { name: 'Employee Profile', path: '/staff/profile', icon: User },
       ]
     }
@@ -109,11 +100,6 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
 
           {/* 4-App Switcher */}
           <AppSwitcher />
-
-          <Link to="/staff/notifications" className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 relative">
-            <Bell className="w-4 h-4" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#58051E]" />
-          </Link>
 
           <Link to="/staff/profile" className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-100 transition-all">
             <div className="w-7.5 h-7.5 rounded-lg bg-[#58051E] text-white font-bold flex items-center justify-center text-xs shadow-2xs">
