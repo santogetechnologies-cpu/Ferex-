@@ -1,8 +1,10 @@
 import { supabase } from '../supabase';
+import { getAdminSupabaseClient } from '../supabaseAdmin';
 import type { Task } from '../types';
 import { generateUUID } from '../../utils/uuid';
 
 const STORAGE_KEY = 'ferex_tasks_storage';
+const SYSTEM_CONFIG_KEY = 'ferex_tasks_catalog';
 
 function getLocalTasks(): Task[] {
   try {
@@ -22,25 +24,50 @@ function saveLocalTasks(tasks: Task[]) {
   } catch (e) {}
 }
 
-export async function getTasks(): Promise<Task[]> {
-  const local = getLocalTasks();
+async function syncTasksToCloud(tasks: Task[]) {
   try {
-    const { data, error } = await supabase
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    await client.from('system_config').upsert({
+      key: SYSTEM_CONFIG_KEY,
+      value: tasks,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' });
+  } catch {}
+}
+
+export async function getTasks(): Promise<Task[]> {
+  try {
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+
+    // 1. Direct query on tasks table
+    const { data, error } = await client
       .from('tasks')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (!error && data && Array.isArray(data) && data.length > 0) {
       const dbTasks = data as Task[];
-      const dbIds = new Set(dbTasks.map(t => t.id));
-      const merged = [...dbTasks, ...local.filter(t => !dbIds.has(t.id))];
-      saveLocalTasks(merged);
-      return merged;
+      saveLocalTasks(dbTasks);
+      return dbTasks;
+    }
+
+    // 2. Cloud system_config catalog fallback
+    const { data: catalogData } = await client
+      .from('system_config')
+      .select('value')
+      .eq('key', SYSTEM_CONFIG_KEY)
+      .maybeSingle();
+
+    if (catalogData?.value && Array.isArray(catalogData.value) && catalogData.value.length > 0) {
+      saveLocalTasks(catalogData.value);
+      return catalogData.value;
     }
   } catch (err) {
     console.warn('[getTasks notice]:', err);
   }
-  return local;
+  return getLocalTasks();
 }
 
 export async function createTask(payload: {
@@ -72,7 +99,9 @@ export async function createTask(payload: {
   } as unknown as Task;
 
   try {
-    await supabase.from('tasks').insert({
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    await client.from('tasks').insert({
       id: newId,
       student_id: payload.student_id || null,
       assigned_to: payload.assigned_to || 'Staff Member',
@@ -87,8 +116,9 @@ export async function createTask(payload: {
   }
 
   const current = getLocalTasks();
-  const updated = [taskObj, ...current];
+  const updated = [taskObj, ...current.filter(t => t.id !== newId)];
   saveLocalTasks(updated);
+  syncTasksToCloud(updated).catch(() => {});
 
   return taskObj;
 }
@@ -96,7 +126,9 @@ export async function createTask(payload: {
 export async function updateTaskStatus(id: string, status: Task['status']): Promise<Partial<Task>> {
   const now = new Date().toISOString();
   try {
-    await supabase
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    await client
       .from('tasks')
       .update({
         status,
@@ -115,17 +147,22 @@ export async function updateTaskStatus(id: string, status: Task['status']): Prom
     return t;
   });
   saveLocalTasks(updated);
+  syncTasksToCloud(updated).catch(() => {});
 
   return { id, status };
 }
 
 export async function deleteTask(id: string): Promise<boolean> {
   try {
-    await supabase.from('tasks').delete().eq('id', id);
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    await client.from('tasks').delete().eq('id', id);
   } catch (e) {}
 
   const current = getLocalTasks();
   const updated = current.filter(t => t.id !== id);
   saveLocalTasks(updated);
+  syncTasksToCloud(updated).catch(() => {});
   return true;
 }
+

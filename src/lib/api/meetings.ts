@@ -1,7 +1,48 @@
 import { supabase } from '../supabase';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { Meeting } from '../types';
 import { generateUUID } from '../../utils/uuid';
 import { createNotification } from './notifications';
+
+const MEETINGS_CATALOG_ID = 'ferex_meetings_catalog';
+
+async function fetchMeetingsCatalog(): Promise<Meeting[]> {
+  try {
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin
+      .from('system_config')
+      .select('config')
+      .eq('id', MEETINGS_CATALOG_ID)
+      .maybeSingle();
+    if (data?.config && Array.isArray(data.config)) {
+      return data.config;
+    }
+  } catch {}
+  try {
+    const raw = localStorage.getItem('ferex_meetings_cloud_catalog');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+async function syncMeetingToCloudCatalog(meeting: Meeting) {
+  try {
+    const current = await fetchMeetingsCatalog();
+    const filtered = current.filter(m => m.id !== meeting.id);
+    const updated = [meeting, ...filtered];
+    try {
+      localStorage.setItem('ferex_meetings_cloud_catalog', JSON.stringify(updated));
+    } catch {}
+    const admin = await getAdminSupabaseClient();
+    await admin.from('system_config').upsert({
+      id: MEETINGS_CATALOG_ID,
+      config: updated,
+      updated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.warn('[syncMeetingToCloudCatalog notice]:', e);
+  }
+}
 
 export function computeEndTime(startTime: string): string {
   if (!startTime) return '10:45 AM';
@@ -30,100 +71,41 @@ export async function getMeetings(studentId?: string): Promise<Meeting[]> {
   try {
     if (!studentId) return getAllMeetings();
 
-    const { data, error } = await supabase
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin
       .from('meetings')
       .select('*, users:student_id(full_name, email)')
       .eq('student_id', studentId)
       .order('scheduled_date', { ascending: true });
 
-    if (!error && data && data.length > 0) {
-      try {
-        localStorage.setItem(`ferex_meetings_${studentId}`, JSON.stringify(data));
-      } catch (e) {}
-      return data as Meeting[];
-    }
+    const dbMeetings = (data ?? []) as Meeting[];
+    const cloudCatalog = await fetchMeetingsCatalog();
+    const studentCloud = cloudCatalog.filter(m => m.student_id === studentId);
 
-    const local = localStorage.getItem(`ferex_meetings_${studentId}`);
-    if (local) {
-      try {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-
-    // Check in unified admin meetings list
-    const allAdmin = localStorage.getItem('ferex_all_admin_meetings');
-    if (allAdmin) {
-      try {
-        const parsed = JSON.parse(allAdmin);
-        if (Array.isArray(parsed)) {
-          const studentMeetings = parsed.filter((m: any) => m.student_id === studentId);
-          if (studentMeetings.length > 0) return studentMeetings;
-        }
-      } catch (e) {}
-    }
-
-    return [];
+    const dbIds = new Set(dbMeetings.map(m => m.id));
+    const merged = [...dbMeetings, ...studentCloud.filter(m => !dbIds.has(m.id))];
+    return merged;
   } catch (err) {
-    const local = localStorage.getItem(`ferex_meetings_${studentId}`);
-    if (local) {
-      try {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
-    }
-    return [];
+    const cloudCatalog = await fetchMeetingsCatalog();
+    return cloudCatalog.filter(m => m.student_id === studentId);
   }
 }
 
 export async function getAllMeetings(): Promise<Meeting[]> {
   try {
-    const { data, error } = await supabase
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin
       .from('meetings')
       .select('*, users:student_id(full_name, email)')
       .order('created_at', { ascending: false });
 
-    if (!error && data && data.length > 0) {
-      try {
-        localStorage.setItem('ferex_all_admin_meetings', JSON.stringify(data));
-      } catch (e) {}
-      return data as Meeting[];
-    }
-
-    // Fallback: collect from ferex_all_admin_meetings and student caches
-    const meetingMap = new Map<string, Meeting>();
-    const local = localStorage.getItem('ferex_all_admin_meetings');
-    if (local) {
-      try {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed)) {
-          parsed.forEach((m: Meeting) => meetingMap.set(m.id, m));
-        }
-      } catch (e) {}
-    }
-
-    // Also scan all ferex_meetings_* in localStorage
-    if (typeof window !== 'undefined' && window.localStorage) {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('ferex_meetings_')) {
-          try {
-            const raw = localStorage.getItem(key);
-            if (raw) {
-              const parsed = JSON.parse(raw);
-              if (Array.isArray(parsed)) {
-                parsed.forEach((m: Meeting) => meetingMap.set(m.id, m));
-              }
-            }
-          } catch (e) {}
-        }
-      }
-    }
-
-    const aggregated = Array.from(meetingMap.values());
-    return aggregated;
+    const dbMeetings = (data ?? []) as Meeting[];
+    const cloudCatalog = await fetchMeetingsCatalog();
+    const dbIds = new Set(dbMeetings.map(m => m.id));
+    const merged = [...dbMeetings, ...cloudCatalog.filter(m => !dbIds.has(m.id))];
+    return merged;
   } catch {
-    return [];
+    return fetchMeetingsCatalog();
   }
 }
 

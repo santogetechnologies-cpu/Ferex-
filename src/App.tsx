@@ -177,7 +177,7 @@ const AppInitializer: React.FC = () => {
 };
 
 // Role equivalence lists across all 4 enterprise divisions + Central + Staff
-const ADMIN_ROLES = ['admin', 'education_admin', 'education', 'super_admin', 'superadmin', 'central', 'staff', 'counselor'];
+const ADMIN_ROLES = ['admin', 'education_admin', 'education', 'super_admin', 'superadmin', 'central'];
 const CENTRAL_ROLES = ['central', 'super_admin', 'superadmin'];
 const TRADE_ROLES = ['trade', 'trade_admin', 'global_trade', 'logistics_officer', 'admin', 'central', 'super_admin', 'superadmin'];
 const RIMI_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen', 'operations_manager', 'admin', 'central', 'super_admin', 'superadmin'];

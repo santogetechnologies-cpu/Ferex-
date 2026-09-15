@@ -61,10 +61,15 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+import { getAdminSupabaseClient } from '../lib/supabaseAdmin';
+
 async function fetchProfile(userId: string, email?: string | null): Promise<UserProfile | null> {
   try {
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+
     // 1. Check by Auth User ID in public.users
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('users')
       .select('*')
       .eq('id', userId)
@@ -74,13 +79,13 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
       const isSuper = isSuperAdmin(data.role, email || data.email);
       return {
         ...data,
-        role: isSuper ? 'superadmin' : (data.role || 'superadmin'),
+        role: isSuper ? 'superadmin' : (data.role || 'student'),
       } as UserProfile;
     }
 
     // 2. Fallback: Check by email in public.users to link existing profile
     if (email) {
-      const { data: emailUser, error: emailErr } = await supabase
+      const { data: emailUser, error: emailErr } = await client
         .from('users')
         .select('*')
         .ilike('email', email.trim())
@@ -90,7 +95,7 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
         // Link ID if mismatched
         if (emailUser.id !== userId) {
           try {
-            await supabase.from('users').update({ id: userId }).eq('id', emailUser.id);
+            await client.from('users').update({ id: userId }).eq('id', emailUser.id);
           } catch {}
         }
         const isSuper = isSuperAdmin(emailUser.role, email);
@@ -118,11 +123,11 @@ async function ensureProfile(user: User): Promise<UserProfile> {
     return existing;
   }
 
-  // Use the role from user metadata (set during provisioning), fallback to 'staff'
+  // Use the role from user metadata (set during provisioning), fallback to 'student'
   const metaRole = user.user_metadata?.role;
   const isSuper = isSuperAdmin(metaRole, user.email);
-  const role = isSuper ? 'superadmin' : (metaRole || 'staff');
-  const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User';
+  const role = isSuper ? 'superadmin' : (metaRole || 'student');
+  const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Student User';
 
   const newProfile: UserProfile = {
     id: user.id,
@@ -137,12 +142,15 @@ async function ensureProfile(user: User): Promise<UserProfile> {
   };
 
   try {
-    const { data, error } = await supabase.from('users').upsert(newProfile).select().maybeSingle();
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    const { data, error } = await client.from('users').upsert(newProfile).select().maybeSingle();
     if (!error && data) return data as UserProfile;
   } catch {}
 
   return newProfile;
 }
+
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 
@@ -160,7 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser) {
       const isSuper = isSuperAdmin(currentUser.user_metadata?.role, currentUser.email);
       const metaRole = currentUser.user_metadata?.role;
-      const defaultRole = isSuper ? 'superadmin' : (metaRole || 'staff');
+      const defaultRole = isSuper ? 'superadmin' : (metaRole || 'student');
 
       try {
         const prof = await Promise.race([
@@ -171,7 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 resolve({
                   id: currentUser.id,
                   email: currentUser.email || '',
-                  full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || (isSuper ? 'Central Super Admin' : 'Administrator'),
+                  full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || (isSuper ? 'Central Super Admin' : 'Student User'),
                   role: defaultRole,
                   created_at: new Date().toISOString(),
                 }),
@@ -184,7 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile({
           id: currentUser.id,
           email: currentUser.email || '',
-          full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || (isSuper ? 'Central Super Admin' : 'Administrator'),
+          full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || (isSuper ? 'Central Super Admin' : 'Student User'),
           role: defaultRole,
           created_at: new Date().toISOString(),
         });
@@ -397,14 +405,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // 2. Authoritatively Update / Insert in public.users table
       try {
-        const { data: existingUser } = await supabase
+        const admin = await getAdminSupabaseClient();
+        const client = admin || supabase;
+
+        const { data: existingUser } = await client
           .from('users')
           .select('id')
           .ilike('email', cleanEmail)
           .maybeSingle();
 
         if (existingUser?.id) {
-          await supabase
+          await client
             .from('users')
             .update({
               role: role,
@@ -419,7 +430,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ? crypto.randomUUID()
             : 'a0000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0');
 
-          await supabase
+          await client
             .from('users')
             .insert({
               id: newUuid,

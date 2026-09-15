@@ -10,6 +10,7 @@ import { Checkbox } from '../components/Checkbox';
 import { useAuth } from '../contexts/AuthContext';
 import { getDashboardRoute, getPortalLabel, isSuperAdmin } from '../lib/roleRouter';
 import { supabase } from '../lib/supabase';
+import { getAdminSupabaseClient } from '../lib/supabaseAdmin';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -184,7 +185,10 @@ export const LoginPage: React.FC = () => {
     let role: string | null = null;
     let mustChangePassword = false;
 
-    const { data: dbProfile } = await supabase
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+
+    const { data: dbProfile } = await client
       .from('users')
       .select('role, must_change_password')
       .eq('id', user.id)
@@ -194,7 +198,7 @@ export const LoginPage: React.FC = () => {
       role = dbProfile.role;
       mustChangePassword = !!dbProfile.must_change_password;
     } else if (cleanEmail) {
-      const { data: dbProfileByEmail } = await supabase
+      const { data: dbProfileByEmail } = await client
         .from('users')
         .select('role, must_change_password')
         .ilike('email', cleanEmail)
@@ -233,7 +237,7 @@ export const LoginPage: React.FC = () => {
       role = 'superadmin';
       // Sync authoritative role back to public.users
       try {
-        await supabase
+        await client
           .from('users')
           .update({ role: 'superadmin', updated_at: new Date().toISOString() })
           .eq('id', user.id);

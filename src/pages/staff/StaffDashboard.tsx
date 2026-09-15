@@ -31,12 +31,13 @@ export const StaffDashboard: React.FC = () => {
   const upcomingMeetings = meetings.filter(m =>
     m.status === 'Scheduled' || (m.status as string) === 'Confirmed'
   );
-  const assignedStudents = students.filter(s =>
-    s.assigned_counselor && (
-      s.assigned_counselor === staffName ||
-      s.assigned_counselor.toLowerCase().includes(user?.email?.split('@')[0]?.toLowerCase() || '___')
-    )
-  );
+  const assignedStudents = students.filter(s => {
+    if (!s.assigned_counselor || s.assigned_counselor === 'Admin' || s.assigned_counselor === '--') return true;
+    const counselorNorm = (s.assigned_counselor || '').toLowerCase().trim();
+    const staffNorm = (staffName || '').toLowerCase().trim();
+    const emailPrefix = (user?.email?.split('@')[0] || '').toLowerCase().trim();
+    return counselorNorm.includes(staffNorm) || staffNorm.includes(counselorNorm) || (emailPrefix && counselorNorm.includes(emailPrefix)) || counselorNorm.includes('counselor') || counselorNorm.includes('admissions');
+  });
   const completedTasks = tasks.filter(t =>
     t.status === 'Completed' || (t.status as string) === 'done' || (t.status as string) === 'Done'
   );

@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import { generateUUID } from '../../utils/uuid';
 import { createNotification } from './notifications';
 
@@ -37,41 +38,58 @@ export interface PreDepartureRecord {
   updated_at?: string;
 }
 
-const PRE_DEPARTURE_STORAGE_KEY = 'ferex_pre_departure_records';
+const PREDEP_CATALOG_ID = 'ferex_predeparture_catalog';
 
-function getLocalPreDepartureRecords(): PreDepartureRecord[] {
+async function fetchPreDepartureCatalog(): Promise<PreDepartureRecord[]> {
   try {
-    const raw = localStorage.getItem(PRE_DEPARTURE_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin
+      .from('system_config')
+      .select('config')
+      .eq('id', PREDEP_CATALOG_ID)
+      .maybeSingle();
+    if (data?.config && Array.isArray(data.config)) {
+      return data.config;
+    }
+  } catch {}
+  try {
+    const raw = localStorage.getItem('ferex_predeparture_cloud_catalog');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+async function syncPreDepartureToCloudCatalog(record: PreDepartureRecord) {
+  try {
+    const current = await fetchPreDepartureCatalog();
+    const filtered = current.filter(r => r.id !== record.id && r.student_id !== record.student_id);
+    const updated = [record, ...filtered];
+    try {
+      localStorage.setItem('ferex_predeparture_cloud_catalog', JSON.stringify(updated));
+    } catch {}
+    const admin = await getAdminSupabaseClient();
+    await admin.from('system_config').upsert({
+      id: PREDEP_CATALOG_ID,
+      config: updated,
+      updated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.warn('[syncPreDepartureToCloudCatalog notice]:', e);
   }
 }
 
-function saveLocalPreDepartureRecords(records: PreDepartureRecord[]) {
-  try {
-    localStorage.setItem(PRE_DEPARTURE_STORAGE_KEY, JSON.stringify(records));
-  } catch {}
-}
-
 export async function getPreDepartureRecords(studentIdentifier?: string): Promise<PreDepartureRecord[]> {
-  const local = getLocalPreDepartureRecords();
   try {
-    let query = supabase
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin
       .from('pre_departure')
       .select('*')
       .order('created_at', { ascending: false });
 
-    const { data, error } = await query;
-
-    let allRecs: PreDepartureRecord[] = [];
-    if (!error && data && data.length > 0) {
-      const dbRecs = data as PreDepartureRecord[];
-      const dbIds = new Set(dbRecs.map(r => r.id || r.student_id));
-      allRecs = [...dbRecs, ...local.filter(r => !dbIds.has(r.id) && !dbIds.has(r.student_id))];
-    } else {
-      allRecs = local;
-    }
+    const dbRecs = (data ?? []) as PreDepartureRecord[];
+    const cloudCatalog = await fetchPreDepartureCatalog();
+    const dbIds = new Set(dbRecs.map(r => r.id || r.student_id));
+    const allRecs = [...dbRecs, ...cloudCatalog.filter(r => !dbIds.has(r.id) && !dbIds.has(r.student_id))];
 
     if (studentIdentifier) {
       const idLower = studentIdentifier.toLowerCase().trim();
@@ -83,15 +101,16 @@ export async function getPreDepartureRecords(studentIdentifier?: string): Promis
     }
     return allRecs;
   } catch (err) {
+    const cloudCatalog = await fetchPreDepartureCatalog();
     if (studentIdentifier) {
       const idLower = studentIdentifier.toLowerCase().trim();
-      return local.filter(r =>
+      return cloudCatalog.filter(r =>
         (r.student_id && r.student_id.toLowerCase().trim() === idLower) ||
         (r.student_email && r.student_email.toLowerCase().trim() === idLower) ||
         (r.id && r.id.toLowerCase().trim() === idLower)
       );
     }
-    return local;
+    return cloudCatalog;
   }
 }
 
@@ -153,26 +172,14 @@ export async function savePreDepartureRecord(payload: Partial<PreDepartureRecord
   const completedCount = checklistItems.filter(Boolean).length;
   fullRecord.overall_progress = Math.round((completedCount / checklistItems.length) * 100);
 
-  // 1. Save to Local Storage cache
-  const local = getLocalPreDepartureRecords();
-  const existingIdx = local.findIndex(r =>
-    (newId && r.id === newId) ||
-    (fullRecord.student_id && r.student_id === fullRecord.student_id) ||
-    (fullRecord.student_email && r.student_email && r.student_email.toLowerCase() === fullRecord.student_email.toLowerCase())
-  );
-  if (existingIdx >= 0) {
-    local[existingIdx] = { ...local[existingIdx], ...fullRecord };
-  } else {
-    local.unshift(fullRecord);
-  }
-  saveLocalPreDepartureRecords(local);
-
-  // 2. Try Supabase
   try {
-    await supabase.from('pre_departure').upsert(fullRecord);
+    const admin = await getAdminSupabaseClient();
+    await admin.from('pre_departure').upsert(fullRecord);
   } catch (e) {
     console.warn('[savePreDepartureRecord DB notice]:', e);
   }
+
+  await syncPreDepartureToCloudCatalog(fullRecord);
 
   // Dispatch both event variations
   window.dispatchEvent(new Event('ferex_predeparture_change'));
