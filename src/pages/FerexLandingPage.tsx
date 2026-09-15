@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUniversities } from '../hooks/useUniversities';
+import { useDestinations } from '../hooks/useDestinations';
 import { getDashboardRoute } from '../lib/roleRouter';
 import type { University } from '../lib/types';
 import { Logo } from '../components/Logo';
@@ -71,6 +72,7 @@ export const FerexLandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, session, profile, signOut } = useAuth();
   const { universities } = useUniversities();
+  const { destinations } = useDestinations();
 
   // State
   const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>('All');
@@ -81,8 +83,15 @@ export const FerexLandingPage: React.FC = () => {
 
   // Fee Calculator State
   const availableCountries = useMemo(() => {
-    return Array.from(new Set(universities.map(u => u.country?.trim()).filter(Boolean)));
-  }, [universities]);
+    const set = new Set<string>();
+    destinations.forEach(d => {
+      if (d.name && d.name.toLowerCase().trim() !== 'india') set.add(d.name.trim());
+    });
+    universities.forEach(u => {
+      if (u.country && u.country.toLowerCase().trim() !== 'india') set.add(u.country.trim());
+    });
+    return Array.from(set);
+  }, [destinations, universities]);
 
   const [calcCountry, setCalcCountry] = useState<string>(availableCountries[0] || '');
 
@@ -158,8 +167,16 @@ export const FerexLandingPage: React.FC = () => {
   // Destination country statistics
   const destinationStats = useMemo(() => {
     const map = new Map<string, { count: number; unis: University[]; minFee: number }>();
+    
+    // Seed registered destinations
+    destinations.forEach(d => {
+      if (d.name && d.name.toLowerCase().trim() !== 'india') {
+        map.set(d.name.trim(), { count: 0, unis: [], minFee: 3000 });
+      }
+    });
+
     universities.forEach(u => {
-      if (!u.country) return;
+      if (!u.country || u.country.toLowerCase().trim() === 'india') return;
       const existing = map.get(u.country) || { count: 0, unis: [], minFee: 99999 };
       existing.count += 1;
       existing.unis.push(u);
@@ -170,13 +187,24 @@ export const FerexLandingPage: React.FC = () => {
       }
       map.set(u.country, existing);
     });
-    return Array.from(map.entries()).map(([country, data]) => ({
-      country,
-      count: data.count,
-      minFee: data.minFee === 99999 ? 3000 : data.minFee,
-      meta: COUNTRY_DETAILS[country] || { flag: '🇪🇺', schengen: 'Schengen Member', workRights: '20 hrs/week legal', stayBack: '12 Months Post-Study', avgLiving: '€400 - €600 / mo' }
-    }));
-  }, [universities]);
+
+    return Array.from(map.entries()).map(([country, data]) => {
+      const destObj = destinations.find(d => d.name.toLowerCase() === country.toLowerCase());
+      const fallbackFlag = destObj?.flag && destObj.flag !== 'EU' && destObj.flag !== '🌍' ? destObj.flag : '🇪🇺';
+      return {
+        country,
+        count: data.count,
+        minFee: data.minFee === 99999 ? 3000 : data.minFee,
+        meta: COUNTRY_DETAILS[country] || {
+          flag: fallbackFlag,
+          schengen: destObj?.badge || 'Schengen Member',
+          workRights: '20 hrs/week legal',
+          stayBack: destObj?.processing ? `${destObj.processing} processing` : '12 Months Post-Study',
+          avgLiving: '€400 - €600 / mo'
+        }
+      };
+    });
+  }, [universities, destinations]);
 
   // Calculator numerical values
   const calcValues = useMemo(() => {

@@ -49,7 +49,7 @@ export const DEFAULT_DOCUMENT_REQUIREMENTS: DocumentRequirement[] = [
     is_required: true,
     description: 'MEA Apostille stamp on original educational qualification certificates.',
     processing_time: '7 - 10 Days',
-    authority_fee: '₹1,500',
+    authority_fee: '€25',
     checklist_items: ['State HRD Attestation', 'Ministry of External Affairs (MEA) Apostille']
   },
   {
@@ -93,7 +93,7 @@ export const DEFAULT_DOCUMENT_REQUIREMENTS: DocumentRequirement[] = [
     is_required: true,
     description: 'Min. €30,000 medical coverage valid across all Schengen member states.',
     processing_time: '1 Day',
-    authority_fee: '₹6,500',
+    authority_fee: '€75',
     checklist_items: ['€30,000 minimum medical coverage', 'Full repatriation coverage']
   },
 
@@ -117,7 +117,7 @@ export const DEFAULT_DOCUMENT_REQUIREMENTS: DocumentRequirement[] = [
     is_required: true,
     description: 'Mandatory verification certificate from the German Academic Evaluation Centre.',
     processing_time: '30 - 45 Days',
-    authority_fee: '₹18,000',
+    authority_fee: '€190',
     checklist_items: ['APS verification token', 'Original academic verification proof']
   },
   {
@@ -185,7 +185,7 @@ export const DEFAULT_DOCUMENT_REQUIREMENTS: DocumentRequirement[] = [
     is_required: true,
     description: 'Tuberculosis test from an IOM / UKVI approved clinic.',
     processing_time: '1 Day',
-    authority_fee: '₹2,500',
+    authority_fee: '£40',
     checklist_items: ['Approved UKVI test clinic certificate']
   },
   {
@@ -231,7 +231,7 @@ export const DEFAULT_DOCUMENT_REQUIREMENTS: DocumentRequirement[] = [
     is_required: true,
     description: 'Études en France (EEF) account registration & interview clearance certificate.',
     processing_time: '14 - 21 Days',
-    authority_fee: '₹18,500',
+    authority_fee: '€200',
     checklist_items: ['EEF File number', 'Campus France NOC interview certificate']
   },
   {
@@ -380,7 +380,7 @@ export const DEFAULT_DOCUMENT_REQUIREMENTS: DocumentRequirement[] = [
     is_required: true,
     description: 'Immigration medical examination by an IRCC-approved panel physician.',
     processing_time: '2 - 3 Days',
-    authority_fee: '₹7,500',
+    authority_fee: 'CAD $95',
     checklist_items: ['eMedical information sheet with UMI number']
   },
 

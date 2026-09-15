@@ -192,8 +192,8 @@ export const AdminUniversities: React.FC = () => {
 
   // Fee breakdown states
   const [universityFee, setUniversityFee] = useState('€3,200 / yr');
-  const [vfsFee, setVfsFee] = useState('₹15,000');
-  const [agencyFee, setAgencyFee] = useState('₹25,000');
+  const [vfsFee, setVfsFee] = useState('€150');
+  const [agencyFee, setAgencyFee] = useState('€250');
 
   // Installments state
   const [installmentsList, setInstallmentsList] = useState<PaymentInstallment[]>([]);
@@ -204,7 +204,7 @@ export const AdminUniversities: React.FC = () => {
   // Collect all unique countries
   const availableCountryNames = Array.from(
     new Set([...countryList.map(c => c.name), ...universities.map(u => u?.country).filter(Boolean)])
-  );
+  ).filter(c => c && c.toLowerCase().trim() !== 'india');
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -380,8 +380,8 @@ export const AdminUniversities: React.FC = () => {
     setNawaRequired(true);
     setSelectedIntakes(['October 2026', 'February 2027']);
     setUniversityFee('€3,200 / yr');
-    setVfsFee(config.default_vfs_fee || '₹15,000');
-    setAgencyFee(config.default_agency_fee || '₹25,000');
+    setVfsFee(config.default_vfs_fee || '€150');
+    setAgencyFee(config.default_agency_fee || '€250');
     setCourseProgramsList([
       { id: 'cp-1', name: 'B.Sc Computer Science & Engineering', degree_level: 'Bachelor', tuition_fee: '€3,000 / yr', duration: '3.5 Years' },
       { id: 'cp-2', name: 'M.Sc Artificial Intelligence & Data Systems', degree_level: 'Master', tuition_fee: '€3,500 / yr', duration: '2 Years' }
@@ -415,8 +415,8 @@ export const AdminUniversities: React.FC = () => {
     setNawaRequired(u.nawa_required !== undefined ? u.nawa_required : u.country.toLowerCase() === 'poland');
     setSelectedIntakes(u.intakes || ['October 2026', 'February 2027']);
     setUniversityFee(u.university_fee || u.tuition_range || '€3,200 / yr');
-    setVfsFee(u.vfs_fee || config.default_vfs_fee || '₹15,000');
-    setAgencyFee(u.agency_fee || config.default_agency_fee || '₹25,000');
+    setVfsFee(u.vfs_fee || config.default_vfs_fee || '€150');
+    setAgencyFee(u.agency_fee || config.default_agency_fee || '€250');
 
     if (u.course_programs && u.course_programs.length > 0) {
       setCourseProgramsList(u.course_programs);
@@ -444,7 +444,30 @@ export const AdminUniversities: React.FC = () => {
 
     try {
       const parsedPrograms = courseProgramsList.map(c => c.name);
-      const targetCountry = isCustomCountry ? (customCountryInput.trim() || 'Europe') : country;
+      const rawTargetCountry = isCustomCountry ? (customCountryInput.trim() || 'Europe') : country;
+      const targetCountry = rawTargetCountry.trim();
+
+      // If new destination country typed, auto-register it in destinations registry
+      if (targetCountry && !countryList.some(c => c.name.toLowerCase() === targetCountry.toLowerCase())) {
+        try {
+          await addDestination({
+            name: targetCountry,
+            code: targetCountry.substring(0, 2).toUpperCase(),
+            flag: '🌍',
+            currency: 'EUR',
+            authority: `${targetCountry} Higher Education Authority`,
+            acronym: targetCountry.substring(0, 4).toUpperCase(),
+            processing: '15-30 Days',
+            fee: '€50',
+            desk: `${targetCountry} Desk`,
+            badge: 'Accredited',
+            is_active: true
+          });
+        } catch (e) {
+          console.warn('Could not auto-register new destination country:', e);
+        }
+      }
+
       const payload = {
         name: name.trim(),
         country: targetCountry || 'Poland',
@@ -1338,7 +1361,7 @@ export const AdminUniversities: React.FC = () => {
                           type="text"
                           value={vfsFee}
                           onChange={(e) => setVfsFee(e.target.value)}
-                          placeholder="₹15,000"
+                          placeholder="€150"
                           className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                         />
                       </div>
@@ -1349,7 +1372,7 @@ export const AdminUniversities: React.FC = () => {
                           type="text"
                           value={agencyFee}
                           onChange={(e) => setAgencyFee(e.target.value)}
-                          placeholder="₹25,000"
+                          placeholder="€250"
                           className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                         />
                       </div>

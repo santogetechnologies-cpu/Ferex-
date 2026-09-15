@@ -50,9 +50,9 @@ export const SelectUniversity: React.FC = () => {
   const availableDestinations = useMemo(() => {
     const destMap = new Map<string, { country: string; flag: string; authority: string; desk: string; badge: string }>();
     
-    // Add destinations from registry
+    // Add destinations from registry (strictly foreign destinations, ignore India)
     destinations.forEach(d => {
-      if (d.name) {
+      if (d.name && d.name.trim().toLowerCase() !== 'india') {
         const key = d.name.trim().toLowerCase();
         const flag = d.flag && d.flag !== 'EU' && d.flag !== '🌍' ? d.flag : COUNTRY_FLAGS[d.name.trim()] || '🌍';
         destMap.set(key, {
@@ -67,7 +67,7 @@ export const SelectUniversity: React.FC = () => {
 
     // Add any countries from universities not already in destinations
     universities.forEach(u => {
-      if (u.country) {
+      if (u.country && u.country.trim().toLowerCase() !== 'india') {
         const key = u.country.trim().toLowerCase();
         if (!destMap.has(key)) {
           const flag = COUNTRY_FLAGS[u.country.trim()] || '🌍';
@@ -194,11 +194,24 @@ export const SelectUniversity: React.FC = () => {
         course_fee: rawTuition,
       });
 
-      // Save target country
+      // Save target country & selected course for Documents and Counselor flows
       if (applyUni.country) {
         localStorage.setItem('ferex_student_target_country', applyUni.country);
-        window.dispatchEvent(new Event('ferex_country_change'));
       }
+      localStorage.setItem('ferex_student_selected_uni', JSON.stringify({
+        id: applyUni.id,
+        name: applyUni.name,
+        country: applyUni.country,
+        city: applyUni.city
+      }));
+      localStorage.setItem('ferex_selected_course', JSON.stringify({
+        university_id: applyUni.id,
+        university_name: applyUni.name,
+        country: applyUni.country,
+        program: `${degreeLevel} - ${selectedCourse || 'Higher Studies'}`
+      }));
+      window.dispatchEvent(new Event('ferex_country_change'));
+      window.dispatchEvent(new Event('ferex_application_change'));
 
       setApplyUni(null);
       const successMsg = hasCounselorAssigned 
@@ -216,9 +229,11 @@ export const SelectUniversity: React.FC = () => {
   const allCountryNames = useMemo(() => {
     const names = new Set<string>();
     names.add('All');
-    availableDestinations.forEach(d => names.add(d.country));
+    availableDestinations.forEach(d => {
+      if (d.country.toLowerCase().trim() !== 'india') names.add(d.country);
+    });
     universities.forEach(u => {
-      if (u?.country) names.add(u.country.trim());
+      if (u?.country && u.country.toLowerCase().trim() !== 'india') names.add(u.country.trim());
     });
     return Array.from(names);
   }, [availableDestinations, universities]);

@@ -18,6 +18,8 @@ export interface DestinationItem {
   updated_at?: string;
 }
 
+const LOCAL_STORAGE_KEY = 'ferex_destinations_registry';
+
 export const DEFAULT_STUDY_DESTINATIONS: DestinationItem[] = [
   {
     id: '11111111-0000-4000-a000-000000000001',

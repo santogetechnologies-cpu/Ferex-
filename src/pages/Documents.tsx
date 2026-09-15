@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Folder, Search, Upload, Eye, FileText, X, AlertCircle,
@@ -42,40 +43,44 @@ export const Documents: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [configuredReqs, setConfiguredReqs] = useState<DocumentRequirement[]>([]);
 
-  // Target country resolution - dynamically bound to selected university & country
+  // Target country resolution - dynamically bound to selected destination university & country
   const targetCountry = useMemo(() => {
+    const isIndiaOrInvalid = (c?: string | null) => !c || c.toLowerCase().trim() === 'india' || c.toLowerCase().trim() === 'not set';
+
     try {
       const storedCourse = localStorage.getItem('ferex_selected_course');
       if (storedCourse) {
         const parsed = JSON.parse(storedCourse);
-        if (parsed?.country) return parsed.country;
-        if (parsed?.university?.country) return parsed.university.country;
+        if (parsed?.country && !isIndiaOrInvalid(parsed.country)) return parsed.country;
+        if (parsed?.university?.country && !isIndiaOrInvalid(parsed.university.country)) return parsed.university.country;
       }
       const storedUni = localStorage.getItem('ferex_student_selected_uni');
       if (storedUni) {
         const parsed = JSON.parse(storedUni);
-        if (parsed?.country) return parsed.country;
+        if (parsed?.country && !isIndiaOrInvalid(parsed.country)) return parsed.country;
       }
     } catch (e) {}
 
-    return (
-      applications[0]?.universities?.country ||
-      (applications[0] as any)?.country ||
-      (profile as any)?.target_country ||
-      (profile as any)?.country ||
-      localStorage.getItem('ferex_student_target_country') ||
-      'International'
-    );
+    const appCountry = applications[0]?.universities?.country || (applications[0] as any)?.country;
+    if (appCountry && !isIndiaOrInvalid(appCountry)) return appCountry;
+
+    const profileTarget = (profile as any)?.target_country;
+    if (profileTarget && !isIndiaOrInvalid(profileTarget)) return profileTarget;
+
+    const localTarget = localStorage.getItem('ferex_student_target_country');
+    if (localTarget && !isIndiaOrInvalid(localTarget)) return localTarget;
+
+    return null;
   }, [profile, applications]);
 
   useEffect(() => {
-    if (targetCountry && targetCountry !== 'Not Set') {
+    if (targetCountry) {
       getDocumentRequirements(targetCountry).then(setConfiguredReqs);
     }
   }, [targetCountry]);
 
   const targetWf = useMemo(() => {
-    return getWorkflowForCountry(targetCountry);
+    return targetCountry ? getWorkflowForCountry(targetCountry) : null;
   }, [targetCountry, getWorkflowForCountry]);
 
   // Map DB docs or fall back to empty list if none
@@ -333,7 +338,7 @@ export const Documents: React.FC = () => {
       </div>
 
       {/* Legalization & Country Checklist Card */}
-      {targetWf && (
+      {targetWf ? (
         <div className="bg-slate-900 rounded-xl p-5 text-white border border-slate-800 shadow-card relative overflow-hidden">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
             <div>
@@ -403,6 +408,26 @@ export const Documents: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      ) : (
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-[#58051E]/90 rounded-xl p-5 text-white border border-slate-700/60 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-semibold border border-amber-500/30">
+                <Globe className="w-3 h-3" />
+                Select Destination University
+              </span>
+            </div>
+            <h2 className="text-sm font-semibold text-white">Destination Compliance & Legalization Protocol</h2>
+            <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+              Your required document checklist, apostille/legalization dossier, and embassy protocols will dynamically calibrate once you choose your destination institution.
+            </p>
+          </div>
+          <Link to="/student/select-university">
+            <Button size="sm" className="bg-[#E5A73B] hover:bg-[#d4962b] text-slate-950 font-semibold shrink-0">
+              Browse Universities
+            </Button>
+          </Link>
         </div>
       )}
 

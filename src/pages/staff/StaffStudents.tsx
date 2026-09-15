@@ -303,6 +303,7 @@ export const StaffStudents: React.FC = () => {
             const targetUni = primaryApp?.university_name || st.target_university || 'University Pending';
             const targetCourse = primaryApp?.course || st.target_course || 'Degree Program';
             const appStatus = primaryApp?.status || (st.country ? 'Profile Registered' : 'Onboarding');
+            const destCountry = primaryApp?.country || primaryApp?.universities?.country || st.target_country || (st.country && st.country.toLowerCase() !== 'india' ? st.country : 'Study Abroad');
 
             const verifiedDocsCount = journey.documents.filter(d =>
               String(d.status || '').toLowerCase().includes('approved') || String(d.status || '').toLowerCase().includes('verified')
@@ -348,7 +349,7 @@ export const StaffStudents: React.FC = () => {
                       {appStatus}
                     </span>
                     <span className="text-[10px] font-bold text-slate-400 mt-1 block">
-                      Target Country: <strong className="text-slate-700">{st.country || st.target_country || 'Europe'}</strong>
+                      Target Country: <strong className="text-slate-700">{destCountry}</strong>
                     </span>
                   </div>
                 </div>
@@ -449,8 +450,10 @@ export const StaffStudents: React.FC = () => {
                   </h4>
                   <div className="grid grid-cols-2 gap-3 text-xs font-semibold">
                     <div>
-                      <span className="text-slate-400 block text-[10.5px]">Target Country</span>
-                      <span className="font-extrabold text-slate-900">{selectedJourney.student.country || selectedJourney.student.target_country || 'Europe'}</span>
+                      <span className="text-slate-400 block text-[10.5px]">Target Destination</span>
+                      <span className="font-extrabold text-slate-900">
+                        {selectedJourney.applications[0]?.country || selectedJourney.applications[0]?.universities?.country || selectedJourney.student.target_country || (selectedJourney.student.country && selectedJourney.student.country.toLowerCase() !== 'india' ? selectedJourney.student.country : 'Study Abroad')}
+                      </span>
                     </div>
                     <div>
                       <span className="text-slate-400 block text-[10.5px]">Intended Degree</span>
