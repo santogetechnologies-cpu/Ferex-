@@ -889,13 +889,41 @@ export const Documents: React.FC = () => {
               })()}
 
               <form onSubmit={handleUploadSubmit} className="space-y-4">
+                {configuredReqs.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Target Compliance Requirement
+                    </label>
+                    <select
+                      value={uploadName}
+                      onChange={(e) => {
+                        const selectedVal = e.target.value;
+                        setUploadName(selectedVal);
+                        const matched = configuredReqs.find(r => r.document_name === selectedVal);
+                        if (matched) {
+                          setUploadType(matched.document_type || 'Academic');
+                        }
+                      }}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
+                    >
+                      <option value="" disabled>-- Select Configured Document ({configuredReqs.length} Configured) --</option>
+                      {configuredReqs.map(req => (
+                        <option key={req.id} value={req.document_name}>
+                          {req.document_name} ({req.document_type || 'Required'})
+                        </option>
+                      ))}
+                      <option value="Other">Custom / Other Document</option>
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">Document File Name</label>
                   <input
                     type="text"
                     value={uploadName}
                     onChange={(e) => setUploadName(e.target.value)}
-                    placeholder="e.g. Bachelor_Degree_Transcript"
+                    placeholder="e.g. Academic_Marksheet"
                     required
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
                   />
@@ -908,15 +936,20 @@ export const Documents: React.FC = () => {
                     onChange={(e) => setUploadType(e.target.value)}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
                   >
-                    <option value="Academic">Academic Marksheets & Diplomas</option>
-                    <option value="Transcripts">Transcripts & Scorecards</option>
-                    <option value="Identification">Identification (Passport / ID)</option>
-                    <option value="Financial">Financial Statement & Living Funds</option>
-                    <option value="Language">Language Proficiency (MOI / IELTS)</option>
-                    <option value="Insurance">Medical & Travel Insurance</option>
-                    <option value="Attestation">Apostille / Embassy Legalization</option>
-                    <option value="Recommendation">Letter of Recommendation (LOR)</option>
-                    <option value="Other">Other Certificate / SOP</option>
+                    {configuredReqs.length > 0 ? (
+                      Array.from(new Set(configuredReqs.map(r => r.document_type || 'Academic'))).map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="Academic">Academic</option>
+                        <option value="Identification">Identification</option>
+                        <option value="Financial">Financial</option>
+                        <option value="Language">Language</option>
+                        <option value="Legalization">Legalization</option>
+                        <option value="Other">Other</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
