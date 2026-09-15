@@ -6,6 +6,19 @@ import { logActivity } from './activity';
 // Helper regex to validate UUID strings
 const isValidUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 
+export function isRealApplication(a: any): boolean {
+  if (!a) return false;
+  const name = (a.university_name || a.universities?.name || '').trim();
+  if (!name || name.toLowerCase().includes('pending') || name.toLowerCase() === 'not set') {
+    return false;
+  }
+  const prog = (a.program_name || a.course || '').trim();
+  if (prog && prog.toLowerCase().includes('pending course')) {
+    return false;
+  }
+  return true;
+}
+
 const APPLICATIONS_STORAGE_KEY = 'ferex_applications_backup';
 
 function getLocalApplications(): Application[] {

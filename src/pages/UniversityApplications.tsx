@@ -6,6 +6,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { useApplications } from '../hooks/useApplications';
+import { isRealApplication } from '../lib/api/applications';
 
 const getStatusStyle = (status: string) => {
   switch (status) {
@@ -43,7 +44,11 @@ export const UniversityApplications: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState<string | null>(null);
 
-  const activeApp = applications.find(app => app.id === selectedAppId);
+  const validApplications = React.useMemo(() => {
+    return applications.filter(isRealApplication);
+  }, [applications]);
+
+  const activeApp = validApplications.find(app => app.id === selectedAppId);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -102,9 +107,9 @@ export const UniversityApplications: React.FC = () => {
       </div>
 
       {/* Grid of Applications */}
-      {loading && applications.length === 0 ? (
+      {loading && validApplications.length === 0 ? (
         <div className="py-16 text-center text-xs font-bold text-slate-400">Loading applications...</div>
-      ) : applications.length === 0 ? (
+      ) : validApplications.length === 0 ? (
         <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
           <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="text-sm font-black text-slate-800">No Applications Submitted Yet</h3>
@@ -120,7 +125,7 @@ export const UniversityApplications: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {applications.map((app) => (
+          {validApplications.map((app) => (
             <Card key={app.id} className="p-6 flex flex-col justify-between hover:border-slate-200 transition-all select-none bg-white">
               <div>
                 {/* Top Row: Icon & Status */}

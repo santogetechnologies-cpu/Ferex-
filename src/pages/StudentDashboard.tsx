@@ -19,6 +19,7 @@ import { useSystemConfig } from '../hooks/useSystemConfig';
 import { getNawaRecords } from '../lib/api/nawa';
 import type { NawaRecord } from '../lib/api/nawa';
 import { getDocumentRequirements, calculateDossierStatus } from '../lib/api/documentRequirements';
+import { isRealApplication } from '../lib/api/applications';
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -108,8 +109,9 @@ export const StudentDashboard: React.FC = () => {
   const inst2Paid = payments.some(p => checkPaymentStage(p, 2) && ((p.status as string) === 'Paid' || (p.status as string) === 'Verified'));
   const inst3Paid = payments.some(p => checkPaymentStage(p, 3) && ((p.status as string) === 'Paid' || (p.status as string) === 'Verified'));
 
-  const isUniSelected = applications.length > 0;
-  const hasOffer = applications.some(a =>
+  const realApplications = applications.filter(isRealApplication);
+  const isUniSelected = realApplications.length > 0;
+  const hasOffer = realApplications.some(a =>
     (a.status as string) === 'Offer Issued' ||
     (a.status as string) === 'Accepted' ||
     (a.status as string) === 'Final Acceptance Issued' ||
@@ -118,7 +120,7 @@ export const StudentDashboard: React.FC = () => {
     (a.status as string) === 'Approved' ||
     Boolean(a.offer_letter_url)
   );
-  const isOfferAccepted = applications.some(a =>
+  const isOfferAccepted = realApplications.some(a =>
     (a.status as string) === 'Accepted' ||
     (a.status as string) === 'Final Acceptance Issued' ||
     (a.status as string) === 'Visa Processing' ||
@@ -172,7 +174,7 @@ export const StudentDashboard: React.FC = () => {
     },
     { title: `3. Advanced Registration Fee Payment`, isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
     { title: `4. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isLegalizationApproved, path: '/student/documents', tag: isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Pending' },
-    { title: '5. University Selection & Course Application', isDone: isUniSelected, path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Action Needed' },
+    { title: '5. University Selection & Course Application', isDone: isUniSelected, path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Pending Selection' },
     { title: '6. Official Admission Offer Issued & Accepted', isDone: isOfferAccepted, path: '/student/offers', tag: isOfferAccepted ? 'Accepted' : hasOffer ? 'Offer Released' : 'Pending' },
     { title: '7. University Tuition Deposit & Visa Clearance', isDone: inst2Paid, path: '/student/payments', tag: inst2Paid ? `Cleared (${visaRecord?.status_label || 'Visa Ready'})` : 'Due' },
     { title: '8. Final Acceptance Letter from University', isDone: isFinalAcceptanceIssued, path: '/student/offers', tag: isFinalAcceptanceIssued ? 'Released' : inst2Paid ? 'Awaiting Release' : 'Pending Deposit' },
@@ -226,7 +228,7 @@ export const StudentDashboard: React.FC = () => {
       {/* Key Metrics Bento Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         {[
-          { title: 'Target Universities', value: `${applications.length}`, sub: `${applications.filter(a => a.status !== 'Draft').length} Active Applications`, icon: GraduationCap, path: '/student/applications' },
+          { title: 'Target Universities', value: `${realApplications.length}`, sub: `${realApplications.filter(a => a.status !== 'Draft').length} Active Applications`, icon: GraduationCap, path: '/student/applications' },
           { title: 'Journey Progress', value: `${completedCount} / 12`, sub: 'Milestones Completed', icon: Compass, path: '/student/journey-tracker' },
           {
             title: 'Documents Status',

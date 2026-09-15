@@ -6,6 +6,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { useApplications } from '../hooks/useApplications';
+import { isRealApplication } from '../lib/api/applications';
 import { usePayments } from '../hooks/usePayments';
 import { triggerOfferAcceptanceWorkflow } from '../lib/syncEvents';
 import { checkPaymentStage } from '../lib/paymentUnlock';
@@ -121,7 +122,8 @@ export const OfferLetters: React.FC = () => {
   const [previewDoc, setPreviewDoc] = useState<{ app: any; type: 'offer' | 'final'; url: string; name: string } | null>(null);
 
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
-  const offerApps = applications.filter(a =>
+  const validApplications = applications.filter(isRealApplication);
+  const offerApps = validApplications.filter(a =>
     a.status === 'Offer Issued' ||
     a.status === 'Accepted' ||
     a.status === 'Final Acceptance Issued' ||
@@ -262,21 +264,21 @@ export const OfferLetters: React.FC = () => {
           </div>
           <div>
             <h3 className="text-base font-black text-slate-800">
-              {applications.length > 0
-                ? `${applications.length} University Application(s) Under Review`
+              {validApplications.length > 0
+                ? `${validApplications.length} University Application(s) Under Review`
                 : 'No University Applications Submitted Yet'}
             </h3>
             <p className="text-xs font-semibold text-slate-400 mt-1 max-w-md mx-auto">
-              {applications.length > 0
+              {validApplications.length > 0
                 ? 'Your applications have been submitted to Edu Admin and the admissions council. Official offer letters will be released here once approved.'
                 : 'Select your target European universities and programs to start receiving official admission offer letters.'}
             </p>
           </div>
 
-          {applications.length > 0 && (
+          {validApplications.length > 0 && (
             <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl max-w-md mx-auto text-left space-y-2">
               <span className="text-[10px] font-black uppercase text-slate-400 block tracking-wider">Submitted Applications:</span>
-              {applications.map(app => (
+              {validApplications.map(app => (
                 <div key={app.id} className="flex items-center justify-between text-xs font-bold text-slate-800">
                   <span className="truncate max-w-[240px]">{app.university_name || 'University'}</span>
                   <span className="text-[10px] font-extrabold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">
@@ -289,10 +291,10 @@ export const OfferLetters: React.FC = () => {
 
           <div className="flex items-center justify-center gap-3 pt-2">
             <button
-              onClick={() => navigate(applications.length > 0 ? '/student/applications' : '/student/universities')}
+              onClick={() => navigate(validApplications.length > 0 ? '/student/applications' : '/student/universities')}
               className="inline-flex items-center gap-2 h-9.5 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-all shadow-sm cursor-pointer"
             >
-              {applications.length > 0 ? 'Track Application Milestones' : 'Browse Accredited Universities'} <ArrowRight className="w-4 h-4" />
+              {validApplications.length > 0 ? 'Track Application Milestones' : 'Browse Accredited Universities'} <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>

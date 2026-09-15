@@ -12,7 +12,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useDocuments } from '../hooks/useDocuments';
 import { useApplications } from '../hooks/useApplications';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
-import { ensureStudentApplication } from '../lib/api/applications';
 import { getDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../lib/api/documentRequirements';
 
 export const Documents: React.FC = () => {
@@ -282,8 +281,6 @@ export const Documents: React.FC = () => {
           file_size: fileSizeStr,
           doc_type: uploadType,
         });
-        const studentName = (user as any)?.user_metadata?.full_name || user.email?.split('@')[0] || 'Student';
-        await ensureStudentApplication(user.id, studentName);
         showToast(`Document "${baseName}" submitted successfully for verification.`);
       }
 
