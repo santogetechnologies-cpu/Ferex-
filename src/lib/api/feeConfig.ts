@@ -166,23 +166,25 @@ export function saveSystemFeeConfig(config: Partial<SystemFeeConfig>): SystemFee
     console.error('Failed to save fee configuration to local storage:', err);
   }
 
-  // Persist directly to Supabase with admin privileges
-  try {
-    const admin = await getAdminSupabaseClient();
-    const now = new Date().toISOString();
-    
-    // Save to both fee_config and ferex_fee_governance_config
-    admin.from('system_config').upsert([
-      { key: 'fee_config', value: updated, updated_at: now },
-      { key: 'ferex_fee_governance_config', value: updated, updated_at: now }
-    ], { onConflict: 'key' }).then(({ error }: any) => {
+  // Persist directly to Supabase with admin privileges in background
+  (async () => {
+    try {
+      const admin = await getAdminSupabaseClient();
+      const now = new Date().toISOString();
+      
+      // Save to both fee_config and ferex_fee_governance_config
+      const { error } = await admin.from('system_config').upsert([
+        { key: 'fee_config', value: updated, updated_at: now },
+        { key: 'ferex_fee_governance_config', value: updated, updated_at: now }
+      ], { onConflict: 'key' });
+
       if (error) {
         console.warn('Admin upsert fee config warning:', error.message);
       }
-    }).catch(() => {});
-  } catch (err) {
-    console.warn('Fee config sync error:', err);
-  }
+    } catch (err) {
+      console.warn('Fee config sync error:', err);
+    }
+  })();
 
   return updated;
 }
