@@ -458,11 +458,12 @@ function getStoredRequirements(): DocumentRequirement[] {
   return DEFAULT_DOCUMENT_REQUIREMENTS;
 }
 
-function saveStoredRequirements(reqs: DocumentRequirement[]) {
+function saveStoredRequirements(reqs: DocumentRequirement[], notify: boolean = true) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(reqs));
-    window.dispatchEvent(new Event('ferex_doc_requirements_change'));
-    window.dispatchEvent(new Event('storage'));
+    if (notify) {
+      window.dispatchEvent(new Event('ferex_doc_requirements_change'));
+    }
   } catch (e) {
     console.error('Error saving document requirements to storage:', e);
   }
@@ -498,7 +499,7 @@ export async function getAllDocumentRequirements(): Promise<DocumentRequirement[
       const cloudIds = new Set(cloudList.map(d => d.id));
       const localOnly = stored.filter(s => !cloudIds.has(s.id));
       const merged = [...cloudList, ...localOnly];
-      saveStoredRequirements(merged);
+      saveStoredRequirements(merged, false);
       return merged;
     }
   } catch (e) {
@@ -518,7 +519,7 @@ export async function getAllDocumentRequirements(): Promise<DocumentRequirement[
       const dbIds = new Set(dbList.map(d => d.id));
       const localOnly = stored.filter(s => !dbIds.has(s.id));
       const merged = [...dbList, ...localOnly];
-      saveStoredRequirements(merged);
+      saveStoredRequirements(merged, false);
       return merged;
     }
   } catch (e) {

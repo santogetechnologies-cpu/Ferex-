@@ -55,8 +55,8 @@ export const AdminDocumentConfig: React.FC = () => {
   const [formAuthorityFee, setFormAuthorityFee] = useState('Free');
   const [formChecklistItems, setFormChecklistItems] = useState<string[]>(['']);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (isInitial: boolean = false) => {
+    if (isInitial) setLoading(true);
     try {
       const [allReqs, allDests] = await Promise.all([
         getAllDocumentRequirements(),
@@ -67,13 +67,13 @@ export const AdminDocumentConfig: React.FC = () => {
     } catch (e) {
       console.error('Error loading document config:', e);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
-    const handleSync = () => loadData();
+    loadData(true);
+    const handleSync = () => loadData(false);
     window.addEventListener('ferex_doc_requirements_change', handleSync);
     window.addEventListener('ferex_destinations_change', handleSync);
     window.addEventListener('ferex_country_workflow_change', handleSync);
