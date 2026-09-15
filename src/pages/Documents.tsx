@@ -40,6 +40,7 @@ export const Documents: React.FC = () => {
 
   const { documents: dbDocs, loading, addDoc, replaceDoc } = useDocuments(activeStudentId);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [configuredReqs, setConfiguredReqs] = useState<DocumentRequirement[]>([]);
   const [selectedCountryOverride, setSelectedCountryOverride] = useState<string>(() => {
     return localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country') || 'ind';
   });
@@ -566,7 +567,7 @@ export const Documents: React.FC = () => {
                   Required Dossier Checklist ({targetWf.checklist_documents.length} Items)
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                  {targetWf.checklist_documents.map((reqDoc) => {
+                  {targetWf.checklist_documents.map((reqDoc: any) => {
                     const isUploaded = documents.some(d => 
                       d.name.toLowerCase().includes(reqDoc.name.toLowerCase().slice(0, 8)) ||
                       d.type.toLowerCase().includes(reqDoc.category.toLowerCase())
