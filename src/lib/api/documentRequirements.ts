@@ -729,26 +729,27 @@ export function isRequirementSatisfied(req: DocumentRequirement, studentDocs: an
   status: 'Missing' | 'Submitted' | 'Under Review' | 'Approved' | 'Rejected';
   doc?: any;
 } {
-  const reqNameNorm = (req.document_name || '').toLowerCase().trim();
+  const reqNameNorm = (req.document_name || '').replace(/\.[^/.]+$/, '').toLowerCase().trim();
   const reqTypeNorm = (req.document_type || '').toLowerCase().trim();
 
   const matchingDocs = (studentDocs || []).filter(d => {
-    const dName = (d.name || d.file_name || '').toLowerCase().trim();
-    const dType = (d.type || d.doc_type || '').toLowerCase().trim();
+    const rawName = (d.name || d.file_name || d.docType || '').toLowerCase().trim();
+    const dName = rawName.replace(/\.[^/.]+$/, '').trim();
+    const dType = (d.type || d.doc_type || d.category || '').toLowerCase().trim();
     const dReqId = (d as any).requirement_id;
 
     if (dReqId && dReqId === req.id) return true;
-    if (dName === reqNameNorm) return true;
-    if (dName && reqNameNorm && (dName.includes(reqNameNorm) || reqNameNorm.includes(dName))) return true;
-    if (dType === reqTypeNorm && dName && reqNameNorm && (dName.slice(0, 4) === reqNameNorm.slice(0, 4))) return true;
+    if (dName && reqNameNorm && (dName === reqNameNorm || dName.includes(reqNameNorm) || reqNameNorm.includes(dName))) return true;
+    if (dType && reqTypeNorm && dType === reqTypeNorm && dName && reqNameNorm && (dName.slice(0, 3) === reqNameNorm.slice(0, 3))) return true;
     return false;
   });
 
   if (matchingDocs.length === 0) {
     const looseMatch = (studentDocs || []).find(d => {
-      const dName = (d.name || d.file_name || '').toLowerCase().trim();
-      const dType = (d.type || d.doc_type || '').toLowerCase().trim();
-      return (dName && reqNameNorm && reqNameNorm.length >= 4 && (dName.includes(reqNameNorm.slice(0, 6)) || reqNameNorm.includes(dName.slice(0, 6)))) ||
+      const rawName = (d.name || d.file_name || d.docType || '').toLowerCase().trim();
+      const dName = rawName.replace(/\.[^/.]+$/, '').trim();
+      const dType = (d.type || d.doc_type || d.category || '').toLowerCase().trim();
+      return (dName && reqNameNorm && reqNameNorm.length >= 3 && (dName.includes(reqNameNorm.slice(0, 4)) || reqNameNorm.includes(dName.slice(0, 4)))) ||
              (dType && reqTypeNorm && dType === reqTypeNorm && studentDocs.length === 1);
     });
 
@@ -798,8 +799,18 @@ export function calculateDossierStatus(
   requirements: DocumentRequirement[],
   studentDocs: any[]
 ): DossierStatusResult {
-  const reqs = requirements || [];
-  const results: RequirementSatisfaction[] = reqs.map(req => {
+  // Deduplicate requirements strictly by document_name so aliases never multiply checklist items
+  const seenNames = new Set<string>();
+  const uniqueReqs: DocumentRequirement[] = [];
+  for (const r of (requirements || [])) {
+    const key = (r.document_name || '').toLowerCase().trim();
+    if (key && !seenNames.has(key)) {
+      seenNames.add(key);
+      uniqueReqs.push(r);
+    }
+  }
+
+  const results: RequirementSatisfaction[] = uniqueReqs.map(req => {
     const satisfaction = isRequirementSatisfied(req, studentDocs);
     return {
       requirement: req,
@@ -816,7 +827,7 @@ export function calculateDossierStatus(
   const isComplete = mandatoryCount > 0 ? missingMandatoryCount === 0 : (studentDocs && studentDocs.length > 0);
 
   return {
-    totalCount: reqs.length,
+    totalCount: uniqueReqs.length,
     mandatoryCount,
     uploadedCount: results.filter(r => r.isSatisfied).length,
     uploadedMandatoryCount,
