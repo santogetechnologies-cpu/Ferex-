@@ -498,18 +498,20 @@ export const AdminStudents: React.FC = () => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white border border-slate-200/70 rounded-2xl shadow-xs overflow-hidden">
-        <table className="w-full text-xs min-w-[760px]">
+      {/* Table Container with Horizontal Scroll & Sticky Actions */}
+      <div className="bg-white border border-slate-200/70 rounded-2xl shadow-xs overflow-x-auto scrollbar-thin">
+        <table className="w-full text-xs min-w-[1150px] border-collapse">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50/60 text-slate-400 uppercase text-[9.5px] font-extrabold tracking-wider">
-              <th className="text-left px-5 py-3">Student Name</th>
-              <th className="text-left px-4 py-3">Contact</th>
-              <th className="text-left px-4 py-3">Target Country & University</th>
-              <th className="text-left px-4 py-3">Status</th>
-              <th className="text-left px-4 py-3">Assigned Counselor</th>
-              <th className="text-left px-4 py-3">Joined</th>
-              <th className="text-right px-5 py-3">Actions</th>
+            <tr className="border-b border-slate-150 bg-slate-50 text-slate-500 uppercase text-[9.5px] font-extrabold tracking-wider">
+              <th className="text-left px-5 py-3.5 min-w-[200px]">Student Name</th>
+              <th className="text-left px-4 py-3.5 min-w-[180px]">Contact</th>
+              <th className="text-left px-4 py-3.5 min-w-[220px]">Target Country & University</th>
+              <th className="text-left px-4 py-3.5 min-w-[140px]">Status</th>
+              <th className="text-left px-4 py-3.5 min-w-[180px]">Assigned Counselor</th>
+              <th className="text-left px-4 py-3.5 min-w-[110px]">Joined</th>
+              <th className="text-center px-4 py-3.5 min-w-[170px] w-[170px] whitespace-nowrap sticky right-0 bg-slate-50 z-20 border-l border-slate-200 shadow-[-6px_0_12px_-4px_rgba(0,0,0,0.06)]">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
@@ -517,24 +519,24 @@ export const AdminStudents: React.FC = () => {
               <tr><td colSpan={7} className="py-8 text-center text-slate-400 font-bold">No students match your filter.</td></tr>
             ) : (
               paged.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+                <tr key={s.id} className="group hover:bg-slate-50/80 transition-colors">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#58051E] text-white flex items-center justify-center font-black text-xs shadow-2xs">
+                      <div className="w-8 h-8 rounded-full bg-[#58051E] text-white flex items-center justify-center font-black text-xs shadow-2xs shrink-0">
                         {s.name[0]?.toUpperCase() || 'S'}
                       </div>
-                      <div>
-                        <p className="font-extrabold text-slate-900 leading-tight">{s.name}</p>
+                      <div className="min-w-0">
+                        <p className="font-extrabold text-slate-900 leading-tight truncate max-w-[160px]">{s.name}</p>
                         <p className="text-[10px] font-semibold text-slate-400 truncate max-w-[140px]">{s.id}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3.5">
-                    <p className="text-slate-800 font-bold">{s.email}</p>
+                    <p className="text-slate-800 font-bold truncate max-w-[160px]">{s.email}</p>
                     <p className="text-[10px] font-semibold text-slate-400">{s.phone}</p>
                   </td>
                   <td className="px-4 py-3.5">
-                    <div className="flex items-center gap-1.5 mb-0.5">
+                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                       <span className="text-[10px] font-mono font-black text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{s.targetFlag}</span>
                       <span className="font-black text-slate-900">{s.targetCountry}</span>
                       <span className="text-[9px] font-extrabold bg-blue-50 text-blue-700 px-1.5 py-0.2 rounded border border-blue-200">
@@ -566,29 +568,47 @@ export const AdminStudents: React.FC = () => {
                   <td className="px-4 py-3.5">
                     <div
                       onClick={() => { setCounselorModalStudent(s); setSelectedCounselorToAssign(s.counselor); }}
-                      className="group cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 transition-colors"
+                      className="group/c cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 transition-colors"
                       title="Click to change or reassign counselor"
                     >
                       <Headphones className="w-3 h-3 text-[#58051E]" />
-                      <span className="text-[11px] font-bold text-slate-800 group-hover:text-[#58051E] max-w-[140px] truncate">
+                      <span className="text-[11px] font-bold text-slate-800 group-hover/c:text-[#58051E] max-w-[140px] truncate">
                         {s.counselor.split('(')[0].trim()}
                       </span>
                       <span className="text-[9px] font-extrabold text-[#58051E] underline ml-1">Change</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3.5 text-slate-500 font-semibold">{s.joined}</td>
-                  <td className="px-5 py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-1">
+                  <td className="px-4 py-3.5 text-slate-500 font-semibold whitespace-nowrap">{s.joined}</td>
+                  <td className="px-4 py-3.5 text-center whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50/95 transition-colors z-10 border-l border-slate-150 shadow-[-6px_0_12px_-4px_rgba(0,0,0,0.06)]">
+                    <div className="flex items-center justify-center gap-1.5 shrink-0">
                       <button
                         onClick={() => { setCounselorModalStudent(s); setSelectedCounselorToAssign(s.counselor); }}
                         title="Assign Counselor"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#58051E] hover:bg-rose-50 transition-colors"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#58051E] hover:bg-rose-50 transition-colors cursor-pointer"
                       >
-                        <UserCheck className="w-3.5 h-3.5" />
+                        <UserCheck className="w-4 h-4" />
                       </button>
-                      <button onClick={() => setViewStudent(s)} title="View Student" className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"><Eye className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => { setEditStudent(s); setEditTemp({ ...s }); }} title="Edit Student" className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Edit3 className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => setDeleteId(s.id)} title="Delete Student" className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                      <button
+                        onClick={() => setViewStudent(s)}
+                        title="View Student Dossier"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => { setEditStudent(s); setEditTemp({ ...s }); }}
+                        title="Edit Student Info"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteId(s.id)}
+                        title="Delete Student Record"
+                        className="p-1.5 rounded-lg text-red-500 hover:text-white hover:bg-red-600 transition-colors cursor-pointer shadow-2xs"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
