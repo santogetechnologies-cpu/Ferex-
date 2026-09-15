@@ -288,7 +288,7 @@ export interface Task {
   title: string;
   description: string;
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
-  status: 'To Do' | 'In Progress' | 'Completed' | 'Cancelled';
+  status: 'To Do' | 'In Progress' | 'Review' | 'Completed' | 'Done' | 'Cancelled' | 'Pending';
   due_date: string | null;
   completed_at: string | null;
   portal: string;

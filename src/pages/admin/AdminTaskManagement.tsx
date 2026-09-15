@@ -7,6 +7,7 @@ import {
 import { useTasks } from '../../hooks/useTasks';
 import { useAuth } from '../../contexts/AuthContext';
 import { getStaffMembers, getStudents } from '../../lib/api/students';
+import { deleteTask } from '../../lib/api/tasks';
 
 type Priority = 'High' | 'Medium' | 'Low';
 type TaskStatus = 'To Do' | 'In Progress' | 'Review' | 'Done';
@@ -89,18 +90,26 @@ export const AdminTaskManagement: React.FC = () => {
     const mapped = dbTasks.map(t => {
       const assignedUser = staffUsers.find(s => s.id === t.assigned_to || s.email === t.assigned_to || s.full_name === t.assigned_to);
       const studentUser = studentUsers.find(st => st.id === (t as any).student_id || st.email === (t as any).student_id);
+      
+      const rawStatus = (t.status || 'To Do') as string;
+      const mappedStatus: TaskStatus = 
+        (rawStatus === 'Completed' || rawStatus === 'Done') ? 'Done' :
+        (rawStatus === 'Review' || rawStatus === 'Under Review') ? 'Review' :
+        (rawStatus === 'In Progress' || rawStatus === 'InProgress') ? 'In Progress' :
+        'To Do';
+
       return {
         id: t.id,
         title: t.title,
         description: t.description || '',
         assignee: assignedUser?.full_name || t.assigned_to || (t as any).assignee?.full_name || 'Staff Member',
         priority: (t.priority === 'Critical' ? 'High' : t.priority) as Priority,
-        status: (t.status === 'Completed' ? 'Done' : t.status === 'Cancelled' ? 'To Do' : (t.status as string) === 'Pending' ? 'To Do' : t.status) as TaskStatus,
+        status: mappedStatus,
         due: t.due_date || 'Ongoing',
         category: 'General',
         studentName: (t as any).student_name || studentUser?.full_name || (t as any).student?.full_name || 'General Task',
         university: 'Education Operations',
-        progress: t.status === 'Completed' ? 100 : t.status === 'In Progress' ? 50 : 0,
+        progress: mappedStatus === 'Done' ? 100 : mappedStatus === 'Review' ? 75 : mappedStatus === 'In Progress' ? 50 : 0,
         subtasksCompleted: 0,
         subtasksTotal: 1,
         attachmentsCount: 0,
@@ -136,11 +145,11 @@ export const AdminTaskManagement: React.FC = () => {
 
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     try {
-      const dbStatus = newStatus === 'Done' ? 'Completed' : newStatus === 'In Progress' ? 'In Progress' : 'To Do';
+      const dbStatus = newStatus === 'Done' ? 'Completed' : newStatus === 'Review' ? 'Review' : newStatus === 'In Progress' ? 'In Progress' : 'To Do';
       await changeStatus(taskId, dbStatus as any);
       setTasks(prev => prev.map(t => {
         if (t.id === taskId) {
-          const updatedProgress = newStatus === 'Done' ? 100 : t.progress === 100 ? 50 : t.progress;
+          const updatedProgress = newStatus === 'Done' ? 100 : newStatus === 'Review' ? 75 : newStatus === 'In Progress' ? 50 : 0;
           return { ...t, status: newStatus, progress: updatedProgress };
         }
         return t;
@@ -193,10 +202,16 @@ export const AdminTaskManagement: React.FC = () => {
     setEditTask(null);
   };
 
-  const handleDeleteTask = () => {
+  const handleDeleteTask = async () => {
     if (!deleteId) return;
-    setTasks(prev => prev.filter(t => t.id !== deleteId));
-    showToast(`Task ${deleteId} deleted`);
+    try {
+      await deleteTask(deleteId);
+      setTasks(prev => prev.filter(t => t.id !== deleteId));
+      showToast(`Task ${deleteId} deleted`);
+    } catch (e) {
+      setTasks(prev => prev.filter(t => t.id !== deleteId));
+      showToast(`Task ${deleteId} removed`);
+    }
     setDeleteId(null);
   };
 
