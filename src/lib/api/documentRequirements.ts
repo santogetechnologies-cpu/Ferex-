@@ -442,28 +442,6 @@ export const DEFAULT_DOCUMENT_REQUIREMENTS: DocumentRequirement[] = [
     processing_time: '3 - 7 Days',
     authority_fee: 'Free',
     checklist_items: ['Requirement 1']
-  },
-  {
-    id: 'doc-india-1',
-    country: 'India',
-    document_name: 'eeeeeeeee',
-    document_type: 'Academic',
-    is_required: true,
-    description: 'eeeeeeee',
-    processing_time: '3 - 7 Days',
-    authority_fee: 'Free',
-    checklist_items: ['Requirement 1', 'Requirement 2']
-  },
-  {
-    id: 'doc-india-2',
-    country: 'India',
-    document_name: 'dddddddd',
-    document_type: 'Academic',
-    is_required: true,
-    description: 'dddddddd',
-    processing_time: '3 - 7 Days',
-    authority_fee: 'Free',
-    checklist_items: ['Requirement 1']
   }
 ];
 
@@ -570,7 +548,18 @@ export async function getDocumentRequirements(country?: string): Promise<Documen
       (normalized.includes('hungary') && c === 'hungary');
   });
 
-  if (matched.length > 0) return matched;
+  // Deduplicate by document_name so aliases/synonyms (e.g. ind vs India) never duplicate items
+  const uniqueMatched: DocumentRequirement[] = [];
+  const seenNames = new Set<string>();
+  for (const item of matched) {
+    const key = (item.document_name || '').toLowerCase().trim();
+    if (!seenNames.has(key)) {
+      seenNames.add(key);
+      uniqueMatched.push(item);
+    }
+  }
+
+  if (uniqueMatched.length > 0) return uniqueMatched;
 
   // Standard universal international student document requirements for any destination
   return [
