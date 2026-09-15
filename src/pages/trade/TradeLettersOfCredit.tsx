@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Search, Plus, CheckCircle2, X, ShieldCheck, Trash2, Eye } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getTradeLettersOfCredit, createTradeLetterOfCredit, updateTradeLetterOfCreditStatus, deleteTradeLetterOfCredit } from '../../lib/api/trade';
+import { getTradeLettersOfCredit, createTradeLetterOfCredit, updateTradeLetterOfCreditStatus, deleteTradeLetterOfCredit, getTradeCRMContacts } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
 
 export const TradeLettersOfCredit: React.FC = () => {
@@ -12,12 +12,19 @@ export const TradeLettersOfCredit: React.FC = () => {
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [toast, setToast] = useState('');
   const [lcs, setLcs] = useState<any[]>([]);
+  const [crmPartners, setCrmPartners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getTradeLettersOfCredit();
+      const [data, partners] = await Promise.all([
+        getTradeLettersOfCredit(),
+        getTradeCRMContacts().catch(() => [])
+      ]);
+      if (Array.isArray(partners)) {
+        setCrmPartners(partners);
+      }
       if (Array.isArray(data)) {
         const formatted = data.map((d: any) => ({
           id: d.lc_number || d.id,
@@ -63,12 +70,14 @@ export const TradeLettersOfCredit: React.FC = () => {
     };
   }, [loadData]);
 
-  const [newLC, setNewLC] = useState({
-    bank: 'HSBC London / Warsaw Desk',
-    beneficiary: 'Warsaw Global Logistics Sp. z o.o.',
-    amount: '₹1,45,00,000',
-    expiryDate: '2026-10-30'
-  });
+  const initialLC = {
+    bank: '',
+    beneficiary: '',
+    amount: '',
+    expiryDate: ''
+  };
+
+  const [newLC, setNewLC] = useState(initialLC);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -78,7 +87,7 @@ export const TradeLettersOfCredit: React.FC = () => {
   const handleIssueLC = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLC.beneficiary) return;
-    const numAmount = parseFloat(newLC.amount.replace(/[^0-9.]/g, '')) || 14500000;
+    const numAmount = parseFloat(newLC.amount.replace(/[^0-9.]/g, '')) || 0;
     const created = await createTradeLetterOfCredit({
       issuing_bank: newLC.bank,
       beneficiary: newLC.beneficiary,
@@ -87,6 +96,7 @@ export const TradeLettersOfCredit: React.FC = () => {
       expiry_date: newLC.expiryDate,
       status: 'Active & Confirmed'
     });
+    setNewLC(initialLC);
     await loadData();
     setShowIssueModal(false);
     showToastMsg(`Issued Letter of Credit ${created.lc_number || created.id}`);
@@ -138,7 +148,7 @@ export const TradeLettersOfCredit: React.FC = () => {
             Ferex Trade Console • Managing irrevocable documentary credits, banking verifications, and beneficiary guarantees.
           </p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => setShowIssueModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => { setNewLC(initialLC); setShowIssueModal(true); }}>
           <Plus className="w-4 h-4 mr-1.5" /> Issue Letter of Credit
         </Button>
       </div>
@@ -160,7 +170,7 @@ export const TradeLettersOfCredit: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
             {searchQuery ? 'No LC lines match your search filter.' : 'Your documentary credit ledger is empty. Issue a new Letter of Credit below.'}
           </p>
-          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => setShowIssueModal(true)}>
+          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => { setNewLC(initialLC); setShowIssueModal(true); }}>
             <Plus className="w-3.5 h-3.5 mr-1" /> Issue Letter of Credit
           </Button>
         </Card>
@@ -170,42 +180,26 @@ export const TradeLettersOfCredit: React.FC = () => {
             <Card key={l.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-400 uppercase">{l.id} · Irrevocable LC</span>
-                  <select
-                    value={l.status}
-                    onChange={(e) => handleStatusChange(l.id, l.rawId, e.target.value)}
-                    className={`text-[10px] font-extrabold rounded-full px-2.5 py-0.5 border cursor-pointer ${l.statusBadge}`}
-                  >
-                    <option value="Active & Confirmed">Active & Confirmed</option>
-                    <option value="HSBC Cleared">HSBC Cleared</option>
-                    <option value="Bank Cleared">Bank Cleared</option>
-                    <option value="Under Banking Verification">Under Banking Verification</option>
-                    <option value="Expired">Expired</option>
-                  </select>
+                  <span className="text-[10px] font-black text-[#58051E] uppercase">{l.id}</span>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">{l.status}</span>
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900">{l.amount}</h3>
-                  <p className="text-xs font-extrabold text-[#58051E]">{l.beneficiary}</p>
-                  <p className="text-[11px] font-semibold text-slate-500 mt-0.5">{l.bank}</p>
+                  <h3 className="text-lg font-black text-slate-900">{l.amount}</h3>
+                  <p className="text-xs font-semibold text-slate-500 mt-0.5">Beneficiary: {l.beneficiary}</p>
                 </div>
-                <div className="text-[10.5px] font-bold text-slate-400 pt-1 flex justify-between">
-                  <span>Issued: {l.issueDate}</span>
-                  <span>Expiry: {l.expiryDate}</span>
+                <div className="p-3 bg-slate-50 rounded-xl space-y-1 text-xs">
+                  <div className="text-slate-500 font-semibold">Issuing Bank: <span className="font-bold text-slate-800">{l.bank}</span></div>
+                  <div className="text-slate-500 font-semibold">Expiry Date: <span className="font-bold text-slate-800">{l.expiryDate}</span></div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                 <button onClick={() => setSelectedLC(l)} className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer">
-                  <Eye className="w-3.5 h-3.5" /> View LC Terms
+                  <Eye className="w-3.5 h-3.5" /> Inspect LC
                 </button>
-                <div className="flex items-center gap-1">
-                  <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => showToastMsg(`Requested bank status for ${l.id}`)}>
-                    Bank Status
-                  </Button>
-                  <button onClick={() => handleDeleteLC(l.id, l.rawId)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete LC">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button onClick={() => handleDeleteLC(l.id, l.rawId)} className="p-1 text-slate-400 hover:text-red-600 rounded cursor-pointer" title="Delete LC">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </Card>
           ))}
@@ -225,21 +219,55 @@ export const TradeLettersOfCredit: React.FC = () => {
               <form onSubmit={handleIssueLC} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Beneficiary Corporate Party</label>
-                  <input type="text" required value={newLC.beneficiary} onChange={(e) => setNewLC({ ...newLC, beneficiary: e.target.value })} placeholder="e.g. Warsaw Global Logistics Sp. z o.o." className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input
+                    type="text"
+                    required
+                    list="crm-lc-beneficiary"
+                    value={newLC.beneficiary}
+                    onChange={(e) => setNewLC({ ...newLC, beneficiary: e.target.value })}
+                    placeholder="e.g. Baltic Grain Sp. z o.o. or Warsaw Global Logistics"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  />
+                  <datalist id="crm-lc-beneficiary">
+                    {crmPartners.map((p) => (
+                      <option key={p.id} value={p.company_name || p.name}>
+                        {p.category ? `${p.company_name || p.name} (${p.category})` : p.company_name || p.name}
+                      </option>
+                    ))}
+                    <option value="Baltic Grain Sp. z o.o." />
+                    <option value="Rotterdam Agri Importers B.V." />
+                    <option value="Hamburg Maritime Trade GmbH" />
+                  </datalist>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Issuing Bank</label>
-                    <input type="text" required value={newLC.bank} onChange={(e) => setNewLC({ ...newLC, bank: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input
+                      type="text"
+                      required
+                      list="trade-banks-list"
+                      value={newLC.bank}
+                      onChange={(e) => setNewLC({ ...newLC, bank: e.target.value })}
+                      placeholder="e.g. HSBC London / Warsaw Desk"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                    <datalist id="trade-banks-list">
+                      <option value="HSBC Bank London Trade Desk" />
+                      <option value="State Bank of India Overseas Branch" />
+                      <option value="Standard Chartered Trade Banking" />
+                      <option value="BNP Paribas Poland Branch" />
+                      <option value="Deutsche Bank AG Trade Operations" />
+                      <option value="Santander Bank Polska S.A." />
+                    </datalist>
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Expiry Date</label>
-                    <input type="date" required value={newLC.expiryDate} onChange={(e) => setNewLC({ ...newLC, expiryDate: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="date" required value={newLC.expiryDate} onChange={(e) => setNewLC({ ...newLC, expiryDate: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Guaranteed LC Amount (₹ INR)</label>
-                  <input type="text" required value={newLC.amount} onChange={(e) => setNewLC({ ...newLC, amount: e.target.value })} placeholder="₹1,45,00,000" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newLC.amount} onChange={(e) => setNewLC({ ...newLC, amount: e.target.value })} placeholder="e.g. 14500000" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold cursor-pointer" onClick={() => setShowIssueModal(false)}>Cancel</Button>

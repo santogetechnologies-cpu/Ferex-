@@ -330,6 +330,29 @@ export const LoginPage: React.FC = () => {
         console.warn('[FirstTimePassUpdate] DB notice:', dbErr.message);
       }
 
+      // Update provisioned local credentials
+      try {
+        const localRegistryKey = `ferex_admin_cred_${cleanEmail.toLowerCase()}`;
+        const saved = localStorage.getItem(localRegistryKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          parsed.password = newPassword;
+          parsed.require_password_reset = false;
+          localStorage.setItem(localRegistryKey, JSON.stringify(parsed));
+
+          if (parsed.partner_id) {
+            const partnerCredKey = `ferex_trade_partner_cred_${parsed.partner_id}`;
+            const partnerCred = localStorage.getItem(partnerCredKey);
+            if (partnerCred) {
+              const parsedPartner = JSON.parse(partnerCred);
+              parsedPartner.tempPassword = newPassword;
+              parsedPartner.requirePasswordReset = false;
+              localStorage.setItem(partnerCredKey, JSON.stringify(parsedPartner));
+            }
+          }
+        }
+      } catch {}
+
       await supabase.auth.updateUser({ password: newPassword }).catch(() => { });
 
       setIsChangingPass(false);

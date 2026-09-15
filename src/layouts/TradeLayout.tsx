@@ -11,6 +11,7 @@ import {
 import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
 import { useAuth } from '../contexts/AuthContext';
+import { getTradeNotifications } from '../lib/api/trade';
 
 interface TradeLayoutProps {
   children: React.ReactNode;
@@ -38,6 +39,25 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [liveNotifs, setLiveNotifs] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadNotifs = async () => {
+      try {
+        const notifs = await getTradeNotifications();
+        setLiveNotifs(Array.isArray(notifs) ? notifs.filter((n: any) => !n.is_archived && !n.archived) : []);
+      } catch {
+        setLiveNotifs([]);
+      }
+    };
+    loadNotifs();
+
+    const handleNotifUpdate = () => loadNotifs();
+    window.addEventListener('ferex_trade_notifs_change', handleNotifUpdate);
+    return () => {
+      window.removeEventListener('ferex_trade_notifs_change', handleNotifUpdate);
+    };
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
@@ -345,10 +365,12 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                   setShowProfileDropdown(false);
                   setShowQuickActions(false);
                 }}
-                className="relative p-2 text-slate-600 hover:bg-slate-100 border border-slate-200/80 rounded-xl transition-colors"
+                className="relative p-2 text-slate-600 hover:bg-slate-100 border border-slate-200/80 rounded-xl transition-colors cursor-pointer"
               >
                 <Bell size={18} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#58051E] rounded-full ring-2 ring-white animate-pulse" />
+                {liveNotifs.some(n => !n.is_read && !n.read) && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#58051E] rounded-full ring-2 ring-white animate-pulse" />
+                )}
               </button>
 
               <AnimatePresence>
@@ -361,19 +383,35 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                   >
                     <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-2 select-none px-1">
                       <h4 className="text-xs font-extrabold text-slate-900">Trade Alerts</h4>
-                      <button onClick={() => navigate('/trade/notifications')} className="text-[10px] font-bold text-[#58051E] hover:underline">View All</button>
+                      <button onClick={() => navigate('/trade/notifications')} className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer">View All</button>
                     </div>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      <div onClick={() => navigate('/trade/shipments')} className="p-2.5 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100">
-                        <p className="text-xs font-bold text-slate-900">Container MSKU-9821 Arrived</p>
-                        <p className="text-[10.5px] font-semibold text-slate-500 mt-0.5">Port of Hamburg clearance complete.</p>
-                        <span className="text-[9px] font-bold text-slate-400 mt-1 block">5m ago</span>
-                      </div>
-                      <div onClick={() => navigate('/trade/letters-of-credit')} className="p-2.5 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100">
-                        <p className="text-xs font-bold text-slate-900">LC Approved by HSBC</p>
-                        <p className="text-[10.5px] font-semibold text-slate-500 mt-0.5">LC-2026-8810 worth ₹1.45 Cr authorized.</p>
-                        <span className="text-[9px] font-bold text-slate-400 mt-1 block">1h ago</span>
-                      </div>
+                      {liveNotifs.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-slate-400 font-bold">
+                          No active trade alerts
+                        </div>
+                      ) : (
+                        liveNotifs.slice(0, 5).map((n) => (
+                          <div
+                            key={n.id}
+                            onClick={() => navigate('/trade/notifications')}
+                            className="p-2.5 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-1.5 py-0.2 rounded">
+                                {n.category || 'Alert'}
+                              </span>
+                              <p className="text-xs font-bold text-slate-900 truncate">{n.title}</p>
+                            </div>
+                            <p className="text-[10.5px] font-semibold text-slate-500 mt-0.5 line-clamp-2">
+                              {n.description || n.desc}
+                            </p>
+                            <span className="text-[9px] font-bold text-slate-400 mt-1 block">
+                              {n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}
+                            </span>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </motion.div>
                 )}

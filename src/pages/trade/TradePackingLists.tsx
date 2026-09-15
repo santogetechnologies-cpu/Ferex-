@@ -15,14 +15,16 @@ export const TradePackingLists: React.FC = () => {
   const [lists, setLists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [newPL, setNewPL] = useState({
-    shipment_no: 'SHP-9821',
-    buyer_name: 'Berlin Industrial Supplies GmbH',
-    cargo_description: 'Industrial Bearing Assemblies',
-    packages: 48,
-    gross_weight: 24500,
-    net_weight: 22800,
-  });
+  const initialPL = {
+    shipment_no: '',
+    buyer_name: '',
+    cargo_description: '',
+    packages: '' as any,
+    gross_weight: '' as any,
+    net_weight: '' as any,
+  };
+
+  const [newPL, setNewPL] = useState(initialPL);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -80,9 +82,10 @@ export const TradePackingLists: React.FC = () => {
       buyer_name: newPL.buyer_name,
       cargo_description: newPL.cargo_description,
       total_packages: Number(newPL.packages) || 48,
-      gross_weight_kg: Number(newPL.gross_weight) || 24500,
-      net_weight_kg: Number(newPL.net_weight) || 22800,
+      gross_weight_kg: Number(newPL.gross_weight) || 0,
+      net_weight_kg: Number(newPL.net_weight) || 0,
     });
+    setNewPL(initialPL);
     await loadData();
     setShowCreateModal(false);
     showToastMsg(`Created Packing Manifest ${created.pl_number || created.id}`);
@@ -278,29 +281,32 @@ export const TradePackingLists: React.FC = () => {
               <form onSubmit={handleCreatePL} className="space-y-3 text-left">
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-500">Shipment Reference</label>
-                  <input type="text" value={newPL.shipment_no} onChange={e => setNewPL({ ...newPL, shipment_no: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                  <input type="text" value={newPL.shipment_no} onChange={e => setNewPL({ ...newPL, shipment_no: e.target.value })} placeholder="e.g. SHP-9821" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" required />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-500">Consignee Buyer Entity</label>
-                  <input type="text" value={newPL.buyer_name} onChange={e => setNewPL({ ...newPL, buyer_name: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                  <input type="text" value={newPL.buyer_name} onChange={e => setNewPL({ ...newPL, buyer_name: e.target.value })} placeholder="e.g. Berlin Industrial Supplies GmbH" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" required />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-500">Cargo Description & Packages</label>
-                  <input type="text" value={newPL.cargo_description} onChange={e => setNewPL({ ...newPL, cargo_description: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                  <input type="text" value={newPL.cargo_description} onChange={e => setNewPL({ ...newPL, cargo_description: e.target.value })} placeholder="e.g. Industrial Bearing Assemblies (48 Crates)" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" required />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-500">Gross Weight (kg)</label>
-                    <input type="number" value={newPL.gross_weight} onChange={e => setNewPL({ ...newPL, gross_weight: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                    <input type="number" value={newPL.gross_weight} onChange={e => setNewPL({ ...newPL, gross_weight: e.target.value as any })} placeholder="e.g. 24500" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" required />
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-500">Net Weight (kg)</label>
-                    <input type="number" value={newPL.net_weight} onChange={e => setNewPL({ ...newPL, net_weight: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                    <input type="number" value={newPL.net_weight} onChange={e => setNewPL({ ...newPL, net_weight: e.target.value as any })} placeholder="e.g. 22800" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" required />
                   </div>
                 </div>
-                <Button type="submit" size="sm" className="w-full bg-[#58051E] hover:bg-[#430316] text-xs font-bold mt-2">
-                  Generate Packing Manifest
-                </Button>
+                <div className="pt-2 flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold cursor-pointer" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer">
+                    Generate Manifest
+                  </Button>
+                </div>
               </form>
             </motion.div>
           </>

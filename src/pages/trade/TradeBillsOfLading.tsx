@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileCheck2, Search, Download, Eye, X, CheckCircle2, Anchor, Trash2, Plus } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getTradeBillsOfLading, createTradeBillOfLading, updateTradeBillOfLadingStatus, deleteTradeBillOfLading } from '../../lib/api/trade';
+import { getTradeBillsOfLading, createTradeBillOfLading, updateTradeBillOfLadingStatus, deleteTradeBillOfLading, getTradeCRMContacts } from '../../lib/api/trade';
 import { downloadBillOfLadingDocument } from '../../utils/fileDownloader';
 import { supabase } from '../../lib/supabase';
 
@@ -14,20 +14,29 @@ export const TradeBillsOfLading: React.FC = () => {
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
   const [bills, setBills] = useState<any[]>([]);
+  const [crmPartners, setCrmPartners] = useState<any[]>([]);
 
-  const [newBL, setNewBL] = useState({
-    vessel: 'MSC Oscar (V.8821)',
-    carrier: 'MSC Mediterranean Shipping Co.',
-    pol: 'Port of Gdansk (PL)',
-    pod: 'Port of Rotterdam (NL)',
-    consignee: 'Warsaw Global Logistics Sp. z o.o.',
+  const initialBL = {
+    vessel: '',
+    carrier: '',
+    pol: '',
+    pod: '',
+    consignee: '',
     shipper: 'Ferex Global Trade Corp'
-  });
+  };
+
+  const [newBL, setNewBL] = useState(initialBL);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getTradeBillsOfLading();
+      const [data, partners] = await Promise.all([
+        getTradeBillsOfLading(),
+        getTradeCRMContacts().catch(() => [])
+      ]);
+      if (Array.isArray(partners)) {
+        setCrmPartners(partners);
+      }
       if (Array.isArray(data)) {
         setBills(data);
       } else {
@@ -72,6 +81,7 @@ export const TradeBillsOfLading: React.FC = () => {
       consignee: newBL.consignee,
       shipper: newBL.shipper,
     });
+    setNewBL(initialBL);
     await loadData();
     setShowCreateModal(false);
     showToastMsg(`Registered Bill of Lading ${created.bl_number || created.id}`);
@@ -142,7 +152,7 @@ export const TradeBillsOfLading: React.FC = () => {
             Ferex Trade Console • Ocean Bills of Lading, vessel assignments, port of loading/discharge documentation.
           </p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => { setNewBL(initialBL); setShowCreateModal(true); }}>
           <Plus className="w-4 h-4 mr-1.5" /> Issue Ocean B/L
         </Button>
       </div>
@@ -164,7 +174,7 @@ export const TradeBillsOfLading: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
             {searchQuery ? 'No records match your query.' : 'There are no active B/L documents. Issue a new ocean B/L below.'}
           </p>
-          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
+          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => { setNewBL(initialBL); setShowCreateModal(true); }}>
             <Plus className="w-3.5 h-3.5 mr-1" /> Issue Ocean B/L
           </Button>
         </Card>
@@ -185,10 +195,10 @@ export const TradeBillsOfLading: React.FC = () => {
               <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                 {filteredBills.map((b) => {
                   const blId = b.bl_number || b.id;
-                  const vessel = b.vessel_name || b.vessel || 'MSC Oscar (V.8821)';
-                  const carrier = b.carrier || 'MSC Mediterranean Shipping Co.';
-                  const pol = b.port_of_loading || b.pol || 'Port of Gdansk (PL)';
-                  const pod = b.port_of_discharge || b.pod || 'Port of Rotterdam (NL)';
+                  const vessel = b.vessel_name || b.vessel || '—';
+                  const carrier = b.carrier || '—';
+                  const pol = b.port_of_loading || b.pol || '—';
+                  const pod = b.port_of_discharge || b.pod || '—';
                   const status = b.status || 'Clean On-Board Signed';
 
                   return (
@@ -283,29 +293,66 @@ export const TradeBillsOfLading: React.FC = () => {
               <form onSubmit={handleCreateBL} className="space-y-3 text-left">
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-500">Vessel Name & Voyage</label>
-                  <input type="text" value={newBL.vessel} onChange={e => setNewBL({ ...newBL, vessel: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                  <input type="text" value={newBL.vessel} onChange={e => setNewBL({ ...newBL, vessel: e.target.value })} placeholder="e.g. MSC Oscar (V.8821)" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" required />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-500">Ocean Carrier Line</label>
-                  <input type="text" value={newBL.carrier} onChange={e => setNewBL({ ...newBL, carrier: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                  <input
+                    type="text"
+                    list="ocean-carriers-list"
+                    value={newBL.carrier}
+                    onChange={e => setNewBL({ ...newBL, carrier: e.target.value })}
+                    placeholder="e.g. MSC Mediterranean Shipping Co."
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    required
+                  />
+                  <datalist id="ocean-carriers-list">
+                    <option value="MSC Mediterranean Shipping Company" />
+                    <option value="Maersk Line Ocean Logistics" />
+                    <option value="CMA CGM Maritime Group" />
+                    <option value="Hapag-Lloyd Ocean Express" />
+                    <option value="COSCO Shipping Lines" />
+                    <option value="Evergreen Marine Line" />
+                  </datalist>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-500">Port of Loading (POL)</label>
-                    <input type="text" value={newBL.pol} onChange={e => setNewBL({ ...newBL, pol: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                    <input type="text" value={newBL.pol} onChange={e => setNewBL({ ...newBL, pol: e.target.value })} placeholder="e.g. Port of Gdansk (PL)" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" required />
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-500">Port of Discharge (POD)</label>
-                    <input type="text" value={newBL.pod} onChange={e => setNewBL({ ...newBL, pod: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                    <input type="text" value={newBL.pod} onChange={e => setNewBL({ ...newBL, pod: e.target.value })} placeholder="e.g. Port of Rotterdam (NL)" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" required />
                   </div>
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-500">Consignee Entity</label>
-                  <input type="text" value={newBL.consignee} onChange={e => setNewBL({ ...newBL, consignee: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" required />
+                  <input
+                    type="text"
+                    list="crm-bl-consignee"
+                    value={newBL.consignee}
+                    onChange={e => setNewBL({ ...newBL, consignee: e.target.value })}
+                    placeholder="e.g. Baltic Grain Sp. z o.o. or Warsaw Global Logistics"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    required
+                  />
+                  <datalist id="crm-bl-consignee">
+                    {crmPartners.map((p) => (
+                      <option key={p.id} value={p.company_name || p.name}>
+                        {p.category ? `${p.company_name || p.name} (${p.category})` : p.company_name || p.name}
+                      </option>
+                    ))}
+                    <option value="Baltic Grain Sp. z o.o." />
+                    <option value="Rotterdam Agri Importers B.V." />
+                    <option value="Hamburg Maritime Trade GmbH" />
+                  </datalist>
                 </div>
-                <Button type="submit" size="sm" className="w-full bg-[#58051E] hover:bg-[#430316] text-xs font-bold mt-2">
-                  Sign & Issue Ocean B/L
-                </Button>
+                <div className="pt-2 flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 bg-[#58051E] hover:bg-[#430316] text-xs font-bold">
+                    Sign & Issue Ocean B/L
+                  </Button>
+                </div>
               </form>
             </motion.div>
           </>

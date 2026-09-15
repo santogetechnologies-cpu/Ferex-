@@ -83,15 +83,17 @@ export const TradeCRM: React.FC = () => {
     };
   }, [loadData]);
 
-  const [newCompany, setNewCompany] = useState({
+  const initialCompany = {
     name: '',
-    country: 'Poland',
+    country: '',
     contact: '',
     email: '',
     phone: '',
-    category: 'Logistics Partner',
+    category: 'Buyer',
     payment_terms: 'LC 60 Days'
-  });
+  };
+
+  const [newCompany, setNewCompany] = useState(initialCompany);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -129,7 +131,7 @@ export const TradeCRM: React.FC = () => {
     setCompanies(prev => [newFormatted, ...prev.filter(c => c.rawId !== created.id)]);
     setShowAddModal(false);
     showToastMsg(`Added partner company ${newCompany.name}`);
-    setNewCompany({ name: '', country: '', contact: '', email: '', phone: '', category: 'Logistics Partner', payment_terms: 'LC 60 Days' });
+    setNewCompany(initialCompany);
     // No loadData() — optimistic update already shows the new item
 
     if (created?.id && created?.email) {
@@ -247,7 +249,7 @@ export const TradeCRM: React.FC = () => {
             Ferex Trade Console • Managing international buyers, suppliers, maritime agents, portal credential provisioning, and mapped shipments.
           </p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => { setNewCompany(initialCompany); setShowAddModal(true); }}>
           <Plus className="w-4 h-4 mr-1.5" /> Add Partner Company
         </Button>
       </div>
@@ -260,7 +262,7 @@ export const TradeCRM: React.FC = () => {
 
         <div className="flex items-center gap-1.5 overflow-x-auto">
           {['All', 'Buyer', 'Logistics Partner', 'Freight Forwarder'].map((cat) => (
-            <button key={cat} onClick={() => setFilterCategory(cat)} className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${filterCategory === cat ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+            <button key={cat} onClick={() => setFilterCategory(cat)} className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${filterCategory === cat ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
               {cat}
             </button>
           ))}
@@ -276,7 +278,7 @@ export const TradeCRM: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
             {searchQuery ? 'No partners match your search criteria.' : 'Your global trade directory is empty. Add your first buyer or logistics partner below.'}
           </p>
-          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => { setNewCompany(initialCompany); setShowAddModal(true); }}>
             <Plus className="w-3.5 h-3.5 mr-1" /> Add Partner Company
           </Button>
         </Card>
@@ -286,68 +288,36 @@ export const TradeCRM: React.FC = () => {
             <Card key={c.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-[11px] font-semibold text-slate-700">
-                    <Globe className="w-3 h-3 text-slate-400" />
-                    <span>{c.country}</span>
-                  </div>
+                  <span className="text-2xl">{c.flag}</span>
                   <div className="flex items-center gap-1.5">
-                    {c.hasCredentials && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
-                        <KeyRound className="w-2.5 h-2.5" /> Portal Active
-                      </span>
-                    )}
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${c.statusBadge}`}>{c.category}</span>
+                    <span className={`text-[10px] font-extrabold rounded-full px-2 py-0.5 border ${c.statusBadge}`}>{c.status}</span>
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900 leading-snug">{c.name}</h3>
-                  <p className="text-xs font-bold text-[#58051E] mt-0.5">{c.contact}</p>
+                  <h3 className="text-base font-black text-slate-900 leading-snug">{c.name}</h3>
+                  <span className="text-[11px] font-bold text-[#58051E]">{c.category} · {c.country}</span>
                 </div>
-                <div className="space-y-1 text-xs text-slate-500 pt-1">
-                  <div className="flex items-center gap-1.5 font-semibold">
-                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">{c.email}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 font-semibold">
-                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>{c.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 font-semibold text-[11px] text-slate-400 pt-0.5">
-                    <span>Terms: {c.paymentTerms}</span>
-                  </div>
+                <div className="text-xs space-y-1 font-semibold text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <div className="truncate"><span className="text-slate-400">Contact:</span> {c.contact}</div>
+                  <div className="truncate"><span className="text-slate-400">Email:</span> {c.email}</div>
+                  <div><span className="text-slate-400">Terms:</span> {c.paymentTerms}</div>
                 </div>
               </div>
 
-              <div className="space-y-2.5 pt-3 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono font-medium text-slate-400">{c.id}</span>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => setEditingCompany(c)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Edit Partner">
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => handleDeleteCompany(c.id, c.rawId)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete Partner">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-[11px] font-bold h-8 border-slate-200 hover:border-slate-300"
-                    onClick={() => handleOpenDossier(c)}
-                  >
-                    <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> Dossier & Shipments
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="text-[11px] font-bold h-8 bg-[#58051E] hover:bg-[#430316]"
-                    onClick={() => handleProvisionCredentials(c)}
-                  >
-                    <KeyRound className="w-3 h-3 mr-1 text-amber-300" />
-                    {c.hasCredentials ? 'View Login' : 'Provision Login'}
-                  </Button>
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1 text-xs">
+                <button onClick={() => setSelectedCompany(c)} className="font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer">
+                  <Eye className="w-3.5 h-3.5" /> Dossier
+                </button>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => handleProvisionCredentials(c)} className="p-1 text-slate-400 hover:text-[#58051E] rounded cursor-pointer" title="Portal Login Key">
+                    <KeyRound className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => setEditingCompany({ ...c })} className="p-1 text-slate-400 hover:text-slate-700 rounded cursor-pointer" title="Edit Partner">
+                    <Edit className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => handleDeleteCompany(c.id, c.rawId)} className="p-1 text-slate-400 hover:text-red-600 rounded cursor-pointer" title="Delete Partner">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             </Card>
@@ -363,21 +333,21 @@ export const TradeCRM: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900">Add Trade Partner Company</h3>
-                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
               <form onSubmit={handleAddCompany} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Company Entity Name</label>
-                  <input type="text" required value={newCompany.name} onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })} placeholder="e.g. Warsaw Global Logistics Sp. z o.o." className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newCompany.name} onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })} placeholder="e.g. Warsaw Global Logistics Sp. z o.o." className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Country</label>
-                    <input type="text" required value={newCompany.country} onChange={(e) => setNewCompany({ ...newCompany, country: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newCompany.country} onChange={(e) => setNewCompany({ ...newCompany, country: e.target.value })} placeholder="e.g. Poland" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Category</label>
-                    <select value={newCompany.category} onChange={(e) => setNewCompany({ ...newCompany, category: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                    <select value={newCompany.category} onChange={(e) => setNewCompany({ ...newCompany, category: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]">
                       <option value="Buyer">Buyer</option>
                       <option value="Logistics Partner">Logistics Partner</option>
                       <option value="Freight Forwarder">Freight Forwarder</option>
@@ -388,20 +358,20 @@ export const TradeCRM: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Contact Person</label>
-                    <input type="text" required value={newCompany.contact} onChange={(e) => setNewCompany({ ...newCompany, contact: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newCompany.contact} onChange={(e) => setNewCompany({ ...newCompany, contact: e.target.value })} placeholder="e.g. Marek Kowalski" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Phone Number</label>
-                    <input type="text" value={newCompany.phone} onChange={(e) => setNewCompany({ ...newCompany, phone: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" value={newCompany.phone} onChange={(e) => setNewCompany({ ...newCompany, phone: e.target.value })} placeholder="e.g. +48 22 890 1234" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Email Address</label>
-                  <input type="email" required value={newCompany.email} onChange={(e) => setNewCompany({ ...newCompany, email: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="email" required value={newCompany.email} onChange={(e) => setNewCompany({ ...newCompany, email: e.target.value })} placeholder="e.g. contact@globalbuyer.eu" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                 </div>
                 <div className="pt-3 flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save & Provision</Button>
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold cursor-pointer" onClick={() => setShowAddModal(false)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316] cursor-pointer">Save & Provision</Button>
                 </div>
               </form>
             </motion.div>

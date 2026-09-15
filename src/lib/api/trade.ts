@@ -620,6 +620,7 @@ export async function createTradePayment(pay: {
   amount: number;
   currency?: string;
   payment_type?: string;
+  flow_type?: 'inbound' | 'outbound';
   status?: string;
   settlement_date?: string;
 }) {
@@ -632,6 +633,7 @@ export async function createTradePayment(pay: {
     amount: Number(pay.amount) || 0,
     currency: pay.currency || 'INR',
     payment_type: pay.payment_type || 'SWIFT Wire Transfer',
+    flow_type: pay.flow_type || 'inbound',
     status: pay.status || 'Completed',
     settlement_date: pay.settlement_date || new Date().toISOString().split('T')[0],
     created_at: new Date().toISOString(),
@@ -981,6 +983,7 @@ export async function provisionTradeClientLogin(partner: {
     email: cleanEmail,
     password: tempPassword,
     role: 'trade_client',
+    fullName: fullName,
     full_name: fullName,
     company_name: companyName,
     partner_id: partner.id,
@@ -995,6 +998,7 @@ export async function provisionTradeClientLogin(partner: {
       full_name: fullName,
       phone: '',
       department: `Trade:${companyName}`,
+      must_change_password: true,
       created_at: new Date().toISOString(),
     }, { onConflict: 'email' });
   } catch {}

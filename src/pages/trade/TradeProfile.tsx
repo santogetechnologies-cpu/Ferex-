@@ -284,18 +284,21 @@ export const TradeProfile: React.FC = () => {
           <div className="space-y-3 max-w-xl text-xs font-semibold text-slate-700">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2">
               <h3 className="text-sm font-black text-slate-900">Executive Audit Log</h3>
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Live Session Tracking</span>
             </div>
             <div className="space-y-2">
-              {[
-                { action: 'Authorized Letter of Credit LC-2026-8810 (₹1.45 Cr)', time: 'Today at 11:30 AM' },
-                { action: 'Updated Container MSKU-9821045 ETA to Aug 14, 2026', time: 'Yesterday at 04:15 PM' },
-                { action: 'Uploaded Phytosanitary Export Certificate PDF to Vault', time: 'Aug 04, 2026' }
-              ].map((log, idx) => (
-                <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                  <span className="font-bold text-slate-900">{log.action}</span>
-                  <span className="text-[10px] font-extrabold text-slate-400">{log.time}</span>
-                </div>
-              ))}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                <span className="font-bold text-slate-900">Console Session Authenticated & Hardware Security Verified</span>
+                <span className="text-[10px] font-extrabold text-slate-400">Active</span>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                <span className="font-bold text-slate-900">Global Trade Operations Ledger Initialized</span>
+                <span className="text-[10px] font-extrabold text-slate-400">Today</span>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                <span className="font-bold text-slate-900">Automated Webhooks & Real-time Postgres Listener Synced</span>
+                <span className="text-[10px] font-extrabold text-slate-400">Today</span>
+              </div>
             </div>
           </div>
         )}

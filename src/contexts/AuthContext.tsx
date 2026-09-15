@@ -278,7 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const parsed = JSON.parse(localCred);
             if (parsed.password === password) {
               const localId = parsed.id || `staff-${cleanEmail.replace(/[^a-z0-9]/g, '')}`;
-              const localName = parsed.fullName || cleanEmail.split('@')[0];
+              const localName = parsed.fullName || parsed.full_name || cleanEmail.split('@')[0];
               const localRole = parsed.role || 'counselor';
               const localUserObj = {
                 id: localId,
@@ -296,7 +296,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 department: parsed.department || 'Admissions',
                 phone: parsed.phone || '',
                 created_at: parsed.created_at || new Date().toISOString(),
-                must_change_password: false,
+                must_change_password: !!parsed.require_password_reset,
                 permissions: parsed.permissions || []
               };
 

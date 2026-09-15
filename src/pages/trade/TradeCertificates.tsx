@@ -14,12 +14,14 @@ export const TradeCertificates: React.FC = () => {
   const [certs, setCerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [newCert, setNewCert] = useState({
-    title: 'EU Certificate of Origin (Form A)',
-    authority: 'Chamber of Commerce Warsaw',
-    country: 'Poland (PL)',
+  const initialCert = {
+    title: '',
+    authority: '',
+    country: '',
     validity_months: 12
-  });
+  };
+
+  const [newCert, setNewCert] = useState(initialCert);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -74,13 +76,14 @@ export const TradeCertificates: React.FC = () => {
 
   const handleAddCert = async (e: React.FormEvent) => {
     e.preventDefault();
-    const expiry = new Date(Date.now() + (newCert.validity_months * 30 * 86400000)).toISOString().split('T')[0];
+    const expiry = new Date(Date.now() + (Number(newCert.validity_months || 12) * 30 * 86400000)).toISOString().split('T')[0];
     const created = await createTradeCertificate({
       title: newCert.title,
       authority: newCert.authority,
       country: newCert.country,
       expiry_date: expiry,
     });
+    setNewCert(initialCert);
     await loadData();
     setShowAddModal(false);
     showToastMsg(`Registered Trade Certificate ${created.certificate_no || created.id}`);
@@ -132,7 +135,7 @@ export const TradeCertificates: React.FC = () => {
             Ferex Trade Console • EU Certificates of Origin, Phytosanitary clearances, ISO certifications, and chamber seals.
           </p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => { setNewCert(initialCert); setShowAddModal(true); }}>
           <Plus className="w-4 h-4 mr-1.5" /> Register Certificate
         </Button>
       </div>
@@ -154,7 +157,7 @@ export const TradeCertificates: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
             {searchQuery ? 'No certificates match your query.' : 'There are no active certificates in the compliance vault. Register a new certificate below.'}
           </p>
-          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer" onClick={() => { setNewCert(initialCert); setShowAddModal(true); }}>
             <Plus className="w-3.5 h-3.5 mr-1" /> Register Certificate
           </Button>
         </Card>
@@ -176,12 +179,11 @@ export const TradeCertificates: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900 leading-snug">{c.title}</h3>
-                  <p className="text-xs font-bold text-[#58051E] mt-0.5">{c.authority}</p>
-                  <p className="text-[11px] font-semibold text-slate-500 mt-0.5">{c.country}</p>
+                  <h3 className="text-base font-black text-slate-900 leading-snug">{c.title}</h3>
+                  <p className="text-xs font-semibold text-slate-500 mt-1">{c.authority}</p>
                 </div>
                 <div className="text-[10.5px] font-bold text-slate-400 pt-1 flex justify-between">
-                  <span>Issued: {c.issueDate}</span>
+                  <span>Region: {c.country}</span>
                   <span>Expires: {c.expiryDate}</span>
                 </div>
               </div>
@@ -191,10 +193,7 @@ export const TradeCertificates: React.FC = () => {
                   <Eye className="w-3.5 h-3.5" /> Inspect Seal
                 </button>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => showToastMsg(`Downloading Certificate ${c.id}...`)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#58051E] hover:bg-slate-100 cursor-pointer" title="Download PDF">
-                    <Download className="w-3.5 h-3.5" />
-                  </button>
-                  <button onClick={() => handleDeleteCert(c.id, c.rawId)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Delete Certificate">
+                  <button onClick={() => handleDeleteCert(c.id, c.rawId)} className="p-1 text-slate-400 hover:text-red-600 rounded cursor-pointer" title="Delete Certificate">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -212,30 +211,30 @@ export const TradeCertificates: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900">Register Trade Certificate</h3>
-                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
               <form onSubmit={handleAddCert} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Certificate Title</label>
-                  <input type="text" required value={newCert.title} onChange={(e) => setNewCert({ ...newCert, title: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newCert.title} onChange={(e) => setNewCert({ ...newCert, title: e.target.value })} placeholder="e.g. EU Certificate of Origin (Form A)" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Issuing Authority / Agency</label>
-                  <input type="text" required value={newCert.authority} onChange={(e) => setNewCert({ ...newCert, authority: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newCert.authority} onChange={(e) => setNewCert({ ...newCert, authority: e.target.value })} placeholder="e.g. Chamber of Commerce Warsaw" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Country Jurisdiction</label>
-                    <input type="text" required value={newCert.country} onChange={(e) => setNewCert({ ...newCert, country: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newCert.country} onChange={(e) => setNewCert({ ...newCert, country: e.target.value })} placeholder="e.g. Poland (PL)" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Validity (Months)</label>
-                    <input type="number" required value={newCert.validity_months} onChange={(e) => setNewCert({ ...newCert, validity_months: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" required value={newCert.validity_months} onChange={(e) => setNewCert({ ...newCert, validity_months: Number(e.target.value) })} placeholder="12" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                 </div>
                 <div className="pt-3 flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Certificate</Button>
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold cursor-pointer" onClick={() => setShowAddModal(false)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316] cursor-pointer">Save Certificate</Button>
                 </div>
               </form>
             </motion.div>

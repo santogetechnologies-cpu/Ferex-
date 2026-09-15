@@ -126,45 +126,48 @@ export const TradeShipments: React.FC = () => {
   }, [loadAllTradeData]);
 
   // Form State: Container
-  const [newShipment, setNewShipment] = useState({
+  const initialShipment = {
     container: '',
     carrier: 'Maersk Line',
-    origin: 'Port of Gdansk, Poland',
-    destination: 'Port of Rotterdam, Netherlands',
-    cargo: 'Industrial Bearing Assemblies',
-    weight: '24,500 kg',
-    eta: '2026-09-20',
+    origin: '',
+    destination: '',
+    cargo: '',
+    weight: '',
+    eta: '',
     mode: 'Maritime',
     status: 'In Transit'
-  });
+  };
+  const [newShipment, setNewShipment] = useState(initialShipment);
 
   // Form State: Bonded Item
-  const [newBonded, setNewBonded] = useState({
+  const initialBonded = {
     sku: '',
     commodity: '',
     category: 'Bulk Energy Commodities',
-    port_location: 'Port of Gdansk, Bonded Bay #4A',
-    warehouse_bay: 'Bay-04 North Terminal',
-    in_stock_metric_tons: 25000,
-    reserved_metric_tons: 5000,
-    unit_value_inr: 15000,
+    port_location: '',
+    warehouse_bay: '',
+    in_stock_metric_tons: '' as any,
+    reserved_metric_tons: '' as any,
+    unit_value_inr: '' as any,
     customs_bond_no: '',
     status: 'In Bond' as const
-  });
+  };
+  const [newBonded, setNewBonded] = useState(initialBonded);
 
   // Form State: Cargo Loss
-  const [newLoss, setNewLoss] = useState({
-    shipment_no: 'SHP-9021',
+  const initialLoss = {
+    shipment_no: '',
     container_no: '',
     loss_type: 'Port Demurrage Penalty' as const,
-    port_location: 'Port of Rotterdam (ECT Delta Terminal)',
-    loss_amount_inr: 120000,
+    port_location: '',
+    loss_amount_inr: '' as any,
     shrinkage_metric_tons: 0,
-    carrier_responsible: 'Maersk Line',
+    carrier_responsible: '',
     insurance_claim_status: 'Not Filed' as const,
     incident_date: new Date().toISOString().split('T')[0],
     description: ''
-  });
+  };
+  const [newLoss, setNewLoss] = useState(initialLoss);
 
   // Actions
   const handleAddShipment = async (e: React.FormEvent) => {
@@ -176,7 +179,7 @@ export const TradeShipments: React.FC = () => {
       origin_port: newShipment.origin,
       destination_port: newShipment.destination,
       cargo_description: newShipment.cargo,
-      cargo_weight_kg: parseFloat(newShipment.weight.replace(/[^0-9.]/g, '')) || 20000,
+      cargo_weight_kg: parseFloat((newShipment.weight || '0').replace(/[^0-9.]/g, '')) || 20000,
       transport_mode: newShipment.mode,
       status: newShipment.status,
       eta: newShipment.eta,
@@ -184,39 +187,23 @@ export const TradeShipments: React.FC = () => {
     await loadAllTradeData();
     setShowAddShipmentModal(false);
     showToastMsg(`Dispatched container ${newShipment.container} successfully!`);
-    setNewShipment({
-      container: '',
-      carrier: 'Maersk Line',
-      origin: 'Port of Gdansk, Poland',
-      destination: 'Port of Rotterdam, Netherlands',
-      cargo: 'Industrial Bearing Assemblies',
-      weight: '24,500 kg',
-      eta: '2026-09-20',
-      mode: 'Maritime',
-      status: 'In Transit'
-    });
+    setNewShipment(initialShipment);
   };
 
   const handleAddBondedItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBonded.commodity) return;
     try {
-      await createTradeBondedItem(newBonded);
+      await createTradeBondedItem({
+        ...newBonded,
+        in_stock_metric_tons: Number(newBonded.in_stock_metric_tons) || 0,
+        reserved_metric_tons: Number(newBonded.reserved_metric_tons) || 0,
+        unit_value_inr: Number(newBonded.unit_value_inr) || 0
+      });
       await loadAllTradeData();
       setShowAddBondedModal(false);
       showToastMsg(`Registered ${newBonded.commodity} in customs bonded warehouse!`);
-      setNewBonded({
-        sku: '',
-        commodity: '',
-        category: 'Bulk Energy Commodities',
-        port_location: 'Port of Gdansk, Bonded Bay #4A',
-        warehouse_bay: 'Bay-04 North Terminal',
-        in_stock_metric_tons: 25000,
-        reserved_metric_tons: 5000,
-        unit_value_inr: 15000,
-        customs_bond_no: '',
-        status: 'In Bond'
-      });
+      setNewBonded(initialBonded);
     } catch (err: any) {
       showToastMsg(`Error adding bonded item: ${err.message || 'Unknown error'}`);
     }
@@ -226,10 +213,14 @@ export const TradeShipments: React.FC = () => {
     e.preventDefault();
     if (!newLoss.loss_amount_inr) return;
     try {
-      await createTradeCargoLoss(newLoss);
+      await createTradeCargoLoss({
+        ...newLoss,
+        loss_amount_inr: Number(newLoss.loss_amount_inr) || 0
+      });
       await loadAllTradeData();
       setShowAddLossModal(false);
       showToastMsg(`Logged incident: ${newLoss.loss_type} (₹${Number(newLoss.loss_amount_inr).toLocaleString('en-IN')})`);
+      setNewLoss(initialLoss);
     } catch (err: any) {
       showToastMsg(`Error logging cargo loss: ${err.message || 'Unknown error'}`);
     }
@@ -332,17 +323,17 @@ export const TradeShipments: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {activeTab === 'containers' && (
-            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddShipmentModal(true)}>
+            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10 cursor-pointer" onClick={() => { setNewShipment(initialShipment); setShowAddShipmentModal(true); }}>
               <Plus className="w-4 h-4 mr-1.5" /> Book Container Shipment
             </Button>
           )}
           {activeTab === 'bonded_warehouse' && (
-            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddBondedModal(true)}>
+            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10 cursor-pointer" onClick={() => { setNewBonded(initialBonded); setShowAddBondedModal(true); }}>
               <Plus className="w-4 h-4 mr-1.5" /> Add Bonded Yard Cargo
             </Button>
           )}
           {activeTab === 'cargo_losses' && (
-            <Button size="sm" className="bg-rose-700 hover:bg-rose-800 text-xs font-bold shadow-md shadow-rose-950/10 text-white" onClick={() => setShowAddLossModal(true)}>
+            <Button size="sm" className="bg-rose-700 hover:bg-rose-800 text-xs font-bold shadow-md shadow-rose-950/10 text-white cursor-pointer" onClick={() => { setNewLoss(initialLoss); setShowAddLossModal(true); }}>
               <ShieldAlert className="w-4 h-4 mr-1.5" /> Record Loss / Demurrage
             </Button>
           )}
@@ -758,26 +749,26 @@ export const TradeShipments: React.FC = () => {
               <form onSubmit={handleAddShipment} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Container Serial Number</label>
-                  <input type="text" required value={newShipment.container} onChange={(e) => setNewShipment({ ...newShipment, container: e.target.value })} placeholder="e.g. MSKU-9988112" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newShipment.container} onChange={(e) => setNewShipment({ ...newShipment, container: e.target.value })} placeholder="e.g. MSKU-9988112" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Cargo Description</label>
-                  <input type="text" required value={newShipment.cargo} onChange={(e) => setNewShipment({ ...newShipment, cargo: e.target.value })} placeholder="e.g. Industrial Bearing Assemblies" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newShipment.cargo} onChange={(e) => setNewShipment({ ...newShipment, cargo: e.target.value })} placeholder="e.g. Industrial Bearing Assemblies" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Origin Port</label>
-                    <input type="text" required value={newShipment.origin} onChange={(e) => setNewShipment({ ...newShipment, origin: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newShipment.origin} onChange={(e) => setNewShipment({ ...newShipment, origin: e.target.value })} placeholder="e.g. Port of Gdansk (PL)" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Destination Port</label>
-                    <input type="text" required value={newShipment.destination} onChange={(e) => setNewShipment({ ...newShipment, destination: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newShipment.destination} onChange={(e) => setNewShipment({ ...newShipment, destination: e.target.value })} placeholder="e.g. Port of Rotterdam (NL)" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Carrier Line</label>
-                    <select value={newShipment.carrier} onChange={(e) => setNewShipment({ ...newShipment, carrier: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                    <select value={newShipment.carrier} onChange={(e) => setNewShipment({ ...newShipment, carrier: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]">
                       <option value="Maersk Line">Maersk Line</option>
                       <option value="CMA CGM Logistics">CMA CGM Logistics</option>
                       <option value="Hapag-Lloyd">Hapag-Lloyd</option>
@@ -786,7 +777,7 @@ export const TradeShipments: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Estimated ETA</label>
-                    <input type="date" required value={newShipment.eta} onChange={(e) => setNewShipment({ ...newShipment, eta: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="date" required value={newShipment.eta} onChange={(e) => setNewShipment({ ...newShipment, eta: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                 </div>
                 <div className="pt-3 flex gap-2">
@@ -814,31 +805,31 @@ export const TradeShipments: React.FC = () => {
               <form onSubmit={handleAddBondedItem} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Commodity Name</label>
-                  <input type="text" required value={newBonded.commodity} onChange={(e) => setNewBonded({ ...newBonded, commodity: e.target.value })} placeholder="e.g. Polish Thermal Coal 6000 kcal" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newBonded.commodity} onChange={(e) => setNewBonded({ ...newBonded, commodity: e.target.value })} placeholder="e.g. Polish Thermal Coal 6000 kcal" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Port Location</label>
-                    <input type="text" required value={newBonded.port_location} onChange={(e) => setNewBonded({ ...newBonded, port_location: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newBonded.port_location} onChange={(e) => setNewBonded({ ...newBonded, port_location: e.target.value })} placeholder="e.g. Port of Gdansk, Bonded Bay #4A" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Warehouse Bay / Shed</label>
-                    <input type="text" required value={newBonded.warehouse_bay} onChange={(e) => setNewBonded({ ...newBonded, warehouse_bay: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" required value={newBonded.warehouse_bay} onChange={(e) => setNewBonded({ ...newBonded, warehouse_bay: e.target.value })} placeholder="e.g. Bay-04 North Terminal" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">In-Stock Quantity (MT)</label>
-                    <input type="number" required value={newBonded.in_stock_metric_tons} onChange={(e) => setNewBonded({ ...newBonded, in_stock_metric_tons: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" required value={newBonded.in_stock_metric_tons} onChange={(e) => setNewBonded({ ...newBonded, in_stock_metric_tons: e.target.value as any })} placeholder="e.g. 25000" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Unit Value (₹ / MT)</label>
-                    <input type="number" required value={newBonded.unit_value_inr} onChange={(e) => setNewBonded({ ...newBonded, unit_value_inr: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" required value={newBonded.unit_value_inr} onChange={(e) => setNewBonded({ ...newBonded, unit_value_inr: e.target.value as any })} placeholder="e.g. 15000" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Customs Bond Certificate #</label>
-                  <input type="text" value={newBonded.customs_bond_no} onChange={(e) => setNewBonded({ ...newBonded, customs_bond_no: e.target.value })} placeholder="e.g. PL-GDN-CB-2026-0981" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" value={newBonded.customs_bond_no} onChange={(e) => setNewBonded({ ...newBonded, customs_bond_no: e.target.value })} placeholder="e.g. PL-GDN-CB-2026-0981" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddBondedModal(false)}>Cancel</Button>
@@ -866,7 +857,7 @@ export const TradeShipments: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Loss Incident Type</label>
-                    <select value={newLoss.loss_type} onChange={(e: any) => setNewLoss({ ...newLoss, loss_type: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                    <select value={newLoss.loss_type} onChange={(e: any) => setNewLoss({ ...newLoss, loss_type: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-rose-600">
                       <option value="Port Demurrage Penalty">Port Demurrage Penalty</option>
                       <option value="Transit Shrinkage">Transit Shrinkage</option>
                       <option value="Handling Damage">Handling Damage</option>
@@ -876,27 +867,27 @@ export const TradeShipments: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Loss Amount (INR ₹)</label>
-                    <input type="number" required value={newLoss.loss_amount_inr} onChange={(e) => setNewLoss({ ...newLoss, loss_amount_inr: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="number" required value={newLoss.loss_amount_inr} onChange={(e) => setNewLoss({ ...newLoss, loss_amount_inr: e.target.value as any })} placeholder="e.g. 120000" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-rose-600" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Container Serial #</label>
-                    <input type="text" value={newLoss.container_no} onChange={(e) => setNewLoss({ ...newLoss, container_no: e.target.value })} placeholder="e.g. MSCU-884920-1" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" value={newLoss.container_no} onChange={(e) => setNewLoss({ ...newLoss, container_no: e.target.value })} placeholder="e.g. MSCU-884920-1" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-rose-600" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Port Location</label>
-                    <input type="text" value={newLoss.port_location} onChange={(e) => setNewLoss({ ...newLoss, port_location: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" value={newLoss.port_location} onChange={(e) => setNewLoss({ ...newLoss, port_location: e.target.value })} placeholder="e.g. Port of Rotterdam" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-rose-600" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Carrier Line</label>
-                    <input type="text" value={newLoss.carrier_responsible} onChange={(e) => setNewLoss({ ...newLoss, carrier_responsible: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <input type="text" value={newLoss.carrier_responsible} onChange={(e) => setNewLoss({ ...newLoss, carrier_responsible: e.target.value })} placeholder="e.g. Maersk Line" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-rose-600" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Insurance Claim Status</label>
-                    <select value={newLoss.insurance_claim_status} onChange={(e: any) => setNewLoss({ ...newLoss, insurance_claim_status: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                    <select value={newLoss.insurance_claim_status} onChange={(e: any) => setNewLoss({ ...newLoss, insurance_claim_status: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-rose-600">
                       <option value="Not Filed">Not Filed</option>
                       <option value="Claim Lodged">Claim Lodged</option>
                       <option value="Under Review">Under Review</option>
@@ -906,7 +897,7 @@ export const TradeShipments: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Incident Description</label>
-                  <textarea rows={2} value={newLoss.description} onChange={(e) => setNewLoss({ ...newLoss, description: e.target.value })} placeholder="Detailed cause of demurrage or damage..." className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <textarea rows={2} value={newLoss.description} onChange={(e) => setNewLoss({ ...newLoss, description: e.target.value })} placeholder="Detailed cause of demurrage or damage..." className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-rose-600" />
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddLossModal(false)}>Cancel</Button>
