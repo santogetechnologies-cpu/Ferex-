@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, Truck, FileSpreadsheet, PackageCheck,
   FileCheck2, Award, FolderArchive, Building2, CreditCard, BarChart3,
   TrendingUp, DollarSign, MessageSquare, Bell, User, Settings, LogOut,
-  Search, Menu, ChevronRight, ChevronDown, X, Plus
+  Search, Menu, ChevronRight, ChevronDown, X, Plus, ArrowUpRight
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
 import { useAuth } from '../contexts/AuthContext';
-import { getTradeNotifications } from '../lib/api/trade';
+import { getTradeNotifications, globalSearchTrade } from '../lib/api/trade';
 
 interface TradeLayoutProps {
   children: React.ReactNode;
@@ -29,7 +29,6 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   const userName = profile?.full_name || '';
   const userEmail = profile?.email || 'trade@ferex.com';
   const isAdmin = TRADE_ADMIN_ROLES.includes(userRole);
-  const isStaff = !isAdmin; // logistics_officer or unrecognized trade role
 
   const roleLabel = isAdmin ? 'Trade Director' : 'Logistics Officer';
   const initials = userName ? userName.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) : (isAdmin ? 'GT' : 'LO');
@@ -40,6 +39,13 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [liveNotifs, setLiveNotifs] = useState<any[]>([]);
+
+  // Global Search Omnibar (⌘K)
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadNotifs = async () => {
@@ -58,7 +64,47 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
       window.removeEventListener('ferex_trade_notifs_change', handleNotifUpdate);
     };
   }, []);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  // Keyboard shortcut for ⌘K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSearchModal(prev => !prev);
+      } else if (e.key === 'Escape') {
+        setShowSearchModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Execute global search when query changes
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await globalSearchTrade(searchQuery);
+        setSearchResults(res);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (showSearchModal) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    } else {
+      setSearchQuery('');
+      setSearchResults([]);
+    }
+  }, [showSearchModal]);
 
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
     return localStorage.getItem('ferex_trade_profile_photo') || null;
@@ -104,11 +150,11 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
         { name: 'Certificates', path: '/trade/certificates', icon: Award, badge: null },
         { name: 'Trade Documents', path: '/trade/documents', icon: FolderArchive, badge: 'Vault' },
         { name: 'Letters of Credit', path: '/trade/letters-of-credit', icon: Building2, badge: 'LC Duty' },
-        { name: 'Payments', path: '/trade/payments', icon: CreditCard, badge: 'INR ₹' },
+        { name: 'Payments & Ledger', path: '/trade/payments', icon: CreditCard, badge: 'Cashflow' },
       ]
     },
     {
-      title: 'ANALYTICS',
+      title: 'ANALYTICS & REPORTS',
       items: [
         { name: 'Reports', path: '/trade/reports', icon: BarChart3, badge: null },
         { name: 'Shipment Analytics', path: '/trade/shipment-analytics', icon: TrendingUp, badge: 'Realtime' },
@@ -165,7 +211,6 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   ];
 
   const menuSections = isAdmin ? adminMenuSections : staffMenuSections;
-
   const allMenuItems = menuSections.flatMap(s => s.items);
   const activeItem = allMenuItems.find(item => location.pathname === item.path)?.name || 'Dashboard';
 
@@ -225,7 +270,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                 </div>
               )}
               {section.items.map((item) => {
-                const isActive = item.name === activeItem;
+                const isActive = item.name === activeItem || (item.path === '/trade/payments' && location.pathname.startsWith('/trade/payments'));
                 const Icon = item.icon;
 
                 return (
@@ -261,6 +306,22 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
             </div>
           ))}
         </nav>
+
+        {/* Portal Switcher info banner for Trade Director */}
+        {!isCollapsed && (
+          <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+            <Link
+              to="/trade/client-portal"
+              className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs hover:border-[#58051E]/40 hover:bg-[#58051E]/5 transition-all text-left group"
+            >
+              <div>
+                <span className="text-[10px] font-extrabold text-[#58051E] uppercase block">Client Portal</span>
+                <span className="text-[11px] font-semibold text-slate-600">Partner View Console</span>
+              </div>
+              <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#58051E]" />
+            </Link>
+          </div>
+        )}
 
       </aside>
 
@@ -298,20 +359,26 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
           {/* Right Action Icons & Avatar */}
           <div className="flex items-center gap-2 sm:gap-2.5">
             
-            {/* Search Box */}
-            <div className="relative hidden md:block w-56">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search shipments, B/L..."
-                className="w-full h-8.5 pl-8.5 pr-8 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40 focus:ring-2 focus:ring-[#58051E]/5 transition-all"
-              />
-              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.2 text-[9px] font-bold text-slate-400 bg-white border border-slate-200 rounded">
+            {/* Global Search Omnibar Trigger */}
+            <button
+              onClick={() => setShowSearchModal(true)}
+              className="relative hidden md:flex items-center w-64 h-8.5 pl-3 pr-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-400 hover:border-[#58051E]/40 hover:bg-white transition-all cursor-pointer text-left group"
+            >
+              <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#58051E] mr-2 shrink-0" />
+              <span className="truncate flex-1">Search trade records...</span>
+              <kbd className="px-1.5 py-0.2 text-[9px] font-bold text-slate-400 bg-white border border-slate-200 rounded shadow-2xs">
                 ⌘K
               </kbd>
-            </div>
+            </button>
+
+            {/* Mobile search button */}
+            <button
+              onClick={() => setShowSearchModal(true)}
+              className="md:hidden p-2 text-slate-600 hover:bg-slate-100 border border-slate-200/80 rounded-xl transition-colors cursor-pointer"
+              title="Search"
+            >
+              <Search size={16} />
+            </button>
 
             {/* Google-Style 9-Dots 4-App Switcher */}
             <AppSwitcher />
@@ -336,19 +403,25 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                     initial={{ opacity: 0, y: 8, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                    className="absolute right-0 mt-2 w-52 bg-white border border-slate-200/80 rounded-2xl shadow-xl p-2 z-50 text-left"
+                    className="absolute right-0 mt-2 w-56 bg-white border border-slate-200/80 rounded-2xl shadow-xl p-2 z-50 text-left"
                   >
                     <div className="px-3 py-1.5 text-[10px] font-black uppercase text-slate-400 border-b border-slate-100">
                       Quick Operations
                     </div>
                     <div className="py-1 space-y-0.5 text-xs font-bold text-slate-700">
-                      <button onClick={() => navigate('/trade/shipments')} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-xl flex items-center gap-2">
+                      <button onClick={() => { setShowQuickActions(false); navigate('/trade/crm'); }} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-xl flex items-center gap-2">
+                        <Users className="w-4 h-4 text-slate-400" /> Add Trade Partner
+                      </button>
+                      <button onClick={() => { setShowQuickActions(false); navigate('/trade/shipments'); }} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-xl flex items-center gap-2">
                         <Truck className="w-4 h-4 text-slate-400" /> Book New Shipment
                       </button>
-                      <button onClick={() => navigate('/trade/invoices')} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-xl flex items-center gap-2">
-                        <FileSpreadsheet className="w-4 h-4 text-slate-400" /> Create Invoice
+                      <button onClick={() => { setShowQuickActions(false); navigate('/trade/invoices'); }} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-xl flex items-center gap-2">
+                        <FileSpreadsheet className="w-4 h-4 text-slate-400" /> Create Commercial Invoice
                       </button>
-                      <button onClick={() => navigate('/trade/letters-of-credit')} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-xl flex items-center gap-2">
+                      <button onClick={() => { setShowQuickActions(false); navigate('/trade/payments'); }} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-xl flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-slate-400" /> Record Settlement / Payment
+                      </button>
+                      <button onClick={() => { setShowQuickActions(false); navigate('/trade/letters-of-credit'); }} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-xl flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-slate-400" /> Issue Letter of Credit
                       </button>
                     </div>
@@ -501,6 +574,89 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
           </motion.div>
         </main>
       </div>
+
+      {/* ── GLOBAL SEARCH ⌘K MODAL ── */}
+      <AnimatePresence>
+        {showSearchModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSearchModal(false)}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
+              className="fixed left-1/2 top-20 -translate-x-1/2 w-full max-w-2xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-200 overflow-hidden"
+            >
+              <div className="flex items-center px-4 py-3.5 border-b border-slate-100 gap-3">
+                <Search className="w-5 h-5 text-[#58051E]" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Type to search partners, shipments, invoices, B/Ls, LCs, payments..."
+                  className="flex-1 text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="p-1 text-slate-400 hover:text-slate-600">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+                <kbd className="px-2 py-0.5 text-[10px] font-bold text-slate-400 bg-slate-100 rounded border border-slate-200">
+                  ESC
+                </kbd>
+              </div>
+
+              <div className="max-h-[60vh] overflow-y-auto p-3">
+                {searchLoading ? (
+                  <div className="p-6 text-center text-xs font-bold text-slate-400">Searching global trade databases...</div>
+                ) : searchResults.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-400 font-semibold">
+                    {searchQuery.trim().length >= 2 ? 'No matching trade entities found.' : 'Enter at least 2 characters to search across all trade modules.'}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {searchResults.map((r) => (
+                      <div
+                        key={`${r.category}-${r.id}`}
+                        onClick={() => {
+                          setShowSearchModal(false);
+                          navigate(r.path);
+                        }}
+                        className="p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200/80 transition-all cursor-pointer flex items-center justify-between group"
+                      >
+                        <div className="min-w-0 flex-1 pr-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-[#58051E]/10 text-[#58051E]">
+                              {r.category}
+                            </span>
+                            <span className="text-xs font-extrabold text-slate-900 group-hover:text-[#58051E] truncate">
+                              {r.title}
+                            </span>
+                          </div>
+                          <p className="text-[11px] font-medium text-slate-500 mt-1 truncate">
+                            {r.subtitle}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-[#58051E] shrink-0 transition-transform group-hover:translate-x-0.5" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400">
+                <span>Navigate directly to connected record dossiers</span>
+                <span>⌘K / CTRL+K</span>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
     </div>
   );

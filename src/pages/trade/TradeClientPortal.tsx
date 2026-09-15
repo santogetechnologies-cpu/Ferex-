@@ -7,9 +7,13 @@ import {
   getTradeInvoices,
   getTradeLettersOfCredit,
   getTradeBillsOfLading,
+  getTradePackingLists,
+  getTradeCertificates,
   getTradeDocuments,
+  createTradeDocument,
   getTradeMessages,
   sendTradeMessage,
+  TRADE_MASTER_DOC_TYPES
 } from '../../lib/api/trade';
 import { useTradeConfig } from '../../hooks/useTradeConfig';
 import { UnifiedPaymentModal } from '../../components/UnifiedPaymentModal';
@@ -38,6 +42,8 @@ import {
   CheckCircle2,
   Zap,
   ArrowRight,
+  Upload,
+  Eye,
   X
 } from 'lucide-react';
 
@@ -46,18 +52,28 @@ export const TradeClientPortal: React.FC = () => {
   const navigate = useNavigate();
   const { config: tradeConfig } = useTradeConfig();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'shipments' | 'invoices' | 'lcs' | 'documents' | 'messages'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'shipments' | 'invoices' | 'lcs' | 'packing_lists' | 'bls' | 'certificates' | 'documents' | 'messages'>('overview');
   const [loading, setLoading] = useState(true);
   const [shipments, setShipments] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [lcs, setLcs] = useState<any[]>([]);
+  const [packingLists, setPackingLists] = useState<any[]>([]);
   const [bls, setBls] = useState<any[]>([]);
+  const [certificates, setCertificates] = useState<any[]>([]);
   const [docs, setDocs] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
   const [payingInvoice, setPayingInvoice] = useState<any | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadData, setUploadData] = useState({
+    name: '',
+    doc_type: TRADE_MASTER_DOC_TYPES[0],
+    folder: 'Customs Clearance',
+    shipment_no: '',
+    file: null as File | null
+  });
 
   const clientEmail = user?.email || profile?.email || '';
   const clientName = profile?.full_name || user?.user_metadata?.full_name || clientEmail.split('@')[0] || 'Trade Partner';
@@ -66,16 +82,18 @@ export const TradeClientPortal: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [allShipments, allInvoices, allLcs, allBls, allDocs, chatMsgs] = await Promise.all([
+      const [allShipments, allInvoices, allLcs, allPackingLists, allBls, allCerts, allDocs, chatMsgs] = await Promise.all([
         getTradeShipments(),
         getTradeInvoices(),
         getTradeLettersOfCredit(),
+        getTradePackingLists(),
         getTradeBillsOfLading(),
+        getTradeCertificates(),
         getTradeDocuments(),
         getTradeMessages('client_portal'),
       ]);
 
-      // Filter for this company / client
+      // Filter for this company / client or fallback gracefully
       const myInvoices = allInvoices.filter((i: any) =>
         i.buyer_name?.toLowerCase().includes(companyName.toLowerCase()) ||
         i.buyer_name?.toLowerCase().includes(clientName.toLowerCase()) ||
@@ -84,13 +102,16 @@ export const TradeClientPortal: React.FC = () => {
 
       const myLcs = allLcs.filter((l: any) =>
         l.beneficiary?.toLowerCase().includes(companyName.toLowerCase()) ||
+        l.applicant?.toLowerCase().includes(companyName.toLowerCase()) ||
         allLcs.length <= 5
       );
 
       setShipments(allShipments || []);
       setInvoices(myInvoices.length > 0 ? myInvoices : allInvoices);
       setLcs(myLcs.length > 0 ? myLcs : allLcs);
+      setPackingLists(allPackingLists || []);
       setBls(allBls || []);
+      setCertificates(allCerts || []);
       setDocs(allDocs || []);
       setMessages(chatMsgs || []);
     } finally {
@@ -102,13 +123,25 @@ export const TradeClientPortal: React.FC = () => {
     loadData();
 
     const channel = supabase
-      .channel('trade_client_portal_sync')
+      .channel('trade_client_portal_sync_all')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_shipments' }, () => loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_invoices' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_letters_of_credit' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_documents' }, () => loadData())
       .subscribe();
+
+    const handleLocalChange = () => loadData();
+    window.addEventListener('ferex_trade_shipments_change', handleLocalChange);
+    window.addEventListener('ferex_trade_invoices_change', handleLocalChange);
+    window.addEventListener('ferex_trade_lcs_change', handleLocalChange);
+    window.addEventListener('ferex_trade_documents_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('ferex_trade_shipments_change', handleLocalChange);
+      window.removeEventListener('ferex_trade_invoices_change', handleLocalChange);
+      window.removeEventListener('ferex_trade_lcs_change', handleLocalChange);
+      window.removeEventListener('ferex_trade_documents_change', handleLocalChange);
     };
   }, [loadData]);
 
@@ -133,6 +166,44 @@ export const TradeClientPortal: React.FC = () => {
     }
   };
 
+  const handleUploadDocument = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadData.name) return;
+
+    let fileDataUrl = '';
+    let fileSizeStr = '1.2 MB';
+
+    if (uploadData.file) {
+      fileSizeStr = `${(uploadData.file.size / (1024 * 1024)).toFixed(2)} MB`;
+      fileDataUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(uploadData.file!);
+      });
+    }
+
+    await createTradeDocument({
+      document_name: uploadData.name,
+      doc_type: uploadData.doc_type,
+      folder: uploadData.folder,
+      file_size: fileSizeStr,
+      file_data: fileDataUrl || undefined,
+      shipment_no: uploadData.shipment_no || undefined,
+      partner_name: companyName,
+      status: 'Uploaded (Pending Verification)'
+    });
+
+    setShowUploadModal(false);
+    setUploadData({
+      name: '',
+      doc_type: TRADE_MASTER_DOC_TYPES[0],
+      folder: 'Customs Clearance',
+      shipment_no: '',
+      file: null
+    });
+    await loadData();
+  };
+
   const handleLogout = async () => {
     await signOut();
     navigate('/login', { replace: true });
@@ -144,7 +215,7 @@ export const TradeClientPortal: React.FC = () => {
   const activeShipments = shipments.filter((s) => s.status !== 'Delivered' && s.shipment_status !== 'Delivered');
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950 relative">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950 relative text-left">
       {/* ── Live Maritime Broadcast Banner ── */}
       {tradeConfig.broadcast?.is_active && (tradeConfig.broadcast.target_audience === 'all' || tradeConfig.broadcast.target_audience === 'clients') && (
         <div className={`px-6 py-2.5 text-xs font-bold flex items-center justify-between gap-4 border-b ${
@@ -197,7 +268,7 @@ export const TradeClientPortal: React.FC = () => {
           <button
             onClick={loadData}
             disabled={loading}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs flex items-center gap-1.5 border border-slate-700"
+            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs flex items-center gap-1.5 border border-slate-700 cursor-pointer"
             title="Refresh Records"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-400' : ''}`} />
@@ -205,7 +276,7 @@ export const TradeClientPortal: React.FC = () => {
           </button>
           <button
             onClick={handleLogout}
-            className="px-3.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-400 border border-red-800/40 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+            className="px-3.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-400 border border-red-800/40 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
@@ -219,8 +290,11 @@ export const TradeClientPortal: React.FC = () => {
           { id: 'overview', label: 'Overview', icon: Layers },
           { id: 'shipments', label: `Shipments (${activeShipments.length})`, icon: Ship },
           { id: 'invoices', label: `Invoices (${invoices.length})`, icon: FileText },
+          { id: 'packing_lists', label: `Packing Lists (${packingLists.length})`, icon: PackageCheck },
+          { id: 'bls', label: `Bills of Lading (${bls.length})`, icon: Anchor },
+          { id: 'certificates', label: `Certificates (${certificates.length})`, icon: ShieldCheck },
           { id: 'lcs', label: `Letters of Credit (${lcs.length})`, icon: CreditCard },
-          { id: 'documents', label: `Trade Docs (${docs.length})`, icon: FileCheck2 },
+          { id: 'documents', label: `Vault (${docs.length})`, icon: FileCheck2 },
           { id: 'messages', label: 'Logistics Support', icon: Send },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -229,7 +303,7 @@ export const TradeClientPortal: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
                 isActive
                   ? 'border-amber-400 text-amber-400 bg-amber-500/10'
                   : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
@@ -272,6 +346,7 @@ export const TradeClientPortal: React.FC = () => {
                 </a>
               </div>
             </div>
+
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-lg hover:border-amber-500/40 transition-all">
@@ -281,7 +356,7 @@ export const TradeClientPortal: React.FC = () => {
                     <Ship className="w-5 h-5" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-white">{activeShipments.length}</div>
+                <div className="text-2xl font-bold text-white">{activeShipments.length} Units</div>
                 <p className="text-xs text-slate-400 mt-1">Containers en route to port</p>
               </div>
 
@@ -292,13 +367,13 @@ export const TradeClientPortal: React.FC = () => {
                     <CreditCard className="w-5 h-5" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-white">{lcs.length} Verified</div>
+                <div className="text-2xl font-bold text-white">{lcs.length} Lines</div>
                 <p className="text-xs text-slate-400 mt-1">Under banking guarantee</p>
               </div>
 
               <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-lg hover:border-amber-500/40 transition-all">
                 <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider">Total Contract Value</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider">Invoiced Ledger</span>
                   <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
                     <FileText className="w-5 h-5" />
                   </div>
@@ -336,7 +411,7 @@ export const TradeClientPortal: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setActiveTab('shipments')}
-                  className="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
                 >
                   View All ({shipments.length}) →
                 </button>
@@ -405,7 +480,7 @@ export const TradeClientPortal: React.FC = () => {
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <FileText className="w-4 h-4 text-emerald-400" /> Commercial Invoices
                   </h3>
-                  <button onClick={() => setActiveTab('invoices')} className="text-xs text-amber-400 hover:underline">
+                  <button onClick={() => setActiveTab('invoices')} className="text-xs text-amber-400 hover:underline cursor-pointer">
                     View Invoices →
                   </button>
                 </div>
@@ -436,7 +511,7 @@ export const TradeClientPortal: React.FC = () => {
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <CreditCard className="w-4 h-4 text-amber-400" /> Banking Guarantees & LCs
                   </h3>
-                  <button onClick={() => setActiveTab('lcs')} className="text-xs text-amber-400 hover:underline">
+                  <button onClick={() => setActiveTab('lcs')} className="text-xs text-amber-400 hover:underline cursor-pointer">
                     View LCs →
                   </button>
                 </div>
@@ -459,41 +534,6 @@ export const TradeClientPortal: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            {/* Configured Shipping Corridors & Port Terminal Routes */}
-            {tradeConfig.corridors && tradeConfig.corridors.length > 0 && (
-              <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                      <Navigation className="w-4 h-4 text-blue-400" /> Active Maritime Shipping Corridors
-                    </h3>
-                    <p className="text-xs text-slate-400">Regular freight lanes and transit schedules operated by FEREX Trade</p>
-                  </div>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                    {tradeConfig.corridors.length} Verified Corridors
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {tradeConfig.corridors.map((c) => (
-                    <div key={c.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 hover:border-slate-700 transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-black text-white">{c.corridor_name}</span>
-                        <span className="text-[10px] font-bold text-blue-400 font-mono">{c.carrier_line}</span>
-                      </div>
-                      <div className="text-[11px] text-slate-300 flex items-center justify-between">
-                        <span>{c.port_of_loading}</span>
-                        <ArrowRight className="w-3 h-3 text-slate-500" />
-                        <span>{c.port_of_discharge}</span>
-                      </div>
-                      <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Transit: {c.transit_time_days}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -554,18 +594,13 @@ export const TradeClientPortal: React.FC = () => {
                     </span>
                     <button
                       onClick={() => setSelectedShipment(s)}
-                      className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30 text-xs transition-all"
+                      className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30 text-xs transition-all cursor-pointer"
                     >
                       View Details
                     </button>
                   </div>
                 </div>
               ))}
-              {shipments.length === 0 && (
-                <div className="col-span-2 p-12 text-center text-slate-500 bg-slate-900/50 rounded-2xl border border-slate-800">
-                  No shipments active.
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -611,7 +646,7 @@ export const TradeClientPortal: React.FC = () => {
                         ) : (
                           <button
                             onClick={() => setPayingInvoice(inv)}
-                            className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold text-[11px] shadow-sm active:scale-95 transition-all"
+                            className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold text-[11px] shadow-sm active:scale-95 transition-all cursor-pointer"
                           >
                             <Zap className="w-3.5 h-3.5" /> Settle (Stripe/UPI)
                           </button>
@@ -639,7 +674,165 @@ export const TradeClientPortal: React.FC = () => {
           </div>
         )}
 
-        {/* ── TAB 4: LETTERS OF CREDIT ── */}
+        {/* ── TAB 4: PACKING LISTS ── */}
+        {activeTab === 'packing_lists' && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <PackageCheck className="w-5 h-5 text-amber-400" /> Packing Lists & Freight Manifests
+              </h2>
+              <p className="text-xs text-slate-400">Detailed container manifests, carton counts, net/gross weights, and volumes</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {packingLists.map((pl: any) => (
+                <div key={pl.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] font-mono text-amber-400 uppercase font-bold tracking-wider">Manifest</span>
+                      <h3 className="font-mono font-bold text-sm text-white mt-0.5">{pl.pl_number || pl.id}</h3>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                      {pl.status || 'Verified'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-slate-950 rounded-xl space-y-1.5 text-xs text-slate-300">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Total Packages:</span>
+                      <strong>{pl.total_packages || 240} CTNS</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Gross Weight:</span>
+                      <strong className="font-mono">{Number(pl.total_gross_weight_kg || 21500).toLocaleString()} KG</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Volume:</span>
+                      <strong className="font-mono">{pl.total_volume_cbm || 42.5} CBM</strong>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const csvContent = `data:text/csv;charset=utf-8,PL_Number,Shipment,Total_Packages,Gross_Weight,Volume\n${pl.pl_number || pl.id},${pl.shipment_no || ''},${pl.total_packages || 0},${pl.total_gross_weight_kg || 0},${pl.total_volume_cbm || 0}`;
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement('a');
+                      link.setAttribute('href', encodedUri);
+                      link.setAttribute('download', `${pl.pl_number || pl.id}_Manifest.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-700 transition-all cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-amber-400" /> Export Manifest CSV
+                  </button>
+                </div>
+              ))}
+              {packingLists.length === 0 && (
+                <div className="col-span-3 p-12 text-center text-slate-500 bg-slate-900 rounded-2xl border border-slate-800">
+                  No packing lists recorded.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 5: BILLS OF LADING ── */}
+        {activeTab === 'bls' && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Anchor className="w-5 h-5 text-blue-400" /> Ocean Bills of Lading (Clean On-Board)
+              </h2>
+              <p className="text-xs text-slate-400">Official ocean titles of goods, vessel assignments, and port departures</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {bls.map((bl: any) => (
+                <div key={bl.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-mono font-bold text-xs text-white">{bl.bl_number || bl.id}</h4>
+                      <p className="text-[11px] text-slate-400">{bl.carrier || 'MSC Mediterranean Shipping'}</p>
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-slate-300 space-y-1 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                    <p className="flex items-center gap-1">Port: <strong>{bl.port_of_loading || 'Gdansk'}</strong> <ArrowRight className="w-3 h-3 text-slate-500 inline shrink-0" /> <strong>{bl.port_of_discharge || 'Rotterdam'}</strong></p>
+                    <p>Status: <span className="text-emerald-400 font-semibold">{bl.status || 'Clean On-Board Signed'}</span></p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const csvContent = `data:text/csv;charset=utf-8,BL_Number,Carrier,Vessel,POL,POD,Status\n${bl.bl_number || bl.id},${bl.carrier || ''},${bl.vessel_name || ''},${bl.port_of_loading || ''},${bl.port_of_discharge || ''},${bl.status || ''}`;
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement('a');
+                      link.setAttribute('href', encodedUri);
+                      link.setAttribute('download', `${bl.bl_number || bl.id}_Ocean_BL.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-amber-400" /> Download Signed B/L
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 6: CERTIFICATES ── */}
+        {activeTab === 'certificates' && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" /> Trade Certificates & Compliance
+              </h2>
+              <p className="text-xs text-slate-400">Origin certificates, phytosanitary clearances, and quality inspection reports</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {certificates.map((cert: any) => (
+                <div key={cert.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-white truncate max-w-[180px]">{cert.certificate_number || cert.id}</h4>
+                      <p className="text-[11px] text-slate-400">{cert.cert_type || 'Certificate of Origin'}</p>
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-slate-300 space-y-1 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                    <p>Authority: <strong>{cert.issuing_authority || 'Chamber of Commerce'}</strong></p>
+                    <p>Validity: <strong>{cert.valid_until || '2027-08-30'}</strong> • <span className="text-emerald-400 font-semibold">{cert.status || 'Active & Valid'}</span></p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const csvContent = `data:text/csv;charset=utf-8,Cert_Number,Type,Authority,Valid_Until,Status\n${cert.certificate_number || cert.id},${cert.cert_type || ''},${cert.issuing_authority || ''},${cert.valid_until || ''},${cert.status || ''}`;
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement('a');
+                      link.setAttribute('href', encodedUri);
+                      link.setAttribute('download', `${cert.certificate_number || cert.id}_Cert.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-amber-400" /> Export Certificate Data
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 7: LETTERS OF CREDIT ── */}
         {activeTab === 'lcs' && (
           <div className="space-y-4">
             <div>
@@ -692,38 +885,25 @@ export const TradeClientPortal: React.FC = () => {
           </div>
         )}
 
-        {/* ── TAB 5: DOCUMENTS ── */}
+        {/* ── TAB 8: DOCUMENT VAULT WITH DIRECT UPLOAD ── */}
         {activeTab === 'documents' && (
           <div className="space-y-4">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <FileCheck2 className="w-5 h-5 text-blue-400" /> Shipping Documents & Customs Certificates
-              </h2>
-              <p className="text-xs text-slate-400">Bills of lading, origin certificates, and packing declarations</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <FileCheck2 className="w-5 h-5 text-blue-400" /> Trade Documents Vault
+                </h2>
+                <p className="text-xs text-slate-400">Upload customs filings, inspection sheets, or download signed dossiers</p>
+              </div>
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5" /> Upload Document
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {bls.map((bl: any) => (
-                <div key={bl.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-mono font-bold text-xs text-white">{bl.bl_number || bl.id}</h4>
-                      <p className="text-[11px] text-slate-400">{bl.carrier || 'MSC Mediterranean Shipping'}</p>
-                    </div>
-                  </div>
-                  <div className="text-[11px] text-slate-300 space-y-1 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                    <p className="flex items-center gap-1">Port: <strong>{bl.port_of_loading || 'Gdansk'}</strong> <ArrowRight className="w-3 h-3 text-slate-500 inline shrink-0" /> <strong>{bl.port_of_discharge || 'Rotterdam'}</strong></p>
-                    <p>Status: <span className="text-emerald-400 font-semibold">{bl.status || 'Clean On-Board Signed'}</span></p>
-                  </div>
-                  <button className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all">
-                    <Download className="w-3.5 h-3.5 text-amber-400" /> Download Signed B/L
-                  </button>
-                </div>
-              ))}
-
               {docs.map((doc: any) => (
                 <div key={doc.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
                   <div className="flex items-center gap-3">
@@ -737,18 +917,31 @@ export const TradeClientPortal: React.FC = () => {
                   </div>
                   <div className="text-[11px] text-slate-300 space-y-1 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
                     <p>Folder: <strong>{doc.folder || 'Customs Clearance'}</strong></p>
-                    <p>Size: <strong>{doc.file_size || '1.5 MB'}</strong> • <span className="text-emerald-400 font-semibold">Verified</span></p>
+                    <p>Size: <strong>{doc.file_size || '1.5 MB'}</strong> • <span className="text-emerald-400 font-semibold">{doc.status || 'Verified'}</span></p>
                   </div>
-                  <button className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all">
-                    <Download className="w-3.5 h-3.5 text-amber-400" /> Download Document
-                  </button>
+                  {doc.file_data ? (
+                    <a
+                      href={doc.file_data}
+                      download={`${doc.document_name}.pdf`}
+                      className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5 text-amber-400" /> Download Document
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => alert(`Document ${doc.document_name} is securely stored in Ferex Vault.`)}
+                      className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-amber-400" /> View Vault Entry
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* ── TAB 6: MESSAGES ── */}
+        {/* ── TAB 9: MESSAGES ── */}
         {activeTab === 'messages' && (
           <div className="max-w-3xl mx-auto space-y-4">
             <div>
@@ -799,7 +992,7 @@ export const TradeClientPortal: React.FC = () => {
                 <button
                   type="submit"
                   disabled={sendingMsg || !newMsg.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-amber-500/20"
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-amber-500/20 cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Send</span>
@@ -809,6 +1002,92 @@ export const TradeClientPortal: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* ── Document Upload Modal ── */}
+      {showUploadModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-md w-full rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl text-xs">
+            <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-bold text-base text-white flex items-center gap-2">
+                <Upload className="w-4 h-4 text-amber-400" /> Upload Trade Document
+              </h3>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUploadDocument} className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Document Title</label>
+                <input
+                  type="text"
+                  required
+                  value={uploadData.name}
+                  onChange={(e) => setUploadData({ ...uploadData, name: e.target.value })}
+                  placeholder="e.g. Phytosanitary Certificate Annex"
+                  className="w-full h-9 px-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Document Type</label>
+                  <select
+                    value={uploadData.doc_type}
+                    onChange={(e) => setUploadData({ ...uploadData, doc_type: e.target.value })}
+                    className="w-full h-9 px-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-400"
+                  >
+                    {TRADE_MASTER_DOC_TYPES.map((dt) => (
+                      <option key={dt} value={dt}>{dt}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Vault Folder</label>
+                  <select
+                    value={uploadData.folder}
+                    onChange={(e) => setUploadData({ ...uploadData, folder: e.target.value })}
+                    className="w-full h-9 px-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-400"
+                  >
+                    <option value="Customs Clearance">Customs Clearance</option>
+                    <option value="Maritime & Shipping">Maritime & Shipping</option>
+                    <option value="Certificates & Quality">Certificates & Quality</option>
+                    <option value="Letters of Credit">Letters of Credit</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Select File (PDF, PNG, JPG)</label>
+                <input
+                  type="file"
+                  onChange={(e) => setUploadData({ ...uploadData, file: e.target.files ? e.target.files[0] : null })}
+                  className="w-full text-slate-400 text-xs file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400"
+                />
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer"
+                >
+                  Upload
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ── Shipment Details Modal ── */}
       {selectedShipment && (
@@ -823,7 +1102,7 @@ export const TradeClientPortal: React.FC = () => {
               </div>
               <button
                 onClick={() => setSelectedShipment(null)}
-                className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
+                className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -840,7 +1119,7 @@ export const TradeClientPortal: React.FC = () => {
             </div>
             <button
               onClick={() => setSelectedShipment(null)}
-              className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs"
+              className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer"
             >
               Close
             </button>
@@ -854,7 +1133,7 @@ export const TradeClientPortal: React.FC = () => {
           href={`https://wa.me/${tradeConfig.branding.whatsapp_trade_desk.replace(/[^0-9]/g, '')}?text=Hello%20FEREX%20Global%20Trade%20Desk%2C%20inquiry%20from%20Trade%20Partner%20${encodeURIComponent(companyName)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20bd5a] text-white p-3.5 rounded-full shadow-2xl flex items-center gap-2 font-bold text-xs transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-white/20"
+          className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20bd5a] text-white p-3.5 rounded-full shadow-2xl flex items-center gap-2 font-bold text-xs transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-white/20 cursor-pointer"
           title="Direct WhatsApp Trade Desk"
         >
           <MessageCircle className="w-5 h-5 fill-current" />
