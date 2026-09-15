@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import { generateUUID } from '../../utils/uuid';
 
 export interface DocumentRequirement {
@@ -417,6 +418,52 @@ export const DEFAULT_DOCUMENT_REQUIREMENTS: DocumentRequirement[] = [
     processing_time: '3 - 5 Days',
     authority_fee: 'Bank charges',
     checklist_items: ['Bank confirmation letter showing CHF 21,000+ equivalent']
+  },
+
+  // India / ind Requirements
+  {
+    id: 'doc-ind-1',
+    country: 'ind',
+    document_name: 'eeeeeeeee',
+    document_type: 'Academic',
+    is_required: true,
+    description: 'eeeeeeee',
+    processing_time: '3 - 7 Days',
+    authority_fee: 'Free',
+    checklist_items: ['Requirement 1', 'Requirement 2']
+  },
+  {
+    id: 'doc-ind-2',
+    country: 'ind',
+    document_name: 'dddddddd',
+    document_type: 'Academic',
+    is_required: true,
+    description: 'dddddddd',
+    processing_time: '3 - 7 Days',
+    authority_fee: 'Free',
+    checklist_items: ['Requirement 1']
+  },
+  {
+    id: 'doc-india-1',
+    country: 'India',
+    document_name: 'eeeeeeeee',
+    document_type: 'Academic',
+    is_required: true,
+    description: 'eeeeeeee',
+    processing_time: '3 - 7 Days',
+    authority_fee: 'Free',
+    checklist_items: ['Requirement 1', 'Requirement 2']
+  },
+  {
+    id: 'doc-india-2',
+    country: 'India',
+    document_name: 'dddddddd',
+    document_type: 'Academic',
+    is_required: true,
+    description: 'dddddddd',
+    processing_time: '3 - 7 Days',
+    authority_fee: 'Free',
+    checklist_items: ['Requirement 1']
   }
 ];
 
@@ -437,12 +484,50 @@ function saveStoredRequirements(reqs: DocumentRequirement[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(reqs));
     window.dispatchEvent(new Event('ferex_doc_requirements_change'));
+    window.dispatchEvent(new Event('storage'));
   } catch (e) {
     console.error('Error saving document requirements to storage:', e);
   }
 }
 
+const SYSTEM_CONFIG_CATALOG_KEY = 'ferex_document_requirements_catalog';
+
+async function syncToCloudCatalog(items: DocumentRequirement[]) {
+  try {
+    const admin = await getAdminSupabaseClient();
+    await admin.from('system_config').upsert({
+      key: SYSTEM_CONFIG_CATALOG_KEY,
+      value: items,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' });
+  } catch (e) {
+    console.warn('[syncToCloudCatalog error]:', e);
+  }
+}
+
 export async function getAllDocumentRequirements(): Promise<DocumentRequirement[]> {
+  try {
+    // 1. Live shared Supabase cloud system_config catalog
+    const { data: cfg, error: cfgErr } = await supabase
+      .from('system_config')
+      .select('value')
+      .eq('key', SYSTEM_CONFIG_CATALOG_KEY)
+      .maybeSingle();
+
+    if (!cfgErr && cfg?.value && Array.isArray(cfg.value) && cfg.value.length > 0) {
+      const cloudList = cfg.value as DocumentRequirement[];
+      const stored = getStoredRequirements();
+      const cloudIds = new Set(cloudList.map(d => d.id));
+      const localOnly = stored.filter(s => !cloudIds.has(s.id));
+      const merged = [...cloudList, ...localOnly];
+      saveStoredRequirements(merged);
+      return merged;
+    }
+  } catch (e) {
+    console.warn('[getAllDocumentRequirements] cloud fetch notice:', e);
+  }
+
+  // 2. Try direct table if present
   try {
     const { data, error } = await supabase
       .from('document_requirements')
@@ -573,8 +658,9 @@ export async function addDocumentRequirement(
   }
 
   const all = getStoredRequirements();
-  const updated = [newReq, ...all];
+  const updated = [newReq, ...all.filter(r => r.id !== newReq.id)];
   saveStoredRequirements(updated);
+  await syncToCloudCatalog(updated);
   return newReq;
 }
 
@@ -602,6 +688,7 @@ export async function updateDocumentRequirement(
   });
 
   saveStoredRequirements(updated);
+  await syncToCloudCatalog(updated);
   return updatedReq;
 }
 
@@ -615,11 +702,13 @@ export async function removeDocumentRequirement(id: string): Promise<boolean> {
   const all = getStoredRequirements();
   const filtered = all.filter(r => r.id !== id);
   saveStoredRequirements(filtered);
+  await syncToCloudCatalog(filtered);
   return true;
 }
 
 export async function resetDocumentRequirementsToDefaults(): Promise<DocumentRequirement[]> {
   saveStoredRequirements(DEFAULT_DOCUMENT_REQUIREMENTS);
+  await syncToCloudCatalog(DEFAULT_DOCUMENT_REQUIREMENTS);
   return DEFAULT_DOCUMENT_REQUIREMENTS;
 }
 
