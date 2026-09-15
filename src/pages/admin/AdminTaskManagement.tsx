@@ -55,22 +55,35 @@ export const AdminTaskManagement: React.FC = () => {
   const [staffUsers, setStaffUsers] = useState<any[]>([]);
   const [studentUsers, setStudentUsers] = useState<any[]>([]);
 
-  useEffect(() => {
+  const loadUsers = React.useCallback(() => {
     Promise.all([
       getStaffMembers(),
       getStudents()
     ]).then(([staffList, studentList]) => {
       const staff = (staffList || []).filter((u: any) => u.role !== 'Student');
-      const students = studentList || [];
+      const students = (studentList || []).filter((s: any) => {
+        const sName = (s.full_name || s.name || s.email || '').toLowerCase();
+        return !sName.includes('jishi') && !sName.includes('ajay') && !sName.includes('navaneeth') && sName !== 'rahul sharma';
+      });
       setStaffUsers(staff);
       setStudentUsers(students);
       setNewTask(prev => ({
         ...prev,
-        assigneeId: staff[0]?.full_name || staff[0]?.email || '',
-        studentId: students[0]?.id || '',
+        assigneeId: prev.assigneeId || staff[0]?.full_name || staff[0]?.email || '',
+        studentId: prev.studentId || students[0]?.id || '',
       }));
     }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    loadUsers();
+    window.addEventListener('ferex_students_change', loadUsers);
+    window.addEventListener('ferex_staff_change', loadUsers);
+    return () => {
+      window.removeEventListener('ferex_students_change', loadUsers);
+      window.removeEventListener('ferex_staff_change', loadUsers);
+    };
+  }, [loadUsers]);
 
   useEffect(() => {
     const mapped = dbTasks.map(t => {

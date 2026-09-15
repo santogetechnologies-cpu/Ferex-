@@ -76,7 +76,11 @@ export const AdminPaymentControl: React.FC = () => {
     loadData();
     const handleSync = () => loadData();
     window.addEventListener('ferex_payment_change', handleSync);
-    return () => window.removeEventListener('ferex_payment_change', handleSync);
+    window.addEventListener('ferex_students_change', handleSync);
+    return () => {
+      window.removeEventListener('ferex_payment_change', handleSync);
+      window.removeEventListener('ferex_students_change', handleSync);
+    };
   }, []);
 
   const showToast = (msg: string) => {

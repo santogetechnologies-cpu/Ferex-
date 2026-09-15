@@ -5,6 +5,8 @@ import { generateUUID } from '../../utils/uuid';
 import { createNotification } from './notifications';
 import { logActivity } from './activity';
 
+import { getDeletedStudentIds } from './students';
+
 const PAYMENTS_CATALOG_ID = 'ferex_payments_catalog';
 
 async function fetchPaymentsCatalog(): Promise<Payment[]> {
@@ -12,11 +14,11 @@ async function fetchPaymentsCatalog(): Promise<Payment[]> {
     const admin = await getAdminSupabaseClient();
     const { data } = await admin
       .from('system_config')
-      .select('config')
-      .eq('id', PAYMENTS_CATALOG_ID)
+      .select('value')
+      .eq('key', PAYMENTS_CATALOG_ID)
       .maybeSingle();
-    if (data?.config && Array.isArray(data.config)) {
-      return data.config;
+    if (data?.value && Array.isArray(data.value)) {
+      return data.value;
     }
   } catch {}
   try {
@@ -36,10 +38,10 @@ async function syncPaymentToCloudCatalog(payment: Payment) {
     } catch {}
     const admin = await getAdminSupabaseClient();
     await admin.from('system_config').upsert({
-      id: PAYMENTS_CATALOG_ID,
-      config: updated,
+      key: PAYMENTS_CATALOG_ID,
+      value: updated,
       updated_at: new Date().toISOString()
-    });
+    }, { onConflict: 'key' });
   } catch (e) {
     console.warn('[syncPaymentToCloudCatalog notice]:', e);
   }
@@ -50,6 +52,10 @@ async function syncPaymentToCloudCatalog(payment: Payment) {
 export async function getPayments(studentId?: string) {
   try {
     if (!studentId) {
+      return [];
+    }
+    const deletedIds = getDeletedStudentIds();
+    if (deletedIds.includes(studentId.toLowerCase())) {
       return [];
     }
 
@@ -73,6 +79,7 @@ export async function getPayments(studentId?: string) {
 }
 
 export async function getAllPaymentsForAdmin(): Promise<Payment[]> {
+  const deletedIds = getDeletedStudentIds();
   try {
     const admin = await getAdminSupabaseClient();
     const { data, error } = await admin
@@ -84,9 +91,27 @@ export async function getAllPaymentsForAdmin(): Promise<Payment[]> {
     const cloudCatalog = await fetchPaymentsCatalog();
     const dbIds = new Set(dbPayments.map(p => p.id));
     const merged = [...dbPayments, ...cloudCatalog.filter(p => !dbIds.has(p.id))];
-    return merged;
+
+    // Filter out payments belonging to deleted students or orphan null-student mock payments
+    return merged.filter(p => {
+      const sId = (p.student_id || '').toLowerCase();
+      const sName = (p.student_name || '').toLowerCase();
+      if (!p.student_id && (!p.student_name || p.student_name === 'Student')) return false;
+      if (sId && deletedIds.includes(sId)) return false;
+      if (deletedIds.some(d => sId === d || (d.includes('@') && sName.includes(d.split('@')[0])))) return false;
+      if (sName.includes('jishi') || sName.includes('ajay') || sName.includes('navaneeth')) return false;
+      return true;
+    });
   } catch {
-    return fetchPaymentsCatalog();
+    const catalog = await fetchPaymentsCatalog();
+    return catalog.filter(p => {
+      const sId = (p.student_id || '').toLowerCase();
+      const sName = (p.student_name || '').toLowerCase();
+      if (!p.student_id && (!p.student_name || p.student_name === 'Student')) return false;
+      if (sId && deletedIds.includes(sId)) return false;
+      if (sName.includes('jishi') || sName.includes('ajay') || sName.includes('navaneeth')) return false;
+      return true;
+    });
   }
 }
 
@@ -585,8 +610,7 @@ export async function getPaymentStats(): Promise<{
   partialCount: number;
 }> {
   try {
-    const { data } = await supabase.from('payments').select('amount, status');
-    const rows = (data ?? []) as any[];
+    const rows = await getAllPaymentsForAdmin();
     return {
       totalCollected: rows.filter(r => r.status === 'Paid' || r.status === 'Verified').reduce((s, r) => s + (Number(r.amount) || 0), 0),
       pendingDues: rows.filter(r => r.status === 'Pending' || r.status === 'Pending Verification' || r.status === 'Overdue').reduce((s, r) => s + (Number(r.amount) || 0), 0),
@@ -596,6 +620,32 @@ export async function getPaymentStats(): Promise<{
     };
   } catch {
     return { totalCollected: 0, pendingDues: 0, failedCount: 0, refundTotal: 0, partialCount: 0 };
+  }
+}
+
+// ─── ADMIN — delete payment record ───────────────────────────────────────────
+export async function deletePaymentRecord(paymentId: string): Promise<boolean> {
+  try {
+    const admin = await getAdminSupabaseClient();
+    await admin.from('payments').delete().eq('id', paymentId);
+    
+    // Purge from cloud catalog
+    const catalog = await fetchPaymentsCatalog();
+    const updated = catalog.filter(p => p.id !== paymentId);
+    try {
+      localStorage.setItem('ferex_payments_cloud_catalog', JSON.stringify(updated));
+    } catch {}
+    await admin.from('system_config').upsert({
+      key: PAYMENTS_CATALOG_ID,
+      value: updated,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' });
+
+    window.dispatchEvent(new Event('ferex_payment_change'));
+    return true;
+  } catch (err) {
+    console.warn('[deletePaymentRecord Error]:', err);
+    return false;
   }
 }
 

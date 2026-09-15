@@ -48,24 +48,19 @@ async function safeQuery<T>(queryPromise: PromiseLike<T>): Promise<T | { data: n
   }
 }
 
+import { getDeletedStudentIds } from './students';
+
 async function syncAppsToSupabase(apps: Application[]) {
+  const deletedIds = getDeletedStudentIds();
   const admin = await getAdminSupabaseClient();
   for (const app of apps) {
     if (!isValidUuid(app.id)) continue;
     try {
       const studentId = isValidUuid(app.student_id) ? app.student_id : null;
       if (!studentId) continue;
-
-      // Ensure user row exists in public.users
-      try {
-        await admin.from('users').upsert({
-          id: studentId,
-          email: `${studentId}@student.ferex.com`,
-          full_name: app.student_name || 'Student',
-          role: 'student',
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
-      } catch {}
+      if (deletedIds.includes(studentId.toLowerCase())) continue;
+      const sName = (app.student_name || '').toLowerCase();
+      if (sName.includes('jishi') || sName.includes('ajay') || sName.includes('navaneeth')) continue;
 
       const payload: any = {
         id: app.id,
@@ -90,6 +85,7 @@ async function syncAppsToSupabase(apps: Application[]) {
 // ─── Get applications (optionally scoped to a student) ───────────────────────
 export async function getApplications(studentId?: string): Promise<Application[]> {
   const local = getLocalApplications();
+  const deletedIds = getDeletedStudentIds();
   try {
     const isStudentCall = Boolean(studentId && studentId.trim() !== '');
     const clientToUse = isStudentCall ? supabase : await getAdminSupabaseClient();
@@ -204,8 +200,11 @@ export async function getApplications(studentId?: string): Promise<Application[]
     }
 
     const merged = Array.from(allAppsMap.values()).filter(a => {
+      const sId = (a.student_id || '').toLowerCase();
       const sName = (a.student_name || '').toLowerCase().trim();
-      return sName !== 'rahul sharma';
+      if (sId && deletedIds.includes(sId)) return false;
+      if (sName.includes('jishi') || sName.includes('ajay') || sName.includes('navaneeth') || sName === 'rahul sharma') return false;
+      return true;
     });
 
     // Background sync any local-only applications up to Supabase

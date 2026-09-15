@@ -4,6 +4,8 @@ import type { StudentDocument } from '../types';
 import { generateUUID } from '../../utils/uuid';
 import { logActivity } from './activity';
 
+import { getDeletedStudentIds } from './students';
+
 const isValidUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 const DOCUMENTS_CATALOG_ID = 'ferex_documents_catalog';
 
@@ -12,11 +14,11 @@ async function fetchDocumentsCatalog(): Promise<StudentDocument[]> {
     const admin = await getAdminSupabaseClient();
     const { data } = await admin
       .from('system_config')
-      .select('config')
-      .eq('id', DOCUMENTS_CATALOG_ID)
+      .select('value')
+      .eq('key', DOCUMENTS_CATALOG_ID)
       .maybeSingle();
-    if (data?.config && Array.isArray(data.config)) {
-      return data.config;
+    if (data?.value && Array.isArray(data.value)) {
+      return data.value;
     }
   } catch {}
   try {
@@ -36,10 +38,10 @@ async function syncDocumentToCloudCatalog(doc: StudentDocument) {
     } catch {}
     const admin = await getAdminSupabaseClient();
     await admin.from('system_config').upsert({
-      id: DOCUMENTS_CATALOG_ID,
-      config: updated,
+      key: DOCUMENTS_CATALOG_ID,
+      value: updated,
       updated_at: new Date().toISOString()
-    });
+    }, { onConflict: 'key' });
   } catch (e) {
     console.warn('[syncDocumentToCloudCatalog notice]:', e);
   }
@@ -48,6 +50,8 @@ async function syncDocumentToCloudCatalog(doc: StudentDocument) {
 // ─── Get documents for a specific student (Student View) ───────────────────────
 export async function getDocumentsForStudent(studentId: string): Promise<StudentDocument[]> {
   if (!studentId) return [];
+  const deletedIds = getDeletedStudentIds();
+  if (deletedIds.includes(studentId.toLowerCase())) return [];
 
   try {
     const admin = await getAdminSupabaseClient();
@@ -72,6 +76,7 @@ export async function getDocumentsForStudent(studentId: string): Promise<Student
 
 // ─── Get all documents across the system (Admin View) ──────────────────────────
 export async function getDocumentsForAdmin(): Promise<StudentDocument[]> {
+  const deletedIds = getDeletedStudentIds();
   try {
     const admin = await getAdminSupabaseClient();
     const { data, error } = await admin
@@ -83,9 +88,50 @@ export async function getDocumentsForAdmin(): Promise<StudentDocument[]> {
     const cloudCatalog = await fetchDocumentsCatalog();
     const dbIds = new Set(dbDocs.map(d => d.id));
     const merged = [...dbDocs, ...cloudCatalog.filter(d => !dbIds.has(d.id))];
-    return merged;
+
+    return merged.filter(d => {
+      const sId = (d.student_id || '').toLowerCase();
+      const sName = ((d as any).student_name || (d as any).users?.full_name || '').toLowerCase();
+      const sEmail = ((d as any).student_email || (d as any).users?.email || '').toLowerCase();
+      if (sId && deletedIds.includes(sId)) return false;
+      if (sEmail && deletedIds.includes(sEmail)) return false;
+      if (deletedIds.some(del => sId === del || sEmail.includes(del))) return false;
+      if (sName.includes('jishi') || sName.includes('ajay') || sName.includes('navaneeth')) return false;
+      return true;
+    });
   } catch (err) {
-    return fetchDocumentsCatalog();
+    const cloud = await fetchDocumentsCatalog();
+    return cloud.filter(d => {
+      const sId = (d.student_id || '').toLowerCase();
+      if (sId && deletedIds.includes(sId)) return false;
+      return true;
+    });
+  }
+}
+
+// ─── Delete document ─────────────────────────────────────────────────────────
+export async function deleteDocumentRecord(docId: string): Promise<boolean> {
+  try {
+    const admin = await getAdminSupabaseClient();
+    await admin.from('student_documents').delete().eq('id', docId);
+    await admin.from('documents').delete().eq('id', docId);
+
+    const catalog = await fetchDocumentsCatalog();
+    const updated = catalog.filter(d => d.id !== docId);
+    try {
+      localStorage.setItem('ferex_documents_cloud_catalog', JSON.stringify(updated));
+    } catch {}
+    await admin.from('system_config').upsert({
+      key: DOCUMENTS_CATALOG_ID,
+      value: updated,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' });
+
+    window.dispatchEvent(new Event('ferex_document_change'));
+    return true;
+  } catch (e) {
+    console.warn('[deleteDocumentRecord Error]:', e);
+    return false;
   }
 }
 

@@ -69,7 +69,16 @@ export const AdminPayments: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { 
+    fetchAll(); 
+    const handleSync = () => fetchAll();
+    window.addEventListener('ferex_payment_change', handleSync);
+    window.addEventListener('ferex_students_change', handleSync);
+    return () => {
+      window.removeEventListener('ferex_payment_change', handleSync);
+      window.removeEventListener('ferex_students_change', handleSync);
+    };
+  }, []);
 
   const displayPayments = allPayments.length > 0 ? allPayments : hookPayments;
 

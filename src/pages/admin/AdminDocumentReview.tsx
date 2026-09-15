@@ -59,7 +59,7 @@ export const AdminDocumentReview: React.FC = () => {
 
   const [studentsMap, setStudentsMap] = useState<Record<string, { full_name: string; email: string }>>({});
 
-  useEffect(() => {
+  const refreshStudentsMap = React.useCallback(() => {
     getStudents().then(list => {
       if (list && Array.isArray(list)) {
         const map: Record<string, { full_name: string; email: string }> = {};
@@ -75,6 +75,14 @@ export const AdminDocumentReview: React.FC = () => {
       }
     }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    refreshStudentsMap();
+    window.addEventListener('ferex_students_change', refreshStudentsMap);
+    return () => {
+      window.removeEventListener('ferex_students_change', refreshStudentsMap);
+    };
+  }, [refreshStudentsMap]);
 
   const getStudentCountry = React.useCallback((studentId?: string) => {
     if (!studentId) return 'ind';
@@ -120,6 +128,11 @@ export const AdminDocumentReview: React.FC = () => {
           comment: d.reviewer_notes || '',
           fileUrl: d.file_url,
         };
+      }).filter(d => {
+        const sName = d.studentName.toLowerCase();
+        if (sName.includes('jishi') || sName.includes('ajay') || sName.includes('navaneeth') || sName === 'rahul sharma') return false;
+        if (d.studentId === 'f1ccbfe4-caa9-4f9c-b92c-e4f139e7b496') return false;
+        return true;
       });
       setDocs(mapped);
     } else {
