@@ -113,7 +113,7 @@ function getPaymentName(stageNum: 1 | 2 | 3, targetCountry?: string): string {
       const amount = countryFee 
         ? `₹${countryFee.registration_fee_inr.toLocaleString('en-IN')}`
         : `₹${(config.advance_registration_fee_inr || config.advance_registration_fee_amount || 15000).toLocaleString('en-IN')}`;
-      return `1st Installment (Registration & Legalization Fee - ${amount})`;
+      return `Advanced Registration Fee (${amount})`;
     }
     case 2: {
       return '2nd Installment (University Tuition Fee - Variable)';
@@ -172,7 +172,7 @@ export function getJourneyStageAccess(payments: Payment[], targetCountry?: strin
   const payment3 = checkPaymentStage(payments, 3, targetCountry);
 
   return {
-    // Stage unlocked after 1st installment is paid
+    // Stage unlocked after Advanced Registration Fee is paid
     canSelectUniversity: payment1.isUnlocked,
     canSubmitApplication: payment1.isUnlocked,
     
@@ -188,7 +188,7 @@ export function getJourneyStageAccess(payments: Payment[], targetCountry?: strin
     canAccessPreDeparture: payment3.isUnlocked,
     
     blockedReason: !payment1.isUnlocked 
-      ? '1st Installment payment verification required'
+      ? 'Advanced Registration Fee payment verification required'
       : !payment2.isUnlocked
       ? '2nd Installment payment verification required'
       : !payment3.isUnlocked
@@ -207,18 +207,18 @@ export function canAccessPage(
 ): { allowed: boolean; reason?: string } {
   const access = getJourneyStageAccess(payments, targetCountry);
   
-  // Routes that require 1st installment
+  // Routes that require Advanced Registration Fee
   if (pagePath.includes('/select-university') || pagePath.includes('/universities')) {
     return {
       allowed: access.canSelectUniversity,
-      reason: access.canSelectUniversity ? undefined : 'Please complete 1st Installment payment to select universities.'
+      reason: access.canSelectUniversity ? undefined : 'Please complete Advanced Registration Fee payment to select universities.'
     };
   }
   
   if (pagePath.includes('/applications') && pagePath.includes('/new')) {
     return {
       allowed: access.canSubmitApplication,
-      reason: access.canSubmitApplication ? undefined : 'Please complete 1st Installment payment to submit applications.'
+      reason: access.canSubmitApplication ? undefined : 'Please complete Advanced Registration Fee payment to submit applications.'
     };
   }
   
@@ -269,8 +269,8 @@ export function getNextRequiredPayment(
   if (!payment1.isUnlocked) {
     return {
       stageNum: 1,
-      name: '1st Installment - Registration & Legalization Fee',
-      description: 'Required to unlock university selection and application submission.',
+      name: 'Advanced Registration Fee',
+      description: 'Required to unlock university selection and platform intake.',
       status: 'required',
       expectedAmount: getExpectedPaymentAmount(1, targetCountry)
     };

@@ -34,7 +34,7 @@ const baseMenuItems = [
   { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
   { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },
   { name: 'Meetings & Planner', path: '/admin/meetings', icon: Calendar, badge: null, hasUpdate: false },
-  { name: 'Fee & Intake Config', path: '/admin/fee-config', icon: Settings, badge: null, hasUpdate: false },
+  { name: 'Fee & Financial Governance', path: '/admin/fee-config', icon: Settings, badge: null, hasUpdate: false },
   { name: 'Notifications', path: '/admin/notifications', icon: Bell, badge: null, hasUpdate: false },
   { name: 'Settings', path: '/admin/settings', icon: Settings, badge: null, hasUpdate: false },
 ];

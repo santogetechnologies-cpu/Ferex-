@@ -194,8 +194,10 @@ export const AdminUniversities: React.FC = () => {
   const [universityFee, setUniversityFee] = useState('€3,200 / yr');
   const [vfsFee, setVfsFee] = useState('€150');
   const [agencyFee, setAgencyFee] = useState('€250');
+  const [agencyFeeDescription, setAgencyFeeDescription] = useState('FEREX Admissions Processing, Document Legalization Guidance & Offer Letter Handling');
 
   // Installments state
+  const [installmentsEnabled, setInstallmentsEnabled] = useState<boolean>(true);
   const [installmentsList, setInstallmentsList] = useState<PaymentInstallment[]>([]);
 
   // Semester details state
@@ -347,9 +349,10 @@ export const AdminUniversities: React.FC = () => {
       ...prev,
       {
         id: nextId,
-        title: `Installment Stage #${prev.length + 1}`,
+        title: `Tuition Installment #${prev.length + 1}`,
         amount: '€1,000',
-        due_stage: 'On Offer Letter Approval'
+        due_stage: prev.length === 0 ? 'On Offer Letter Approval' : prev.length === 1 ? 'Prior to Visa Filing' : 'Upon Campus Arrival',
+        verification_requirement: 'Bank SWIFT Transfer Receipt Upload'
       }
     ]);
   };
@@ -382,6 +385,8 @@ export const AdminUniversities: React.FC = () => {
     setUniversityFee('€3,200 / yr');
     setVfsFee(config.default_vfs_fee || '€150');
     setAgencyFee(config.default_agency_fee || '€250');
+    setAgencyFeeDescription('FEREX Admissions Processing, Document Legalization Guidance & Offer Letter Handling');
+    setInstallmentsEnabled(true);
     setCourseProgramsList([
       { id: 'cp-1', name: 'B.Sc Computer Science & Engineering', degree_level: 'Bachelor', tuition_fee: '€3,000 / yr', duration: '3.5 Years' },
       { id: 'cp-2', name: 'M.Sc Artificial Intelligence & Data Systems', degree_level: 'Master', tuition_fee: '€3,500 / yr', duration: '2 Years' }
@@ -417,6 +422,8 @@ export const AdminUniversities: React.FC = () => {
     setUniversityFee(u.university_fee || u.tuition_range || '€3,200 / yr');
     setVfsFee(u.vfs_fee || config.default_vfs_fee || '€150');
     setAgencyFee(u.agency_fee || config.default_agency_fee || '€250');
+    setAgencyFeeDescription(u.agency_fee_description || 'FEREX Admissions Processing, Document Legalization Guidance & Offer Letter Handling');
+    setInstallmentsEnabled(u.installments_enabled !== false);
 
     if (u.course_programs && u.course_programs.length > 0) {
       setCourseProgramsList(u.course_programs);
@@ -486,8 +493,10 @@ export const AdminUniversities: React.FC = () => {
         university_fee: universityFee,
         vfs_fee: vfsFee,
         agency_fee: agencyFee,
+        agency_fee_description: agencyFeeDescription,
+        installments_enabled: installmentsEnabled,
         course_programs: courseProgramsList,
-        installments: installmentsList,
+        installments: installmentsEnabled ? installmentsList : [],
         semesters: semestersList,
       };
 
@@ -1070,8 +1079,8 @@ export const AdminUniversities: React.FC = () => {
                 {[
                   { id: 'general', label: '1. General Info' },
                   { id: 'courses', label: `2. Course Programs (${courseProgramsList.length})` },
-                  { id: 'fees', label: '3. Fees & Invoicing' },
-                  { id: 'installments', label: '4. Installment Stages' },
+                  { id: 'fees', label: '3. University & Agency Fees' },
+                  { id: 'installments', label: `4. Tuition Installments (${installmentsEnabled ? installmentsList.length : 'Direct'})` },
                 ].map(t => (
                   <button
                     key={t.id}
@@ -1341,7 +1350,7 @@ export const AdminUniversities: React.FC = () => {
                 )}
 
                 {activeFormTab === 'fees' && (
-                  <div className="space-y-3.5">
+                  <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">University Tuition Fee</label>
@@ -1367,7 +1376,7 @@ export const AdminUniversities: React.FC = () => {
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Agency Processing Fee</label>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Separate Agency Processing Fee</label>
                         <input
                           type="text"
                           value={agencyFee}
@@ -1376,6 +1385,22 @@ export const AdminUniversities: React.FC = () => {
                           className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                        Agency Processing Service Scope & Deliverables
+                      </label>
+                      <input
+                        type="text"
+                        value={agencyFeeDescription}
+                        onChange={(e) => setAgencyFeeDescription(e.target.value)}
+                        placeholder="e.g. FEREX Comprehensive Admissions Processing & Visa Filing Support"
+                        className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        Specific agency service description visible to students applying to this institution.
+                      </p>
                     </div>
 
                     <div>
@@ -1392,59 +1417,114 @@ export const AdminUniversities: React.FC = () => {
                 )}
 
                 {activeFormTab === 'installments' && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-slate-600">Custom Payment Milestones / Installments</p>
+                  <div className="space-y-4">
+                    {/* Customizable Toggle: Enable / Disable Tuition Installments */}
+                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900">Enable Tuition Installments via Platform</h4>
+                        <p className="text-[11px] text-slate-500 font-medium">
+                          Turn off if students pay tuition directly to the university. Students will not be required to submit portal installment proofs.
+                        </p>
+                      </div>
                       <button
                         type="button"
-                        onClick={handleAddInstallment}
-                        className="px-3 py-1.5 bg-[#58051E] text-white text-xs font-bold rounded-lg hover:bg-[#430316] flex items-center gap-1"
+                        onClick={() => setInstallmentsEnabled(!installmentsEnabled)}
+                        className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ${
+                          installmentsEnabled ? 'bg-[#58051E]' : 'bg-slate-300'
+                        }`}
                       >
-                        <Plus className="w-3.5 h-3.5" /> Add Milestone
+                        <div
+                          className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                            installmentsEnabled ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
                       </button>
                     </div>
 
-                    <div className="space-y-2.5">
-                      {installmentsList.length === 0 ? (
-                        <div className="p-6 text-center text-xs font-semibold text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                          No custom installment stages defined. Standard 3-stage fee distribution will apply.
+                    {installmentsEnabled ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold text-slate-700">Tuition Installments & Verification Schedule</p>
+                          <button
+                            type="button"
+                            onClick={handleAddInstallment}
+                            className="px-3 py-1.5 bg-[#58051E] text-white text-xs font-bold rounded-lg hover:bg-[#430316] flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Add Milestone
+                          </button>
                         </div>
-                      ) : (
-                        installmentsList.map((inst, index) => (
-                          <div key={inst.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-extrabold text-slate-400 uppercase">Stage #{index + 1}</span>
-                              <button type="button" onClick={() => handleRemoveInstallment(index)} className="text-slate-400 hover:text-red-600">
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+
+                        <div className="space-y-2.5">
+                          {installmentsList.length === 0 ? (
+                            <div className="p-6 text-center text-xs font-semibold text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                              No installment milestones defined. Click "Add Milestone" above to create tuition stages.
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                              <input
-                                type="text"
-                                value={inst.title}
-                                onChange={(e) => handleUpdateInstallment(index, 'title', e.target.value)}
-                                placeholder="Milestone Title"
-                                className="h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                              />
-                              <input
-                                type="text"
-                                value={inst.due_stage}
-                                onChange={(e) => handleUpdateInstallment(index, 'due_stage', e.target.value)}
-                                placeholder="Due Event"
-                                className="h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                              />
-                              <input
-                                type="text"
-                                value={inst.amount}
-                                onChange={(e) => handleUpdateInstallment(index, 'amount', e.target.value)}
-                                placeholder="Amount (€1,000)"
-                                className="h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                              />
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                          ) : (
+                            installmentsList.map((inst, index) => (
+                              <div key={inst.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-extrabold text-slate-400 uppercase">Installment #{index + 1}</span>
+                                  <button type="button" onClick={() => handleRemoveInstallment(index)} className="text-slate-400 hover:text-red-600">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-[9.5px] font-bold text-slate-400 uppercase block mb-0.5">Stage Title</label>
+                                    <input
+                                      type="text"
+                                      value={inst.title}
+                                      onChange={(e) => handleUpdateInstallment(index, 'title', e.target.value)}
+                                      placeholder="e.g. Initial Tuition Deposit"
+                                      className="w-full h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[9.5px] font-bold text-slate-400 uppercase block mb-0.5">Amount / Percentage</label>
+                                    <input
+                                      type="text"
+                                      value={inst.amount}
+                                      onChange={(e) => handleUpdateInstallment(index, 'amount', e.target.value)}
+                                      placeholder="e.g. €1,500 or 50%"
+                                      className="w-full h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-[9.5px] font-bold text-slate-400 uppercase block mb-0.5">Verification Schedule Trigger</label>
+                                    <input
+                                      type="text"
+                                      value={inst.due_stage}
+                                      onChange={(e) => handleUpdateInstallment(index, 'due_stage', e.target.value)}
+                                      placeholder="e.g. On Offer Letter Approval"
+                                      className="w-full h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[9.5px] font-bold text-slate-400 uppercase block mb-0.5">Verification Requirement</label>
+                                    <input
+                                      type="text"
+                                      value={inst.verification_requirement || ''}
+                                      onChange={(e) => handleUpdateInstallment(index, 'verification_requirement', e.target.value)}
+                                      placeholder="e.g. SWIFT Transfer Receipt Upload"
+                                      className="w-full h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-6 text-center text-xs font-semibold text-slate-500 bg-amber-50/60 border border-amber-200 rounded-xl space-y-1">
+                        <p className="font-bold text-amber-900">Direct Institutional Payment Configured</p>
+                        <p className="text-[11px] text-amber-800">
+                          Students will pay tuition fees directly to the destination university bank account. No platform tuition installments will be enforced.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 

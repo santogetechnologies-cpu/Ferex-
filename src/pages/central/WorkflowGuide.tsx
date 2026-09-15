@@ -319,29 +319,29 @@ const RegistrationFlowSection: React.FC<FlowSectionProps> = ({ expandedFlows, to
 const PaymentsSection: React.FC<FlowSectionProps> = ({ expandedFlows, toggleFlow }) => (
   <div className="space-y-6">
     <Card className="p-6">
-      <h2 className="text-xl font-black text-slate-900 mb-4">3-Installment Payment & Journey Unlocking System</h2>
+      <h2 className="text-xl font-black text-slate-900 mb-4">Financial Governance & Journey Unlocking Architecture</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <PaymentCard
-          stage="1st Installment"
+          stage="Tier 1: Onboarding Deposit"
           amount="₹15,000"
-          title="Registration & Legalization Fee"
+          title="Advanced Registration Fee"
           unlocks={['University Selection', 'Application Submission', 'Legalization Process']}
           methods={['PhonePe UPI', 'Bank Transfer', 'Cash']}
         />
         <PaymentCard
-          stage="2nd Installment"
-          amount="Dynamic"
-          title="University Tuition Fee"
-          unlocks={['Offer Acceptance', 'Final Acceptance Letter', 'Visa Tracker Access']}
-          methods={['Stripe', 'Bank Wire', 'International Transfer']}
+          stage="Tier 2: Consular Support"
+          amount="University Specific"
+          title="Separate Agency Processing Fee"
+          unlocks={['Admissions Processing', 'Offer Letter Handling', 'Consular Filing']}
+          methods={['Online Gateway', 'Bank Transfer', 'Cash']}
         />
         <PaymentCard
-          stage="3rd Installment"
-          amount="₹53,000"
-          title="Agency & VFS Visa Fee"
-          unlocks={['Pre-Departure Checklist', 'Travel Planning', 'Final Clearance']}
-          methods={['Stripe', 'UPI', 'Bank Transfer']}
+          stage="Tier 3: University Milestones"
+          amount="Per University Schedule"
+          title="Tuition Installments & Verification"
+          unlocks={['Offer Acceptance', 'Final Acceptance Letter', 'Visa Tracker Access']}
+          methods={['Direct Institutional Wire', 'Bank Transfer']}
         />
       </div>
 

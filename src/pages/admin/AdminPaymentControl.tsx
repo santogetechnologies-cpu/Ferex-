@@ -220,7 +220,7 @@ export const AdminPaymentControl: React.FC = () => {
 
     setIsProcessing(true);
     try {
-      const stageLabel = bankStage === 1 ? '1st Installment (Advance Fee)' : bankStage === 2 ? '2nd Installment (Tuition Deposit)' : '3rd Installment (Visa Clearance)';
+      const stageLabel = bankStage === 1 ? 'Advanced Registration Fee' : bankStage === 2 ? 'Tuition Deposit' : 'Visa & Departure Clearance';
       await createAndCompletePayment({
         student_id: bankStudentId,
         student_name: studentObj?.full_name || studentObj?.email?.split('@')[0] || 'Student',

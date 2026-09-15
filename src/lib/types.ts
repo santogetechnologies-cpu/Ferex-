@@ -29,6 +29,7 @@ export interface PaymentInstallment {
   due_stage?: string;
   due_trigger?: string;
   stage?: number | string;
+  verification_requirement?: string;
 }
 
 export interface CourseSemester {
@@ -68,6 +69,8 @@ export interface University {
   university_fee?: string;
   vfs_fee?: string;
   agency_fee?: string;
+  agency_fee_description?: string;
+  installments_enabled?: boolean;
   living_cost_monthly?: string;
   nawa_required?: boolean;
   course_programs?: CourseProgram[];

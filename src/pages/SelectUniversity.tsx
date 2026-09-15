@@ -105,7 +105,7 @@ export const SelectUniversity: React.FC = () => {
 
   const hasMandatoryDocs = (hasPassport && hasMarksheets) || documents.length >= 2;
 
-  // Check if 1st Installment (Advance Registration Fee) is paid
+  // Check if Advanced Registration Fee is paid
   const inst1Paid = payments.some(p => {
     const desc = (String(p.description || '') + ' ' + String(p.title || '') + ' ' + String(p.payment_type || '')).toLowerCase();
     const isStage1 = desc.includes('1st') || desc.includes('1') || desc.includes('registration') || desc.includes('advance') || (p as any).stage_number === 1;

@@ -44,7 +44,7 @@ export const AdminPayments: React.FC = () => {
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualStudentName, setManualStudentName] = useState('');
   const [manualStudentId, setManualStudentId] = useState('');
-  const [manualTitle, setManualTitle] = useState('1st Installment Fee');
+  const [manualTitle, setManualTitle] = useState('Advanced Registration Fee');
   const [manualAmount, setManualAmount] = useState('15000');
   const [manualType] = useState('Installment Fee');
   const [manualMethod, setManualMethod] = useState('Bank Wire Transfer');
@@ -735,7 +735,7 @@ export const AdminPayments: React.FC = () => {
                 <div>
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Fee Description / Title</label>
                   <input type="text" value={manualTitle} onChange={e => setManualTitle(e.target.value)}
-                    placeholder="e.g. 1st Installment Registration Fee"
+                    placeholder="e.g. Advanced Registration Fee"
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none" />
                 </div>
 

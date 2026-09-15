@@ -24,7 +24,7 @@ export function useFeeConfig() {
     };
   }, [refresh]);
 
-  const updateConfig = (newConfig: SystemFeeConfig) => {
+  const updateConfig = (newConfig: Partial<SystemFeeConfig>) => {
     const saved = saveSystemFeeConfig(newConfig);
     setConfig(saved);
     return saved;

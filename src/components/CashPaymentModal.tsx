@@ -86,7 +86,7 @@ export const CashPaymentModal: React.FC<CashPaymentModalProps> = ({
     setIsSubmitting(true);
     try {
       const studentName = selectedStudent?.full_name || selectedStudent?.email?.split('@')[0] || 'Student';
-      const stageLabel = stageNumber === 1 ? '1st Installment (Advance Registration)' : stageNumber === 2 ? '2nd Installment (Tuition Deposit)' : '3rd Installment (Visa Clearance)';
+      const stageLabel = stageNumber === 1 ? 'Advanced Registration Fee' : stageNumber === 2 ? 'Tuition Deposit' : 'Visa & Departure Clearance';
 
       await createAndCompletePayment({
         student_id: selectedStudentId,

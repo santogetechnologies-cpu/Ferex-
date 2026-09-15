@@ -150,15 +150,15 @@ export const StudentDashboard: React.FC = () => {
   const checklistItems = [
     { title: '1. Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },
     { title: '2. Mandatory Document Vault (Passport & Marksheets)', isDone: hasApprovedDocs, path: '/student/documents', tag: hasApprovedDocs ? 'Verified' : isDocsUnderReview ? 'Under Review' : 'Mandatory' },
-    { title: `3. 1st Installment Fee Payment (${config.installments.stage_1_currency === 'EUR' ? '€' : '₹'}${config.installments.stage_1_amount.toLocaleString()})`, isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
-    { title: `4. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isLegalizationApproved, path: '/student/documents', tag: isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Locked' },
+    { title: `3. Advanced Registration Fee Payment`, isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
+    { title: `4. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isLegalizationApproved, path: '/student/documents', tag: isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Pending' },
     { title: '5. University Selection & Course Application', isDone: isUniSelected, path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Action Needed' },
     { title: '6. Official Admission Offer Issued & Accepted', isDone: isOfferAccepted, path: '/student/offers', tag: isOfferAccepted ? 'Accepted' : hasOffer ? 'Offer Released' : 'Pending' },
-    { title: '7. 2nd Installment Tuition Deposit & Visa Status', isDone: inst2Paid, path: '/student/payments', tag: inst2Paid ? `Cleared (${visaRecord?.status_label || 'Visa Ready'})` : 'Due' },
+    { title: '7. University Tuition Deposit & Visa Clearance', isDone: inst2Paid, path: '/student/payments', tag: inst2Paid ? `Cleared (${visaRecord?.status_label || 'Visa Ready'})` : 'Due' },
     { title: '8. Final Acceptance Letter from University', isDone: isFinalAcceptanceIssued, path: '/student/offers', tag: isFinalAcceptanceIssued ? 'Released' : inst2Paid ? 'Awaiting Release' : 'Pending Deposit' },
     { title: '9. VFS Embassy Visa Application Filed', isDone: isVisaFiled, path: '/student/visa-tracker', tag: isVisaFiled ? 'Filed' : 'Pending' },
     { title: '10. Embassy Visa Decision (Approved / Rejected)', isDone: isVisaApproved, isRejected: isVisaRejected, path: '/student/visa-tracker', tag: isVisaApproved ? 'Approved' : isVisaRejected ? 'Rejected' : 'Review' },
-    { title: `11. 3rd Installment & Departure Clearance (${config.installments.stage_3_currency === 'EUR' ? '€' : '₹'}${config.installments.stage_3_amount.toLocaleString()})`, isDone: inst3Paid, path: '/student/payments', tag: inst3Paid ? 'Paid' : 'Due' },
+    { title: `11. Agency Processing & Departure Clearance`, isDone: inst3Paid, path: '/student/payments', tag: inst3Paid ? 'Paid' : 'Due' },
     { title: '12. Post Travel & Campus Arrival', isDone: inst3Paid && isVisaApproved, path: '/student/pre-departure', tag: inst3Paid && isVisaApproved ? 'Arrival Ready' : 'Final Milestone' },
   ];
 
@@ -397,7 +397,7 @@ export const StudentDashboard: React.FC = () => {
                 ) : (
                   <>
                     <Lock className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span>1st Installment Deposit Required</span>
+                    <span>Advanced Registration Fee Required</span>
                   </>
                 )}
               </p>
@@ -411,8 +411,8 @@ export const StudentDashboard: React.FC = () => {
                       : isLegalizationInReview
                         ? `FEREX admissions desk is reviewing your academic transcripts and eligibility for ${targetCountry}.`
                         : inst1Paid
-                          ? `1st Installment verified. ${targetWf?.authority_acronym || 'Legalization'} process is queued for audit.`
-                          : `Complete 1st installment payment to unlock ${targetWf?.authority_acronym || 'Legalization'} process.`}
+                          ? `Advanced Registration Fee verified. ${targetWf?.authority_acronym || 'Legalization'} process is queued for audit.`
+                          : `Complete Advanced Registration Fee payment to unlock ${targetWf?.authority_acronym || 'Legalization'} process.`}
               </p>
               <Button size="xs" variant="outline" className="w-full mt-2 font-semibold" onClick={() => navigate('/student/documents')}>
                 Open Document Vault

@@ -391,7 +391,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                         {
                           id: 'pop-2',
                           title: 'Payment Receipt Ready',
-                          body: 'Your 1st installment payment receipt and invoice are ready in Payments.',
+                          body: 'Your registration fee payment receipt and GST tax invoice are ready in Payments.',
                           category: 'Payment',
                           is_read: false,
                           created_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
