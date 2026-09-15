@@ -530,7 +530,13 @@ export async function getAllDocumentRequirements(): Promise<DocumentRequirement[
 export async function getDocumentRequirements(country?: string): Promise<DocumentRequirement[]> {
   const all = await getAllDocumentRequirements();
   if (!country || country === 'All' || country === 'Not Set' || country === '') {
-    return all;
+    const seen = new Set<string>();
+    return all.filter(d => {
+      const k = `${(d.country || '').toLowerCase()}_${(d.document_name || '').toLowerCase()}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
   }
   const normalized = country.toLowerCase().trim();
   const matched = all.filter(d => {
@@ -548,13 +554,12 @@ export async function getDocumentRequirements(country?: string): Promise<Documen
       (normalized.includes('hungary') && c === 'hungary');
   });
 
-  // Deduplicate by document_name so aliases/synonyms (e.g. ind vs India) never duplicate items
+  const seen = new Set<string>();
   const uniqueMatched: DocumentRequirement[] = [];
-  const seenNames = new Set<string>();
   for (const item of matched) {
     const key = (item.document_name || '').toLowerCase().trim();
-    if (!seenNames.has(key)) {
-      seenNames.add(key);
+    if (!seen.has(key)) {
+      seen.add(key);
       uniqueMatched.push(item);
     }
   }

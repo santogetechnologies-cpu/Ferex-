@@ -10,7 +10,7 @@ import { Checkbox } from '../components/Checkbox';
 import { useAuth } from '../contexts/AuthContext';
 import { getDashboardRoute, getPortalLabel, isSuperAdmin } from '../lib/roleRouter';
 import { supabase } from '../lib/supabase';
-import { getAdminSupabaseClient } from '../lib/supabaseAdmin';
+import { getAdminSupabaseClient } from '../lib/adminAuthClient';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();

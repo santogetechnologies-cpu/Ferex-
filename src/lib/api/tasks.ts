@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { getAdminSupabaseClient } from '../supabaseAdmin';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { Task } from '../types';
 import { generateUUID } from '../../utils/uuid';
 

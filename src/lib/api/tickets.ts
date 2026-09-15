@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { getAdminSupabaseClient } from '../supabaseAdmin';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { SupportTicket, TicketReply } from '../types';
 import { generateUUID } from '../../utils/uuid';
 
@@ -90,7 +90,7 @@ export async function getTicketReplies(ticketId: string): Promise<TicketReply[]>
       .order('created_at', { ascending: true });
 
     if (!msgErr && msgData && msgData.length > 0) {
-      return msgData.map(m => ({
+      return msgData.map((m: any) => ({
         id: m.id,
         ticket_id: m.ticket_id,
         sender_id: m.sender_id,

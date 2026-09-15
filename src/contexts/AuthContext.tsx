@@ -61,7 +61,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-import { getAdminSupabaseClient } from '../lib/supabaseAdmin';
+import { getAdminSupabaseClient } from '../lib/adminAuthClient';
 
 async function fetchProfile(userId: string, email?: string | null): Promise<UserProfile | null> {
   try {

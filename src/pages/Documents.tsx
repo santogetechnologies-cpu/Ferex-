@@ -40,11 +40,17 @@ export const Documents: React.FC = () => {
 
   const { documents: dbDocs, loading, addDoc, replaceDoc } = useDocuments(activeStudentId);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [configuredReqs, setConfiguredReqs] = useState<DocumentRequirement[]>([]);
+  const [selectedCountryOverride, setSelectedCountryOverride] = useState<string>(() => {
+    return localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country') || 'ind';
+  });
 
   // Target country resolution - dynamically bound to selected destination university & country
   const targetCountry = useMemo(() => {
     const isInvalid = (c?: string | null) => !c || c.toLowerCase().trim() === 'not set' || c.trim() === '';
+
+    if (selectedCountryOverride && !isInvalid(selectedCountryOverride)) {
+      return selectedCountryOverride.trim();
+    }
 
     try {
       const storedCourse = localStorage.getItem('ferex_selected_course');
@@ -66,34 +72,46 @@ export const Documents: React.FC = () => {
     const profileTarget = (profile as any)?.target_country;
     if (profileTarget && !isInvalid(profileTarget)) return profileTarget.trim();
 
-    const localTarget = localStorage.getItem('ferex_student_target_country');
+    const localTarget = localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country');
     if (localTarget && !isInvalid(localTarget)) return localTarget.trim();
 
-    return null;
-  }, [profile, applications]);
+    return 'ind';
+  }, [selectedCountryOverride, profile, applications]);
 
   const loadRequirements = React.useCallback(() => {
-    if (targetCountry) {
-      getDocumentRequirements(targetCountry).then(setConfiguredReqs);
-    } else {
-      setConfiguredReqs([]);
-    }
+    const c = targetCountry || 'ind';
+    getDocumentRequirements(c).then(setConfiguredReqs);
   }, [targetCountry]);
 
   useEffect(() => {
     loadRequirements();
+    const handleCountryUpdate = () => {
+      const stored = localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country');
+      if (stored) setSelectedCountryOverride(stored);
+      loadRequirements();
+    };
     window.addEventListener('ferex_doc_requirements_change', loadRequirements);
-    window.addEventListener('ferex_country_change', loadRequirements);
-    window.addEventListener('storage', loadRequirements);
+    window.addEventListener('ferex_country_change', handleCountryUpdate);
     return () => {
       window.removeEventListener('ferex_doc_requirements_change', loadRequirements);
-      window.removeEventListener('ferex_country_change', loadRequirements);
-      window.removeEventListener('storage', loadRequirements);
+      window.removeEventListener('ferex_country_change', handleCountryUpdate);
     };
   }, [loadRequirements]);
 
   const targetWf = useMemo(() => {
-    return targetCountry ? getWorkflowForCountry(targetCountry) : null;
+    if (!targetCountry) return null;
+    const wf = getWorkflowForCountry(targetCountry);
+    if (wf) return wf;
+    return {
+      country: targetCountry,
+      authority_name: `${targetCountry} Legalization Protocol`,
+      authority_acronym: `${targetCountry.toUpperCase()} Legalization`,
+      authority_badge: `${targetCountry} Academic Legalization`,
+      authority_description: `Official state academic equivalency audit and visa processing procedure for ${targetCountry}.`,
+      estimated_processing_days: '14 - 28 Days',
+      authority_fee: '€200',
+      checklist_documents: []
+    } as any;
   }, [targetCountry, getWorkflowForCountry]);
 
   // Map DB docs or fall back to empty list if none
