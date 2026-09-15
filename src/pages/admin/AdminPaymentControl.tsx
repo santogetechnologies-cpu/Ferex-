@@ -5,7 +5,7 @@ import {
   CheckCircle2, XCircle, AlertCircle, Clock, Eye, Download,
   Plus, RotateCcw, Sparkles, X, ChevronRight, FileText,
   DollarSign, TrendingUp, ShieldCheck, ArrowUpRight, GraduationCap,
-  Layers, Check, ExternalLink, RefreshCw
+  Layers, Check, ExternalLink, RefreshCw, Building2
 } from 'lucide-react';
 import {
   getAllPaymentsAdmin,

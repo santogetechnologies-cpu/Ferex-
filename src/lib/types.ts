@@ -152,6 +152,8 @@ export interface Payment {
   payment_method?: 'card' | 'UPI' | 'net_banking' | 'wallet' | 'bank_transfer' | string;
   status: 'Pending' | 'Pending Verification' | 'Paid' | 'Verified' | 'Rejected' | 'Overdue' | 'Cancelled' | 'Refunded' | 'Partial';
   milestone_step?: number;          // which journey step (1–12) this payment belongs to
+  stage_number?: number;            // 1: Advance, 2: Agency, 3: VFS, 4: University Tuition
+  installment_id?: string;          // linked installment id
   due_date: string | null;
   paid_at: string | null;
   utr_number?: string;
