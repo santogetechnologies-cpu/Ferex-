@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Banknote, X, CheckCircle2, DollarSign, Calendar,
   User, FileText, Sparkles, Receipt, Hash, Building2
 } from 'lucide-react';
 import { getStudents } from '../lib/api/students';
+import { getApplications } from '../lib/api/applications';
+import { useUniversities } from '../hooks/useUniversities';
 import { createAndCompletePayment } from '../lib/api/payments';
-import type { UserProfile } from '../lib/types';
+import type { UserProfile, Application } from '../lib/types';
 import { useFeeConfig } from '../hooks/useFeeConfig';
-import { parseFeeToINR } from '../pages/Payments';
+import { parseFeeToINR, formatFeeEURandINR } from '../pages/Payments';
 
 interface CashPaymentModalProps {
   isOpen: boolean;
@@ -22,6 +24,8 @@ export const CashPaymentModal: React.FC<CashPaymentModalProps> = ({
   onSuccess
 }) => {
   const { config } = useFeeConfig();
+  const { universities } = useUniversities();
+  const [applications, setApplications] = useState<Application[]>([]);
   const [students, setStudents] = useState<UserProfile[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
 
@@ -38,10 +42,14 @@ export const CashPaymentModal: React.FC<CashPaymentModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setLoadingStudents(true);
-      getStudents().then(list => {
-        setStudents(list || []);
-        if (list && list.length > 0 && !selectedStudentId) {
-          setSelectedStudentId(list[0].id);
+      Promise.all([
+        getStudents(),
+        getApplications().catch(() => [])
+      ]).then(([stList, appList]) => {
+        setStudents(stList || []);
+        setApplications(appList || []);
+        if (stList && stList.length > 0 && !selectedStudentId) {
+          setSelectedStudentId(stList[0].id);
         }
       }).finally(() => setLoadingStudents(false));
 
@@ -52,20 +60,35 @@ export const CashPaymentModal: React.FC<CashPaymentModalProps> = ({
     }
   }, [isOpen]);
 
+  const selectedStudentApp = useMemo(() => {
+    return applications.find(a => a.student_id === selectedStudentId);
+  }, [applications, selectedStudentId]);
+
+  const selectedStudentUni = useMemo(() => {
+    if (!selectedStudentApp) return null;
+    return universities.find(u =>
+      (selectedStudentApp.university_id && u.id === selectedStudentApp.university_id) ||
+      (selectedStudentApp.university_name && u.name?.toLowerCase().trim() === selectedStudentApp.university_name?.toLowerCase().trim())
+    );
+  }, [universities, selectedStudentApp]);
+
   useEffect(() => {
     if (stageNumber === 1) {
       const advFee = config.advance_registration_fee_inr || config.advance_registration_fee_amount;
       setAmount(String(advFee && advFee >= 100 ? advFee : 15000));
     } else if (stageNumber === 2) {
-      const agencyFee = config.default_agency_fee ? parseFeeToINR(config.default_agency_fee) : 25000;
+      const agencyFeeStr = selectedStudentUni?.agency_fee || config.default_agency_fee || '₹25,000';
+      const agencyFee = parseFeeToINR(agencyFeeStr);
       setAmount(String(agencyFee || 25000));
     } else if (stageNumber === 3) {
-      const vfsFee = config.default_vfs_fee ? parseFeeToINR(config.default_vfs_fee) : 15000;
+      const vfsFeeStr = selectedStudentUni?.vfs_fee || config.default_vfs_fee || '₹15,000';
+      const vfsFee = parseFeeToINR(vfsFeeStr);
       setAmount(String(vfsFee || 15000));
     } else if (stageNumber === 4) {
-      setAmount('315000'); // Default ~€3,500 tuition
+      const tuitionStr = selectedStudentUni?.university_fee || selectedStudentUni?.tuition_range || '€3,500 / yr';
+      setAmount(String(parseFeeToINR(tuitionStr) || 315000));
     }
-  }, [stageNumber, config]);
+  }, [stageNumber, config, selectedStudentUni]);
 
   if (!isOpen) return null;
 

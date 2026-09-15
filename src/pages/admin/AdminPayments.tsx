@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Eye, CheckCircle2, X, CreditCard, Clock, Sparkles, AlertCircle,
-  ExternalLink, Download, RefreshCw, TrendingUp, RotateCcw, FileText, Filter, Plus
+  ExternalLink, Download, RefreshCw, TrendingUp, RotateCcw, FileText, Filter, Plus,
+  Building2, GraduationCap, Layers, ArrowRight, CheckCircle, ShieldCheck
 } from 'lucide-react';
 import { usePayments } from '../../hooks/usePayments';
 import { useStudents } from '../../hooks/useStudents';
-import type { Payment } from '../../lib/types';
+import { useUniversities } from '../../hooks/useUniversities';
+import { useFeeConfig } from '../../hooks/useFeeConfig';
+import { getApplications } from '../../lib/api/applications';
+import { formatFeeEURandINR, parseFeeToINR } from '../Payments';
+import type { Payment, Application } from '../../lib/types';
 import {
   getAllPaymentsAdmin, getPaymentStats, issueRefund, verifyPayment, rejectPayment,
   createValidInvoicePdfBlob, createReceiptPdfBlob, createCreditNotePdfBlob,
@@ -20,6 +25,9 @@ type FilterType = 'All' | 'Service Charge' | 'Application Fee' | 'Visa Fee' | 'C
 export const AdminPayments: React.FC = () => {
   const { payments: hookPayments, loading } = usePayments();
   const { students } = useStudents();
+  const { universities } = useUniversities();
+  const { config: feeConfig } = useFeeConfig();
+  const [applications, setApplications] = useState<Application[]>([]);
   const [allPayments, setAllPayments] = useState<Payment[]>([]);
   const [stats, setStats] = useState({ totalCollected: 0, pendingDues: 0, failedCount: 0, refundTotal: 0, partialCount: 0 });
   const [loadingAll, setLoadingAll] = useState(true);
@@ -28,6 +36,7 @@ export const AdminPayments: React.FC = () => {
   const [filterType, setFilterType] = useState<FilterType>('All');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [activeViewMode, setActiveViewMode] = useState<'milestones' | 'ledger'>('milestones');
 
   // Modals state
   const [viewTaxInvoice, setViewTaxInvoice] = useState<InvoiceData | null>(null);
@@ -59,9 +68,14 @@ export const AdminPayments: React.FC = () => {
   const fetchAll = async () => {
     setLoadingAll(true);
     try {
-      const [pays, st] = await Promise.all([getAllPaymentsAdmin(), getPaymentStats()]);
-      setAllPayments(pays);
-      setStats(st);
+      const [pays, st, apps] = await Promise.all([
+        getAllPaymentsAdmin(),
+        getPaymentStats(),
+        getApplications().catch(() => [])
+      ]);
+      setAllPayments(pays || []);
+      setStats(st || { totalCollected: 0, pendingDues: 0, failedCount: 0, refundTotal: 0, partialCount: 0 });
+      setApplications(apps || []);
     } catch {
       setAllPayments(hookPayments);
     } finally {
@@ -74,13 +88,125 @@ export const AdminPayments: React.FC = () => {
     const handleSync = () => fetchAll();
     window.addEventListener('ferex_payment_change', handleSync);
     window.addEventListener('ferex_students_change', handleSync);
+    window.addEventListener('ferex_application_change', handleSync);
     return () => {
       window.removeEventListener('ferex_payment_change', handleSync);
       window.removeEventListener('ferex_students_change', handleSync);
+      window.removeEventListener('ferex_application_change', handleSync);
     };
   }, []);
 
   const displayPayments = allPayments.length > 0 ? allPayments : hookPayments;
+
+  const studentsWithMilestones = useMemo(() => {
+    return students.map(st => {
+      const sId = st.id;
+      const sName = st.full_name || st.email?.split('@')[0] || 'Student';
+      const studentApp = applications.find(a => a.student_id === sId);
+      
+      const studentUni = universities.find(u =>
+        (studentApp?.university_id && u.id === studentApp.university_id) ||
+        (studentApp?.university_name && u.name?.toLowerCase().trim() === studentApp.university_name?.toLowerCase().trim())
+      );
+
+      const uniName = studentUni?.name || studentApp?.university_name || 'Destination Not Selected';
+      const uniCountry = studentUni?.country || studentApp?.universities?.country || (studentApp as any)?.country || 'Global';
+      const courseName = studentApp?.course || studentApp?.program_name || 'Degree Program';
+      const hasUni = Boolean(studentUni || studentApp?.university_name);
+
+      // 1. Adv Registration
+      const isAdvEnabled = feeConfig.advance_registration_fee_enabled !== false;
+      const advAmount = Number(feeConfig.advance_registration_fee_amount || feeConfig.advance_registration_fee_inr || 15000);
+      const advPay = displayPayments.find(p => p.student_id === sId && (p.stage_number === 1 || p.title?.toLowerCase().includes('registration') || p.payment_type?.toLowerCase().includes('registration') || p.title?.toLowerCase().includes('advance')));
+      const isAdvPaid = advPay?.status === 'Paid' || advPay?.status === 'Verified';
+      const isAdvPending = advPay?.status === 'Pending Verification' || advPay?.status === 'Pending';
+
+      // 2. Agency Fee
+      const rawAgencyFee = studentUni?.agency_fee || feeConfig.default_agency_fee || '₹25,000';
+      const agencyAmount = parseFeeToINR(rawAgencyFee);
+      const agencyPay = displayPayments.find(p => p.student_id === sId && (p.stage_number === 2 || (p.title?.toLowerCase().includes('agency') && !p.title?.toLowerCase().includes('tuition'))));
+      const isAgencyPaid = agencyPay?.status === 'Paid' || agencyPay?.status === 'Verified';
+      const isAgencyPending = agencyPay?.status === 'Pending Verification' || agencyPay?.status === 'Pending';
+
+      // 3. VFS Fee
+      const rawVfsFee = studentUni?.vfs_fee || feeConfig.default_vfs_fee || '₹15,000';
+      const vfsAmount = parseFeeToINR(rawVfsFee);
+      const vfsPay = displayPayments.find(p => p.student_id === sId && (p.stage_number === 3 || p.title?.toLowerCase().includes('vfs') || p.payment_type?.toLowerCase().includes('visa') || p.title?.toLowerCase().includes('consular')));
+      const isVfsPaid = vfsPay?.status === 'Paid' || vfsPay?.status === 'Verified';
+      const isVfsPending = vfsPay?.status === 'Pending Verification' || vfsPay?.status === 'Pending';
+
+      // 4. University Tuition / Installments
+      const isInstallmentsEnabled = Boolean(studentUni?.installments_enabled && studentUni?.installments && studentUni.installments.length > 0);
+      const rawTuition = studentUni?.university_fee || studentUni?.tuition_range || '€3,500 / yr';
+      const tuitionInr = parseFeeToINR(rawTuition);
+
+      const milestones = isInstallmentsEnabled && studentUni?.installments ? studentUni.installments.map((inst, idx) => {
+        const mTitle = inst.title || inst.name || `Tuition Installment #${idx + 1}`;
+        const mDue = inst.due_stage || inst.due_trigger || 'Milestone Trigger';
+        const mAmtInr = parseFeeToINR(inst.amount);
+        const mPay = displayPayments.find(p => p.student_id === sId && ((p as any).installment_id === inst.id || p.title?.toLowerCase().includes(mTitle.toLowerCase()) || p.title?.toLowerCase().includes(`installment #${idx + 1}`)));
+        const isPaid = mPay?.status === 'Paid' || mPay?.status === 'Verified';
+        const isPending = mPay?.status === 'Pending Verification' || mPay?.status === 'Pending';
+        return {
+          id: inst.id || `inst-${idx + 1}`,
+          title: mTitle,
+          amountFormatted: typeof inst.amount === 'number' ? `€${inst.amount}` : (inst.amount || '€1,500'),
+          amountInr: mAmtInr,
+          due_stage: mDue,
+          isPaid,
+          isPending,
+          paymentRecord: mPay
+        };
+      }) : [];
+
+      const tuitionPaid = isInstallmentsEnabled
+        ? milestones.filter(m => m.isPaid).reduce((sum, m) => sum + m.amountInr, 0)
+        : (displayPayments.find(p => p.student_id === sId && p.title?.toLowerCase().includes('tuition') && (p.status === 'Paid' || p.status === 'Verified')) ? tuitionInr : 0);
+
+      const tuitionTotal = isInstallmentsEnabled
+        ? milestones.reduce((sum, m) => sum + m.amountInr, 0)
+        : (hasUni ? tuitionInr : 0);
+
+      const totalOutlay = (isAdvEnabled ? advAmount : 0) + (hasUni ? agencyAmount + vfsAmount + tuitionTotal : 0);
+      const totalCollected = (isAdvPaid ? (Number(advPay?.amount) || advAmount) : 0) +
+        (isAgencyPaid ? (Number(agencyPay?.amount) || agencyAmount) : 0) +
+        (isVfsPaid ? (Number(vfsPay?.amount) || vfsAmount) : 0) +
+        tuitionPaid;
+      const totalPending = Math.max(0, totalOutlay - totalCollected);
+
+      return {
+        student: st,
+        hasUni,
+        uniName,
+        uniCountry,
+        courseName,
+        studentUni,
+        advAmount,
+        advPay,
+        isAdvPaid,
+        isAdvPending,
+        isAdvEnabled,
+        rawAgencyFee,
+        agencyAmount,
+        agencyPay,
+        isAgencyPaid,
+        isAgencyPending,
+        rawVfsFee,
+        vfsAmount,
+        vfsPay,
+        isVfsPaid,
+        isVfsPending,
+        rawTuition,
+        isInstallmentsEnabled,
+        milestones,
+        tuitionTotal,
+        tuitionPaid,
+        totalOutlay,
+        totalCollected,
+        totalPending,
+      };
+    });
+  }, [students, applications, universities, displayPayments, feeConfig]);
 
   const filtered = displayPayments.filter(p => {
     const statusMatch =
@@ -380,6 +506,284 @@ export const AdminPayments: React.FC = () => {
         ))}
       </div>
 
+      {/* View Switcher Tabs: Student Milestones Matrix vs Full Ledger */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+        <button
+          onClick={() => setActiveViewMode('milestones')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+            activeViewMode === 'milestones'
+              ? 'bg-[#58051E] text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          Student Fee Milestones & Outlays ({studentsWithMilestones.length})
+        </button>
+        <button
+          onClick={() => setActiveViewMode('ledger')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+            activeViewMode === 'ledger'
+              ? 'bg-[#58051E] text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <CreditCard className="w-4 h-4" />
+          All Transaction Ledger Records ({displayPayments.length})
+        </button>
+      </div>
+
+      {/* VIEW 1: STUDENT FEE MILESTONES & OUTLAYS MATRIX */}
+      {activeViewMode === 'milestones' && (
+        <div className="space-y-4">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search student by name, email, target university, or country..."
+                className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:bg-white"
+              />
+            </div>
+            <div className="text-xs text-slate-500 font-bold shrink-0">
+              Showing <span className="text-slate-900 font-black">{studentsWithMilestones.filter(s => !search || s.student.full_name?.toLowerCase().includes(search.toLowerCase()) || s.student.email?.toLowerCase().includes(search.toLowerCase()) || s.uniName.toLowerCase().includes(search.toLowerCase())).length}</span> Enrolled Students
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {studentsWithMilestones
+              .filter(s => !search || s.student.full_name?.toLowerCase().includes(search.toLowerCase()) || s.student.email?.toLowerCase().includes(search.toLowerCase()) || s.uniName.toLowerCase().includes(search.toLowerCase()))
+              .map(item => {
+                const s = item.student;
+                const sName = s.full_name || s.email?.split('@')[0] || 'Student';
+
+                return (
+                  <div key={s.id} className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
+                    {/* Student & Destination Header */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#58051E]/10 text-[#58051E] font-black flex items-center justify-center text-sm uppercase">
+                          {sName.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-black text-slate-900">{sName}</h3>
+                            <span className="text-[10px] text-slate-400 font-mono font-medium">({s.email})</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <span className="flex items-center gap-1 text-xs font-bold text-slate-700">
+                              <Building2 className="w-3.5 h-3.5 text-[#58051E]" />
+                              {item.uniName}
+                            </span>
+                            <span className="text-xs text-slate-400">•</span>
+                            <span className="text-xs font-semibold text-slate-500">{item.uniCountry}</span>
+                            <span className="text-xs text-slate-400">•</span>
+                            <span className="text-xs font-semibold text-slate-500">{item.courseName}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 self-end md:self-auto">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
+                          item.isInstallmentsEnabled ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                        }`}>
+                          {item.isInstallmentsEnabled ? `Milestones Active (${item.milestones.length} Stages)` : 'Direct University Payment'}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setManualStudentId(s.id);
+                            setManualStudentName(sName);
+                            setManualTitle('Advanced Registration Fee');
+                            setManualAmount(String(item.advAmount));
+                            setShowManualModal(true);
+                          }}
+                          className="px-3 py-1.5 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] flex items-center gap-1 shadow-xs cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Settle Fee
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Fee Milestones Breakdown Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {/* 1. Adv Registration */}
+                      <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Stage 01 • Intake Deposit</span>
+                            {item.isAdvPaid ? (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Paid</span>
+                            ) : item.isAdvPending ? (
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[9.5px] font-bold animate-pulse">In Review</span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[9.5px] font-bold">Due</span>
+                            )}
+                          </div>
+                          <p className="text-xs font-black text-slate-900 mt-1">Advanced Registration Fee</p>
+                          <p className="text-base font-black text-[#58051E]">₹{item.advAmount.toLocaleString('en-IN')}</p>
+                        </div>
+                        {!item.isAdvPaid && (
+                          <button
+                            onClick={() => {
+                              setManualStudentId(s.id);
+                              setManualStudentName(sName);
+                              setManualTitle('Advanced Registration Fee');
+                              setManualAmount(String(item.advAmount));
+                              setShowManualModal(true);
+                            }}
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                          >
+                            + Record Stage 01
+                          </button>
+                        )}
+                      </div>
+
+                      {/* 2. Agency Fee */}
+                      <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Stage 02 • Agency Processing</span>
+                            {item.isAgencyPaid ? (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Paid</span>
+                            ) : item.isAgencyPending ? (
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[9.5px] font-bold animate-pulse">In Review</span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[9.5px] font-bold">Due</span>
+                            )}
+                          </div>
+                          <p className="text-xs font-black text-slate-900 mt-1">Separate Agency Fee</p>
+                          <p className="text-base font-black text-indigo-900">{formatFeeEURandINR(item.rawAgencyFee)}</p>
+                        </div>
+                        {!item.isAgencyPaid && (
+                          <button
+                            onClick={() => {
+                              setManualStudentId(s.id);
+                              setManualStudentName(sName);
+                              setManualTitle('Agency Processing Fee');
+                              setManualAmount(String(item.agencyAmount));
+                              setShowManualModal(true);
+                            }}
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                          >
+                            + Record Stage 02
+                          </button>
+                        )}
+                      </div>
+
+                      {/* 3. VFS Gov Fee */}
+                      <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Stage 03 • Embassy / VFS</span>
+                            {item.isVfsPaid ? (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Paid</span>
+                            ) : item.isVfsPending ? (
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[9.5px] font-bold animate-pulse">In Review</span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[9.5px] font-bold">Due</span>
+                            )}
+                          </div>
+                          <p className="text-xs font-black text-slate-900 mt-1">VFS / Visa Gov Fee</p>
+                          <p className="text-base font-black text-emerald-800">{formatFeeEURandINR(item.rawVfsFee)}</p>
+                        </div>
+                        {!item.isVfsPaid && (
+                          <button
+                            onClick={() => {
+                              setManualStudentId(s.id);
+                              setManualStudentName(sName);
+                              setManualTitle('VFS / Visa Gov Fee');
+                              setManualAmount(String(item.vfsAmount));
+                              setShowManualModal(true);
+                            }}
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                          >
+                            + Record Stage 03
+                          </button>
+                        )}
+                      </div>
+
+                      {/* 4. University Tuition / Installments */}
+                      <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Stage 04 • University Tuition</span>
+                            <span className="text-[10px] font-bold text-slate-500">
+                              {item.isInstallmentsEnabled ? `${item.milestones.filter(m => m.isPaid).length}/${item.milestones.length} Paid` : 'Direct Account'}
+                            </span>
+                          </div>
+                          <p className="text-xs font-black text-slate-900 mt-1">
+                            {item.isInstallmentsEnabled ? 'Platform Milestones' : 'Direct Tuition'}
+                          </p>
+                          <p className="text-base font-black text-slate-900">{formatFeeEURandINR(item.rawTuition)}</p>
+                        </div>
+
+                        {item.isInstallmentsEnabled && item.milestones.length > 0 ? (
+                          <div className="space-y-1 mt-2">
+                            {item.milestones.map((m, mIdx) => (
+                              <div key={m.id} className="flex items-center justify-between text-[10.5px] bg-white p-1.5 rounded-lg border border-slate-200">
+                                <span className="font-bold text-slate-700 truncate pr-1">#{mIdx + 1}: {m.title}</span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="font-mono font-bold text-slate-900">{m.amountFormatted}</span>
+                                  {m.isPaid ? (
+                                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setManualStudentId(s.id);
+                                        setManualStudentName(sName);
+                                        setManualTitle(m.title);
+                                        setManualAmount(String(m.amountInr));
+                                        setShowManualModal(true);
+                                      }}
+                                      className="text-[9px] font-bold text-[#58051E] bg-[#58051E]/10 px-1.5 py-0.5 rounded hover:bg-[#58051E] hover:text-white"
+                                    >
+                                      Record
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[10.5px] text-slate-500 italic mt-2">
+                            Paid directly to university bank account.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Summary Outlay Strip */}
+                    <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs">
+                      <div className="flex items-center gap-6">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Program Outlay</span>
+                          <span className="font-black text-slate-900">₹{item.totalOutlay.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-emerald-600 block">Total Collected</span>
+                          <span className="font-black text-emerald-700">₹{item.totalCollected.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-amber-600 block">Pending Due</span>
+                          <span className="font-black text-amber-700">₹{item.totalPending.toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-[11px] font-medium text-slate-400">
+                        Institutional deliverables & verification triggers verified
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 2: ALL TRANSACTION LEDGER */}
+      {activeViewMode === 'ledger' && (
+      <>
       {/* Filters */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-3 shadow-xs">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -608,6 +1012,8 @@ export const AdminPayments: React.FC = () => {
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* 1. MANUAL PAYMENT VERIFICATION MODAL */}
       <AnimatePresence>
@@ -676,109 +1082,190 @@ export const AdminPayments: React.FC = () => {
 
       {/* 2. RECORD MANUAL / OFFLINE PAYMENT MODAL */}
       <AnimatePresence>
-        {showManualModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setShowManualModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black">
-                    <Plus className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900">Record Payment (Offline & Online)</h3>
-                    <p className="text-[10px] text-slate-400 font-semibold">Log cash voucher, cheque/DD, bank wire, or online payment</p>
-                  </div>
-                </div>
-                <button onClick={() => setShowManualModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
-              </div>
+        {showManualModal && (() => {
+          const selectedStudentData = studentsWithMilestones.find(s => s.student.id === manualStudentId);
 
-              <form onSubmit={handleManualPaymentSubmit} className="space-y-3.5">
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Select Enrolled Student or Enter Name *</label>
-                  <select
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        const s = students.find(x => x.id === e.target.value);
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setShowManualModal(false)} />
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                className="relative bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black">
+                      <Plus className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900">Record Payment & Settle Milestone</h3>
+                      <p className="text-[10px] text-slate-400 font-semibold">Log cash voucher, cheque/DD, bank wire, or online payment</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowManualModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
+                </div>
+
+                <form onSubmit={handleManualPaymentSubmit} className="space-y-3.5">
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Select Enrolled Student *</label>
+                    <select
+                      value={manualStudentId}
+                      onChange={(e) => {
+                        const sId = e.target.value;
+                        setManualStudentId(sId);
+                        const s = students.find(x => x.id === sId);
                         if (s) {
-                          setManualStudentId(s.id);
                           setManualStudentName(s.full_name || s.email);
+                          const sm = studentsWithMilestones.find(x => x.student.id === sId);
+                          if (sm) {
+                            setManualTitle('Advanced Registration Fee');
+                            setManualAmount(String(sm.advAmount));
+                          }
                         }
-                      }
-                    }}
-                    className="w-full h-9 px-3 mb-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
-                  >
-                    <option value="">-- Choose Existing Student (Optional) --</option>
-                    {students.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.full_name || s.email} ({s.email})
-                      </option>
-                    ))}
-                  </select>
-                  <input type="text" required value={manualStudentName} onChange={e => setManualStudentName(e.target.value)}
-                    placeholder="e.g. Student Full Name"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Amount (INR) *</label>
-                    <input type="number" required min={1} value={manualAmount} onChange={e => setManualAmount(e.target.value)}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Payment Method *</label>
-                    <select value={manualMethod} onChange={e => setManualMethod(e.target.value)}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer">
-                      <option value="Cash Payment (Counter Voucher)">Cash Payment (Counter Voucher)</option>
-                      <option value="Cheque / Demand Draft (DD)">Cheque / Demand Draft (DD)</option>
-                      <option value="Bank Wire Transfer (NEFT/RTGS/IMPS)">Bank Wire Transfer (NEFT/RTGS/IMPS)</option>
-                      <option value="UPI / Instant QR">UPI / Instant QR</option>
-                      <option value="PhonePe UPI / Online Payment">PhonePe UPI / Online Payment</option>
+                      }}
+                      className="w-full h-9 px-3 mb-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Existing Student --</option>
+                      {students.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.full_name || s.email} ({s.email})
+                        </option>
+                      ))}
                     </select>
+                    <input type="text" required value={manualStudentName} onChange={e => setManualStudentName(e.target.value)}
+                      placeholder="e.g. Student Full Name"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]" />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Fee Description / Title</label>
-                  <input type="text" value={manualTitle} onChange={e => setManualTitle(e.target.value)}
-                    placeholder="e.g. Advanced Registration Fee"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none" />
-                </div>
+                  {/* Dynamic Student Destination & Milestone Presets */}
+                  {selectedStudentData && (
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-slate-800 flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-[#58051E]" /> {selectedStudentData.uniName}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-500">{selectedStudentData.uniCountry}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9.5px] font-black uppercase text-slate-400 block mb-1">Click to auto-populate fee stage:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setManualTitle('Advanced Registration Fee');
+                              setManualAmount(String(selectedStudentData.advAmount));
+                            }}
+                            className="px-2 py-1 bg-white hover:bg-[#58051E] hover:text-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-800 transition-colors"
+                          >
+                            01. Registration (₹{selectedStudentData.advAmount.toLocaleString('en-IN')})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setManualTitle('Agency Processing Fee');
+                              setManualAmount(String(selectedStudentData.agencyAmount));
+                            }}
+                            className="px-2 py-1 bg-white hover:bg-[#58051E] hover:text-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-800 transition-colors"
+                          >
+                            02. Agency Fee ({formatFeeEURandINR(selectedStudentData.rawAgencyFee)})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setManualTitle('VFS / Visa Gov Fee');
+                              setManualAmount(String(selectedStudentData.vfsAmount));
+                            }}
+                            className="px-2 py-1 bg-white hover:bg-[#58051E] hover:text-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-800 transition-colors"
+                          >
+                            03. VFS Fee ({formatFeeEURandINR(selectedStudentData.rawVfsFee)})
+                          </button>
+                          {selectedStudentData.isInstallmentsEnabled && selectedStudentData.milestones.map((m, idx) => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => {
+                                setManualTitle(m.title);
+                                setManualAmount(String(m.amountInr));
+                              }}
+                              className="px-2 py-1 bg-white hover:bg-[#58051E] hover:text-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-800 transition-colors"
+                            >
+                              04.{idx + 1} {m.title} ({m.amountFormatted})
+                            </button>
+                          ))}
+                          {!selectedStudentData.isInstallmentsEnabled && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setManualTitle(`University Tuition Fee - ${selectedStudentData.uniName}`);
+                                setManualAmount(String(parseFeeToINR(selectedStudentData.rawTuition)));
+                              }}
+                              className="px-2 py-1 bg-white hover:bg-[#58051E] hover:text-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-800 transition-colors"
+                            >
+                              04. University Tuition ({formatFeeEURandINR(selectedStudentData.rawTuition)})
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Amount (INR) *</label>
+                      <input type="number" required min={1} value={manualAmount} onChange={e => setManualAmount(e.target.value)}
+                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Payment Method *</label>
+                      <select value={manualMethod} onChange={e => setManualMethod(e.target.value)}
+                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer">
+                        <option value="Cash Payment (Counter Voucher)">Cash Payment (Counter Voucher)</option>
+                        <option value="Cheque / Demand Draft (DD)">Cheque / Demand Draft (DD)</option>
+                        <option value="Bank Wire Transfer (NEFT/RTGS/IMPS)">Bank Wire Transfer (NEFT/RTGS/IMPS)</option>
+                        <option value="UPI / Instant QR">UPI / Instant QR</option>
+                        <option value="PhonePe UPI / Online Payment">PhonePe UPI / Online Payment</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
-                      {manualMethod.includes('Cash') ? 'Voucher / Receipt Ref' : manualMethod.includes('Cheque') ? 'Cheque / DD No' : 'UTR / Wire Ref No'}
-                    </label>
-                    <input type="text" value={manualUtr} onChange={e => setManualUtr(e.target.value)}
-                      placeholder={manualMethod.includes('Cash') ? 'e.g. CSH-VCH-8901' : manualMethod.includes('Cheque') ? 'e.g. CHQ-004812' : 'e.g. HDFC129038102'}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:outline-none" />
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Fee Description / Stage Title</label>
+                    <input type="text" value={manualTitle} onChange={e => setManualTitle(e.target.value)}
+                      placeholder="e.g. Advanced Registration Fee"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none" />
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Initial Status</label>
-                    <select value={manualStatus} onChange={e => setManualStatus(e.target.value as any)}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none cursor-pointer">
-                      <option value="Paid">Verified & Paid</option>
-                      <option value="Pending">Pending Verification</option>
-                    </select>
-                  </div>
-                </div>
 
-                <div className="flex gap-2 pt-2 border-t border-slate-100">
-                  <button type="button" onClick={() => setShowManualModal(false)}
-                    className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
-                  <button type="submit" disabled={isProcessing === 'manual'}
-                    className="flex-1 h-9 bg-[#58051E] text-white text-xs font-black rounded-xl hover:bg-[#430316] shadow-sm cursor-pointer disabled:opacity-50">
-                    {isProcessing === 'manual' ? 'Saving...' : 'Record Payment'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                        {manualMethod.includes('Cash') ? 'Voucher / Receipt Ref' : manualMethod.includes('Cheque') ? 'Cheque / DD No' : 'UTR / Wire Ref No'}
+                      </label>
+                      <input type="text" value={manualUtr} onChange={e => setManualUtr(e.target.value)}
+                        placeholder={manualMethod.includes('Cash') ? 'e.g. CSH-VCH-8901' : manualMethod.includes('Cheque') ? 'e.g. CHQ-004812' : 'e.g. HDFC129038102'}
+                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Initial Status</label>
+                      <select value={manualStatus} onChange={e => setManualStatus(e.target.value as any)}
+                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none cursor-pointer">
+                        <option value="Paid">Verified & Paid</option>
+                        <option value="Pending">Pending Verification</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onClick={() => setShowManualModal(false)}
+                      className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
+                    <button type="submit" disabled={isProcessing === 'manual'}
+                      className="flex-1 h-9 bg-[#58051E] text-white text-xs font-black rounded-xl hover:bg-[#430316] shadow-sm cursor-pointer disabled:opacity-50">
+                      {isProcessing === 'manual' ? 'Saving...' : 'Record Payment'}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          );
+        })()}
       </AnimatePresence>
 
       {/* 3. REJECT PAYMENT MODAL */}

@@ -428,6 +428,29 @@ export const AdminUniversities: React.FC = () => {
     setInstallmentsList(prev => prev.filter((_, i) => i !== index));
   };
 
+  const toggleInstallmentsEnabled = () => {
+    const nextVal = !installmentsEnabled;
+    setInstallmentsEnabled(nextVal);
+    if (nextVal && installmentsList.length === 0) {
+      setInstallmentsList([
+        {
+          id: 'inst_' + Date.now(),
+          title: 'Tuition Installment #1 (Initial Deposit)',
+          amount: '€1,500',
+          due_stage: 'On Offer Letter Approval',
+          verification_requirement: 'Bank SWIFT Transfer Receipt Upload'
+        },
+        {
+          id: 'inst_' + (Date.now() + 1),
+          title: 'Tuition Installment #2 (Balance Semester 1)',
+          amount: '€1,500',
+          due_stage: 'Prior to Visa Filing',
+          verification_requirement: 'Bank SWIFT Transfer Receipt Upload'
+        }
+      ]);
+    }
+  };
+
   const resetForm = () => {
     setEditingId(null);
     setName('');
@@ -446,16 +469,16 @@ export const AdminUniversities: React.FC = () => {
     setNawaRequired(true);
     setSelectedIntakes(['October 2026', 'February 2027']);
     setUniversityFee('€3,200 / yr');
-    setVfsFee(config.default_vfs_fee || '€150');
-    setAgencyFee(config.default_agency_fee || '€250');
+    setVfsFee(config.default_vfs_fee || '₹15,000');
+    setAgencyFee(config.default_agency_fee || '₹25,000');
     setAgencyFeeDescription('FEREX Admissions Processing, Document Legalization Guidance & Offer Letter Handling');
     setInstallmentsEnabled(false);
     setCourseProgramsList([
       { id: 'cp-1', name: 'B.Sc Computer Science & Engineering', degree_level: 'Bachelor', tuition_fee: '€3,000 / yr', duration: '3.5 Years' },
       { id: 'cp-2', name: 'M.Sc Artificial Intelligence & Data Systems', degree_level: 'Master', tuition_fee: '€3,500 / yr', duration: '2 Years' }
     ]);
-    installmentsList.length > 0 && setInstallmentsList([]);
-    semestersList.length > 0 && setSemestersList([]);
+    setInstallmentsList([]);
+    setSemestersList([]);
     setActiveFormTab('general');
   };
 
@@ -483,10 +506,11 @@ export const AdminUniversities: React.FC = () => {
     setNawaRequired(u.nawa_required !== undefined ? u.nawa_required : u.country.toLowerCase() === 'poland');
     setSelectedIntakes(u.intakes || ['October 2026', 'February 2027']);
     setUniversityFee(u.university_fee || u.tuition_range || '€3,200 / yr');
-    setVfsFee(u.vfs_fee || config.default_vfs_fee || '€150');
-    setAgencyFee(u.agency_fee || config.default_agency_fee || '€250');
+    setVfsFee(u.vfs_fee || config.default_vfs_fee || '₹15,000');
+    setAgencyFee(u.agency_fee || config.default_agency_fee || '₹25,000');
     setAgencyFeeDescription(u.agency_fee_description || 'FEREX Admissions Processing, Document Legalization Guidance & Offer Letter Handling');
-    setInstallmentsEnabled(u.installments_enabled === true);
+    const hasMilestones = Boolean(u.installments_enabled === true || (Array.isArray(u.installments) && u.installments.length > 0));
+    setInstallmentsEnabled(hasMilestones);
 
     if (u.course_programs && u.course_programs.length > 0) {
       setCourseProgramsList(u.course_programs);
@@ -1441,9 +1465,10 @@ export const AdminUniversities: React.FC = () => {
                           type="text"
                           value={vfsFee}
                           onChange={(e) => setVfsFee(e.target.value)}
-                          placeholder="€150"
+                          placeholder="₹15,000"
                           className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                         />
+                        <p className="text-[10px] font-semibold text-slate-400 mt-1">{formatFeeEURandINR(vfsFee)}</p>
                       </div>
 
                       <div>
@@ -1452,9 +1477,10 @@ export const AdminUniversities: React.FC = () => {
                           type="text"
                           value={agencyFee}
                           onChange={(e) => setAgencyFee(e.target.value)}
-                          placeholder="€250"
+                          placeholder="₹25,000"
                           className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                         />
+                        <p className="text-[10px] font-semibold text-slate-400 mt-1">{formatFeeEURandINR(agencyFee)}</p>
                       </div>
                     </div>
 
@@ -1490,23 +1516,34 @@ export const AdminUniversities: React.FC = () => {
                 {activeFormTab === 'installments' && (
                   <div className="space-y-4">
                     {/* Customizable Toggle: Enable / Disable Tuition Installments */}
-                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs font-black text-slate-900">Enable Tuition Installments via Platform</h4>
+                    <div
+                      onClick={toggleInstallmentsEnabled}
+                      className="p-4 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer transition-all select-none"
+                    >
+                      <div className="pr-4">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <h4 className="text-xs font-black text-slate-900">Enable Tuition Installments via Platform</h4>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${installmentsEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}>
+                            {installmentsEnabled ? 'Milestone Schedule Active' : 'Direct to University'}
+                          </span>
+                        </div>
                         <p className="text-[11px] text-slate-500 font-medium">
                           Turn off if students pay tuition directly to the university. Students will not be required to submit portal installment proofs.
                         </p>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setInstallmentsEnabled(!installmentsEnabled)}
-                        className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ${
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleInstallmentsEnabled();
+                        }}
+                        className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 shrink-0 ${
                           installmentsEnabled ? 'bg-[#58051E]' : 'bg-slate-300'
                         }`}
                       >
                         <div
                           className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                            installmentsEnabled ? 'translate-x-5' : 'translate-x-0'
+                            installmentsEnabled ? 'translate-x-6' : 'translate-x-0'
                           }`}
                         />
                       </button>

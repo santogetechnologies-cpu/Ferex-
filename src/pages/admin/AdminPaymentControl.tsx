@@ -4,7 +4,8 @@ import {
   CreditCard, Banknote, Landmark, QrCode, Search, Filter,
   CheckCircle2, XCircle, AlertCircle, Clock, Eye, Download,
   Plus, RotateCcw, Sparkles, X, ChevronRight, FileText,
-  DollarSign, TrendingUp, ShieldCheck, ArrowUpRight
+  DollarSign, TrendingUp, ShieldCheck, ArrowUpRight, GraduationCap,
+  Layers, Check, ExternalLink, RefreshCw
 } from 'lucide-react';
 import {
   getAllPaymentsAdmin,
@@ -14,16 +15,26 @@ import {
   issueRefund,
   createAndCompletePayment
 } from '../../lib/api/payments';
+import { getApplications } from '../../lib/api/applications';
+import { useUniversities } from '../../hooks/useUniversities';
+import { useFeeConfig } from '../../hooks/useFeeConfig';
+import { parseFeeToINR, formatFeeEURandINR } from '../Payments';
 import { CashPaymentModal } from '../../components/CashPaymentModal';
 import { InvoiceModal, type InvoiceData } from '../../components/InvoiceModal';
 import { getStudents } from '../../lib/api/students';
-import type { UserProfile, Payment } from '../../lib/types';
+import type { UserProfile, Payment, Application } from '../../lib/types';
 
 export const AdminPaymentControl: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [students, setStudents] = useState<UserProfile[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const { universities } = useUniversities();
+  const { config: feeConfig } = useFeeConfig();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalCollected: 0, pendingDues: 0, failedCount: 0, refundTotal: 0, partialCount: 0 });
+
+  // Mode Switcher: 'milestones' | 'ledger'
+  const [activeViewMode, setActiveViewMode] = useState<'milestones' | 'ledger'>('milestones');
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,14 +68,16 @@ export const AdminPaymentControl: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allPays, st, stList] = await Promise.all([
+      const [allPays, st, stList, appList] = await Promise.all([
         getAllPaymentsAdmin(),
         getPaymentStats(),
-        getStudents()
+        getStudents(),
+        getApplications()
       ]);
       setPayments(allPays || []);
       setStats(st || { totalCollected: 0, pendingDues: 0, failedCount: 0, refundTotal: 0, partialCount: 0 });
       setStudents(stList || []);
+      setApplications(appList || []);
     } catch (e) {
       console.error('Error loading payments control:', e);
     } finally {
@@ -82,6 +95,185 @@ export const AdminPaymentControl: React.FC = () => {
       window.removeEventListener('ferex_students_change', handleSync);
     };
   }, []);
+
+  // Selected student university fee computation for Bank Wire Modal
+  const selectedBankStudentApp = useMemo(() => {
+    if (!bankStudentId) return null;
+    return applications.find(a => a.student_id === bankStudentId) || null;
+  }, [bankStudentId, applications]);
+
+  const selectedBankStudentUni = useMemo(() => {
+    if (!selectedBankStudentApp) return null;
+    return universities.find(u =>
+      (selectedBankStudentApp.university_id && u.id === selectedBankStudentApp.university_id) ||
+      (selectedBankStudentApp.university_name && u.name?.toLowerCase().trim() === selectedBankStudentApp.university_name?.toLowerCase().trim())
+    ) || null;
+  }, [selectedBankStudentApp, universities]);
+
+  // Stage fee defaults for Bank Wire Modal
+  const dynamicBankStageAmounts = useMemo(() => {
+    const adv = Number(feeConfig.advance_registration_fee_amount || feeConfig.advance_registration_fee_inr || 15000);
+    const agencyRaw = selectedBankStudentUni?.agency_fee || feeConfig.default_agency_fee || '₹25,000';
+    const agencyInr = parseFeeToINR(agencyRaw);
+    const vfsRaw = selectedBankStudentUni?.vfs_fee || feeConfig.default_vfs_fee || '₹15,000';
+    const vfsInr = parseFeeToINR(vfsRaw);
+    const tuitionRaw = selectedBankStudentUni?.university_fee || selectedBankStudentUni?.tuition_range || '€3,500 / yr';
+    const tuitionInr = parseFeeToINR(tuitionRaw);
+
+    return {
+      1: { inr: adv, raw: `₹${adv.toLocaleString('en-IN')}` },
+      2: { inr: agencyInr, raw: agencyRaw },
+      3: { inr: vfsInr, raw: vfsRaw },
+      4: { inr: tuitionInr, raw: tuitionRaw }
+    };
+  }, [selectedBankStudentUni, feeConfig]);
+
+  // When student or stage changes in bank modal, preset the amount
+  const handleBankStudentChange = (stId: string) => {
+    setBankStudentId(stId);
+    if (!stId) return;
+    const app = applications.find(a => a.student_id === stId);
+    const uni = universities.find(u =>
+      (app?.university_id && u.id === app.university_id) ||
+      (app?.university_name && u.name?.toLowerCase().trim() === app.university_name?.toLowerCase().trim())
+    );
+    const adv = Number(feeConfig.advance_registration_fee_amount || feeConfig.advance_registration_fee_inr || 15000);
+    const agencyInr = parseFeeToINR(uni?.agency_fee || feeConfig.default_agency_fee || '₹25,000');
+    const vfsInr = parseFeeToINR(uni?.vfs_fee || feeConfig.default_vfs_fee || '₹15,000');
+    const tuitionInr = parseFeeToINR(uni?.university_fee || uni?.tuition_range || '€3,500 / yr');
+
+    const mappedAmt = bankStage === 1 ? adv : bankStage === 2 ? agencyInr : bankStage === 3 ? vfsInr : tuitionInr;
+    setBankAmount(String(mappedAmt));
+  };
+
+  const handleBankStageSelect = (stageNum: 1 | 2 | 3 | 4) => {
+    setBankStage(stageNum);
+    const amt = dynamicBankStageAmounts[stageNum]?.inr || 15000;
+    setBankAmount(String(amt));
+  };
+
+  // Student Fee Milestones & Outlays Matrix
+  const studentsWithMilestones = useMemo(() => {
+    return students.map(st => {
+      const sId = st.id;
+      const sName = st.full_name || st.email?.split('@')[0] || 'Student';
+      const studentApp = applications.find(a => a.student_id === sId);
+      
+      const studentUni = universities.find(u =>
+        (studentApp?.university_id && u.id === studentApp.university_id) ||
+        (studentApp?.university_name && u.name?.toLowerCase().trim() === studentApp.university_name?.toLowerCase().trim())
+      );
+
+      const uniName = studentUni?.name || studentApp?.university_name || 'Destination Not Selected';
+      const uniCountry = studentUni?.country || studentApp?.universities?.country || (studentApp as any)?.country || 'Global';
+      const courseName = studentApp?.course || studentApp?.program_name || 'Degree Program';
+      const hasUni = Boolean(studentUni || studentApp?.university_name);
+
+      // 1. Adv Registration
+      const isAdvEnabled = feeConfig.advance_registration_fee_enabled !== false;
+      const advAmount = Number(feeConfig.advance_registration_fee_amount || feeConfig.advance_registration_fee_inr || 15000);
+      const advPay = payments.find(p => p.student_id === sId && (p.stage_number === 1 || p.title?.toLowerCase().includes('registration') || p.payment_type?.toLowerCase().includes('registration') || p.title?.toLowerCase().includes('advance')));
+      const isAdvPaid = advPay?.status === 'Paid' || advPay?.status === 'Verified';
+      const isAdvPending = advPay?.status === 'Pending Verification' || advPay?.status === 'Pending';
+
+      // 2. Agency Fee
+      const rawAgencyFee = studentUni?.agency_fee || feeConfig.default_agency_fee || '₹25,000';
+      const agencyAmount = parseFeeToINR(rawAgencyFee);
+      const agencyPay = payments.find(p => p.student_id === sId && (p.stage_number === 2 || (p.title?.toLowerCase().includes('agency') && !p.title?.toLowerCase().includes('tuition'))));
+      const isAgencyPaid = agencyPay?.status === 'Paid' || agencyPay?.status === 'Verified';
+      const isAgencyPending = agencyPay?.status === 'Pending Verification' || agencyPay?.status === 'Pending';
+
+      // 3. VFS Fee
+      const rawVfsFee = studentUni?.vfs_fee || feeConfig.default_vfs_fee || '₹15,000';
+      const vfsAmount = parseFeeToINR(rawVfsFee);
+      const vfsPay = payments.find(p => p.student_id === sId && (p.stage_number === 3 || p.title?.toLowerCase().includes('vfs') || p.payment_type?.toLowerCase().includes('visa') || p.title?.toLowerCase().includes('consular')));
+      const isVfsPaid = vfsPay?.status === 'Paid' || vfsPay?.status === 'Verified';
+      const isVfsPending = vfsPay?.status === 'Pending Verification' || vfsPay?.status === 'Pending';
+
+      // 4. University Tuition / Installments
+      const isInstallmentsEnabled = Boolean(studentUni?.installments_enabled && studentUni?.installments && studentUni.installments.length > 0);
+      const rawTuition = studentUni?.university_fee || studentUni?.tuition_range || '€3,500 / yr';
+      const tuitionInr = parseFeeToINR(rawTuition);
+
+      const milestones = isInstallmentsEnabled && studentUni?.installments ? studentUni.installments.map((inst, idx) => {
+        const mTitle = inst.title || inst.name || `Tuition Installment #${idx + 1}`;
+        const mDue = inst.due_stage || inst.due_trigger || 'Milestone Trigger';
+        const mAmtInr = parseFeeToINR(inst.amount);
+        const mPay = payments.find(p => p.student_id === sId && ((p as any).installment_id === inst.id || p.title?.toLowerCase().includes(mTitle.toLowerCase()) || p.title?.toLowerCase().includes(`installment #${idx + 1}`)));
+        const isPaid = mPay?.status === 'Paid' || mPay?.status === 'Verified';
+        const isPending = mPay?.status === 'Pending Verification' || mPay?.status === 'Pending';
+        return {
+          id: inst.id || `inst-${idx + 1}`,
+          title: mTitle,
+          amountFormatted: typeof inst.amount === 'number' ? `€${inst.amount}` : (inst.amount || '€1,500'),
+          amountInr: mAmtInr,
+          due_stage: mDue,
+          isPaid,
+          isPending,
+          paymentRecord: mPay
+        };
+      }) : [];
+
+      const singleTuitionPay = payments.find(p => p.student_id === sId && (p.stage_number === 4 || (p.title?.toLowerCase().includes('tuition') && !p.title?.toLowerCase().includes('agency'))));
+      const isSingleTuitionPaid = singleTuitionPay?.status === 'Paid' || singleTuitionPay?.status === 'Verified';
+      const isSingleTuitionPending = singleTuitionPay?.status === 'Pending Verification' || singleTuitionPay?.status === 'Pending';
+
+      const totalExpected = (isAdvEnabled ? advAmount : 0) + agencyAmount + vfsAmount + tuitionInr;
+      const totalPaid = (isAdvPaid ? (advPay?.amount || advAmount) : 0) +
+        (isAgencyPaid ? (agencyPay?.amount || agencyAmount) : 0) +
+        (isVfsPaid ? (vfsPay?.amount || vfsAmount) : 0) +
+        (isInstallmentsEnabled
+          ? milestones.filter(m => m.isPaid).reduce((sum, m) => sum + (m.paymentRecord?.amount || m.amountInr), 0)
+          : (isSingleTuitionPaid ? (singleTuitionPay?.amount || tuitionInr) : 0));
+
+      const totalPendingDues = Math.max(0, totalExpected - totalPaid);
+
+      return {
+        student: st,
+        studentId: sId,
+        studentName: sName,
+        email: st.email,
+        phone: st.phone,
+        hasUni,
+        uniName,
+        uniCountry,
+        courseName,
+        studentUni,
+        isAdvEnabled,
+        advAmount,
+        isAdvPaid,
+        isAdvPending,
+        advPay,
+        rawAgencyFee,
+        agencyAmount,
+        isAgencyPaid,
+        isAgencyPending,
+        agencyPay,
+        rawVfsFee,
+        vfsAmount,
+        isVfsPaid,
+        isVfsPending,
+        vfsPay,
+        isInstallmentsEnabled,
+        rawTuition,
+        tuitionInr,
+        milestones,
+        isSingleTuitionPaid,
+        isSingleTuitionPending,
+        singleTuitionPay,
+        totalExpected,
+        totalPaid,
+        totalPendingDues
+      };
+    }).filter(st => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return st.studentName.toLowerCase().includes(q) ||
+        st.email.toLowerCase().includes(q) ||
+        st.uniName.toLowerCase().includes(q) ||
+        st.courseName.toLowerCase().includes(q);
+    });
+  }, [students, applications, universities, feeConfig, payments, searchQuery]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -466,83 +658,375 @@ export const AdminPaymentControl: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Filter & Navigation Tabs */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin">
-            <button
-              onClick={() => { setActiveTab('all'); setActiveMethodFilter('All'); setActiveStatusFilter('All'); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'all' && activeMethodFilter === 'All'
-                  ? 'bg-[#58051E] text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              All Records ({payments.length})
-            </button>
-            <button
-              onClick={() => { setActiveTab('pending'); setActiveStatusFilter('Pending'); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'pending'
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              Pending Queue ({pendingList.length})
-            </button>
-            <button
-              onClick={() => { setActiveTab('cash'); setActiveMethodFilter('Cash'); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'cash'
-                  ? 'bg-emerald-700 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <Banknote className="w-3.5 h-3.5" />
-              Cash Entries ({methodStats.Cash.count})
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <select
-              value={activeStatusFilter}
-              onChange={(e) => setActiveStatusFilter(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Paid">Paid / Verified</option>
-              <option value="Pending">Pending Verification</option>
-              <option value="Rejected">Rejected</option>
-              <option value="Refunded">Refunded</option>
-            </select>
-
-            <select
-              value={activeMethodFilter}
-              onChange={(e) => setActiveMethodFilter(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white"
-            >
-              <option value="All">All Gateways</option>
-              <option value="PhonePe">PhonePe UPI</option>
-              <option value="UPI">UPI QR / ID</option>
-              <option value="Cash">Cash Receipt</option>
-              <option value="Bank">Bank Wire</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search transactions by student name, email, UTR reference number, invoice..."
-            className="w-full pl-9.5 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-[#58051E]/20"
-          />
-        </div>
+      {/* View Switcher: Milestones Matrix vs Full Ledger */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+        <button
+          onClick={() => setActiveViewMode('milestones')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+            activeViewMode === 'milestones'
+              ? 'bg-[#58051E] text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <GraduationCap className="w-4 h-4" />
+          Student Fee Milestones & Outlays ({studentsWithMilestones.length})
+        </button>
+        <button
+          onClick={() => setActiveViewMode('ledger')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+            activeViewMode === 'ledger'
+              ? 'bg-[#58051E] text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <CreditCard className="w-4 h-4" />
+          All Transaction Ledger Records ({payments.length})
+        </button>
       </div>
+
+      {/* VIEW 1: STUDENT FEE MILESTONES & OUTLAYS MATRIX */}
+      {activeViewMode === 'milestones' && (
+        <div className="space-y-4">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search student by name, email, target university, or country..."
+                className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:bg-white"
+              />
+            </div>
+            <div className="text-xs text-slate-500 font-bold shrink-0">
+              Showing <span className="text-slate-900 font-black">{studentsWithMilestones.length}</span> Enrolled Students
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {studentsWithMilestones.length === 0 ? (
+              <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
+                <GraduationCap className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm font-bold text-slate-700">No students match search</p>
+                <p className="text-xs text-slate-500">Try searching with a different name, email or university.</p>
+              </div>
+            ) : (
+              studentsWithMilestones.map(item => {
+                const s = item.student;
+                const sName = item.studentName;
+
+                return (
+                  <div key={s.id} className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
+                    {/* Student & Destination Header */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#58051E]/10 text-[#58051E] font-black flex items-center justify-center text-sm uppercase">
+                          {sName.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-black text-slate-900">{sName}</h3>
+                            <span className="text-[10px] text-slate-400 font-mono font-medium">({s.email})</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <span className="flex items-center gap-1 text-xs font-bold text-slate-700">
+                              <Building2 className="w-3.5 h-3.5 text-[#58051E]" />
+                              {item.uniName}
+                            </span>
+                            <span className="text-xs text-slate-400">•</span>
+                            <span className="text-xs font-semibold text-slate-500">{item.uniCountry}</span>
+                            <span className="text-xs text-slate-400">•</span>
+                            <span className="text-xs font-semibold text-slate-500">{item.courseName}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 self-end md:self-auto">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
+                          item.isInstallmentsEnabled ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                        }`}>
+                          {item.isInstallmentsEnabled ? `Milestones Active (${item.milestones.length} Stages)` : 'Direct University Payment'}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setBankStudentId(s.id);
+                            setBankStage(1);
+                            setBankAmount(String(item.advAmount));
+                            setShowBankModal(true);
+                          }}
+                          className="px-3 py-1.5 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] flex items-center gap-1 shadow-xs cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Settle Fee
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Fee Milestones Breakdown Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {/* 1. Adv Registration */}
+                      <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Stage 01 • Intake Deposit</span>
+                            {item.isAdvPaid ? (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Paid</span>
+                            ) : item.isAdvPending ? (
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[9.5px] font-bold animate-pulse">In Review</span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[9.5px] font-bold">Due</span>
+                            )}
+                          </div>
+                          <p className="text-xs font-black text-slate-900 mt-1">Advanced Registration Fee</p>
+                          <p className="text-base font-black text-[#58051E]">₹{item.advAmount.toLocaleString('en-IN')}</p>
+                        </div>
+                        {!item.isAdvPaid && (
+                          <button
+                            onClick={() => {
+                              setBankStudentId(s.id);
+                              setBankStage(1);
+                              setBankAmount(String(item.advAmount));
+                              setShowBankModal(true);
+                            }}
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                          >
+                            + Record Stage 01
+                          </button>
+                        )}
+                      </div>
+
+                      {/* 2. Agency Fee */}
+                      <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Stage 02 • Agency Processing</span>
+                            {item.isAgencyPaid ? (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Paid</span>
+                            ) : item.isAgencyPending ? (
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[9.5px] font-bold animate-pulse">In Review</span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[9.5px] font-bold">Due</span>
+                            )}
+                          </div>
+                          <p className="text-xs font-black text-slate-900 mt-1">Separate Agency Fee</p>
+                          <p className="text-base font-black text-indigo-900">{formatFeeEURandINR(item.rawAgencyFee)}</p>
+                        </div>
+                        {!item.isAgencyPaid && (
+                          <button
+                            onClick={() => {
+                              setBankStudentId(s.id);
+                              setBankStage(2);
+                              setBankAmount(String(item.agencyAmount));
+                              setShowBankModal(true);
+                            }}
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                          >
+                            + Record Stage 02
+                          </button>
+                        )}
+                      </div>
+
+                      {/* 3. VFS Gov Fee */}
+                      <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Stage 03 • Embassy / VFS</span>
+                            {item.isVfsPaid ? (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Paid</span>
+                            ) : item.isVfsPending ? (
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[9.5px] font-bold animate-pulse">In Review</span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[9.5px] font-bold">Due</span>
+                            )}
+                          </div>
+                          <p className="text-xs font-black text-slate-900 mt-1">VFS / Visa Gov Fee</p>
+                          <p className="text-base font-black text-amber-900">{formatFeeEURandINR(item.rawVfsFee)}</p>
+                        </div>
+                        {!item.isVfsPaid && (
+                          <button
+                            onClick={() => {
+                              setBankStudentId(s.id);
+                              setBankStage(3);
+                              setBankAmount(String(item.vfsAmount));
+                              setShowBankModal(true);
+                            }}
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                          >
+                            + Record Stage 03
+                          </button>
+                        )}
+                      </div>
+
+                      {/* 4. University Tuition / Installments */}
+                      <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-slate-400">
+                              {item.isInstallmentsEnabled ? `Stage 04 • ${item.milestones.length} Milestones` : 'Stage 04 • Direct Tuition'}
+                            </span>
+                            {item.isInstallmentsEnabled ? (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[9.5px] font-bold">
+                                {item.milestones.filter(m => m.isPaid).length}/{item.milestones.length} Paid
+                              </span>
+                            ) : item.isSingleTuitionPaid ? (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Direct Settled</span>
+                            ) : item.isSingleTuitionPending ? (
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[9.5px] font-bold animate-pulse">In Review</span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[9.5px] font-bold">Direct Due</span>
+                            )}
+                          </div>
+                          <p className="text-xs font-black text-slate-900 mt-1">University Tuition</p>
+                          <p className="text-base font-black text-emerald-900">{formatFeeEURandINR(item.rawTuition)}</p>
+                        </div>
+                        {item.isInstallmentsEnabled ? (
+                          <div className="space-y-1 mt-2">
+                            {item.milestones.map((m, mIdx) => (
+                              <div key={m.id} className="flex items-center justify-between text-[10px] bg-white p-1.5 rounded border border-slate-100">
+                                <span className="font-semibold text-slate-700 truncate max-w-[110px]">{m.title}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-slate-900">{m.amountFormatted}</span>
+                                  {m.isPaid ? (
+                                    <span className="text-emerald-600 font-black">✓</span>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setBankStudentId(s.id);
+                                        setBankStage(4);
+                                        setBankAmount(String(m.amountInr));
+                                        setShowBankModal(true);
+                                      }}
+                                      className="text-blue-600 hover:underline font-bold"
+                                    >
+                                      Settle
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : !item.isSingleTuitionPaid && (
+                          <button
+                            onClick={() => {
+                              setBankStudentId(s.id);
+                              setBankStage(4);
+                              setBankAmount(String(item.tuitionInr));
+                              setShowBankModal(true);
+                            }}
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                          >
+                            + Record Direct Tuition
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Summary Footer: Total Outlay vs Paid */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                      <div className="flex items-center gap-4 text-slate-500 font-medium">
+                        <span>Total Expected Outlay: <strong className="text-slate-900 font-black">₹{item.totalExpected.toLocaleString('en-IN')}</strong></span>
+                        <span>•</span>
+                        <span>Total Cleared: <strong className="text-emerald-700 font-black">₹{item.totalPaid.toLocaleString('en-IN')}</strong></span>
+                      </div>
+                      <div className="text-xs">
+                        {item.totalPendingDues > 0 ? (
+                          <span className="font-black text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                            Outstanding Balance: ₹{item.totalPendingDues.toLocaleString('en-IN')}
+                          </span>
+                        ) : (
+                          <span className="font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> All Scheduled Stages Settled
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 2: ALL TRANSACTION LEDGER RECORDS */}
+      {activeViewMode === 'ledger' && (
+        <div className="space-y-4">
+          {/* Main Filter & Navigation Tabs */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin">
+                <button
+                  onClick={() => { setActiveTab('all'); setActiveMethodFilter('All'); setActiveStatusFilter('All'); }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'all' && activeMethodFilter === 'All'
+                      ? 'bg-[#58051E] text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  All Records ({payments.length})
+                </button>
+                <button
+                  onClick={() => { setActiveTab('pending'); setActiveStatusFilter('Pending'); }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'pending'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  Pending Queue ({pendingList.length})
+                </button>
+                <button
+                  onClick={() => { setActiveTab('cash'); setActiveMethodFilter('Cash'); }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'cash'
+                      ? 'bg-emerald-700 text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Banknote className="w-3.5 h-3.5" />
+                  Cash Entries ({methodStats.Cash.count})
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <select
+                  value={activeStatusFilter}
+                  onChange={(e) => setActiveStatusFilter(e.target.value)}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white"
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="Paid">Paid / Verified</option>
+                  <option value="Pending">Pending Verification</option>
+                  <option value="Rejected">Rejected</option>
+                  <option value="Refunded">Refunded</option>
+                </select>
+
+                <select
+                  value={activeMethodFilter}
+                  onChange={(e) => setActiveMethodFilter(e.target.value)}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white"
+                >
+                  <option value="All">All Gateways</option>
+                  <option value="PhonePe">PhonePe UPI</option>
+                  <option value="UPI">UPI QR / ID</option>
+                  <option value="Cash">Cash Receipt</option>
+                  <option value="Bank">Bank Wire</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search transactions by student name, email, UTR reference number, invoice..."
+                className="w-full pl-9.5 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-[#58051E]/20"
+              />
+            </div>
+          </div>
 
       {/* Table Section */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
@@ -690,6 +1174,8 @@ export const AdminPaymentControl: React.FC = () => {
           </div>
         )}
       </div>
+    </div>
+  )}
 
       {/* Cash Payment Modal */}
       <CashPaymentModal
@@ -735,7 +1221,7 @@ export const AdminPaymentControl: React.FC = () => {
                   <select
                     required
                     value={bankStudentId}
-                    onChange={(e) => setBankStudentId(e.target.value)}
+                    onChange={(e) => handleBankStudentChange(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
                   >
                     <option value="">Choose student...</option>
@@ -747,23 +1233,35 @@ export const AdminPaymentControl: React.FC = () => {
                   </select>
                 </div>
 
+                {/* Destination & Active University Auto-detected info banner */}
+                {bankStudentId && selectedBankStudentUni && (
+                  <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-emerald-950 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-emerald-700" />
+                        {selectedBankStudentUni.name}
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md border border-emerald-200">
+                        {selectedBankStudentUni.country}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* 4 Standardized Payment Stages matching Student Portal */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Payment Category / Stage *</label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { num: 1 as const, label: 'Advance Registration', sub: '01. Platform Intake', defAmt: '15000' },
-                      { num: 2 as const, label: 'Agency Processing', sub: '02. Admissions Support', defAmt: '25000' },
-                      { num: 3 as const, label: 'VFS / Visa Gov Fee', sub: '03. Embassy Filing', defAmt: '15000' },
-                      { num: 4 as const, label: 'University Tuition', sub: '04. Tuition Schedule', defAmt: '315000' },
+                      { num: 1 as const, label: 'Advance Registration', sub: '01. Platform Intake', amt: dynamicBankStageAmounts[1] },
+                      { num: 2 as const, label: 'Agency Processing', sub: '02. Admissions Support', amt: dynamicBankStageAmounts[2] },
+                      { num: 3 as const, label: 'VFS / Visa Gov Fee', sub: '03. Embassy Filing', amt: dynamicBankStageAmounts[3] },
+                      { num: 4 as const, label: 'University Tuition', sub: '04. Tuition Schedule', amt: dynamicBankStageAmounts[4] },
                     ].map(stage => (
                       <button
                         key={stage.num}
                         type="button"
-                        onClick={() => {
-                          setBankStage(stage.num);
-                          setBankAmount(stage.defAmt);
-                        }}
+                        onClick={() => handleBankStageSelect(stage.num)}
                         className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                           bankStage === stage.num
                             ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
@@ -772,10 +1270,36 @@ export const AdminPaymentControl: React.FC = () => {
                       >
                         <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mb-0.5">{stage.sub}</div>
                         <div className="text-xs font-bold truncate">{stage.label}</div>
+                        <div className={`text-[10px] mt-0.5 font-bold ${bankStage === stage.num ? 'text-white/90' : 'text-slate-500'}`}>
+                          {formatFeeEURandINR(stage.amt.raw)}
+                        </div>
                       </button>
                     ))}
                   </div>
                 </div>
+
+                {/* Multiple Milestone Presets if University has Installments Enabled */}
+                {selectedBankStudentUni?.installments_enabled && selectedBankStudentUni.installments && selectedBankStudentUni.installments.length > 0 && (
+                  <div className="p-3 bg-blue-50/60 border border-blue-200/80 rounded-xl space-y-1.5">
+                    <span className="text-[10.5px] font-black uppercase text-blue-900">Configured Tuition Milestones:</span>
+                    <div className="grid grid-cols-2 gap-1.5 pt-1">
+                      {selectedBankStudentUni.installments.map((inst, idx) => (
+                        <button
+                          key={inst.id || idx}
+                          type="button"
+                          onClick={() => {
+                            setBankStage(4);
+                            setBankAmount(String(parseFeeToINR(inst.amount)));
+                          }}
+                          className="px-2 py-1.5 bg-white hover:bg-blue-100 border border-blue-200 rounded-lg text-left text-[11px] font-bold text-slate-800 transition-colors"
+                        >
+                          <div className="truncate">{inst.title || `Installment #${idx + 1}`}</div>
+                          <div className="text-[10px] text-blue-700 font-extrabold">{formatFeeEURandINR(inst.amount)}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
