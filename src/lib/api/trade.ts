@@ -1238,6 +1238,8 @@ export async function createTradeLetterOfCredit(lc: {
   currency?: string;
   shipment_no?: string;
   invoice_no?: string;
+  lc_type?: string;
+  tenor?: string;
   payment_terms?: string;
   required_documents?: string;
   issue_date?: string;
@@ -1257,6 +1259,8 @@ export async function createTradeLetterOfCredit(lc: {
     currency: lc.currency || 'INR',
     shipment_no: lc.shipment_no || '',
     invoice_no: lc.invoice_no || '',
+    lc_type: lc.lc_type || 'Irrevocable Confirmed at Sight',
+    tenor: lc.tenor || '60 Days Sight',
     payment_terms: lc.payment_terms || '100% Sight against Clean On-Board B/L',
     required_documents: lc.required_documents || 'Commercial Invoice (3x), Full set Ocean B/L (3/3), Certificate of Origin',
     issue_date: lc.issue_date || new Date().toISOString().split('T')[0],
@@ -1778,6 +1782,8 @@ export async function uploadTradeDocumentRecord(doc: {
   invoice_no?: string;
   partner_name?: string;
   document_url?: string;
+  file_data?: string;
+  status?: string;
   is_verified?: boolean;
 }) {
   const newId = generateUUID();
@@ -1790,7 +1796,9 @@ export async function uploadTradeDocumentRecord(doc: {
     shipment_no: doc.shipment_no || '',
     invoice_no: doc.invoice_no || '',
     partner_name: doc.partner_name || 'FEREX Global Trade Operations',
-    document_url: doc.document_url || '',
+    document_url: doc.document_url || doc.file_data || '',
+    file_data: doc.file_data || doc.document_url || '',
+    status: doc.status || (doc.is_verified ?? true ? 'Verified' : 'Pending Review'),
     is_verified: doc.is_verified ?? true,
     verification_status: doc.is_verified ? 'Verified' : 'Pending Review',
     uploaded_by: 'Authorized Trade Operator',
@@ -1821,6 +1829,8 @@ export async function uploadTradeDocumentRecord(doc: {
   window.dispatchEvent(new Event('ferex_trade_docs_change'));
   return payload;
 }
+
+export const createTradeDocument = uploadTradeDocumentRecord;
 
 export async function deleteTradeDocumentRecord(id: string) {
   try {
