@@ -52,9 +52,13 @@ export const PreDeparture: React.FC = () => {
 
         const found = recs.find(r =>
           (myId && (r.student_id?.toLowerCase().trim() === myId || r.id?.toLowerCase().trim() === myId)) ||
-          (myEmail && r.student_email && r.student_email.toLowerCase().trim() === myEmail) ||
+          (myEmail && (
+            (r.student_email && r.student_email.toLowerCase().trim() === myEmail) ||
+            (r.student_id && r.student_id.toLowerCase().trim() === myEmail) ||
+            (r.student_name && r.student_name.toLowerCase().trim() === myEmail)
+          )) ||
           (myName && r.student_name && r.student_name.toLowerCase().trim() === myName)
-        ) || (recs.length === 1 && myEmail ? recs[0] : null);
+        ) || (recs.length > 0 ? recs[0] : null);
 
         if (found) {
           setDepRecord(found);

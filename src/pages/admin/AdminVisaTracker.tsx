@@ -161,6 +161,7 @@ export const AdminVisaTracker: React.FC = () => {
       await saveVisaUpdate(recId, {
         student_id: selectedStudentId,
         student_name: sName,
+        student_email: studentObj?.email || '',
         vfs_ref_no: vfsRefNo,
         embassy_name: embassyName,
         vfs_center: vfsCenter,
@@ -228,6 +229,7 @@ export const AdminVisaTracker: React.FC = () => {
       await saveVisaUpdate(recId, {
         student_id: initiateStudentId,
         student_name: sName,
+        student_email: studentObj?.email || '',
         vfs_ref_no: defaultRef,
         embassy_name: 'Embassy of the Republic of Poland, New Delhi',
         vfs_center: 'VFS Global Center, Kochi / Mumbai',
@@ -271,6 +273,7 @@ export const AdminVisaTracker: React.FC = () => {
       await saveVisaUpdate(recId, {
         student_id: selectedStudentId,
         student_name: sName,
+        student_email: studentObj?.email || '',
         current_stage: 2,
         status_label: 'Re-appeal Submitted at VFS (Cycle 2)',
         decision_outcome: 'Pending',

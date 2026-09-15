@@ -61,10 +61,19 @@ export const VisaTracker: React.FC = () => {
     Boolean(a.final_acceptance_url)
   );
 
+  const myId = (user?.id || profile?.id || '').toLowerCase().trim();
+  const myEmail = (user?.email || profile?.email || '').toLowerCase().trim();
+  const myName = (profile?.full_name || (user as any)?.user_metadata?.full_name || '').toLowerCase().trim();
+
   const foundRecord = records.find(r =>
-    (user?.id && r.student_id === user.id) ||
-    (user?.email && (r as any).student_email && (r as any).student_email.toLowerCase() === user.email.toLowerCase())
-  );
+    (myId && (r.student_id?.toLowerCase().trim() === myId || r.id?.toLowerCase().trim() === myId)) ||
+    (myEmail && (
+      (r.student_email && r.student_email.toLowerCase().trim() === myEmail) ||
+      (r.student_id && r.student_id.toLowerCase().trim() === myEmail) ||
+      (r.student_name && r.student_name.toLowerCase().trim() === myEmail)
+    )) ||
+    (myName && r.student_name && r.student_name.toLowerCase().trim() === myName)
+  ) || (records.length > 0 ? records[0] : null);
 
   const initialPendingRecord = {
     id: user?.id || 'vfs-pending',
