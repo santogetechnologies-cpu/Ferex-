@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Eye, CheckCircle2, XCircle, X, RefreshCw, Sparkles, FileText, MessageSquare, AlertCircle, Clock } from 'lucide-react';
 import { useDocuments } from '../../hooks/useDocuments';
+import { useApplications } from '../../hooks/useApplications';
 import { createNawaRecord } from '../../lib/api/nawa';
-
 import { getStudents } from '../../lib/api/students';
+import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../../lib/api/documentRequirements';
 
 type DocStatus = 'Submitted' | 'Under Review' | 'Approved' | 'Rejected';
 
@@ -42,6 +43,20 @@ const normalizeDocStatus = (rawStatus: string, rawNotes?: string): DocStatus => 
 export const AdminDocumentReview: React.FC = () => {
   const { documents: dbDocs, changeStatus } = useDocuments();
   const [docs, setDocs] = useState<DocItem[]>([]);
+  const { applications: allApps } = useApplications();
+  const [allRequirements, setAllRequirements] = useState<DocumentRequirement[]>([]);
+
+  useEffect(() => {
+    getAllDocumentRequirements().then(setAllRequirements).catch(() => {});
+    const handleReqChange = () => {
+      getAllDocumentRequirements().then(setAllRequirements).catch(() => {});
+    };
+    window.addEventListener('ferex_doc_requirements_change', handleReqChange);
+    return () => {
+      window.removeEventListener('ferex_doc_requirements_change', handleReqChange);
+    };
+  }, []);
+
   const [studentsMap, setStudentsMap] = useState<Record<string, { full_name: string; email: string }>>({});
 
   useEffect(() => {
@@ -60,6 +75,32 @@ export const AdminDocumentReview: React.FC = () => {
       }
     }).catch(() => {});
   }, []);
+
+  const getStudentCountry = React.useCallback((studentId?: string) => {
+    if (!studentId) return 'ind';
+    const app = allApps.find(a => a.student_id === studentId);
+    const country = app?.universities?.country || (app as any)?.country;
+    if (country && country.toLowerCase().trim() !== 'not set') return country.trim();
+    return localStorage.getItem('ferex_student_target_country') || 'ind';
+  }, [allApps]);
+
+  const getDossierForStudent = React.useCallback((studentId: string, studentDocs: DocItem[]) => {
+    const country = getStudentCountry(studentId);
+    const countryNorm = country.toLowerCase().trim();
+    const countryReqs = allRequirements.filter(r => {
+      const c = r.country.toLowerCase().trim();
+      return c === countryNorm ||
+        ((countryNorm === 'ind' || countryNorm === 'india') && (c === 'ind' || c === 'india')) ||
+        (countryNorm.includes('poland') && c === 'poland') ||
+        (countryNorm.includes('germany') && c === 'germany') ||
+        (countryNorm.includes('canada') && c === 'canada');
+    });
+
+    return {
+      country,
+      dossier: calculateDossierStatus(countryReqs, studentDocs)
+    };
+  }, [allRequirements, getStudentCountry]);
 
   useEffect(() => {
     if (dbDocs.length > 0) {
@@ -282,6 +323,8 @@ export const AdminDocumentReview: React.FC = () => {
                 { name: 'Other', label: 'Other Supporting Documents', icon: '📁' },
               ];
 
+              const { country: currentFolderCountry, dossier: studentDossier } = getDossierForStudent(currentFolder.studentId, currentFolder.docs);
+
               return (
                 <div className="space-y-4">
                   {/* Breadcrumb Navigation */}
@@ -308,6 +351,101 @@ export const AdminDocumentReview: React.FC = () => {
                       ← Back to Folders
                     </button>
                   </div>
+
+                  {/* Dossier Completeness Overview */}
+                  <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                    studentDossier.isComplete
+                      ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                      : 'bg-amber-50/80 border-amber-200 text-amber-950'
+                  }`}>
+                    <div className="flex items-center gap-2.5">
+                      {studentDossier.isComplete ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                      )}
+                      <div>
+                        <h3 className="text-xs font-black uppercase tracking-wider">
+                          {studentDossier.isComplete ? 'Dossier Status: Complete' : 'Dossier Status: Incomplete'}
+                        </h3>
+                        <p className="text-[11px] text-slate-600 mt-0.5">
+                          {studentDossier.isComplete
+                            ? `All ${studentDossier.mandatoryCount} mandatory document requirements for ${currentFolderCountry} are uploaded and ready for staff review.`
+                            : `Student has uploaded ${studentDossier.uploadedMandatoryCount} of ${studentDossier.mandatoryCount} mandatory documents for ${currentFolderCountry}. Missing documents required.`}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border shrink-0 self-start sm:self-auto ${
+                      studentDossier.isComplete
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : 'bg-amber-100 text-amber-800 border-amber-300'
+                    }`}>
+                      {studentDossier.isComplete ? 'Ready to Verify' : `${studentDossier.missingMandatoryCount} Missing Mandatory Docs`}
+                    </span>
+                  </div>
+
+                  {/* Configured Requirements Checklist for this country */}
+                  {studentDossier.results.length > 0 && (
+                    <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">📋</span>
+                          <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                            {currentFolderCountry} Configured Requirements Checklist ({studentDossier.results.length})
+                          </h3>
+                        </div>
+                        <span className="text-[10px] font-extrabold text-slate-500">
+                          {studentDossier.uploadedCount} / {studentDossier.totalCount} Uploaded
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {studentDossier.results.map(item => (
+                          <div key={item.requirement.id} className={`p-3 rounded-xl border text-xs flex flex-col justify-between ${
+                            item.isSatisfied ? 'bg-emerald-50/50 border-emerald-200' : 'bg-amber-50/40 border-amber-200'
+                          }`}>
+                            <div>
+                              <div className="flex items-start justify-between gap-1 mb-1">
+                                <span className="font-extrabold text-xs text-slate-900">{item.requirement.document_name}</span>
+                                <span className={`text-[9px] px-1.5 py-0.2 rounded font-black uppercase ${
+                                  item.requirement.is_required ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {item.requirement.is_required ? 'MANDATORY' : 'OPTIONAL'}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 line-clamp-2">{item.requirement.description}</p>
+                            </div>
+
+                            <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
+                              <span className={`text-[10px] font-black ${item.isSatisfied ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                {item.isSatisfied ? `✅ ${item.status}` : '❌ Missing'}
+                              </span>
+                              {item.doc && (
+                                <button
+                                  type="button"
+                                  onClick={() => setViewDoc({
+                                    id: item.doc.id,
+                                    studentId: currentFolder.studentId,
+                                    studentName: currentFolder.studentName,
+                                    docType: item.doc.name || item.doc.file_name,
+                                    category: item.doc.type || item.doc.doc_type,
+                                    status: normalizeDocStatus(item.doc.status, item.doc.reviewer_notes),
+                                    uploaded: item.doc.date || 'Recent',
+                                    size: item.doc.size || '1 MB',
+                                    comment: item.doc.reviewer_notes,
+                                    fileUrl: item.doc.url || item.doc.file_url,
+                                  })}
+                                  className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                                >
+                                  Inspect Doc →
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Folder Categories Grid */}
                   <div className="space-y-4">
@@ -409,6 +547,8 @@ export const AdminDocumentReview: React.FC = () => {
                   const underReviewCount = sf.docs.filter(d => d.status === 'Under Review' || d.status === 'Submitted').length;
                   const rejectedCount = sf.docs.filter(d => d.status === 'Rejected').length;
 
+                  const { country: folderCountry, dossier: folderDossier } = getDossierForStudent(sf.studentId, sf.docs);
+
                   return (
                     <div
                       key={sf.studentId || sf.studentName}
@@ -416,18 +556,34 @@ export const AdminDocumentReview: React.FC = () => {
                       className="bg-white rounded-2xl border border-slate-200 hover:border-[#58051E]/40 hover:shadow-md transition-all p-5 flex flex-col justify-between cursor-pointer group text-left"
                     >
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black text-sm group-hover:bg-[#58051E] group-hover:text-white transition-colors">
+                            <div className="w-10 h-10 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black text-sm group-hover:bg-[#58051E] group-hover:text-white transition-colors shrink-0">
                               {sf.studentName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                             </div>
                             <div>
                               <h3 className="text-sm font-black text-slate-900 group-hover:text-[#58051E] transition-colors">
                                 {sf.studentName}
                               </h3>
-                              <span className="text-[10px] font-bold text-slate-400 block font-mono">
-                                ID: {sf.studentId}
-                              </span>
+                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                <span className="text-[10px] font-bold text-slate-400 font-mono">
+                                  ID: {sf.studentId}
+                                </span>
+                                <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded uppercase">
+                                  {folderCountry}
+                                </span>
+                              </div>
+                              <div className="mt-1">
+                                <span className={`px-2 py-0.5 rounded text-[9.5px] font-extrabold border inline-block ${
+                                  folderDossier.isComplete
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                                }`}>
+                                  {folderDossier.isComplete
+                                    ? '✅ Dossier Complete'
+                                    : `⚠️ Incomplete (${folderDossier.uploadedMandatoryCount}/${folderDossier.mandatoryCount || 2} Req Docs)`}
+                                </span>
+                              </div>
                             </div>
                           </div>
 

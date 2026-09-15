@@ -18,6 +18,7 @@ import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { useSystemConfig } from '../hooks/useSystemConfig';
 import { getNawaRecords } from '../lib/api/nawa';
 import type { NawaRecord } from '../lib/api/nawa';
+import { getDocumentRequirements, calculateDossierStatus } from '../lib/api/documentRequirements';
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -33,6 +34,18 @@ export const StudentDashboard: React.FC = () => {
 
   const targetCountry = localStorage.getItem('ferex_student_target_country') || applications[0]?.universities?.country || (applications[0] as any)?.country || '';
   const targetWf = targetCountry ? getWorkflowForCountry(targetCountry) : null;
+
+  const [configuredReqs, setConfiguredReqs] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (targetCountry) {
+      getDocumentRequirements(targetCountry).then(setConfiguredReqs);
+    }
+  }, [targetCountry]);
+
+  const dossierStatus = React.useMemo(() => {
+    return calculateDossierStatus(configuredReqs, documents);
+  }, [configuredReqs, documents]);
 
   const [legalizationRecord, setLegalizationRecord] = React.useState<NawaRecord | null>(null);
 
@@ -149,7 +162,14 @@ export const StudentDashboard: React.FC = () => {
 
   const checklistItems = [
     { title: '1. Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },
-    { title: '2. Mandatory Document Vault (Passport & Marksheets)', isDone: hasApprovedDocs, path: '/student/documents', tag: hasApprovedDocs ? 'Verified' : isDocsUnderReview ? 'Under Review' : 'Mandatory' },
+    {
+      title: '2. Mandatory Document Vault',
+      isDone: dossierStatus.isComplete,
+      path: '/student/documents',
+      tag: dossierStatus.isComplete
+        ? (approvedDocsCount === documents.length && documents.length > 0 ? 'Verified' : 'Submitted')
+        : `Incomplete (${dossierStatus.uploadedMandatoryCount}/${dossierStatus.mandatoryCount || 2})`
+    },
     { title: `3. Advanced Registration Fee Payment`, isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
     { title: `4. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isLegalizationApproved, path: '/student/documents', tag: isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Pending' },
     { title: '5. University Selection & Course Application', isDone: isUniSelected, path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Action Needed' },
@@ -208,7 +228,15 @@ export const StudentDashboard: React.FC = () => {
         {[
           { title: 'Target Universities', value: `${applications.length}`, sub: `${applications.filter(a => a.status !== 'Draft').length} Active Applications`, icon: GraduationCap, path: '/student/applications' },
           { title: 'Journey Progress', value: `${completedCount} / 12`, sub: 'Milestones Completed', icon: Compass, path: '/student/journey-tracker' },
-          { title: 'Documents Verified', value: `${approvedDocs} / ${documents.length}`, sub: `${documents.filter(d => (d.status as string) === 'Submitted' || (d.status as string) === 'Under Review').length} In Verification`, icon: FileCheck, path: '/student/documents' },
+          {
+            title: 'Documents Status',
+            value: dossierStatus.isComplete ? 'Complete' : 'Incomplete',
+            sub: dossierStatus.isComplete
+              ? `${approvedDocs} / ${documents.length} Files Verified`
+              : `${dossierStatus.uploadedMandatoryCount} / ${dossierStatus.mandatoryCount || 2} Mandatory Uploaded`,
+            icon: FileCheck,
+            path: '/student/documents'
+          },
           { title: 'Payments Cleared', value: `₹${paidSum.toLocaleString()}`, sub: 'Fee Ledger Total', icon: CreditCard, path: '/student/payments' },
         ].map((stat, idx) => (
           <motion.div key={idx} variants={itemVariants} onClick={() => navigate(stat.path)}>

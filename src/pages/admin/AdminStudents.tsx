@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
+import { useDocuments } from '../../hooks/useDocuments';
 import { getStaffMembers, createStaffMember, DEFAULT_COUNSELOR_ROSTER, assignCounselorToStudent, getDefaultCounselorForCountry } from '../../lib/api/students';
 import { ensureStudentApplication } from '../../lib/api/applications';
+import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../../lib/api/documentRequirements';
 import type { UserProfile } from '../../lib/types';
 
 interface StudentItem {
@@ -78,6 +80,33 @@ export const AdminStudents: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [countryFilter, setCountryFilter] = useState('All');
   const [counselorFilter, setCounselorFilter] = useState('All');
+
+  const { documents: allDocs } = useDocuments();
+  const [allRequirements, setAllRequirements] = useState<DocumentRequirement[]>([]);
+
+  useEffect(() => {
+    getAllDocumentRequirements().then(setAllRequirements).catch(() => {});
+    const handleReqChange = () => {
+      getAllDocumentRequirements().then(setAllRequirements).catch(() => {});
+    };
+    window.addEventListener('ferex_doc_requirements_change', handleReqChange);
+    return () => {
+      window.removeEventListener('ferex_doc_requirements_change', handleReqChange);
+    };
+  }, []);
+
+  const getStudentDossier = React.useCallback((studentId: string, targetCountry: string) => {
+    const studentDocs = allDocs.filter(d => d.student_id === studentId);
+    const countryNorm = (targetCountry || '').toLowerCase().trim();
+    const reqs = allRequirements.filter(r => {
+      const c = r.country.toLowerCase().trim();
+      return c === countryNorm ||
+        ((countryNorm === 'ind' || countryNorm === 'india') && (c === 'ind' || c === 'india')) ||
+        (countryNorm.includes('poland') && c === 'poland') ||
+        (countryNorm.includes('germany') && c === 'germany');
+    });
+    return calculateDossierStatus(reqs, studentDocs);
+  }, [allDocs, allRequirements]);
 
   useEffect(() => {
     const fetchStaff = () => {
@@ -508,9 +537,23 @@ export const AdminStudents: React.FC = () => {
                     <p className="text-[9.5px] font-semibold text-slate-400 truncate max-w-[200px]">{s.course}</p>
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${s.statusColor}`}>
-                      {s.status}
-                    </span>
+                    {(() => {
+                      const dossier = getStudentDossier(s.id, s.targetCountry);
+                      return (
+                        <div className="space-y-1">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border inline-block ${s.statusColor}`}>
+                            {s.status}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black border block w-fit ${
+                            dossier.isComplete
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {dossier.isComplete ? '✅ Docs Complete' : `⚠️ Incomplete (${dossier.uploadedMandatoryCount}/${dossier.mandatoryCount || 2})`}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3.5">
                     <div
@@ -600,6 +643,36 @@ export const AdminStudents: React.FC = () => {
                   </div>
                   <p className="text-slate-900 font-extrabold">{viewStudent.counselor}</p>
                 </div>
+
+                {/* Dossier Compliance Status */}
+                {(() => {
+                  const viewDossier = getStudentDossier(viewStudent.id, viewStudent.targetCountry);
+                  return (
+                    <div className={`p-4 rounded-xl border space-y-1.5 ${
+                      viewDossier.isComplete
+                        ? 'bg-emerald-50/70 border-emerald-200'
+                        : 'bg-amber-50/70 border-amber-200'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider block text-slate-700">
+                          {viewDossier.isComplete ? 'Dossier Complete' : 'Dossier Incomplete'}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                          viewDossier.isComplete
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {viewDossier.isComplete ? 'Ready for Legalization' : `${viewDossier.missingMandatoryCount} Missing Docs`}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600">
+                        {viewDossier.isComplete
+                          ? `All ${viewDossier.mandatoryCount} mandatory compliance files for ${viewStudent.targetCountry} are uploaded.`
+                          : `Student has uploaded ${viewDossier.uploadedMandatoryCount} of ${viewDossier.mandatoryCount} mandatory files for ${viewStudent.targetCountry}.`}
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 {/* Stepper with Confirm buttons */}
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">

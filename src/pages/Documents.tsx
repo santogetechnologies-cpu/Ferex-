@@ -13,7 +13,7 @@ import { useDocuments } from '../hooks/useDocuments';
 import { useApplications } from '../hooks/useApplications';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { ensureStudentApplication } from '../lib/api/applications';
-import { getDocumentRequirements, type DocumentRequirement } from '../lib/api/documentRequirements';
+import { getDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../lib/api/documentRequirements';
 
 export const Documents: React.FC = () => {
   const { user, profile } = useAuth();
@@ -45,39 +45,53 @@ export const Documents: React.FC = () => {
 
   // Target country resolution - dynamically bound to selected destination university & country
   const targetCountry = useMemo(() => {
-    const isIndiaOrInvalid = (c?: string | null) => !c || c.toLowerCase().trim() === 'india' || c.toLowerCase().trim() === 'not set';
+    const isInvalid = (c?: string | null) => !c || c.toLowerCase().trim() === 'not set' || c.trim() === '';
 
     try {
       const storedCourse = localStorage.getItem('ferex_selected_course');
       if (storedCourse) {
         const parsed = JSON.parse(storedCourse);
-        if (parsed?.country && !isIndiaOrInvalid(parsed.country)) return parsed.country;
-        if (parsed?.university?.country && !isIndiaOrInvalid(parsed.university.country)) return parsed.university.country;
+        if (parsed?.country && !isInvalid(parsed.country)) return parsed.country.trim();
+        if (parsed?.university?.country && !isInvalid(parsed.university.country)) return parsed.university.country.trim();
       }
       const storedUni = localStorage.getItem('ferex_student_selected_uni');
       if (storedUni) {
         const parsed = JSON.parse(storedUni);
-        if (parsed?.country && !isIndiaOrInvalid(parsed.country)) return parsed.country;
+        if (parsed?.country && !isInvalid(parsed.country)) return parsed.country.trim();
       }
     } catch (e) {}
 
     const appCountry = applications[0]?.universities?.country || (applications[0] as any)?.country;
-    if (appCountry && !isIndiaOrInvalid(appCountry)) return appCountry;
+    if (appCountry && !isInvalid(appCountry)) return appCountry.trim();
 
     const profileTarget = (profile as any)?.target_country;
-    if (profileTarget && !isIndiaOrInvalid(profileTarget)) return profileTarget;
+    if (profileTarget && !isInvalid(profileTarget)) return profileTarget.trim();
 
     const localTarget = localStorage.getItem('ferex_student_target_country');
-    if (localTarget && !isIndiaOrInvalid(localTarget)) return localTarget;
+    if (localTarget && !isInvalid(localTarget)) return localTarget.trim();
 
     return null;
   }, [profile, applications]);
 
-  useEffect(() => {
+  const loadRequirements = React.useCallback(() => {
     if (targetCountry) {
       getDocumentRequirements(targetCountry).then(setConfiguredReqs);
+    } else {
+      setConfiguredReqs([]);
     }
   }, [targetCountry]);
+
+  useEffect(() => {
+    loadRequirements();
+    window.addEventListener('ferex_doc_requirements_change', loadRequirements);
+    window.addEventListener('ferex_country_change', loadRequirements);
+    window.addEventListener('storage', loadRequirements);
+    return () => {
+      window.removeEventListener('ferex_doc_requirements_change', loadRequirements);
+      window.removeEventListener('ferex_country_change', loadRequirements);
+      window.removeEventListener('storage', loadRequirements);
+    };
+  }, [loadRequirements]);
 
   const targetWf = useMemo(() => {
     return targetCountry ? getWorkflowForCountry(targetCountry) : null;
@@ -155,6 +169,19 @@ export const Documents: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [toastMessage, setToastMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Dynamic Dossier Completeness calculation
+  const dossierStatus = useMemo(() => {
+    return calculateDossierStatus(configuredReqs, documents);
+  }, [configuredReqs, documents]);
+
+  const handleOpenUploadForReq = (req: DocumentRequirement) => {
+    setReuploadTargetDocId(null);
+    setUploadName(req.document_name);
+    setUploadType(req.document_type || 'Transcripts');
+    setSelectedFile(null);
+    setShowUploadModal(true);
+  };
 
   // Search & Filter
   const filteredDocs = documents.filter((doc) => {
@@ -370,43 +397,191 @@ export const Documents: React.FC = () => {
             </div>
           </div>
 
-          {targetWf.checklist_documents && targetWf.checklist_documents.length > 0 && (
+          {/* Dossier Completeness Alert Pill */}
+          {configuredReqs.length > 0 && (
+            <div className={`mt-4 p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
+              dossierStatus.isComplete
+                ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200'
+                : 'bg-amber-950/40 border-amber-500/30 text-amber-200'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                {dossierStatus.isComplete ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                )}
+                <div>
+                  <span className="font-extrabold uppercase tracking-wide text-[10px] block">
+                    {dossierStatus.isComplete ? 'Dossier Status: Complete' : 'Dossier Status: Incomplete'}
+                  </span>
+                  <span className="text-[11px] text-slate-300">
+                    {dossierStatus.isComplete
+                      ? `All ${dossierStatus.mandatoryCount} mandatory compliance files have been uploaded for ${targetCountry} audit.`
+                      : `${dossierStatus.uploadedMandatoryCount} of ${dossierStatus.mandatoryCount} mandatory documents uploaded. All mandatory files are required.`}
+                  </span>
+                </div>
+              </div>
+              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shrink-0 self-start sm:self-auto border ${
+                dossierStatus.isComplete
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+              }`}>
+                {dossierStatus.isComplete ? 'Ready for Review' : `${dossierStatus.missingMandatoryCount} Missing Mandatory`}
+              </span>
+            </div>
+          )}
+
+          {/* Configured Document Requirements Checklist */}
+          {configuredReqs.length > 0 ? (
             <div className="mt-4 pt-4 border-t border-white/10">
-              <p className="text-[11px] font-semibold text-slate-300 mb-2.5 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                Required Dossier Checklist ({targetWf.checklist_documents.length} Items)
-              </p>
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  Required Dossier Checklist ({dossierStatus.results.length} Items)
+                </p>
+                <span className="text-[10px] font-bold text-slate-400">
+                  {dossierStatus.uploadedCount} / {dossierStatus.totalCount} Uploaded
+                </span>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                {targetWf.checklist_documents.map((reqDoc) => {
-                  const isUploaded = documents.some(d => 
-                    d.name.toLowerCase().includes(reqDoc.name.toLowerCase().slice(0, 8)) ||
-                    d.type.toLowerCase().includes(reqDoc.category.toLowerCase())
-                  );
+                {dossierStatus.results.map((item) => {
+                  const reqDoc = item.requirement;
+                  const isUploaded = item.isSatisfied;
+                  const statusLabel = 
+                    item.status === 'Approved' ? 'Approved' :
+                    item.status === 'Under Review' ? 'In Review' :
+                    item.status === 'Submitted' ? 'Submitted' :
+                    item.status === 'Rejected' ? 'Rejected' : 'Missing';
+
+                  const badgeColor =
+                    item.status === 'Approved' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                    item.status === 'Under Review' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
+                    item.status === 'Submitted' ? 'bg-teal-500/20 text-teal-300 border-teal-500/30' :
+                    item.status === 'Rejected' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' :
+                    'bg-amber-500/20 text-amber-300 border-amber-500/30';
+
                   return (
                     <div 
                       key={reqDoc.id}
-                      className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between transition-all ${
+                      className={`p-3 rounded-xl border text-xs flex flex-col justify-between transition-all ${
                         isUploaded 
-                          ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200' 
+                          ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200' 
                           : 'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <span className="font-semibold text-[11px] leading-tight">{reqDoc.name}</span>
-                        {reqDoc.is_mandatory && (
-                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
-                            Required
+                      <div>
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-white/10 text-slate-300 font-bold uppercase">
+                                {reqDoc.document_type || 'General'}
+                              </span>
+                              {reqDoc.is_required ? (
+                                <span className="text-[9.5px] font-extrabold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                                  MANDATORY
+                                </span>
+                              ) : (
+                                <span className="text-[9.5px] font-medium px-1.5 py-0.2 rounded bg-slate-500/20 text-slate-400 border border-slate-500/30 shrink-0">
+                                  OPTIONAL
+                                </span>
+                              )}
+                            </div>
+                            <span className="font-bold text-xs leading-tight text-white block">
+                              {reqDoc.document_name}
+                            </span>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${badgeColor}`}>
+                            {statusLabel}
                           </span>
+                        </div>
+
+                        {reqDoc.description && (
+                          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2 mt-1">
+                            {reqDoc.description}
+                          </p>
+                        )}
+
+                        {reqDoc.checklist_items && reqDoc.checklist_items.length > 0 && (
+                          <div className="mt-2 text-[9.5px] text-slate-400 space-y-0.5">
+                            {reqDoc.checklist_items.map((criterion, cIdx) => (
+                              <div key={cIdx} className="flex items-center gap-1 truncate">
+                                <span className="text-amber-400">•</span>
+                                <span className="truncate">{criterion}</span>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
-                        {reqDoc.instructions}
-                      </p>
+
+                      <div className="pt-2.5 mt-2 border-t border-white/10 flex items-center justify-between gap-2">
+                        <div className="text-[9.5px] text-slate-400">
+                          <span>{reqDoc.processing_time || '3-7 Days'}</span> • <span>{reqDoc.authority_fee || 'Free'}</span>
+                        </div>
+
+                        {!isUploaded ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenUploadForReq(reqDoc)}
+                            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                          >
+                            <Upload className="w-3 h-3" /> Upload
+                          </button>
+                        ) : (
+                          item.doc && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenPreview(item.doc)}
+                              className="text-[10px] font-bold text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <Eye className="w-3 h-3" /> Preview
+                            </button>
+                          )
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
+          ) : (
+            targetWf.checklist_documents && targetWf.checklist_documents.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <p className="text-[11px] font-semibold text-slate-300 mb-2.5 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  Required Dossier Checklist ({targetWf.checklist_documents.length} Items)
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {targetWf.checklist_documents.map((reqDoc) => {
+                    const isUploaded = documents.some(d => 
+                      d.name.toLowerCase().includes(reqDoc.name.toLowerCase().slice(0, 8)) ||
+                      d.type.toLowerCase().includes(reqDoc.category.toLowerCase())
+                    );
+                    return (
+                      <div 
+                        key={reqDoc.id}
+                        className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between transition-all ${
+                          isUploaded 
+                            ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200' 
+                            : 'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <span className="font-semibold text-[11px] leading-tight">{reqDoc.name}</span>
+                          {reqDoc.is_mandatory && (
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                              Required
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
+                          {reqDoc.instructions}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )
           )}
         </div>
       ) : (
@@ -717,9 +892,13 @@ export const Documents: React.FC = () => {
                     onChange={(e) => setUploadType(e.target.value)}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
                   >
-                    <option value="Transcripts">Academic Transcripts</option>
+                    <option value="Academic">Academic Marksheets & Diplomas</option>
+                    <option value="Transcripts">Transcripts & Scorecards</option>
                     <option value="Identification">Identification (Passport / ID)</option>
-                    <option value="Language Test">Language Test (IELTS / TOEFL)</option>
+                    <option value="Financial">Financial Statement & Living Funds</option>
+                    <option value="Language">Language Proficiency (MOI / IELTS)</option>
+                    <option value="Insurance">Medical & Travel Insurance</option>
+                    <option value="Attestation">Apostille / Embassy Legalization</option>
                     <option value="Recommendation">Letter of Recommendation (LOR)</option>
                     <option value="Other">Other Certificate / SOP</option>
                   </select>

@@ -95,7 +95,7 @@ export const AdminDocumentConfig: React.FC = () => {
     destinations.forEach(d => { if (d.name) set.add(d.name.trim()); });
     requirements.forEach(r => { if (r.country) set.add(r.country.trim()); });
     ['Poland', 'Germany', 'United Kingdom', 'France', 'Canada', 'Switzerland', 'Czech Republic', 'Italy', 'Spain', 'Hungary', 'Austria', 'Ireland', 'USA', 'UK'].forEach(c => set.add(c));
-    return Array.from(set).filter(c => c && c.toLowerCase().trim() !== 'india').sort();
+    return Array.from(set).filter(Boolean).sort();
   }, [destinations, requirements]);
 
   // Filtered requirements for selected country

@@ -642,48 +642,6 @@ export const SelectUniversity: React.FC = () => {
                   <button onClick={() => setApplyUni(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"><X className="w-4 h-4" /></button>
                 </div>
 
-                {/* Step Verification & Counselor Review Pill */}
-                <div className="p-3.5 bg-gradient-to-r from-amber-50 via-rose-50/40 to-slate-50 rounded-2xl border border-amber-200/80 mb-4 space-y-2">
-                  {hasCounselorAssigned && (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <UserCheck className="w-4 h-4 text-[#6A1B2E]" />
-                        <span className="text-xs font-black text-slate-900">Assigned Review Desk:</span>
-                      </div>
-                      <span className="text-[11px] font-black text-[#6A1B2E] bg-white px-2.5 py-0.5 rounded-full border border-rose-200">
-                        {assignedCounselorName}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {!hasCounselorAssigned && (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <UserCheck className="w-4 h-4 text-amber-600" />
-                        <span className="text-xs font-black text-slate-900">Counselor Assignment:</span>
-                      </div>
-                      <span className="text-[11px] font-black text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
-                        Pending Admin
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] font-semibold">
-                    <div className={`p-2 rounded-xl border flex items-center justify-between ${
-                      hasMandatoryDocs ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'
-                    }`}>
-                      <span>Passport & Transcripts:</span>
-                      <span className="font-black">{hasMandatoryDocs ? '✅ Ready' : '⚠️ Missing Docs'}</span>
-                    </div>
-                    <div className={`p-2 rounded-xl border flex items-center justify-between ${
-                      inst1Paid ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900' : 'bg-blue-50 border-blue-200 text-blue-900'
-                    }`}>
-                      <span>Advance Registration:</span>
-                      <span className="font-black">{inst1Paid ? '✅ Settled' : `₹${requiredAdvanceInr.toLocaleString('en-IN')}`}</span>
-                    </div>
-                  </div>
-                </div>
-
                 <form onSubmit={handleApplySubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -745,27 +703,12 @@ export const SelectUniversity: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
-                    {!hasMandatoryDocs && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setApplyUni(null);
-                          navigate('/student/documents');
-                        }}
-                        className="text-xs font-bold text-amber-700 hover:underline flex items-center gap-1"
-                      >
-                        <Upload className="w-3.5 h-3.5" /> Upload Missing Documents
-                      </button>
-                    )}
-
-                    <div className="flex items-center gap-2 ml-auto">
-                      <button type="button" onClick={() => setApplyUni(null)} className="h-10 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
-                      <button type="submit" disabled={isSubmitting} className="h-10 px-6 bg-[#6A1B2E] text-white text-xs font-black rounded-xl hover:bg-[#521221] shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
-                        <Check className="w-4 h-4" />
-                        <span>{isSubmitting ? 'Submitting Application...' : 'Confirm & Submit Application'}</span>
-                      </button>
-                    </div>
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                    <button type="button" onClick={() => setApplyUni(null)} className="h-10 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
+                    <button type="submit" disabled={isSubmitting} className="h-10 px-6 bg-[#6A1B2E] text-white text-xs font-black rounded-xl hover:bg-[#521221] shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
+                      <Check className="w-4 h-4" />
+                      <span>{isSubmitting ? 'Submitting Application...' : 'Confirm & Submit Application'}</span>
+                    </button>
                   </div>
                 </form>
               </motion.div>

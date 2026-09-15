@@ -451,8 +451,12 @@ export async function getAllDocumentRequirements(): Promise<DocumentRequirement[
 
     if (!error && data && data.length > 0) {
       const dbList = data as DocumentRequirement[];
-      saveStoredRequirements(dbList);
-      return dbList;
+      const stored = getStoredRequirements();
+      const dbIds = new Set(dbList.map(d => d.id));
+      const localOnly = stored.filter(s => !dbIds.has(s.id));
+      const merged = [...dbList, ...localOnly];
+      saveStoredRequirements(merged);
+      return merged;
     }
   } catch (e) {
     console.warn('[getAllDocumentRequirements] DB query notice:', e);
@@ -469,6 +473,7 @@ export async function getDocumentRequirements(country?: string): Promise<Documen
   const matched = all.filter(d => {
     const c = d.country.toLowerCase().trim();
     return c === normalized ||
+      ((normalized === 'ind' || normalized === 'india') && (c === 'ind' || c === 'india')) ||
       (normalized.includes('poland') && c === 'poland') ||
       (normalized.includes('germany') && c === 'germany') ||
       (normalized.includes('canada') && c === 'canada') ||
@@ -616,4 +621,123 @@ export async function removeDocumentRequirement(id: string): Promise<boolean> {
 export async function resetDocumentRequirementsToDefaults(): Promise<DocumentRequirement[]> {
   saveStoredRequirements(DEFAULT_DOCUMENT_REQUIREMENTS);
   return DEFAULT_DOCUMENT_REQUIREMENTS;
+}
+
+export interface RequirementSatisfaction {
+  requirement: DocumentRequirement;
+  isSatisfied: boolean;
+  status: 'Missing' | 'Submitted' | 'Under Review' | 'Approved' | 'Rejected';
+  doc?: any;
+}
+
+export interface DossierStatusResult {
+  totalCount: number;
+  mandatoryCount: number;
+  uploadedCount: number;
+  uploadedMandatoryCount: number;
+  missingMandatoryCount: number;
+  isComplete: boolean;
+  results: RequirementSatisfaction[];
+}
+
+export function isRequirementSatisfied(req: DocumentRequirement, studentDocs: any[]): {
+  isSatisfied: boolean;
+  status: 'Missing' | 'Submitted' | 'Under Review' | 'Approved' | 'Rejected';
+  doc?: any;
+} {
+  const reqNameNorm = (req.document_name || '').toLowerCase().trim();
+  const reqTypeNorm = (req.document_type || '').toLowerCase().trim();
+
+  const matchingDocs = (studentDocs || []).filter(d => {
+    const dName = (d.name || d.file_name || '').toLowerCase().trim();
+    const dType = (d.type || d.doc_type || '').toLowerCase().trim();
+    const dReqId = (d as any).requirement_id;
+
+    if (dReqId && dReqId === req.id) return true;
+    if (dName === reqNameNorm) return true;
+    if (dName && reqNameNorm && (dName.includes(reqNameNorm) || reqNameNorm.includes(dName))) return true;
+    if (dType === reqTypeNorm && dName && reqNameNorm && (dName.slice(0, 4) === reqNameNorm.slice(0, 4))) return true;
+    return false;
+  });
+
+  if (matchingDocs.length === 0) {
+    const looseMatch = (studentDocs || []).find(d => {
+      const dName = (d.name || d.file_name || '').toLowerCase().trim();
+      const dType = (d.type || d.doc_type || '').toLowerCase().trim();
+      return (dName && reqNameNorm && reqNameNorm.length >= 4 && (dName.includes(reqNameNorm.slice(0, 6)) || reqNameNorm.includes(dName.slice(0, 6)))) ||
+             (dType && reqTypeNorm && dType === reqTypeNorm && studentDocs.length === 1);
+    });
+
+    if (looseMatch) {
+      const rawStatus = (looseMatch.status || '').toLowerCase();
+      if (rawStatus.includes('reject') || rawStatus.includes('re-upload')) {
+        return { isSatisfied: false, status: 'Rejected', doc: looseMatch };
+      }
+      if (rawStatus.includes('approved') || rawStatus.includes('verified') || rawStatus.includes('passed')) {
+        return { isSatisfied: true, status: 'Approved', doc: looseMatch };
+      }
+      if (rawStatus.includes('under review')) {
+        return { isSatisfied: true, status: 'Under Review', doc: looseMatch };
+      }
+      return { isSatisfied: true, status: 'Submitted', doc: looseMatch };
+    }
+
+    return { isSatisfied: false, status: 'Missing' };
+  }
+
+  const approved = matchingDocs.find(d => {
+    const s = (d.status || '').toLowerCase();
+    return s.includes('approved') || s.includes('verified') || s.includes('passed');
+  });
+  if (approved) return { isSatisfied: true, status: 'Approved', doc: approved };
+
+  const underReview = matchingDocs.find(d => (d.status || '').toLowerCase().includes('under review'));
+  if (underReview) return { isSatisfied: true, status: 'Under Review', doc: underReview };
+
+  const rejected = matchingDocs.find(d => {
+    const s = (d.status || '').toLowerCase();
+    return s.includes('reject') || s.includes('re-upload');
+  });
+
+  const submitted = matchingDocs.find(d => {
+    const s = (d.status || '').toLowerCase();
+    return s.includes('submitted') || s.includes('pending');
+  });
+  if (submitted) return { isSatisfied: true, status: 'Submitted', doc: submitted };
+
+  if (rejected) return { isSatisfied: false, status: 'Rejected', doc: rejected };
+
+  return { isSatisfied: true, status: 'Submitted', doc: matchingDocs[0] };
+}
+
+export function calculateDossierStatus(
+  requirements: DocumentRequirement[],
+  studentDocs: any[]
+): DossierStatusResult {
+  const reqs = requirements || [];
+  const results: RequirementSatisfaction[] = reqs.map(req => {
+    const satisfaction = isRequirementSatisfied(req, studentDocs);
+    return {
+      requirement: req,
+      isSatisfied: satisfaction.isSatisfied,
+      status: satisfaction.status,
+      doc: satisfaction.doc
+    };
+  });
+
+  const mandatoryResults = results.filter(r => r.requirement.is_required);
+  const mandatoryCount = mandatoryResults.length;
+  const uploadedMandatoryCount = mandatoryResults.filter(r => r.isSatisfied).length;
+  const missingMandatoryCount = mandatoryCount - uploadedMandatoryCount;
+  const isComplete = mandatoryCount > 0 ? missingMandatoryCount === 0 : (studentDocs && studentDocs.length > 0);
+
+  return {
+    totalCount: reqs.length,
+    mandatoryCount,
+    uploadedCount: results.filter(r => r.isSatisfied).length,
+    uploadedMandatoryCount,
+    missingMandatoryCount,
+    isComplete,
+    results
+  };
 }
