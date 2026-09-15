@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Plus, Building2, MapPin, Trash2, X, CheckCircle2, Edit2,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useUniversities } from '../../hooks/useUniversities';
 import { useDestinations } from '../../hooks/useDestinations';
+import { useCountryWorkflows } from '../../hooks/useCountryWorkflows';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
 import { uploadFileToBucket } from '../../lib/storage';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../../lib/types';
@@ -46,7 +47,33 @@ export type CountryItem = DestinationItem;
 export const AdminUniversities: React.FC = () => {
   const { universities, loading, addUniversity, updateUniversity, removeUniversity, clearAll: clearAllUniversitiesData, refresh } = useUniversities();
   const { destinations: countryList, addDestination, editDestination, removeDestination, clearAll: clearAllDestinationsData, refresh: refreshDestinations } = useDestinations();
+  const { workflows } = useCountryWorkflows();
   const { config } = useFeeConfig();
+
+  // Dynamic countries discovered from Document Requirements
+  const [docReqCountries, setDocReqCountries] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchDocCountries = () => {
+      import('../../lib/api/documentRequirements').then(({ getAllDocumentRequirements }) => {
+        getAllDocumentRequirements().then(reqs => {
+          if (reqs && reqs.length > 0) {
+            setDocReqCountries(Array.from(new Set(reqs.map(r => r.country).filter(Boolean))));
+          }
+        }).catch(() => {});
+      });
+    };
+
+    fetchDocCountries();
+    window.addEventListener('ferex_doc_requirements_change', fetchDocCountries);
+    window.addEventListener('ferex_destinations_change', fetchDocCountries);
+    window.addEventListener('ferex_country_workflow_change', fetchDocCountries);
+    return () => {
+      window.removeEventListener('ferex_doc_requirements_change', fetchDocCountries);
+      window.removeEventListener('ferex_destinations_change', fetchDocCountries);
+      window.removeEventListener('ferex_country_workflow_change', fetchDocCountries);
+    };
+  }, []);
 
   // DEBUG: Log universities state changes
   React.useEffect(() => {
@@ -203,10 +230,19 @@ export const AdminUniversities: React.FC = () => {
   // Semester details state
   const [semestersList, setSemestersList] = useState<CourseSemester[]>([]);
 
-  // Collect all unique countries
-  const availableCountryNames = Array.from(
-    new Set([...countryList.map(c => c.name), ...universities.map(u => u?.country).filter(Boolean)])
-  ).filter(c => c && c.toLowerCase().trim() !== 'india');
+  // Collect all unique countries across Destinations, Workflows, Universities, and Document Requirements
+  const availableCountryNames = React.useMemo(() => {
+    const set = new Set<string>();
+    countryList.forEach(c => { if (c?.name) set.add(c.name.trim()); });
+    universities.forEach(u => { if (u?.country) set.add(u.country.trim()); });
+    workflows.forEach(w => { if (w?.country) set.add(w.country.trim()); });
+    docReqCountries.forEach(c => { if (c) set.add(c.trim()); });
+
+    // Fallback standard study hubs
+    ['Poland', 'Germany', 'United Kingdom', 'France', 'Canada', 'Switzerland', 'Czech Republic', 'Italy', 'Spain', 'Hungary', 'Austria', 'Ireland', 'USA', 'UK'].forEach(c => set.add(c));
+
+    return Array.from(set).filter(c => c && c.toLowerCase().trim() !== 'india').sort();
+  }, [countryList, universities, workflows, docReqCountries]);
 
   const showToast = (msg: string) => {
     setToast(msg);

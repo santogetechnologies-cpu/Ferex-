@@ -75,7 +75,13 @@ export const AdminDocumentConfig: React.FC = () => {
     loadData();
     const handleSync = () => loadData();
     window.addEventListener('ferex_doc_requirements_change', handleSync);
-    return () => window.removeEventListener('ferex_doc_requirements_change', handleSync);
+    window.addEventListener('ferex_destinations_change', handleSync);
+    window.addEventListener('ferex_country_workflow_change', handleSync);
+    return () => {
+      window.removeEventListener('ferex_doc_requirements_change', handleSync);
+      window.removeEventListener('ferex_destinations_change', handleSync);
+      window.removeEventListener('ferex_country_workflow_change', handleSync);
+    };
   }, []);
 
   const showToast = (msg: string) => {
@@ -86,10 +92,10 @@ export const AdminDocumentConfig: React.FC = () => {
   // Distinct country list
   const availableCountries = useMemo(() => {
     const set = new Set<string>();
-    destinations.forEach(d => { if (d.name) set.add(d.name); });
-    requirements.forEach(r => { if (r.country) set.add(r.country); });
-    ['Poland', 'Germany', 'UK', 'USA', 'France', 'Italy', 'Hungary', 'Canada', 'Ireland'].forEach(c => set.add(c));
-    return Array.from(set).sort();
+    destinations.forEach(d => { if (d.name) set.add(d.name.trim()); });
+    requirements.forEach(r => { if (r.country) set.add(r.country.trim()); });
+    ['Poland', 'Germany', 'United Kingdom', 'France', 'Canada', 'Switzerland', 'Czech Republic', 'Italy', 'Spain', 'Hungary', 'Austria', 'Ireland', 'USA', 'UK'].forEach(c => set.add(c));
+    return Array.from(set).filter(c => c && c.toLowerCase().trim() !== 'india').sort();
   }, [destinations, requirements]);
 
   // Filtered requirements for selected country

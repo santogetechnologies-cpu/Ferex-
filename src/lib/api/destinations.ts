@@ -192,42 +192,140 @@ export const DEFAULT_STUDY_DESTINATIONS: DestinationItem[] = [
 ];
 
 export async function getDestinations(): Promise<DestinationItem[]> {
+  let list: DestinationItem[] = [];
+
   // 1. Check local storage
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        list = parsed;
       }
     }
   } catch {}
 
-  // 2. Query Supabase destinations table
-  let dbDestinations: DestinationItem[] = [];
-  try {
-    const { data, error } = await supabase
-      .from('destinations')
-      .select('*')
-      .order('name', { ascending: true });
+  // 2. Query Supabase destinations table if local storage was empty
+  if (list.length === 0) {
+    try {
+      const { data, error } = await supabase
+        .from('destinations')
+        .select('*')
+        .order('name', { ascending: true });
 
-    if (!error && data && Array.isArray(data) && data.length > 0) {
-      dbDestinations = data as DestinationItem[];
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dbDestinations));
-      } catch {}
-      return dbDestinations;
+      if (!error && data && Array.isArray(data) && data.length > 0) {
+        list = data as DestinationItem[];
+      }
+    } catch (err) {
+      console.warn('[getDestinations DB Notice]:', err);
     }
-  } catch (err) {
-    console.warn('[getDestinations DB Notice]:', err);
   }
 
-  // 3. Fallback to default verified destinations
+  // 3. Fallback to default verified destinations if still empty
+  if (list.length === 0) {
+    list = [...DEFAULT_STUDY_DESTINATIONS];
+  }
+
+  // 4. Ensure all DEFAULT_STUDY_DESTINATIONS are present in the list
+  DEFAULT_STUDY_DESTINATIONS.forEach(def => {
+    if (!list.some(d => d.name.toLowerCase() === def.name.toLowerCase())) {
+      list.push(def);
+    }
+  });
+
+  // 5. Cross-pollinate any custom countries from country_workflows, universities, or doc_requirements
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(DEFAULT_STUDY_DESTINATIONS));
+    const rawWfs = localStorage.getItem('ferex_country_workflows');
+    if (rawWfs) {
+      const wfs = JSON.parse(rawWfs);
+      if (Array.isArray(wfs)) {
+        wfs.forEach((w: any) => {
+          const cName = (w.country || '').trim();
+          if (cName && cName.toLowerCase() !== 'india' && !list.some(d => d.name.toLowerCase() === cName.toLowerCase())) {
+            list.push({
+              id: `dest-${cName.toLowerCase().replace(/\s+/g, '-')}`,
+              name: cName,
+              code: cName.substring(0, 2).toUpperCase(),
+              flag: '🌍',
+              currency: 'EUR',
+              authority: w.authority_name || `${cName} Legalization Authority`,
+              acronym: w.authority_acronym || cName.substring(0, 4).toUpperCase(),
+              processing: w.estimated_processing_days || '15-30 Days',
+              fee: w.authority_fee || '€50',
+              desk: `${cName} Desk`,
+              badge: 'Accredited',
+              is_active: true
+            });
+          }
+        });
+      }
+    }
   } catch {}
 
-  return DEFAULT_STUDY_DESTINATIONS;
+  try {
+    const rawUnis = localStorage.getItem('ferex_universities');
+    if (rawUnis) {
+      const unis = JSON.parse(rawUnis);
+      if (Array.isArray(unis)) {
+        unis.forEach((u: any) => {
+          const cName = (u.country || '').trim();
+          if (cName && cName.toLowerCase() !== 'india' && !list.some(d => d.name.toLowerCase() === cName.toLowerCase())) {
+            list.push({
+              id: `dest-${cName.toLowerCase().replace(/\s+/g, '-')}`,
+              name: cName,
+              code: cName.substring(0, 2).toUpperCase(),
+              flag: '🌍',
+              currency: 'EUR',
+              authority: `${cName} Ministry of Education`,
+              acronym: cName.substring(0, 4).toUpperCase(),
+              processing: '15-30 Days',
+              fee: '€50',
+              desk: `${cName} Desk`,
+              badge: 'Partner',
+              is_active: true
+            });
+          }
+        });
+      }
+    }
+  } catch {}
+
+  try {
+    const rawDocs = localStorage.getItem('ferex_doc_requirements');
+    if (rawDocs) {
+      const docs = JSON.parse(rawDocs);
+      if (Array.isArray(docs)) {
+        docs.forEach((doc: any) => {
+          const cName = (doc.country || '').trim();
+          if (cName && cName.toLowerCase() !== 'india' && !list.some(d => d.name.toLowerCase() === cName.toLowerCase())) {
+            list.push({
+              id: `dest-${cName.toLowerCase().replace(/\s+/g, '-')}`,
+              name: cName,
+              code: cName.substring(0, 2).toUpperCase(),
+              flag: '🌍',
+              currency: 'EUR',
+              authority: `${cName} Ministry of Education`,
+              acronym: cName.substring(0, 4).toUpperCase(),
+              processing: '15-30 Days',
+              fee: '€50',
+              desk: `${cName} Desk`,
+              badge: 'Accredited',
+              is_active: true
+            });
+          }
+        });
+      }
+    }
+  } catch {}
+
+  // Filter out any accidental 'India' destinations and ensure clean list
+  const cleanList = list.filter(d => d.name && d.name.toLowerCase().trim() !== 'india');
+
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cleanList));
+  } catch {}
+
+  return cleanList;
 }
 
 export async function createDestination(payload: Omit<DestinationItem, 'id' | 'created_at' | 'updated_at'>): Promise<DestinationItem> {

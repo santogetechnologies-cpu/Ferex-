@@ -10,11 +10,13 @@ import {
   getNawaRecords, createNawaRecord, updateNawaStep, deleteNawaRecord
 } from '../../lib/api/nawa';
 import { useCountryWorkflows } from '../../hooks/useCountryWorkflows';
+import { useDestinations } from '../../hooks/useDestinations';
 import type { NawaRecord } from '../../lib/api/nawa';
 import type { UserProfile, CountryWorkflowConfig, WorkflowStageConfig, WorkflowDocumentRequirement } from '../../lib/types';
 
 export const AdminNawaTracker: React.FC = () => {
   const { workflows, saveWorkflow, removeWorkflow, getWorkflowForCountry } = useCountryWorkflows();
+  const { destinations: destinationList, addDestination } = useDestinations();
 
   // Active Main View Tab: 'tracking' (Student Queue) vs 'workflows' (Country Configuration)
   const [activeTab, setActiveTab] = useState<'tracking' | 'workflows'>('tracking');
@@ -47,6 +49,8 @@ export const AdminNawaTracker: React.FC = () => {
 
   // Workflow Form State
   const [wfCountry, setWfCountry] = useState('Poland');
+  const [isCustomWfCountry, setIsCustomWfCountry] = useState(false);
+  const [customWfCountryInput, setCustomWfCountryInput] = useState('');
   const [wfAuthorityName, setWfAuthorityName] = useState('');
   const [wfAuthorityAcronym, setWfAuthorityAcronym] = useState('');
   const [wfAuthorityBadge, setWfAuthorityBadge] = useState('');
@@ -61,6 +65,23 @@ export const AdminNawaTracker: React.FC = () => {
   const [wfInsuranceReq, setWfInsuranceReq] = useState('€30,000 Schengen Travel Health Insurance');
   const [wfAppointmentChannel, setWfAppointmentChannel] = useState('VFS Global Center');
   const [wfInterviewRequired, setWfInterviewRequired] = useState(true);
+
+  // Collect configured destination countries
+  const configuredCountries = React.useMemo(() => {
+    const set = new Set<string>();
+    destinationList.forEach(d => {
+      if (d?.name && d.name.trim().toLowerCase() !== 'india') {
+        set.add(d.name.trim());
+      }
+    });
+    workflows.forEach(w => {
+      if (w?.country && w.country.trim().toLowerCase() !== 'india') {
+        set.add(w.country.trim());
+      }
+    });
+    ['Poland', 'Germany', 'United Kingdom', 'France', 'Canada', 'Switzerland', 'Czech Republic', 'Italy', 'Spain', 'Hungary', 'Austria', 'Ireland'].forEach(c => set.add(c));
+    return Array.from(set).sort();
+  }, [destinationList, workflows]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -153,16 +174,55 @@ export const AdminNawaTracker: React.FC = () => {
     }
   };
 
+  // Handle country dropdown change in workflow modal
+  const handleCountrySelectChange = (val: string) => {
+    if (val === '__custom__') {
+      setIsCustomWfCountry(true);
+      setCustomWfCountryInput('');
+      setWfCountry('');
+      return;
+    }
+    setIsCustomWfCountry(false);
+    setWfCountry(val);
+    const dest = destinationList.find(d => d.name.toLowerCase() === val.toLowerCase());
+    const existingWf = workflows.find(w => w.country.toLowerCase() === val.toLowerCase());
+    if (existingWf) {
+      setWfAuthorityName(existingWf.authority_name);
+      setWfAuthorityAcronym(existingWf.authority_acronym);
+      setWfAuthorityBadge(existingWf.authority_badge);
+      setWfAuthorityDesc(existingWf.authority_description);
+      setWfEstDays(existingWf.estimated_processing_days);
+      setWfAuthorityFee(existingWf.authority_fee);
+      setWfWebsite(existingWf.website_url || '');
+    } else if (dest) {
+      setWfAuthorityName(dest.authority || `${val} Ministry of Higher Education`);
+      setWfAuthorityAcronym(dest.acronym || val.substring(0, 4).toUpperCase());
+      setWfAuthorityBadge(`${val} Legalization`);
+      setWfAuthorityDesc(`Official educational verification, qualification comparability, and consular procedures for ${val}.`);
+      setWfEstDays(dest.processing || '14 - 21 Days');
+      setWfAuthorityFee(dest.fee || '€200');
+    } else {
+      setWfAuthorityName(`${val} Higher Education Authority`);
+      setWfAuthorityAcronym(val.substring(0, 4).toUpperCase());
+      setWfAuthorityBadge(`${val} Legalization`);
+      setWfAuthorityDesc(`Official qualification comparability and document legalization for ${val}.`);
+    }
+  };
+
   // Workflow Modal Openers
   const handleOpenNewWorkflowModal = () => {
     setEditingWorkflowId(null);
-    setWfCountry('');
-    setWfAuthorityName('');
-    setWfAuthorityAcronym('');
-    setWfAuthorityBadge('Academic Legalization');
-    setWfAuthorityDesc('');
-    setWfEstDays('14 - 21 Days');
-    setWfAuthorityFee('€200');
+    setIsCustomWfCountry(false);
+    setCustomWfCountryInput('');
+    const defaultCountry = configuredCountries[0] || 'Poland';
+    setWfCountry(defaultCountry);
+    const dest = destinationList.find(d => d.name.toLowerCase() === defaultCountry.toLowerCase());
+    setWfAuthorityName(dest?.authority || `${defaultCountry} Higher Education Authority`);
+    setWfAuthorityAcronym(dest?.acronym || defaultCountry.substring(0, 4).toUpperCase());
+    setWfAuthorityBadge(`${defaultCountry} Legalization`);
+    setWfAuthorityDesc(`Official educational verification and consular procedures for ${defaultCountry}.`);
+    setWfEstDays(dest?.processing || '14 - 21 Days');
+    setWfAuthorityFee(dest?.fee || '€200');
     setWfWebsite('');
     setWfStages([
       { step_number: 1, title: 'Academic Profile Audit & Certified Translation', short_name: 'Document Audit', description: 'Initial transcript evaluation and sworn translations.', responsible_party: 'ferex_admin', required_docs: ['Transcripts', 'Degree', 'Passport'], estimated_days: '3-5 Days', auto_unlocks_next: true },
@@ -188,6 +248,8 @@ export const AdminNawaTracker: React.FC = () => {
 
   const handleOpenEditWorkflowModal = (wf: CountryWorkflowConfig) => {
     setEditingWorkflowId(wf.id);
+    setIsCustomWfCountry(false);
+    setCustomWfCountryInput('');
     setWfCountry(wf.country);
     setWfAuthorityName(wf.authority_name);
     setWfAuthorityAcronym(wf.authority_acronym);
@@ -207,20 +269,42 @@ export const AdminNawaTracker: React.FC = () => {
     setShowWorkflowModal(true);
   };
 
-  const handleSaveWorkflow = (e: React.FormEvent) => {
+  const handleSaveWorkflow = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!wfCountry.trim() || !wfAuthorityName.trim()) {
+    const targetCountry = (isCustomWfCountry ? customWfCountryInput.trim() : wfCountry.trim());
+    if (!targetCountry || !wfAuthorityName.trim()) {
       showToast('Country and Authority name are required.');
       return;
     }
 
+    // Auto-register destination if not already in destination list
+    if (!destinationList.some(d => d.name.toLowerCase() === targetCountry.toLowerCase())) {
+      try {
+        await addDestination({
+          name: targetCountry,
+          code: targetCountry.substring(0, 2).toUpperCase(),
+          flag: '🌍',
+          currency: 'EUR',
+          authority: wfAuthorityName.trim(),
+          acronym: wfAuthorityAcronym.trim() || targetCountry.substring(0, 4).toUpperCase(),
+          processing: wfEstDays.trim() || '15-30 Days',
+          fee: wfAuthorityFee.trim() || '€50',
+          desk: `${targetCountry} Desk`,
+          badge: 'Accredited',
+          is_active: true
+        });
+      } catch (err) {
+        console.warn('Auto-register destination error:', err);
+      }
+    }
+
     const payload: CountryWorkflowConfig = {
-      id: editingWorkflowId || `wf-${wfCountry.toLowerCase().replace(/\s+/g, '-')}`,
-      country: wfCountry.trim(),
+      id: editingWorkflowId || `wf-${targetCountry.toLowerCase().replace(/\s+/g, '-')}`,
+      country: targetCountry,
       authority_name: wfAuthorityName.trim(),
-      authority_acronym: wfAuthorityAcronym.trim() || wfAuthorityName.slice(0, 4).toUpperCase(),
-      authority_badge: wfAuthorityBadge.trim() || `${wfCountry} Legalization`,
-      authority_description: wfAuthorityDesc.trim() || `Official verification and visa procedure for ${wfCountry}.`,
+      authority_acronym: wfAuthorityAcronym.trim() || targetCountry.substring(0, 4).toUpperCase(),
+      authority_badge: wfAuthorityBadge.trim() || `${targetCountry} Legalization`,
+      authority_description: wfAuthorityDesc.trim() || `Official verification and visa procedure for ${targetCountry}.`,
       estimated_processing_days: wfEstDays.trim() || '14 - 21 Days',
       authority_fee: wfAuthorityFee.trim() || '€200',
       website_url: wfWebsite.trim(),
@@ -238,7 +322,7 @@ export const AdminNawaTracker: React.FC = () => {
 
     saveWorkflow(payload);
     setShowWorkflowModal(false);
-    showToast(`Workflow for ${wfCountry} (${payload.authority_acronym}) saved & synchronized across portal!`);
+    showToast(`Workflow for ${targetCountry} (${payload.authority_acronym}) saved & synchronized across portal!`);
   };
 
   // Helper to extract student country
@@ -757,15 +841,59 @@ export const AdminNawaTracker: React.FC = () => {
                   <div className="space-y-3.5">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Country Name *</label>
-                        <input
-                          required
-                          type="text"
-                          value={wfCountry}
-                          onChange={(e) => setWfCountry(e.target.value)}
-                          placeholder="e.g. Poland, Germany, Italy, Switzerland"
-                          className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
-                        />
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+                            Country Name *
+                          </label>
+                          {!editingWorkflowId && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCustomWfCountry(!isCustomWfCountry);
+                                if (!isCustomWfCountry) {
+                                  setCustomWfCountryInput('');
+                                  setWfCountry('');
+                                } else {
+                                  const fallbackC = configuredCountries[0] || 'Poland';
+                                  handleCountrySelectChange(fallbackC);
+                                }
+                              }}
+                              className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                            >
+                              {isCustomWfCountry ? '← Choose Configured Country' : '+ Type Custom Country'}
+                            </button>
+                          )}
+                        </div>
+
+                        {editingWorkflowId ? (
+                          <div className="h-9.5 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 flex items-center justify-between">
+                            <span>{wfCountry}</span>
+                            <span className="text-[10px] uppercase text-slate-400 font-extrabold">Configured</span>
+                          </div>
+                        ) : isCustomWfCountry ? (
+                          <input
+                            required
+                            type="text"
+                            value={customWfCountryInput}
+                            onChange={(e) => {
+                              setCustomWfCountryInput(e.target.value);
+                              setWfCountry(e.target.value);
+                            }}
+                            placeholder="e.g. Canada, Switzerland, United Kingdom..."
+                            className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                          />
+                        ) : (
+                          <select
+                            value={wfCountry}
+                            onChange={(e) => handleCountrySelectChange(e.target.value)}
+                            className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none cursor-pointer"
+                          >
+                            {configuredCountries.map(c => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                            <option value="__custom__">+ Add Other / Custom Country...</option>
+                          </select>
+                        )}
                       </div>
 
                       <div>
