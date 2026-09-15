@@ -93,7 +93,12 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
   const [countryFilter, setCountryFilter] = useState('All');
 
   useEffect(() => {
-    const mapped = (dbApps || []).map(a => {
+    const realDbApps = (dbApps || []).filter(a => {
+      const sName = (a.student_name || (a.users as any)?.full_name || '').toLowerCase().trim();
+      return sName !== 'rahul sharma' && a.university_name !== 'Pending University Selection';
+    });
+
+    const mapped = realDbApps.map(a => {
       const resolvedCountry = (() => {
         if (a.universities?.country) return a.universities.country;
         const uni = (a.university_name || a.universities?.name || '').toLowerCase();
@@ -208,23 +213,6 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
       showToast(`Error: ${err.message || 'Failed to update status'}`);
     } finally {
       setIsUpdating(null);
-    }
-  };
-
-  const handleCreateSampleApp = async () => {
-    try {
-      await addApp({
-        student_name: 'Rahul Sharma',
-        university_name: 'Warsaw University of Technology',
-        program_name: "Bachelor's Degree - Computer Science, Engineering",
-        course: "Bachelor's Degree - Computer Science, Engineering",
-        intake: 'October 2026',
-        tuition_fee: '€3,000 / yr',
-        course_fee: '€3,000 / yr',
-      });
-      showToast('Sample student application created. View and issue offer letter now.');
-    } catch (err: any) {
-      showToast(`Error creating application: ${err.message}`);
     }
   };
 
@@ -800,14 +788,6 @@ startxref
                       >
                         <RefreshCw className="w-3.5 h-3.5" /> Refresh Live Data
                       </button>
-                      {apps.length === 0 && (
-                        <button
-                          onClick={handleCreateSampleApp}
-                          className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-xs cursor-pointer"
-                        >
-                          + Create Sample Application
-                        </button>
-                      )}
                     </div>
                   </div>
                 </td>

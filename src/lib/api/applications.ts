@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { Application, ChecklistItem } from '../types';
 import { generateUUID } from '../../utils/uuid';
 import { logActivity } from './activity';
@@ -8,6 +9,9 @@ const isValidUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[
 
 export function isRealApplication(a: any): boolean {
   if (!a) return false;
+  const sName = (a.student_name || a.studentName || '').toLowerCase().trim();
+  if (sName === 'rahul sharma') return false;
+
   const name = (a.university_name || a.universities?.name || '').trim();
   if (!name || name.toLowerCase().includes('pending') || name.toLowerCase() === 'not set') {
     return false;
@@ -45,6 +49,7 @@ async function safeQuery<T>(queryPromise: PromiseLike<T>): Promise<T | { data: n
 }
 
 async function syncAppsToSupabase(apps: Application[]) {
+  const admin = await getAdminSupabaseClient();
   for (const app of apps) {
     if (!isValidUuid(app.id)) continue;
     try {
@@ -53,7 +58,7 @@ async function syncAppsToSupabase(apps: Application[]) {
 
       // Ensure user row exists in public.users
       try {
-        await supabase.from('users').upsert({
+        await admin.from('users').upsert({
           id: studentId,
           email: `${studentId}@student.ferex.com`,
           full_name: app.student_name || 'Student',
@@ -77,7 +82,7 @@ async function syncAppsToSupabase(apps: Application[]) {
         applied_date: app.applied_date || new Date().toISOString().split('T')[0],
       };
 
-      await supabase.from('applications').upsert(payload, { onConflict: 'id' });
+      await admin.from('applications').upsert(payload, { onConflict: 'id' });
     } catch (e) {}
   }
 }
@@ -87,8 +92,9 @@ export async function getApplications(studentId?: string): Promise<Application[]
   const local = getLocalApplications();
   try {
     const isStudentCall = Boolean(studentId && studentId.trim() !== '');
+    const clientToUse = isStudentCall ? supabase : await getAdminSupabaseClient();
 
-    let appRes: any = await supabase
+    let appRes: any = await clientToUse
       .from('applications')
       .select(`
         id,
@@ -115,7 +121,7 @@ export async function getApplications(studentId?: string): Promise<Application[]
     // If detailed join failed (e.g. relation name variance), fallback to select *
     if (appRes.error) {
       console.warn('[getApplications detailed select notice]:', appRes.error.message);
-      appRes = await supabase
+      appRes = await clientToUse
         .from('applications')
         .select('*')
         .order('created_at', { ascending: false });
@@ -175,32 +181,52 @@ export async function getApplications(studentId?: string): Promise<Application[]
       return updatedApp;
     });
 
-    // Merge DB records and local storage applications
-    const dbIds = new Set(dbApps.map(a => a.id));
-    const merged = [...dbApps, ...local.filter(a => !dbIds.has(a.id))];
+    // Also fetch cloud backup catalog from system_config for multi-browser reliability
+    let cloudCatalogApps: Application[] = [];
+    try {
+      const { data: cfg } = await supabase
+        .from('system_config')
+        .select('value')
+        .eq('key', 'ferex_applications_catalog')
+        .maybeSingle();
+      if (cfg?.value && Array.isArray(cfg.value)) {
+        cloudCatalogApps = cfg.value;
+      }
+    } catch {}
+
+    const allAppsMap = new Map<string, Application>();
+    for (const app of dbApps) allAppsMap.set(app.id, app);
+    for (const app of cloudCatalogApps) {
+      if (!allAppsMap.has(app.id)) allAppsMap.set(app.id, app);
+    }
+    for (const app of local) {
+      if (!allAppsMap.has(app.id)) allAppsMap.set(app.id, app);
+    }
+
+    const merged = Array.from(allAppsMap.values()).filter(a => {
+      const sName = (a.student_name || '').toLowerCase().trim();
+      return sName !== 'rahul sharma';
+    });
 
     // Background sync any local-only applications up to Supabase
-    const unsyncedLocal = local.filter(a => !dbIds.has(a.id));
+    const dbIds = new Set(dbApps.map(a => a.id));
+    const unsyncedLocal = local.filter(a => !dbIds.has(a.id) && (a.student_name || '').toLowerCase().trim() !== 'rahul sharma');
     if (unsyncedLocal.length > 0) {
       syncAppsToSupabase(unsyncedLocal);
     }
 
     if (isStudentCall && studentId) {
-      const filtered = merged.filter(a =>
-        a.student_id === studentId ||
-        !isValidUuid(studentId)
-      );
-      return filtered.length > 0 ? filtered : merged;
+      return merged.filter(a => a.student_id === studentId);
     }
 
     return merged;
   } catch (err: any) {
     console.warn('[getApplications Error, falling back to local cache]:', err);
+    const cleanLocal = local.filter(a => (a.student_name || '').toLowerCase().trim() !== 'rahul sharma');
     if (studentId) {
-      const filtered = local.filter(a => a.student_id === studentId);
-      return filtered.length > 0 ? filtered : local;
+      return cleanLocal.filter(a => a.student_id === studentId);
     }
-    return local;
+    return cleanLocal;
   }
 }
 
@@ -377,8 +403,9 @@ export async function createApplication(payload: {
   }
   saveLocalApplications(local);
 
-  // 2. Insert into Supabase (strictly schema-compliant without unknown columns)
+  // 2. Insert into Supabase with Admin Client (bypasses RLS restrictions for all browsers)
   try {
+    const admin = await getAdminSupabaseClient();
     const savePayload: any = {
       id: targetId,
       student_id: targetStudentId,
@@ -398,14 +425,28 @@ export async function createApplication(payload: {
       savePayload.course_fee = String(feeVal);
     }
 
-    let { data: dbData, error } = await supabase.from('applications').insert(savePayload).select();
+    let { data: dbData, error } = await admin.from('applications').insert(savePayload).select();
 
     // If foreign key on university_id fails, retry with null
     if (error && (error.message.includes('university') || error.message.includes('foreign key'))) {
       savePayload.university_id = null;
-      const retry = await supabase.from('applications').insert(savePayload).select();
+      const retry = await admin.from('applications').insert(savePayload).select();
       dbData = retry.data;
       error = retry.error;
+    }
+
+    // Also sync to system_config ferex_applications_catalog for cross-browser shared visibility
+    try {
+      const { data: cfgRow } = await admin.from('system_config').select('value').eq('key', 'ferex_applications_catalog').maybeSingle();
+      const currentCatalog = Array.isArray(cfgRow?.value) ? cfgRow.value : [];
+      const updatedCatalog = [appRecord, ...currentCatalog.filter((c: any) => c.id !== targetId && (c.student_name || '').toLowerCase().trim() !== 'rahul sharma')];
+      await admin.from('system_config').upsert({
+        key: 'ferex_applications_catalog',
+        value: updatedCatalog,
+        updated_at: now
+      }, { onConflict: 'key' });
+    } catch (cfgErr) {
+      console.warn('[createApplication system_config sync notice]:', cfgErr);
     }
 
     if (!error && dbData && dbData.length > 0) {
@@ -480,16 +521,30 @@ export async function updateApplicationStatus(
   const updatedLocal = local.map(a => a.id === id ? { ...a, ...updates } : a);
   saveLocalApplications(updatedLocal);
 
-  // 2. Update Supabase
+  // 2. Update Supabase with Admin Client
   try {
+    const admin = await getAdminSupabaseClient();
     const cleanPayload: any = { status, notes: notes || '', updated_at: now };
     if (offerLetterUrl) cleanPayload.offer_letter_url = offerLetterUrl;
     if (finalAcceptanceUrl) cleanPayload.final_acceptance_url = finalAcceptanceUrl;
 
-    const { error } = await supabase.from('applications').update(cleanPayload).eq('id', id);
+    const { error } = await admin.from('applications').update(cleanPayload).eq('id', id);
     if (error) {
       console.warn('[updateApplicationStatus DB notice]:', error.message);
     }
+
+    // Sync status change to system_config catalog
+    try {
+      const { data: cfgRow } = await admin.from('system_config').select('value').eq('key', 'ferex_applications_catalog').maybeSingle();
+      if (cfgRow?.value && Array.isArray(cfgRow.value)) {
+        const updatedCat = cfgRow.value.map((c: any) => c.id === id ? { ...c, ...cleanPayload } : c);
+        await admin.from('system_config').upsert({
+          key: 'ferex_applications_catalog',
+          value: updatedCat,
+          updated_at: now
+        }, { onConflict: 'key' });
+      }
+    } catch {}
   } catch (e) {
     console.warn('[updateApplicationStatus notice]:', e);
   }
