@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { UserProfile } from '../types';
 import { generateUUID } from '../../utils/uuid';
 import { createNotification } from './notifications';
@@ -14,6 +15,18 @@ export function getDefaultCounselorForCountry(country?: string): string {
 
 // ─── Get all students (users with role = 'student') ──────────────────────────
 export async function getStudents() {
+  try {
+    const admin = await getAdminSupabaseClient();
+    const { data, error } = await admin
+      .from('users')
+      .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, created_at')
+      .eq('role', 'student')
+      .order('created_at', { ascending: false });
+    if (!error && data) {
+      return data as UserProfile[];
+    }
+  } catch {}
+
   const { data, error } = await supabase
     .from('users')
     .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, created_at')
@@ -32,7 +45,8 @@ export async function getStaffMembers(): Promise<UserProfile[]> {
   try {
     let dbStaff: UserProfile[] = [];
     try {
-      const { data, error } = await supabase
+      const admin = await getAdminSupabaseClient();
+      const { data, error } = await admin
         .from('users')
         .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, created_at')
         .in('role', ['admin', 'central', 'super_admin', 'education_admin', 'education', 'staff', 'counselor'])
@@ -64,7 +78,8 @@ export async function getStaffMembers(): Promise<UserProfile[]> {
 
 export async function assignCounselorToStudent(studentId: string, counselorName: string): Promise<UserProfile | null> {
   try {
-    const { data } = await supabase
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin
       .from('users')
       .update({ assigned_counselor: counselorName, updated_at: new Date().toISOString() })
       .eq('id', studentId)

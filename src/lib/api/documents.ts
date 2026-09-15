@@ -1,72 +1,91 @@
 import { supabase } from '../supabase';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { StudentDocument } from '../types';
 import { generateUUID } from '../../utils/uuid';
 import { logActivity } from './activity';
 
 const isValidUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+const DOCUMENTS_CATALOG_ID = 'ferex_documents_catalog';
+
+async function fetchDocumentsCatalog(): Promise<StudentDocument[]> {
+  try {
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin
+      .from('system_config')
+      .select('config')
+      .eq('id', DOCUMENTS_CATALOG_ID)
+      .maybeSingle();
+    if (data?.config && Array.isArray(data.config)) {
+      return data.config;
+    }
+  } catch {}
+  try {
+    const raw = localStorage.getItem('ferex_documents_cloud_catalog');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+async function syncDocumentToCloudCatalog(doc: StudentDocument) {
+  try {
+    const current = await fetchDocumentsCatalog();
+    const filtered = current.filter(d => d.id !== doc.id);
+    const updated = [doc, ...filtered];
+    try {
+      localStorage.setItem('ferex_documents_cloud_catalog', JSON.stringify(updated));
+    } catch {}
+    const admin = await getAdminSupabaseClient();
+    await admin.from('system_config').upsert({
+      id: DOCUMENTS_CATALOG_ID,
+      config: updated,
+      updated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.warn('[syncDocumentToCloudCatalog notice]:', e);
+  }
+}
 
 // ─── Get documents for a specific student (Student View) ───────────────────────
 export async function getDocumentsForStudent(studentId: string): Promise<StudentDocument[]> {
   if (!studentId) return [];
 
   try {
-    const { data, error } = await supabase
+    const admin = await getAdminSupabaseClient();
+    const { data, error } = await admin
       .from('student_documents')
       .select('*')
       .eq('student_id', studentId)
       .order('uploaded_at', { ascending: false });
     
-    if (error) {
-      console.error('[getDocuments] Supabase error:', error);
-    } else if (data) {
-      console.log('[getDocuments] Retrieved:', data.length, 'documents for student:', studentId);
-      try {
-        localStorage.setItem(`ferex_docs_${studentId}`, JSON.stringify(data));
-      } catch (e) {}
-      return (data ?? []) as unknown as StudentDocument[];
-    }
-  } catch (err) {
-    console.error('[getDocuments] Error:', err);
-  }
+    const dbDocs = (data ?? []) as unknown as StudentDocument[];
+    const cloudCatalog = await fetchDocumentsCatalog();
+    const studentCloud = cloudCatalog.filter(d => d.student_id === studentId);
 
-  // Local storage fallback
-  const local = localStorage.getItem(`ferex_docs_${studentId}`) || localStorage.getItem('ferex_student_docs');
-  if (local) {
-    try {
-      const parsed = JSON.parse(local);
-      if (Array.isArray(parsed)) return parsed;
-    } catch (e) {}
+    const dbIds = new Set(dbDocs.map(d => d.id));
+    const merged = [...dbDocs, ...studentCloud.filter(d => !dbIds.has(d.id))];
+    return merged;
+  } catch (err) {
+    const cloudCatalog = await fetchDocumentsCatalog();
+    return cloudCatalog.filter(d => d.student_id === studentId);
   }
-  return [];
 }
 
 // ─── Get all documents across the system (Admin View) ──────────────────────────
 export async function getDocumentsForAdmin(): Promise<StudentDocument[]> {
   try {
-    const { data, error } = await supabase
+    const admin = await getAdminSupabaseClient();
+    const { data, error } = await admin
       .from('student_documents')
       .select('*, users:student_id(id, full_name, email, phone)')
       .order('uploaded_at', { ascending: false });
 
-    if (error) {
-      console.error('[getDocumentsForAdmin] Supabase error:', error);
-    } else if (data) {
-      console.log('[getDocuments] Retrieved (Admin):', data.length, 'documents');
-      return (data ?? []) as unknown as StudentDocument[];
-    }
-
-    const local = localStorage.getItem('ferex_all_admin_docs') || localStorage.getItem('ferex_student_docs');
-    if (local) {
-      try {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
-    }
-
-    return (data ?? []) as unknown as StudentDocument[];
+    const dbDocs = (data ?? []) as unknown as StudentDocument[];
+    const cloudCatalog = await fetchDocumentsCatalog();
+    const dbIds = new Set(dbDocs.map(d => d.id));
+    const merged = [...dbDocs, ...cloudCatalog.filter(d => !dbIds.has(d.id))];
+    return merged;
   } catch (err) {
-    console.error('[getDocumentsForAdmin] Error:', err);
-    return [];
+    return fetchDocumentsCatalog();
   }
 }
 
@@ -89,59 +108,36 @@ export async function uploadDocument(payload: {
   const newId = generateUUID();
   const validStudentId = isValidUuid(payload.student_id) ? payload.student_id : null;
 
-  const insertData = {
+  const insertData: StudentDocument = {
     id: newId,
-    student_id: validStudentId,
+    student_id: payload.student_id,
     file_name: payload.file_name,
     file_url: payload.file_url,
-    doc_type: payload.doc_type,
-    document_type: payload.doc_type,
     file_size: payload.file_size || '1.2 MB',
+    doc_type: payload.doc_type,
     status: 'Submitted',
-    uploaded_at: new Date().toISOString()
+    reviewer_id: null,
+    reviewer_notes: '',
+    uploaded_at: new Date().toISOString(),
+    reviewed_at: null,
   };
 
-  let res = await supabase.from('student_documents').insert(insertData).select();
-
-  if (res.error) {
-    console.warn('[uploadDocument Notice]:', res.error.message);
-    const attempt2 = {
+  try {
+    const admin = await getAdminSupabaseClient();
+    await admin.from('student_documents').insert({
       id: newId,
       student_id: validStudentId,
       file_name: payload.file_name,
       file_url: payload.file_url,
+      doc_type: payload.doc_type,
       document_type: payload.doc_type,
-      status: 'Submitted'
-    };
-    res = await supabase.from('student_documents').insert(attempt2).select();
-  }
-
-  const createdDoc: StudentDocument = (res.data && res.data[0])
-    ? (res.data[0] as StudentDocument)
-    : ({
-        id: newId,
-        student_id: payload.student_id,
-        file_name: payload.file_name,
-        file_url: payload.file_url,
-        file_size: payload.file_size || '1.2 MB',
-        doc_type: payload.doc_type,
-        status: 'Submitted',
-        reviewer_id: null,
-        reviewer_notes: '',
-        uploaded_at: new Date().toISOString(),
-        reviewed_at: null,
-      } as StudentDocument);
-
-  // Update local storage backup
-  try {
-    const key = `ferex_docs_${payload.student_id}`;
-    const local = localStorage.getItem(key);
-    const existing = local ? JSON.parse(local) : [];
-    const updated = [createdDoc, ...existing.filter((d: any) => d.id !== createdDoc.id)];
-    localStorage.setItem(key, JSON.stringify(updated));
-    localStorage.setItem('ferex_student_docs', JSON.stringify(updated));
+      file_size: payload.file_size || '1.2 MB',
+      status: 'Submitted',
+      uploaded_at: new Date().toISOString()
+    });
   } catch (e) {}
 
+  await syncDocumentToCloudCatalog(insertData);
   window.dispatchEvent(new Event('ferex_document_change'));
 
   try {
@@ -154,7 +150,7 @@ export async function uploadDocument(payload: {
     });
   } catch (err) {}
 
-  return createdDoc;
+  return insertData;
 }
 
 // ─── Update document status (admin action) ────────────────────────────────────
@@ -165,48 +161,59 @@ export async function updateDocumentStatus(
   reviewerNotes?: string
 ) {
   const notesText = reviewerNotes || (status === 'Re-upload Requested' ? 'Re-upload Requested' : '');
+  let docResult: StudentDocument | null = null;
 
-  let res = await supabase
-    .from('student_documents')
-    .update({
-      status,
-      reviewer_notes: notesText,
-      reviewer_id: reviewerId || null,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select();
-
-  if (res.error || !res.data || res.data.length === 0) {
-    console.warn('[updateDocumentStatus Attempt 1 Notice]:', res.error?.message);
-    res = await supabase
+  try {
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin
       .from('student_documents')
-      .update({ status })
+      .update({
+        status,
+        reviewer_notes: notesText,
+        reviewer_id: reviewerId || null,
+        reviewed_at: new Date().toISOString(),
+      })
       .eq('id', id)
       .select();
+
+    if (data && data.length > 0) {
+      docResult = data[0] as StudentDocument;
+    }
+  } catch (e) {}
+
+  if (!docResult) {
+    const catalog = await fetchDocumentsCatalog();
+    const existing = catalog.find(d => d.id === id);
+    docResult = {
+      ...(existing || { id, file_name: 'document.pdf', file_url: '', doc_type: 'Identity', uploaded_at: new Date().toISOString() }),
+      id,
+      status,
+      reviewer_notes: notesText,
+      reviewed_at: new Date().toISOString()
+    } as StudentDocument;
   }
 
-  let docResult = res.data && res.data[0] ? (res.data[0] as StudentDocument) : ({ id, status, reviewer_notes: notesText } as Partial<StudentDocument>);
+  await syncDocumentToCloudCatalog(docResult);
+  window.dispatchEvent(new Event('ferex_document_change'));
 
-  if (docResult && (docResult as StudentDocument).student_id) {
+  if (docResult && docResult.student_id) {
     try {
       const { createNotification } = await import('./notifications');
       const isApproved = (status as string) === 'Verified' || status === 'Approved';
       const isReupload = status === 'Re-upload Requested' || status === 'Rejected';
 
       await createNotification({
-        user_id: (docResult as StudentDocument).student_id,
+        user_id: docResult.student_id,
         title: isApproved ? 'Document Verified & Approved' : isReupload ? 'Document Action Required' : 'Document Status Updated',
         body: isApproved
-          ? `Your document "${(docResult as StudentDocument).doc_type || 'Submitted Document'}" has been verified and approved.`
-          : `Status for "${(docResult as StudentDocument).doc_type || 'Document'}": ${status}. ${notesText ? 'Notes: ' + notesText : ''}`,
+          ? `Your document "${docResult.doc_type || 'Submitted Document'}" has been verified and approved.`
+          : `Status for "${docResult.doc_type || 'Document'}": ${status}. ${notesText ? 'Notes: ' + notesText : ''}`,
         category: 'Document'
       });
     } catch (e) {}
   }
 
   await logActivity('DOCUMENT_STATUS_UPDATED', 'student_document', id, { status, reviewer_notes: notesText });
-
   return docResult;
 }
 
@@ -220,47 +227,48 @@ export async function reuploadDocumentRecord(
     doc_type: StudentDocument['doc_type'];
   }
 ) {
-  let res = await supabase
-    .from('student_documents')
-    .update({
-      file_name: payload.file_name,
-      file_url: payload.file_url,
-      file_size: payload.file_size || '1.2 MB',
-      doc_type: payload.doc_type,
-      document_type: payload.doc_type,
-      status: 'Submitted',
-      uploaded_at: new Date().toISOString(),
-      reviewer_notes: '',
-    })
-    .eq('id', id)
-    .select();
-
-  if (res.error || !res.data || res.data.length === 0) {
-    console.warn('[reuploadDocumentRecord Attempt 1 Notice]:', res.error?.message);
-    res = await supabase
+  let docResult: StudentDocument | null = null;
+  try {
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin
       .from('student_documents')
       .update({
         file_name: payload.file_name,
         file_url: payload.file_url,
+        file_size: payload.file_size || '1.2 MB',
+        doc_type: payload.doc_type,
+        document_type: payload.doc_type,
         status: 'Submitted',
         uploaded_at: new Date().toISOString(),
+        reviewer_notes: '',
       })
       .eq('id', id)
       .select();
-  }
 
-  if (res.error || !res.data || res.data.length === 0) {
-    return {
+    if (data && data.length > 0) {
+      docResult = data[0] as StudentDocument;
+    }
+  } catch (e) {}
+
+  if (!docResult) {
+    const catalog = await fetchDocumentsCatalog();
+    const existing = catalog.find(d => d.id === id);
+    docResult = {
+      ...(existing || { id }),
       id,
       file_name: payload.file_name,
       file_url: payload.file_url,
+      file_size: payload.file_size || '1.2 MB',
       doc_type: payload.doc_type,
       status: 'Submitted',
       uploaded_at: new Date().toISOString(),
-    } as Partial<StudentDocument>;
+      reviewer_notes: ''
+    } as StudentDocument;
   }
 
-  return res.data[0] as StudentDocument;
+  await syncDocumentToCloudCatalog(docResult);
+  window.dispatchEvent(new Event('ferex_document_change'));
+  return docResult;
 }
 
 // ─── Get document counts for admin dashboard ──────────────────────────────────

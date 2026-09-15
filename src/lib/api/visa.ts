@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import { generateUUID } from '../../utils/uuid';
 
 export interface VisaTrackingRecord {
@@ -18,41 +19,56 @@ export interface VisaTrackingRecord {
   updated_at: string;
 }
 
-const VISA_STORAGE_KEY = 'ferex_visa_records';
+const VISA_CATALOG_ID = 'ferex_visa_records_catalog';
 
-function getLocalVisaRecords(): VisaTrackingRecord[] {
+async function fetchVisaCatalog(): Promise<VisaTrackingRecord[]> {
   try {
-    const raw = localStorage.getItem(VISA_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin
+      .from('system_config')
+      .select('config')
+      .eq('id', VISA_CATALOG_ID)
+      .maybeSingle();
+    if (data?.config && Array.isArray(data.config)) {
+      return data.config;
+    }
+  } catch {}
+  try {
+    const raw = localStorage.getItem('ferex_visa_cloud_catalog');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+async function syncVisaToCloudCatalog(record: VisaTrackingRecord) {
+  try {
+    const current = await fetchVisaCatalog();
+    const filtered = current.filter(r => r.id !== record.id && r.student_id !== record.student_id);
+    const updated = [record, ...filtered];
+    try {
+      localStorage.setItem('ferex_visa_cloud_catalog', JSON.stringify(updated));
+    } catch {}
+    const admin = await getAdminSupabaseClient();
+    await admin.from('system_config').upsert({
+      id: VISA_CATALOG_ID,
+      config: updated,
+      updated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.warn('[syncVisaToCloudCatalog notice]:', e);
   }
 }
 
-function saveLocalVisaRecords(records: VisaTrackingRecord[]) {
-  try {
-    localStorage.setItem(VISA_STORAGE_KEY, JSON.stringify(records));
-  } catch {}
-}
-
 export async function getVisaRecords(studentId?: string): Promise<VisaTrackingRecord[]> {
-  const local = getLocalVisaRecords();
   try {
-    let query = supabase.from('visa_tracking').select('*').order('updated_at', { ascending: false });
+    const admin = await getAdminSupabaseClient();
+    let query = admin.from('visa_tracking').select('*').order('updated_at', { ascending: false });
     if (studentId) {
       query = query.eq('student_id', studentId);
     }
 
-    const { data, error } = await query;
-
-    if (error || !data || data.length === 0) {
-      if (studentId) {
-        return local.filter(r => r.student_id === studentId);
-      }
-      return local;
-    }
-
-    const dbRecs = (data ?? []).map((r: any) => {
+    const { data } = await query;
+    const dbRecs = ((data ?? []) as any[]).map((r: any) => {
       const statusLower = String(r.status_label || r.status || '').toLowerCase();
       const stageNum = Number(r.current_stage) || 1;
       let outcome = r.decision_outcome;
@@ -86,18 +102,21 @@ export async function getVisaRecords(studentId?: string): Promise<VisaTrackingRe
       };
     });
 
+    const cloudCatalog = await fetchVisaCatalog();
+    const targetCloud = studentId ? cloudCatalog.filter(r => r.student_id === studentId) : cloudCatalog;
     const dbIds = new Set(dbRecs.map(r => r.id));
-    const merged = [...dbRecs, ...local.filter(r => !dbIds.has(r.id))];
+    const merged = [...dbRecs, ...targetCloud.filter(r => !dbIds.has(r.id))];
 
     if (studentId) {
       return merged.filter(r => r.student_id === studentId);
     }
     return merged;
   } catch (err) {
+    const cloudCatalog = await fetchVisaCatalog();
     if (studentId) {
-      return local.filter(r => r.student_id === studentId);
+      return cloudCatalog.filter(r => r.student_id === studentId);
     }
-    return local;
+    return cloudCatalog;
   }
 }
 
@@ -174,24 +193,19 @@ export async function updateVisaStatus(
     updated_at: new Date().toISOString(),
   };
 
-  // 1. Save to local storage
-  const local = getLocalVisaRecords();
-  const existingIdx = local.findIndex(r => r.id === validId || r.student_id === upsertPayload.student_id);
-  if (existingIdx >= 0) {
-    local[existingIdx] = { ...local[existingIdx], ...upsertPayload };
-  } else {
-    local.unshift(upsertPayload);
-  }
-  saveLocalVisaRecords(local);
 
-  // 2. Try update existing row in Supabase
+
+  // 2. Try update existing row in Supabase with admin client
   let finalRecord: VisaTrackingRecord = upsertPayload;
   try {
-    const { data: upsData, error: upsErr } = await supabase.from('visa_tracking').upsert(upsertPayload).select('*');
+    const admin = await getAdminSupabaseClient();
+    const { data: upsData, error: upsErr } = await admin.from('visa_tracking').upsert(upsertPayload).select('*');
     if (!upsErr && upsData && upsData.length > 0) {
       finalRecord = { ...upsData[0], decision_outcome: updates.decision_outcome || upsertPayload.decision_outcome } as VisaTrackingRecord;
     }
   } catch (e) {}
+
+  await syncVisaToCloudCatalog(finalRecord);
 
   if (upsertPayload.student_id) {
     try {

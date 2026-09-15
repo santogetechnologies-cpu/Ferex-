@@ -5,7 +5,6 @@ import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
 import { useDocuments } from '../../hooks/useDocuments';
 import { getStaffMembers, createStaffMember, DEFAULT_COUNSELOR_ROSTER, assignCounselorToStudent, getDefaultCounselorForCountry } from '../../lib/api/students';
-import { ensureStudentApplication } from '../../lib/api/applications';
 import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../../lib/api/documentRequirements';
 import type { UserProfile } from '../../lib/types';
 
@@ -304,10 +303,19 @@ export const AdminStudents: React.FC = () => {
         assigned_counselor: chosenCounselor
       });
 
-      // Auto-create base application
-      try {
-        await ensureStudentApplication(created.id, addName.trim());
-      } catch (e) {}
+      // If admin selected a specific target university and course, create a real application record
+      if (addUniversity && addUniversity.trim()) {
+        try {
+          const { createApplication } = await import('../../lib/api/applications');
+          await createApplication({
+            student_id: created.id,
+            student_name: addName.trim(),
+            university_name: addUniversity.trim(),
+            program_name: addCourse.trim() || 'Higher Degree Studies',
+            intake: addIntake.trim() || 'October 2026'
+          });
+        } catch (e) {}
+      }
 
       setShowAddModal(false);
       setAddName('');

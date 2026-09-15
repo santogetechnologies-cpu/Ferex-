@@ -709,7 +709,7 @@ export const AdminPayments: React.FC = () => {
                     ))}
                   </select>
                   <input type="text" required value={manualStudentName} onChange={e => setManualStudentName(e.target.value)}
-                    placeholder="e.g. Rahul Sharma"
+                    placeholder="e.g. Student Full Name"
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]" />
                 </div>
 

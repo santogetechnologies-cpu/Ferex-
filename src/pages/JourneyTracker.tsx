@@ -13,6 +13,7 @@ import { useApplications } from '../hooks/useApplications';
 import { useDocuments } from '../hooks/useDocuments';
 import { useVisa } from '../hooks/useVisa';
 import { useMeetings } from '../hooks/useMeetings';
+import { isRealApplication } from '../lib/api/applications';
 
 export const JourneyTracker: React.FC = () => {
   const navigate = useNavigate();
@@ -36,7 +37,8 @@ export const JourneyTracker: React.FC = () => {
     m.status === 'Scheduled' || (m.status as string) === 'Confirmed'
   );
 
-  const activeApp = applications[0];
+  const realApps = applications.filter(isRealApplication);
+  const activeApp = realApps[0];
   const targetCountry = localStorage.getItem('ferex_student_target_country') || activeApp?.universities?.country || (activeApp as any)?.country || '';
   const targetUniversity = activeApp?.university_name || 
     activeApp?.universities?.name || 

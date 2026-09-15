@@ -522,25 +522,28 @@ export function getCountryWorkflows(): CountryWorkflowConfig[] {
 }
 
 export function getWorkflowForCountry(countryName?: string): CountryWorkflowConfig | null {
-  if (!countryName || !countryName.trim() || countryName.toLowerCase().trim() === 'india') {
+  if (!countryName || !countryName.trim()) return null;
+  const cName = countryName.trim();
+  const norm = cName.toLowerCase();
+  if (norm === 'india' || norm === 'ind') {
     return null;
   }
 
   const workflows = getCountryWorkflows();
   const matched = workflows.find(
-    w => w.country.toLowerCase().trim() === countryName.toLowerCase().trim()
+    w => w.country.toLowerCase().trim() === norm
   );
 
   if (matched) return matched;
 
   // If new country added by superadmin without specific workflow yet, generate an intuitive default workflow
   return {
-    id: `wf-${countryName.toLowerCase().replace(/\s+/g, '-')}`,
-    country: countryName,
-    authority_name: `${countryName} Ministry Qualification Recognition & Legalization`,
-    authority_acronym: `${countryName.slice(0, 4).toUpperCase()} Legalization`,
-    authority_badge: `${countryName} Academic Legalization`,
-    authority_description: `Official state academic equivalency audit and visa processing procedure for ${countryName}.`,
+    id: `wf-${norm.replace(/\s+/g, '-')}`,
+    country: cName,
+    authority_name: `${cName} Ministry Qualification Recognition & Legalization`,
+    authority_acronym: `${cName.slice(0, 4).toUpperCase()} Legalization`,
+    authority_badge: `${cName} Academic Legalization`,
+    authority_description: `Official state academic equivalency audit and visa processing procedure for ${cName}.`,
     estimated_processing_days: '14 - 28 Days',
     authority_fee: '€200',
     is_active: true,
@@ -549,7 +552,7 @@ export function getWorkflowForCountry(countryName?: string): CountryWorkflowConf
         step_number: 1,
         title: 'Academic Transcript Audit & Certified Translation',
         short_name: 'Document Audit',
-        description: `Review and certified translation of transcripts for ${countryName} higher education standards.`,
+        description: `Review and certified translation of transcripts for ${cName} higher education standards.`,
         responsible_party: 'ferex_admin',
         required_docs: ['Degree Marksheets', 'Passport Copy', 'English MOI Certificate'],
         estimated_days: '4-7 Days',
@@ -557,9 +560,9 @@ export function getWorkflowForCountry(countryName?: string): CountryWorkflowConf
       },
       {
         step_number: 2,
-        title: `${countryName} State Legalization & Equivalency Filing`,
+        title: `${cName} State Legalization & Equivalency Filing`,
         short_name: 'Legalization Filing',
-        description: `Submission of educational credentials to ${countryName} academic recognition authority.`,
+        description: `Submission of educational credentials to ${cName} academic recognition authority.`,
         responsible_party: 'authority',
         required_docs: ['Legalized Transcripts', 'Apostille Certificate'],
         estimated_days: '14-21 Days',
@@ -597,19 +600,19 @@ export function getWorkflowForCountry(countryName?: string): CountryWorkflowConf
       }
     ],
     checklist_documents: [
-      { id: `doc-pass-${countryName.toLowerCase()}`, name: 'Valid International Passport', category: 'identity', is_mandatory: true, instructions: 'Passport with min 1.5 year validity.' },
-      { id: `doc-acad-${countryName.toLowerCase()}`, name: 'Academic Marksheets & Degree Transcripts', category: 'academic', is_mandatory: true, instructions: 'Complete educational records.' },
-      { id: `doc-moi-${countryName.toLowerCase()}`, name: 'English Medium of Instruction (MOI) Certificate', category: 'academic', is_mandatory: true, instructions: 'Proof of English proficiency.' },
-      { id: `doc-fin-${countryName.toLowerCase()}`, name: 'Bank Solvency Statement & Living Funds Proof', category: 'financial', is_mandatory: true, instructions: 'Proof of adequate living finances.' },
-      { id: `doc-ins-${countryName.toLowerCase()}`, name: 'Comprehensive Medical & Travel Insurance', category: 'visa', is_mandatory: true, instructions: 'International coverage.' }
+      { id: `doc-pass-${norm}`, name: 'Valid International Passport', category: 'identity', is_mandatory: true, instructions: 'Passport with min 1.5 year validity.' },
+      { id: `doc-acad-${norm}`, name: 'Academic Marksheets & Degree Transcripts', category: 'academic', is_mandatory: true, instructions: 'Complete educational records.' },
+      { id: `doc-moi-${norm}`, name: 'English Medium of Instruction (MOI) Certificate', category: 'academic', is_mandatory: true, instructions: 'Proof of English proficiency.' },
+      { id: `doc-fin-${norm}`, name: 'Bank Solvency Statement & Living Funds Proof', category: 'financial', is_mandatory: true, instructions: 'Proof of adequate living finances.' },
+      { id: `doc-ins-${norm}`, name: 'Comprehensive Medical & Travel Insurance', category: 'visa', is_mandatory: true, instructions: 'International coverage.' }
     ],
     visa_procedures: {
-      visa_type: `National Student Visa for ${countryName}`,
+      visa_type: `National Student Visa for ${cName}`,
       financial_proof_req: 'Minimum €3,000 - €5,000 equivalent bank solvency statement',
       insurance_req: '€30,000 comprehensive travel and health insurance',
-      appointment_channel: `VFS Global / Embassy of ${countryName}`,
+      appointment_channel: `VFS Global / Embassy of ${cName}`,
       interview_required: true,
-      notes: `Complete compliance with ${countryName} immigration requirements.`
+      notes: `Complete compliance with ${cName} immigration requirements.`
     }
   };
 }

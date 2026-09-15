@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import { generateUUID } from '../../utils/uuid';
 import { createNotification } from './notifications';
 
@@ -26,31 +27,50 @@ export interface LegalizationRecord {
 // Backward-compatible alias
 export type NawaRecord = LegalizationRecord;
 
-const LEGALIZATION_STORAGE_KEY = 'ferex_legalization_records';
-const NAWA_STORAGE_KEY = 'ferex_nawa_records';
+const LEGALIZATION_CATALOG_ID = 'ferex_legalization_catalog';
 
-function getLocalRecords(): LegalizationRecord[] {
+async function fetchLegalizationCatalog(): Promise<LegalizationRecord[]> {
   try {
-    const raw = localStorage.getItem(LEGALIZATION_STORAGE_KEY) || localStorage.getItem(NAWA_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin
+      .from('system_config')
+      .select('config')
+      .eq('id', LEGALIZATION_CATALOG_ID)
+      .maybeSingle();
+    if (data?.config && Array.isArray(data.config)) {
+      return data.config;
+    }
+  } catch {}
+  try {
+    const raw = localStorage.getItem('ferex_legalization_cloud_catalog');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+async function syncLegalizationToCloudCatalog(record: LegalizationRecord) {
+  try {
+    const current = await fetchLegalizationCatalog();
+    const filtered = current.filter(r => r.id !== record.id);
+    const updated = [record, ...filtered];
+    try {
+      localStorage.setItem('ferex_legalization_cloud_catalog', JSON.stringify(updated));
+    } catch {}
+    const admin = await getAdminSupabaseClient();
+    await admin.from('system_config').upsert({
+      id: LEGALIZATION_CATALOG_ID,
+      config: updated,
+      updated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.warn('[syncLegalizationToCloudCatalog notice]:', e);
   }
 }
 
-function saveLocalRecords(records: LegalizationRecord[]) {
-  try {
-    localStorage.setItem(LEGALIZATION_STORAGE_KEY, JSON.stringify(records));
-    localStorage.setItem(NAWA_STORAGE_KEY, JSON.stringify(records));
-  } catch {}
-}
-
 export async function getLegalizationRecords(country?: string, studentId?: string): Promise<LegalizationRecord[]> {
-  const local = getLocalRecords();
   try {
-    let query = supabase
+    const admin = await getAdminSupabaseClient();
+    let query = admin
       .from('legalization_records')
       .select('*')
       .order('created_at', { ascending: false });
@@ -63,63 +83,34 @@ export async function getLegalizationRecords(country?: string, studentId?: strin
       query = query.eq('student_id', studentId);
     }
 
-    const { data, error } = await query;
+    const { data } = await query;
+    const dbRecs = ((data ?? []) as any[]).map((r: any) => ({
+      ...r,
+      nawa_ref_no: r.nawa_ref_no || r.ref_no
+    })) as LegalizationRecord[];
 
-    if (error || !data || data.length === 0) {
-      // Try fallback to nawa_records table if legacy table exists
-      try {
-        let legacyQuery = supabase.from('nawa_records').select('*').order('created_at', { ascending: false });
-        if (studentId) legacyQuery = legacyQuery.eq('student_id', studentId);
-        const { data: legacyData } = await legacyQuery;
-        if (legacyData && legacyData.length > 0) {
-          const mappedLegacy: LegalizationRecord[] = legacyData.map((r: any) => ({
-            id: r.id,
-            student_id: r.student_id,
-            student_name: r.student_name,
-            student_email: r.student_email,
-            country: r.country || 'Poland',
-            authority: r.authority || 'NAWA Polish National Agency',
-            authority_acronym: r.authority_acronym || 'NAWA',
-            ref_no: r.ref_no || r.nawa_ref_no || `LEG/POL/${Math.floor(1000 + Math.random() * 9000)}`,
-            nawa_ref_no: r.ref_no || r.nawa_ref_no,
-            document_type: r.document_type || 'Academic Transcripts',
-            current_step: r.current_step || 1,
-            status: r.status || 'Draft',
-            submission_date: r.submission_date || new Date().toISOString(),
-            approval_date: r.approval_date,
-            notes: r.notes,
-            certificate_url: r.certificate_url,
-            created_at: r.created_at || new Date().toISOString(),
-            updated_at: r.updated_at
-          }));
-          return mappedLegacy;
-        }
-      } catch {}
-
-      let filtered = local.map(r => ({ ...r, nawa_ref_no: r.nawa_ref_no || r.ref_no }));
-      if (country && country !== 'All') {
-        filtered = filtered.filter(r => r.country?.toLowerCase().includes(country.toLowerCase()));
-      }
-      if (studentId) {
-        filtered = filtered.filter(r => r.student_id === studentId);
-      }
-      return filtered;
-    }
-
-    const dbRecs = (data ?? []).map((r: any) => ({ ...r, nawa_ref_no: r.nawa_ref_no || r.ref_no })) as LegalizationRecord[];
-    const dbIds = new Set(dbRecs.map(r => r.id));
-    const merged = [...dbRecs, ...local.map(r => ({ ...r, nawa_ref_no: r.nawa_ref_no || r.ref_no })).filter(r => !dbIds.has(r.id))];
-
-    let result = merged;
+    const cloudCatalog = await fetchLegalizationCatalog();
+    let targetCloud = cloudCatalog.map(r => ({ ...r, nawa_ref_no: r.nawa_ref_no || r.ref_no }));
     if (country && country !== 'All') {
-      result = result.filter(r => r.country?.toLowerCase().includes(country.toLowerCase()));
+      targetCloud = targetCloud.filter(r => r.country?.toLowerCase().includes(country.toLowerCase()));
     }
     if (studentId) {
-      result = result.filter(r => r.student_id === studentId);
+      targetCloud = targetCloud.filter(r => r.student_id === studentId);
     }
-    return result;
+
+    const dbIds = new Set(dbRecs.map(r => r.id));
+    const merged = [...dbRecs, ...targetCloud.filter(r => !dbIds.has(r.id))];
+
+    if (country && country !== 'All') {
+      return merged.filter(r => r.country?.toLowerCase().includes(country.toLowerCase()));
+    }
+    if (studentId) {
+      return merged.filter(r => r.student_id === studentId);
+    }
+    return merged;
   } catch (err) {
-    let filtered = local.map(r => ({ ...r, nawa_ref_no: r.nawa_ref_no || r.ref_no }));
+    const cloudCatalog = await fetchLegalizationCatalog();
+    let filtered = cloudCatalog.map(r => ({ ...r, nawa_ref_no: r.nawa_ref_no || r.ref_no }));
     if (country && country !== 'All') {
       filtered = filtered.filter(r => r.country?.toLowerCase().includes(country.toLowerCase()));
     }
@@ -168,15 +159,13 @@ export async function createLegalizationApplication(payload: {
   };
 
   try {
-    await supabase.from('legalization_records').insert(newRecord);
+    const admin = await getAdminSupabaseClient();
+    await admin.from('legalization_records').insert(newRecord);
   } catch (e) {
     console.warn('[createLegalizationApplication] DB insert notice:', e);
   }
 
-  // Update local storage
-  const local = getLocalRecords();
-  const updated = [newRecord, ...local.filter(r => r.id !== newRecord.id)];
-  saveLocalRecords(updated);
+  await syncLegalizationToCloudCatalog(newRecord);
 
   // Send student notification
   try {
@@ -209,34 +198,50 @@ export async function updateLegalizationStatus(
   if (certificateUrl) updateData.certificate_url = certificateUrl;
   if (status === 'Approved') updateData.approval_date = now;
 
+  let updatedRecord: LegalizationRecord | null = null;
   try {
-    await supabase.from('legalization_records').update(updateData).eq('id', id);
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin.from('legalization_records').update(updateData).eq('id', id).select();
+    if (data && data.length > 0) {
+      updatedRecord = data[0] as LegalizationRecord;
+    }
   } catch (e) {
     console.warn('[updateLegalizationStatus] DB update notice:', e);
   }
 
-  const local = getLocalRecords();
-  let updatedRecord: LegalizationRecord | null = null;
-  const updated = local.map(r => {
-    if (r.id === id) {
-      updatedRecord = { ...r, ...updateData };
-      return updatedRecord;
+  if (!updatedRecord) {
+    const catalog = await fetchLegalizationCatalog();
+    const existing = catalog.find(r => r.id === id);
+    if (existing) {
+      updatedRecord = { ...existing, ...updateData };
     }
-    return r;
-  });
+  }
 
-  saveLocalRecords(updated);
+  if (updatedRecord) {
+    await syncLegalizationToCloudCatalog(updatedRecord);
+  }
+
   window.dispatchEvent(new Event('ferex_legalization_change'));
   return updatedRecord;
 }
 
 export async function deleteLegalizationRecord(id: string): Promise<boolean> {
   try {
-    await supabase.from('legalization_records').delete().eq('id', id);
+    const admin = await getAdminSupabaseClient();
+    await admin.from('legalization_records').delete().eq('id', id);
   } catch (e) {}
 
-  const local = getLocalRecords();
-  saveLocalRecords(local.filter(r => r.id !== id));
+  try {
+    const catalog = await fetchLegalizationCatalog();
+    const filtered = catalog.filter(r => r.id !== id);
+    const admin = await getAdminSupabaseClient();
+    await admin.from('system_config').upsert({
+      id: LEGALIZATION_CATALOG_ID,
+      config: filtered,
+      updated_at: new Date().toISOString()
+    });
+  } catch {}
+
   window.dispatchEvent(new Event('ferex_legalization_change'));
   return true;
 }
