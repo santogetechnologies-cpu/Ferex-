@@ -79,7 +79,9 @@ export const AdminNawaTracker: React.FC = () => {
         set.add(w.country.trim());
       }
     });
-    ['Poland', 'Germany', 'United Kingdom', 'France', 'Canada', 'Switzerland', 'Czech Republic', 'Italy', 'Spain', 'Hungary', 'Austria', 'Ireland'].forEach(c => set.add(c));
+    if (set.size === 0) {
+      ['Poland', 'Germany', 'United Kingdom', 'France', 'Canada', 'Switzerland', 'Czech Republic'].forEach(c => set.add(c));
+    }
     return Array.from(set).sort();
   }, [destinationList, workflows]);
 

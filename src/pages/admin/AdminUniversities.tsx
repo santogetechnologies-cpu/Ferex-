@@ -257,19 +257,19 @@ export const AdminUniversities: React.FC = () => {
   // Semester details state
   const [semestersList, setSemestersList] = useState<CourseSemester[]>([]);
 
-  // Collect all unique countries across Destinations, Workflows, Universities, and Document Requirements
+  // Collect all unique countries across Destinations and Universities
   const availableCountryNames = React.useMemo(() => {
     const set = new Set<string>();
     countryList.forEach(c => { if (c?.name) set.add(c.name.trim()); });
     universities.forEach(u => { if (u?.country) set.add(u.country.trim()); });
-    workflows.forEach(w => { if (w?.country) set.add(w.country.trim()); });
-    docReqCountries.forEach(c => { if (c) set.add(c.trim()); });
 
-    // Fallback standard study hubs
-    ['Poland', 'Germany', 'United Kingdom', 'France', 'Canada', 'Switzerland', 'Czech Republic', 'Italy', 'Spain', 'Hungary', 'Austria', 'Ireland', 'USA', 'UK'].forEach(c => set.add(c));
+    // Only if nothing is registered anywhere, provide standard starting options
+    if (set.size === 0) {
+      ['Poland', 'Germany', 'United Kingdom', 'France', 'Canada', 'Switzerland', 'Czech Republic'].forEach(c => set.add(c));
+    }
 
     return Array.from(set).filter(c => c && c.toLowerCase().trim() !== 'india').sort();
-  }, [countryList, universities, workflows, docReqCountries]);
+  }, [countryList, universities]);
 
   const showToast = (msg: string) => {
     setToast(msg);

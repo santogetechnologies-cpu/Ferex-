@@ -29,9 +29,11 @@ export function useUniversities() {
       fetchUniversities(true);
     };
 
+    window.addEventListener('ferex_universities_change', handleDataChange);
     window.addEventListener('ferex_university_change', handleDataChange);
     window.addEventListener('storage', handleDataChange);
     return () => {
+      window.removeEventListener('ferex_universities_change', handleDataChange);
       window.removeEventListener('ferex_university_change', handleDataChange);
       window.removeEventListener('storage', handleDataChange);
     };

@@ -947,40 +947,67 @@ export const FerexLandingPage: React.FC = () => {
                   key={uni.id}
                   className="bg-white rounded-2xl border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden group text-left"
                 >
-                  <div className="p-6 space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-[#570229] bg-[#E9D7DF] px-2.5 py-0.5 rounded-full inline-block mb-1.5 border border-[#C85A7C]/20">
-                          {uni.country}
+                  <div>
+                    {/* University Campus Image Banner */}
+                    <div className="h-44 relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950">
+                      {uni.image_url ? (
+                        <img
+                          src={uni.image_url}
+                          alt={uni.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-slate-900 text-slate-400">
+                          <Building2 className="w-12 h-12 opacity-30" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#1F2937]/90 via-[#1F2937]/25 to-transparent" />
+
+                      <span className="absolute top-3 left-3 text-[10px] font-black uppercase tracking-wider text-[#570229] bg-white/95 px-2.5 py-0.5 rounded-full border border-white/50 shadow-xs">
+                        {uni.country}
+                      </span>
+
+                      <span className="absolute top-3 right-3 text-[10px] font-black bg-[#570229] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/30 shadow-xs">
+                        {uni.badge || 'Accredited Partner'}
+                      </span>
+
+                      <div className="absolute bottom-2.5 left-3.5 right-3.5">
+                        <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-amber-300 bg-black/60 px-2 py-0.5 rounded">
+                          {uni.category || 'Higher Education'}
                         </span>
-                        <h3 className="text-base font-serif font-black text-[#1F2937] group-hover:text-[#570229] transition-colors leading-tight">
-                          {uni.name}
-                        </h3>
-                        <p className="text-xs text-[#6B7280] font-semibold mt-1 flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-[#6B7280] shrink-0" /> {uni.city}, {uni.country}
-                        </p>
                       </div>
                     </div>
 
-                    <div className="p-3.5 rounded-xl bg-[#F7F4F2] border border-[#ECE7EA] space-y-2 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[#6B7280] font-semibold">Tuition Range:</span>
-                        <span className="font-black text-[#1F2937]">{formatFeeEURandINR(uni.tuition_range || uni.university_fee)}</span>
+                    <div className="p-5 space-y-3.5">
+                      <div>
+                        <h3 className="text-base font-serif font-black text-[#1F2937] group-hover:text-[#570229] transition-colors leading-tight line-clamp-1">
+                          {uni.name}
+                        </h3>
+                        <p className="text-xs text-[#6B7280] font-semibold mt-1 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-[#8C1D4F] shrink-0" /> {uni.city ? `${uni.city}, ` : ''}{uni.country}
+                        </p>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[#6B7280] font-semibold">Flagship Intakes:</span>
-                        <span className="font-bold text-[#1F2937]">
-                          {Array.isArray(uni.intakes) ? uni.intakes.join(' • ') : (uni.intakes || (uni as any).intake || 'October 2026 • February 2027')}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[#6B7280] font-semibold">Legalization & Visa:</span>
-                        <span className="font-bold text-[#0F9D58]">Supported by FEREX</span>
+
+                      <div className="p-3.5 rounded-xl bg-[#F7F4F2] border border-[#ECE7EA] space-y-2 text-xs">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[#6B7280] font-semibold">Tuition Range:</span>
+                          <span className="font-black text-[#1F2937]">{formatFeeEURandINR(uni.tuition_range || uni.university_fee)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[#6B7280] font-semibold">Flagship Intakes:</span>
+                          <span className="font-bold text-[#1F2937]">
+                            {Array.isArray(uni.intakes) ? uni.intakes.join(' • ') : (uni.intakes || (uni as any).intake || 'October 2026 • February 2027')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[#6B7280] font-semibold">Legalization & Visa:</span>
+                          <span className="font-bold text-[#0F9D58]">Supported by FEREX</span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-6 pt-0">
+                  <div className="p-5 pt-0">
                     <button
                       onClick={() => goToLogin('signup', uni.name)}
                       className="w-full h-10 rounded-xl bg-[#570229] hover:bg-[#6F0335] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"

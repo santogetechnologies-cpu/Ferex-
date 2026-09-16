@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Search, MapPin, Award, Sparkles, Heart, X, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight, Lock, AlertCircle } from 'lucide-react';
+import { Target, Search, MapPin, Award, Sparkles, Heart, X, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight, Lock, AlertCircle, GraduationCap, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUniversities } from '../hooks/useUniversities';
 import { useDestinations } from '../hooks/useDestinations';
@@ -457,73 +457,88 @@ export const SelectUniversity: React.FC = () => {
           const wf = getWorkflowForCountry(uni.country);
 
           return (
-            <Card key={uni.id} className="p-5 flex flex-col justify-between border border-slate-200/80 hover:border-[#6A1B2E]/30 transition-all hover:shadow-md group bg-white">
+            <Card key={uni.id} className="p-0 overflow-hidden flex flex-col justify-between border border-slate-200/80 hover:border-[#6A1B2E]/30 transition-all hover:shadow-md group bg-white">
               <div>
-                {/* Image / Logo & Bookmark */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2.5">
-                    {uni.logo_url ? (
-                      <img src={uni.logo_url} alt={uni.name} className="w-10 h-10 object-contain p-1 bg-slate-50 border border-slate-100 rounded-xl" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-black text-sm border border-[#6A1B2E]/20">
-                        {uni.name[0]}
-                      </div>
-                    )}
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200">
-                      {wf?.authority_acronym || 'Accredited'}
-                    </span>
-                  </div>
+                {/* Campus Image Banner */}
+                <div className="h-36 relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950">
+                  {uni.image_url ? (
+                    <img
+                      src={uni.image_url}
+                      alt={uni.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-85"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-900 text-slate-400">
+                      <GraduationCap className="w-12 h-12 opacity-30" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                  {/* Floating Badges */}
+                  <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#6A1B2E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/30 shadow-xs">
+                    {uni.badge || wf?.authority_acronym || 'Accredited'}
+                  </span>
 
                   <button
                     onClick={() => toggleSave(uni.id, uni.name)}
-                    className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                    className={`absolute top-2.5 left-2.5 p-1.5 rounded-xl border backdrop-blur-md transition-colors cursor-pointer ${
                       isSaved
-                        ? 'bg-rose-50 text-rose-600 border-rose-200'
-                        : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-slate-600'
+                        ? 'bg-rose-500/90 text-white border-rose-400'
+                        : 'bg-black/40 text-white/80 border-white/20 hover:text-white'
                     }`}
                   >
-                    <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                    <Heart className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
                   </button>
-                </div>
 
-                <h3 className="text-base font-black text-slate-900 leading-snug mb-1 group-hover:text-[#6A1B2E] transition-colors">
-                  {uni.name}
-                </h3>
-
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-500 mb-3">
-                  <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                  <span>{uni.city}, {uni.country}</span>
-                  <span className="text-slate-300">•</span>
-                  <Award className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span>Rank #{uni.ranking}</span>
-                </div>
-
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 mb-4 space-y-1.5 text-xs font-semibold">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Tuition Fee:</span>
-                    <span className="font-bold text-slate-900">{uni.tuition_range || uni.university_fee}</span>
+                  <div className="absolute bottom-2 left-3 text-white">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300 bg-black/50 px-2 py-0.5 rounded backdrop-blur-xs">
+                      {uni.category || 'Higher Education'}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Procedure:</span>
-                    <span className="font-bold text-[#6A1B2E]">{wf?.authority_badge || 'Standard'}</span>
+                </div>
+
+                <div className="p-4 space-y-3">
+                  <h3 className="text-base font-black text-slate-900 leading-snug group-hover:text-[#6A1B2E] transition-colors line-clamp-1">
+                    {uni.name}
+                  </h3>
+
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                    <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <span>{uni.city ? `${uni.city}, ` : ''}{uni.country}</span>
+                    <span className="text-slate-300">•</span>
+                    <Award className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span>Rank #{uni.ranking || 100}</span>
+                  </div>
+
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1 text-xs font-semibold">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Tuition Fee:</span>
+                      <span className="font-bold text-[#6A1B2E]">{uni.tuition_range || uni.university_fee}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Procedure:</span>
+                      <span className="font-bold text-slate-700">{wf?.authority_badge || 'Standard'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
-                <button
-                  onClick={() => setDrawerUni(uni)}
-                  className="flex-1 h-9 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
-                >
-                  View Details
-                </button>
+              <div className="p-4 pt-0">
+                <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
+                  <button
+                    onClick={() => setDrawerUni(uni)}
+                    className="flex-1 h-9 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                  >
+                    View Details
+                  </button>
 
-                <button
-                  onClick={() => handleOpenApply(uni)}
-                  className="flex-1 h-9 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 shadow-xs transition-all cursor-pointer"
-                >
-                  Apply Now <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
-                </button>
+                  <button
+                    onClick={() => handleOpenApply(uni)}
+                    className="flex-1 h-9 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 shadow-xs transition-all cursor-pointer"
+                  >
+                    Apply Now <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+                  </button>
+                </div>
               </div>
             </Card>
           );
@@ -540,18 +555,29 @@ export const SelectUniversity: React.FC = () => {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/30 backdrop-blur-xs" onClick={() => setDrawerUni(null)} />
               <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="relative bg-white w-full max-w-lg h-full shadow-2xl z-10 p-6 overflow-y-auto flex flex-col justify-between text-left">
                 <div>
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-black text-sm border border-[#6A1B2E]/20">
                         {drawerUni.name?.[0] || 'U'}
                       </div>
                       <div>
                         <h3 className="text-base font-black text-slate-900">{drawerUni.name}</h3>
-                        <p className="text-xs font-bold text-slate-400">{drawerUni.city}, {drawerUni.country}</p>
+                        <p className="text-xs font-bold text-slate-400">{drawerUni.city ? `${drawerUni.city}, ` : ''}{drawerUni.country}</p>
                       </div>
                     </div>
                     <button onClick={() => setDrawerUni(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"><X className="w-4 h-4" /></button>
                   </div>
+
+                  {/* Campus Picture in Drawer */}
+                  {drawerUni.image_url && (
+                    <div className="h-36 rounded-2xl overflow-hidden relative mb-4">
+                      <img src={drawerUni.image_url} alt={drawerUni.name} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      <span className="absolute bottom-2.5 left-3 px-2.5 py-0.5 bg-[#6A1B2E] text-amber-300 rounded-lg text-[10px] font-black">
+                        {drawerUni.badge || 'Accredited Partner'}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Country Procedure Banner */}
                   <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 mb-4 space-y-1">

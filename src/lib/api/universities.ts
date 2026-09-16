@@ -189,6 +189,8 @@ export const BASELINE_UNIVERSITIES: University[] = [
 
 const LOCAL_STORAGE_KEY = 'ferex_universities_cache';
 const MASTER_STORAGE_KEY = 'ferex_custom_universities';
+const DELETED_UNIS_KEY = 'ferex_deleted_universities';
+const PURGED_UNIS_KEY = 'ferex_universities_purged';
 
 export const DEFAULT_CAMPUS_IMAGES = [
   'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&auto=format&fit=crop&q=80',
@@ -198,6 +200,35 @@ export const DEFAULT_CAMPUS_IMAGES = [
   'https://images.unsplash.com/photo-1517935703635-27c946452f7b?w=800&auto=format&fit=crop&q=80'
 ];
 
+function getDeletedUniKeys(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_UNIS_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr.map((k: string) => String(k).toLowerCase().trim()) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function addDeletedUniKey(id: string, name?: string) {
+  try {
+    const keys = getDeletedUniKeys();
+    if (id) keys.add(id.toLowerCase().trim());
+    if (name) keys.add(name.toLowerCase().trim());
+    localStorage.setItem(DELETED_UNIS_KEY, JSON.stringify(Array.from(keys)));
+  } catch {}
+}
+
+function removeDeletedUniKey(id: string, name?: string) {
+  try {
+    const keys = getDeletedUniKeys();
+    if (id) keys.delete(id.toLowerCase().trim());
+    if (name) keys.delete(name.toLowerCase().trim());
+    localStorage.setItem(DELETED_UNIS_KEY, JSON.stringify(Array.from(keys)));
+  } catch {}
+}
+
 function isJunkUniversity(u: any): boolean {
   if (!u || !u.name) return true;
   const name = u.name.toLowerCase().trim();
@@ -206,7 +237,10 @@ function isJunkUniversity(u: any): boolean {
 }
 
 export async function getUniversities(): Promise<University[]> {
+  const deletedKeys = getDeletedUniKeys();
+  const isPurged = localStorage.getItem(PURGED_UNIS_KEY) === 'true';
   let list: University[] = [];
+  let fetchedFromDb = false;
 
   // 1. SUPABASE DATABASE FIRST: Fetch live rows from Supabase
   try {
@@ -215,15 +249,16 @@ export async function getUniversities(): Promise<University[]> {
       .select('*')
       .order('ranking', { ascending: true });
 
-    if (!error && data && Array.isArray(data) && data.length > 0) {
+    if (!error && data && Array.isArray(data)) {
+      fetchedFromDb = true;
       list = data.filter((u: any) => !isJunkUniversity(u)) as University[];
     }
   } catch (err) {
     console.warn('[getUniversities DB Warning]:', err);
   }
 
-  // 2. Check system_config catalog backup if table returned empty
-  if (list.length === 0) {
+  // 2. Check system_config catalog backup if table returned empty and not explicitly purged
+  if (list.length === 0 && !isPurged) {
     try {
       const { data: cfg } = await supabase
         .from('system_config')
@@ -237,20 +272,35 @@ export async function getUniversities(): Promise<University[]> {
     } catch {}
   }
 
-  // 3. Fallback to verified baseline universities
-  if (list.length === 0) {
+  // 3. Check local cache if DB was unreachable and not purged
+  if (list.length === 0 && !fetchedFromDb && !isPurged) {
+    try {
+      const local = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          list = parsed.filter((u: any) => !isJunkUniversity(u));
+        }
+      }
+    } catch {}
+  }
+
+  // 4. Fallback to baseline ONLY on completely fresh initial installs
+  if (list.length === 0 && !isPurged && deletedKeys.size === 0 && !fetchedFromDb) {
     list = [...BASELINE_UNIVERSITIES];
   }
 
-  // Ensure default baseline universities are present
-  BASELINE_UNIVERSITIES.forEach(def => {
-    if (!list.some(u => u.name.toLowerCase().trim() === def.name.toLowerCase().trim())) {
-      list.push(def);
-    }
+  // Filter out any explicitly deleted universities
+  const activeList = list.filter(u => {
+    if (!u || !u.name) return false;
+    const idKey = (u.id || '').toLowerCase().trim();
+    const nameKey = (u.name || '').toLowerCase().trim();
+    if (deletedKeys.has(idKey) || deletedKeys.has(nameKey)) return false;
+    return true;
   });
 
-  // Enrich with images/badges if table only stored minimal columns
-  const enrichedList = list.map(u => {
+  // Enrich with baseline details if needed
+  const enrichedList = activeList.map(u => {
     const baselineMatch = BASELINE_UNIVERSITIES.find(b => b.name.toLowerCase().trim() === u.name.toLowerCase().trim());
     return {
       ...u,
@@ -302,6 +352,10 @@ export async function createUniversity(payload: {
   const trimmedName = payload.name.trim();
   const targetCountry = payload.country.trim() || 'Poland';
 
+  // Unmark from deleted list if re-added
+  removeDeletedUniKey(newId, trimmedName);
+  try { localStorage.removeItem(PURGED_UNIS_KEY); } catch {}
+
   const fullObject: University = {
     id: newId,
     name: trimmedName,
@@ -319,8 +373,8 @@ export async function createUniversity(payload: {
     is_active: true,
     intakes: payload.intakes && payload.intakes.length > 0 ? payload.intakes : ['October 2026', 'February 2027'],
     university_fee: payload.university_fee || payload.tuition_range || '€3,500 / yr',
-    vfs_fee: payload.vfs_fee || '€150',
-    agency_fee: payload.agency_fee || '€250',
+    vfs_fee: payload.vfs_fee || '₹15,000',
+    agency_fee: payload.agency_fee || '₹25,000',
     agency_fee_description: payload.agency_fee_description,
     installments_enabled: payload.installments_enabled ?? false,
     living_cost_monthly: payload.living_cost_monthly || '€450 - €650 / mo',
@@ -332,13 +386,17 @@ export async function createUniversity(payload: {
     semesters: payload.semesters || [],
   };
 
-  // 1. Database insert with schema-safe columns ONLY
-  const dbPayload = {
+  // 1. Database insert with all available columns
+  const dbPayload: any = {
     id: fullObject.id,
     name: fullObject.name,
     country: fullObject.country,
     city: fullObject.city,
-    logo_url: fullObject.logo_url?.startsWith('data:') ? '' : fullObject.logo_url,
+    logo_url: fullObject.logo_url,
+    image_url: fullObject.image_url,
+    badge: fullObject.badge,
+    category: fullObject.category,
+    description: fullObject.description,
     ranking: fullObject.ranking,
     rating: fullObject.rating,
     programs: fullObject.programs,
@@ -347,6 +405,8 @@ export async function createUniversity(payload: {
     university_fee: fullObject.university_fee,
     vfs_fee: fullObject.vfs_fee,
     agency_fee: fullObject.agency_fee,
+    living_cost_monthly: fullObject.living_cost_monthly,
+    nawa_required: fullObject.nawa_required,
     course_programs: fullObject.course_programs,
     installments: fullObject.installments,
     semesters: fullObject.semesters,
@@ -358,11 +418,31 @@ export async function createUniversity(payload: {
     const { error: insErr } = await admin.from('universities').insert([dbPayload]);
     if (insErr) {
       console.warn('[createUniversity DB Warning]:', insErr.message);
+      // Fallback: minimal columns if table has older schema
+      const corePayload = {
+        id: fullObject.id,
+        name: fullObject.name,
+        country: fullObject.country,
+        city: fullObject.city,
+        image_url: fullObject.image_url,
+        ranking: fullObject.ranking,
+        rating: fullObject.rating,
+        programs: fullObject.programs,
+        tuition_range: fullObject.tuition_range,
+        university_fee: fullObject.university_fee,
+        vfs_fee: fullObject.vfs_fee,
+        agency_fee: fullObject.agency_fee,
+        course_programs: fullObject.course_programs,
+        is_active: true
+      };
+      try {
+        await admin.from('universities').insert([corePayload]);
+      } catch {}
     }
 
     // Also update system_config catalog backup with full object
     const currentList = await getUniversities();
-    const updatedCatalog = [fullObject, ...currentList.filter(u => u.name.toLowerCase() !== fullObject.name.toLowerCase())];
+    const updatedCatalog = [fullObject, ...currentList.filter(u => u.id !== newId && u.name.toLowerCase() !== fullObject.name.toLowerCase())];
     await admin.from('system_config').upsert({
       key: 'ferex_universities_catalog',
       value: updatedCatalog,
@@ -381,6 +461,7 @@ export async function createUniversity(payload: {
   } catch {}
 
   window.dispatchEvent(new Event('ferex_universities_change'));
+  window.dispatchEvent(new Event('ferex_university_change'));
   window.dispatchEvent(new Event('storage'));
   return fullObject;
 }
@@ -389,8 +470,9 @@ export async function updateUniversity(id: string, payload: Partial<University>)
   const admin = await getAdminSupabaseClient();
   const dbPayload: any = {};
   const allowedCols = [
-    'name', 'country', 'city', 'logo_url', 'ranking', 'rating', 'programs',
-    'tuition_range', 'intakes', 'university_fee', 'vfs_fee', 'agency_fee',
+    'name', 'country', 'city', 'logo_url', 'image_url', 'badge', 'category', 'description',
+    'ranking', 'rating', 'programs', 'tuition_range', 'intakes', 'university_fee',
+    'vfs_fee', 'agency_fee', 'agency_fee_description', 'living_cost_monthly', 'nawa_required',
     'course_programs', 'installments', 'semesters', 'installments_enabled', 'is_active'
   ];
 
@@ -419,14 +501,26 @@ export async function updateUniversity(id: string, payload: Partial<University>)
     });
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
     localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(updated));
+
+    // Update system_config backup
+    try {
+      await admin.from('system_config').upsert({
+        key: 'ferex_universities_catalog',
+        value: updated,
+        updated_at: new Date().toISOString()
+      });
+    } catch {}
   } catch {}
 
   window.dispatchEvent(new Event('ferex_universities_change'));
+  window.dispatchEvent(new Event('ferex_university_change'));
   window.dispatchEvent(new Event('storage'));
   return updatedObj;
 }
 
 export async function deleteUniversity(id: string, name?: string): Promise<void> {
+  addDeletedUniKey(id, name);
+
   try {
     const admin = await getAdminSupabaseClient();
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -441,13 +535,26 @@ export async function deleteUniversity(id: string, name?: string): Promise<void>
   }
 
   try {
-    const current = await getUniversities();
-    const filtered = current.filter(u => u.id !== id && (!name || u.name.toLowerCase() !== name.toLowerCase()));
+    let current: University[] = [];
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
+      if (raw) current = JSON.parse(raw);
+    } catch {}
+
+    const filtered = current.filter(u => u.id !== id && (!name || u.name.toLowerCase().trim() !== name.toLowerCase().trim()));
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
     localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(filtered));
+
+    const admin = await getAdminSupabaseClient();
+    await admin.from('system_config').upsert({
+      key: 'ferex_universities_catalog',
+      value: filtered,
+      updated_at: new Date().toISOString()
+    });
   } catch {}
 
   window.dispatchEvent(new Event('ferex_universities_change'));
+  window.dispatchEvent(new Event('ferex_university_change'));
   window.dispatchEvent(new Event('storage'));
 }
 
@@ -455,6 +562,7 @@ export const updateUniversityRecord = updateUniversity;
 
 export async function clearAllUniversities(): Promise<void> {
   try {
+    localStorage.setItem(PURGED_UNIS_KEY, 'true');
     const admin = await getAdminSupabaseClient();
     await admin.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await admin.from('system_config').upsert({
@@ -464,14 +572,20 @@ export async function clearAllUniversities(): Promise<void> {
     });
   } catch {}
   try {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-    localStorage.removeItem(MASTER_STORAGE_KEY);
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([]));
+    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify([]));
   } catch {}
   window.dispatchEvent(new Event('ferex_universities_change'));
+  window.dispatchEvent(new Event('ferex_university_change'));
   window.dispatchEvent(new Event('storage'));
 }
 
 export async function restoreDefaultUniversities(): Promise<University[]> {
+  try {
+    localStorage.removeItem(PURGED_UNIS_KEY);
+    localStorage.removeItem(DELETED_UNIS_KEY);
+  } catch {}
+
   const admin = await getAdminSupabaseClient();
   await admin.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   
@@ -481,6 +595,10 @@ export async function restoreDefaultUniversities(): Promise<University[]> {
     country: u.country,
     city: u.city,
     logo_url: u.logo_url,
+    image_url: u.image_url,
+    badge: u.badge,
+    category: u.category,
+    description: u.description,
     ranking: u.ranking,
     rating: u.rating,
     programs: u.programs,
@@ -495,7 +613,10 @@ export async function restoreDefaultUniversities(): Promise<University[]> {
     is_active: true
   }));
 
-  await admin.from('universities').insert(sanitized);
+  try {
+    await admin.from('universities').insert(sanitized);
+  } catch {}
+
   await admin.from('system_config').upsert({
     key: 'ferex_universities_catalog',
     value: BASELINE_UNIVERSITIES,
@@ -508,6 +629,8 @@ export async function restoreDefaultUniversities(): Promise<University[]> {
   } catch {}
 
   window.dispatchEvent(new Event('ferex_universities_change'));
+  window.dispatchEvent(new Event('ferex_university_change'));
   window.dispatchEvent(new Event('storage'));
   return BASELINE_UNIVERSITIES;
 }
+

@@ -19,8 +19,6 @@ export interface DestinationItem {
   updated_at?: string;
 }
 
-const LOCAL_STORAGE_KEY = 'ferex_destinations_registry';
-
 export const DEFAULT_STUDY_DESTINATIONS: DestinationItem[] = [
   {
     id: '11111111-0000-4000-a000-000000000001',
@@ -192,6 +190,39 @@ export const DEFAULT_STUDY_DESTINATIONS: DestinationItem[] = [
   }
 ];
 
+const LOCAL_STORAGE_KEY = 'ferex_destinations_registry';
+const DELETED_DESTS_KEY = 'ferex_deleted_destinations';
+const PURGED_DESTS_KEY = 'ferex_destinations_purged';
+
+function getDeletedDestKeys(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_DESTS_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr.map((k: string) => String(k).toLowerCase().trim()) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function addDeletedDestKey(id: string, name?: string) {
+  try {
+    const keys = getDeletedDestKeys();
+    if (id) keys.add(id.toLowerCase().trim());
+    if (name) keys.add(name.toLowerCase().trim());
+    localStorage.setItem(DELETED_DESTS_KEY, JSON.stringify(Array.from(keys)));
+  } catch {}
+}
+
+function removeDeletedDestKey(id: string, name?: string) {
+  try {
+    const keys = getDeletedDestKeys();
+    if (id) keys.delete(id.toLowerCase().trim());
+    if (name) keys.delete(name.toLowerCase().trim());
+    localStorage.setItem(DELETED_DESTS_KEY, JSON.stringify(Array.from(keys)));
+  } catch {}
+}
+
 function isJunkDestination(name: string): boolean {
   if (!name) return true;
   const lower = name.toLowerCase().trim();
@@ -200,7 +231,10 @@ function isJunkDestination(name: string): boolean {
 }
 
 export async function getDestinations(): Promise<DestinationItem[]> {
+  const deletedKeys = getDeletedDestKeys();
+  const isPurged = localStorage.getItem(PURGED_DESTS_KEY) === 'true';
   let list: DestinationItem[] = [];
+  let fetchedFromDb = false;
 
   // 1. SUPABASE DATABASE FIRST: Always query live shared cloud storage
   try {
@@ -209,15 +243,16 @@ export async function getDestinations(): Promise<DestinationItem[]> {
       .select('*')
       .order('name', { ascending: true });
 
-    if (!error && data && Array.isArray(data) && data.length > 0) {
+    if (!error && data && Array.isArray(data)) {
+      fetchedFromDb = true;
       list = data.filter((d: any) => !isJunkDestination(d.name)) as DestinationItem[];
     }
   } catch (err) {
     console.warn('[getDestinations DB Notice]:', err);
   }
 
-  // 2. If destinations table was empty, check system_config catalog
-  if (list.length === 0) {
+  // 2. If destinations table was empty and not explicitly purged, check system_config catalog
+  if (list.length === 0 && !isPurged) {
     try {
       const { data: cfg } = await supabase
         .from('system_config')
@@ -231,20 +266,19 @@ export async function getDestinations(): Promise<DestinationItem[]> {
     } catch {}
   }
 
-  // 3. Fallback to default verified destinations
-  if (list.length === 0) {
+  // 3. Fallback to default verified destinations ONLY on fresh setup
+  if (list.length === 0 && !isPurged && deletedKeys.size === 0 && !fetchedFromDb) {
     list = [...DEFAULT_STUDY_DESTINATIONS];
   }
 
-  // Ensure default study destinations are included
-  DEFAULT_STUDY_DESTINATIONS.forEach(def => {
-    if (!list.some(d => d.name.toLowerCase() === def.name.toLowerCase())) {
-      list.push(def);
-    }
+  // Clean and filter out deleted destinations
+  const cleanList = list.filter(d => {
+    if (!d || isJunkDestination(d.name)) return false;
+    const idKey = (d.id || '').toLowerCase().trim();
+    const nameKey = (d.name || '').toLowerCase().trim();
+    if (deletedKeys.has(idKey) || deletedKeys.has(nameKey)) return false;
+    return true;
   });
-
-  // Clean and filter
-  const cleanList = list.filter(d => !isJunkDestination(d.name));
 
   // Mirror to local cache for instant offline renders
   try {
@@ -257,6 +291,11 @@ export async function getDestinations(): Promise<DestinationItem[]> {
 export async function createDestination(payload: Omit<DestinationItem, 'id' | 'created_at' | 'updated_at'>): Promise<DestinationItem> {
   const newId = generateUUID();
   const cleanName = payload.name.trim();
+
+  // Remove from deleted list if re-added
+  removeDeletedDestKey(newId, cleanName);
+  try { localStorage.removeItem(PURGED_DESTS_KEY); } catch {}
+
   const newObj: DestinationItem = {
     id: newId,
     name: cleanName,
@@ -284,7 +323,7 @@ export async function createDestination(payload: Omit<DestinationItem, 'id' | 'c
 
     // Also update system_config catalog backup
     const currentList = await getDestinations();
-    const updatedCatalog = [newObj, ...currentList.filter(d => d.name.toLowerCase() !== newObj.name.toLowerCase())];
+    const updatedCatalog = [newObj, ...currentList.filter(d => d.id !== newId && d.name.toLowerCase() !== newObj.name.toLowerCase())];
     await admin.from('system_config').upsert({
       key: 'ferex_destinations_catalog',
       value: updatedCatalog,
@@ -332,6 +371,13 @@ export async function updateDestination(id: string, payload: Partial<Destination
       return d;
     });
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+
+    const admin = await getAdminSupabaseClient();
+    await admin.from('system_config').upsert({
+      key: 'ferex_destinations_catalog',
+      value: updated,
+      updated_at: new Date().toISOString()
+    });
   } catch {}
 
   window.dispatchEvent(new Event('ferex_destinations_change'));
@@ -340,6 +386,8 @@ export async function updateDestination(id: string, payload: Partial<Destination
 }
 
 export async function deleteDestination(id: string, name?: string): Promise<void> {
+  addDeletedDestKey(id, name);
+
   // 1. Supabase Delete
   try {
     const admin = await getAdminSupabaseClient();
@@ -354,11 +402,23 @@ export async function deleteDestination(id: string, name?: string): Promise<void
     console.warn('[deleteDestination DB Warning]:', err);
   }
 
-  // 2. Local Storage Remove
+  // 2. Local Storage & system_config Remove
   try {
-    const existing = await getDestinations();
-    const filtered = existing.filter(d => d.id !== id && (!name || d.name.toLowerCase() !== name.toLowerCase()));
+    let current: DestinationItem[] = [];
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (raw) current = JSON.parse(raw);
+    } catch {}
+
+    const filtered = current.filter(d => d.id !== id && (!name || d.name.toLowerCase().trim() !== name.toLowerCase().trim()));
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
+
+    const admin = await getAdminSupabaseClient();
+    await admin.from('system_config').upsert({
+      key: 'ferex_destinations_catalog',
+      value: filtered,
+      updated_at: new Date().toISOString()
+    });
   } catch {}
 
   window.dispatchEvent(new Event('ferex_destinations_change'));
@@ -367,11 +427,17 @@ export async function deleteDestination(id: string, name?: string): Promise<void
 
 export async function clearAllDestinations(): Promise<void> {
   try {
+    localStorage.setItem(PURGED_DESTS_KEY, 'true');
     const admin = await getAdminSupabaseClient();
     await admin.from('destinations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await admin.from('system_config').upsert({
+      key: 'ferex_destinations_catalog',
+      value: [],
+      updated_at: new Date().toISOString()
+    });
   } catch {}
   try {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([]));
     localStorage.removeItem('ferex_registered_countries');
   } catch {}
   window.dispatchEvent(new Event('ferex_destinations_change'));
