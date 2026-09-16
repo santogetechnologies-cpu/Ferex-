@@ -231,6 +231,8 @@ export interface TradeClientPartner {
   country: string;
   city: string;
   category: string;
+  vat_number?: string;
+  payment_terms?: string;
   portal_active: boolean;
   temp_password?: string;
   created_at: string;
