@@ -129,7 +129,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       localStorage.removeItem('ferex_staff_demo_session');
       sessionStorage.clear();
     } catch (e) {}
-    window.location.href = '/#/login';
+    window.location.href = '/login';
   };
 
   return (

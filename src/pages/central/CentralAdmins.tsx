@@ -338,7 +338,7 @@ export const CentralAdmins: React.FC = () => {
   };
 
   const copyCredentials = (adm: AdminAccount) => {
-    const text = `Email: ${adm.email}\nPassword: ${adm.password || 'Configured in Supabase Auth'}\nRole: ${adm.divisionLabel}\nPortal: ${window.location.origin}/#/login`;
+    const text = `Email: ${adm.email}\nPassword: ${adm.password || 'Configured in Supabase Auth'}\nRole: ${adm.divisionLabel}\nPortal: ${window.location.origin}/login`;
     navigator.clipboard.writeText(text);
     showToastMsg('Login credentials copied to clipboard!');
   };

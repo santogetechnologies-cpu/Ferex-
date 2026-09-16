@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthLayout } from './layouts/AuthLayout';
 import { LoginPage } from './pages/LoginPage';
@@ -259,10 +259,25 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
   return <>{children}</>;
 };
 
+function HashMigrationRedirect() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash && window.location.hash.startsWith('#/')) {
+      const cleanPath = window.location.hash.substring(1);
+      navigate(cleanPath, { replace: true });
+    }
+  }, [navigate, location]);
+
+  return null;
+}
+
 function App() {
   return (
     <AuthProvider>
       <Router>
+        <HashMigrationRedirect />
         <AppInitializer />
         <Routes>
           {/* ── Official FEREX Education Website & Login Portal ── */}
