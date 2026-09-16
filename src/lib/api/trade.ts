@@ -197,7 +197,7 @@ export interface TradePaymentRecord {
   id: string;
   order_no: string;
   client_name: string;
-  type: 'Advance Payment' | 'Balance Settlement' | 'Full Payment' | 'LC Drawdown';
+  type: 'Advance Paid' | 'Advance Payment' | 'Settlement' | 'Balance Settlement' | 'Completed' | 'Full Payment' | 'LC Drawdown' | 'Balance Payment' | string;
   amount: number;
   currency: string;
   payment_method: string;
@@ -1412,7 +1412,7 @@ export async function getTradePayments(): Promise<TradePaymentRecord[]> {
 export async function recordTradePayment(payment: {
   order_no: string;
   client_name: string;
-  type: 'Advance Payment' | 'Balance Settlement' | 'Full Payment' | 'LC Drawdown';
+  type: 'Advance Paid' | 'Advance Payment' | 'Settlement' | 'Balance Settlement' | 'Completed' | 'Full Payment' | 'LC Drawdown' | 'Balance Payment' | string;
   amount: number;
   currency: string;
   payment_method: string;
@@ -1421,7 +1421,8 @@ export async function recordTradePayment(payment: {
   notes?: string;
 }): Promise<TradePaymentRecord> {
   const newId = uid();
-  const receiptNo = `RCP-${payment.order_no}-${payment.type.startsWith('Adv') ? 'ADV' : 'BAL'}-${Math.floor(100 + Math.random() * 900)}`;
+  const isAdv = payment.type.toLowerCase().includes('adv');
+  const receiptNo = `RCP-${payment.order_no}-${isAdv ? 'ADV' : 'SETTL'}-${Math.floor(100 + Math.random() * 900)}`;
 
   const created: TradePaymentRecord = {
     id: newId,
@@ -1451,11 +1452,12 @@ export async function recordTradePayment(payment: {
     let newAdvPaid = targetOrder.advance_paid || 0;
     let newBalPaid = targetOrder.balance_paid || 0;
 
-    if (payment.type === 'Advance Payment') {
+    const pType = payment.type.toLowerCase();
+    if (pType.includes('adv')) {
       newAdvPaid += created.amount;
-    } else if (payment.type === 'Balance Settlement') {
+    } else if (pType.includes('settle') || pType.includes('bal')) {
       newBalPaid += created.amount;
-    } else if (payment.type === 'Full Payment' || payment.type === 'LC Drawdown') {
+    } else if (pType.includes('complete') || pType.includes('full') || pType.includes('lc')) {
       newAdvPaid = targetOrder.advance_amount;
       newBalPaid = targetOrder.balance_amount;
     }

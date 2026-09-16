@@ -4,7 +4,7 @@ import {
   FolderArchive, Search, Plus, CheckCircle2, X, Download,
   Eye, Trash2, Send, ShieldCheck, ShieldAlert, Clock,
   FileText, Building2, UserCheck, RefreshCw, AlertCircle,
-  UploadCloud, FileUp, Paperclip
+  UploadCloud, FileUp, Paperclip, Check
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -13,6 +13,7 @@ import {
   uploadTradeDocument,
   updateTradeDocumentStatus,
   deleteTradeDocument,
+  triggerTradeAutomatedEmail,
   getTradeOrders,
   TRADE_STANDARD_DOC_TYPES,
   TRADE_DOC_STATUSES,
@@ -42,6 +43,7 @@ export const TradeDocuments: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileDataUrl, setFileDataUrl] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
+  const [customOrderMode, setCustomOrderMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userName = profile?.full_name || 'Trade Officer';
@@ -153,8 +155,8 @@ export const TradeDocuments: React.FC = () => {
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadForm.order_no || !uploadForm.client_name) {
-      showToastMsg('Please select an order to link this document.');
+    if (!uploadForm.order_no.trim() || !uploadForm.client_name.trim()) {
+      showToastMsg('Please enter or select an Order reference and Client Name.');
       return;
     }
 
@@ -179,10 +181,26 @@ export const TradeDocuments: React.FC = () => {
       setShowUploadModal(false);
       setSelectedFile(null);
       setFileDataUrl('');
-      showToastMsg(`Uploaded ${created.doc_type} (${created.file_name})${uploadForm.auto_send ? ' & dispatched client notice' : ''}!`);
+      showToastMsg(`Uploaded ${created.doc_type} (${created.file_name})${uploadForm.auto_send ? ' & sent notice to client' : ''}!`);
       await loadData();
     } catch (err: any) {
       showToastMsg(`Upload failed: ${err.message || 'Error'}`);
+    }
+  };
+
+  const handleSendToClient = async (doc: TradeDocument) => {
+    try {
+      const targetOrder = orders.find(o => o.order_no === doc.order_no);
+      await triggerTradeAutomatedEmail({
+        trigger_type: 'document_ready',
+        order_no: doc.order_no,
+        recipient_name: doc.client_name,
+        recipient_email: targetOrder?.client_email || 'client@trade.com',
+        custom_data: { doc_type: doc.doc_type, file_name: doc.file_name }
+      });
+      showToastMsg(`Dispatched document notice for "${doc.file_name}" to ${doc.client_name}!`);
+    } catch (err: any) {
+      showToastMsg(`Failed to send notice: ${err.message || 'Error'}`);
     }
   };
 
@@ -250,54 +268,53 @@ export const TradeDocuments: React.FC = () => {
     switch (status) {
       case 'Verified':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'Rejected':
+        return 'bg-rose-50 text-rose-700 border-rose-200';
       case 'Submitted':
         return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'Pending':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'Rejected':
-        return 'bg-rose-50 text-rose-700 border-rose-200';
       default:
-        return 'bg-slate-50 text-slate-700 border-slate-200';
+        return 'bg-amber-50 text-amber-700 border-amber-200';
     }
   };
 
   const filteredDocs = docs.filter(d => {
-    const matchesSearch =
+    const matchSearch =
       d.order_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
       d.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.doc_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.file_name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterType === 'All' || d.doc_type === filterType;
-    const matchesStatus = filterStatus === 'All' || d.status === filterStatus;
-    return matchesSearch && matchesType && matchesStatus;
+      d.file_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (d.doc_number && d.doc_number.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchType = filterType === 'All' || d.doc_type === filterType;
+    const matchStatus = filterStatus === 'All' || d.status === filterStatus;
+
+    return matchSearch && matchType && matchStatus;
   });
 
   return (
-    <div className="space-y-6 text-left antialiased">
-      {/* Toast */}
+    <div className="space-y-6 text-left antialiased max-w-7xl mx-auto">
+      {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 border border-slate-700 text-xs font-bold"
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40"
           >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            {toast}
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />{toast}
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <FolderArchive className="w-5 h-5 text-[#58051E]" />
-            Trade Document Vault & Internal Verification
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <FolderArchive className="w-6 h-6 text-[#58051E]" /> Global Trade Documents & Compliance Vault
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Manage the 7 core international trade documents with internal statuses (Pending / Submitted / Verified / Rejected).
+          <p className="text-xs font-semibold text-slate-500 mt-1">
+            Manage the 7 core international trade documents with upload facility, internal verification (Pending / Submitted / Verified / Rejected), and automated client dispatches.
           </p>
         </div>
         <Button
@@ -307,10 +324,10 @@ export const TradeDocuments: React.FC = () => {
             setFileDataUrl('');
             setShowUploadModal(true);
           }}
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
         >
-          <Plus className="w-4 h-4 mr-1.5" />
-          Attach & Upload Document
+          <Paperclip className="w-4 h-4 mr-1" />
+          Attach & Send Document
         </Button>
       </div>
 
@@ -382,6 +399,17 @@ export const TradeDocuments: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
             Attach standard Proforma, Commercial Invoices, Packing Lists, BLs, or Certificates to linked orders.
           </p>
+          <Button
+            size="sm"
+            onClick={() => {
+              setSelectedFile(null);
+              setFileDataUrl('');
+              setShowUploadModal(true);
+            }}
+            className="mt-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold"
+          >
+            <Paperclip className="w-3.5 h-3.5 mr-1" /> Attach & Send Document
+          </Button>
         </Card>
       ) : (
         <Card className="border border-slate-200/80 shadow-xs overflow-hidden p-0">
@@ -458,6 +486,13 @@ export const TradeDocuments: React.FC = () => {
                     {/* Actions */}
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleSendToClient(doc)}
+                          className="px-2 py-1 bg-slate-100 hover:bg-[#58051E] hover:text-white text-slate-700 rounded-lg text-[10.5px] font-black transition-all cursor-pointer flex items-center gap-1"
+                          title="Send / Resend Document Notice to Client"
+                        >
+                          <Send className="w-3 h-3" /> Send
+                        </button>
                         {doc.status !== 'Verified' && (
                           <button
                             onClick={() => handleStatusChange(doc.id, 'Verified')}
@@ -479,7 +514,7 @@ export const TradeDocuments: React.FC = () => {
                         <button
                           onClick={() => handleDownloadDoc(doc)}
                           className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
-                          title="Download Real Uploaded Document"
+                          title="Download Document"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -507,7 +542,7 @@ export const TradeDocuments: React.FC = () => {
         </Card>
       )}
 
-      {/* ── UPLOAD DOCUMENT MODAL WITH REAL FILE PICKER ── */}
+      {/* ── ATTACH & SEND DOCUMENT MODAL WITH REAL FILE PICKER ── */}
       <AnimatePresence>
         {showUploadModal && (
           <>
@@ -516,17 +551,17 @@ export const TradeDocuments: React.FC = () => {
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <div>
                   <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <FileUp className="w-4 h-4 text-[#58051E]" /> Attach & Upload Trade Document
+                    <Paperclip className="w-4 h-4 text-[#58051E]" /> Attach & Send Trade Document
                   </h2>
                   <p className="text-xs text-slate-500 font-semibold">
-                    Upload official compliance files for audit and internal verification.
+                    Upload official compliance files for audit, internal verification, and automatic client dispatch.
                   </p>
                 </div>
                 <button onClick={() => setShowUploadModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
 
               <form onSubmit={handleUploadSubmit} className="space-y-3.5 text-xs font-semibold">
-                {/* File Dropzone */}
+                {/* File Dropzone & Browse Button */}
                 <div>
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Select / Drop Document File *</label>
                   <input
@@ -544,8 +579,7 @@ export const TradeDocuments: React.FC = () => {
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`p-4 rounded-2xl border-2 border-dashed cursor-pointer transition-all flex flex-col items-center justify-center text-center ${
+                    className={`p-5 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center text-center ${
                       isDragging
                         ? 'border-[#58051E] bg-[#58051E]/5'
                         : selectedFile
@@ -560,34 +594,81 @@ export const TradeDocuments: React.FC = () => {
                         </div>
                         <div className="text-left">
                           <div className="font-bold text-slate-900 truncate max-w-xs">{selectedFile.name}</div>
-                          <div className="text-[11px] text-slate-500 font-mono">{formatFileSize(selectedFile.size)} • Ready for upload</div>
+                          <div className="text-[11px] text-slate-500 font-mono">{formatFileSize(selectedFile.size)} • Ready to Attach</div>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                            className="mt-1 text-[11px] text-[#58051E] font-bold underline cursor-pointer"
+                          >
+                            Change file
+                          </button>
                         </div>
                       </div>
                     ) : (
                       <>
-                        <UploadCloud className="w-8 h-8 text-[#58051E] mb-1.5" />
-                        <span className="font-bold text-slate-800">Click to browse file or drag & drop</span>
-                        <span className="text-[10px] text-slate-400 mt-0.5">Supports PDF, Word, Excel, CSV, PNG, JPG (up to 25MB)</span>
+                        <UploadCloud className="w-9 h-9 text-[#58051E] mb-2" />
+                        <span className="font-bold text-slate-800 text-sm">Drag & drop your document here</span>
+                        <span className="text-[11px] text-slate-400 mt-0.5">Supports PDF, Word, Excel, CSV, PNG, JPG (up to 25MB)</span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="mt-3 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+                        >
+                          <UploadCloud className="w-3.5 h-3.5 mr-1.5" /> Browse File from Computer
+                        </Button>
                       </>
                     )}
                   </div>
                 </div>
 
+                {/* Linked Order Mode */}
                 <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Select Linked Order *</label>
-                  <select
-                    required
-                    value={uploadForm.order_no}
-                    onChange={(e) => handleOrderSelect(e.target.value)}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#58051E]"
-                  >
-                    <option value="">-- Choose active order --</option>
-                    {orders.map(o => (
-                      <option key={o.id} value={o.order_no}>
-                        {o.order_no} — {o.client_name} ({o.commodity})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-extrabold uppercase text-slate-400">Linked Order / Shipment *</label>
+                    <button
+                      type="button"
+                      onClick={() => setCustomOrderMode(!customOrderMode)}
+                      className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                    >
+                      {customOrderMode ? '← Choose from active orders' : '+ Enter custom order ref'}
+                    </button>
+                  </div>
+
+                  {customOrderMode ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        required
+                        value={uploadForm.order_no}
+                        onChange={(e) => setUploadForm({ ...uploadForm, order_no: e.target.value })}
+                        placeholder="e.g. TRD-2026-9021"
+                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      />
+                      <input
+                        type="text"
+                        required
+                        value={uploadForm.client_name}
+                        onChange={(e) => setUploadForm({ ...uploadForm, client_name: e.target.value })}
+                        placeholder="e.g. Baltic Grain Sp. z o.o."
+                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      />
+                    </div>
+                  ) : (
+                    <select
+                      required
+                      value={uploadForm.order_no}
+                      onChange={(e) => handleOrderSelect(e.target.value)}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#58051E]"
+                    >
+                      <option value="">-- Choose active order --</option>
+                      {orders.map(o => (
+                        <option key={o.id} value={o.order_no}>
+                          {o.order_no} — {o.client_name} ({o.commodity})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -652,7 +733,7 @@ export const TradeDocuments: React.FC = () => {
                         onChange={(e) => setUploadForm({ ...uploadForm, auto_send: e.target.checked })}
                         className="rounded text-[#58051E] focus:ring-0"
                       />
-                      <span className="text-xs font-bold text-slate-800">Auto-send email</span>
+                      <span className="text-xs font-bold text-slate-800">Auto-send email notice</span>
                     </label>
                   </div>
                 </div>
@@ -670,7 +751,9 @@ export const TradeDocuments: React.FC = () => {
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowUploadModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Attach & Save Document</Button>
+                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white flex items-center gap-1.5">
+                    <Send className="w-3.5 h-3.5" /> Attach & Send Document
+                  </Button>
                 </div>
               </form>
             </motion.div>
@@ -699,8 +782,13 @@ export const TradeDocuments: React.FC = () => {
                 className="w-full p-3 bg-slate-50 border border-rose-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-rose-500 mb-3"
               />
               <div className="flex justify-end gap-2">
-                <Button size="sm" variant="outline" onClick={() => setRejectingDocId(null)}>Cancel</Button>
-                <Button size="sm" className="bg-rose-600 hover:bg-rose-700 text-white" onClick={() => handleStatusChange(rejectingDocId, 'Rejected', rejectionReason)}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setRejectingDocId(null)}>Cancel</Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-rose-600 hover:bg-rose-700 text-white"
+                  onClick={() => rejectingDocId && handleStatusChange(rejectingDocId, 'Rejected', rejectionReason)}
+                >
                   Confirm Rejection
                 </Button>
               </div>
@@ -709,78 +797,66 @@ export const TradeDocuments: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* ── DOCUMENT DETAILS MODAL ── */}
+      {/* ── VIEW / PREVIEW MODAL ── */}
       <AnimatePresence>
         {selectedDoc && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50" onClick={() => setSelectedDoc(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black">
                     <FileText className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-slate-900">{selectedDoc.doc_type}</h3>
-                    <p className="text-[11px] text-slate-400 font-mono">Ref: {selectedDoc.order_no} • {selectedDoc.doc_number}</p>
+                    <h3 className="text-base font-black text-slate-900">{selectedDoc.doc_type}</h3>
+                    <span className="text-[11px] font-mono text-slate-400">{selectedDoc.doc_number || selectedDoc.id}</span>
                   </div>
                 </div>
                 <button onClick={() => setSelectedDoc(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
 
-              <div className="space-y-4 text-xs font-semibold">
-                <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div>
-                    <span className="text-slate-400 text-[10px] uppercase font-bold block">Consignee / Client</span>
-                    <span className="text-slate-900 font-bold">{selectedDoc.client_name}</span>
+              <div className="space-y-3 text-xs">
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 font-semibold">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Order Reference:</span>
+                    <span className="font-mono font-black text-slate-900">{selectedDoc.order_no}</span>
                   </div>
-                  <div>
-                    <span className="text-slate-400 text-[10px] uppercase font-bold block">Internal Status</span>
-                    <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-black border ${getStatusBadge(selectedDoc.status)}`}>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Client / Consignee:</span>
+                    <span className="font-bold text-slate-800">{selectedDoc.client_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">File Attachment:</span>
+                    <span className="font-bold text-[#58051E]">{selectedDoc.file_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Internal Status:</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${getStatusBadge(selectedDoc.status)}`}>
                       {selectedDoc.status}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-slate-400 text-[10px] uppercase font-bold block">Uploaded By</span>
-                    <span className="text-slate-900">{selectedDoc.uploaded_by}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-[10px] uppercase font-bold block">File Name & Size</span>
-                    <span className="text-slate-900 font-mono text-[11px]">{selectedDoc.file_name} ({selectedDoc.file_size})</span>
-                  </div>
+                  {selectedDoc.rejection_reason && (
+                    <div className="p-2 bg-rose-50 rounded-xl border border-rose-200 text-rose-800">
+                      <span className="font-bold block">Discrepancy:</span>
+                      {selectedDoc.rejection_reason}
+                    </div>
+                  )}
                 </div>
-
-                {selectedDoc.rejection_reason && (
-                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800">
-                    <span className="font-bold text-[11px] block">⚠️ Rejection Discrepancy Note:</span>
-                    <p className="text-xs mt-0.5">{selectedDoc.rejection_reason}</p>
-                  </div>
-                )}
 
                 {selectedDoc.notes && (
-                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                    <span className="text-slate-400 text-[10px] uppercase font-bold block">Compliance Notes</span>
-                    <p className="text-slate-700 text-xs mt-0.5">{selectedDoc.notes}</p>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-slate-600">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">Compliance Notes</span>
+                    {selectedDoc.notes}
                   </div>
                 )}
+              </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                  <div className="flex gap-2">
-                    {selectedDoc.status !== 'Verified' && (
-                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleStatusChange(selectedDoc.id, 'Verified')}>
-                        ✓ Verify
-                      </Button>
-                    )}
-                    {selectedDoc.status !== 'Rejected' && (
-                      <Button size="sm" variant="outline" className="text-rose-600 border-rose-200 hover:bg-rose-50" onClick={() => setRejectingDocId(selectedDoc.id)}>
-                        ✕ Reject
-                      </Button>
-                    )}
-                  </div>
-                  <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white" onClick={() => handleDownloadDoc(selectedDoc)}>
-                    <Download className="w-3.5 h-3.5 mr-1" /> Download File
-                  </Button>
-                </div>
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <Button size="sm" variant="outline" onClick={() => handleDownloadDoc(selectedDoc)}>
+                  <Download className="w-3.5 h-3.5 mr-1" /> Download Copy
+                </Button>
+                <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white" onClick={() => setSelectedDoc(null)}>Close</Button>
               </div>
             </motion.div>
           </>

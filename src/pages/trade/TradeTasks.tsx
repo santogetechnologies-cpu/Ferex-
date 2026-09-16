@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ListTodo, Search, Plus, CheckCircle2, Clock, X,
   UserCheck, AlertCircle, Trash2, Edit3, ArrowRight,
-  Filter, Calendar, Building2, Layers, RefreshCw
+  Filter, Calendar, Building2, Layers, RefreshCw, UserPlus, Sparkles
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -21,6 +21,7 @@ import {
   type TaskStatus,
   type TradeOrder
 } from '../../lib/api/trade';
+import { createDivisionStaff } from '../../lib/api/staff';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -33,13 +34,22 @@ export const TradeTasks: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [filterPriority, setFilterPriority] = useState<string>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const [reassigningTask, setReassigningTask] = useState<TradeTask | null>(null);
   const [toast, setToast] = useState('');
 
   const [staffList, setStaffList] = useState(getTradeStaffOfficers());
   const userEmail = profile?.email || 'trade@ferex.com';
   const userName = profile?.full_name || 'Trade Logistics Desk';
-  const isAdmin = profile?.role === 'trade_admin' || profile?.role === 'admin' || profile?.role === 'superadmin' || profile?.role === 'super_admin';
+
+  // Mode for staff assignment inside modal: 'select' | 'new'
+  const [staffAssignMode, setStaffAssignMode] = useState<'select' | 'new'>('select');
+  const [newStaffForm, setNewStaffForm] = useState({
+    name: '',
+    email: '',
+    role: 'logistics_officer',
+    department: 'Trade Logistics & Customs'
+  });
 
   const initialForm = {
     title: '',
@@ -87,11 +97,13 @@ export const TradeTasks: React.FC = () => {
     const handleLocalChange = () => loadData();
     window.addEventListener('ferex_trade_tasks_change', handleLocalChange);
     window.addEventListener('ferex_trade_staff_change', handleLocalChange);
+    window.addEventListener('ferex_staff_users_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_trade_tasks_change', handleLocalChange);
       window.removeEventListener('ferex_trade_staff_change', handleLocalChange);
+      window.removeEventListener('ferex_staff_users_change', handleLocalChange);
     };
   }, [loadData]);
 
@@ -111,19 +123,75 @@ export const TradeTasks: React.FC = () => {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title) {
+    if (!formData.title.trim()) {
       showToastMsg('Please enter a task title.');
       return;
     }
 
+    let assignedName = formData.assigned_staff_name;
+    let assignedEmail = formData.assigned_staff_email;
+
+    // If admin is entering a new custom staff officer
+    if (staffAssignMode === 'new') {
+      if (!newStaffForm.name.trim() || !newStaffForm.email.trim()) {
+        showToastMsg('Please enter the new staff officer name and email.');
+        return;
+      }
+      try {
+        const createdStaff = await createDivisionStaff({
+          name: newStaffForm.name.trim(),
+          email: newStaffForm.email.trim().toLowerCase(),
+          role: newStaffForm.role,
+          division: 'trade',
+          department: newStaffForm.department || 'Trade Logistics & Customs'
+        });
+        assignedName = createdStaff.name;
+        assignedEmail = createdStaff.email;
+        showToastMsg(`Registered new staff officer: ${createdStaff.name}`);
+      } catch (err: any) {
+        console.error('Failed to auto-register new staff:', err);
+        assignedName = newStaffForm.name.trim();
+        assignedEmail = newStaffForm.email.trim().toLowerCase();
+      }
+    }
+
     try {
-      const created = await createTradeTask(formData);
+      const created = await createTradeTask({
+        ...formData,
+        assigned_staff_name: assignedName,
+        assigned_staff_email: assignedEmail
+      });
       setShowCreateModal(false);
       setFormData(initialForm);
+      setStaffAssignMode('select');
+      setNewStaffForm({ name: '', email: '', role: 'logistics_officer', department: 'Trade Logistics & Customs' });
       showToastMsg(`Task "${created.title}" assigned to ${created.assigned_staff_name}!`);
       await loadData();
     } catch (err: any) {
       showToastMsg(`Failed to create task: ${err.message || 'Error'}`);
+    }
+  };
+
+  const handleDirectAddStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStaffForm.name.trim() || !newStaffForm.email.trim()) {
+      showToastMsg('Please enter staff name and email.');
+      return;
+    }
+    try {
+      const createdStaff = await createDivisionStaff({
+        name: newStaffForm.name.trim(),
+        email: newStaffForm.email.trim().toLowerCase(),
+        role: newStaffForm.role,
+        division: 'trade',
+        department: newStaffForm.department || 'Trade Logistics & Customs'
+      });
+      setShowAddStaffModal(false);
+      setNewStaffForm({ name: '', email: '', role: 'logistics_officer', department: 'Trade Logistics & Customs' });
+      showToastMsg(`Staff officer "${createdStaff.name}" added successfully!`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Failed to add staff: ${err.message || 'Error'}`);
     }
   };
 
@@ -166,6 +234,13 @@ export const TradeTasks: React.FC = () => {
     }
   };
 
+  const counts = {
+    all: tasks.length,
+    pending: tasks.filter(t => t.status === 'Pending').length,
+    inProgress: tasks.filter(t => t.status === 'In Progress').length,
+    completed: tasks.filter(t => t.status === 'Completed').length,
+  };
+
   const filteredTasks = tasks.filter(t => {
     const matchesSearch =
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -205,14 +280,48 @@ export const TradeTasks: React.FC = () => {
             Assign and monitor order handling, documentation, customs, and logistics tasks across Trade Officers.
           </p>
         </div>
-        <Button
-          size="sm"
-          onClick={() => setShowCreateModal(true)}
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
-        >
-          <Plus className="w-4 h-4 mr-1.5" />
-          Assign New Task
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowAddStaffModal(true)}
+            className="text-xs font-bold border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4 mr-1.5 text-[#58051E]" />
+            Add New Staff
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setStaffAssignMode('select');
+              setShowCreateModal(true);
+            }}
+            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            Assign New Task
+          </Button>
+        </div>
+      </div>
+
+      {/* Quick Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="p-3.5 border border-slate-200/80 bg-white">
+          <div className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">Total Tasks</div>
+          <div className="text-xl font-black text-slate-900 mt-1">{counts.all}</div>
+        </Card>
+        <Card className="p-3.5 border border-amber-200/80 bg-amber-50/40">
+          <div className="text-[10.5px] font-black uppercase tracking-wider text-amber-700">⏳ Pending</div>
+          <div className="text-xl font-black text-amber-900 mt-1">{counts.pending}</div>
+        </Card>
+        <Card className="p-3.5 border border-blue-200/80 bg-blue-50/40">
+          <div className="text-[10.5px] font-black uppercase tracking-wider text-blue-700">⚡ In Progress</div>
+          <div className="text-xl font-black text-blue-900 mt-1">{counts.inProgress}</div>
+        </Card>
+        <Card className="p-3.5 border border-emerald-200/80 bg-emerald-50/40">
+          <div className="text-[10.5px] font-black uppercase tracking-wider text-emerald-700">✓ Completed</div>
+          <div className="text-xl font-black text-emerald-900 mt-1">{counts.completed}</div>
+        </Card>
       </div>
 
       {/* Filter and Search Bar */}
@@ -228,19 +337,29 @@ export const TradeTasks: React.FC = () => {
           />
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto">
-          <span className="text-[11px] font-bold text-slate-400">Status:</span>
-          {['All', 'Pending', 'In Progress', 'Completed'].map(st => (
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          <span className="text-[11px] font-bold text-slate-400 mr-1">Status:</span>
+          {[
+            { key: 'All', label: 'All', count: counts.all },
+            { key: 'Pending', label: 'Pending', count: counts.pending },
+            { key: 'In Progress', label: 'In Progress', count: counts.inProgress },
+            { key: 'Completed', label: 'Completed', count: counts.completed }
+          ].map(st => (
             <button
-              key={st}
-              onClick={() => setFilterStatus(st)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterStatus === st
-                  ? 'bg-[#58051E] text-white'
+              key={st.key}
+              onClick={() => setFilterStatus(st.key)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                filterStatus === st.key
+                  ? 'bg-[#58051E] text-white shadow-xs'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
               }`}
             >
-              {st}
+              <span>{st.label}</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                filterStatus === st.key ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {st.count}
+              </span>
             </button>
           ))}
         </div>
@@ -275,12 +394,12 @@ export const TradeTasks: React.FC = () => {
                   </div>
                   <button
                     onClick={() => handleStatusToggle(task)}
-                    className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-black cursor-pointer transition-all ${
+                    className={`px-2.5 py-1 rounded-full text-[10.5px] font-black cursor-pointer transition-all ${
                       task.status === 'Completed'
-                        ? 'bg-emerald-100 text-emerald-800'
+                        ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                         : task.status === 'In Progress'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-amber-100 text-amber-800'
+                        ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                        : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                     }`}
                     title="Click to advance status"
                   >
@@ -306,7 +425,7 @@ export const TradeTasks: React.FC = () => {
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold">
                 <div className="flex items-center gap-1.5 text-slate-700">
                   <UserCheck className="w-4 h-4 text-slate-400" />
-                  <span>{task.assigned_staff_name}</span>
+                  <span className="font-bold">{task.assigned_staff_name}</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -332,12 +451,12 @@ export const TradeTasks: React.FC = () => {
         </div>
       )}
 
-      {/* ── CREATE TASK MODAL ── */}
+      {/* ── CREATE / ASSIGN TASK MODAL ── */}
       <AnimatePresence>
         {showCreateModal && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50" onClick={() => setShowCreateModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 text-left max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                   <Plus className="w-4 h-4 text-[#58051E]" /> Assign Operational Task
@@ -402,33 +521,110 @@ export const TradeTasks: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Assign Staff</label>
-                    <select
-                      value={formData.assigned_staff_name}
-                      onChange={(e) => {
-                        const st = staffList.find(s => s.name === e.target.value);
-                        setFormData({
-                          ...formData,
-                          assigned_staff_name: e.target.value,
-                          assigned_staff_email: st?.email || ''
-                        });
-                      }}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
-                    >
-                      {staffList.map(s => <option key={s.email} value={s.name}>{s.name} ({s.roleLabel || s.role})</option>)}
-                    </select>
+                {/* Staff Assignment Mode Toggle */}
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[10px] font-extrabold uppercase text-slate-500">Staff Officer Assignment *</label>
+                    <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setStaffAssignMode('select')}
+                        className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                          staffAssignMode === 'select' ? 'bg-[#58051E] text-white' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        Select Existing
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStaffAssignMode('new')}
+                        className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                          staffAssignMode === 'new' ? 'bg-[#58051E] text-white' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        + Enter New Staff
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Due Date</label>
-                    <input
-                      type="date"
-                      value={formData.due_date}
-                      onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    />
-                  </div>
+
+                  {staffAssignMode === 'select' ? (
+                    <div>
+                      <select
+                        value={formData.assigned_staff_name}
+                        onChange={(e) => {
+                          const st = staffList.find(s => s.name === e.target.value);
+                          setFormData({
+                            ...formData,
+                            assigned_staff_name: e.target.value,
+                            assigned_staff_email: st?.email || ''
+                          });
+                        }}
+                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                      >
+                        {staffList.map(s => (
+                          <option key={s.email} value={s.name}>
+                            {s.name} — {s.roleLabel || s.role} ({s.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5 pt-1">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <input
+                            type="text"
+                            value={newStaffForm.name}
+                            onChange={(e) => setNewStaffForm({ ...newStaffForm, name: e.target.value })}
+                            placeholder="Officer Full Name *"
+                            className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                          />
+                        </div>
+                        <div>
+                          <input
+                            type="email"
+                            value={newStaffForm.email}
+                            onChange={(e) => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
+                            placeholder="officer@ferex.com *"
+                            className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={newStaffForm.role}
+                          onChange={(e) => setNewStaffForm({ ...newStaffForm, role: e.target.value })}
+                          className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
+                        >
+                          <option value="logistics_officer">Trade Logistics Officer</option>
+                          <option value="trade_admin">Trade Director</option>
+                          <option value="customs_officer">Customs & Port Specialist</option>
+                          <option value="staff">Operations Staff</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={newStaffForm.department}
+                          onChange={(e) => setNewStaffForm({ ...newStaffForm, department: e.target.value })}
+                          placeholder="Department"
+                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                        />
+                      </div>
+                      <p className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 shrink-0" />
+                        This officer will be registered automatically and available for all future tasks.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  />
                 </div>
 
                 <div>
@@ -452,15 +648,88 @@ export const TradeTasks: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* ── DIRECT ADD STAFF MODAL ── */}
+      <AnimatePresence>
+        {showAddStaffModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50" onClick={() => setShowAddStaffModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-[#58051E]" /> Register Trade Staff Officer
+                </h3>
+                <button onClick={() => setShowAddStaffModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
+              </div>
+
+              <form onSubmit={handleDirectAddStaff} className="space-y-3 text-xs font-semibold">
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newStaffForm.name}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, name: e.target.value })}
+                    placeholder="e.g. Alexander Vance"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    value={newStaffForm.email}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
+                    placeholder="e.g. alexander@ferex.com"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Operational Role</label>
+                  <select
+                    value={newStaffForm.role}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, role: e.target.value })}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  >
+                    <option value="logistics_officer">Trade Logistics Officer</option>
+                    <option value="trade_admin">Trade Director</option>
+                    <option value="customs_officer">Customs & Port Specialist</option>
+                    <option value="staff">Operations Staff</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Department</label>
+                  <input
+                    type="text"
+                    value={newStaffForm.department}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, department: e.target.value })}
+                    placeholder="Trade Logistics & Customs"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowAddStaffModal(false)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Save Staff Officer</Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* ── REASSIGN STAFF MODAL ── */}
       <AnimatePresence>
         {reassigningTask && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50" onClick={() => setReassigningTask(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
               <h3 className="text-sm font-black text-slate-900 mb-1">Reassign Task</h3>
               <p className="text-xs text-slate-500 font-semibold mb-4">"{reassigningTask.title}"</p>
-              <div className="space-y-2 mb-4">
+              <div className="space-y-2 mb-4 max-h-60 overflow-y-auto pr-1">
                 {staffList.map(s => (
                   <button
                     key={s.email}
@@ -482,3 +751,4 @@ export const TradeTasks: React.FC = () => {
 };
 
 export default TradeTasks;
+
