@@ -16,7 +16,9 @@ import { sendDigitalProjectMilestoneEmail } from '../../lib/api/automatedEmails'
 export const CentralDigital: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'projects' | 'clients' | 'invoices'>('projects');
   const [clientTypeFilter, setClientTypeFilter] = useState<'All' | 'Internal' | 'External'>('All');
-  const [stageFilter] = useState('All');
+  const [stageFilter, setStageFilter] = useState('All');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('All');
+  const [staffFilter, setStaffFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState('');
   const [, setLoading] = useState(true);
@@ -76,15 +78,18 @@ export const CentralDigital: React.FC = () => {
   };
 
   const filteredProjects = projects.filter(p => {
-    const isInternal = (p.client?.company_name || p.client_name || '').toLowerCase().includes('ferex') || p.client_type === 'Internal';
+    const isInternal = (p.client?.company_name || p.client_name || '').toLowerCase().includes('ferex') || (p.client?.company_name || p.client_name || '').toLowerCase().includes('rimi') || p.client_type === 'Internal';
     const matchType = clientTypeFilter === 'All' || (clientTypeFilter === 'Internal' ? isInternal : !isInternal);
     const matchStage = stageFilter === 'All' || p.status === stageFilter;
+    const matchPayment = paymentStatusFilter === 'All' || (p.payment_status || (p.status === 'Closed' ? 'Paid' : 'Pending')) === paymentStatusFilter;
+    const matchStaff = staffFilter === 'All' || (p.assigned_staff_name || p.lead_developer || '').toLowerCase().includes(staffFilter.toLowerCase());
     const matchSearch =
       (p.title || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.client?.company_name || p.client_name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (p.lead_developer || '').toLowerCase().includes(search.toLowerCase());
-    return matchType && matchStage && matchSearch;
+      (p.assigned_staff_name || p.lead_developer || '').toLowerCase().includes(search.toLowerCase());
+    return matchType && matchStage && matchPayment && matchStaff && matchSearch;
   });
+
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -155,31 +160,90 @@ export const CentralDigital: React.FC = () => {
       {/* ── TAB 1: PROJECTS & SPRINTS ── */}
       {activeTab === 'projects' && (
         <div className="space-y-4">
-          <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search project title, client, lead dev..."
-                className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
-              />
+          <Card className="p-4 border border-slate-200/70 shadow-xs space-y-3">
+            <div className="flex flex-col lg:flex-row gap-3 items-center justify-between">
+              <div className="relative w-full lg:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search project title, client, staff..."
+                  className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                />
+              </div>
+
+              {/* Client Type Selector */}
+              <div className="flex items-center gap-1.5 overflow-x-auto w-full lg:w-auto">
+                {(['All', 'Internal', 'External'] as const).map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setClientTypeFilter(type)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                      clientTypeFilter === type ? 'bg-[#58051E] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {type === 'All' ? 'All Clients' : `${type} Clients`}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 overflow-x-auto">
-              {(['All', 'Internal', 'External'] as const).map(type => (
-                <button
-                  key={type}
-                  onClick={() => setClientTypeFilter(type)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                    clientTypeFilter === type ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+
+            {/* Sub-Filters: Stage, Payment Status & Staff */}
+            <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase">Stage:</span>
+                <select
+                  value={stageFilter}
+                  onChange={e => setStageFilter(e.target.value)}
+                  className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
                 >
-                  {type === 'All' ? 'All Client Types' : `${type} Clients`}
-                </button>
-              ))}
+                  <option value="All">All Stages</option>
+                  <option value="Briefing">Briefing</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Review">Review</option>
+                  <option value="Revisions">Revisions</option>
+                  <option value="Delivered">Delivered</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase">Payment:</span>
+                <select
+                  value={paymentStatusFilter}
+                  onChange={e => setPaymentStatusFilter(e.target.value)}
+                  className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
+                >
+                  <option value="All">All Payment Statuses</option>
+                  <option value="Paid">Paid</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Partially Paid">Partially Paid</option>
+                  <option value="Overdue">Overdue</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase">Assigned Staff:</span>
+                <select
+                  value={staffFilter}
+                  onChange={e => setStaffFilter(e.target.value)}
+                  className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
+                >
+                  <option value="All">All Staff Members</option>
+                  <option value="Kavita Iyer">Kavita Iyer</option>
+                  <option value="Rohan Verma">Rohan Verma</option>
+                  <option value="Priya Nair">Priya Nair</option>
+                  <option value="Sneha Sen">Sneha Sen</option>
+                </select>
+              </div>
+
+              <span className="ml-auto text-xs font-bold text-slate-400">
+                {filteredProjects.length} Projects Matched
+              </span>
             </div>
           </Card>
+
 
           <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
             <div className="overflow-x-auto">

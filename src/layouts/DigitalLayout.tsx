@@ -76,50 +76,34 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   // ── Admin nav: full access to all modules ──────────────────────────────────
   const adminNavSections: NavSection[] = [
     {
-      title: 'DASHBOARD',
+      title: 'EXECUTIVE DESK',
       items: [
         { label: 'Dashboard', path: '/digital/dashboard', icon: LayoutDashboard }
       ]
     },
     {
-      title: 'CLIENTS',
+      title: 'OPERATIONS',
       items: [
-        { label: 'Clients', path: '/digital/clients', icon: Users },
-        { label: 'Leads', path: '/digital/leads', icon: UserPlus, badge: 'NEW' },
-        { label: 'Projects', path: '/digital/projects', icon: FolderKanban },
-        { label: 'Tasks', path: '/digital/tasks', icon: CheckSquare },
+        { label: 'Clients', path: '/digital/clients', icon: Users, badge: 'Internal/Ext' },
+        { label: 'Projects & Deliverables', path: '/digital/projects', icon: FolderKanban, badge: '6 Stages' },
+        { label: 'Task Assignment', path: '/digital/tasks', icon: CheckSquare, badge: 'Staff' },
+        { label: 'Leads & Pipeline', path: '/digital/leads', icon: UserPlus },
         { label: 'Meetings', path: '/digital/meetings', icon: Calendar }
       ]
     },
     {
-      title: 'SERVICES',
-      items: [
-        { label: 'Services Overview', path: '/digital/services', icon: Layers },
-        { label: 'Web Development', path: '/digital/services/web-development', icon: Code },
-        { label: 'Mobile Apps', path: '/digital/services/mobile-apps', icon: Smartphone },
-        { label: 'UI/UX Design', path: '/digital/services/ui-ux-design', icon: Palette }
-      ]
-    },
-    {
-      title: 'FINANCE',
+      title: 'FINANCE & PAYMENTS',
       items: [
         { label: 'Invoices', path: '/digital/invoices', icon: FileText },
-        { label: 'Payments', path: '/digital/payments', icon: CreditCard },
+        { label: 'Payments Ledger', path: '/digital/payments', icon: CreditCard, badge: 'Adv/Milestone' },
         { label: 'Expenses', path: '/digital/expenses', icon: DollarSign }
       ]
     },
     {
-      title: 'TEAM',
+      title: 'PERFORMANCE & REPORTS',
       items: [
-        { label: 'Performance', path: '/digital/performance', icon: TrendingUp }
-      ]
-    },
-    {
-      title: 'ANALYTICS',
-      items: [
-        { label: 'Reports', path: '/digital/reports', icon: BarChart3 },
-        { label: 'Revenue Analytics', path: '/digital/revenue-analytics', icon: DollarSign },
-        { label: 'Project Analytics', path: '/digital/project-analytics', icon: PieChart }
+        { label: 'Team Performance', path: '/digital/performance', icon: TrendingUp },
+        { label: 'Reports & Analytics', path: '/digital/reports', icon: BarChart3 }
       ]
     },
     {
@@ -133,7 +117,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     }
   ];
 
-  // ── Staff nav: restricted — operational modules only (no Finance/Settings/Analytics) ──
+  // ── Staff nav: operational modules only ───────────────────────────────────
   const staffNavSections: NavSection[] = [
     {
       title: 'DASHBOARD',
@@ -142,22 +126,12 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       ]
     },
     {
-      title: 'WORK',
+      title: 'MY WORK',
       items: [
-        { label: 'Clients', path: '/digital/clients', icon: Users },
-        { label: 'Leads', path: '/digital/leads', icon: UserPlus, badge: 'NEW' },
-        { label: 'Projects', path: '/digital/projects', icon: FolderKanban },
-        { label: 'Tasks', path: '/digital/tasks', icon: CheckSquare },
+        { label: 'Clients Directory', path: '/digital/clients', icon: Users },
+        { label: 'Assigned Projects', path: '/digital/projects', icon: FolderKanban, badge: '6 Stages' },
+        { label: 'My Tasks Queue', path: '/digital/tasks', icon: CheckSquare },
         { label: 'Meetings', path: '/digital/meetings', icon: Calendar }
-      ]
-    },
-    {
-      title: 'SERVICES',
-      items: [
-        { label: 'Services Overview', path: '/digital/services', icon: Layers },
-        { label: 'Web Development', path: '/digital/services/web-development', icon: Code },
-        { label: 'Mobile Apps', path: '/digital/services/mobile-apps', icon: Smartphone },
-        { label: 'UI/UX Design', path: '/digital/services/ui-ux-design', icon: Palette }
       ]
     },
     {
@@ -171,6 +145,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   ];
 
   const navSections = isAdmin ? adminNavSections : staffNavSections;
+
 
   const handleLogout = () => {
     showToastMsg('Logging out from Ferex Digital Console...');

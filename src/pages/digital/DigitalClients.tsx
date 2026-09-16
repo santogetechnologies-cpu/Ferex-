@@ -35,13 +35,15 @@ export const DigitalClients: React.FC = () => {
   const [clientTasks, setClientTasks] = useState<any[]>([]);
   const [clientInvoices, setClientInvoices] = useState<any[]>([]);
 
+  const [clientTypeFilter, setClientTypeFilter] = useState<'All' | 'Internal' | 'External'>('All');
   const [newClient, setNewClient] = useState({
     name: '',
     contact: '',
     email: '',
     phone: '',
     city: 'Mumbai',
-    type: 'Fintech & Banking'
+    type: 'Marketing & Branding',
+    client_type: 'Internal' as 'Internal' | 'External'
   });
 
   const showToast = (msg: string) => {
@@ -61,7 +63,8 @@ export const DigitalClients: React.FC = () => {
           email: d.email,
           phone: d.phone || '+91 98190 33445',
           city: d.city || 'Mumbai',
-          type: d.industry || d.client_type || 'Technology',
+          type: d.industry || 'Marketing & Branding',
+          client_type: d.client_type || (d.company_name?.toLowerCase().includes('ferex') || d.company_name?.toLowerCase().includes('rimi') ? 'Internal' : 'External'),
           status: d.status || 'Active',
           spent: `₹${Number(d.total_revenue || 0).toLocaleString('en-IN')}`,
           hasCredentials: !!getDigitalClientCredentials(d.id),
@@ -101,11 +104,12 @@ export const DigitalClients: React.FC = () => {
       phone: newClient.phone,
       industry: newClient.type,
       city: newClient.city,
+      client_type: newClient.client_type,
       status: 'Active'
     });
     setShowAddModal(false);
-    showToast(`Added client ${newClient.name} to database`);
-    setNewClient({ name: '', contact: '', email: '', phone: '', city: 'Mumbai', type: 'Fintech & Banking' });
+    showToast(`Added client ${newClient.name} (${newClient.client_type})`);
+    setNewClient({ name: '', contact: '', email: '', phone: '', city: 'Mumbai', type: 'Marketing & Branding', client_type: 'Internal' });
     await loadClients();
 
     // Auto-prompt credential provisioning
@@ -128,12 +132,14 @@ export const DigitalClients: React.FC = () => {
       email: editingClient.email,
       phone: editingClient.phone,
       industry: editingClient.type,
+      client_type: editingClient.client_type,
       status: editingClient.status,
     });
     setEditingClient(null);
     showToast(`Updated ${editingClient.name}`);
     await loadClients();
   };
+
 
   const handleDelete = async (id: string, name: string) => {
     try {
@@ -192,9 +198,13 @@ export const DigitalClients: React.FC = () => {
   };
 
   const filteredClients = clients.filter(c => {
-    return (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const isInternal = c.client_type === 'Internal';
+    const matchType = clientTypeFilter === 'All' || (clientTypeFilter === 'Internal' ? isInternal : !isInternal);
+    const matchSearch =
+      (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.contact || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.email || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchType && matchSearch;
   });
 
   return (
@@ -210,14 +220,14 @@ export const DigitalClients: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#58051E]" /> Enterprise Digital Clients Directory
+            <Users className="w-5 h-5 text-[#58051E]" /> Digital Agency Clients Directory
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Ferex Digital ERP • Managed enterprise accounts, client portal credential provisioning, and mapped billing ledger.
+            Ferex Digital ERP • Unified client list managing Internal Ferex Divisions & Outside Direct Clients.
           </p>
         </div>
         <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
-          <Plus className="w-4 h-4 mr-1.5" /> Add Enterprise Client
+          <Plus className="w-4 h-4 mr-1.5" /> Add New Client
         </Button>
       </div>
 
@@ -232,7 +242,25 @@ export const DigitalClients: React.FC = () => {
             className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
           />
         </div>
-        <span className="text-xs font-bold text-slate-400">{filteredClients.length} Verified Accounts</span>
+
+        {/* Client Type Filter Tabs */}
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
+          {(['All', 'Internal', 'External'] as const).map((type) => (
+            <button
+              key={type}
+              onClick={() => setClientTypeFilter(type)}
+              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                clientTypeFilter === type
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {type === 'Internal' ? 'Internal Divisions' : type === 'External' ? 'External Clients' : 'All Accounts'}
+            </button>
+          ))}
+        </div>
+
+        <span className="text-xs font-bold text-slate-400">{filteredClients.length} Accounts</span>
       </Card>
 
       {loading ? (
@@ -243,14 +271,20 @@ export const DigitalClients: React.FC = () => {
             <Card key={c.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-md">{c.type}</span>
+                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                    c.client_type === 'Internal'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  }`}>
+                    {c.client_type === 'Internal' ? 'Internal Division' : 'External Client'}
+                  </span>
                   <div className="flex items-center gap-1.5">
                     {c.hasCredentials && (
                       <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
                         <KeyRound className="w-2.5 h-2.5" /> Portal Active
                       </span>
                     )}
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-200">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-slate-50 text-slate-700 border-slate-200">
                       {c.status}
                     </span>
                   </div>
@@ -282,6 +316,7 @@ export const DigitalClients: React.FC = () => {
                     </button>
                   </div>
                 </div>
+
 
                 <div className="grid grid-cols-2 gap-2">
                   <Button

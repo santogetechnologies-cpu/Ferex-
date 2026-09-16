@@ -7,15 +7,80 @@ function triggerLocalSync(eventName: string) {
   }
 }
 
-// ─── Digital Clients ────────────────────────────────────────────────────────
-export async function getDigitalClients() {
+// ─── Digital Clients (Internal Divisions & External Clients) ────────────────
+export interface DigitalClientRecord {
+  id: string;
+  company_name: string;
+  name?: string;
+  contact_person: string;
+  email: string;
+  phone?: string;
+  industry?: string;
+  city?: string;
+  client_type: 'Internal' | 'External';
+  status: string;
+  total_revenue?: number;
+  estimated_budget?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+
+export type DigitalProjectStage = 'Briefing' | 'In Progress' | 'Review' | 'Revisions' | 'Delivered' | 'Closed';
+
+export interface DigitalDeliverable {
+  id: string;
+  title: string;
+  type: 'Figma' | 'Google Drive' | 'PDF / Document' | 'Canva / Asset' | 'GitHub / Code' | 'Video Reel' | 'Live URL';
+  url: string;
+  added_at: string;
+  status: 'Draft' | 'Submitted' | 'Approved';
+  notes?: string;
+}
+
+export interface DigitalProjectRecord {
+  id: string;
+  client_id: string | null;
+  client_name: string;
+  client_type: 'Internal' | 'External';
+  title: string;
+  scope?: string;
+  description?: string;
+  service_category: string;
+  status: DigitalProjectStage;
+  stage_history: Array<{
+    stage: DigitalProjectStage;
+    timestamp: string;
+    confirmed_by: string;
+    notes?: string;
+  }>;
+  start_date: string;
+  deadline: string;
+  assigned_staff_name: string;
+  assigned_staff_email?: string;
+  lead_developer?: string;
+  budget: number;
+  progress: number;
+  payment_terms: 'Advance Payment' | 'Milestone-Based' | 'Full Payment';
+  payment_status: 'Paid' | 'Pending' | 'Overdue' | 'Partially Paid';
+  advance_amount: number;
+  advance_paid: number;
+  balance_amount: number;
+  balance_paid: number;
+  deliverables: DigitalDeliverable[];
+  created_at: string;
+  updated_at: string;
+  client?: any;
+}
+
+export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
   try {
     const { data, error } = await supabase
       .from('digital_clients')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
+    if (!error && Array.isArray(data) && data.length > 0) {
       try { localStorage.setItem('ferex_digital_clients', JSON.stringify(data)); } catch {}
       return data;
     }
@@ -24,7 +89,97 @@ export async function getDigitalClients() {
     if (local !== null) {
       try { return JSON.parse(local); } catch {}
     }
-    return [];
+
+    // Default Seed with both Internal & External clients
+    const initialClients: DigitalClientRecord[] = [
+      {
+        id: 'clt-int-01',
+        company_name: 'Ferex Education Consultancy',
+        contact_person: 'Director of Admissions',
+        email: 'edu.campaigns@ferex.com',
+        phone: '+91 22 4001 5500',
+        industry: 'Education & Admissions',
+        city: 'Mumbai',
+        client_type: 'Internal',
+        status: 'Active',
+        total_revenue: 1250000,
+        created_at: '2026-08-01T10:00:00.000Z',
+        updated_at: '2026-08-01T10:00:00.000Z',
+      },
+      {
+        id: 'clt-int-02',
+        company_name: 'Ferex Global Trade & Maritime',
+        contact_person: 'Elena Rostova',
+        email: 'trade.marketing@ferex.com',
+        phone: '+48 58 660 4100',
+        industry: 'Global Commodities & Logistics',
+        city: 'Gdansk / Mumbai',
+        client_type: 'Internal',
+        status: 'Active',
+        total_revenue: 850000,
+        created_at: '2026-08-05T12:00:00.000Z',
+        updated_at: '2026-08-05T12:00:00.000Z',
+      },
+      {
+        id: 'clt-int-03',
+        company_name: 'Rimi Frozen Foods Cold Chain',
+        contact_person: 'Rajesh Varma',
+        email: 'marketing@rimi.ferex.com',
+        phone: '+91 22 8900 1122',
+        industry: 'FMCG & Cold Chain Logistics',
+        city: 'Navi Mumbai',
+        client_type: 'Internal',
+        status: 'Active',
+        total_revenue: 950000,
+        created_at: '2026-08-10T09:30:00.000Z',
+        updated_at: '2026-08-10T09:30:00.000Z',
+      },
+      {
+        id: 'clt-ext-01',
+        company_name: 'Nexus Retail & FinTech Group',
+        contact_person: 'Siddharth Mehra',
+        email: 'siddharth@nexusfin.io',
+        phone: '+91 98200 44551',
+        industry: 'Fintech & Payments',
+        city: 'Bangalore',
+        client_type: 'External',
+        status: 'Active',
+        total_revenue: 1850000,
+        created_at: '2026-08-15T14:00:00.000Z',
+        updated_at: '2026-08-15T14:00:00.000Z',
+      },
+      {
+        id: 'clt-ext-02',
+        company_name: 'Apex Health AI Diagnostics',
+        contact_person: 'Dr. Ananya Sen',
+        email: 'ananya@apexhealth.ai',
+        phone: '+91 98111 88990',
+        industry: 'Healthcare & Artificial Intelligence',
+        city: 'Hyderabad',
+        client_type: 'External',
+        status: 'Active',
+        total_revenue: 1400000,
+        created_at: '2026-08-20T11:15:00.000Z',
+        updated_at: '2026-08-20T11:15:00.000Z',
+      },
+      {
+        id: 'clt-ext-03',
+        company_name: 'Paramount Real Estate & Towers',
+        contact_person: 'Vikramaditya Singhania',
+        email: 'vikram@paramounttowers.in',
+        phone: '+91 99300 22119',
+        industry: 'Luxury Real Estate',
+        city: 'Mumbai',
+        client_type: 'External',
+        status: 'Active',
+        total_revenue: 2200000,
+        created_at: '2026-08-22T16:00:00.000Z',
+        updated_at: '2026-08-22T16:00:00.000Z',
+      }
+    ];
+
+    try { localStorage.setItem('ferex_digital_clients', JSON.stringify(initialClients)); } catch {}
+    return initialClients;
   } catch {
     const local = localStorage.getItem('ferex_digital_clients');
     if (local !== null) {
@@ -42,16 +197,19 @@ export async function createDigitalClient(client: {
   phone?: string;
   industry?: string;
   city?: string;
-  client_type?: string;
+  client_type?: 'Internal' | 'External' | string;
   status?: string;
 }) {
-  const payload = {
+  const isInternal = client.client_type === 'Internal' || (client.company_name || client.name || '').toLowerCase().includes('ferex') || (client.company_name || client.name || '').toLowerCase().includes('rimi');
+  const payload: DigitalClientRecord = {
     id: generateUUID(),
     company_name: client.company_name || client.name || 'Enterprise Client',
-    contact_person: client.contact_person,
+    contact_person: client.contact_person || 'Client Contact',
     email: client.email,
     phone: client.phone || '',
-    industry: client.industry || client.client_type || 'Technology',
+    industry: client.industry || 'Marketing & Branding',
+    city: client.city || 'Mumbai',
+    client_type: (client.client_type as any) || (isInternal ? 'Internal' : 'External'),
     status: client.status || 'Active',
     total_revenue: 0.00,
     created_at: new Date().toISOString(),
@@ -59,7 +217,7 @@ export async function createDigitalClient(client: {
   };
 
   const current = await getDigitalClients();
-  const updated = [payload, ...current];
+  const updated = [payload, ...current.filter(c => c.id !== payload.id)];
   try { localStorage.setItem('ferex_digital_clients', JSON.stringify(updated)); } catch {}
   try { await supabase.from('digital_clients').insert(payload); } catch {}
   triggerLocalSync('ferex_digital_clients_change');
@@ -97,16 +255,18 @@ export async function createDigitalLead(lead: {
   phone?: string;
   industry?: string;
   estimated_budget?: number;
+  client_type?: 'Internal' | 'External';
 }) {
   return createDigitalClient({
     ...lead,
-    status: 'Lead'
+    status: 'Lead',
+    client_type: lead.client_type || 'External'
   });
 }
 
-// ─── Digital Projects ───────────────────────────────────────────────────────
-export async function getDigitalProjects(category?: string) {
-  let localProjects: any[] = [];
+// ─── Digital Projects (6-Stage Tracker & Deliverables) ───────────────────────
+export async function getDigitalProjects(category?: string): Promise<DigitalProjectRecord[]> {
+  let localProjects: DigitalProjectRecord[] = [];
   const local = localStorage.getItem('ferex_digital_projects');
   if (local !== null) {
     try { localProjects = JSON.parse(local); } catch {}
@@ -129,10 +289,200 @@ export async function getDigitalProjects(category?: string) {
       if (category && category !== 'All') return merged.filter((p: any) => p.service_category === category);
       return merged;
     }
-    if (category && category !== 'All') return localProjects.filter((p: any) => p.service_category === category);
-    return localProjects;
+
+    if (localProjects.length > 0) {
+      if (category && category !== 'All') return localProjects.filter((p: any) => p.service_category === category);
+      return localProjects;
+    }
+
+    // Seed default projects with 6-stage lifecycle
+    const initialProjects: DigitalProjectRecord[] = [
+      {
+        id: 'prj-001',
+        client_id: 'clt-int-01',
+        client_name: 'Ferex Education Consultancy',
+        client_type: 'Internal',
+        title: 'Fall 2027 Global Admissions Digital Campaign & Lead Gen Funnel',
+        scope: 'Multi-channel digital marketing, Instagram/Meta reels ad creatives, Google Search landing pages, and lead tracking automation for European university admissions.',
+        description: 'Drive 5,000+ qualified student inquiries for Poland, Germany, and UK study visas.',
+        service_category: 'Digital Marketing & Advertising',
+        status: 'In Progress',
+        stage_history: [
+          { stage: 'Briefing', timestamp: '2026-08-10 10:00', confirmed_by: 'Kavita Iyer', notes: 'Marketing brief aligned with Admissions Desk' },
+          { stage: 'In Progress', timestamp: '2026-08-16 14:30', confirmed_by: 'Kavita Iyer', notes: 'Ad creatives in active production' }
+        ],
+        start_date: '2026-08-10',
+        deadline: '2026-10-15',
+        assigned_staff_name: 'Kavita Iyer',
+        assigned_staff_email: 'kavita.iyer@ferex.com',
+        lead_developer: 'Kavita Iyer',
+        budget: 650000,
+        progress: 45,
+        payment_terms: 'Advance Payment',
+        payment_status: 'Partially Paid',
+        advance_amount: 195000,
+        advance_paid: 195000,
+        balance_amount: 455000,
+        balance_paid: 0,
+        deliverables: [
+          {
+            id: 'dlv-1',
+            title: 'Figma UI Wireframes: Admissions Landing Page 2027',
+            type: 'Figma',
+            url: 'https://www.figma.com/design/ferex-edu-landing-2027',
+            added_at: '2026-08-18',
+            status: 'Approved',
+            notes: 'Approved by Education Director.'
+          },
+          {
+            id: 'dlv-2',
+            title: 'Meta & Google Ad Creatives (15 Video Story Reels)',
+            type: 'Google Drive',
+            url: 'https://drive.google.com/drive/folders/ferex-ad-creatives',
+            added_at: '2026-08-25',
+            status: 'Submitted',
+            notes: 'Ready for campaign launch review.'
+          }
+        ],
+        created_at: '2026-08-10T10:00:00.000Z',
+        updated_at: '2026-08-25T12:00:00.000Z',
+      },
+      {
+        id: 'prj-002',
+        client_id: 'clt-int-03',
+        client_name: 'Rimi Frozen Foods Cold Chain',
+        client_type: 'Internal',
+        title: 'B2B Distributor Brand Refresh & Packaging Identity',
+        scope: 'Packaging design for blast-frozen seafood & ready-to-cook export range, FMCG distributor catalog, and promotional brand collateral.',
+        description: 'Complete packaging re-skin compliant with FSSAI and European export standards.',
+        service_category: 'Branding & Packaging',
+        status: 'Review',
+        stage_history: [
+          { stage: 'Briefing', timestamp: '2026-08-12 11:00', confirmed_by: 'Rohan Verma', notes: 'Briefing completed with Rimi logistics lead' },
+          { stage: 'In Progress', timestamp: '2026-08-20 15:00', confirmed_by: 'Rohan Verma', notes: 'Packaging mockups completed' },
+          { stage: 'Review', timestamp: '2026-09-02 09:30', confirmed_by: 'Rohan Verma', notes: 'Submitted for management review' }
+        ],
+        start_date: '2026-08-12',
+        deadline: '2026-09-28',
+        assigned_staff_name: 'Rohan Verma',
+        assigned_staff_email: 'rohan.verma@ferex.com',
+        lead_developer: 'Rohan Verma',
+        budget: 480000,
+        progress: 75,
+        payment_terms: 'Milestone-Based',
+        payment_status: 'Partially Paid',
+        advance_amount: 160000,
+        advance_paid: 160000,
+        balance_amount: 320000,
+        balance_paid: 160000,
+        deliverables: [
+          {
+            id: 'dlv-3',
+            title: 'Print-Ready Packaging Die-Cuts (CMYK Vectors)',
+            type: 'PDF / Document',
+            url: 'https://drive.google.com/drive/folders/rimi-packaging-diecuts',
+            added_at: '2026-08-28',
+            status: 'Approved'
+          }
+        ],
+        created_at: '2026-08-12T11:00:00.000Z',
+        updated_at: '2026-09-02T09:30:00.000Z',
+      },
+      {
+        id: 'prj-003',
+        client_id: 'clt-ext-01',
+        client_name: 'Nexus Retail & FinTech Group',
+        client_type: 'External',
+        title: 'Omnichannel Merchant Acquiring Portal & Brand Identity',
+        scope: 'Design & front-end UX design system for multi-currency payment checkout, developer docs UI, and brand identity guidelines.',
+        description: 'Comprehensive design system and marketing site for enterprise merchant onboarding.',
+        service_category: 'Web & App Branding',
+        status: 'In Progress',
+        stage_history: [
+          { stage: 'Briefing', timestamp: '2026-08-15 14:00', confirmed_by: 'Priya Nair', notes: 'Client kickoff meeting held' },
+          { stage: 'In Progress', timestamp: '2026-08-22 16:00', confirmed_by: 'Priya Nair', notes: 'Design sprint active' }
+        ],
+        start_date: '2026-08-15',
+        deadline: '2026-11-01',
+        assigned_staff_name: 'Priya Nair',
+        assigned_staff_email: 'priya.nair@ferex.com',
+        lead_developer: 'Priya Nair',
+        budget: 1250000,
+        progress: 35,
+        payment_terms: 'Milestone-Based',
+        payment_status: 'Partially Paid',
+        advance_amount: 375000,
+        advance_paid: 375000,
+        balance_amount: 875000,
+        balance_paid: 0,
+        deliverables: [
+          {
+            id: 'dlv-4',
+            title: 'Design System Tokens & Brand Guidebook',
+            type: 'Figma',
+            url: 'https://figma.com/design/nexus-fintech-system',
+            added_at: '2026-08-26',
+            status: 'Submitted'
+          }
+        ],
+        created_at: '2026-08-15T14:00:00.000Z',
+        updated_at: '2026-08-26T10:00:00.000Z',
+      },
+      {
+        id: 'prj-004',
+        client_id: 'clt-ext-02',
+        client_name: 'Apex Health AI Diagnostics',
+        client_type: 'External',
+        title: 'Global Healthcare AI Product Launch & PR Campaign',
+        scope: 'Digital PR rollout, medical journal media kit, interactive WebGL diagnostic showcase, and LinkedIn thought leadership marketing.',
+        description: 'Product launch across US, EU, and APAC medical conferences.',
+        service_category: 'Digital PR & Advertising',
+        status: 'Delivered',
+        stage_history: [
+          { stage: 'Briefing', timestamp: '2026-07-20 10:00', confirmed_by: 'Sneha Sen', notes: 'Launch brief received' },
+          { stage: 'In Progress', timestamp: '2026-08-01 12:00', confirmed_by: 'Sneha Sen', notes: 'Campaign assets built' },
+          { stage: 'Review', timestamp: '2026-08-20 15:00', confirmed_by: 'Sneha Sen', notes: 'Client review complete' },
+          { stage: 'Delivered', timestamp: '2026-09-05 16:30', confirmed_by: 'Sneha Sen', notes: 'Full asset kit delivered' }
+        ],
+        start_date: '2026-07-20',
+        deadline: '2026-09-10',
+        assigned_staff_name: 'Sneha Sen',
+        assigned_staff_email: 'sneha.sen@ferex.com',
+        lead_developer: 'Sneha Sen',
+        budget: 950000,
+        progress: 100,
+        payment_terms: 'Full Payment',
+        payment_status: 'Paid',
+        advance_amount: 950000,
+        advance_paid: 950000,
+        balance_amount: 0,
+        balance_paid: 0,
+        deliverables: [
+          {
+            id: 'dlv-5',
+            title: 'Medical Conference PR Kit & Video Reel (4K)',
+            type: 'Google Drive',
+            url: 'https://drive.google.com/drive/folders/apex-health-pr',
+            added_at: '2026-08-22',
+            status: 'Approved'
+          },
+          {
+            id: 'dlv-6',
+            title: 'Live Campaign Production Showcase',
+            type: 'Live URL',
+            url: 'https://apexhealth.ai/launch',
+            added_at: '2026-09-05',
+            status: 'Approved'
+          }
+        ],
+        created_at: '2026-07-20T10:00:00.000Z',
+        updated_at: '2026-09-05T16:30:00.000Z',
+      }
+    ];
+
+    try { localStorage.setItem('ferex_digital_projects', JSON.stringify(initialProjects)); } catch {}
+    return initialProjects;
   } catch {
-    if (category && category !== 'All') return localProjects.filter((p: any) => p.service_category === category);
     return localProjects;
   }
 }
@@ -140,39 +490,79 @@ export async function getDigitalProjects(category?: string) {
 export async function createDigitalProject(project: {
   client_id?: string;
   client_name?: string;
+  client_type?: 'Internal' | 'External';
   title: string;
+  scope?: string;
+  description?: string;
   service_category?: string;
   budget?: number;
   progress?: number;
+  start_date?: string;
   deadline?: string;
+  assigned_staff_name?: string;
+  assigned_staff_email?: string;
   lead_developer?: string;
-  status?: string;
-}) {
+  payment_terms?: 'Advance Payment' | 'Milestone-Based' | 'Full Payment';
+  status?: DigitalProjectStage;
+  deliverables?: DigitalDeliverable[];
+}): Promise<DigitalProjectRecord> {
   const clients = await getDigitalClients();
   let clientObj = clients.find((c: any) => c.id === project.client_id || c.company_name === project.client_name);
   let clientId = project.client_id || clientObj?.id;
 
   if (!clientId && project.client_name) {
+    const isInternal = project.client_type === 'Internal' || project.client_name.toLowerCase().includes('ferex');
     const created = await createDigitalClient({
       company_name: project.client_name,
       contact_person: 'Client Contact',
-      email: `contact@${project.client_name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
+      email: `contact@${project.client_name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+      client_type: isInternal ? 'Internal' : 'External'
     });
     clientId = created.id;
     clientObj = created;
   }
 
-  const payload = {
+  const clientType: 'Internal' | 'External' = project.client_type || clientObj?.client_type || 'External';
+  const totalBudget = Number(project.budget) || 0;
+  const paymentTerms = project.payment_terms || 'Advance Payment';
+  const advanceAmount = paymentTerms === 'Full Payment' ? totalBudget : Math.round(totalBudget * 0.3);
+  const balanceAmount = totalBudget - advanceAmount;
+  const currentStage: DigitalProjectStage = project.status || 'Briefing';
+  const assignedStaff = project.assigned_staff_name || project.lead_developer || 'Kavita Iyer';
+
+  const payload: DigitalProjectRecord = {
     id: generateUUID(),
     client_id: clientId || null,
-    client: clientObj || { company_name: project.client_name || 'Enterprise Client' },
+    client: clientObj || { company_name: project.client_name || 'Enterprise Client', client_type: clientType },
+    client_name: project.client_name || clientObj?.company_name || 'Enterprise Client',
+    client_type: clientType,
     title: project.title,
-    service_category: project.service_category || 'Web Development',
-    status: project.status || 'In Progress',
-    budget: Number(project.budget) || 0,
-    progress: Number(project.progress) || 0,
+    scope: project.scope || project.description || 'Marketing, advertising & branding scope.',
+    description: project.description || project.scope || '',
+    service_category: project.service_category || 'Marketing & Advertising',
+    status: currentStage,
+    stage_history: [
+      {
+        stage: currentStage,
+        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
+        confirmed_by: assignedStaff,
+        notes: `Project initiated at stage: ${currentStage}`
+      }
+    ],
+    start_date: project.start_date || new Date().toISOString().split('T')[0],
     deadline: project.deadline || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    lead_developer: project.lead_developer || 'Unassigned',
+    assigned_staff_name: assignedStaff,
+    assigned_staff_email: project.assigned_staff_email || `${assignedStaff.toLowerCase().replace(/[^a-z]/g, '')}@ferex.com`,
+    lead_developer: assignedStaff,
+    budget: totalBudget,
+    progress: Number(project.progress) || 10,
+    payment_terms: paymentTerms,
+    payment_status: 'Pending',
+    advance_amount: advanceAmount,
+    advance_paid: 0,
+    balance_amount: balanceAmount,
+    balance_paid: 0,
+    deliverables: project.deliverables || [],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -181,11 +571,120 @@ export async function createDigitalProject(project: {
   const updated = [payload, ...current.filter((p: any) => p.id !== payload.id)];
   try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
   try {
-    const { client, ...dbPayload } = payload;
+    const { client, deliverables, stage_history, ...dbPayload } = payload as any;
     await supabase.from('digital_projects').insert(dbPayload);
   } catch {}
   triggerLocalSync('ferex_digital_projects_change');
   return payload;
+}
+
+export async function advanceDigitalProjectStage(
+  projectId: string,
+  newStage: DigitalProjectStage,
+  confirmedBy: string = 'Digital Lead',
+  notes?: string
+): Promise<DigitalProjectRecord | null> {
+  const current = await getDigitalProjects();
+  let updatedProj: DigitalProjectRecord | null = null;
+
+  const stageProgressMap: Record<DigitalProjectStage, number> = {
+    'Briefing': 15,
+    'In Progress': 45,
+    'Review': 75,
+    'Revisions': 85,
+    'Delivered': 95,
+    'Closed': 100
+  };
+
+  const updated = current.map(p => {
+    if (p.id === projectId) {
+      const history = p.stage_history || [];
+      const newEntry = {
+        stage: newStage,
+        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
+        confirmed_by: confirmedBy,
+        notes: notes || `Advanced to stage: ${newStage}`
+      };
+
+      updatedProj = {
+        ...p,
+        status: newStage,
+        progress: stageProgressMap[newStage] || p.progress,
+        stage_history: [...history, newEntry],
+        updated_at: new Date().toISOString()
+      };
+      return updatedProj;
+    }
+    return p;
+  });
+
+  if (!updatedProj) return null;
+
+  try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
+  try {
+    await supabase.from('digital_projects').update({
+      status: newStage,
+      progress: (updatedProj as any).progress,
+      updated_at: new Date().toISOString()
+    }).eq('id', projectId);
+  } catch {}
+
+  triggerLocalSync('ferex_digital_projects_change');
+  return updatedProj;
+}
+
+export async function addDigitalDeliverable(
+  projectId: string,
+  deliverable: {
+    title: string;
+    type: 'Figma' | 'Google Drive' | 'PDF / Document' | 'Canva / Asset' | 'GitHub / Code' | 'Video Reel' | 'Live URL';
+    url: string;
+    status?: 'Draft' | 'Submitted' | 'Approved';
+    notes?: string;
+  }
+): Promise<DigitalDeliverable> {
+  const current = await getDigitalProjects();
+  const newDeliv: DigitalDeliverable = {
+    id: `dlv-${Date.now().toString().slice(-5)}`,
+    title: deliverable.title,
+    type: deliverable.type || 'Link',
+    url: deliverable.url,
+    added_at: new Date().toISOString().split('T')[0],
+    status: deliverable.status || 'Submitted',
+    notes: deliverable.notes || ''
+  };
+
+  const updated = current.map(p => {
+    if (p.id === projectId) {
+      return {
+        ...p,
+        deliverables: [...(p.deliverables || []), newDeliv],
+        updated_at: new Date().toISOString()
+      };
+    }
+    return p;
+  });
+
+  try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
+  triggerLocalSync('ferex_digital_projects_change');
+  return newDeliv;
+}
+
+export async function deleteDigitalDeliverable(projectId: string, deliverableId: string): Promise<boolean> {
+  const current = await getDigitalProjects();
+  const updated = current.map(p => {
+    if (p.id === projectId) {
+      return {
+        ...p,
+        deliverables: (p.deliverables || []).filter(d => d.id !== deliverableId),
+        updated_at: new Date().toISOString()
+      };
+    }
+    return p;
+  });
+  try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
+  triggerLocalSync('ferex_digital_projects_change');
+  return true;
 }
 
 export async function updateDigitalProject(id: string, updates: any) {
@@ -193,7 +692,7 @@ export async function updateDigitalProject(id: string, updates: any) {
   const updated = current.map((p: any) => p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p);
   try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
   try {
-    const { client, ...dbUpdates } = updates;
+    const { client, deliverables, stage_history, ...dbUpdates } = updates;
     await supabase.from('digital_projects').update({ ...dbUpdates, updated_at: new Date().toISOString() }).eq('id', id);
   } catch {}
   triggerLocalSync('ferex_digital_projects_change');
@@ -208,6 +707,7 @@ export async function deleteDigitalProject(id: string) {
   triggerLocalSync('ferex_digital_projects_change');
   return true;
 }
+
 
 // ─── Digital Tasks ──────────────────────────────────────────────────────────
 export async function getDigitalTasks(projectId?: string) {
