@@ -231,8 +231,19 @@ export const DigitalProjects: React.FC = () => {
       (p.assigned_staff_name || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.service_category || '').toLowerCase().includes(search.toLowerCase());
 
-    const staffName = profile?.full_name || '';
-    const matchStaff = !myProjectsOnly || !staffName || (p.assigned_staff_name || '').toLowerCase().includes(staffName.toLowerCase());
+    const staffName = (profile?.full_name || '').toLowerCase();
+    const staffEmail = (profile?.email || '').toLowerCase();
+    const assignedName = (p.assigned_staff_name || '').toLowerCase();
+    const assignedEmail = (p.assigned_staff_email || '').toLowerCase();
+
+    let matchStaff = true;
+    if (myProjectsOnly) {
+      matchStaff = Boolean(
+        (staffName && assignedName.includes(staffName)) ||
+        (staffEmail && (assignedEmail === staffEmail || assignedName.includes(staffEmail.split('@')[0]))) ||
+        (staffEmail.includes('digimanager') && (assignedName.includes('manager') || assignedName.includes('digital') || assignedEmail.includes('pm@') || assignedEmail.includes('digimanager')))
+      );
+    }
 
     return matchType && matchStage && matchSearch && matchStaff;
   });

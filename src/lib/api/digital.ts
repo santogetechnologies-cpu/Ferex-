@@ -113,7 +113,7 @@ export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
       {
         id: 'clt-int-02',
         company_name: 'Ferex Global Trade & Maritime',
-        contact_person: 'Elena Rostova',
+        contact_person: 'Trade & Logistics Operations',
         email: 'trade.marketing@ferex.com',
         phone: '+48 58 660 4100',
         industry: 'Global Commodities & Logistics',
@@ -127,7 +127,7 @@ export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
       {
         id: 'clt-int-03',
         company_name: 'Rimi Frozen Foods Cold Chain',
-        contact_person: 'Rajesh Varma',
+        contact_person: 'Cold Chain Marketing Desk',
         email: 'marketing@rimi.ferex.com',
         phone: '+91 22 8900 1122',
         industry: 'FMCG & Cold Chain Logistics',
@@ -141,7 +141,7 @@ export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
       {
         id: 'clt-ext-01',
         company_name: 'Nexus Retail & FinTech Group',
-        contact_person: 'Siddharth Mehra',
+        contact_person: 'Fintech Operations Desk',
         email: 'siddharth@nexusfin.io',
         phone: '+91 98200 44551',
         industry: 'Fintech & Payments',
@@ -155,7 +155,7 @@ export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
       {
         id: 'clt-ext-02',
         company_name: 'Apex Health AI Diagnostics',
-        contact_person: 'Dr. Ananya Sen',
+        contact_person: 'Clinical Systems Team',
         email: 'ananya@apexhealth.ai',
         phone: '+91 98111 88990',
         industry: 'Healthcare & Artificial Intelligence',
@@ -169,8 +169,8 @@ export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
       {
         id: 'clt-ext-03',
         company_name: 'Paramount Real Estate & Towers',
-        contact_person: 'Vikramaditya Singhania',
-        email: 'vikram@paramounttowers.in',
+        contact_person: 'Commercial Sales Division',
+        email: 'commercial@paramounttowers.in',
         phone: '+91 99300 22119',
         industry: 'Luxury Real Estate',
         city: 'Mumbai',
@@ -1571,28 +1571,83 @@ export async function getDigitalAssetCostSummary() {
 
 // ─── Digital Notifications ───────────────────────────────────────────────────
 export async function getDigitalNotifications() {
+  const initialNotifs = [
+    {
+      id: 'notif-001',
+      title: 'Campaign Sprint Kickoff Confirmed',
+      message: 'Fall Admissions 2027 digital campaign creative storyboards ready for client review.',
+      description: 'Fall Admissions 2027 digital campaign creative storyboards ready for client review.',
+      category: 'Projects',
+      type: 'Projects',
+      link: '/digital/projects',
+      is_read: false,
+      created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+    },
+    {
+      id: 'notif-002',
+      title: 'Packaging Die-Lines Deliverable Uploaded',
+      message: 'Rimi Cold Chain export seafood packaging template files submitted to deliverables hub.',
+      description: 'Rimi Cold Chain export seafood packaging template files submitted to deliverables hub.',
+      category: 'Deliverables',
+      type: 'Deliverables',
+      link: '/digital/projects',
+      is_read: false,
+      created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+    },
+    {
+      id: 'notif-003',
+      title: 'Retainer Milestone Invoice Generated',
+      message: '₹6,500,000 billing milestone generated for Nexus Retail & FinTech omnichannel portal.',
+      description: '₹6,500,000 billing milestone generated for Nexus Retail & FinTech omnichannel portal.',
+      category: 'Finance',
+      type: 'Finance',
+      link: '/digital/invoices',
+      is_read: false,
+      created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
+    },
+    {
+      id: 'notif-004',
+      title: 'Client Architecture Review Scheduled',
+      message: 'Omnichannel Merchant Acquiring review session scheduled for next Monday 04:30 PM.',
+      description: 'Omnichannel Merchant Acquiring review session scheduled for next Monday 04:30 PM.',
+      category: 'Meetings',
+      type: 'Meetings',
+      link: '/digital/meetings',
+      is_read: false,
+      created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+    }
+  ];
+
   try {
     const { data, error } = await supabase
       .from('digital_notifications')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && Array.isArray(data)) {
+    if (!error && Array.isArray(data) && data.length > 0) {
       try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(data)); } catch {}
       return data;
     }
 
     const local = localStorage.getItem('ferex_digital_notifications');
     if (local !== null) {
-      try { return JSON.parse(local); } catch {}
+      try { 
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
     }
-    return [];
+    
+    try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(initialNotifs)); } catch {}
+    return initialNotifs;
   } catch {
     const local = localStorage.getItem('ferex_digital_notifications');
     if (local !== null) {
-      try { return JSON.parse(local); } catch {}
+      try { 
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
     }
-    return [];
+    return initialNotifs;
   }
 }
 
@@ -1608,7 +1663,9 @@ export async function createDigitalNotification(notif: {
     id: generateUUID(),
     title: notif.title,
     message: notif.message || notif.description || '',
-    type: notif.type || notif.category || 'info',
+    description: notif.description || notif.message || '',
+    type: notif.type || notif.category || 'Projects',
+    category: notif.category || notif.type || 'Projects',
     link: notif.link || '',
     is_read: false,
     created_at: new Date().toISOString(),

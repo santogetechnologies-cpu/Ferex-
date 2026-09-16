@@ -156,7 +156,11 @@ export const DigitalTasks: React.FC = () => {
 
     let matchStaff = true;
     if (staffFilter === 'ME') {
-      matchStaff = Boolean((myName && assignedName.includes(myName)) || (myEmail && assignedEmail === myEmail));
+      matchStaff = Boolean(
+        (myName && assignedName.includes(myName)) ||
+        (myEmail && (assignedEmail === myEmail || assignedName.includes(myEmail.split('@')[0]))) ||
+        (myEmail.includes('digimanager') && (assignedName.includes('manager') || assignedName.includes('digital') || assignedEmail.includes('pm@') || assignedEmail.includes('digimanager')))
+      );
     } else if (staffFilter !== 'All') {
       matchStaff = assignedName === staffFilter.toLowerCase();
     }

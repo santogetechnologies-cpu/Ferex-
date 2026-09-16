@@ -11,6 +11,8 @@ import {
 import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
 import { useAuth } from '../contexts/AuthContext';
+import { getDigitalNotifications } from '../lib/api/digital';
+import { supabase } from '../lib/supabase';
 
 interface DigitalLayoutProps {
   children: React.ReactNode;
@@ -54,19 +56,46 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState('');
+  const [liveNotifs, setLiveNotifs] = useState<any[]>([]);
 
   // Avatar state persistence
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
     return localStorage.getItem('ferex_digital_profile_photo') || null;
   });
 
+  const loadNotifs = async () => {
+    try {
+      const notifs = await getDigitalNotifications();
+      setLiveNotifs(notifs || []);
+    } catch {}
+  };
+
   useEffect(() => {
+    loadNotifs();
+
+    const channel = supabase
+      .channel('realtime_digital_layout_notifs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_notifications' }, () => {
+        loadNotifs();
+      })
+      .subscribe();
+
     const handleAvatarChange = () => {
       setProfilePhoto(localStorage.getItem('ferex_digital_profile_photo') || null);
     };
+    const handleNotifChange = () => loadNotifs();
+
     window.addEventListener('ferex_digital_avatar_change', handleAvatarChange);
-    return () => window.removeEventListener('ferex_digital_avatar_change', handleAvatarChange);
+    window.addEventListener('ferex_digital_notifications_change', handleNotifChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_digital_avatar_change', handleAvatarChange);
+      window.removeEventListener('ferex_digital_notifications_change', handleNotifChange);
+    };
   }, []);
+
+  const unreadNotifCount = liveNotifs.filter(n => !n.is_read).length;
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -108,7 +137,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     {
       title: 'SYSTEM',
       items: [
-        { label: 'Notifications', path: '/digital/notifications', icon: Bell, badge: '4' },
+        { label: 'Notifications', path: '/digital/notifications', icon: Bell, badge: unreadNotifCount > 0 ? String(unreadNotifCount) : undefined },
         { label: 'Profile', path: '/digital/profile', icon: User },
         { label: 'Settings', path: '/digital/settings', icon: Settings },
         { label: 'Logout', path: '/', icon: LogOut, isLogout: true }
@@ -136,7 +165,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     {
       title: 'SYSTEM',
       items: [
-        { label: 'Notifications', path: '/digital/notifications', icon: Bell, badge: '4' },
+        { label: 'Notifications', path: '/digital/notifications', icon: Bell, badge: unreadNotifCount > 0 ? String(unreadNotifCount) : undefined },
         { label: 'Profile', path: '/digital/profile', icon: User },
         { label: 'Logout', path: '/', icon: LogOut, isLogout: true }
       ]
@@ -333,7 +362,9 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                 title="Notifications"
               >
                 <Bell className="w-4 h-4" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />
+                {unreadNotifCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />
+                )}
               </button>
 
               <AnimatePresence>
@@ -348,17 +379,31 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                     >
                       <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                         <span className="text-xs font-black text-slate-900">Agency Activity Alerts</span>
-                        <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-full">4 New</span>
+                        <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-full">
+                          {unreadNotifCount > 0 ? `${unreadNotifCount} New` : 'All caught up'}
+                        </span>
                       </div>
-                      <div className="space-y-2 text-xs">
-                        <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-100 space-y-0.5">
-                          <span className="font-extrabold text-emerald-950 block">Invoice #INV-2026-88 Paid</span>
-                          <span className="text-[10.5px] font-semibold text-emerald-700 block">Reliance Digital paid ₹4,50,000 for Mobile App Phase 2</span>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-0.5">
-                          <span className="font-extrabold text-slate-900 block">Client Review Received</span>
-                          <span className="text-[10.5px] font-semibold text-slate-500 block">Tata Tech rated Web Redesign 5 Stars ⭐⭐⭐⭐⭐</span>
-                        </div>
+                      <div className="space-y-2 text-xs max-h-60 overflow-y-auto">
+                        {liveNotifs.length > 0 ? (
+                          liveNotifs.slice(0, 3).map((n) => (
+                            <div
+                              key={n.id}
+                              onClick={() => {
+                                setShowNotifPopover(false);
+                                if (n.link) navigate(n.link);
+                                else navigate('/digital/notifications');
+                              }}
+                              className={`p-2.5 rounded-xl border space-y-0.5 cursor-pointer transition-colors ${
+                                !n.is_read ? 'bg-amber-50/70 border-amber-200/80 hover:bg-amber-100/60' : 'bg-slate-50 border-slate-100 hover:bg-slate-100/70'
+                              }`}
+                            >
+                              <span className="font-extrabold text-slate-900 block truncate">{n.title}</span>
+                              <span className="text-[10.5px] font-semibold text-slate-500 line-clamp-2">{n.message || n.description}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-3 text-center text-xs text-slate-400 font-medium">No recent notifications</div>
+                        )}
                       </div>
                       <button onClick={() => { setShowNotifPopover(false); navigate('/digital/notifications'); }} className="w-full text-center text-xs font-bold text-[#58051E] hover:underline pt-1 block">
                         View All Notifications →
@@ -368,7 +413,6 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                 )}
               </AnimatePresence>
             </div>
-
             {/* Profile Avatar Dropdown */}
             <div className="relative">
               <button
