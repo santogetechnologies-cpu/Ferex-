@@ -228,27 +228,24 @@ function getDivisionFromRole(role: string, department?: string): string {
 
 function matchDivision(staff: DivisionStaffMember, division: string): boolean {
   if (division === 'all') return true;
-  const r = staff.role.toLowerCase();
+  const r = (staff.role || '').toLowerCase();
   const dept = (staff.department || '').toLowerCase();
-  const email = staff.email.toLowerCase();
+  const email = (staff.email || '').toLowerCase();
 
-  if (isSuperAdmin(r, email) || r === 'superadmin' || r === 'super_admin' || r === 'central' || r === 'admin') {
-    return true; // Super admins and executives can oversee and be assigned in any division
-  }
-
+  // Strict division matching: No cross-division leak, and no superadmin leaking into business unit staff rosters
   if (division === 'trade') {
-    return r.includes('trade') || r.includes('logistics') || dept.includes('trade') || dept.includes('logistics') || email.includes('trade') || email.includes('logistics');
+    return (r.includes('trade') || r.includes('logistics') || dept.includes('trade') || dept.includes('logistics') || email.includes('trade') || email.includes('logistics')) && !r.includes('digital') && !r.includes('rimi') && !r.includes('education');
   }
   if (division === 'rimi') {
-    return r.includes('rimi') || r.includes('operations') || r.includes('warehouse') || dept.includes('rimi') || dept.includes('frozen') || dept.includes('warehouse') || dept.includes('cold') || email.includes('rimi') || email.includes('ops');
+    return (r.includes('rimi') || r.includes('operations') || r.includes('warehouse') || r.includes('cold') || dept.includes('rimi') || dept.includes('frozen') || dept.includes('warehouse') || dept.includes('cold') || email.includes('rimi') || email.includes('ops')) && !r.includes('digital') && !r.includes('trade') && !r.includes('education');
   }
   if (division === 'digital') {
-    return r.includes('digital') || r.includes('project_manager') || r.includes('developer') || r.includes('designer') || dept.includes('digital') || dept.includes('agency') || email.includes('digital') || email.includes('pm');
+    return (r.includes('digital') || r.includes('project_manager') || r.includes('developer') || r.includes('designer') || dept.includes('digital') || dept.includes('agency') || email.includes('digital') || email.includes('pm')) && !r.includes('rimi') && !r.includes('trade') && !r.includes('education');
   }
   if (division === 'education') {
-    return r.includes('education') || r.includes('counselor') || r.includes('admissions') || dept.includes('education') || dept.includes('admissions') || email.includes('edu') || email.includes('counselor');
+    return (r.includes('education') || r.includes('counselor') || r.includes('admissions') || dept.includes('education') || dept.includes('admissions') || email.includes('edu') || email.includes('counselor')) && !r.includes('rimi') && !r.includes('digital') && !r.includes('trade');
   }
-  return true;
+  return false;
 }
 
 // Convenience getters

@@ -8,6 +8,75 @@ function triggerLocalSync(eventName: string) {
   }
 }
 
+// ─── Rimi Product Categories API ─────────────────────────────────────────────
+const DEFAULT_RIMI_CATEGORIES = [
+  'Frozen Seafood',
+  'Frozen Meat & Poultry',
+  'Frozen Vegetables',
+  'Processed Food',
+  'Ice Cream & Dairy',
+  'Bakery & Pastries',
+  'Ready-to-Eat Meals',
+  'IQF Fruits & Berries',
+];
+
+export async function getRimiProductCategories(): Promise<string[]> {
+  const catSet = new Set<string>(DEFAULT_RIMI_CATEGORIES);
+
+  try {
+    const local = localStorage.getItem('ferex_rimi_categories');
+    if (local) {
+      const parsed = JSON.parse(local);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((c: any) => {
+          if (typeof c === 'string' && c.trim()) catSet.add(c.trim());
+        });
+      }
+    }
+  } catch {}
+
+  // Merge any categories currently present in products
+  try {
+    const prods = await getRimiProducts();
+    if (Array.isArray(prods)) {
+      prods.forEach((p: any) => {
+        if (p.category && typeof p.category === 'string' && p.category.trim()) {
+          catSet.add(p.category.trim());
+        }
+      });
+    }
+  } catch {}
+
+  return Array.from(catSet);
+}
+
+export async function createRimiProductCategory(categoryName: string): Promise<string[]> {
+  const trimmed = (categoryName || '').trim();
+  if (!trimmed) return await getRimiProductCategories();
+
+  const current = await getRimiProductCategories();
+  if (!current.includes(trimmed)) {
+    const updated = [...current, trimmed];
+    try {
+      localStorage.setItem('ferex_rimi_categories', JSON.stringify(updated));
+    } catch {}
+    triggerLocalSync('ferex_rimi_categories_change');
+    return updated;
+  }
+  return current;
+}
+
+export async function deleteRimiProductCategory(categoryName: string): Promise<string[]> {
+  const trimmed = (categoryName || '').trim();
+  const current = await getRimiProductCategories();
+  const updated = current.filter(c => c !== trimmed);
+  try {
+    localStorage.setItem('ferex_rimi_categories', JSON.stringify(updated));
+  } catch {}
+  triggerLocalSync('ferex_rimi_categories_change');
+  return updated;
+}
+
 // ─── Rimi Products API ───────────────────────────────────────────────────────
 export async function getRimiProducts() {
   try {
@@ -279,12 +348,12 @@ const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [
     credit_limit: 5000000,
     outstanding_balance: 1420000,
     payment_status: 'Up to Date',
-    assigned_staff_id: 'staff-1',
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     pipeline_stage: 'Active Customer',
     notes: [
-      { id: 'n-1', type: 'call', text: 'Confirmed Q3 reefer allotment for 50 MT Sweet Corn.', author: 'Vikram Malhotra', created_at: '2026-09-12T10:30:00Z' },
-      { id: 'n-2', type: 'visit', text: 'Audited deep freeze cold storage at Vashi depot. Temp held at -21°C.', author: 'Vikram Malhotra', created_at: '2026-09-08T14:15:00Z' }
+      { id: 'n-1', type: 'call', text: 'Confirmed Q3 reefer allotment for 50 MT Sweet Corn.', author: 'Rimi Operations Desk', created_at: '2026-09-12T10:30:00Z' },
+      { id: 'n-2', type: 'visit', text: 'Audited deep freeze cold storage at Vashi depot. Temp held at -21°C.', author: 'Rimi Operations Desk', created_at: '2026-09-08T14:15:00Z' }
     ],
     tags: ['high-value', 'tier-1'],
     status: 'Active',
@@ -306,11 +375,11 @@ const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [
     credit_limit: 3500000,
     outstanding_balance: 850000,
     payment_status: 'Up to Date',
-    assigned_staff_id: 'staff-2',
-    assigned_staff_name: 'Sneha Patel',
+    assigned_staff_id: 'stf-rimi-2',
+    assigned_staff_name: 'Rimi Distribution Director',
     pipeline_stage: 'Active Customer',
     notes: [
-      { id: 'n-3', type: 'call', text: 'Requested extra 10 MT delivery ahead of festival season.', author: 'Sneha Patel', created_at: '2026-09-10T11:00:00Z' }
+      { id: 'n-3', type: 'call', text: 'Requested extra 10 MT delivery ahead of festival season.', author: 'Rimi Distribution Director', created_at: '2026-09-10T11:00:00Z' }
     ],
     tags: ['high-value', 'seasonal'],
     status: 'Active',
@@ -332,11 +401,11 @@ const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [
     credit_limit: 2500000,
     outstanding_balance: 1950000,
     payment_status: 'Overdue',
-    assigned_staff_id: 'staff-1',
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     pipeline_stage: 'Active Customer',
     notes: [
-      { id: 'n-4', type: 'complaint', text: 'Payment delayed due to banking reconciliation. Promised settlement by Friday.', author: 'Vikram Malhotra', created_at: '2026-09-14T16:20:00Z' }
+      { id: 'n-4', type: 'complaint', text: 'Payment delayed due to banking reconciliation. Promised settlement by Friday.', author: 'Rimi Operations Desk', created_at: '2026-09-14T16:20:00Z' }
     ],
     tags: ['at-risk'],
     status: 'Active',
@@ -358,11 +427,11 @@ const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [
     credit_limit: 4000000,
     outstanding_balance: 0,
     payment_status: 'Up to Date',
-    assigned_staff_id: 'staff-3',
-    assigned_staff_name: 'Ananya Roy',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     pipeline_stage: 'Sample Sent',
     notes: [
-      { id: 'n-5', type: 'visit', text: 'Sent IQF paneer samples for institutional food chain sampling.', author: 'Ananya Roy', created_at: '2026-09-11T12:00:00Z' }
+      { id: 'n-5', type: 'visit', text: 'Sent IQF paneer samples for institutional food chain sampling.', author: 'Rimi Operations Desk', created_at: '2026-09-11T12:00:00Z' }
     ],
     tags: ['seasonal'],
     status: 'Prospect',
@@ -386,11 +455,11 @@ const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [
     credit_limit: 400000,
     outstanding_balance: 65000,
     payment_status: 'Up to Date',
-    assigned_staff_id: 'staff-1',
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     pipeline_stage: 'Active Customer',
     notes: [
-      { id: 'n-6', type: 'call', text: 'Freezer display unit #3 restocked with 200 packets sweet corn.', author: 'Vikram Malhotra', created_at: '2026-09-13T09:30:00Z' }
+      { id: 'n-6', type: 'call', text: 'Freezer display unit #3 restocked with 200 packets sweet corn.', author: 'Rimi Operations Desk', created_at: '2026-09-13T09:30:00Z' }
     ],
     tags: ['high-value'],
     status: 'Active',
@@ -412,11 +481,11 @@ const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [
     credit_limit: 250000,
     outstanding_balance: 30000,
     payment_status: 'Up to Date',
-    assigned_staff_id: 'staff-2',
-    assigned_staff_name: 'Sneha Patel',
+    assigned_staff_id: 'stf-rimi-2',
+    assigned_staff_name: 'Rimi Distribution Director',
     pipeline_stage: 'Active Customer',
     notes: [
-      { id: 'n-7', type: 'visit', text: 'Checked cold shelf display branding and product expiry rotation.', author: 'Sneha Patel', created_at: '2026-09-09T15:00:00Z' }
+      { id: 'n-7', type: 'visit', text: 'Checked cold shelf display branding and product expiry rotation.', author: 'Rimi Distribution Director', created_at: '2026-09-09T15:00:00Z' }
     ],
     tags: ['seasonal'],
     status: 'Active',
@@ -438,11 +507,11 @@ const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [
     credit_limit: 300000,
     outstanding_balance: 120000,
     payment_status: 'Pending',
-    assigned_staff_id: 'staff-1',
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     pipeline_stage: 'Active Customer',
     notes: [
-      { id: 'n-8', type: 'call', text: 'Weekly restocking order received for ₹65,000.', author: 'Vikram Malhotra', created_at: '2026-09-14T11:45:00Z' }
+      { id: 'n-8', type: 'call', text: 'Weekly restocking order received for ₹65,000.', author: 'Rimi Operations Desk', created_at: '2026-09-14T11:45:00Z' }
     ],
     tags: ['high-value'],
     status: 'Active',
@@ -464,11 +533,11 @@ const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [
     credit_limit: 150000,
     outstanding_balance: 0,
     payment_status: 'Up to Date',
-    assigned_staff_id: 'staff-3',
-    assigned_staff_name: 'Ananya Roy',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     pipeline_stage: 'Contacted',
     notes: [
-      { id: 'n-9', type: 'call', text: 'Pitch call completed with store owner. Sending product catalog.', author: 'Ananya Roy', created_at: '2026-09-15T14:00:00Z' }
+      { id: 'n-9', type: 'call', text: 'Pitch call completed with store owner. Sending product catalog.', author: 'Rimi Operations Desk', created_at: '2026-09-15T14:00:00Z' }
     ],
     tags: ['at-risk'],
     status: 'Prospect',
@@ -492,11 +561,11 @@ const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [
     credit_limit: 4000000,
     outstanding_balance: 920000,
     payment_status: 'Up to Date',
-    assigned_staff_id: 'staff-1',
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     pipeline_stage: 'Active Customer',
     notes: [
-      { id: 'n-10', type: 'visit', text: 'Reviewed quarterly bulk rebate structure with Sunil.', author: 'Vikram Malhotra', created_at: '2026-09-10T16:00:00Z' }
+      { id: 'n-10', type: 'visit', text: 'Reviewed quarterly bulk rebate structure with Sunil.', author: 'Rimi Operations Desk', created_at: '2026-09-10T16:00:00Z' }
     ],
     tags: ['high-value', 'tier-1'],
     status: 'Active',
@@ -518,11 +587,11 @@ const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [
     credit_limit: 2000000,
     outstanding_balance: 0,
     payment_status: 'Advance Paid',
-    assigned_staff_id: 'staff-2',
-    assigned_staff_name: 'Sneha Patel',
+    assigned_staff_id: 'stf-rimi-2',
+    assigned_staff_name: 'Rimi Distribution Director',
     pipeline_stage: 'Active Customer',
     notes: [
-      { id: 'n-11', type: 'call', text: 'Advance wire transfer of ₹4.5 Lakhs received for next container load.', author: 'Sneha Patel', created_at: '2026-09-13T12:00:00Z' }
+      { id: 'n-11', type: 'call', text: 'Advance wire transfer of ₹4.5 Lakhs received for next container load.', author: 'Rimi Distribution Director', created_at: '2026-09-13T12:00:00Z' }
     ],
     tags: ['seasonal'],
     status: 'Active',
@@ -544,11 +613,11 @@ const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [
     credit_limit: 3000000,
     outstanding_balance: 450000,
     payment_status: 'Up to Date',
-    assigned_staff_id: 'staff-3',
-    assigned_staff_name: 'Ananya Roy',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     pipeline_stage: 'Order Placed',
     notes: [
-      { id: 'n-12', type: 'call', text: 'Confirmed purchase order #SO-2026-8812 for Chennai cold warehouse.', author: 'Ananya Roy', created_at: '2026-09-14T15:30:00Z' }
+      { id: 'n-12', type: 'call', text: 'Confirmed purchase order #SO-2026-8812 for Chennai cold warehouse.', author: 'Rimi Operations Desk', created_at: '2026-09-14T15:30:00Z' }
     ],
     tags: ['high-value'],
     status: 'Active',
@@ -821,8 +890,8 @@ const DEFAULT_SALES_ORDERS_SEED: RimiSalesOrder[] = [
     delivery_date: '2026-09-18',
     payment_status: 'Paid',
     order_status: 'In Production/Packing',
-    assigned_staff_id: 'staff-1',
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     assigned_reefer_truck: 'Reefer Truck #MH-04-GP-8890',
     notes: 'Pre-cooled packaging verified at -20°C.',
     created_at: '2026-09-14T08:30:00Z',
@@ -842,8 +911,8 @@ const DEFAULT_SALES_ORDERS_SEED: RimiSalesOrder[] = [
     delivery_date: '2026-09-16',
     payment_status: 'Paid',
     order_status: 'Dispatched',
-    assigned_staff_id: 'staff-1',
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     assigned_reefer_truck: 'City Van #MH-02-CB-1120',
     notes: 'Morning priority store restocking.',
     created_at: '2026-09-15T09:15:00Z',
@@ -863,8 +932,8 @@ const DEFAULT_SALES_ORDERS_SEED: RimiSalesOrder[] = [
     delivery_date: '2026-09-17',
     payment_status: 'Partial',
     order_status: 'Confirmed',
-    assigned_staff_id: 'staff-1',
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     assigned_reefer_truck: 'Reefer Truck #MH-12-AZ-8901',
     notes: '50% advance confirmed by finance.',
     created_at: '2026-09-13T14:20:00Z',
@@ -884,8 +953,8 @@ const DEFAULT_SALES_ORDERS_SEED: RimiSalesOrder[] = [
     delivery_date: '2026-09-14',
     payment_status: 'Paid',
     order_status: 'Delivered',
-    assigned_staff_id: 'staff-2',
-    assigned_staff_name: 'Sneha Patel',
+    assigned_staff_id: 'stf-rimi-2',
+    assigned_staff_name: 'Rimi Distribution Director',
     assigned_reefer_truck: 'Reefer Truck #GJ-01-XX-4422',
     notes: 'Signed delivery challan attached. Temperature logged at -19.4°C upon arrival.',
     created_at: '2026-09-10T11:00:00Z',
@@ -905,8 +974,8 @@ const DEFAULT_SALES_ORDERS_SEED: RimiSalesOrder[] = [
     delivery_date: '2026-09-17',
     payment_status: 'Pending',
     order_status: 'Order Received',
-    assigned_staff_id: 'staff-1',
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     assigned_reefer_truck: 'Scheduled Pune Dispatch',
     notes: 'Pending inventory picking from cold room #2.',
     created_at: '2026-09-15T15:45:00Z',
@@ -926,8 +995,8 @@ const DEFAULT_SALES_ORDERS_SEED: RimiSalesOrder[] = [
     delivery_date: '2026-09-20',
     payment_status: 'Paid',
     order_status: 'Confirmed',
-    assigned_staff_id: 'staff-3',
-    assigned_staff_name: 'Ananya Roy',
+    assigned_staff_id: 'stf-rimi-1',
+    assigned_staff_name: 'Rimi Operations Desk',
     assigned_reefer_truck: 'South Corridor Reefer #TN-09-CC-9011',
     notes: 'Cold chain quality certificate issued for strawberries batch IQF-SB-09.',
     created_at: '2026-09-14T10:00:00Z',
@@ -1043,8 +1112,8 @@ export async function createRimiSalesOrder(order: {
     delivery_date: order.delivery_date || new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
     payment_status: order.payment_status || 'Pending',
     order_status: order.order_status || 'Order Received',
-    assigned_staff_id: order.assigned_staff_id || 'staff-1',
-    assigned_staff_name: order.assigned_staff_name || 'Vikram Malhotra',
+    assigned_staff_id: order.assigned_staff_id || 'stf-rimi-1',
+    assigned_staff_name: order.assigned_staff_name || 'Rimi Operations Desk',
     assigned_reefer_truck: order.assigned_reefer_truck || 'Assigned Reefer Truck',
     notes: order.notes || '',
     created_at: new Date().toISOString(),
@@ -1155,7 +1224,7 @@ const DEFAULT_DOCUMENTS_SEED: RimiComplianceDoc[] = [
     batch_number: 'GP-2026-08',
     customer_name: 'Apex Cold Logistics Ltd',
     storage_temp: '-21°C',
-    verified_by: 'Dr. S. Kulkarni (Quality Head)',
+    verified_by: 'Quality Inspection Lead',
     status: 'Verified & Active',
     created_at: '2026-09-12T10:00:00Z'
   },
@@ -1167,7 +1236,7 @@ const DEFAULT_DOCUMENTS_SEED: RimiComplianceDoc[] = [
     file_url: '#',
     batch_number: 'SC-2026-14',
     storage_temp: '-22.5°C',
-    verified_by: 'Vikram Malhotra',
+    verified_by: 'Rimi Operations Desk',
     status: 'Verified & Active',
     created_at: '2026-09-13T14:30:00Z'
   },
@@ -1180,7 +1249,7 @@ const DEFAULT_DOCUMENTS_SEED: RimiComplianceDoc[] = [
     order_no: 'SO-2026-9042',
     customer_name: 'HyperCity Supermarket Bandra',
     storage_temp: '-18.8°C',
-    verified_by: 'Driver: Ramesh Patil',
+    verified_by: 'Driver: Reefer Logistics Dispatch',
     status: 'Verified & Active',
     created_at: '2026-09-15T09:30:00Z'
   }
@@ -1253,10 +1322,10 @@ const DEFAULT_TASKS_SEED: RimiTask[] = [
     title: 'Audit Cold Chamber #4 Defrost & Sensor Calibration',
     description: 'Verify digital temperature probe telemetry and check ice buildup in Vashi Central cold room.',
     category: 'Warehouse Audit',
-    assigned_to_id: 'staff-1',
-    assigned_to_name: 'Vikram Malhotra',
+    assigned_to_id: 'stf-rimi-1',
+    assigned_to_name: 'Rimi Operations Desk',
     assigned_to_role: 'Cold Chain Lead',
-    assigned_by: 'Central Superadmin',
+    assigned_by: 'Rimi Distribution Director',
     priority: 'High',
     status: 'In Progress',
     due_date: '2026-09-18',
@@ -1268,10 +1337,10 @@ const DEFAULT_TASKS_SEED: RimiTask[] = [
     title: 'Collect Overdue Payment & Reconcile Invoices (Deccan Frozen)',
     description: 'Call Suresh Rao to settle overdue invoice ₹19.5 Lakhs before dispatching next 20 MT consignment.',
     category: 'Payment Collection',
-    assigned_to_id: 'staff-1',
-    assigned_to_name: 'Vikram Malhotra',
+    assigned_to_id: 'stf-rimi-1',
+    assigned_to_name: 'Rimi Operations Desk',
     assigned_to_role: 'Regional Sales Staff',
-    assigned_by: 'Rimi Admin',
+    assigned_by: 'Rimi Distribution Director',
     priority: 'Critical',
     status: 'Pending',
     due_date: '2026-09-17',
@@ -1285,10 +1354,10 @@ const DEFAULT_TASKS_SEED: RimiTask[] = [
     title: 'Restock Bandra HyperCity & Inspect Display Freezers',
     description: 'Deliver 500 KG Sweet Corn and verify retail freezer display temp is below -15°C.',
     category: 'Dispatch & Logistics',
-    assigned_to_id: 'staff-2',
-    assigned_to_name: 'Sneha Patel',
+    assigned_to_id: 'stf-rimi-2',
+    assigned_to_name: 'Rimi Distribution Director',
     assigned_to_role: 'Operations Staff',
-    assigned_by: 'Rimi Admin',
+    assigned_by: 'Rimi Distribution Director',
     priority: 'Medium',
     status: 'Completed',
     due_date: '2026-09-16',
@@ -1302,10 +1371,10 @@ const DEFAULT_TASKS_SEED: RimiTask[] = [
     title: 'Sample Pitch & Pricing Proposal for Northstar Frost',
     description: 'Send IQF Paneer commercial rate card and finalize delivery terms for Delhi NCR corridor.',
     category: 'CRM Followup',
-    assigned_to_id: 'staff-3',
-    assigned_to_name: 'Ananya Roy',
+    assigned_to_id: 'stf-rimi-1',
+    assigned_to_name: 'Rimi Operations Desk',
     assigned_to_role: 'Regional Sales Staff',
-    assigned_by: 'Rimi Admin',
+    assigned_by: 'Rimi Distribution Director',
     priority: 'Medium',
     status: 'In Progress',
     due_date: '2026-09-19',
@@ -1339,10 +1408,10 @@ export async function createRimiTask(task: Partial<RimiTask>): Promise<RimiTask>
     title: task.title || 'New Cold Chain Operational Task',
     description: task.description || '',
     category: task.category || 'Dispatch & Logistics',
-    assigned_to_id: task.assigned_to_id || 'staff-1',
-    assigned_to_name: task.assigned_to_name || 'Vikram Malhotra',
+    assigned_to_id: task.assigned_to_id || 'stf-rimi-1',
+    assigned_to_name: task.assigned_to_name || 'Rimi Operations Desk',
     assigned_to_role: task.assigned_to_role || 'Operations Staff',
-    assigned_by: task.assigned_by || 'Rimi Admin',
+    assigned_by: task.assigned_by || 'Rimi Distribution Director',
     priority: task.priority || 'Medium',
     status: task.status || 'Pending',
     due_date: task.due_date || new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
@@ -2023,7 +2092,7 @@ export interface RimiFrostLoss {
   quantity_lost_kg: number;
   loss_reason: 'Defrost Cycle Damage' | 'Freezer Burn' | 'Packaging Seal Rupture' | 'Temperature Excursion' | 'Transit Thaw' | 'Other';
   estimated_loss_value: number;
-  recorded_by: string;
+  recorded_by?: string;
   recorded_at: string;
   status: 'Approved Write-off' | 'Under Investigation';
 }
@@ -2056,12 +2125,23 @@ export async function recordRimiFrostLoss(loss: {
     quantity_lost_kg: Number(loss.quantity_lost_kg) || 0,
     loss_reason: loss.loss_reason || 'Freezer Burn',
     estimated_loss_value: Number(loss.estimated_loss_value) || 0,
-    recorded_by: loss.recorded_by || 'Cold Chain Supervisor',
+    recorded_by: loss.recorded_by || 'Rimi Operations Desk',
     recorded_at: new Date().toISOString(),
     status: 'Approved Write-off',
   };
   const updated = [created, ...current];
   localStorage.setItem('ferex_rimi_frost_losses', JSON.stringify(updated));
+
+  // Deduct from inventory stock if matching item found
+  try {
+    const inv = await getRimiInventory();
+    const matched = inv.find((i: any) => i.batch_number === created.batch_number || i.product?.name === created.product_name);
+    if (matched && Number(matched.quantity_on_hand) > 0) {
+      const newQty = Math.max(0, Number(matched.quantity_on_hand) - created.quantity_lost_kg);
+      await updateRimiInventoryStock(matched.id, newQty);
+    }
+  } catch {}
+
   triggerLocalSync('ferex_rimi_frost_losses_change');
   return created;
 }
@@ -2084,7 +2164,9 @@ export interface RimiStockAdjustment {
   source_location?: string;
   target_location?: string;
   reason: string;
+  adjusted_by?: string;
   timestamp: string;
+  created_at?: string;
 }
 
 export async function getRimiStockAdjustments(): Promise<RimiStockAdjustment[]> {
@@ -2103,8 +2185,10 @@ export async function recordRimiStockAdjustment(adj: {
   source_location?: string;
   target_location?: string;
   reason: string;
+  adjusted_by?: string;
 }): Promise<RimiStockAdjustment> {
   const current = await getRimiStockAdjustments();
+  const now = new Date().toISOString();
   const created: RimiStockAdjustment = {
     id: `ADJ-${Math.floor(100 + Math.random() * 900)}`,
     product_name: adj.product_name,
@@ -2114,10 +2198,28 @@ export async function recordRimiStockAdjustment(adj: {
     source_location: adj.source_location || 'Central Cold Storage',
     target_location: adj.target_location,
     reason: adj.reason,
-    timestamp: new Date().toISOString(),
+    adjusted_by: adj.adjusted_by || 'Rimi Operations Desk',
+    timestamp: now,
+    created_at: now,
   };
   const updated = [created, ...current];
   localStorage.setItem('ferex_rimi_stock_adjustments', JSON.stringify(updated));
+
+  // If adjustment modifies inventory quantity (Inward Addition or Frost Loss Deduction)
+  try {
+    const inv = await getRimiInventory();
+    const matched = inv.find((i: any) => i.product?.name === created.product_name || i.batch_number === created.source_location);
+    if (matched) {
+      let newQty = Number(matched.quantity_on_hand);
+      if (created.adjustment_type === 'Inward Addition') {
+        newQty += created.quantity;
+      } else if (created.adjustment_type === 'Frost Loss Deduction') {
+        newQty = Math.max(0, newQty - created.quantity);
+      }
+      await updateRimiInventoryStock(matched.id, newQty);
+    }
+  } catch {}
+
   triggerLocalSync('ferex_rimi_stock_adjustments_change');
   return created;
 }
@@ -2273,4 +2375,5 @@ export async function provisionRimiCustomerLogin(partner: {
 
   return cred;
 }
+
 
