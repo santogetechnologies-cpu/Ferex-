@@ -12,6 +12,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useSystemConfig } from '../hooks/useSystemConfig';
 import { supabase } from '../lib/supabase';
 import { normalizeRole, getDashboardRoute } from '../lib/roleRouter';
+import { AIChatbot } from '../components/AIChatbot';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -573,13 +574,28 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
           target="_blank"
           rel="noopener noreferrer"
           title="Chat with Admissions Counselor on WhatsApp"
-          className="fixed bottom-6 right-6 z-40 bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center gap-2 border-2 border-white/40"
+          className="fixed bottom-22 right-6 z-40 bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all flex items-center gap-2 border-2 border-white/40"
         >
-          <MessageCircle className="w-5 h-5 fill-white" />
-          <span className="text-xs font-black hidden sm:inline pr-1">Admissions Desk</span>
+          <MessageCircle className="w-4 h-4 fill-white" />
+          <span className="text-[11px] font-black hidden sm:inline pr-1">WhatsApp Desk</span>
         </a>
       )}
 
+      {/* ── 24/7 OPENROUTER AI STUDENT COPILOT ── */}
+      <AIChatbot
+        mode="student"
+        studentContext={{
+          studentName: studentDetail.name || profile?.full_name || 'Student',
+          email: studentDetail.email || profile?.email || user?.email,
+          targetCountry: 'Poland / European Union',
+          targetUniversity: 'European Partner Universities',
+          program: 'Higher Education Program',
+          currentStep: 3,
+          stepTitle: 'Document Review & University Application',
+          assignedCounselor: 'Admissions Officer',
+          visaStatus: 'Document Preparation',
+        }}
+      />
     </div>
   );
 };

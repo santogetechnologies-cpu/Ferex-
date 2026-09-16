@@ -11,9 +11,10 @@ import { useDestinations } from '../hooks/useDestinations';
 import { getDashboardRoute } from '../lib/roleRouter';
 import type { University } from '../lib/types';
 import { Logo } from '../components/Logo';
+import { AIChatbot } from '../components/AIChatbot';
 
 // Student images provided by the user
-import heroStudentGirl from '../assets/hero-student-girl.jpg';
+import heroStudentTransparent from '../assets/hero-student-transparent.png';
 import aboutStudentsCampus from '../assets/about-students-campus.jpg';
 
 export function formatFeeEURandINR(feeStr?: string): string {
@@ -479,13 +480,13 @@ export const FerexLandingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Column: Hero Girl Student Image (Seamless Blend onto White, No Card Border/Shadow) */}
+            {/* Right Column: Hero Student Image (Seamless Transparent Blend on White Background) */}
             <div className="lg:col-span-6 flex justify-center lg:justify-end">
-              <div className="w-full max-w-[480px]">
+              <div className="w-full max-w-[520px]">
                 <img
-                  src={heroStudentGirl}
+                  src={heroStudentTransparent}
                   alt="European University Student - FEREX Education"
-                  className="w-full h-auto object-contain block select-none pointer-events-none"
+                  className="w-full h-auto object-contain block select-none"
                 />
               </div>
             </div>
@@ -1296,6 +1297,8 @@ export const FerexLandingPage: React.FC = () => {
         </div>
       )}
 
+      {/* ── 24/7 OPENROUTER AI ADMISSIONS CHATBOT ── */}
+      <AIChatbot mode="landing" />
     </div>
   );
 };
