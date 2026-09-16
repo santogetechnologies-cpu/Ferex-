@@ -9,7 +9,8 @@ import { Button } from '../../components/Button';
 import {
   getDigitalProjects,
   getDigitalClients,
-  getDigitalInvoices
+  getDigitalInvoices,
+  getDigitalStaffMembers
 } from '../../lib/api/digital';
 import { sendDigitalProjectMilestoneEmail } from '../../lib/api/automatedEmails';
 
@@ -26,9 +27,10 @@ export const CentralDigital: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]);
 
   const [reassignProject, setReassignProject] = useState<any | null>(null);
-  const [newLeadDev, setNewLeadDev] = useState('Priya Nair');
+  const [newLeadDev, setNewLeadDev] = useState('Digital Project Manager');
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -38,14 +40,19 @@ export const CentralDigital: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [pData, cData, iData] = await Promise.all([
+      const [pData, cData, iData, sData] = await Promise.all([
         getDigitalProjects(),
         getDigitalClients(),
-        getDigitalInvoices()
+        getDigitalInvoices(),
+        getDigitalStaffMembers()
       ]);
       setProjects(pData || []);
       setClients(cData || []);
       setInvoices(iData || []);
+      setStaffList(sData || []);
+      if (sData && sData.length > 0) {
+        setNewLeadDev(sData[0].name);
+      }
     } finally {
       setLoading(false);
     }
@@ -231,10 +238,9 @@ export const CentralDigital: React.FC = () => {
                   className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
                 >
                   <option value="All">All Staff Members</option>
-                  <option value="Kavita Iyer">Kavita Iyer</option>
-                  <option value="Rohan Verma">Rohan Verma</option>
-                  <option value="Priya Nair">Priya Nair</option>
-                  <option value="Sneha Sen">Sneha Sen</option>
+                  {staffList.map((s: any) => (
+                    <option key={s.id || s.email} value={s.name}>{s.name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -399,10 +405,11 @@ export const CentralDigital: React.FC = () => {
                     onChange={e => setNewLeadDev(e.target.value)}
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
                   >
-                    <option value="Priya Nair (Engineering Lead)">Priya Nair (Engineering Lead)</option>
-                    <option value="Arun Patel (Senior Full-Stack Dev)">Arun Patel (Senior Full-Stack Dev)</option>
-                    <option value="Sneha Roy (Lead UI/UX Architect)">Sneha Roy (Lead UI/UX Architect)</option>
-                    <option value="Super Admin HQ">Super Admin HQ</option>
+                    {staffList.map((s: any) => (
+                      <option key={s.id || s.email} value={s.name}>
+                        {s.name} ({s.roleLabel || s.role || 'Staff'})
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="pt-3 flex gap-2">

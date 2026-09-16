@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Download, Printer, Filter, Calendar, CheckCircle2, Search, FileSpreadsheet, X } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getDigitalInvoices, getDigitalProjects, getDigitalClients, getDigitalEmployees, getDigitalAssets } from '../../lib/api/digital';
+import { getDigitalInvoices, getDigitalProjects, getDigitalClients, getDigitalStaffMembers, getDigitalAssets } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 
 interface DigitalReportDetail {
@@ -41,7 +41,7 @@ export const DigitalReports: React.FC = () => {
         getDigitalInvoices(),
         getDigitalProjects(),
         getDigitalClients(),
-        getDigitalEmployees(),
+        getDigitalStaffMembers(),
         getDigitalAssets()
       ]);
       setInvoices(invData || []);
@@ -95,12 +95,8 @@ export const DigitalReports: React.FC = () => {
     { id: 'c-4', company_name: 'Tata Digital & Mobility Labs' },
   ];
   const effectiveEmployees = employees.length > 0 ? employees : [
-    { id: 'e-1', name: 'Kavita Iyer' },
-    { id: 'e-2', name: 'Sameer Sen' },
-    { id: 'e-3', name: 'Pooja Hegde' },
-    { id: 'e-4', name: 'Rohan Joshi' },
-    { id: 'e-5', name: 'Arun Patel' },
-    { id: 'e-6', name: 'Sneha Roy' },
+    { id: 'e-1', name: 'Digital Project Manager', role: 'Project Manager' },
+    { id: 'e-2', name: 'Digital Agency Lead', role: 'Agency Director' },
   ];
   const effectiveAssets = assets.length > 0 ? assets : [
     { id: 'a-1', name: 'AWS Cloud Cluster' },

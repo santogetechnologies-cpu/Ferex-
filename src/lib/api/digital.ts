@@ -312,14 +312,14 @@ export async function getDigitalProjects(category?: string): Promise<DigitalProj
         service_category: 'Digital Marketing & Advertising',
         status: 'In Progress',
         stage_history: [
-          { stage: 'Briefing', timestamp: '2026-08-10 10:00', confirmed_by: 'Kavita Iyer', notes: 'Marketing brief aligned with Admissions Desk' },
-          { stage: 'In Progress', timestamp: '2026-08-16 14:30', confirmed_by: 'Kavita Iyer', notes: 'Ad creatives in active production' }
+          { stage: 'Briefing', timestamp: '2026-08-10 10:00', confirmed_by: 'Digital Project Manager', notes: 'Marketing brief aligned with Admissions Desk' },
+          { stage: 'In Progress', timestamp: '2026-08-16 14:30', confirmed_by: 'Digital Project Manager', notes: 'Ad creatives in active production' }
         ],
         start_date: '2026-08-10',
         deadline: '2026-10-15',
-        assigned_staff_name: 'Kavita Iyer',
-        assigned_staff_email: 'kavita.iyer@ferex.com',
-        lead_developer: 'Kavita Iyer',
+        assigned_staff_name: 'Digital Project Manager',
+        assigned_staff_email: 'pm@ferex.com',
+        lead_developer: 'Digital Project Manager',
         budget: 650000,
         progress: 45,
         payment_terms: 'Advance Payment',
@@ -362,15 +362,15 @@ export async function getDigitalProjects(category?: string): Promise<DigitalProj
         service_category: 'Branding & Packaging',
         status: 'Review',
         stage_history: [
-          { stage: 'Briefing', timestamp: '2026-08-12 11:00', confirmed_by: 'Rohan Verma', notes: 'Briefing completed with Rimi logistics lead' },
-          { stage: 'In Progress', timestamp: '2026-08-20 15:00', confirmed_by: 'Rohan Verma', notes: 'Packaging mockups completed' },
-          { stage: 'Review', timestamp: '2026-09-02 09:30', confirmed_by: 'Rohan Verma', notes: 'Submitted for management review' }
+          { stage: 'Briefing', timestamp: '2026-08-12 11:00', confirmed_by: 'Digital Agency Lead', notes: 'Briefing completed with Rimi logistics lead' },
+          { stage: 'In Progress', timestamp: '2026-08-20 15:00', confirmed_by: 'Digital Agency Lead', notes: 'Packaging mockups completed' },
+          { stage: 'Review', timestamp: '2026-09-02 09:30', confirmed_by: 'Digital Agency Lead', notes: 'Submitted for management review' }
         ],
         start_date: '2026-08-12',
         deadline: '2026-09-28',
-        assigned_staff_name: 'Rohan Verma',
-        assigned_staff_email: 'rohan.verma@ferex.com',
-        lead_developer: 'Rohan Verma',
+        assigned_staff_name: 'Digital Agency Lead',
+        assigned_staff_email: 'digital@ferex.com',
+        lead_developer: 'Digital Agency Lead',
         budget: 480000,
         progress: 75,
         payment_terms: 'Milestone-Based',
@@ -403,14 +403,14 @@ export async function getDigitalProjects(category?: string): Promise<DigitalProj
         service_category: 'Web & App Branding',
         status: 'In Progress',
         stage_history: [
-          { stage: 'Briefing', timestamp: '2026-08-15 14:00', confirmed_by: 'Priya Nair', notes: 'Client kickoff meeting held' },
-          { stage: 'In Progress', timestamp: '2026-08-22 16:00', confirmed_by: 'Priya Nair', notes: 'Design sprint active' }
+          { stage: 'Briefing', timestamp: '2026-08-15 14:00', confirmed_by: 'Digital Project Manager', notes: 'Client kickoff meeting held' },
+          { stage: 'In Progress', timestamp: '2026-08-22 16:00', confirmed_by: 'Digital Project Manager', notes: 'Design sprint active' }
         ],
         start_date: '2026-08-15',
         deadline: '2026-11-01',
-        assigned_staff_name: 'Priya Nair',
-        assigned_staff_email: 'priya.nair@ferex.com',
-        lead_developer: 'Priya Nair',
+        assigned_staff_name: 'Digital Project Manager',
+        assigned_staff_email: 'pm@ferex.com',
+        lead_developer: 'Digital Project Manager',
         budget: 1250000,
         progress: 35,
         payment_terms: 'Milestone-Based',
@@ -443,16 +443,16 @@ export async function getDigitalProjects(category?: string): Promise<DigitalProj
         service_category: 'Digital PR & Advertising',
         status: 'Delivered',
         stage_history: [
-          { stage: 'Briefing', timestamp: '2026-07-20 10:00', confirmed_by: 'Sneha Sen', notes: 'Launch brief received' },
-          { stage: 'In Progress', timestamp: '2026-08-01 12:00', confirmed_by: 'Sneha Sen', notes: 'Campaign assets built' },
-          { stage: 'Review', timestamp: '2026-08-20 15:00', confirmed_by: 'Sneha Sen', notes: 'Client review complete' },
-          { stage: 'Delivered', timestamp: '2026-09-05 16:30', confirmed_by: 'Sneha Sen', notes: 'Full asset kit delivered' }
+          { stage: 'Briefing', timestamp: '2026-07-20 10:00', confirmed_by: 'Digital Agency Lead', notes: 'Launch brief received' },
+          { stage: 'In Progress', timestamp: '2026-08-01 12:00', confirmed_by: 'Digital Agency Lead', notes: 'Campaign assets built' },
+          { stage: 'Review', timestamp: '2026-08-20 15:00', confirmed_by: 'Digital Agency Lead', notes: 'Client review complete' },
+          { stage: 'Delivered', timestamp: '2026-09-05 16:30', confirmed_by: 'Digital Agency Lead', notes: 'Full asset kit delivered' }
         ],
         start_date: '2026-07-20',
         deadline: '2026-09-10',
-        assigned_staff_name: 'Sneha Sen',
-        assigned_staff_email: 'sneha.sen@ferex.com',
-        lead_developer: 'Sneha Sen',
+        assigned_staff_name: 'Digital Agency Lead',
+        assigned_staff_email: 'digital@ferex.com',
+        lead_developer: 'Digital Agency Lead',
         budget: 950000,
         progress: 100,
         payment_terms: 'Full Payment',
@@ -532,7 +532,7 @@ export async function createDigitalProject(project: {
   const advanceAmount = paymentTerms === 'Full Payment' ? totalBudget : Math.round(totalBudget * 0.3);
   const balanceAmount = totalBudget - advanceAmount;
   const currentStage: DigitalProjectStage = project.status || 'Briefing';
-  const assignedStaff = project.assigned_staff_name || project.lead_developer || 'Kavita Iyer';
+  const assignedStaff = project.assigned_staff_name || project.lead_developer || 'Digital Project Manager';
 
   const payload: DigitalProjectRecord = {
     id: generateUUID(),
@@ -738,8 +738,59 @@ export async function getDigitalTasks(projectId?: string) {
       if (projectId) return merged.filter((t: any) => t.project_id === projectId);
       return merged;
     }
-    if (projectId) return localTasks.filter((t: any) => t.project_id === projectId);
-    return localTasks;
+    if (localTasks.length > 0) {
+      if (projectId) return localTasks.filter((t: any) => t.project_id === projectId);
+      return localTasks;
+    }
+
+    const initialTasks = [
+      {
+        id: 'tsk-001',
+        project_id: 'prj-001',
+        project: { title: 'Fall 2027 Global Admissions Digital Campaign & Lead Gen Funnel' },
+        title: 'Produce 15 European Admissions Meta Reel Ad Creatives',
+        priority: 'High',
+        status: 'In Progress',
+        due_date: '2026-09-25',
+        assigned_to_name: 'Digital Project Manager',
+        assigned_to_email: 'pm@ferex.com',
+        notes: 'High CTR motion graphic reels targeting undergraduate study visa applicants.',
+        created_at: '2026-08-20T10:00:00.000Z',
+        updated_at: '2026-08-20T10:00:00.000Z',
+      },
+      {
+        id: 'tsk-002',
+        project_id: 'prj-002',
+        project: { title: 'B2B Distributor Brand Refresh & Packaging Identity' },
+        title: 'Export Compliant Die-Cut Packaging Templates for Cold Chain',
+        priority: 'Medium',
+        status: 'To Do',
+        due_date: '2026-09-30',
+        assigned_to_name: 'Digital Agency Lead',
+        assigned_to_email: 'digital@ferex.com',
+        notes: 'CMYK export vector files for Rimi seafood packaging run.',
+        created_at: '2026-08-22T11:00:00.000Z',
+        updated_at: '2026-08-22T11:00:00.000Z',
+      },
+      {
+        id: 'tsk-003',
+        project_id: 'prj-003',
+        project: { title: 'Omnichannel Merchant Acquiring Portal & Brand Identity' },
+        title: 'Merchant Onboarding Flow Wireframes & Design Tokens',
+        priority: 'Critical',
+        status: 'In Progress',
+        due_date: '2026-10-05',
+        assigned_to_name: 'Digital Project Manager',
+        assigned_to_email: 'pm@ferex.com',
+        notes: 'Multi-currency payment checkout UI components in Figma.',
+        created_at: '2026-08-25T14:00:00.000Z',
+        updated_at: '2026-08-25T14:00:00.000Z',
+      }
+    ];
+
+    try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(initialTasks)); } catch {}
+    if (projectId) return initialTasks.filter((t: any) => t.project_id === projectId);
+    return initialTasks;
   } catch {
     if (projectId) return localTasks.filter((t: any) => t.project_id === projectId);
     return localTasks;
@@ -754,6 +805,8 @@ export async function createDigitalTask(task: {
   status?: string;
   due_date?: string;
   assigned_to_name?: string;
+  assigned_to_email?: string;
+  notes?: string;
 }) {
   const projects = await getDigitalProjects();
   const projectObj = projects.find((p: any) => p.id === task.project_id);
@@ -766,7 +819,9 @@ export async function createDigitalTask(task: {
     priority: task.priority || 'Medium',
     status: task.status || 'To Do',
     due_date: task.due_date || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    assigned_to_name: task.assigned_to_name || 'Engineering Team',
+    assigned_to_name: task.assigned_to_name || 'Digital Project Manager',
+    assigned_to_email: task.assigned_to_email || 'pm@ferex.com',
+    notes: task.notes || '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -1089,28 +1144,113 @@ export async function recordDigitalAttendance(record: any) {
 }
 
 // ─── Digital Meetings ───────────────────────────────────────────────────────
-export async function getDigitalMeetings() {
+export interface DigitalMeetingRecord {
+  id: string;
+  title: string;
+  client: string;
+  client_id?: string;
+  host_staff_name: string;
+  host_staff_email?: string;
+  time: string;
+  date?: string;
+  platform?: string;
+  meeting_type?: string;
+  link?: string;
+  notes?: string;
+  status: 'Scheduled' | 'Completed' | 'Cancelled';
+  created_at: string;
+}
+
+export async function getDigitalMeetings(): Promise<DigitalMeetingRecord[]> {
   const saved = localStorage.getItem('ferex_digital_meetings');
   if (saved) {
-    try { return JSON.parse(saved); } catch {}
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
   }
-  return [];
+
+  const initialMeetings: DigitalMeetingRecord[] = [
+    {
+      id: 'MTG-101',
+      title: 'Fall Admissions Campaign Sprint Kickoff',
+      client: 'Ferex Education Consultancy',
+      host_staff_name: 'Digital Project Manager',
+      host_staff_email: 'pm@ferex.com',
+      time: 'Tomorrow, 11:30 AM',
+      date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+      platform: 'Google Meet',
+      meeting_type: 'Sprint Kickoff',
+      link: 'https://meet.google.com/fer-dig-arch',
+      notes: 'Review ad funnel conversion targets and creative storyboard assets.',
+      status: 'Scheduled',
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 'MTG-102',
+      title: 'Packaging Identity & Die-Cut Review Session',
+      client: 'Rimi Frozen Foods Cold Chain',
+      host_staff_name: 'Digital Agency Lead',
+      host_staff_email: 'digital@ferex.com',
+      time: 'Friday, 03:00 PM',
+      date: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
+      platform: 'Zoom',
+      meeting_type: 'Design Review',
+      link: 'https://zoom.us/j/9842103321',
+      notes: 'Finalize blast frozen export packaging die-lines with supply chain team.',
+      status: 'Scheduled',
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 'MTG-103',
+      title: 'Merchant Checkout UX & Payment Gateways Demo',
+      client: 'Nexus Retail & FinTech Group',
+      host_staff_name: 'Digital Project Manager',
+      host_staff_email: 'pm@ferex.com',
+      time: 'Next Monday, 04:30 PM',
+      date: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
+      platform: 'Google Meet',
+      meeting_type: 'Client Demo',
+      link: 'https://meet.google.com/nex-fin-demo',
+      notes: 'Demonstrate responsive checkout design system tokens.',
+      status: 'Scheduled',
+      created_at: new Date().toISOString(),
+    }
+  ];
+
+  try { localStorage.setItem('ferex_digital_meetings', JSON.stringify(initialMeetings)); } catch {}
+  return initialMeetings;
 }
 
 export async function createDigitalMeeting(mtg: {
   title: string;
   client: string;
+  client_id?: string;
+  host_staff_name?: string;
+  host_staff_email?: string;
   time: string;
+  date?: string;
+  platform?: string;
+  meeting_type?: string;
   link?: string;
-}) {
+  notes?: string;
+}): Promise<DigitalMeetingRecord> {
   const current = await getDigitalMeetings();
-  const created = {
-    id: `MTG-${Math.floor(10 + Math.random() * 90)}`,
+  const created: DigitalMeetingRecord = {
+    id: `MTG-${Math.floor(100 + Math.random() * 900)}`,
     title: mtg.title,
     client: mtg.client,
+    client_id: mtg.client_id,
+    host_staff_name: mtg.host_staff_name || 'Digital Project Manager',
+    host_staff_email: mtg.host_staff_email || 'pm@ferex.com',
     time: mtg.time,
+    date: mtg.date || new Date().toISOString().split('T')[0],
+    platform: mtg.platform || 'Google Meet',
+    meeting_type: mtg.meeting_type || 'Sprint Review',
     link: mtg.link || 'https://meet.google.com',
-    status: 'Scheduled'
+    notes: mtg.notes || '',
+    status: 'Scheduled',
+    created_at: new Date().toISOString(),
   };
   const updated = [created, ...current];
   localStorage.setItem('ferex_digital_meetings', JSON.stringify(updated));

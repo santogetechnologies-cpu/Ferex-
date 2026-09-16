@@ -57,15 +57,15 @@ export const DigitalWebDevelopment: React.FC = () => {
 
   const activeProject = projects.find(p => p.id === selectedProjectId) || {
     title: 'Nexus NeoBanking Web Platform',
-    lead_developer: 'Kavita Iyer',
+    lead_developer: 'Digital Project Manager',
     progress: 88,
     service_category: 'Web & App Development'
   };
 
   const commitsList = [
-    { hash: 'e92f41', msg: `feat: deploy high-throughput microservice gateway for ${activeProject.title}`, author: employees[0]?.name || 'Kavita Iyer', time: '15m ago', branch: 'main' },
-    { hash: '8c4b12', msg: 'fix: cross-platform responsive viewport hydration', author: employees[1]?.name || 'Sameer Sen', time: '1h ago', branch: 'feature/viewport' },
-    { hash: '3f9d01', msg: 'perf: optimize Core Web Vitals LCP to 0.7s with SSR caching', author: employees[2]?.name || 'Pooja Hegde', time: '3h ago', branch: 'main' },
+    { hash: 'e92f41', msg: `feat: deploy high-throughput microservice gateway for ${activeProject.title}`, author: employees[0]?.name || activeProject.lead_developer || 'Digital Project Manager', time: '15m ago', branch: 'main' },
+    { hash: '8c4b12', msg: 'fix: cross-platform responsive viewport hydration', author: employees[1]?.name || 'Digital Engineering Lead', time: '1h ago', branch: 'feature/viewport' },
+    { hash: '3f9d01', msg: 'perf: optimize Core Web Vitals LCP to 0.7s with SSR caching', author: employees[2]?.name || 'Digital Delivery Desk', time: '3h ago', branch: 'main' },
   ];
 
   const apiEndpoints = [

@@ -100,9 +100,8 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       ]
     },
     {
-      title: 'PERFORMANCE & REPORTS',
+      title: 'REPORTS & ANALYTICS',
       items: [
-        { label: 'Team Performance', path: '/digital/performance', icon: TrendingUp },
         { label: 'Reports & Analytics', path: '/digital/reports', icon: BarChart3 }
       ]
     },

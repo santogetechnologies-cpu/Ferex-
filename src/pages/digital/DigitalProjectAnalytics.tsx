@@ -62,8 +62,8 @@ export const DigitalProjectAnalytics: React.FC = () => {
     return {
       id: p.id.slice(0, 10),
       name: p.title,
-      client: p.client?.company_name || 'Enterprise Client',
-      teamLead: p.lead_developer || 'Kavita Iyer',
+      client: p.client?.company_name || p.client_name || 'Enterprise Client',
+      teamLead: p.assigned_staff_name || p.lead_developer || 'Digital Project Manager',
       health,
       healthColor,
       progress,

@@ -53,7 +53,7 @@ export const DigitalExpenses: React.FC = () => {
     renewal_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
     status: 'Active' as const,
     assigned_to_project: 'Core Engineering',
-    assigned_team_lead: 'Kavita Iyer',
+    assigned_team_lead: 'Digital Project Manager',
     license_seats: 10
   });
 
@@ -123,7 +123,7 @@ export const DigitalExpenses: React.FC = () => {
       renewal_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
       status: 'Active',
       assigned_to_project: 'Core Engineering',
-      assigned_team_lead: 'Kavita Iyer',
+      assigned_team_lead: 'Digital Project Manager',
       license_seats: 10
     });
     await loadData();

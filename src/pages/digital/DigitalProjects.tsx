@@ -101,10 +101,14 @@ export const DigitalProjects: React.FC = () => {
 
     const handleLocalChange = () => loadData();
     window.addEventListener('ferex_digital_projects_change', handleLocalChange);
+    window.addEventListener('ferex_digital_staff_change', handleLocalChange);
+    window.addEventListener('ferex_staff_users_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_digital_projects_change', handleLocalChange);
+      window.removeEventListener('ferex_digital_staff_change', handleLocalChange);
+      window.removeEventListener('ferex_staff_users_change', handleLocalChange);
     };
   }, [loadData]);
 
@@ -125,6 +129,10 @@ export const DigitalProjects: React.FC = () => {
       selectedClient = clients[0];
     }
 
+    const assignedName = newProj.assigned_staff_name || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Project Manager'));
+    const matchedStaff = staffList.find(s => s.name === assignedName);
+    const assignedEmail = matchedStaff?.email || newProj.assigned_staff_email || 'pm@ferex.com';
+
     const created = await createDigitalProject({
       title: newProj.title,
       client_id: selectedClient?.id || undefined,
@@ -137,8 +145,8 @@ export const DigitalProjects: React.FC = () => {
       payment_terms: newProj.payment_terms,
       start_date: newProj.start_date,
       deadline: newProj.deadline,
-      assigned_staff_name: newProj.assigned_staff_name,
-      assigned_staff_email: newProj.assigned_staff_email,
+      assigned_staff_name: assignedName,
+      assigned_staff_email: assignedEmail,
       status: newProj.status,
     });
 
@@ -155,8 +163,8 @@ export const DigitalProjects: React.FC = () => {
       payment_terms: 'Advance Payment',
       start_date: new Date().toISOString().split('T')[0],
       deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-      assigned_staff_name: 'Kavita Iyer',
-      assigned_staff_email: 'kavita.iyer@ferex.com',
+      assigned_staff_name: staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Project Manager'),
+      assigned_staff_email: staffList.length > 0 ? staffList[0].email : (profile?.email || 'pm@ferex.com'),
       status: 'Briefing',
     });
     await loadData();
@@ -450,7 +458,7 @@ export const DigitalProjects: React.FC = () => {
                     </div>
                     <div className="flex justify-between items-center text-[11px]">
                       <span className="text-slate-400">Assigned Staff:</span>
-                      <span className="font-semibold text-slate-800">{p.assigned_staff_name || 'Kavita Iyer'}</span>
+                      <span className="font-semibold text-slate-800">{p.assigned_staff_name || 'Digital Project Manager'}</span>
                     </div>
                     <div className="flex justify-between items-center text-[11px]">
                       <span className="text-slate-400">Target Deadline:</span>
