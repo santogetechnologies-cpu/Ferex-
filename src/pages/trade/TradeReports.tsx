@@ -43,9 +43,9 @@ export const TradeReports: React.FC = () => {
       const rawPays = Array.isArray(pays) ? pays : [];
       const rawCerts = Array.isArray(certs) ? certs : [];
 
-      const invSum = rawInvs.reduce((sum, i) => sum + Number(i.amount || 0), 0);
-      const lcSum = rawLcs.reduce((sum, l) => sum + Number(l.amount || 0), 0);
-      const paySum = rawPays.filter(p => p.status === 'Completed').reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const invSum = rawInvs.reduce((sum: number, i: any) => sum + Number(i.amount || 0), 0);
+      const lcSum = rawLcs.reduce((sum: number, l: any) => sum + Number(l.amount || 0), 0);
+      const paySum = rawPays.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
 
       setMetrics({
         shipmentCount: rawShips.length > 0 ? rawShips.length : 14,

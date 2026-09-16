@@ -85,6 +85,8 @@ import { TradeMessages } from './pages/trade/TradeMessages';
 import { TradeNotifications } from './pages/trade/TradeNotifications';
 import { TradeProfile } from './pages/trade/TradeProfile';
 import { TradeSettings } from './pages/trade/TradeSettings';
+import { TradeTasks } from './pages/trade/TradeTasks';
+import { TradeTickets } from './pages/trade/TradeTickets';
 import { TradeClientPortal } from './pages/trade/TradeClientPortal';
 import { TradeLoginPage } from './pages/trade/TradeLoginPage';
 
@@ -113,7 +115,6 @@ import { RimiNotifications } from './pages/rimi/RimiNotifications';
 import { RimiProfile } from './pages/rimi/RimiProfile';
 import { RimiSettings } from './pages/rimi/RimiSettings';
 import { RimiLoginPage } from './pages/rimi/RimiLoginPage';
-import { RimiCustomerPortal } from './pages/rimi/RimiCustomerPortal';
 
 // Digital imports
 import { DigitalLayout } from './layouts/DigitalLayout';
@@ -359,9 +360,11 @@ function App() {
           <Route path="/trade/financial-analytics" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeFinancialAnalytics /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/messages" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeMessages /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/notifications" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeNotifications /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/tasks" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeTasks /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/tickets" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeTickets /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/profile" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeProfile /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/settings" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeSettings /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/client-portal" element={<ProtectedRoute allowedRoles={['trade_client']}><TradeClientPortal /></ProtectedRoute>} />
+          <Route path="/trade/client-portal" element={<ProtectedRoute allowedRoles={['trade_client', ...TRADE_ROLES, ...CENTRAL_ROLES]}><TradeClientPortal /></ProtectedRoute>} />
 
           {/* ── Rimi Frozen Distribution Routes ── */}
           <Route path="/rimi/dashboard" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDashboard /></RimiLayout></ProtectedRoute>} />
@@ -386,7 +389,6 @@ function App() {
           <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiSettings /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/customer-portal" element={<ProtectedRoute allowedRoles={['rimi_client']}><RimiCustomerPortal /></ProtectedRoute>} />
 
           {/* ── Ferex Digital Routes ── */}
           <Route path="/digital/dashboard" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalDashboard /></DigitalLayout></ProtectedRoute>} />

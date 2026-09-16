@@ -1,1167 +1,505 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
 import {
-  getTradeShipments,
-  getTradeInvoices,
-  getTradeLettersOfCredit,
-  getTradeBillsOfLading,
-  getTradePackingLists,
-  getTradeCertificates,
+  Globe, PackageCheck, FileText, CreditCard, ShieldCheck,
+  Ship, Clock, CheckCircle2, Download, ArrowRight,
+  LogOut, LifeBuoy, AlertCircle, RefreshCw, Send,
+  Building2, Phone, Mail, MapPin, ExternalLink
+} from 'lucide-react';
+import { Card } from '../../components/Card';
+import { Button } from '../../components/Button';
+import { Logo } from '../../components/Logo';
+import {
+  getTradeOrders,
   getTradeDocuments,
-  createTradeDocument,
+  getTradePayments,
   getTradeMessages,
   sendTradeMessage,
-  TRADE_MASTER_DOC_TYPES
+  TRADE_ORDER_STAGES,
+  type TradeOrder,
+  type TradeDocument,
+  type TradePaymentRecord,
+  type TradeOrderStage
 } from '../../lib/api/trade';
-import { useTradeConfig } from '../../hooks/useTradeConfig';
-import { UnifiedPaymentModal } from '../../components/UnifiedPaymentModal';
-import {
-  Ship,
-  FileText,
-  CreditCard,
-  Layers,
-  Send,
-  LogOut,
-  RefreshCw,
-  Building2,
-  Clock,
-  ShieldCheck,
-  PackageCheck,
-  Download,
-  FileCheck2,
-  User,
-  Lock,
-  Megaphone,
-  Phone,
-  Anchor,
-  MessageCircle,
-  ExternalLink,
-  Navigation,
-  CheckCircle2,
-  Zap,
-  ArrowRight,
-  Upload,
-  Eye,
-  X
-} from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 export const TradeClientPortal: React.FC = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
-  const { config: tradeConfig } = useTradeConfig();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'shipments' | 'invoices' | 'lcs' | 'packing_lists' | 'bls' | 'certificates' | 'documents' | 'messages'>('overview');
+  const [orders, setOrders] = useState<TradeOrder[]>([]);
+  const [documents, setDocuments] = useState<TradeDocument[]>([]);
+  const [payments, setPayments] = useState<TradePaymentRecord[]>([]);
+  const [activeTab, setActiveTab] = useState<'orders' | 'documents' | 'payments' | 'messages'>('orders');
+  const [selectedOrder, setSelectedOrder] = useState<TradeOrder | null>(null);
   const [loading, setLoading] = useState(true);
-  const [shipments, setShipments] = useState<any[]>([]);
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [lcs, setLcs] = useState<any[]>([]);
-  const [packingLists, setPackingLists] = useState<any[]>([]);
-  const [bls, setBls] = useState<any[]>([]);
-  const [certificates, setCertificates] = useState<any[]>([]);
-  const [docs, setDocs] = useState<any[]>([]);
+  const [toast, setToast] = useState('');
+
+  // Messages state
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
-  const [selectedShipment, setSelectedShipment] = useState<any>(null);
-  const [payingInvoice, setPayingInvoice] = useState<any | null>(null);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploadData, setUploadData] = useState({
-    name: '',
-    doc_type: TRADE_MASTER_DOC_TYPES[0],
-    folder: 'Customs Clearance',
-    shipment_no: '',
-    file: null as File | null
-  });
 
-  const clientEmail = user?.email || profile?.email || '';
-  const clientName = profile?.full_name || user?.user_metadata?.full_name || clientEmail.split('@')[0] || 'Trade Partner';
-  const companyName = user?.user_metadata?.company_name || profile?.department?.replace('Trade:', '') || 'Global Trade Partner Corp';
+  const clientEmail = user?.email || profile?.email || 'trade@balticgrain.pl';
+  const clientName = profile?.full_name || user?.user_metadata?.full_name || 'Baltic Grain Sp. z o.o.';
+  const companyName = user?.user_metadata?.company_name || profile?.department?.replace('Trade:', '') || clientName;
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [allShipments, allInvoices, allLcs, allPackingLists, allBls, allCerts, allDocs, chatMsgs] = await Promise.all([
-        getTradeShipments(),
-        getTradeInvoices(),
-        getTradeLettersOfCredit(),
-        getTradePackingLists(),
-        getTradeBillsOfLading(),
-        getTradeCertificates(),
+      const [allOrders, allDocs, allPayments, chatMsgs] = await Promise.all([
+        getTradeOrders(),
         getTradeDocuments(),
-        getTradeMessages('client_portal'),
+        getTradePayments(),
+        getTradeMessages('client_portal')
       ]);
 
-      // Filter for this company / client or fallback gracefully
-      const myInvoices = allInvoices.filter((i: any) =>
-        i.buyer_name?.toLowerCase().includes(companyName.toLowerCase()) ||
-        i.buyer_name?.toLowerCase().includes(clientName.toLowerCase()) ||
-        allInvoices.length <= 5
+      // Filter for this client's company or email, or gracefully show active items
+      const myOrders = allOrders.filter(o =>
+        o.client_email.toLowerCase() === clientEmail.toLowerCase() ||
+        o.client_name.toLowerCase().includes(companyName.toLowerCase()) ||
+        o.client_name.toLowerCase().includes(clientName.toLowerCase()) ||
+        allOrders.length <= 5
       );
 
-      const myLcs = allLcs.filter((l: any) =>
-        l.beneficiary?.toLowerCase().includes(companyName.toLowerCase()) ||
-        l.applicant?.toLowerCase().includes(companyName.toLowerCase()) ||
-        allLcs.length <= 5
-      );
+      const displayOrders = myOrders.length > 0 ? myOrders : allOrders;
+      setOrders(displayOrders);
+      if (displayOrders.length > 0 && !selectedOrder) {
+        setSelectedOrder(displayOrders[0]);
+      }
 
-      setShipments(allShipments || []);
-      setInvoices(myInvoices.length > 0 ? myInvoices : allInvoices);
-      setLcs(myLcs.length > 0 ? myLcs : allLcs);
-      setPackingLists(allPackingLists || []);
-      setBls(allBls || []);
-      setCertificates(allCerts || []);
-      setDocs(allDocs || []);
-      setMessages(chatMsgs || []);
+      setDocuments(allDocs);
+      setPayments(allPayments);
+      setMessages(chatMsgs);
     } finally {
       setLoading(false);
     }
-  }, [companyName, clientName]);
+  }, [clientEmail, companyName, clientName, selectedOrder]);
 
   useEffect(() => {
     loadData();
 
     const channel = supabase
-      .channel('trade_client_portal_sync_all')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_shipments' }, () => loadData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_invoices' }, () => loadData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_letters_of_credit' }, () => loadData())
+      .channel('trade_client_portal_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_orders' }, () => loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_documents' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_payments' }, () => loadData())
       .subscribe();
 
     const handleLocalChange = () => loadData();
-    window.addEventListener('ferex_trade_shipments_change', handleLocalChange);
-    window.addEventListener('ferex_trade_invoices_change', handleLocalChange);
-    window.addEventListener('ferex_trade_lcs_change', handleLocalChange);
+    window.addEventListener('ferex_trade_orders_change', handleLocalChange);
     window.addEventListener('ferex_trade_documents_change', handleLocalChange);
+    window.addEventListener('ferex_trade_payments_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
-      window.removeEventListener('ferex_trade_shipments_change', handleLocalChange);
-      window.removeEventListener('ferex_trade_invoices_change', handleLocalChange);
-      window.removeEventListener('ferex_trade_lcs_change', handleLocalChange);
+      window.removeEventListener('ferex_trade_orders_change', handleLocalChange);
       window.removeEventListener('ferex_trade_documents_change', handleLocalChange);
+      window.removeEventListener('ferex_trade_payments_change', handleLocalChange);
     };
   }, [loadData]);
 
+  const showToastMsg = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3500);
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMsg.trim() || sendingMsg) return;
+    if (!newMsg.trim()) return;
+
     setSendingMsg(true);
     try {
       await sendTradeMessage({
         conversation_id: 'client_portal',
         contact_name: companyName,
-        contact_role: 'Trade Partner Representative',
         sender_name: clientName,
-        message: newMsg.trim(),
+        message: newMsg,
         is_self: true,
       });
       setNewMsg('');
       const updated = await getTradeMessages('client_portal');
       setMessages(updated);
+      showToastMsg('Message sent to FEREX Trade Operations Desk');
     } finally {
       setSendingMsg(false);
     }
   };
 
-  const handleUploadDocument = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!uploadData.name) return;
-
-    let fileDataUrl = '';
-    let fileSizeStr = '1.2 MB';
-
-    if (uploadData.file) {
-      fileSizeStr = `${(uploadData.file.size / (1024 * 1024)).toFixed(2)} MB`;
-      fileDataUrl = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(uploadData.file!);
-      });
-    }
-
-    await createTradeDocument({
-      document_name: uploadData.name,
-      doc_type: uploadData.doc_type,
-      folder: uploadData.folder,
-      file_size: fileSizeStr,
-      file_data: fileDataUrl || undefined,
-      shipment_no: uploadData.shipment_no || undefined,
-      partner_name: companyName,
-      status: 'Uploaded (Pending Verification)'
-    });
-
-    setShowUploadModal(false);
-    setUploadData({
-      name: '',
-      doc_type: TRADE_MASTER_DOC_TYPES[0],
-      folder: 'Customs Clearance',
-      shipment_no: '',
-      file: null
-    });
-    await loadData();
+  const downloadDocCSV = (doc: TradeDocument) => {
+    const rows = [
+      ['FEREX GLOBAL TRADE VERIFIED DOCUMENT'],
+      ['Document Type', doc.doc_type],
+      ['Document Number', doc.doc_number || doc.id],
+      ['Order Reference', doc.order_no],
+      ['Client Name', doc.client_name],
+      ['Compliance Status', doc.status],
+      ['Verification Date', doc.verified_at || 'Verified'],
+      ['Notes', doc.notes || 'None'],
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${doc.file_name || doc.doc_type}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToastMsg(`Downloaded ${doc.file_name}`);
   };
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/login', { replace: true });
+  const handleLogout = () => {
+    try { signOut(); } catch {}
+    localStorage.removeItem('ferex_user');
+    navigate('/trade/login');
   };
 
-  const totalInvoiced = invoices.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
-  const paidInvoices = invoices.filter((i) => i.status === 'Paid' || i.payment_status === 'Paid');
-  const totalPaid = paidInvoices.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
-  const activeShipments = shipments.filter((s) => s.status !== 'Delivered' && s.shipment_status !== 'Delivered');
+  const getStageIndex = (stage: TradeOrderStage) => TRADE_ORDER_STAGES.indexOf(stage);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950 relative text-left">
-      {/* ── Live Maritime Broadcast Banner ── */}
-      {tradeConfig.broadcast?.is_active && (tradeConfig.broadcast.target_audience === 'all' || tradeConfig.broadcast.target_audience === 'clients') && (
-        <div className={`px-6 py-2.5 text-xs font-bold flex items-center justify-between gap-4 border-b ${
-          tradeConfig.broadcast.urgency === 'urgent'
-            ? 'bg-red-950/90 text-red-200 border-red-800/80 shadow-md'
-            : tradeConfig.broadcast.urgency === 'warning'
-            ? 'bg-amber-950/90 text-amber-200 border-amber-800/80 shadow-md'
-            : tradeConfig.broadcast.urgency === 'success'
-            ? 'bg-emerald-950/90 text-emerald-200 border-emerald-800/80 shadow-md'
-            : 'bg-blue-950/90 text-blue-200 border-blue-800/80 shadow-md'
-        }`}>
-          <div className="flex items-center gap-2 max-w-4xl truncate">
-            <Megaphone className="w-4 h-4 shrink-0 animate-bounce" />
-            <span className="truncate">{tradeConfig.broadcast.message}</span>
-          </div>
-          {tradeConfig.broadcast.link_label && (
-            <a
-              href={tradeConfig.broadcast.link_url || '#'}
-              className="px-3 py-1 bg-white text-slate-950 rounded-lg text-[11px] font-black shrink-0 hover:bg-slate-200 transition-all flex items-center gap-1 shadow-sm"
-            >
-              {tradeConfig.broadcast.link_label} <ExternalLink className="w-3 h-3" />
-            </a>
-          )}
-        </div>
-      )}
-
-      {/* ── Top Header Navigation ── */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between shadow-2xl">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-black text-xl tracking-wider">
-            GT
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-base tracking-wide text-white">
-                {tradeConfig.branding.portal_title || 'FEREX GLOBAL TRADE'}
-              </span>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                IEC: {tradeConfig.branding.iec_code || '0315024881'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-amber-400" />
-              {companyName} • <User className="w-3 h-3 text-slate-500" /> {clientName}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={loadData}
-            disabled={loading}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs flex items-center gap-1.5 border border-slate-700 cursor-pointer"
-            title="Refresh Records"
+    <div className="min-h-screen bg-slate-950 text-slate-100 text-left antialiased">
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 right-6 z-50 bg-white text-slate-900 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-black border border-slate-200"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-400' : ''}`} />
-            <span className="hidden sm:inline">Sync Live</span>
-          </button>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Top Navbar */}
+      <header className="sticky top-0 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-30 h-16 flex items-center justify-between px-4 sm:px-8">
+        <div className="flex items-center gap-3">
+          <Logo variant="compact" size="sm" subtitle="GLOBAL TRADE PORTAL" />
+          <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            Live Partner Console
+          </span>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs">
+          <div className="text-right hidden sm:block">
+            <div className="font-extrabold text-white">{companyName}</div>
+            <div className="text-[10.5px] text-slate-400">{clientEmail}</div>
+          </div>
+
           <button
             onClick={handleLogout}
-            className="px-3.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-400 border border-red-800/40 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            className="px-3 py-1.5 bg-white/10 hover:bg-white/15 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>Sign Out</span>
+            <span>Exit Portal</span>
           </button>
         </div>
       </header>
 
-      {/* ── Sub-navigation Tab Bar ── */}
-      <nav className="bg-slate-900 border-b border-slate-800 px-6 overflow-x-auto flex gap-1">
-        {[
-          { id: 'overview', label: 'Overview', icon: Layers },
-          { id: 'shipments', label: `Shipments (${activeShipments.length})`, icon: Ship },
-          { id: 'invoices', label: `Invoices (${invoices.length})`, icon: FileText },
-          { id: 'packing_lists', label: `Packing Lists (${packingLists.length})`, icon: PackageCheck },
-          { id: 'bls', label: `Bills of Lading (${bls.length})`, icon: Anchor },
-          { id: 'certificates', label: `Certificates (${certificates.length})`, icon: ShieldCheck },
-          { id: 'lcs', label: `Letters of Credit (${lcs.length})`, icon: CreditCard },
-          { id: 'documents', label: `Vault (${docs.length})`, icon: FileCheck2 },
-          { id: 'messages', label: 'Logistics Support', icon: Send },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-                isActive
-                  ? 'border-amber-400 text-amber-400 bg-amber-500/10'
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </nav>
+      {/* Main Container */}
+      <main className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
+          {[
+            { id: 'orders', label: 'Order Tracking & Lifecycle', icon: PackageCheck, count: orders.length },
+            { id: 'documents', label: 'Verified Trade Documents', icon: FileText, count: documents.length },
+            { id: 'payments', label: 'Payment Schedule & Receipts', icon: CreditCard, count: payments.length },
+            { id: 'messages', label: 'Operations Desk Chat', icon: LifeBuoy, count: messages.length },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                  isActive
+                    ? 'bg-[#58051E] text-white shadow-lg shadow-[#58051E]/30'
+                    : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+                <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-      {/* ── Main Portal Body ── */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-        {/* ── TAB 1: OVERVIEW ── */}
-        {activeTab === 'overview' && (
+        {/* ── TAB 1: ORDER TRACKING ── */}
+        {activeTab === 'orders' && (
           <div className="space-y-6">
-            {/* Operational Policy Ticker Banner */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-lg">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 shrink-0">
-                  <Anchor className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-bold text-white flex items-center gap-2">
-                    Incoterms Standard: <span className="text-amber-400">{tradeConfig.trade_policies.default_incoterm || 'CIF'} (Incoterms 2020)</span>
-                    • Clearance SLA: <span className="text-emerald-400">{tradeConfig.trade_policies.customs_clearance_sla_days || 3} Days</span>
-                  </p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    Banking: {tradeConfig.trade_policies.lc_advising_bank_standard || 'HSBC London / Warsaw Desk'}
-                  </p>
-                </div>
+            {orders.length === 0 ? (
+              <div className="p-12 text-center bg-slate-900 rounded-3xl border border-slate-800">
+                <PackageCheck className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+                <h3 className="text-sm font-black text-white">No active orders found</h3>
+                <p className="text-xs text-slate-400 mt-1">Orders booked with FEREX Global Trade will appear here in real-time.</p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <a
-                  href={`tel:${tradeConfig.branding.shipping_hotline || '+91 800 200 4848'}`}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700"
-                >
-                  <Phone className="w-3.5 h-3.5 text-amber-400" /> {tradeConfig.branding.shipping_hotline || '+91 800 200 4848'}
-                </a>
-              </div>
-            </div>
+            ) : (
+              orders.map((order) => {
+                const currentStageIdx = getStageIndex(order.stage);
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-lg hover:border-amber-500/40 transition-all">
-                <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider">Active Shipments</span>
-                  <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
-                    <Ship className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-white">{activeShipments.length} Units</div>
-                <p className="text-xs text-slate-400 mt-1">Containers en route to port</p>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-lg hover:border-amber-500/40 transition-all">
-                <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider">Active Letters of Credit</span>
-                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-white">{lcs.length} Lines</div>
-                <p className="text-xs text-slate-400 mt-1">Under banking guarantee</p>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-lg hover:border-amber-500/40 transition-all">
-                <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider">Invoiced Ledger</span>
-                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-white">
-                  ₹{(totalInvoiced / 100000).toFixed(2)} Lakhs
-                </div>
-                <p className="text-xs text-slate-400 mt-1">{invoices.length} Total Invoices</p>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-lg hover:border-amber-500/40 transition-all">
-                <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider">Settled Payments</span>
-                  <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
-                    <PackageCheck className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-white">
-                  ₹{(totalPaid / 100000).toFixed(2)} Lakhs
-                </div>
-                <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1 font-semibold">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Fully Cleared
-                </p>
-              </div>
-            </div>
-
-            {/* Active Shipments Live Table */}
-            <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-base font-bold text-white flex items-center gap-2">
-                    <Ship className="w-4 h-4 text-amber-400" /> Active Cargo Shipments
-                  </h2>
-                  <p className="text-xs text-slate-400">Live vessel tracking and port ETA information</p>
-                </div>
-                <button
-                  onClick={() => setActiveTab('shipments')}
-                  className="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
-                >
-                  View All ({shipments.length}) →
-                </button>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider">
-                    <tr>
-                      <th className="py-3 px-4 rounded-l-lg">Shipment / Container</th>
-                      <th className="py-3 px-4">Carrier & Vessel</th>
-                      <th className="py-3 px-4">Route</th>
-                      <th className="py-3 px-4">Cargo Description</th>
-                      <th className="py-3 px-4">ETA</th>
-                      <th className="py-3 px-4 text-right rounded-r-lg">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {shipments.slice(0, 4).map((s: any) => (
-                      <tr key={s.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="py-3 px-4 font-mono font-bold text-amber-400">
-                          {s.shipment_no || s.id}
-                          <div className="text-[11px] font-mono text-slate-400 font-normal">{s.container_no || 'Cont. # Pending'}</div>
-                        </td>
-                        <td className="py-3 px-4 text-slate-200">
-                          <div className="font-semibold">{s.carrier || 'Maersk Line'}</div>
-                          <div className="text-[11px] text-slate-400">{s.carrier_vessel || 'MSC Oscar (V.8821)'}</div>
-                        </td>
-                        <td className="py-3 px-4 text-slate-300">
-                          <div className="text-[11px]">{s.origin_port || 'Port of Gdansk, Poland'}</div>
-                          <div className="text-[10px] text-slate-500 flex items-center gap-1">
-                            <ArrowRight className="w-2.5 h-2.5 text-slate-500 shrink-0" />
-                            <span>{s.destination_port || 'Port of Rotterdam, Netherlands'}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-slate-300 max-w-xs truncate">{s.cargo_description || 'Industrial Machinery'}</td>
-                        <td className="py-3 px-4 text-slate-300 font-mono">{s.eta || '2026-09-20'}</td>
-                        <td className="py-3 px-4 text-right">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                            s.status === 'Delivered'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                              : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
-                          }`}>
-                            <Clock className="w-3 h-3" /> {s.status || s.shipment_status || 'In Transit'}
+                return (
+                  <Card key={order.id} className="p-6 bg-slate-900 border border-slate-800 rounded-3xl text-slate-100 shadow-xl space-y-6">
+                    {/* Order Top Bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-black text-sm text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-lg border border-emerald-500/20">
+                            {order.order_no}
                           </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {shipments.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-500">
-                          No active shipments registered for this account.
-                        </td>
-                      </tr>
+                          <span className="text-xs font-bold text-slate-400">PO: {order.po_number}</span>
+                        </div>
+                        <h2 className="text-base font-black text-white mt-1">{order.commodity} ({order.quantity_units})</h2>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-lg font-black text-white">{order.currency} {Number(order.total_amount).toLocaleString()}</div>
+                        <div className="text-[11px] text-slate-400 font-bold">{order.incoterm}</div>
+                      </div>
+                    </div>
+
+                    {/* 7-Stage Visual Interactive Stepper */}
+                    <div className="space-y-2">
+                      <div className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">
+                        Order Lifecycle Status: <strong className="text-emerald-400">{order.stage}</strong>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
+                        {TRADE_ORDER_STAGES.map((st, idx) => {
+                          const isPassed = idx <= currentStageIdx;
+                          const isCurrent = idx === currentStageIdx;
+
+                          return (
+                            <div
+                              key={st}
+                              className={`p-3 rounded-2xl border text-center transition-all ${
+                                isCurrent
+                                  ? 'bg-[#58051E] text-white border-[#8f193d] shadow-lg shadow-[#58051E]/40 scale-105'
+                                  : isPassed
+                                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                                  : 'bg-slate-950/50 text-slate-600 border-slate-800'
+                              }`}
+                            >
+                              <div className="flex items-center justify-center mb-1">
+                                {isPassed ? (
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                ) : (
+                                  <Clock className="w-4 h-4 text-slate-600" />
+                                )}
+                              </div>
+                              <div className="text-[10px] font-black leading-tight uppercase">{st}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Logistics & Maritime Transit */}
+                    {order.carrier && (
+                      <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Ocean / Air Carrier</span>
+                          <div className="font-extrabold text-white flex items-center gap-1.5">
+                            <Ship className="w-4 h-4 text-[#e0567a]" />
+                            {order.carrier}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-mono mt-0.5">Vessel: {order.vessel_flight} ({order.voyage_no})</div>
+                        </div>
+
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Port Routing</span>
+                          <div className="font-bold text-slate-200">{order.origin_port} → {order.destination_port}</div>
+                          <div className="text-[11px] text-emerald-400 font-bold mt-0.5">Estimated Arrival (ETA): {order.eta}</div>
+                        </div>
+
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Tracking Number</span>
+                          <div className="font-mono font-extrabold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20 inline-block">
+                            {order.tracking_number || 'Live System Tracking'}
+                          </div>
+                        </div>
+                      </div>
                     )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
 
-            {/* Invoices & Letters of Credit Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Invoices */}
-              <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-emerald-400" /> Commercial Invoices
-                  </h3>
-                  <button onClick={() => setActiveTab('invoices')} className="text-xs text-amber-400 hover:underline cursor-pointer">
-                    View Invoices →
-                  </button>
-                </div>
-                <div className="space-y-2.5">
-                  {invoices.slice(0, 3).map((inv: any) => (
-                    <div key={inv.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                    {/* Stage History Log */}
+                    {order.stage_history && order.stage_history.length > 0 && (
                       <div>
-                        <p className="font-mono font-bold text-xs text-white">{inv.invoice_no || inv.id}</p>
-                        <p className="text-[11px] text-slate-400">{inv.payment_terms || 'Letter of Credit (LC) at Sight'}</p>
+                        <div className="text-[10px] font-black uppercase text-slate-400 mb-2">Stage Audit Trail</div>
+                        <div className="space-y-1.5">
+                          {order.stage_history.map((h, i) => (
+                            <div key={i} className="flex items-center justify-between text-xs p-2 bg-slate-950/40 rounded-xl border border-slate-800/80">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="font-bold text-white">{h.stage}</span>
+                                {h.notes && <span className="text-slate-400 text-[11px]">— {h.notes}</span>}
+                              </div>
+                              <span className="text-[10px] text-slate-500 font-mono">{h.timestamp}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-xs text-amber-400">₹{Number(inv.amount || 0).toLocaleString('en-IN')}</p>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          inv.status === 'Paid' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
-                        }`}>
-                          {inv.status || 'Issued'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {invoices.length === 0 && <p className="text-xs text-slate-500 text-center py-4">No invoices on record.</p>}
-                </div>
-              </div>
-
-              {/* LCs */}
-              <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-amber-400" /> Banking Guarantees & LCs
-                  </h3>
-                  <button onClick={() => setActiveTab('lcs')} className="text-xs text-amber-400 hover:underline cursor-pointer">
-                    View LCs →
-                  </button>
-                </div>
-                <div className="space-y-2.5">
-                  {lcs.slice(0, 3).map((lc: any) => (
-                    <div key={lc.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                      <div>
-                        <p className="font-mono font-bold text-xs text-white">{lc.lc_number || lc.id}</p>
-                        <p className="text-[11px] text-slate-400">{lc.issuing_bank || 'HSBC London / Warsaw Desk'}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-xs text-amber-400">₹{Number(lc.amount || 0).toLocaleString('en-IN')}</p>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
-                          {lc.status || 'Active & Confirmed'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {lcs.length === 0 && <p className="text-xs text-slate-500 text-center py-4">No Letters of Credit verified.</p>}
-                </div>
-              </div>
-            </div>
+                    )}
+                  </Card>
+                );
+              })
+            )}
           </div>
         )}
 
-        {/* ── TAB 2: SHIPMENTS ── */}
-        {activeTab === 'shipments' && (
+        {/* ── TAB 2: VERIFIED DOCUMENTS ── */}
+        {activeTab === 'documents' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Ship className="w-5 h-5 text-amber-400" /> Maritime Cargo & Container Directory
-                </h2>
-                <p className="text-xs text-slate-400">Full container manifests, maritime tracking, and port status</p>
-              </div>
+            <div className="text-xs font-semibold text-slate-400">
+              Download officially verified commercial invoices, packing lists, ocean bills of lading, and certificates of origin.
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {shipments.map((s: any) => (
-                <div key={s.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 hover:border-amber-500/40 transition-all">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                        {s.transport_mode || 'Maritime'}
-                      </span>
-                      <h3 className="font-mono font-bold text-base text-white mt-1.5">{s.shipment_no || s.id}</h3>
-                      <p className="text-xs text-slate-400 font-mono">Container: {s.container_no || 'Pending Assignment'}</p>
-                    </div>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
-                      s.status === 'Delivered'
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                        : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
-                    }`}>
-                      {s.status || s.shipment_status || 'In Transit'}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 py-3 border-y border-slate-800 text-xs">
-                    <div>
-                      <span className="text-slate-500 text-[10px] uppercase font-bold">Origin Port</span>
-                      <p className="text-slate-200 font-medium">{s.origin_port || 'Port of Gdansk, Poland'}</p>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 text-[10px] uppercase font-bold">Destination Port</span>
-                      <p className="text-slate-200 font-medium">{s.destination_port || 'Port of Rotterdam, Netherlands'}</p>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 text-[10px] uppercase font-bold">Carrier & Vessel</span>
-                      <p className="text-slate-200 font-medium">{s.carrier || 'Maersk Line'} ({s.carrier_vessel || 'MSC Oscar'})</p>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 text-[10px] uppercase font-bold">Cargo Weight</span>
-                      <p className="text-slate-200 font-medium font-mono">{Number(s.cargo_weight_kg || 24500).toLocaleString()} KG</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400 flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-amber-400" /> ETA: <strong className="text-white font-mono">{s.eta || '2026-09-20'}</strong>
-                    </span>
-                    <button
-                      onClick={() => setSelectedShipment(s)}
-                      className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30 text-xs transition-all cursor-pointer"
-                    >
-                      View Details
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── TAB 3: INVOICES ── */}
-        {activeTab === 'invoices' && (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <FileText className="w-5 h-5 text-emerald-400" /> Commercial Invoices & Statements
-              </h2>
-              <p className="text-xs text-slate-400">Payment settlements, due dates, and tax invoices</p>
-            </div>
-
-            <div className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden shadow-xl">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider">
-                  <tr>
-                    <th className="py-3.5 px-4">Invoice #</th>
-                    <th className="py-3.5 px-4">Incoterms</th>
-                    <th className="py-3.5 px-4">Payment Terms</th>
-                    <th className="py-3.5 px-4">Due Date</th>
-                    <th className="py-3.5 px-4 text-right">Amount (INR)</th>
-                    <th className="py-3.5 px-4 text-center">Action</th>
-                    <th className="py-3.5 px-4 text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {invoices.map((inv: any) => (
-                    <tr key={inv.id} className="hover:bg-slate-800/40">
-                      <td className="py-3.5 px-4 font-mono font-bold text-amber-400">{inv.invoice_no || inv.id}</td>
-                      <td className="py-3.5 px-4 text-slate-300 font-semibold">{inv.incoterms || 'FOB'}</td>
-                      <td className="py-3.5 px-4 text-slate-300">{inv.payment_terms || 'Letter of Credit (LC) at Sight'}</td>
-                      <td className="py-3.5 px-4 text-slate-400 font-mono">{inv.due_date || '2026-10-01'}</td>
-                      <td className="py-3.5 px-4 text-right font-bold text-white font-mono">
-                        ₹{Number(inv.amount || 0).toLocaleString('en-IN')}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        {inv.status === 'Paid' ? (
-                          <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md flex items-center gap-1 justify-center">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Settled
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => setPayingInvoice(inv)}
-                            className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold text-[11px] shadow-sm active:scale-95 transition-all cursor-pointer"
-                          >
-                            <Zap className="w-3.5 h-3.5" /> Settle (Stripe/UPI)
-                          </button>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                          inv.status === 'Paid' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                        }`}>
-                          {inv.status || 'Issued'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {invoices.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-500">
-                        No commercial invoices found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ── TAB 4: PACKING LISTS ── */}
-        {activeTab === 'packing_lists' && (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <PackageCheck className="w-5 h-5 text-amber-400" /> Packing Lists & Freight Manifests
-              </h2>
-              <p className="text-xs text-slate-400">Detailed container manifests, carton counts, net/gross weights, and volumes</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {packingLists.map((pl: any) => (
-                <div key={pl.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] font-mono text-amber-400 uppercase font-bold tracking-wider">Manifest</span>
-                      <h3 className="font-mono font-bold text-sm text-white mt-0.5">{pl.pl_number || pl.id}</h3>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                      {pl.status || 'Verified'}
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-slate-950 rounded-xl space-y-1.5 text-xs text-slate-300">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Total Packages:</span>
-                      <strong>{pl.total_packages || 240} CTNS</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Gross Weight:</span>
-                      <strong className="font-mono">{Number(pl.total_gross_weight_kg || 21500).toLocaleString()} KG</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Volume:</span>
-                      <strong className="font-mono">{pl.total_volume_cbm || 42.5} CBM</strong>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      const csvContent = `data:text/csv;charset=utf-8,PL_Number,Shipment,Total_Packages,Gross_Weight,Volume\n${pl.pl_number || pl.id},${pl.shipment_no || ''},${pl.total_packages || 0},${pl.total_gross_weight_kg || 0},${pl.total_volume_cbm || 0}`;
-                      const encodedUri = encodeURI(csvContent);
-                      const link = document.createElement('a');
-                      link.setAttribute('href', encodedUri);
-                      link.setAttribute('download', `${pl.pl_number || pl.id}_Manifest.csv`);
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }}
-                    className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-700 transition-all cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5 text-amber-400" /> Export Manifest CSV
-                  </button>
-                </div>
-              ))}
-              {packingLists.length === 0 && (
-                <div className="col-span-3 p-12 text-center text-slate-500 bg-slate-900 rounded-2xl border border-slate-800">
-                  No packing lists recorded.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── TAB 5: BILLS OF LADING ── */}
-        {activeTab === 'bls' && (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Anchor className="w-5 h-5 text-blue-400" /> Ocean Bills of Lading (Clean On-Board)
-              </h2>
-              <p className="text-xs text-slate-400">Official ocean titles of goods, vessel assignments, and port departures</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {bls.map((bl: any) => (
-                <div key={bl.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
+              {documents.map((doc) => (
+                <Card key={doc.id} className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex items-start justify-between gap-3 text-left">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-[#58051E]/30 text-[#e0567a] flex items-center justify-center font-bold shrink-0">
                       <FileText className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-mono font-bold text-xs text-white">{bl.bl_number || bl.id}</h4>
-                      <p className="text-[11px] text-slate-400">{bl.carrier || 'MSC Mediterranean Shipping'}</p>
+                      <span className="inline-block px-2 py-0.5 rounded-md text-[9.5px] font-black uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-1">
+                        {doc.status}
+                      </span>
+                      <h3 className="text-sm font-black text-white">{doc.doc_type}</h3>
+                      <div className="text-[11px] text-slate-400 font-mono">{doc.file_name}</div>
+                      <div className="text-[10px] text-slate-500 mt-1">Linked Order: {doc.order_no}</div>
                     </div>
                   </div>
-                  <div className="text-[11px] text-slate-300 space-y-1 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                    <p className="flex items-center gap-1">Port: <strong>{bl.port_of_loading || 'Gdansk'}</strong> <ArrowRight className="w-3 h-3 text-slate-500 inline shrink-0" /> <strong>{bl.port_of_discharge || 'Rotterdam'}</strong></p>
-                    <p>Status: <span className="text-emerald-400 font-semibold">{bl.status || 'Clean On-Board Signed'}</span></p>
-                  </div>
+
                   <button
-                    onClick={() => {
-                      const csvContent = `data:text/csv;charset=utf-8,BL_Number,Carrier,Vessel,POL,POD,Status\n${bl.bl_number || bl.id},${bl.carrier || ''},${bl.vessel_name || ''},${bl.port_of_loading || ''},${bl.port_of_discharge || ''},${bl.status || ''}`;
-                      const encodedUri = encodeURI(csvContent);
-                      const link = document.createElement('a');
-                      link.setAttribute('href', encodedUri);
-                      link.setAttribute('download', `${bl.bl_number || bl.id}_Ocean_BL.csv`);
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }}
-                    className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer"
+                    onClick={() => downloadDocCSV(doc)}
+                    className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0"
+                    title="Download Official Document"
                   >
-                    <Download className="w-3.5 h-3.5 text-amber-400" /> Download Signed B/L
+                    <Download className="w-4 h-4" />
                   </button>
-                </div>
+                </Card>
               ))}
             </div>
           </div>
         )}
 
-        {/* ── TAB 6: CERTIFICATES ── */}
-        {activeTab === 'certificates' && (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-400" /> Trade Certificates & Compliance
-              </h2>
-              <p className="text-xs text-slate-400">Origin certificates, phytosanitary clearances, and quality inspection reports</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {certificates.map((cert: any) => (
-                <div key={cert.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-white truncate max-w-[180px]">{cert.certificate_number || cert.id}</h4>
-                      <p className="text-[11px] text-slate-400">{cert.cert_type || 'Certificate of Origin'}</p>
-                    </div>
-                  </div>
-                  <div className="text-[11px] text-slate-300 space-y-1 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                    <p>Authority: <strong>{cert.issuing_authority || 'Chamber of Commerce'}</strong></p>
-                    <p>Validity: <strong>{cert.valid_until || '2027-08-30'}</strong> • <span className="text-emerald-400 font-semibold">{cert.status || 'Active & Valid'}</span></p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const csvContent = `data:text/csv;charset=utf-8,Cert_Number,Type,Authority,Valid_Until,Status\n${cert.certificate_number || cert.id},${cert.cert_type || ''},${cert.issuing_authority || ''},${cert.valid_until || ''},${cert.status || ''}`;
-                      const encodedUri = encodeURI(csvContent);
-                      const link = document.createElement('a');
-                      link.setAttribute('href', encodedUri);
-                      link.setAttribute('download', `${cert.certificate_number || cert.id}_Cert.csv`);
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }}
-                    className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5 text-amber-400" /> Export Certificate Data
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── TAB 7: LETTERS OF CREDIT ── */}
-        {activeTab === 'lcs' && (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-amber-400" /> Irrevocable Letters of Credit (LC)
-              </h2>
-              <p className="text-xs text-slate-400">Bank-guaranteed trade financing and documentary credits</p>
-            </div>
-
+        {/* ── TAB 3: PAYMENTS & ADVANCE/BALANCE ── */}
+        {activeTab === 'payments' && (
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {lcs.map((lc: any) => (
-                <div key={lc.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] font-mono text-amber-400 uppercase font-bold tracking-wider">SWIFT Verified</span>
-                      <h3 className="font-mono font-bold text-base text-white mt-1">{lc.lc_number || lc.id}</h3>
+              {orders.map((o) => {
+                const balDue = Math.max(0, o.balance_amount - (o.balance_paid || 0));
+                return (
+                  <Card key={o.id} className="p-5 bg-slate-900 border border-slate-800 rounded-3xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-black text-xs text-emerald-400">{o.order_no}</span>
+                      <span className="text-xs font-bold text-slate-400">{o.payment_terms_desc}</span>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                      {lc.status || 'Active & Confirmed'}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1 text-xs">
-                    <div className="flex justify-between text-slate-400">
-                      <span>Issuing Bank:</span>
-                      <strong className="text-slate-200">{lc.issuing_bank || 'HSBC London / Warsaw Desk'}</strong>
-                    </div>
-                    <div className="flex justify-between text-slate-400">
-                      <span>Beneficiary:</span>
-                      <strong className="text-slate-200">{lc.beneficiary || companyName}</strong>
-                    </div>
-                    <div className="flex justify-between text-slate-400">
-                      <span>Expiry Date:</span>
-                      <strong className="text-slate-200 font-mono">{lc.expiry_date || '2026-10-30'}</strong>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                    <span className="text-xs text-slate-400">Guaranteed Amount</span>
-                    <span className="font-mono font-bold text-base text-amber-400">
-                      ₹{Number(lc.amount || 0).toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {lcs.length === 0 && (
-                <div className="col-span-2 p-12 text-center text-slate-500 bg-slate-900 rounded-2xl border border-slate-800">
-                  No active Letters of Credit on file.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* ── TAB 8: DOCUMENT VAULT WITH DIRECT UPLOAD ── */}
-        {activeTab === 'documents' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <FileCheck2 className="w-5 h-5 text-blue-400" /> Trade Documents Vault
-                </h2>
-                <p className="text-xs text-slate-400">Upload customs filings, inspection sheets, or download signed dossiers</p>
-              </div>
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
-              >
-                <Upload className="w-3.5 h-3.5" /> Upload Document
-              </button>
+                    <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-2 text-xs font-semibold">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Total Contract Value:</span>
+                        <span className="font-black text-white">{o.currency} {Number(o.total_amount).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Advance ({o.advance_percentage}%):</span>
+                        <span className={o.advance_status === 'Paid' ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                          {o.currency} {Number(o.advance_amount).toLocaleString()} ({o.advance_status})
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Balance Payable:</span>
+                        <span className={balDue === 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                          {o.currency} {Number(balDue).toLocaleString()} ({balDue === 0 ? 'Paid' : 'Due Before Release'})
+                        </span>
+                      </div>
+                      {o.lc_reference && (
+                        <div className="pt-2 border-t border-slate-800 text-[11px] text-blue-400 font-mono">
+                          Letter of Credit Ref: {o.lc_reference}
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {docs.map((doc: any) => (
-                <div key={doc.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
-                      <FileCheck2 className="w-5 h-5" />
-                    </div>
+            {/* Official Receipts List */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Official Payment Receipts</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {payments.map((p) => (
+                  <div key={p.id} className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
                     <div>
-                      <h4 className="font-bold text-xs text-white truncate max-w-[180px]">{doc.document_name}</h4>
-                      <p className="text-[11px] text-slate-400">{doc.doc_type || 'Customs Declaration'}</p>
+                      <div className="font-mono font-black text-emerald-400">{p.receipt_no}</div>
+                      <div className="text-white font-bold">{p.currency} {Number(p.amount).toLocaleString()} — {p.type}</div>
+                      <div className="text-[10px] text-slate-500 font-mono">{p.payment_date} • {p.payment_method}</div>
                     </div>
-                  </div>
-                  <div className="text-[11px] text-slate-300 space-y-1 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                    <p>Folder: <strong>{doc.folder || 'Customs Clearance'}</strong></p>
-                    <p>Size: <strong>{doc.file_size || '1.5 MB'}</strong> • <span className="text-emerald-400 font-semibold">{doc.status || 'Verified'}</span></p>
-                  </div>
-                  {doc.file_data ? (
-                    <a
-                      href={doc.file_data}
-                      download={`${doc.document_name}.pdf`}
-                      className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5 text-amber-400" /> Download Document
-                    </a>
-                  ) : (
                     <button
-                      onClick={() => alert(`Document ${doc.document_name} is securely stored in Ferex Vault.`)}
-                      className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer"
+                      onClick={() => {
+                        showToastMsg(`Exporting official receipt ${p.receipt_no}`);
+                      }}
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
                     >
-                      <Eye className="w-3.5 h-3.5 text-amber-400" /> View Vault Entry
+                      <Download className="w-3.5 h-3.5" /> Receipt
                     </button>
-                  )}
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {/* ── TAB 9: MESSAGES ── */}
+        {/* ── TAB 4: CHAT WITH OPERATIONS DESK ── */}
         {activeTab === 'messages' && (
-          <div className="max-w-3xl mx-auto space-y-4">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Send className="w-5 h-5 text-amber-400" /> Direct Logistics Dispatch Channel
-              </h2>
-              <p className="text-xs text-slate-400">Direct instant messaging with Ferex Global Trade operations desk</p>
-            </div>
-
-            <div className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden shadow-2xl flex flex-col h-[520px]">
-              {/* Message Feed */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-950/40">
-                {messages.length === 0 && (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-2">
-                    <Lock className="w-8 h-8 text-slate-600" />
-                    <p className="text-xs">This is your encrypted partner communications channel.</p>
-                    <p className="text-[11px] text-slate-600">Send a message below to reach the trade coordinator.</p>
-                  </div>
-                )}
-                {messages.map((m: any) => {
-                  const isMine = m.is_self || m.sender_name === clientName;
-                  return (
-                    <div key={m.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
-                      <div className="text-[10px] text-slate-400 mb-0.5 font-semibold">
-                        {isMine ? 'You' : m.sender_name} • {m.contact_role || 'Operations'}
-                      </div>
-                      <div className={`p-3 rounded-2xl max-w-md text-xs leading-relaxed ${
-                        isMine
-                          ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-slate-950 font-medium rounded-tr-none'
-                          : 'bg-slate-800 text-slate-100 rounded-tl-none border border-slate-700'
-                      }`}>
-                        {m.message}
-                      </div>
-                    </div>
-                  );
-                })}
+          <Card className="p-5 bg-slate-900 border border-slate-800 rounded-3xl h-[500px] flex flex-col justify-between text-left">
+            <div className="pb-3 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-black text-white">Direct Line: FEREX Global Trade Operations Desk</h3>
+                <p className="text-[11px] text-slate-400">Real-time encrypted communication with assigned Trade & Logistics Officers</p>
               </div>
-
-              {/* Message Input */}
-              <form onSubmit={handleSendMessage} className="p-3 bg-slate-900 border-t border-slate-800 flex gap-2">
-                <input
-                  type="text"
-                  value={newMsg}
-                  onChange={(e) => setNewMsg(e.target.value)}
-                  placeholder="Type a message or inquiry regarding shipments, LCs, or customs..."
-                  className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
-                <button
-                  type="submit"
-                  disabled={sendingMsg || !newMsg.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-amber-500/20 cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Send</span>
-                </button>
-              </form>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                Desk Live
+              </span>
             </div>
-          </div>
+
+            <div className="flex-1 overflow-y-auto py-3 space-y-3">
+              {messages.map((m: any, i: number) => (
+                <div key={i} className={`flex flex-col ${m.is_self ? 'items-end' : 'items-start'}`}>
+                  <div className={`p-3 rounded-2xl text-xs max-w-md ${
+                    m.is_self
+                      ? 'bg-[#58051E] text-white rounded-br-none'
+                      : 'bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700'
+                  }`}>
+                    <div className="text-[10px] font-bold text-white/70 mb-0.5">{m.sender_name || 'Officer'}</div>
+                    <p className="leading-relaxed">{m.message}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={handleSendMessage} className="pt-3 border-t border-slate-800 flex gap-2">
+              <input
+                type="text"
+                value={newMsg}
+                onChange={(e) => setNewMsg(e.target.value)}
+                placeholder="Type your inquiry to the logistics desk..."
+                className="flex-1 h-10 px-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs font-semibold text-white focus:outline-none focus:border-[#58051E]"
+              />
+              <Button type="submit" isLoading={sendingMsg} className="bg-[#58051E] hover:bg-[#430316] text-white px-5 rounded-2xl">
+                <Send className="w-4 h-4 mr-1.5" /> Send
+              </Button>
+            </form>
+          </Card>
         )}
       </main>
-
-      {/* ── Document Upload Modal ── */}
-      {showUploadModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-md w-full rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl text-xs">
-            <div className="flex items-start justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-base text-white flex items-center gap-2">
-                <Upload className="w-4 h-4 text-amber-400" /> Upload Trade Document
-              </h3>
-              <button
-                onClick={() => setShowUploadModal(false)}
-                className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUploadDocument} className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Document Title</label>
-                <input
-                  type="text"
-                  required
-                  value={uploadData.name}
-                  onChange={(e) => setUploadData({ ...uploadData, name: e.target.value })}
-                  placeholder="e.g. Phytosanitary Certificate Annex"
-                  className="w-full h-9 px-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Document Type</label>
-                  <select
-                    value={uploadData.doc_type}
-                    onChange={(e) => setUploadData({ ...uploadData, doc_type: e.target.value })}
-                    className="w-full h-9 px-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-400"
-                  >
-                    {TRADE_MASTER_DOC_TYPES.map((dt) => (
-                      <option key={dt} value={dt}>{dt}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Vault Folder</label>
-                  <select
-                    value={uploadData.folder}
-                    onChange={(e) => setUploadData({ ...uploadData, folder: e.target.value })}
-                    className="w-full h-9 px-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-400"
-                  >
-                    <option value="Customs Clearance">Customs Clearance</option>
-                    <option value="Maritime & Shipping">Maritime & Shipping</option>
-                    <option value="Certificates & Quality">Certificates & Quality</option>
-                    <option value="Letters of Credit">Letters of Credit</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Select File (PDF, PNG, JPG)</label>
-                <input
-                  type="file"
-                  onChange={(e) => setUploadData({ ...uploadData, file: e.target.files ? e.target.files[0] : null })}
-                  className="w-full text-slate-400 text-xs file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400"
-                />
-              </div>
-
-              <div className="pt-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowUploadModal(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer"
-                >
-                  Upload
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── Shipment Details Modal ── */}
-      {selectedShipment && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-lg w-full rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl text-xs">
-            <div className="flex items-start justify-between border-b border-slate-800 pb-3">
-              <div>
-                <h3 className="font-mono font-bold text-base text-amber-400">
-                  {selectedShipment.shipment_no || selectedShipment.id}
-                </h3>
-                <p className="text-slate-400 text-xs">Container #{selectedShipment.container_no}</p>
-              </div>
-              <button
-                onClick={() => setSelectedShipment(null)}
-                className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="space-y-2 text-slate-300">
-              <p><strong>Carrier:</strong> {selectedShipment.carrier || 'Maersk Line'}</p>
-              <p><strong>Vessel:</strong> {selectedShipment.carrier_vessel || 'MSC Oscar (V.8821)'}</p>
-              <p><strong>Origin:</strong> {selectedShipment.origin_port || 'Port of Gdansk, Poland'}</p>
-              <p><strong>Destination:</strong> {selectedShipment.destination_port || 'Port of Rotterdam, Netherlands'}</p>
-              <p><strong>Cargo:</strong> {selectedShipment.cargo_description || 'Industrial Machinery'}</p>
-              <p><strong>Weight:</strong> {selectedShipment.cargo_weight_kg || 24500} KG</p>
-              <p><strong>ETA:</strong> {selectedShipment.eta || '2026-09-20'}</p>
-              <p><strong>Status:</strong> <span className="text-amber-400 font-bold">{selectedShipment.status || 'In Transit'}</span></p>
-            </div>
-            <button
-              onClick={() => setSelectedShipment(null)}
-              className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Floating WhatsApp Global Trade Desk ── */}
-      {tradeConfig.branding.whatsapp_trade_desk && (
-        <a
-          href={`https://wa.me/${tradeConfig.branding.whatsapp_trade_desk.replace(/[^0-9]/g, '')}?text=Hello%20FEREX%20Global%20Trade%20Desk%2C%20inquiry%20from%20Trade%20Partner%20${encodeURIComponent(companyName)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20bd5a] text-white p-3.5 rounded-full shadow-2xl flex items-center gap-2 font-bold text-xs transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-white/20 cursor-pointer"
-          title="Direct WhatsApp Trade Desk"
-        >
-          <MessageCircle className="w-5 h-5 fill-current" />
-          <span className="hidden sm:inline">WhatsApp Trade Desk</span>
-        </a>
-      )}
-
-      {/* ── Unified Payment Modal for Trade Invoices ── */}
-      {payingInvoice && (
-        <UnifiedPaymentModal
-          isOpen={!!payingInvoice}
-          onClose={() => setPayingInvoice(null)}
-          onSuccess={() => {
-            setPayingInvoice(null);
-            loadData();
-          }}
-          division="trade"
-          amount={Number(payingInvoice.amount || 0)}
-          currency="INR"
-          title={`Trade Invoice Settlement: ${payingInvoice.invoice_no || payingInvoice.id}`}
-          invoiceNo={payingInvoice.invoice_no || payingInvoice.id}
-          invoiceId={payingInvoice.id}
-          purpose={`Settlement of freight / trade invoice ${payingInvoice.invoice_no || payingInvoice.id}`}
-          payerName={clientName || companyName}
-          payerEmail={clientEmail}
-          clientId={payingInvoice.client_id || user?.id}
-        />
-      )}
     </div>
   );
 };

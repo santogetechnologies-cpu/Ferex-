@@ -969,76 +969,6 @@ export async function getRimiDashboardStats() {
   }
 }
 
-// ─── Rimi Customer / Distributor Credential Provisioning ────────────────────
-export interface ProvisionedRimiCredential {
-  email: string;
-  tempPassword: string;
-  role: string;
-  fullName: string;
-  businessName: string;
-  customerId: string;
-  requirePasswordReset: boolean;
-  provisionedAt: string;
-}
-
-export async function provisionRimiCustomerLogin(customer: {
-  id: string;
-  email: string;
-  business_name?: string;
-  name?: string;
-  contact_person?: string;
-}): Promise<ProvisionedRimiCredential> {
-  const cleanEmail = customer.email.trim().toLowerCase();
-  const tempPassword = `RimiPass#${Math.floor(1000 + Math.random() * 9000)}`;
-  const businessName = customer.business_name || customer.name || 'Rimi B2B Partner';
-  const fullName = customer.contact_person || customer.name || 'Procurement Executive';
-
-  const credentialPayload: ProvisionedRimiCredential = {
-    email: cleanEmail,
-    tempPassword,
-    role: 'rimi_client',
-    fullName,
-    businessName,
-    customerId: customer.id,
-    requirePasswordReset: true,
-    provisionedAt: new Date().toISOString(),
-  };
-
-  localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
-    email: cleanEmail,
-    password: tempPassword,
-    role: 'rimi_client',
-    full_name: fullName,
-    company_name: businessName,
-    customer_id: customer.id,
-    require_password_reset: true,
-  }));
-  localStorage.setItem(`ferex_rimi_customer_cred_${customer.id}`, JSON.stringify(credentialPayload));
-
-  try {
-    await supabase.from('users').upsert({
-      email: cleanEmail,
-      role: 'rimi_client',
-      full_name: fullName,
-      phone: '',
-      department: `Rimi:${businessName}`,
-      created_at: new Date().toISOString(),
-    }, { onConflict: 'email' });
-  } catch {}
-
-  window.dispatchEvent(new Event('ferex_rimi_distributors_change'));
-  return credentialPayload;
-}
-
-export function getRimiCustomerCredentials(customerId: string): ProvisionedRimiCredential | null {
-  const saved = localStorage.getItem(`ferex_rimi_customer_cred_${customerId}`);
-  if (!saved) return null;
-  try {
-    return JSON.parse(saved);
-  } catch {
-    return null;
-  }
-}
 
 // ─── Rimi Frost Loss & Shrinkage Tracking ────────────────────────────────────
 export interface RimiFrostLoss {
@@ -1218,3 +1148,86 @@ export async function deleteRimiDeliveryRoute(id: string): Promise<boolean> {
   triggerLocalSync('ferex_rimi_delivery_routes_change');
   return true;
 }
+
+export interface ProvisionedRimiCredential {
+  email: string;
+  tempPassword: string;
+  role: string;
+  fullName?: string;
+  companyName?: string;
+  businessName?: string;
+  partnerId?: string;
+  requirePasswordReset?: boolean;
+}
+
+export function getRimiCustomerCredentials(partnerId: string): ProvisionedRimiCredential | null {
+  const local = localStorage.getItem('ferex_rimi_distributors');
+  if (local) {
+    try {
+      const dists = JSON.parse(local);
+      const found = dists.find((d: any) => d.id === partnerId || d.rawId === partnerId || d.email === partnerId);
+      if (found && found.temp_password) {
+        return {
+          email: found.email,
+          tempPassword: found.temp_password,
+          role: 'rimi_customer',
+          fullName: found.contact_person || found.business_name,
+          businessName: found.business_name,
+          partnerId: found.id
+        };
+      }
+    } catch {}
+  }
+  const credLocal = localStorage.getItem(`ferex_admin_cred_${partnerId}`);
+  if (credLocal) {
+    try {
+      const cred = JSON.parse(credLocal);
+      return {
+        email: cred.email,
+        tempPassword: cred.password || 'RimiPass#2026',
+        role: cred.role || 'rimi_customer',
+        fullName: cred.fullName,
+        businessName: cred.company_name,
+        partnerId
+      };
+    } catch {}
+  }
+  return null;
+}
+
+export async function provisionRimiCustomerLogin(partner: {
+  id?: string;
+  email: string;
+  name?: string;
+  business_name?: string;
+  contact_person?: string;
+}): Promise<ProvisionedRimiCredential> {
+  const cleanEmail = partner.email.trim().toLowerCase();
+  const tempPassword = `RimiPass#${Math.floor(1000 + Math.random() * 9000)}`;
+  const businessName = partner.business_name || partner.name || 'Cold Chain Customer';
+  const fullName = partner.contact_person || partner.name || businessName;
+
+  const cred: ProvisionedRimiCredential = {
+    email: cleanEmail,
+    tempPassword,
+    role: 'rimi_customer',
+    fullName,
+    businessName,
+    partnerId: partner.id
+  };
+
+  try {
+    localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
+      email: cleanEmail,
+      password: tempPassword,
+      role: 'rimi_customer',
+      fullName,
+      company_name: businessName,
+      partner_id: partner.id,
+      require_password_reset: false,
+    }));
+  } catch {}
+
+  return cred;
+}
+

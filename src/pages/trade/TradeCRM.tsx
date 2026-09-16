@@ -168,7 +168,7 @@ export const TradeCRM: React.FC = () => {
 
     setNewCompany(initialCompany);
     setShowAddModal(false);
-    showToastMsg(`Registered Trade Partner: ${created.company_name}`);
+    showToastMsg(`Registered Trade Partner: ${(created as any).companyName || (created as any).company_name}`);
     await loadData();
   };
 

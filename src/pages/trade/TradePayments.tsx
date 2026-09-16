@@ -1,139 +1,65 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CreditCard,
-  Search,
-  Download,
-  Eye,
-  CheckCircle2,
-  X,
-  Plus,
-  Trash2,
-  ArrowUpRight,
-  ArrowDownLeft,
-  Building2,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Clock,
-  ShieldCheck,
-  FileSpreadsheet,
-  Ship,
-  FileText
+  CreditCard, Search, Plus, CheckCircle2, Clock, Send,
+  Download, Building2, AlertCircle, RefreshCw, X,
+  FileCheck2, DollarSign, ArrowUpRight, ShieldCheck
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import {
   getTradePayments,
-  createTradePayment,
-  updateTradePaymentStatus,
-  deleteTradePayment,
-  getTradeCRMContacts,
-  getTradeInvoices,
-  getTradeShipments,
-  getTradeLettersOfCredit,
-  getTradeDossier,
-  TRADE_MASTER_PAYMENT_METHODS,
-  TRADE_MASTER_CURRENCIES
+  recordTradePayment,
+  sendPaymentReminder,
+  getTradeOrders,
+  TRADE_CURRENCIES,
+  type TradePaymentRecord,
+  type TradeOrder
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
-
-const PAYMENT_STATUSES = ['Pending', 'Processing', 'Completed', 'Cleared', 'Failed', 'Reversed'];
+import { useAuth } from '../../contexts/AuthContext';
 
 export const TradePayments: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterFlow, setFilterFlow] = useState<'all' | 'inbound' | 'outbound'>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('All');
-  const [selectedTx, setSelectedTx] = useState<any>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [toast, setToast] = useState('');
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [crmPartners, setCrmPartners] = useState<any[]>([]);
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [shipments, setShipments] = useState<any[]>([]);
-  const [lcs, setLcs] = useState<any[]>([]);
-  const [dossier, setDossier] = useState<any>(null);
+  const { profile } = useAuth();
+  const [payments, setPayments] = useState<TradePaymentRecord[]>([]);
+  const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showRecordModal, setShowRecordModal] = useState(false);
+  const [sendingReminderOrderNo, setSendingReminderOrderNo] = useState<string | null>(null);
+  const [toast, setToast] = useState('');
 
-  const initialTx = {
-    partner: '',
-    desc: '',
-    amount: '',
-    currency: 'INR',
-    flow_type: 'inbound' as 'inbound' | 'outbound',
-    type: TRADE_MASTER_PAYMENT_METHODS[0],
-    status: 'Completed',
-    invoice_no: '',
-    shipment_no: '',
+  const initialRecordForm = {
+    order_no: '',
+    client_name: '',
+    type: 'Advance Payment' as 'Advance Payment' | 'Balance Settlement' | 'Full Payment' | 'LC Drawdown',
+    amount: 100000,
+    currency: 'USD',
+    payment_method: 'SWIFT Wire Transfer (MT103)',
+    transaction_ref: '',
     lc_reference: '',
-    date: new Date().toISOString().split('T')[0]
+    notes: '',
   };
 
-  const [newTx, setNewTx] = useState(initialTx);
+  const [recordForm, setRecordForm] = useState(initialRecordForm);
 
-  const loadData = React.useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, partners, invs, ships, lcList] = await Promise.all([
+      const [allPayments, allOrders] = await Promise.all([
         getTradePayments(),
-        getTradeCRMContacts().catch(() => []),
-        getTradeInvoices().catch(() => []),
-        getTradeShipments().catch(() => []),
-        getTradeLettersOfCredit().catch(() => [])
+        getTradeOrders()
       ]);
-
-      if (Array.isArray(partners)) setCrmPartners(partners);
-      if (Array.isArray(invs)) setInvoices(invs);
-      if (Array.isArray(ships)) setShipments(ships);
-      if (Array.isArray(lcList)) setLcs(lcList);
-
-      if (Array.isArray(data)) {
-        const formatted = data.map((d: any) => {
-          let flowType: 'inbound' | 'outbound' = d.flow_type || 'inbound';
-          if (!d.flow_type) {
-            const lowerDesc = (d.description || '').toLowerCase();
-            const lowerType = (d.payment_type || '').toLowerCase();
-            if (
-              lowerDesc.includes('freight') ||
-              lowerDesc.includes('demurrage') ||
-              lowerDesc.includes('duty') ||
-              lowerDesc.includes('port handling') ||
-              lowerDesc.includes('customs') ||
-              lowerDesc.includes('paid out') ||
-              lowerType.includes('outbound')
-            ) {
-              flowType = 'outbound';
-            }
-          }
-
-          return {
-            id: d.transaction_ref || d.id,
-            rawId: d.id,
-            partner: d.partner_entity || 'Global Trade Entity',
-            desc: d.description,
-            flow_type: flowType,
-            currency: d.currency || 'INR',
-            rawAmount: Number(d.amount) || 0,
-            amount: `${d.currency === 'USD' ? '$' : d.currency === 'EUR' ? '€' : '₹'}${Number(d.amount).toLocaleString('en-IN')}`,
-            date: d.settlement_date || d.created_at?.split('T')[0] || '2026-09-01',
-            type: d.payment_type || 'SWIFT Wire Transfer',
-            status: d.status || 'Completed',
-            invoice_no: d.invoice_no || '',
-            shipment_no: d.shipment_no || '',
-            lc_reference: d.lc_reference || '',
-            statusBadge:
-              d.status === 'Completed' || d.status === 'Cleared'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : d.status === 'Processing'
-                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                : d.status === 'Failed' || d.status === 'Reversed'
-                ? 'bg-rose-50 text-rose-700 border-rose-200'
-                : 'bg-amber-50 text-amber-700 border-amber-200'
-          };
-        });
-        setTransactions(formatted);
-      } else {
-        setTransactions([]);
+      setPayments(Array.isArray(allPayments) ? allPayments : []);
+      setOrders(Array.isArray(allOrders) ? allOrders : []);
+      if (allOrders.length > 0 && !recordForm.order_no) {
+        setRecordForm(prev => ({
+          ...prev,
+          order_no: allOrders[0].order_no,
+          client_name: allOrders[0].client_name,
+          amount: allOrders[0].advance_amount,
+          currency: allOrders[0].currency
+        }));
       }
     } finally {
       setLoading(false);
@@ -144,7 +70,7 @@ export const TradePayments: React.FC = () => {
     loadData();
 
     const channel = supabase
-      .channel('realtime_trade_payments_page')
+      .channel('trade_payments_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_payments' }, () => {
         loadData();
       })
@@ -152,786 +78,397 @@ export const TradePayments: React.FC = () => {
 
     const handleLocalChange = () => loadData();
     window.addEventListener('ferex_trade_payments_change', handleLocalChange);
-    window.addEventListener('ferex_trade_crm_change', handleLocalChange);
-    window.addEventListener('ferex_trade_invoices_change', handleLocalChange);
+    window.addEventListener('ferex_trade_orders_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_trade_payments_change', handleLocalChange);
-      window.removeEventListener('ferex_trade_crm_change', handleLocalChange);
-      window.removeEventListener('ferex_trade_invoices_change', handleLocalChange);
+      window.removeEventListener('ferex_trade_orders_change', handleLocalChange);
     };
   }, [loadData]);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 3000);
+    setTimeout(() => setToast(''), 3500);
   };
 
-  const handleAddPayment = async (e: React.FormEvent) => {
+  const handleOrderSelect = (orderNo: string) => {
+    const ord = orders.find(o => o.order_no === orderNo);
+    if (ord) {
+      const isAdvPending = ord.advance_status === 'Pending';
+      setRecordForm(prev => ({
+        ...prev,
+        order_no: orderNo,
+        client_name: ord.client_name,
+        type: isAdvPending ? 'Advance Payment' : 'Balance Settlement',
+        amount: isAdvPending ? ord.advance_amount : Math.max(0, ord.balance_amount - (ord.balance_paid || 0)),
+        currency: ord.currency,
+        lc_reference: ord.lc_reference || ''
+      }));
+    }
+  };
+
+  const handleRecordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTx.partner) return;
-    const numAmount = parseFloat(String(newTx.amount).replace(/[^0-9.]/g, '')) || 0;
-    const created = await createTradePayment({
-      partner_entity: newTx.partner,
-      description: newTx.desc || (newTx.flow_type === 'inbound' ? 'Trade Settlement Inflow' : 'Logistics & Operational Outflow'),
-      amount: numAmount,
-      currency: newTx.currency,
-      payment_type: newTx.type,
-      flow_type: newTx.flow_type,
-      status: newTx.status,
-      settlement_date: newTx.date,
-      invoice_no: newTx.invoice_no || undefined,
-      shipment_no: newTx.shipment_no || undefined,
-      lc_reference: newTx.lc_reference || undefined
-    });
-    await loadData();
-    setShowAddModal(false);
-    showToastMsg(`Recorded ${newTx.flow_type === 'inbound' ? 'Inbound Receipt' : 'Outbound Payout'} ${created.transaction_ref || created.id}`);
-    setNewTx(initialTx);
-  };
+    if (!recordForm.order_no || !recordForm.amount) {
+      showToastMsg('Please enter valid payment details.');
+      return;
+    }
 
-  const handleStatusChange = async (id: string, rawId: string, newStatus: string) => {
     try {
-      await updateTradePaymentStatus(rawId || id, newStatus);
-      showToastMsg(`Transaction status updated to ${newStatus}`);
+      const created = await recordTradePayment(recordForm);
+      setShowRecordModal(false);
+      showToastMsg(`Recorded ${created.currency} ${Number(created.amount).toLocaleString()} & issued receipt ${created.receipt_no}!`);
       await loadData();
-      if (selectedTx && (selectedTx.id === id || selectedTx.rawId === rawId)) {
-        setSelectedTx((prev: any) => ({ ...prev, status: newStatus }));
-      }
     } catch (err: any) {
-      showToastMsg(`Error updating payment status: ${err.message || 'Unknown error'}`);
+      showToastMsg(`Failed to record payment: ${err.message}`);
     }
   };
 
-  const handleDeletePayment = async (id: string, rawId?: string) => {
-    if (!confirm(`Are you sure you want to delete payment record ${id}?`)) return;
+  const handleSendReminder = async (orderNo: string) => {
+    setSendingReminderOrderNo(orderNo);
     try {
-      await deleteTradePayment(rawId || id);
-      setTransactions((prev) => prev.filter((t) => t.id !== id && t.rawId !== rawId));
-      if (selectedTx?.id === id) setSelectedTx(null);
-      showToastMsg(`Removed transaction record ${id}`);
-    } catch (err: any) {
-      showToastMsg(`Error deleting payment: ${err.message || 'Unknown error'}`);
+      const ok = await sendPaymentReminder(orderNo);
+      if (ok) {
+        showToastMsg(`Automated payment balance reminder dispatched for ${orderNo}!`);
+      }
+    } finally {
+      setSendingReminderOrderNo(null);
     }
   };
 
-  const handleInspectTx = async (tx: any) => {
-    setSelectedTx(tx);
-    const d = await getTradeDossier('payment', tx.id);
-    setDossier(d);
-  };
-
-  const handleExportCSV = () => {
-    if (transactions.length === 0) return;
-    const headers = ['Transaction Ref', 'Direction', 'Partner Entity', 'Description', 'Method', 'Amount', 'Currency', 'Date', 'Status', 'Linked Invoice'];
-    const rows = transactions.map((t) => [
-      t.id,
-      t.flow_type === 'inbound' ? 'Inbound (Received)' : 'Outbound (Paid Out)',
-      `"${t.partner}"`,
-      `"${t.desc || ''}"`,
-      `"${t.type}"`,
-      t.rawAmount,
-      t.currency,
-      t.date,
-      t.status,
-      t.invoice_no || ''
-    ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+  const downloadReceipt = (p: TradePaymentRecord) => {
+    const rows = [
+      ['FEREX GLOBAL TRADE PAYMENT RECEIPT'],
+      ['Receipt Number', p.receipt_no],
+      ['Order Reference', p.order_no],
+      ['Payer / Client', p.client_name],
+      ['Payment Type', p.type],
+      ['Amount Paid', `${p.currency} ${Number(p.amount).toLocaleString()}`],
+      ['Payment Method', p.payment_method],
+      ['Transaction Reference', p.transaction_ref || 'N/A'],
+      ['Letter of Credit Reference', p.lc_reference || 'N/A'],
+      ['Payment Date', p.payment_date],
+      ['Treasury Status', 'Verified & Cleared'],
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `FEREX_Payment_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
+    link.href = url;
+    link.download = `${p.receipt_no}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToastMsg('Exported Payments Ledger to CSV');
+    showToastMsg(`Exported ${p.receipt_no}`);
   };
 
-  // Calculations
-  const totalInbound = transactions
-    .filter((t) => t.flow_type === 'inbound' && (t.status === 'Completed' || t.status === 'Cleared'))
-    .reduce((sum, t) => sum + (t.rawAmount || 0), 0);
+  const totalCollectedUSD = payments.reduce((sum, p) => {
+    const rate = p.currency === 'EUR' ? 1.08 : p.currency === 'INR' ? 0.012 : p.currency === 'GBP' ? 1.30 : 1;
+    return sum + (p.amount * rate);
+  }, 0);
 
-  const totalOutbound = transactions
-    .filter((t) => t.flow_type === 'outbound' && (t.status === 'Completed' || t.status === 'Cleared'))
-    .reduce((sum, t) => sum + (t.rawAmount || 0), 0);
-
-  const netBalance = totalInbound - totalOutbound;
-
-  const totalProcessing = transactions
-    .filter((t) => t.status === 'Processing' || t.status === 'Pending')
-    .reduce((sum, t) => sum + (t.rawAmount || 0), 0);
-
-  const formatCr = (amt: number) => {
-    if (!amt || amt === 0) return '₹0';
-    const abs = Math.abs(amt);
-    let str = '';
-    if (abs >= 10000000) str = `₹${(abs / 10000000).toFixed(2)} Cr`;
-    else if (abs >= 100000) str = `₹${(abs / 100000).toFixed(2)} Lakh`;
-    else str = `₹${abs.toLocaleString('en-IN')}`;
-    return amt < 0 ? `-${str}` : str;
-  };
-
-  const filteredTx = transactions.filter((t) => {
-    const matchesSearch =
-      (t.partner || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (t.desc || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (t.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (t.type || '').toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesFlow = filterFlow === 'all' || t.flow_type === filterFlow;
-    const matchesStatus = filterStatus === 'All' || t.status === filterStatus;
-
-    return matchesSearch && matchesFlow && matchesStatus;
-  });
+  const filteredPayments = payments.filter(p =>
+    p.order_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.receipt_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 text-left antialiased">
+      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2"
+            className="fixed top-20 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 border border-slate-700 text-xs font-bold"
           >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             {toast}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-[#58051E]" /> Global Trade Payments & Two-Way Cashflow Ledger
+          <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-[#58051E]" />
+            Trade Payment & Advance/Balance Ledger
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Ferex Trade Console • Full tracking of Payments Received (Buyer LC & Inflows) vs Payments Paid Out (Shipping Line, Customs Duty & Demurrage).
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">
+            Advance + Balance structure, Multi-currency settlements, Letter of Credit drawdowns, and automated receipts.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="text-xs font-bold cursor-pointer" onClick={handleExportCSV}>
-            <Download className="w-3.5 h-3.5 mr-1.5" /> Export Payments CSV
-          </Button>
-          <Button
-            size="sm"
-            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer"
-            onClick={() => {
-              setNewTx(initialTx);
-              setShowAddModal(true);
-            }}
-          >
-            <Plus className="w-4 h-4 mr-1.5" /> Record Payment / Settlement
-          </Button>
+        <Button
+          size="sm"
+          onClick={() => setShowRecordModal(true)}
+          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+        >
+          <Plus className="w-4 h-4 mr-1.5" />
+          Record Payment & Issue Receipt
+        </Button>
+      </div>
+
+      {/* Advance / Balance Schedule by Active Order */}
+      <Card className="p-4 border border-slate-200/80 shadow-xs">
+        <h2 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
+          <span>Active Orders Payment Schedule & Reminders</span>
+          <span className="text-emerald-700 font-bold">Total Settled: ~${Math.round(totalCollectedUSD).toLocaleString()} USD</span>
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {orders.map((o) => {
+            const isAdvPaid = o.advance_status === 'Paid';
+            const balDue = Math.max(0, o.balance_amount - (o.balance_paid || 0));
+            const isBalPaid = balDue === 0;
+
+            return (
+              <div key={o.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="font-mono font-black text-xs text-slate-900">{o.order_no}</span>
+                    <div className="text-[11px] font-bold text-slate-700 truncate max-w-[170px]">{o.client_name}</div>
+                  </div>
+                  <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
+                    {o.currency} {Number(o.total_amount).toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="text-[10.5px] space-y-1 pt-1 border-t border-slate-200/60 font-semibold">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Advance ({o.advance_percentage}%):</span>
+                    <span className={isAdvPaid ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>
+                      {o.currency} {Number(o.advance_amount).toLocaleString()} ({isAdvPaid ? '✓ Paid' : '⏳ Due'})
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Balance Remainder:</span>
+                    <span className={isBalPaid ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
+                      {o.currency} {Number(balDue).toLocaleString()} ({isBalPaid ? '✓ Paid' : '⏳ Due'})
+                    </span>
+                  </div>
+                  {o.lc_reference && (
+                    <div className="text-[10px] text-blue-600 font-mono truncate">
+                      🏦 LC: {o.lc_reference}
+                    </div>
+                  )}
+                </div>
+
+                {!isBalPaid && (
+                  <button
+                    disabled={sendingReminderOrderNo === o.order_no}
+                    onClick={() => handleSendReminder(o.order_no)}
+                    className="w-full mt-2 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-[10.5px] font-black text-slate-700 flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Send className="w-3 h-3 text-[#58051E]" />
+                    Send Payment Reminder Email
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
-      </div>
+      </Card>
 
-      {/* Dynamic 4-Metric Cashflow Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Inbound */}
-        <Card className="p-4 border-l-4 border-l-emerald-500 border-slate-200/80 shadow-xs space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase text-slate-400">Total Received (Inflow)</span>
-            <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <ArrowDownLeft className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="text-xl font-black text-emerald-600">{formatCr(totalInbound)}</div>
-          <span className="text-[10px] font-extrabold text-slate-500 block">Buyer Settlements & LC Inflows</span>
-        </Card>
-
-        {/* Total Outbound */}
-        <Card className="p-4 border-l-4 border-l-rose-500 border-slate-200/80 shadow-xs space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase text-slate-400">Total Paid Out (Outflow)</span>
-            <div className="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="text-xl font-black text-rose-600">{formatCr(totalOutbound)}</div>
-          <span className="text-[10px] font-extrabold text-slate-500 block">Freight, Port Handling & Demurrage</span>
-        </Card>
-
-        {/* Net Trade Cashflow Balance */}
-        <Card className={`p-4 border-l-4 ${netBalance >= 0 ? 'border-l-indigo-500' : 'border-l-amber-500'} border-slate-200/80 shadow-xs space-y-1`}>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase text-slate-400">Net Cashflow Position</span>
-            <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
-              {netBalance >= 0 ? <TrendingUp className="w-3.5 h-3.5 text-indigo-600" /> : <TrendingDown className="w-3.5 h-3.5 text-amber-600" />}
-            </div>
-          </div>
-          <div className={`text-xl font-black ${netBalance >= 0 ? 'text-indigo-600' : 'text-amber-600'}`}>
-            {formatCr(netBalance)}
-          </div>
-          <span className="text-[10px] font-extrabold text-slate-500 block">
-            {netBalance >= 0 ? 'Surplus Turnover Position' : 'Deficit Cashflow Warning'}
-          </span>
-        </Card>
-
-        {/* In-Processing */}
-        <Card className="p-4 border-l-4 border-l-blue-500 border-slate-200/80 shadow-xs space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase text-slate-400">In-Transit / Processing</span>
-            <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Clock className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="text-xl font-black text-blue-600">{formatCr(totalProcessing)}</div>
-          <span className="text-[10px] font-extrabold text-slate-500 block">Awaiting SWIFT / Bank Clearances</span>
-        </Card>
-      </div>
-
-      {/* Filter Tabs & Search Bar */}
-      <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full md:w-80">
+      {/* Search Bar */}
+      <Card className="p-3 border border-slate-200/80 shadow-xs">
+        <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search partner, SWIFT ref or description..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            placeholder="Search receipts, orders, clients..."
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
           />
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl">
-            <button
-              onClick={() => setFilterFlow('all')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterFlow === 'all' ? 'bg-[#58051E] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              All Cashflows ({transactions.length})
-            </button>
-            <button
-              onClick={() => setFilterFlow('inbound')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                filterFlow === 'inbound'
-                  ? 'bg-emerald-600 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-emerald-700'
-              }`}
-            >
-              <ArrowDownLeft className="w-3 h-3" /> Received ({transactions.filter((t) => t.flow_type === 'inbound').length})
-            </button>
-            <button
-              onClick={() => setFilterFlow('outbound')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                filterFlow === 'outbound'
-                  ? 'bg-rose-600 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-rose-700'
-              }`}
-            >
-              <ArrowUpRight className="w-3 h-3" /> Paid Out ({transactions.filter((t) => t.flow_type === 'outbound').length})
-            </button>
-          </div>
-
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="h-8.5 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
-          >
-            <option value="All">All Statuses</option>
-            {PAYMENT_STATUSES.map((st) => (
-              <option key={st} value={st}>
-                {st}
-              </option>
-            ))}
-          </select>
         </div>
       </Card>
 
-      {/* Ledger Table */}
+      {/* Receipts Ledger Table */}
       {loading ? (
-        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading payments ledger...</div>
-      ) : filteredTx.length === 0 ? (
+        <div className="p-12 text-center text-xs font-bold text-slate-400 flex items-center justify-center gap-2">
+          <RefreshCw className="w-4 h-4 animate-spin text-[#58051E]" /> Loading payment receipts...
+        </div>
+      ) : filteredPayments.length === 0 ? (
         <Card className="p-12 text-center border border-dashed border-slate-200">
           <CreditCard className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-sm font-black text-slate-800">No payment transactions found</h3>
+          <h3 className="text-sm font-black text-slate-800">No payment receipts logged</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-            {searchQuery
-              ? 'No transactions match your search filter.'
-              : 'There are no active transactions recorded in this flow view. Record a new settlement below.'}
+            Record advance deposits or balance wires to generate official treasury receipts.
           </p>
-          <Button
-            size="sm"
-            className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer"
-            onClick={() => {
-              setNewTx(initialTx);
-              setShowAddModal(true);
-            }}
-          >
-            <Plus className="w-3.5 h-3.5 mr-1" /> Record New Payment
-          </Button>
         </Card>
       ) : (
-        <Card className="p-0 overflow-hidden border border-slate-200/70 shadow-xs">
+        <Card className="border border-slate-200/80 shadow-xs overflow-hidden p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/75 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  <th className="py-3 px-4">Transaction Ref</th>
-                  <th className="py-3 px-4">Direction</th>
-                  <th className="py-3 px-4">Partner Entity</th>
-                  <th className="py-3 px-4">Description & Links</th>
-                  <th className="py-3 px-4">Method</th>
-                  <th className="py-3 px-4">Amount</th>
+                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                  <th className="py-3 px-4">Receipt #</th>
+                  <th className="py-3 px-4">Linked Order & Client</th>
+                  <th className="py-3 px-4">Type</th>
+                  <th className="py-3 px-4">Settlement Amount</th>
+                  <th className="py-3 px-4">Method & Transaction Ref</th>
                   <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-3 px-4 text-right">Receipt Export</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                {filteredTx.map((tx) => {
-                  const isInbound = tx.flow_type === 'inbound';
-                  return (
-                    <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-4 font-black text-[#58051E] whitespace-nowrap font-mono">
-                        {tx.id}
-                      </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded border ${
-                            isInbound
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-rose-50 text-rose-700 border-rose-200'
-                          }`}
-                        >
-                          {isInbound ? (
-                            <>
-                              <ArrowDownLeft className="w-3 h-3 text-emerald-600" /> Received
-                            </>
-                          ) : (
-                            <>
-                              <ArrowUpRight className="w-3 h-3 text-rose-600" /> Paid Out
-                            </>
-                          )}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-black text-slate-900 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate max-w-[160px]" title={tx.partner}>
-                            {tx.partner}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600 max-w-[200px]">
-                        <div className="truncate" title={tx.desc}>{tx.desc || 'Trade transaction'}</div>
-                        {(tx.invoice_no || tx.shipment_no) && (
-                          <div className="text-[10px] font-bold text-blue-600 flex items-center gap-1.5 mt-0.5">
-                            {tx.invoice_no && <span>📄 {tx.invoice_no}</span>}
-                            {tx.shipment_no && <span>🚢 {tx.shipment_no}</span>}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap text-slate-500 font-bold text-[11px]">
-                        {tx.type}
-                      </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span
-                          className={`font-black text-sm font-mono ${
-                            isInbound ? 'text-emerald-700' : 'text-rose-700'
-                          }`}
-                        >
-                          {isInbound ? `+${tx.amount}` : `-${tx.amount}`}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap font-mono">{tx.date}</td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <select
-                          value={tx.status}
-                          onChange={(e) => handleStatusChange(tx.id, tx.rawId, e.target.value)}
-                          className={`text-[10.5px] font-extrabold px-2.5 py-1 rounded-full border cursor-pointer focus:outline-none ${tx.statusBadge}`}
-                        >
-                          {PAYMENT_STATUSES.map((st) => (
-                            <option key={st} value={st}>
-                              {st}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleInspectTx(tx)}
-                            className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-slate-100 rounded-lg cursor-pointer"
-                            title="Inspect Transaction"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeletePayment(tx.id, tx.rawId)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
-                            title="Delete Record"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                {filteredPayments.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="py-3 px-4 font-mono font-black text-slate-900">
+                      {p.receipt_no}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="font-extrabold text-slate-900">{p.client_name}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">{p.order_no}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {p.type}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 font-black text-slate-900">
+                      {p.currency} {Number(p.amount).toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="text-slate-800 font-bold">{p.payment_method}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">{p.transaction_ref}</div>
+                    </td>
+                    <td className="py-3 px-4 text-slate-500 font-mono">
+                      {p.payment_date}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <button
+                        onClick={() => downloadReceipt(p)}
+                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <Download className="w-3 h-3" /> Export CSV
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </Card>
       )}
 
-      {/* Record Payment / Settlement Modal */}
+      {/* ── RECORD PAYMENT MODAL ── */}
       <AnimatePresence>
-        {showAddModal && (
+        {showRecordModal && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
-              onClick={() => setShowAddModal(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-[#58051E]" /> Record Trade Settlement & Cashflow
-                </h3>
-                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer">
-                  <X className="w-4 h-4" />
-                </button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50" onClick={() => setShowRecordModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left">
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-[#58051E]" /> Record Trade Payment
+                  </h3>
+                  <p className="text-xs text-slate-500 font-semibold">
+                    Issues an official receipt and auto-sends client confirmation.
+                  </p>
+                </div>
+                <button onClick={() => setShowRecordModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
 
-              <form onSubmit={handleAddPayment} className="space-y-4">
-                {/* Flow Direction Selector */}
+              <form onSubmit={handleRecordSubmit} className="space-y-3.5 text-xs font-semibold">
                 <div>
-                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
-                    Payment Direction (Flow)
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setNewTx({ ...newTx, flow_type: 'inbound' })}
-                      className={`p-3 rounded-xl border-2 text-left cursor-pointer transition-all ${
-                        newTx.flow_type === 'inbound'
-                          ? 'border-emerald-500 bg-emerald-50/50 text-emerald-950 shadow-xs'
-                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 font-black text-xs text-emerald-700">
-                        <ArrowDownLeft className="w-4 h-4" /> Payment Received (Inflow)
-                      </div>
-                      <p className="text-[10px] font-medium text-slate-500 mt-1">
-                        Buyer settlements, LC payouts, export deposits
-                      </p>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setNewTx({ ...newTx, flow_type: 'outbound' })}
-                      className={`p-3 rounded-xl border-2 text-left cursor-pointer transition-all ${
-                        newTx.flow_type === 'outbound'
-                          ? 'border-rose-500 bg-rose-50/50 text-rose-950 shadow-xs'
-                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 font-black text-xs text-rose-700">
-                        <ArrowUpRight className="w-4 h-4" /> Payment Paid Out (Outflow)
-                      </div>
-                      <p className="text-[10px] font-medium text-slate-500 mt-1">
-                        Freight, port fees, demurrage, customs duty
-                      </p>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Partner Entity */}
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                    Trade Partner / Entity Name
-                  </label>
-                  <input
-                    type="text"
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Select Order *</label>
+                  <select
                     required
-                    list="crm-payments-partners-list"
-                    value={newTx.partner}
-                    onChange={(e) => setNewTx({ ...newTx, partner: e.target.value })}
-                    placeholder="e.g. Baltic Grain Sp. z o.o. or Maersk Line"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                  />
-                  <datalist id="crm-payments-partners-list">
-                    {crmPartners.map((p) => (
-                      <option key={p.id} value={p.company_name || p.name}>
-                        {p.category ? `${p.company_name || p.name} (${p.category})` : p.company_name || p.name}
+                    value={recordForm.order_no}
+                    onChange={(e) => handleOrderSelect(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#58051E]"
+                  >
+                    <option value="">-- Choose order --</option>
+                    {orders.map(o => (
+                      <option key={o.id} value={o.order_no}>
+                        {o.order_no} — {o.client_name} ({o.currency} {o.total_amount.toLocaleString()})
                       </option>
                     ))}
-                  </datalist>
+                  </select>
                 </div>
 
-                {/* Link to Commercial Invoice (Auto reconciliation) */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                      Link Commercial Invoice
-                    </label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Payment Type</label>
                     <select
-                      value={newTx.invoice_no}
-                      onChange={(e) => {
-                        const invNo = e.target.value;
-                        const inv = invoices.find((i) => (i.invoice_no || i.id) === invNo);
-                        setNewTx({
-                          ...newTx,
-                          invoice_no: invNo,
-                          partner: inv ? inv.buyer_name : newTx.partner,
-                          amount: inv ? String(inv.outstanding_amount || inv.amount) : newTx.amount,
-                          desc: inv ? `Settlement for Invoice ${inv.invoice_no || inv.id}` : newTx.desc
-                        });
-                      }}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      value={recordForm.type}
+                      onChange={(e) => setRecordForm({ ...recordForm, type: e.target.value as any })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
                     >
-                      <option value="">-- No Linked Invoice --</option>
-                      {invoices.map((i) => (
-                        <option key={i.id} value={i.invoice_no || i.id}>
-                          {i.invoice_no || i.id} - {i.buyer_name} (Due: ₹{Number(i.outstanding_amount || i.amount).toLocaleString('en-IN')})
-                        </option>
-                      ))}
+                      <option value="Advance Payment">Advance Payment</option>
+                      <option value="Balance Settlement">Balance Settlement</option>
+                      <option value="Full Payment">Full Payment</option>
+                      <option value="LC Drawdown">LC Drawdown</option>
                     </select>
                   </div>
-
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                      Link Container Shipment
-                    </label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Currency</label>
                     <select
-                      value={newTx.shipment_no}
-                      onChange={(e) => setNewTx({ ...newTx, shipment_no: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      value={recordForm.currency}
+                      onChange={(e) => setRecordForm({ ...recordForm, currency: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
                     >
-                      <option value="">-- No Linked Shipment --</option>
-                      {shipments.map((s) => (
-                        <option key={s.id} value={s.shipment_no || s.id}>
-                          {s.shipment_no || s.id} ({s.carrier || 'Ocean'})
-                        </option>
-                      ))}
+                      {TRADE_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                 </div>
 
-                {/* Description */}
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                    Transaction Description & Scope
-                  </label>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Amount Received *</label>
+                  <input
+                    type="number"
+                    required
+                    value={recordForm.amount}
+                    onChange={(e) => setRecordForm({ ...recordForm, amount: Number(e.target.value) })}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Payment Method</label>
                   <input
                     type="text"
-                    required
-                    value={newTx.desc}
-                    onChange={(e) => setNewTx({ ...newTx, desc: e.target.value })}
-                    placeholder={
-                      newTx.flow_type === 'inbound'
-                        ? 'e.g. Irrevocable LC 60-day buyer settlement for SHP-EU-8840'
-                        : 'e.g. Ocean freight forwarding & container THC charges'
-                    }
+                    value={recordForm.payment_method}
+                    onChange={(e) => setRecordForm({ ...recordForm, payment_method: e.target.value })}
+                    placeholder="e.g. SWIFT Wire MT103 / SEPA / LC Drawdown"
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                      Settlement Amount
-                    </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Transaction Ref #</label>
                     <input
                       type="text"
-                      required
-                      value={newTx.amount}
-                      onChange={(e) => setNewTx({ ...newTx, amount: e.target.value })}
-                      placeholder="e.g. 4250000"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      value={recordForm.transaction_ref}
+                      onChange={(e) => setRecordForm({ ...recordForm, transaction_ref: e.target.value })}
+                      placeholder="e.g. SWIFT-WAW-9910"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                      Currency
-                    </label>
-                    <select
-                      value={newTx.currency}
-                      onChange={(e) => setNewTx({ ...newTx, currency: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    >
-                      {TRADE_MASTER_CURRENCIES.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                      Payment Rail / Method
-                    </label>
-                    <select
-                      value={newTx.type}
-                      onChange={(e) => setNewTx({ ...newTx, type: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    >
-                      {TRADE_MASTER_PAYMENT_METHODS.map((m) => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                      Settlement Date
-                    </label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">LC Reference (If LC)</label>
                     <input
-                      type="date"
-                      required
-                      value={newTx.date}
-                      onChange={(e) => setNewTx({ ...newTx, date: e.target.value })}
+                      type="text"
+                      value={recordForm.lc_reference}
+                      onChange={(e) => setRecordForm({ ...recordForm, lc_reference: e.target.value })}
+                      placeholder="e.g. LC-BNP-9021"
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
                   </div>
-
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                      Status
-                    </label>
-                    <select
-                      value={newTx.status}
-                      onChange={(e) => setNewTx({ ...newTx, status: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    >
-                      {PAYMENT_STATUSES.map((st) => (
-                        <option key={st} value={st}>{st}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
 
-                <div className="pt-2 flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-xs font-bold cursor-pointer"
-                    onClick={() => setShowAddModal(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316] cursor-pointer"
-                  >
-                    Record {newTx.flow_type === 'inbound' ? 'Inflow' : 'Outflow'}
-                  </Button>
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowRecordModal(false)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Record & Issue Receipt</Button>
                 </div>
               </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Inspect Modal */}
-      <AnimatePresence>
-        {selectedTx && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
-              onClick={() => setSelectedTx(null)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4 max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-[#58051E]" /> SWIFT Settlement Dossier
-                </h3>
-                <button onClick={() => setSelectedTx(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400">Reference No.</span>
-                  <span className="text-xs font-black text-[#58051E] font-mono">{selectedTx.id}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400">Flow Direction</span>
-                  <span
-                    className={`text-[10px] font-black uppercase px-2 py-0.5 rounded border ${
-                      selectedTx.flow_type === 'inbound'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-rose-50 text-rose-700 border-rose-200'
-                    }`}
-                  >
-                    {selectedTx.flow_type === 'inbound' ? 'Inbound (Received)' : 'Outbound (Paid Out)'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400">Amount</span>
-                  <span className="text-base font-black text-slate-900 font-mono">{selectedTx.amount}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400">Partner Entity</span>
-                  <span className="text-xs font-bold text-slate-800">{selectedTx.partner}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400">Instrument</span>
-                  <span className="text-xs font-bold text-slate-800">{selectedTx.type}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400">Date</span>
-                  <span className="text-xs font-bold text-slate-800 font-mono">{selectedTx.date}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400">Status</span>
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${selectedTx.statusBadge}`}>
-                    {selectedTx.status}
-                  </span>
-                </div>
-              </div>
-
-              {dossier && (
-                <div className="space-y-2 pt-1 text-xs">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Linked Ecosystem Details</h4>
-                  {dossier.invoices && dossier.invoices.length > 0 && (
-                    <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 space-y-1">
-                      <div className="font-bold text-emerald-900 flex items-center gap-1.5"><FileSpreadsheet className="w-3.5 h-3.5" /> Reconciled Invoice</div>
-                      <div className="text-slate-700">{dossier.invoices[0].invoice_no} (Status: {dossier.invoices[0].payment_status || dossier.invoices[0].status})</div>
-                    </div>
-                  )}
-                  {dossier.shipments && dossier.shipments.length > 0 && (
-                    <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 space-y-1">
-                      <div className="font-bold text-blue-900 flex items-center gap-1.5"><Ship className="w-3.5 h-3.5" /> Linked Cargo Shipment</div>
-                      <div className="text-slate-700">{dossier.shipments[0].shipment_no} ({dossier.shipments[0].origin_port} → {dossier.shipments[0].destination_port})</div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full text-xs font-bold cursor-pointer"
-                onClick={() => setSelectedTx(null)}
-              >
-                Close Dossier
-              </Button>
             </motion.div>
           </>
         )}
@@ -939,3 +476,5 @@ export const TradePayments: React.FC = () => {
     </div>
   );
 };
+
+export default TradePayments;

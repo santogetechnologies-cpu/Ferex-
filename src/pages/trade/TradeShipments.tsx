@@ -1,868 +1,666 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import {
-  Truck, Search, Plus, Eye, Trash2, X, CheckCircle2, Anchor, Navigation,
-  Warehouse, AlertTriangle, ShieldAlert, Layers, TrendingDown,
-  FileSpreadsheet, PackageCheck, FileCheck2, Award, FolderArchive, Building2, CreditCard
+  PackageCheck, Search, Plus, Filter, CheckCircle2,
+  Clock, ArrowRight, Eye, Trash2, X, Send,
+  Ship, ShieldCheck, DollarSign, Calendar, MapPin,
+  Building2, UserCheck, AlertCircle, RefreshCw
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { supabase } from '../../lib/supabase';
 import {
-  getTradeShipments,
-  createTradeShipment,
-  deleteTradeShipment,
-  updateTradeShipmentStatus,
-  getTradeCRMContacts,
-  getTradeDossier,
-  getTradeBondedInventory,
-  createTradeBondedItem,
-  updateTradeBondedStock,
-  deleteTradeBondedItem,
-  getTradeCargoLosses,
-  createTradeCargoLoss,
-  deleteTradeCargoLoss,
-  getTradeCargoLossSummary,
-  TRADE_MASTER_PORTS,
-  TRADE_MASTER_CARRIERS,
-  TRADE_MASTER_VESSELS,
-  TRADE_MASTER_INCOTERMS,
-  TRADE_SHIPMENT_STATUSES,
-  type BondedCargoItem,
-  type CargoLossRecord
+  getTradeOrders,
+  createTradeOrder,
+  advanceTradeOrderStage,
+  deleteTradeOrder,
+  getTradeStaffOfficers,
+  TRADE_ORDER_STAGES,
+  TRADE_INCOTERMS,
+  TRADE_CURRENCIES,
+  type TradeOrder,
+  type TradeOrderStage,
 } from '../../lib/api/trade';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const TradeShipments: React.FC = () => {
-  const navigate = useNavigate();
-
-  // Navigation Tabs
-  const [activeTab, setActiveTab] = useState<'containers' | 'bonded_warehouse' | 'cargo_losses'>('containers');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterMode, setFilterMode] = useState('All');
-  const [filterStatus, setFilterStatus] = useState('All');
-  const [selectedShipment, setSelectedShipment] = useState<any>(null);
-  const [toast, setToast] = useState('');
+  const { profile } = useAuth();
+  const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStage, setFilterStage] = useState<string>('All');
+  const [selectedOrder, setSelectedOrder] = useState<TradeOrder | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [toast, setToast] = useState('');
+  const [advancingId, setAdvancingId] = useState<string | null>(null);
 
-  // Data States
-  const [shipments, setShipments] = useState<any[]>([]);
-  const [crmPartners, setCrmPartners] = useState<any[]>([]);
-  const [bondedInventory, setBondedInventory] = useState<BondedCargoItem[]>([]);
-  const [cargoLosses, setCargoLosses] = useState<CargoLossRecord[]>([]);
-  const [lossSummary, setLossSummary] = useState({
-    totalLossInr: 0,
-    totalDemurrageInr: 0,
-    totalShrinkageTons: 0,
-    recoveredInr: 0,
-    totalLossesCount: 0
-  });
+  const staffList = getTradeStaffOfficers();
+  const userName = profile?.full_name || 'Trade Officer';
 
-  // Dossier data for selected shipment
-  const [dossierData, setDossierData] = useState<any>({
-    invoices: [],
-    packingLists: [],
-    billsOfLading: [],
-    certificates: [],
-    lettersOfCredit: [],
-    payments: [],
-    documents: [],
-  });
-
-  // Modal States
-  const [showAddShipmentModal, setShowAddShipmentModal] = useState(false);
-  const [showAddBondedModal, setShowAddBondedModal] = useState(false);
-  const [showAddLossModal, setShowAddLossModal] = useState(false);
-  const [selectedBondedItem, setSelectedBondedItem] = useState<BondedCargoItem | null>(null);
-  const [customPartnerMode, setCustomPartnerMode] = useState(false);
-
-  const showToastMsg = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3500);
+  const initialForm = {
+    order_no: `TRD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+    po_number: `PO-${Math.floor(100 + Math.random() * 900)}`,
+    client_name: '',
+    client_email: '',
+    client_phone: '',
+    client_country: 'Poland',
+    commodity: '',
+    quantity_units: '1,000 MT',
+    incoterm: 'CIF (Cost, Insurance and Freight)',
+    currency: 'USD',
+    total_amount: 500000,
+    advance_percentage: 30,
+    payment_terms_desc: '30% Advance Wire, 70% Balance against Shipping B/L copy',
+    lc_reference: '',
+    stage: 'Inquiry' as TradeOrderStage,
+    assigned_staff_name: staffList[0].name,
+    assigned_staff_email: staffList[0].email,
+    carrier: 'MSC (Mediterranean Shipping Company)',
+    vessel_flight: 'MSC Gülsün',
+    voyage_no: 'VY-2026-088',
+    tracking_number: 'MSCU9839438PL',
+    origin_port: 'Port of Gdansk, Poland',
+    destination_port: 'Port of Nhava Sheva (JNPT), India',
+    etd: new Date().toISOString().split('T')[0],
+    eta: new Date(Date.now() + 24 * 86400000).toISOString().split('T')[0],
+    notes: '',
   };
 
-  // Loader
-  const loadAllTradeData = React.useCallback(async () => {
+  const [formData, setFormData] = useState(initialForm);
+
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [shipData, partners, bondData, lossData, lossSum] = await Promise.all([
-        getTradeShipments(),
-        getTradeCRMContacts().catch(() => []),
-        getTradeBondedInventory().catch(() => []),
-        getTradeCargoLosses().catch(() => []),
-        getTradeCargoLossSummary().catch(() => ({
-          totalLossInr: 0,
-          totalDemurrageInr: 0,
-          totalShrinkageTons: 0,
-          recoveredInr: 0,
-          totalLossesCount: 0
-        }))
-      ]);
-
-      if (Array.isArray(shipData)) {
-        setShipments(shipData.map(d => ({
-          id: d.shipment_no || d.id,
-          rawId: d.id,
-          partner_name: d.partner_name || 'Global Trade Partner',
-          partner_id: d.partner_id || '',
-          container: d.container_no || 'Cont. Pending',
-          carrier: d.carrier || 'Maersk Line',
-          carrier_vessel: d.carrier_vessel || 'MSC Gülsün',
-          voyage_no: d.voyage_no || 'VY-2026-088',
-          origin: d.origin_port || 'Port of Gdansk, Poland',
-          destination: d.destination_port || 'Port of Nhava Sheva (JNPT), India',
-          cargo: d.cargo_description || 'General Trade Cargo',
-          weight: `${Number(d.cargo_weight_kg || 20000).toLocaleString('en-IN')} kg`,
-          rawWeight: Number(d.cargo_weight_kg || 20000),
-          incoterm: d.incoterm || 'CIF (Cost, Insurance and Freight)',
-          etd: d.etd || '2026-09-01',
-          eta: d.eta || '2026-09-24',
-          mode: d.transport_mode || 'Maritime',
-          status: d.status || d.shipment_status || 'In Transit',
-          customs_status: d.customs_status || 'Pre-Clearance In Progress',
-          payment_status: d.payment_status || 'Issued',
-          statusBadge: (d.status === 'In Transit' || d.shipment_status === 'In Transit')
-            ? 'bg-blue-50 text-blue-700 border-blue-200'
-            : (d.status === 'Delivered' || d.status === 'Cleared' || d.status === 'Customs Cleared')
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-              : 'bg-amber-50 text-amber-700 border-amber-200'
-        })));
-      } else {
-        setShipments([]);
-      }
-
-      setCrmPartners(Array.isArray(partners) ? partners : []);
-      setBondedInventory(Array.isArray(bondData) ? bondData : []);
-      setCargoLosses(Array.isArray(lossData) ? lossData : []);
-      setLossSummary(lossSum || {
-        totalLossInr: 0,
-        totalDemurrageInr: 0,
-        totalShrinkageTons: 0,
-        recoveredInr: 0,
-        totalLossesCount: 0
-      });
+      const data = await getTradeOrders();
+      setOrders(Array.isArray(data) ? data : []);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadAllTradeData();
+    loadData();
 
     const channel = supabase
-      .channel('realtime_trade_shipments_all')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_shipments' }, () => {
-        loadAllTradeData();
+      .channel('trade_orders_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_orders' }, () => {
+        loadData();
       })
       .subscribe();
 
-    const handleSync = () => loadAllTradeData();
-    window.addEventListener('ferex_trade_shipments_change', handleSync);
-    window.addEventListener('ferex_trade_crm_change', handleSync);
-    window.addEventListener('ferex_trade_bonded_inventory_change', handleSync);
-    window.addEventListener('ferex_trade_cargo_losses_change', handleSync);
+    const handleLocalChange = () => loadData();
+    window.addEventListener('ferex_trade_orders_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
-      window.removeEventListener('ferex_trade_shipments_change', handleSync);
-      window.removeEventListener('ferex_trade_crm_change', handleSync);
-      window.removeEventListener('ferex_trade_bonded_inventory_change', handleSync);
-      window.removeEventListener('ferex_trade_cargo_losses_change', handleSync);
+      window.removeEventListener('ferex_trade_orders_change', handleLocalChange);
     };
-  }, [loadAllTradeData]);
+  }, [loadData]);
 
-  // Load Dossier for selected shipment
-  useEffect(() => {
-    if (!selectedShipment) return;
-    const fetchDossier = async () => {
-      const res = await getTradeDossier('shipment', selectedShipment.id);
-      setDossierData(res || {
-        invoices: [],
-        packingLists: [],
-        billsOfLading: [],
-        certificates: [],
-        lettersOfCredit: [],
-        payments: [],
-        documents: []
+  const showToastMsg = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3500);
+  };
+
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.client_name || !formData.commodity || !formData.total_amount) {
+      showToastMsg('Please fill in required order details.');
+      return;
+    }
+
+    try {
+      const created = await createTradeOrder(formData);
+      setShowCreateModal(false);
+      setFormData({
+        ...initialForm,
+        order_no: `TRD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        po_number: `PO-${Math.floor(100 + Math.random() * 900)}`,
       });
-    };
-    fetchDossier();
-  }, [selectedShipment]);
-
-  // Form State: Container
-  const initialShipment = {
-    partner_name: '',
-    container: '',
-    carrier: 'Maersk Line',
-    carrier_vessel: 'MSC Gülsün (IMO: 9839438)',
-    origin: 'Port of Gdansk, Poland',
-    destination: 'Port of Nhava Sheva (JNPT), India',
-    cargo: '',
-    weight: '24000',
-    incoterm: 'CIF (Cost, Insurance and Freight)',
-    etd: new Date().toISOString().split('T')[0],
-    eta: new Date(Date.now() + 18 * 86400000).toISOString().split('T')[0],
-    mode: 'Maritime',
-    status: 'Booked'
-  };
-  const [newShipment, setNewShipment] = useState(initialShipment);
-
-  // Form State: Bonded Item
-  const initialBonded = {
-    sku: '',
-    commodity: '',
-    category: 'Agricultural Grains',
-    port_location: 'Port of Gdansk, Poland',
-    warehouse_bay: 'Bay 01-East',
-    in_stock_metric_tons: '' as any,
-    reserved_metric_tons: '' as any,
-    unit_value_inr: '' as any,
-    customs_bond_no: '',
-    status: 'In Bond' as const
-  };
-  const [newBonded, setNewBonded] = useState(initialBonded);
-
-  // Form State: Cargo Loss
-  const initialLoss = {
-    shipment_no: '',
-    container_no: '',
-    loss_type: 'Demurrage & Detention Fine' as const,
-    cargo_description: '',
-    lost_quantity_metric_tons: '' as any,
-    direct_financial_loss_inr: '' as any,
-    demurrage_incurred_inr: '' as any,
-    insurance_claim_status: 'Claim Lodged' as const,
-    recovered_amount_inr: '' as any,
-    incident_date: new Date().toISOString().split('T')[0],
-    port_or_location: 'Port of Gdansk, Poland',
-    root_cause: ''
-  };
-  const [newLoss, setNewLoss] = useState(initialLoss);
-
-  // Handlers
-  const handleCreateShipment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newShipment.container || !newShipment.cargo) return;
-
-    const partnerMatch = crmPartners.find(p => (p.company_name || p.name) === newShipment.partner_name);
-
-    const created = await createTradeShipment({
-      container_no: newShipment.container,
-      partner_id: partnerMatch?.id || '',
-      partner_name: newShipment.partner_name || 'Global Trade Partner',
-      carrier: newShipment.carrier,
-      carrier_vessel: newShipment.carrier_vessel,
-      origin_port: newShipment.origin,
-      destination_port: newShipment.destination,
-      cargo_description: newShipment.cargo,
-      cargo_weight_kg: Number(newShipment.weight) || 20000,
-      transport_mode: newShipment.mode,
-      incoterm: newShipment.incoterm,
-      etd: newShipment.etd,
-      eta: newShipment.eta,
-      status: newShipment.status
-    });
-
-    setNewShipment(initialShipment);
-    setCustomPartnerMode(false);
-    setShowAddShipmentModal(false);
-    showToastMsg(`Shipment ${created.shipment_no} booked successfully`);
-    await loadAllTradeData();
+      showToastMsg(`Order ${created.order_no} created & client email triggered!`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Failed to create order: ${err.message || 'Error'}`);
+    }
   };
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    await updateTradeShipmentStatus(id, newStatus);
-    showToastMsg(`Shipment status updated to: ${newStatus}`);
-    await loadAllTradeData();
+  const handle1ClickAdvance = async (order: TradeOrder, nextStage: TradeOrderStage) => {
+    setAdvancingId(order.id);
+    try {
+      const updated = await advanceTradeOrderStage(order.id, nextStage, userName);
+      if (updated) {
+        showToastMsg(`Stage advanced to "${nextStage}"! Automated client email sent.`);
+        await loadData();
+        if (selectedOrder?.id === order.id) {
+          setSelectedOrder(updated);
+        }
+      }
+    } finally {
+      setAdvancingId(null);
+    }
   };
 
-  const handleDeleteShipment = async (id: string, rawId?: string) => {
-    if (!window.confirm(`Delete shipment ${id}?`)) return;
-    setShipments(prev => prev.filter(s => s.id !== id && s.rawId !== rawId));
-    showToastMsg(`Removed Shipment ${id}`);
-    await deleteTradeShipment(rawId || id);
-    await loadAllTradeData();
+  const handleDelete = async (id: string, orderNo: string) => {
+    if (!window.confirm(`Are you sure you want to remove order ${orderNo}?`)) return;
+    await deleteTradeOrder(id);
+    showToastMsg(`Order ${orderNo} deleted.`);
+    if (selectedOrder?.id === id) setSelectedOrder(null);
+    await loadData();
   };
 
-  const handleCreateBonded = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newBonded.commodity) return;
-    await createTradeBondedItem({
-      ...newBonded,
-      in_stock_metric_tons: Number(newBonded.in_stock_metric_tons) || 0,
-      reserved_metric_tons: Number(newBonded.reserved_metric_tons) || 0,
-      unit_value_inr: Number(newBonded.unit_value_inr) || 0
-    });
-    setNewBonded(initialBonded);
-    setShowAddBondedModal(false);
-    showToastMsg('Bonded warehouse inventory lot added.');
-    await loadAllTradeData();
+  const getNextStage = (current: TradeOrderStage): TradeOrderStage | null => {
+    const idx = TRADE_ORDER_STAGES.indexOf(current);
+    if (idx !== -1 && idx < TRADE_ORDER_STAGES.length - 1) {
+      return TRADE_ORDER_STAGES[idx + 1];
+    }
+    return null;
   };
 
-  const handleCreateLoss = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await createTradeCargoLoss({
-      ...newLoss,
-      lost_quantity_metric_tons: Number(newLoss.lost_quantity_metric_tons) || 0,
-      direct_financial_loss_inr: Number(newLoss.direct_financial_loss_inr) || 0,
-      demurrage_incurred_inr: Number(newLoss.demurrage_incurred_inr) || 0,
-      recovered_amount_inr: Number(newLoss.recovered_amount_inr) || 0
-    });
-    setNewLoss(initialLoss);
-    setShowAddLossModal(false);
-    showToastMsg('Incident report logged.');
-    await loadAllTradeData();
+  const getStageColor = (stage: TradeOrderStage) => {
+    switch (stage) {
+      case 'Inquiry': return 'bg-slate-100 text-slate-700 border-slate-200';
+      case 'Quote Sent': return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'Order Confirmed': return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'Production/Sourcing': return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'Shipped': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+      case 'Customs Clearance': return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'Delivered': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
   };
 
-  const filteredShipments = shipments.filter(s => {
+  const filteredOrders = orders.filter(o => {
     const matchesSearch =
-      (s.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.container || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.partner_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.carrier || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.cargo || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.origin || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.destination || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesMode = filterMode === 'All' || s.mode === filterMode;
-    const matchesStatus = filterStatus === 'All' || s.status === filterStatus;
-    return matchesSearch && matchesMode && matchesStatus;
+      o.order_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.commodity.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (o.tracking_number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (o.carrier || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStage = filterStage === 'All' || o.stage === filterStage;
+    return matchesSearch && matchesStage;
   });
 
   return (
     <div className="space-y-6 text-left antialiased">
-      {/* Toast Notification */}
+      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-slate-700 text-xs font-bold"
+            className="fixed top-20 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 border border-slate-700 text-xs font-bold"
           >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             {toast}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Header Bar */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <Truck className="w-5 h-5 text-[#58051E]" />
-            Maritime Shipments & Freight Operations
+            <PackageCheck className="w-5 h-5 text-[#58051E]" />
+            Order & Shipment Lifecycle Tracker
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Real-time tracking of ocean containers, customs bonded stockpiles, demurrage and cargo loss mitigation.
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">
+            Full 7-stage order lifecycle with 1-click stage confirmation and automated client email triggers.
           </p>
         </div>
+        <Button
+          size="sm"
+          onClick={() => setShowCreateModal(true)}
+          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+        >
+          <Plus className="w-4 h-4 mr-1.5" />
+          Log New Order
+        </Button>
+      </div>
 
-        <div className="flex items-center gap-2">
-          {activeTab === 'containers' && (
-            <Button
-              size="sm"
-              className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
-              onClick={() => {
-                setNewShipment(initialShipment);
-                setCustomPartnerMode(false);
-                setShowAddShipmentModal(true);
-              }}
-            >
-              <Plus className="w-4 h-4 mr-1.5" /> Book New Shipment
-            </Button>
-          )}
-          {activeTab === 'bonded_warehouse' && (
-            <Button
-              size="sm"
-              className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
-              onClick={() => setShowAddBondedModal(true)}
-            >
-              <Plus className="w-4 h-4 mr-1.5" /> Register Bonded Cargo
-            </Button>
-          )}
-          {activeTab === 'cargo_losses' && (
-            <Button
-              size="sm"
-              className="bg-red-700 hover:bg-red-800 text-white text-xs font-bold shadow-xs cursor-pointer"
-              onClick={() => setShowAddLossModal(true)}
-            >
-              <Plus className="w-4 h-4 mr-1.5" /> Log Demurrage / Loss
-            </Button>
-          )}
+      {/* 7-Stage Visual Lifecycle Stepper Bar */}
+      <Card className="p-4 border border-slate-200/80 bg-gradient-to-r from-slate-900 via-[#3b0413] to-slate-900 text-white shadow-md overflow-x-auto">
+        <div className="text-[10px] font-black uppercase tracking-widest text-[#f3cbd4] mb-3 flex items-center justify-between">
+          <span>7-Stage Global Trade Workflow</span>
+          <span className="text-emerald-400 font-bold">1-Click Automated Client Email Sync</span>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200">
-        <button
-          onClick={() => setActiveTab('containers')}
-          className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'containers'
-              ? 'border-[#58051E] text-[#58051E]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Truck className="w-4 h-4" /> Ocean Containers & Shipments ({shipments.length})
-        </button>
-
-        <button
-          onClick={() => setActiveTab('bonded_warehouse')}
-          className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'bonded_warehouse'
-              ? 'border-[#58051E] text-[#58051E]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Warehouse className="w-4 h-4" /> Customs Bonded Yards ({bondedInventory.length})
-        </button>
-
-        <button
-          onClick={() => setActiveTab('cargo_losses')}
-          className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'cargo_losses'
-              ? 'border-[#58051E] text-[#58051E]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <AlertTriangle className="w-4 h-4" /> Demurrage & Cargo Loss Audit ({cargoLosses.length})
-        </button>
-      </div>
-
-      {/* ── TAB 1: OCEAN CONTAINERS ── */}
-      {activeTab === 'containers' && (
-        <div className="space-y-4">
-          {/* Filter Bar */}
-          <Card className="p-3 border border-slate-200/80 shadow-xs">
-            <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-              <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by shipment #, container, partner, port, carrier..."
-                  className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                />
-              </div>
-
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+        <div className="flex items-center gap-2 min-w-[760px]">
+          {TRADE_ORDER_STAGES.map((st, i) => {
+            const count = orders.filter(o => o.stage === st).length;
+            return (
+              <React.Fragment key={st}>
+                <div
+                  onClick={() => setFilterStage(filterStage === st ? 'All' : st)}
+                  className={`flex-1 p-2.5 rounded-xl border text-center cursor-pointer transition-all ${
+                    filterStage === st
+                      ? 'bg-white text-slate-900 border-white shadow-lg scale-105'
+                      : 'bg-white/10 border-white/15 hover:bg-white/20 text-white'
+                  }`}
                 >
-                  <option value="All">All Statuses</option>
-                  {TRADE_SHIPMENT_STATUSES.map(st => (
-                    <option key={st} value={st}>{st}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </Card>
-
-          {/* Table */}
-          {loading ? (
-            <div className="p-12 text-center text-xs font-bold text-slate-400">Loading shipments ledger...</div>
-          ) : filteredShipments.length === 0 ? (
-            <Card className="p-12 text-center border border-dashed border-slate-200">
-              <Truck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <h3 className="text-sm font-black text-slate-800">No active shipments found</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-                {searchQuery ? 'No shipments match your search filter.' : 'Book a new international shipment linked to a registered Trade CRM partner.'}
-              </p>
-              <Button
-                size="sm"
-                className="mt-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold cursor-pointer"
-                onClick={() => {
-                  setNewShipment(initialShipment);
-                  setCustomPartnerMode(false);
-                  setShowAddShipmentModal(true);
-                }}
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" /> Book New Shipment
-              </Button>
-            </Card>
-          ) : (
-            <Card className="p-0 overflow-hidden border border-slate-200/80 shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/75 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                      <th className="py-3 px-4">Shipment #</th>
-                      <th className="py-3 px-4">Trade Partner</th>
-                      <th className="py-3 px-4">Container & Carrier</th>
-                      <th className="py-3 px-4">Origin ➔ Destination Port</th>
-                      <th className="py-3 px-4">Cargo & Weight</th>
-                      <th className="py-3 px-4">ETA</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                    {filteredShipments.map((s) => (
-                      <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3.5 px-4 font-black text-[#58051E] whitespace-nowrap font-mono">
-                          {s.id}
-                        </td>
-                        <td className="py-3.5 px-4 font-extrabold text-slate-900 max-w-[150px] truncate" title={s.partner_name}>
-                          {s.partner_name}
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-mono font-bold text-slate-900 text-[11px]">{s.container}</div>
-                          <div className="text-[10px] text-slate-400 font-medium">{s.carrier} • {s.carrier_vessel}</div>
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-600 max-w-[200px] truncate">
-                          <div className="truncate font-medium">{s.origin}</div>
-                          <div className="text-[10px] text-slate-400">➔ {s.destination}</div>
-                        </td>
-                        <td className="py-3.5 px-4 max-w-[180px] truncate">
-                          <div className="truncate text-slate-900 font-bold">{s.cargo}</div>
-                          <div className="text-[10px] text-slate-400">{s.weight} • {s.incoterm?.split(' ')[0]}</div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap text-slate-600 text-[11px] font-mono">
-                          {s.eta}
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <select
-                            value={s.status}
-                            onChange={(e) => handleStatusChange(s.id, e.target.value)}
-                            className="text-[10.5px] font-extrabold px-2.5 py-1 rounded-full border cursor-pointer bg-white text-slate-800 border-slate-200 focus:outline-none focus:border-[#58051E]"
-                          >
-                            {TRADE_SHIPMENT_STATUSES.map(st => (
-                              <option key={st} value={st}>{st}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => setSelectedShipment(s)}
-                              className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-slate-100 rounded-lg cursor-pointer"
-                              title="Inspect Full Shipment Lifecycle Dossier"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteShipment(s.id, s.rawId)}
-                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
-                              title="Delete Shipment"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* ── TAB 2: BONDED WAREHOUSE ── */}
-      {activeTab === 'bonded_warehouse' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {bondedInventory.map((item) => (
-              <Card key={item.id} className="p-4 border border-slate-200/80 shadow-xs hover:border-[#58051E]/30 transition-all flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="text-[9px] font-black uppercase tracking-wider text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
-                        {item.sku}
-                      </span>
-                      <h3 className="text-sm font-black text-slate-900 mt-1">{item.commodity}</h3>
-                      <p className="text-[11px] font-semibold text-slate-500">{item.port_location} • {item.warehouse_bay}</p>
-                    </div>
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      {item.status}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 text-center bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                    <div>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase block">In Stock</span>
-                      <span className="text-xs font-black text-slate-900">{item.in_stock_metric_tons} MT</span>
-                    </div>
-                    <div>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase block">Reserved</span>
-                      <span className="text-xs font-black text-amber-700">{item.reserved_metric_tons} MT</span>
-                    </div>
-                    <div>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase block">Available</span>
-                      <span className="text-xs font-black text-emerald-700">{item.available_metric_tons} MT</span>
-                    </div>
-                  </div>
-
-                  <div className="text-xs space-y-1 font-semibold text-slate-600 bg-white p-2 rounded-xl border border-slate-100">
-                    <div><span className="text-slate-400">Customs Bond:</span> {item.customs_bond_no}</div>
-                    <div><span className="text-slate-400">Total Valuation:</span> ₹{Number(item.total_valuation_inr || 0).toLocaleString('en-IN')}</div>
-                    <div><span className="text-slate-400">Last Inspection:</span> {item.last_inspected_at}</div>
+                  <div className="text-[10px] font-black uppercase tracking-wide truncate">{st}</div>
+                  <div className={`text-xs font-extrabold mt-0.5 ${filterStage === st ? 'text-[#58051E]' : 'text-emerald-300'}`}>
+                    {count} {count === 1 ? 'Order' : 'Orders'}
                   </div>
                 </div>
-
-                <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <button onClick={() => setSelectedBondedItem(item)} className="font-extrabold text-[#58051E] hover:underline cursor-pointer">
-                    Adjust Stock
-                  </button>
-                  <button onClick={() => deleteTradeBondedItem(item.id)} className="text-slate-400 hover:text-red-600 cursor-pointer">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </Card>
-            ))}
-          </div>
+                {i < TRADE_ORDER_STAGES.length - 1 && (
+                  <ArrowRight className="w-3.5 h-3.5 text-white/40 shrink-0" />
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
-      )}
+      </Card>
 
-      {/* ── TAB 3: CARGO LOSSES & DEMURRAGE ── */}
-      {activeTab === 'cargo_losses' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3.5 bg-rose-50 rounded-2xl border border-rose-200">
-              <span className="text-[10px] font-bold text-rose-600 uppercase block">Total Direct Loss</span>
-              <span className="text-base font-black text-rose-950">₹{Number(lossSummary.totalLossInr || 0).toLocaleString('en-IN')}</span>
-            </div>
-            <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200">
-              <span className="text-[10px] font-bold text-amber-700 uppercase block">Demurrage Incurred</span>
-              <span className="text-base font-black text-amber-950">₹{Number(lossSummary.totalDemurrageInr || 0).toLocaleString('en-IN')}</span>
-            </div>
-            <div className="p-3.5 bg-blue-50 rounded-2xl border border-blue-200">
-              <span className="text-[10px] font-bold text-blue-700 uppercase block">Shrinkage Quantity</span>
-              <span className="text-base font-black text-blue-950">{lossSummary.totalShrinkageTons} MT</span>
-            </div>
-            <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200">
-              <span className="text-[10px] font-bold text-emerald-700 uppercase block">Insurance Recovered</span>
-              <span className="text-base font-black text-emerald-950">₹{Number(lossSummary.recoveredInr || 0).toLocaleString('en-IN')}</span>
-            </div>
-          </div>
+      {/* Filter and Search Bar */}
+      <Card className="p-3 border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by Order #, Client, Commodity, Vessel, Carrier..."
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+          />
+        </div>
 
-          <Card className="p-0 overflow-hidden border border-slate-200/80 shadow-xs">
-            <table className="w-full text-left border-collapse">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="text-[11px] font-bold text-slate-500 shrink-0">Stage:</span>
+          {['All', ...TRADE_ORDER_STAGES].map((st) => (
+            <button
+              key={st}
+              onClick={() => setFilterStage(st)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                filterStage === st
+                  ? 'bg-[#58051E] text-white shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+              }`}
+            >
+              {st}
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {/* Orders Table */}
+      {loading ? (
+        <div className="p-12 text-center text-xs font-bold text-slate-400 flex items-center justify-center gap-2">
+          <RefreshCw className="w-4 h-4 animate-spin text-[#58051E]" /> Loading trade orders...
+        </div>
+      ) : filteredOrders.length === 0 ? (
+        <Card className="p-12 text-center border border-dashed border-slate-200">
+          <PackageCheck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-black text-slate-800">No trade orders matching criteria</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+            Create an order to track inquiry, quotes, production, vessel boarding, and customs clearance.
+          </p>
+          <Button size="sm" onClick={() => setShowCreateModal(true)} className="mt-4 bg-[#58051E] text-white">
+            <Plus className="w-4 h-4 mr-1" /> Create First Order
+          </Button>
+        </Card>
+      ) : (
+        <Card className="border border-slate-200/80 shadow-xs overflow-hidden p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/75 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  <th className="py-3 px-4">Incident Ref</th>
-                  <th className="py-3 px-4">Shipment & Container</th>
-                  <th className="py-3 px-4">Loss Type</th>
-                  <th className="py-3 px-4">Demurrage / Financial Impact</th>
-                  <th className="py-3 px-4">Insurance Status</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                  <th className="py-3 px-4">Order / PO #</th>
+                  <th className="py-3 px-4">Client & Commodity</th>
+                  <th className="py-3 px-4">Current Stage</th>
+                  <th className="py-3 px-4">Financials & Advance</th>
+                  <th className="py-3 px-4">Logistics / Vessel</th>
+                  <th className="py-3 px-4">Officer</th>
+                  <th className="py-3 px-4 text-right">Stage Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                {cargoLosses.map((l) => (
-                  <tr key={l.id} className="hover:bg-slate-50/80">
-                    <td className="py-3.5 px-4 font-black text-rose-700 font-mono">{l.incident_ref}</td>
-                    <td className="py-3.5 px-4 font-extrabold text-slate-900">{l.shipment_no} ({l.container_no})</td>
-                    <td className="py-3.5 px-4 text-slate-700">{l.loss_type}</td>
-                    <td className="py-3.5 px-4 font-bold text-rose-700 font-mono">
-                      ₹{Number(l.demurrage_incurred_inr || l.direct_financial_loss_inr || 0).toLocaleString('en-IN')}
-                    </td>
-                    <td className="py-3.5 px-4"><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">{l.insurance_claim_status}</span></td>
-                    <td className="py-3.5 px-4 text-slate-500 font-mono">{l.incident_date}</td>
-                    <td className="py-3.5 px-4 text-right">
-                      <button onClick={() => deleteTradeCargoLoss(l.id)} className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"><Trash2 className="w-4 h-4" /></button>
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                {filteredOrders.map((order) => {
+                  const nextStage = getNextStage(order.stage);
+                  const isAdvancing = advancingId === order.id;
+
+                  return (
+                    <tr key={order.id} className="hover:bg-slate-50/60 transition-colors">
+                      {/* Order / PO */}
+                      <td className="py-3 px-4">
+                        <div className="font-mono font-black text-slate-900">{order.order_no}</div>
+                        <div className="text-[10px] text-slate-400">{order.po_number}</div>
+                      </td>
+
+                      {/* Client & Commodity */}
+                      <td className="py-3 px-4 max-w-[220px]">
+                        <div className="font-extrabold text-slate-900 truncate">{order.client_name}</div>
+                        <div className="text-[11px] text-slate-500 truncate" title={order.commodity}>
+                          {order.commodity} ({order.quantity_units})
+                        </div>
+                      </td>
+
+                      {/* Stage Pill */}
+                      <td className="py-3 px-4">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border ${getStageColor(order.stage)}`}>
+                          <Clock className="w-3 h-3" />
+                          {order.stage}
+                        </span>
+                      </td>
+
+                      {/* Financials & Advance */}
+                      <td className="py-3 px-4">
+                        <div className="font-extrabold text-slate-900">
+                          {order.currency} {Number(order.total_amount).toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          Adv: {order.advance_percentage}% ({order.advance_status === 'Paid' ? '✅ Paid' : '⏳ Pending'})
+                        </div>
+                      </td>
+
+                      {/* Logistics / Vessel */}
+                      <td className="py-3 px-4 max-w-[180px]">
+                        {order.carrier ? (
+                          <>
+                            <div className="font-bold text-slate-800 truncate flex items-center gap-1">
+                              <Ship className="w-3 h-3 text-slate-400 shrink-0" />
+                              {order.carrier}
+                            </div>
+                            <div className="text-[10px] text-slate-400 truncate">
+                              {order.vessel_flight || 'Vessel TBA'} • {order.tracking_number || 'Track Live'}
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 italic">Logistics pending</span>
+                        )}
+                      </td>
+
+                      {/* Officer */}
+                      <td className="py-3 px-4">
+                        <span className="text-xs font-bold text-slate-700">{order.assigned_staff_name}</span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {nextStage && (
+                            <button
+                              disabled={isAdvancing}
+                              onClick={() => handle1ClickAdvance(order, nextStage)}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10.5px] font-black flex items-center gap-1 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+                              title={`Advance to ${nextStage} & send automated email to ${order.client_email}`}
+                            >
+                              <Send className="w-3 h-3" />
+                              Confirm {nextStage}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setSelectedOrder(order)}
+                            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
+                            title="View Complete Order Dossier"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(order.id, order.order_no)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                            title="Delete Order"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-          </Card>
-        </div>
+          </div>
+        </Card>
       )}
 
-      {/* ── MODAL 1: BOOK NEW SHIPMENT ── */}
+      {/* ── CREATE ORDER MODAL ── */}
       <AnimatePresence>
-        {showAddShipmentModal && (
+        {showCreateModal && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowAddShipmentModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-[#58051E]" /> Book Maritime Cargo Shipment
-                </h3>
-                <button onClick={() => setShowAddShipmentModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50" onClick={() => setShowCreateModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left">
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                <div>
+                  <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-[#58051E]" /> Register New Trade Order
+                  </h2>
+                  <p className="text-xs text-slate-500 font-semibold">
+                    Configures financial split, incoterms, assigned officer, and live tracking.
+                  </p>
+                </div>
+                <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
 
-              <form onSubmit={handleCreateShipment} className="space-y-3.5">
-                {/* Partner Selection (Direct Dropdown from CRM + Custom Toggle) */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase">Trade CRM Partner Entity *</label>
-                    <button
-                      type="button"
-                      onClick={() => setCustomPartnerMode(!customPartnerMode)}
-                      className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
-                    >
-                      {customPartnerMode ? '← Choose from CRM List' : '+ Type Custom Partner Name'}
-                    </button>
-                  </div>
-
-                  {customPartnerMode ? (
+              <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs font-semibold">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Order Reference # *</label>
                     <input
                       type="text"
                       required
-                      value={newShipment.partner_name}
-                      onChange={(e) => setNewShipment({ ...newShipment, partner_name: e.target.value })}
-                      placeholder="Type custom partner company name..."
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      value={formData.order_no}
+                      onChange={(e) => setFormData({ ...formData, order_no: e.target.value })}
+                      placeholder="TRD-2026-8801"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
-                  ) : (
-                    <select
-                      required
-                      value={newShipment.partner_name}
-                      onChange={(e) => {
-                        if (e.target.value === '__custom__') {
-                          setCustomPartnerMode(true);
-                          setNewShipment({ ...newShipment, partner_name: '' });
-                        } else {
-                          setNewShipment({ ...newShipment, partner_name: e.target.value });
-                        }
-                      }}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    >
-                      <option value="">-- Select Registered CRM Partner ({crmPartners.length} Available) --</option>
-                      {crmPartners.map(p => (
-                        <option key={p.id} value={p.company_name || p.name}>
-                          {p.company_name || p.name} — {p.category || 'Partner'} ({p.city || p.country || 'Global'})
-                        </option>
-                      ))}
-                      <option value="__custom__">+ Type Custom / Unregistered Partner...</option>
-                    </select>
-                  )}
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Client PO Reference #</label>
+                    <input
+                      type="text"
+                      value={formData.po_number}
+                      onChange={(e) => setFormData({ ...formData, po_number: e.target.value })}
+                      placeholder="PO-BALTIC-771"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Container Number (ISO) *</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Client / Buyer Name *</label>
                     <input
                       type="text"
                       required
-                      value={newShipment.container}
-                      onChange={(e) => setNewShipment({ ...newShipment, container: e.target.value })}
-                      placeholder="e.g. MSCU-902184-7"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold font-mono focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      value={formData.client_name}
+                      onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
+                      placeholder="e.g. Baltic Grain Sp. z o.o."
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Ocean Carrier</label>
-                    <select
-                      value={newShipment.carrier}
-                      onChange={(e) => setNewShipment({ ...newShipment, carrier: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
-                    >
-                      {TRADE_MASTER_CARRIERS.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Client Login Email *</label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.client_email}
+                      onChange={(e) => setFormData({ ...formData, client_email: e.target.value })}
+                      placeholder="e.g. trade@balticgrain.pl"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
                   </div>
                 </div>
 
-                {/* Ports with Preset Dropdown & Freeform Input */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Port of Loading (Origin)</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Commodity / Goods Description *</label>
                     <input
                       type="text"
                       required
-                      list="master-origin-ports"
-                      value={newShipment.origin}
-                      onChange={(e) => setNewShipment({ ...newShipment, origin: e.target.value })}
-                      placeholder="Select or type origin port..."
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      value={formData.commodity}
+                      onChange={(e) => setFormData({ ...formData, commodity: e.target.value })}
+                      placeholder="e.g. Milling Wheat Grade A (Non-GMO)"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
-                    <datalist id="master-origin-ports">
-                      {TRADE_MASTER_PORTS.map(p => <option key={p} value={p}>{p}</option>)}
-                    </datalist>
                   </div>
-
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Port of Discharge (Destination)</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Quantity & Units</label>
                     <input
                       type="text"
-                      required
-                      list="master-dest-ports"
-                      value={newShipment.destination}
-                      onChange={(e) => setNewShipment({ ...newShipment, destination: e.target.value })}
-                      placeholder="Select or type destination port..."
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      value={formData.quantity_units}
+                      onChange={(e) => setFormData({ ...formData, quantity_units: e.target.value })}
+                      placeholder="e.g. 5,000 Metric Tons"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
-                    <datalist id="master-dest-ports">
-                      {TRADE_MASTER_PORTS.map(p => <option key={p} value={p}>{p}</option>)}
-                    </datalist>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Cargo Commodity Description *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newShipment.cargo}
-                    onChange={(e) => setNewShipment({ ...newShipment, cargo: e.target.value })}
-                    placeholder="e.g. Agricultural Milling Wheat Grade-A (Bulk 40ft Reefer)"
-                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                  />
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Gross Weight (KG)</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Total Order Value *</label>
                     <input
                       type="number"
-                      value={newShipment.weight}
-                      onChange={(e) => setNewShipment({ ...newShipment, weight: e.target.value })}
-                      placeholder="24000"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      required
+                      value={formData.total_amount}
+                      onChange={(e) => setFormData({ ...formData, total_amount: Number(e.target.value) })}
+                      placeholder="1450000"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Incoterms</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Currency</label>
                     <select
-                      value={newShipment.incoterm}
-                      onChange={(e) => setNewShipment({ ...newShipment, incoterm: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      value={formData.currency}
+                      onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
                     >
-                      {TRADE_MASTER_INCOTERMS.map(i => <option key={i} value={i}>{i}</option>)}
+                      {TRADE_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Initial Status</label>
-                    <select
-                      value={newShipment.status}
-                      onChange={(e) => setNewShipment({ ...newShipment, status: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
-                    >
-                      {TRADE_SHIPMENT_STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
-                    </select>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Advance Required (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={formData.advance_percentage}
+                      onChange={(e) => setFormData({ ...formData, advance_percentage: Number(e.target.value) })}
+                      placeholder="30"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Estimated Departure (ETD)</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Incoterms</label>
                     <input
-                      type="date"
-                      value={newShipment.etd}
-                      onChange={(e) => setNewShipment({ ...newShipment, etd: e.target.value })}
+                      type="text"
+                      list="incoterm-options"
+                      value={formData.incoterm}
+                      onChange={(e) => setFormData({ ...formData, incoterm: e.target.value })}
+                      placeholder="Select or enter Incoterms..."
                       className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
+                    <datalist id="incoterm-options">
+                      {TRADE_INCOTERMS.map(i => <option key={i} value={i}>{i}</option>)}
+                    </datalist>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Estimated Arrival (ETA)</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Letter of Credit (LC) Ref (Optional)</label>
                     <input
-                      type="date"
-                      value={newShipment.eta}
-                      onChange={(e) => setNewShipment({ ...newShipment, eta: e.target.value })}
+                      type="text"
+                      value={formData.lc_reference}
+                      onChange={(e) => setFormData({ ...formData, lc_reference: e.target.value })}
+                      placeholder="e.g. LC-BNP-PARIS-9021"
                       className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
                   </div>
                 </div>
 
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+                  <div className="text-[10px] font-black uppercase text-slate-500">Logistics & Ocean Carrier Details (Editable Free-Type)</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[9.5px] font-bold text-slate-400 mb-0.5">Ocean / Air Carrier</label>
+                      <input
+                        type="text"
+                        value={formData.carrier}
+                        onChange={(e) => setFormData({ ...formData, carrier: e.target.value })}
+                        placeholder="e.g. MSC, Maersk, Hapag-Lloyd"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9.5px] font-bold text-slate-400 mb-0.5">Vessel Name</label>
+                      <input
+                        type="text"
+                        value={formData.vessel_flight}
+                        onChange={(e) => setFormData({ ...formData, vessel_flight: e.target.value })}
+                        placeholder="e.g. MSC Gülsün"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9.5px] font-bold text-slate-400 mb-0.5">Voyage / Flight #</label>
+                      <input
+                        type="text"
+                        value={formData.voyage_no}
+                        onChange={(e) => setFormData({ ...formData, voyage_no: e.target.value })}
+                        placeholder="VY-2026-088"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[9.5px] font-bold text-slate-400 mb-0.5">Port of Loading (POL)</label>
+                      <input
+                        type="text"
+                        value={formData.origin_port}
+                        onChange={(e) => setFormData({ ...formData, origin_port: e.target.value })}
+                        placeholder="e.g. Port of Gdansk, Poland"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9.5px] font-bold text-slate-400 mb-0.5">Port of Discharge (POD)</label>
+                      <input
+                        type="text"
+                        value={formData.destination_port}
+                        onChange={(e) => setFormData({ ...formData, destination_port: e.target.value })}
+                        placeholder="e.g. Port of Nhava Sheva (JNPT), India"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Assigned Staff Officer</label>
+                    <select
+                      value={formData.assigned_staff_name}
+                      onChange={(e) => {
+                        const st = staffList.find(s => s.name === e.target.value);
+                        setFormData({
+                          ...formData,
+                          assigned_staff_name: e.target.value,
+                          assigned_staff_email: st?.email || ''
+                        });
+                      }}
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                    >
+                      {staffList.map(s => <option key={s.email} value={s.name}>{s.name} ({s.role})</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Initial Starting Stage</label>
+                    <select
+                      value={formData.stage}
+                      onChange={(e) => setFormData({ ...formData, stage: e.target.value as TradeOrderStage })}
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                    >
+                      {TRADE_ORDER_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowAddShipmentModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Book Shipment</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Create Order & Notify Client</Button>
                 </div>
               </form>
             </motion.div>
@@ -870,218 +668,92 @@ export const TradeShipments: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* ── MODAL 2: SHIPMENT FULL LIFECYCLE DOSSIER ── */}
+      {/* ── ORDER DETAIL DOSSIER MODAL ── */}
       <AnimatePresence>
-        {selectedShipment && (
+        {selectedOrder && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50" onClick={() => setSelectedShipment(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left">
-              <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50" onClick={() => setSelectedOrder(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left">
+              <div className="flex items-start justify-between pb-3 border-b border-slate-100">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
-                      {selectedShipment.id}
-                    </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${selectedShipment.statusBadge}`}>
-                      {selectedShipment.status}
-                    </span>
-                  </div>
-                  <h2 className="text-lg font-black text-slate-900 mt-1">{selectedShipment.cargo}</h2>
-                  <p className="text-xs text-slate-500">{selectedShipment.carrier} • Container: <span className="font-mono font-bold text-slate-700">{selectedShipment.container}</span></p>
+                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black border ${getStageColor(selectedOrder.stage)}`}>
+                    {selectedOrder.stage}
+                  </span>
+                  <h2 className="text-lg font-black text-slate-900 mt-1">{selectedOrder.order_no} Dossier</h2>
+                  <p className="text-xs text-slate-500 font-semibold">{selectedOrder.client_name} • {selectedOrder.po_number}</p>
                 </div>
-                <button onClick={() => setSelectedShipment(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
+                <button onClick={() => setSelectedOrder(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
 
-              {/* Connected Lifecycle Nodes */}
-              <div className="py-4 space-y-4">
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+              <div className="py-4 space-y-4 text-xs font-semibold">
+                {/* Financial Summary */}
+                <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Port Transit Route</span>
-                    <span className="font-extrabold text-slate-900">{selectedShipment.origin} ➔ {selectedShipment.destination}</span>
+                    <span className="text-[10px] font-black uppercase text-slate-400 block">Total Value</span>
+                    <span className="text-sm font-black text-slate-900">{selectedOrder.currency} {Number(selectedOrder.total_amount).toLocaleString()}</span>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">ETA Date</span>
-                    <span className="font-extrabold text-slate-900">{selectedShipment.eta}</span>
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-slate-400 block">Advance ({selectedOrder.advance_percentage}%)</span>
+                    <span className={`text-xs font-bold ${selectedOrder.advance_status === 'Paid' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                      {selectedOrder.currency} {Number(selectedOrder.advance_amount).toLocaleString()} ({selectedOrder.advance_status})
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-slate-400 block">Balance Due</span>
+                    <span className={`text-xs font-bold ${selectedOrder.balance_status === 'Paid' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {selectedOrder.currency} {Number(selectedOrder.balance_amount - (selectedOrder.balance_paid || 0)).toLocaleString()}
+                    </span>
                   </div>
                 </div>
 
-                {/* Quick actions to create linked entities */}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => { setSelectedShipment(null); navigate('/trade/invoices'); }}
-                    className="px-3 py-1.5 bg-[#58051E]/10 text-[#58051E] hover:bg-[#58051E]/20 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <FileSpreadsheet className="w-3.5 h-3.5" /> Create Commercial Invoice
-                  </button>
-                  <button
-                    onClick={() => { setSelectedShipment(null); navigate('/trade/packing-lists'); }}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <PackageCheck className="w-3.5 h-3.5" /> Generate Packing List
-                  </button>
-                  <button
-                    onClick={() => { setSelectedShipment(null); navigate('/trade/bills-of-lading'); }}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <FileCheck2 className="w-3.5 h-3.5" /> Issue Ocean B/L
-                  </button>
+                {/* Logistics */}
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 block">Port of Loading</span>
+                      <span className="text-xs font-bold text-slate-800">{selectedOrder.origin_port || 'POL'}</span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400" />
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold text-slate-400 block">Port of Discharge</span>
+                      <span className="text-xs font-bold text-slate-800">{selectedOrder.destination_port || 'POD'}</span>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200/60 text-[11px] text-slate-600 flex justify-between">
+                    <span>Carrier: <strong>{selectedOrder.carrier || 'N/A'}</strong> ({selectedOrder.vessel_flight})</span>
+                    <span>Tracking: <strong className="font-mono">{selectedOrder.tracking_number || 'Live'}</strong></span>
+                  </div>
                 </div>
 
-                {/* Linked Invoices */}
+                {/* Stage History Timeline */}
                 <div>
-                  <h4 className="text-xs font-black uppercase text-slate-700 mb-2 flex items-center gap-1.5">
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-[#58051E]" /> Linked Commercial Invoices
-                  </h4>
-                  {!dossierData?.invoices || dossierData.invoices.length === 0 ? (
-                    <p className="text-xs text-slate-400 bg-slate-50 p-2.5 rounded-xl border border-slate-100">No invoice created against this shipment yet.</p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {dossierData.invoices.map((inv: any) => (
-                        <div key={inv.id} className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
-                          <span className="font-bold text-slate-900">{inv.invoice_no || inv.id} ({inv.buyer_name})</span>
-                          <span className="font-black text-slate-900">₹{Number(inv.amount || 0).toLocaleString('en-IN')}</span>
+                  <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">Stage Progression Timeline</h4>
+                  <div className="space-y-2">
+                    {selectedOrder.stage_history?.map((h, i) => (
+                      <div key={i} className="flex items-start gap-2.5 p-2 bg-slate-50 rounded-xl border border-slate-100 text-[11px]">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-extrabold text-slate-900">{h.stage}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{h.timestamp}</span>
+                          </div>
+                          <p className="text-[10.5px] text-slate-500">Confirmed by: {h.confirmed_by} {h.notes ? `• ${h.notes}` : ''}</p>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Linked Bills of Lading */}
-                <div>
-                  <h4 className="text-xs font-black uppercase text-slate-700 mb-2 flex items-center gap-1.5">
-                    <FileCheck2 className="w-3.5 h-3.5 text-[#58051E]" /> Bills of Lading (Ocean / Air)
-                  </h4>
-                  {!dossierData?.billsOfLading || dossierData.billsOfLading.length === 0 ? (
-                    <p className="text-xs text-slate-400 bg-slate-50 p-2.5 rounded-xl border border-slate-100">No B/L registered for this shipment.</p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {dossierData.billsOfLading.map((bl: any) => (
-                        <div key={bl.id} className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
-                          <span className="font-bold text-slate-900">{bl.bl_number || bl.id} — Vessel: {bl.vessel_name}</span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">{bl.status}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex justify-end">
-                <Button size="sm" variant="outline" onClick={() => setSelectedShipment(null)}>Close Dossier</Button>
+                <Button size="sm" variant="outline" onClick={() => setSelectedOrder(null)}>Close Dossier</Button>
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
-
-      {/* ── MODAL 3: ADD BONDED LOT ── */}
-      <AnimatePresence>
-        {showAddBondedModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowAddBondedModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900">Register Customs Bonded Stockpile</h3>
-                <button onClick={() => setShowAddBondedModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-              </div>
-              <form onSubmit={handleCreateBonded} className="space-y-3">
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Commodity / Item Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={newBonded.commodity}
-                    onChange={(e) => setNewBonded({ ...newBonded, commodity: e.target.value })}
-                    placeholder="e.g. Milling Wheat Grade A"
-                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">In Stock (Metric Tons)</label>
-                    <input
-                      type="number"
-                      required
-                      value={newBonded.in_stock_metric_tons}
-                      onChange={(e) => setNewBonded({ ...newBonded, in_stock_metric_tons: e.target.value })}
-                      placeholder="1000"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Unit Valuation (₹/MT)</label>
-                    <input
-                      type="number"
-                      value={newBonded.unit_value_inr}
-                      onChange={(e) => setNewBonded({ ...newBonded, unit_value_inr: e.target.value })}
-                      placeholder="28000"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowAddBondedModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Save Stock</Button>
-                </div>
-              </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ── MODAL 4: LOG CARGO LOSS / DEMURRAGE ── */}
-      <AnimatePresence>
-        {showAddLossModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowAddLossModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900">Log Demurrage or Cargo Loss Incident</h3>
-                <button onClick={() => setShowAddLossModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-              </div>
-              <form onSubmit={handleCreateLoss} className="space-y-3">
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Shipment Reference</label>
-                  <select
-                    value={newLoss.shipment_no}
-                    onChange={(e) => setNewLoss({ ...newLoss, shipment_no: e.target.value })}
-                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
-                  >
-                    <option value="">Select Shipment...</option>
-                    {shipments.map(s => <option key={s.id} value={s.id}>{s.id} ({s.cargo})</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Demurrage / Direct Loss Amount (INR ₹)</label>
-                  <input
-                    type="number"
-                    required
-                    value={newLoss.demurrage_incurred_inr}
-                    onChange={(e) => setNewLoss({ ...newLoss, demurrage_incurred_inr: e.target.value })}
-                    placeholder="35000"
-                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Root Cause Description</label>
-                  <textarea
-                    rows={2}
-                    value={newLoss.root_cause}
-                    onChange={(e) => setNewLoss({ ...newLoss, root_cause: e.target.value })}
-                    placeholder="Describe customs hold, terminal congestion, or moisture damage..."
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowAddLossModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-red-700 hover:bg-red-800 text-white">Log Incident</Button>
-                </div>
-              </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
     </div>
   );
 };
+
+export default TradeShipments;

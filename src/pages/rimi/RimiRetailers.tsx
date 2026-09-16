@@ -1,17 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Store, Search, Plus, Eye, Trash2, X, CheckCircle2, KeyRound, Copy, ShieldAlert, ShoppingBag, DollarSign } from 'lucide-react';
+import { Store, Search, Plus, Eye, Trash2, X, CheckCircle2, ShoppingBag, DollarSign } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import {
   getRimiDistributors,
   createRimiDistributor,
   deleteRimiDistributor,
-  provisionRimiCustomerLogin,
-  getRimiCustomerCredentials,
   getRimiSalesOrders,
-  getRimiPayments,
-  type ProvisionedRimiCredential
+  getRimiPayments
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
@@ -22,10 +19,6 @@ export const RimiRetailers: React.FC = () => {
   const [toast, setToast] = useState('');
   const [retailers, setRetailers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Credentials State
-  const [activeCredential, setActiveCredential] = useState<ProvisionedRimiCredential | null>(null);
-  const [copiedKey, setCopiedKey] = useState(false);
 
   // Mapped Data
   const [retOrders, setRetOrders] = useState<any[]>([]);
@@ -48,7 +41,6 @@ export const RimiRetailers: React.FC = () => {
           city: d.territory || 'Mumbai Suburban',
           creditLimit: `₹${Number(d.credit_limit || 500000).toLocaleString('en-IN')}`,
           status: 'Credit Approved',
-          hasCredentials: !!getRimiCustomerCredentials(d.id),
         }));
         setRetailers(mapped);
       }
@@ -97,15 +89,6 @@ export const RimiRetailers: React.FC = () => {
     showToastMsg(`Added supermarket retailer ${newRet.store}`);
     setNewRet({ store: '', owner: '', email: '', phone: '', city: 'Mumbai Suburban', creditLimit: 500000 });
     await loadData();
-
-    if (created?.id && created?.email) {
-      handleProvisionCredentials({
-        rawId: created.id,
-        name: created.business_name,
-        email: created.email,
-        contact: created.contact_person
-      });
-    }
   };
 
   const handleDeleteRet = async (rawId: string) => {
@@ -116,25 +99,6 @@ export const RimiRetailers: React.FC = () => {
     } catch (err: any) {
       showToastMsg(`Error deleting retailer: ${err.message || 'Unknown error'}`);
     }
-  };
-
-  const handleProvisionCredentials = async (ret: any) => {
-    const existing = getRimiCustomerCredentials(ret.rawId || ret.id);
-    if (existing) {
-      setActiveCredential(existing);
-      return;
-    }
-
-    const cred = await provisionRimiCustomerLogin({
-      id: ret.rawId || ret.id,
-      email: ret.email,
-      name: ret.store,
-      business_name: ret.store,
-      contact_person: ret.owner
-    });
-    setActiveCredential(cred);
-    showToastMsg(`Provisioned retailer portal login for ${ret.store}`);
-    loadData();
   };
 
   const handleOpenDossier = async (ret: any) => {
@@ -150,15 +114,6 @@ export const RimiRetailers: React.FC = () => {
       setRetOrders([]);
       setRetPayments([]);
     }
-  };
-
-  const copyCredentials = () => {
-    if (!activeCredential) return;
-    const text = `FEREX RIMI FROZEN FOODS RETAILER ACCESS\nPortal: Supermarket Retailer Console\nEmail: ${activeCredential.email}\nTemporary Password: ${activeCredential.tempPassword}\nRole: ${activeCredential.role}\nNote: Mandatory password reset required on first sign-in.`;
-    navigator.clipboard.writeText(text);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
-    showToastMsg('Retailer credentials copied to clipboard!');
   };
 
   const filteredRet = retailers.filter(r =>
@@ -218,14 +173,7 @@ export const RimiRetailers: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black text-slate-400 uppercase">{r.id}</span>
-                  <div className="flex items-center gap-1.5">
-                    {r.hasCredentials && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
-                        <KeyRound className="w-2.5 h-2.5" /> Portal Active
-                      </span>
-                    )}
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-200">{r.status}</span>
-                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-200">{r.status}</span>
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-slate-900 leading-snug">{r.store}</h3>
@@ -246,22 +194,14 @@ export const RimiRetailers: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2">
                   <Button
                     size="sm"
                     variant="outline"
                     className="text-[11px] font-bold h-8 border-slate-200 hover:border-slate-300"
                     onClick={() => handleOpenDossier(r)}
                   >
-                    <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> Dossier & Orders
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="text-[11px] font-bold h-8 bg-[#58051E] hover:bg-[#430316]"
-                    onClick={() => handleProvisionCredentials(r)}
-                  >
-                    <KeyRound className="w-3 h-3 mr-1 text-amber-300" />
-                    {r.hasCredentials ? 'View Login' : 'Provision Login'}
+                    <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> View Dossier & Orders
                   </Button>
                 </div>
               </div>
@@ -311,67 +251,9 @@ export const RimiRetailers: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save & Provision</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Add Retailer</Button>
                 </div>
               </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Credentials Modal */}
-      <AnimatePresence>
-        {activeCredential && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setActiveCredential(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
-                    <KeyRound className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900">Retailer Portal Login Access</h3>
-                    <p className="text-[11px] font-semibold text-slate-500">{activeCredential.businessName}</p>
-                  </div>
-                </div>
-                <button onClick={() => setActiveCredential(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-              </div>
-
-              <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-xs font-semibold text-amber-800 flex items-start gap-2.5">
-                <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold block">First-Time Password Reset Required</span>
-                  Store manager will set a permanent password upon initial sign in.
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs font-semibold">
-                <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
-                  <span className="text-slate-400">Portal Login:</span>
-                  <span className="font-mono text-slate-700">/login</span>
-                </div>
-                <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
-                  <span className="text-slate-400">Email:</span>
-                  <span className="font-bold text-slate-900">{activeCredential.email}</span>
-                </div>
-                <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
-                  <span className="text-slate-400">Temporary Password:</span>
-                  <span className="font-mono font-black text-[#58051E] text-sm bg-white px-2 py-0.5 rounded border border-slate-200">{activeCredential.tempPassword}</span>
-                </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-slate-400">Authorized Role:</span>
-                  <span className="font-bold text-emerald-700 uppercase text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{activeCredential.role}</span>
-                </div>
-              </div>
-
-              <div className="pt-2 flex gap-2">
-                <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={copyCredentials}>
-                  {copiedKey ? <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
-                  {copiedKey ? 'Copied Details' : 'Copy Access Credentials'}
-                </Button>
-                <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setActiveCredential(null)}>Done</Button>
-              </div>
             </motion.div>
           </>
         )}

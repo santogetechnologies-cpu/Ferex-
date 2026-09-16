@@ -51,6 +51,27 @@ export const TradeLoginPage: React.FC = () => {
         } catch {}
       }
 
+      // 1b. Also check ferex_trade_clients_v2
+      if (!localCred) {
+        try {
+          const clientsRaw = localStorage.getItem('ferex_trade_clients_v2');
+          if (clientsRaw) {
+            const parsedClients = JSON.parse(clientsRaw);
+            const foundClient = parsedClients.find((c: any) => c.email?.toLowerCase() === em);
+            if (foundClient) {
+              localCred = {
+                id: foundClient.id,
+                email: foundClient.email,
+                password: foundClient.temp_password,
+                fullName: foundClient.contact_person,
+                company_name: foundClient.company_name,
+                role: 'trade_client',
+              };
+            }
+          }
+        } catch {}
+      }
+
       // Check if it's a demo account or provisioned account
       const isDemoAdmin = (em === 'trade@ferex.com' || em === 'ferexglobal@gmail.com') && pass === 'trade123';
       const isDemoClient = (em === 'client@trade.com') && pass === 'trade123';
