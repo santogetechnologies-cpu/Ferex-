@@ -593,8 +593,56 @@ export const SelectUniversity: React.FC = () => {
                   <div className="space-y-4 text-xs font-semibold text-slate-600">
                     <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
                       <span className="text-slate-400 font-extrabold uppercase text-[10px]">World Ranking</span>
-                      <span className="text-sm font-black text-slate-900">Rank #{drawerUni.ranking}</span>
+                      <span className="text-sm font-black text-slate-900">Rank #{drawerUni.ranking || 100}</span>
                     </div>
+
+                    {/* Dynamic Fees Summary */}
+                    <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Fee Structure & Estimates</h4>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-500">University Tuition:</span>
+                        <span className="font-bold text-[#6A1B2E]">{drawerUni.university_fee || drawerUni.tuition_range || '€3,500 / yr'}</span>
+                      </div>
+                      {drawerUni.agency_fee && (
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-500">Agency Processing Fee:</span>
+                          <span className="font-bold text-slate-800">{drawerUni.agency_fee}</span>
+                        </div>
+                      )}
+                      {drawerUni.vfs_fee && (
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-500">VFS / Visa Gov Fee:</span>
+                          <span className="font-bold text-slate-800">{drawerUni.vfs_fee}</span>
+                        </div>
+                      )}
+                      {drawerUni.living_cost_monthly && (
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-500">Est. Living Cost:</span>
+                          <span className="font-bold text-slate-700">{drawerUni.living_cost_monthly}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dynamic Tuition Installments */}
+                    {drawerUni.installments_enabled && drawerUni.installments && drawerUni.installments.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Tuition Installments Schedule</h4>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Tranche Milestones</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {drawerUni.installments.map((inst: any, idx: number) => (
+                            <div key={inst.id || idx} className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg flex items-center justify-between text-xs">
+                              <div>
+                                <span className="font-bold text-slate-800 block">{inst.title || inst.name || `Stage ${idx + 1}`}</span>
+                                <span className="text-[10px] text-slate-400 font-medium block">{inst.due_stage || inst.due_trigger || 'On Offer Letter'}</span>
+                              </div>
+                              <span className="font-black text-[#6A1B2E] bg-white px-2 py-1 rounded border border-slate-200">{inst.amount}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div>
                       <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-2">Degree Programs</h4>

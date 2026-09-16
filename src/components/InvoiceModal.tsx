@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Printer, Phone, Mail, MapPin, Check } from 'lucide-react';
 import ferexLogoImg from '../assets/ferex-logo.png';
+import { useFeeConfig } from '../hooks/useFeeConfig';
 
 export interface InvoiceData {
   invoice_no: string;
@@ -64,14 +65,18 @@ export function numberToWordsINR(num: number): string {
 
 export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, invoice }) => {
   const printRef = useRef<HTMLDivElement>(null);
+  const { config } = useFeeConfig();
 
   if (!isOpen || !invoice) return null;
 
   const totalAmount = Number(invoice.amount) || 0;
-  const taxableValue = Number((totalAmount / 1.18).toFixed(2));
-  const cgst = Number(((totalAmount - taxableValue) / 2).toFixed(2));
-  const sgst = Number((totalAmount - taxableValue - cgst).toFixed(2));
   const amountWords = numberToWordsINR(totalAmount);
+  const currencySymbol = (invoice.currency || config.advance_registration_fee_currency || 'INR') === 'EUR' ? '€' : ((invoice.currency || config.advance_registration_fee_currency) === 'USD' ? '$' : '₹');
+  const currencyCode = invoice.currency || config.advance_registration_fee_currency || 'INR';
+
+  const companyPan = config.invoice_settings?.company_pan || 'AABCF1234F';
+  const companyAddress = config.invoice_settings?.company_address || '12/640 Thachukuzhi, Companipady Road, Nellikuzhy PO, Kothamangalam, Kerala - 686 691';
+  const termsText = config.invoice_settings?.terms_conditions || 'All consultancy and onboarding services are provided by Ferex Ventures. Non-refundable once university application is lodged.';
 
   const formattedDate = invoice.date
     ? new Date(invoice.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -88,7 +93,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Tax_Invoice_${invoice.invoice_no}</title>
+  <title>Invoice_${invoice.invoice_no}</title>
   <style>
     @page { size: A4; margin: 15mm; }
     * { box-sizing: border-box; }
@@ -146,8 +151,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
       letter-spacing: 2px;
       margin: 0;
     }
-    .gstin {
-      font-size: 12px;
+    .pan-badge {
+      font-size: 11px;
       font-weight: 800;
       color: #58051E;
       margin-top: 2px;
@@ -246,9 +251,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
     .footer-note {
       text-align: center;
       font-size: 10.5px;
-      color: #94a3b8;
-      margin-top: 30px;
-      font-style: italic;
+      color: #64748b;
+      margin-top: 24px;
     }
     .footer-bar {
       height: 4px;
@@ -268,13 +272,13 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
       <div class="company-info">
         <p><strong>Tel:</strong> +91 95448 85077 / +44 78678 67779</p>
         <p><strong>Email:</strong> ferexventuresoffice@gmail.com</p>
-        <p>12/640 Thachukuzhi, Companipady Rd, Kothamangalam, Kerala - 686691</p>
+        <p>${companyAddress}</p>
+        <p><strong>PAN:</strong> ${companyPan}</p>
       </div>
     </div>
 
     <div class="title-banner">
-      <h1 class="invoice-title">TAX INVOICE</h1>
-      <div class="gstin">GSTIN: 32AAGCF8602A1Z8</div>
+      <h1 class="invoice-title">OFFICIAL RECEIPT & INVOICE</h1>
     </div>
 
     <div class="details-grid">
@@ -287,7 +291,6 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
         <h4>Invoice Reference</h4>
         <p><strong>Invoice No:</strong> ${invoice.invoice_no}</p>
         <p><strong>Invoice Date:</strong> ${formattedDate}</p>
-        <p><strong>Place of Supply:</strong> ${invoice.place_of_supply || 'Kerala (32)'}</p>
       </div>
     </div>
 
@@ -296,8 +299,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
         <tr>
           <th class="text-center" style="width: 40px;">#</th>
           <th>Service Description</th>
-          <th class="text-center" style="width: 100px;">SAC Code</th>
-          <th class="text-right" style="width: 130px;">Amount (INR)</th>
+          <th class="text-right" style="width: 140px;">Amount (${currencyCode})</th>
         </tr>
       </thead>
       <tbody>
@@ -307,8 +309,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
             <strong>${invoice.description || 'Registration Fee – Overseas Higher Education Consultancy Services'}</strong>
             ${invoice.course_destination ? `<br><span style="color:#64748b; font-size:11px;">Destination: ${invoice.course_destination}</span>` : ''}
           </td>
-          <td class="text-center" style="font-family: monospace; font-weight: bold;">${invoice.sac_code || '9992'}</td>
-          <td class="text-right font-bold">₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="text-right font-bold">${currencySymbol}${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>
       </tbody>
     </table>
@@ -319,21 +320,9 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
         <span style="color: #0f172a; font-weight: bold;">${amountWords}</span>
       </div>
       <div class="summary-box">
-        <div class="summary-row">
-          <span>Taxable Amount</span>
-          <span>₹${taxableValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        </div>
-        <div class="summary-row">
-          <span>CGST @ 9%</span>
-          <span>₹${cgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        </div>
-        <div class="summary-row">
-          <span>SGST @ 9%</span>
-          <span>₹${sgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        </div>
         <div class="summary-row total">
-          <span>Total (INR)</span>
-          <span>₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <span>Total Amount</span>
+          <span>${currencySymbol}${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
       </div>
     </div>
@@ -341,13 +330,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
     <div class="paid-badge">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
       <div>
-        <strong>PAYMENT RECEIVED & RECORDED AS PAID</strong><br>
-        <span style="font-size: 11px; color: #15803d;">Settled via ${invoice.payment_method || 'Online Bank Transfer / UPI'}${invoice.utr_number ? ` • Ref/UTR: ${invoice.utr_number}` : ''} on ${formattedDate}</span>
+        <strong>PAYMENT RECEIVED & SETTLED</strong><br>
+        <span style="font-size: 11px; color: #15803d;">Settled via ${invoice.payment_method || 'Online Bank Transfer / Payment Gateway'}${invoice.utr_number ? ` • Ref/UTR: ${invoice.utr_number}` : ''} on ${formattedDate}</span>
       </div>
     </div>
 
     <div class="footer-note">
-      This is an authentic, computer-generated tax invoice verified by FEREX Financial Governance. No physical signature is required.
+      ${termsText}<br />
+      This is an authentic computer-generated receipt from FEREX Ventures. No physical signature is required.
     </div>
     <div class="footer-bar"></div>
   </div>
@@ -381,19 +371,19 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-200">
-                FEREX Tax Invoice Viewer
+                FEREX Official Invoice & Receipt Viewer
               </h3>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={handlePrint}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#58051E] hover:bg-[#6b0027] text-white text-xs font-extrabold rounded-xl transition-all shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#58051E] hover:bg-[#6b0027] text-white text-xs font-extrabold rounded-xl transition-all shadow-xs cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" /> Print / Save PDF
               </button>
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 transition-colors"
+                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -421,22 +411,24 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
                 </div>
                 <div className="flex items-start justify-end gap-1.5 text-slate-600 text-[11px] max-w-xs ml-auto leading-tight">
                   <MapPin className="w-3.5 h-3.5 text-[#58051E] shrink-0 mt-0.5" />
-                  <span>12/640 Thachukuzhi, Companipady Road , Nellikuzhy PO, Kothamangalam, Kerala - 686 691</span>
+                  <span>{companyAddress}</span>
                 </div>
+                {companyPan && (
+                  <div className="text-[11px] text-slate-500 font-bold">
+                    PAN: {companyPan}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Top Maroon Divider */}
             <div className="h-0.5 bg-[#58051E] my-4" />
 
-            {/* TAX INVOICE Title */}
+            {/* Title */}
             <div className="text-center my-6 space-y-1">
               <h1 className="text-2xl font-black tracking-wide text-slate-900 font-serif uppercase">
-                TAX INVOICE
+                OFFICIAL INVOICE & RECEIPT
               </h1>
-              <p className="text-xs font-extrabold text-[#58051E] tracking-wider">
-                GSTIN: 32AAGCF8602A1Z8
-              </p>
             </div>
 
             <div className="h-[1px] bg-slate-300 my-4" />
@@ -469,10 +461,6 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
                   <span className="font-semibold text-slate-500 min-w-[90px]">Invoice Date:</span>
                   <span className="font-bold text-slate-900">{formattedDate}</span>
                 </div>
-                <div className="flex justify-between sm:justify-start sm:gap-6">
-                  <span className="font-semibold text-slate-500 min-w-[90px]">Place of Supply:</span>
-                  <span className="font-bold text-slate-900">{invoice.place_of_supply || 'Kerala'}</span>
-                </div>
               </div>
             </div>
 
@@ -483,8 +471,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
                   <tr className="bg-[#58051E] text-white text-[11px] font-extrabold uppercase tracking-wider">
                     <th className="py-3 px-4 text-center w-12 border-r border-[#6d0228]">#</th>
                     <th className="py-3 px-4 border-r border-[#6d0228]">Description</th>
-                    <th className="py-3 px-4 text-center w-28 border-r border-[#6d0228]">SAC Code</th>
-                    <th className="py-3 px-4 text-right w-36">Amount (INR)</th>
+                    <th className="py-3 px-4 text-right w-36">Amount ({currencyCode})</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-800">
@@ -494,18 +481,15 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
                       {invoice.description || 'Registration Fee – Overseas Education Consultancy Services'}
                       {invoice.course_destination ? ` (${invoice.course_destination})` : ''}
                     </td>
-                    <td className="py-4 px-4 text-center font-mono font-bold text-slate-700">
-                      {invoice.sac_code || '9992'}
-                    </td>
                     <td className="py-4 px-4 text-right font-bold text-slate-900">
-                      {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {currencySymbol}{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            {/* Tax Breakdown & Amount in Words */}
+            {/* Amount Breakdown & In Words */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 my-6 items-end">
               {/* Left: Amount in Words */}
               <div className="text-left space-y-1">
@@ -515,30 +499,12 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
                 </p>
               </div>
 
-              {/* Right: Tax Breakdown */}
+              {/* Right: Summary */}
               <div className="space-y-2 text-xs font-semibold text-slate-700 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-                <div className="flex justify-between text-slate-600">
-                  <span>Taxable Value</span>
-                  <span className="font-mono font-bold text-slate-800">
-                    INR {taxableValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>CGST @ 9%</span>
-                  <span className="font-mono font-bold text-slate-800">
-                    INR {cgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between text-slate-600 pb-2 border-b border-slate-200">
-                  <span>SGST @ 9%</span>
-                  <span className="font-mono font-bold text-slate-800">
-                    INR {sgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
                 <div className="flex justify-between text-base font-black text-[#58051E] pt-1">
-                  <span>Total Amount</span>
+                  <span>Total Paid</span>
                   <span className="font-mono">
-                    INR {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {currencySymbol}{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -558,7 +524,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
                     Payment Date: {formattedDate}
                   </p>
                   <p className="text-[11px] font-semibold text-slate-600">
-                    Payment Mode: {invoice.payment_method || 'Bank Transfer / UPI'}
+                    Payment Mode: {invoice.payment_method || 'Bank Transfer / Online Gateway'}
                     {invoice.utr_number ? ` (UTR: ${invoice.utr_number})` : ''}
                   </p>
                 </div>
@@ -567,6 +533,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
 
             {/* Footer Notice */}
             <div className="text-center pt-8 pb-4 text-[10.5px] italic font-medium text-slate-400">
+              {termsText}<br />
               This is a computer-generated invoice and does not require a physical signature.
             </div>
 

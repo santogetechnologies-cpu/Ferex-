@@ -285,12 +285,13 @@ export const Payments: React.FC = () => {
   };
 
   // 6. Item 4: University Tuition Fee / Installments
+  const tuitionFeeEnabled = appliedUniversity ? (appliedUniversity.tuition_fee_enabled !== false) : true;
   const installmentsEnabled = Boolean(appliedUniversity?.installments_enabled);
   const hasMultipleInstallments = Boolean(appliedUniversity?.installments && appliedUniversity.installments.length > 0);
 
   // Single University Tuition Fee Item
   const rawTuitionStr = appliedUniversity?.university_fee || appliedUniversity?.tuition_range || '€3,500 / yr';
-  const configuredTuitionInr = parseFeeToINR(rawTuitionStr);
+  const configuredTuitionInr = tuitionFeeEnabled ? parseFeeToINR(rawTuitionStr) : 0;
   const tuitionDisplayAmount = isTuitionSinglePaid && tuitionSingleRecord?.amount ? Number(tuitionSingleRecord.amount) : configuredTuitionInr;
   const tuitionDisplayFormatted = isTuitionSinglePaid && tuitionSingleRecord?.amount
     ? `₹${Number(tuitionSingleRecord.amount).toLocaleString('en-IN')}`
@@ -370,13 +371,13 @@ export const Payments: React.FC = () => {
   // 7. Financial Outlay Totals
   const tuitionTotalDue = installmentsEnabled
     ? (hasMultipleInstallments ? tuitionInstallmentItems.reduce((acc, i) => acc + i.amount, 0) : singleTuitionItem.amount)
-    : 0;
+    : (tuitionFeeEnabled ? singleTuitionItem.amount : 0);
 
   const tuitionTotalPaid = installmentsEnabled
     ? (hasMultipleInstallments
         ? tuitionInstallmentItems.filter(i => i.status === 'Paid').reduce((acc, i) => acc + i.amount, 0)
         : (singleTuitionItem.status === 'Paid' ? singleTuitionItem.amount : 0))
-    : 0;
+    : (tuitionFeeEnabled && singleTuitionItem.status === 'Paid' ? singleTuitionItem.amount : 0);
 
   const totalDueAmount = advFeeItem.amount +
     (hasCourseSelected ? agencyFeeItem.amount : 0) +
@@ -1080,17 +1081,108 @@ export const Payments: React.FC = () => {
               </Link>
             </div>
           </div>
-        ) : !installmentsEnabled ? (
-          /* Direct Institutional Payment Mode (Toggle Turned Off by Admin) */
-          <div className="p-5 bg-amber-50/70 border border-amber-200/90 rounded-2xl space-y-2 text-xs text-amber-900">
+        ) : !tuitionFeeEnabled && !installmentsEnabled ? (
+          /* Direct Tuition Fee Disabled / Waived by University Policy */
+          <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs text-slate-700">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <h3 className="font-bold text-sm text-slate-900">Direct Institutional Payment Configured</h3>
+              <h3 className="font-bold text-sm text-slate-900">Direct Tuition Fee Disabled in Portal Billing</h3>
             </div>
-            <p className="text-slate-600 leading-relaxed">
-              Tuition fees for <strong>{selectedUniversityName}</strong> ({formatFeeEURandINR(appliedUniversity?.university_fee || appliedUniversity?.tuition_range)}) are settled directly with the university's official bank account prior to visa filing or upon arrival. Students are not required to submit portal installment proofs.
+            <p className="text-slate-500 leading-relaxed">
+              Tuition fee for <strong>{selectedUniversityName}</strong> is not charged through the FEREX portal billing schedule. Students settle tuition directly with the university or through institutional scholarships.
             </p>
           </div>
+        ) : !installmentsEnabled ? (
+          /* Single Direct Tuition Fee Card */
+          <Card
+            className={`p-5 flex flex-col justify-between transition-all select-none relative bg-white border ${
+              singleTuitionItem.status === 'Paid'
+                ? 'border-emerald-200/80 bg-emerald-50/10'
+                : singleTuitionItem.status === 'Pending Verification'
+                ? 'border-amber-200/80 bg-amber-50/10'
+                : singleTuitionItem.status === 'Rejected'
+                ? 'border-red-200/80 bg-red-50/10'
+                : 'border-slate-800/30 shadow-xs'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-300">
+                  Full Annual Tuition Fee (Single Wire)
+                </span>
+                {singleTuitionItem.status === 'Paid' && <Badge variant="success" dot>Paid & Verified</Badge>}
+                {singleTuitionItem.status === 'Pending Verification' && <Badge variant="brand" dot>In Verification</Badge>}
+                {singleTuitionItem.status === 'Rejected' && <Badge variant="error" dot>Action Required</Badge>}
+                {singleTuitionItem.status === 'Pending' && <Badge variant="neutral">Payment Due</Badge>}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-2">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 leading-snug">{singleTuitionItem.title}</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">{singleTuitionItem.description}</p>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left sm:text-right shrink-0">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Tuition Outlay</span>
+                  <span className="text-2xl font-black text-slate-900">
+                    {singleTuitionItem.amountFormatted}
+                  </span>
+                </div>
+              </div>
+
+              {singleTuitionItem.status === 'Pending Verification' && (
+                <div className="p-3 mb-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
+                  <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block">Under Verification</span>
+                    Reference UTR: <span className="font-mono font-semibold">{singleTuitionItem.utr || 'Logged'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 mt-2">
+              {singleTuitionItem.status === 'Paid' ? (
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Tuition Settled & Verified
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownloadInvoice(singleTuitionItem)}
+                    leftIcon={<FileText className="w-3.5 h-3.5" />}
+                  >
+                    PDF Receipt
+                  </Button>
+                </div>
+              ) : singleTuitionItem.status === 'Pending Verification' ? (
+                <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Review
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-slate-900 hover:bg-black text-white font-bold"
+                    onClick={() => setOnlinePayItem(singleTuitionItem)}
+                    leftIcon={<QrCode className="w-3.5 h-3.5" />}
+                  >
+                    Pay Tuition Online
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedItem(singleTuitionItem);
+                      setUtrNumber('');
+                    }}
+                    leftIcon={<Upload className="w-3.5 h-3.5" />}
+                  >
+                    Upload SWIFT Proof
+                  </Button>
+                </div>
+              )}
+            </div>
         ) : hasMultipleInstallments ? (
           /* Milestone-wise Tuition Installments */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1190,96 +1282,10 @@ export const Payments: React.FC = () => {
             })}
           </div>
         ) : (
-          /* Single University Tuition Fee Card */
-          <Card
-            className={`p-5 flex flex-col justify-between transition-all select-none relative bg-white border ${
-              singleTuitionItem.status === 'Paid'
-                ? 'border-emerald-200/80 bg-emerald-50/10'
-                : singleTuitionItem.status === 'Pending Verification'
-                ? 'border-amber-200/80 bg-amber-50/10'
-                : singleTuitionItem.status === 'Rejected'
-                ? 'border-red-200/80 bg-red-50/10'
-                : 'border-[#58051E]/30 shadow-subtle'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#58051E] bg-[#58051E]/10 px-2.5 py-1 rounded-md">
-                  {selectedUniversityName} Full Tuition Fee
-                </span>
-                {singleTuitionItem.status === 'Paid' && <Badge variant="success" dot>Paid & Cleared</Badge>}
-                {singleTuitionItem.status === 'Pending Verification' && <Badge variant="brand" dot>In Verification</Badge>}
-                {singleTuitionItem.status === 'Rejected' && <Badge variant="error" dot>Action Required</Badge>}
-                {singleTuitionItem.status === 'Pending' && <Badge variant="neutral">Payment Due</Badge>}
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-2">
-                <div>
-                  <h3 className="text-base font-black text-slate-900 leading-snug">{singleTuitionItem.title}</h3>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">{singleTuitionItem.description}</p>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left sm:text-right shrink-0">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Annual Tuition</span>
-                  <span className="text-2xl font-black text-slate-900">
-                    {singleTuitionItem.amountFormatted}
-                  </span>
-                </div>
-              </div>
-
-              {singleTuitionItem.status === 'Pending Verification' && (
-                <div className="p-3 mb-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
-                  <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-semibold block">Under Compliance Review</span>
-                    Reference UTR: <span className="font-mono font-semibold">{singleTuitionItem.utr || 'Logged'}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 mt-2">
-              {singleTuitionItem.status === 'Paid' ? (
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Settled & Verified
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownloadInvoice(singleTuitionItem)}
-                    leftIcon={<FileText className="w-3.5 h-3.5" />}
-                  >
-                    PDF Receipt
-                  </Button>
-                </div>
-              ) : singleTuitionItem.status === 'Pending Verification' ? (
-                <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Verification
-                </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row gap-2.5">
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold"
-                    onClick={() => setOnlinePayItem(singleTuitionItem)}
-                    leftIcon={<QrCode className="w-3.5 h-3.5" />}
-                  >
-                    Pay Tuition Online
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedItem(singleTuitionItem);
-                      setUtrNumber('');
-                    }}
-                    leftIcon={<Upload className="w-3.5 h-3.5" />}
-                  >
-                    Upload SWIFT / Wire Proof
-                  </Button>
-                </div>
-              )}
-            </div>
+          /* Single Fallback */
+          <Card className="p-5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-600">
+            <h3 className="font-bold text-slate-900">Direct Tuition Remittance</h3>
+            <p className="mt-1">Full tuition is settled in a single international SWIFT remittance.</p>
           </Card>
         )}
       </div>

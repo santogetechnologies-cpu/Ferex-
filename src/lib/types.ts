@@ -67,6 +67,7 @@ export interface University {
   is_active: boolean;
   intakes?: string[];
   university_fee?: string;
+  tuition_fee_enabled?: boolean;
   vfs_fee?: string;
   agency_fee?: string;
   agency_fee_description?: string;

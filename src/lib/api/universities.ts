@@ -230,9 +230,7 @@ function removeDeletedUniKey(id: string, name?: string) {
 }
 
 function isJunkUniversity(u: any): boolean {
-  if (!u || !u.name) return true;
-  const name = u.name.toLowerCase().trim();
-  if (name.startsWith('ssss') || name === 'test warsaw auth' || name === 'probe uni') return true;
+  if (!u || !u.name || typeof u.name !== 'string' || u.name.trim().length === 0) return true;
   return false;
 }
 
@@ -240,8 +238,9 @@ export async function getUniversities(): Promise<University[]> {
   const deletedKeys = getDeletedUniKeys();
   const isPurged = localStorage.getItem(PURGED_UNIS_KEY) === 'true';
   const uniMap = new Map<string, University>();
+  let hasDbSource = false;
 
-  // 1. SUPABASE DATABASE: Fetch live shared cloud rows
+  // 1. SUPABASE DATABASE: Fetch live shared cloud rows (Definitive Source)
   try {
     const { data, error } = await supabase
       .from('universities')
@@ -249,6 +248,7 @@ export async function getUniversities(): Promise<University[]> {
       .order('ranking', { ascending: true });
 
     if (!error && data && Array.isArray(data)) {
+      hasDbSource = true;
       data.forEach((u: any) => {
         if (u && u.name && !isJunkUniversity(u)) {
           const key = u.name.toLowerCase().trim();
@@ -260,16 +260,17 @@ export async function getUniversities(): Promise<University[]> {
     console.warn('[getUniversities DB Warning]:', err);
   }
 
-  // 2. Check system_config catalog backup
-  if (!isPurged) {
+  // 2. Check system_config catalog backup if universities table had 0 items
+  if (!isPurged && uniMap.size === 0) {
     try {
-      const { data: cfg } = await supabase
+      const { data: cfg, error: cfgErr } = await supabase
         .from('system_config')
         .select('value')
         .eq('key', 'ferex_universities_catalog')
         .maybeSingle();
 
-      if (cfg?.value && Array.isArray(cfg.value)) {
+      if (!cfgErr && cfg?.value && Array.isArray(cfg.value)) {
+        hasDbSource = true;
         cfg.value.forEach((u: any) => {
           if (u && u.name && !isJunkUniversity(u)) {
             const key = u.name.toLowerCase().trim();
@@ -282,8 +283,8 @@ export async function getUniversities(): Promise<University[]> {
     } catch {}
   }
 
-  // 3. Check local cache (merge in any locally added/edited universities)
-  if (!isPurged) {
+  // 3. Check local cache (only if offline or to recover custom added items)
+  if (!isPurged && !hasDbSource) {
     try {
       const local = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
       if (local) {
@@ -302,8 +303,8 @@ export async function getUniversities(): Promise<University[]> {
     } catch {}
   }
 
-  // 4. Fallback to baseline ONLY on completely fresh initial installs
-  if (uniMap.size === 0 && !isPurged && deletedKeys.size === 0) {
+  // 4. Fallback to baseline ONLY on clean first-time install when DB is untouched
+  if (uniMap.size === 0 && !isPurged && deletedKeys.size === 0 && !hasDbSource) {
     BASELINE_UNIVERSITIES.forEach(u => {
       uniMap.set(u.name.toLowerCase().trim(), u);
     });
@@ -318,7 +319,7 @@ export async function getUniversities(): Promise<University[]> {
     return true;
   });
 
-  // Enrich with baseline details if needed
+  // Enrich with baseline details only for missing optional presentation fields
   const enrichedList = activeList.map(u => {
     const baselineMatch = BASELINE_UNIVERSITIES.find(b => b.name.toLowerCase().trim() === u.name.toLowerCase().trim());
     return {
@@ -327,8 +328,8 @@ export async function getUniversities(): Promise<University[]> {
       badge: u.badge || baselineMatch?.badge || 'Accredited Partner',
       category: u.category || baselineMatch?.category || 'Higher Education',
       description: u.description || baselineMatch?.description || `${u.name} offers internationally accredited degree programs with global recognition.`,
-      living_cost_monthly: u.living_cost_monthly || baselineMatch?.living_cost_monthly || '€450 - €650 / mo',
-      nawa_required: u.nawa_required !== undefined ? u.nawa_required : (u.country?.toLowerCase() === 'poland'),
+      living_cost_monthly: (u.living_cost_monthly && u.living_cost_monthly.trim() !== '') ? u.living_cost_monthly : (baselineMatch?.living_cost_monthly || '€450 - €650 / mo'),
+      nawa_required: u.nawa_required !== undefined ? u.nawa_required : (baselineMatch?.nawa_required ?? (u.country?.toLowerCase() === 'poland')),
       installments_enabled: u.installments_enabled !== undefined ? u.installments_enabled : (baselineMatch?.installments_enabled ?? false),
     };
   });
@@ -360,6 +361,7 @@ export async function createUniversity(payload: {
   tuition_range?: string;
   intakes?: string[];
   university_fee?: string;
+  tuition_fee_enabled?: boolean;
   vfs_fee?: string;
   agency_fee?: string;
   agency_fee_description?: string;
@@ -395,6 +397,7 @@ export async function createUniversity(payload: {
     is_active: true,
     intakes: payload.intakes && payload.intakes.length > 0 ? payload.intakes : ['October 2026', 'February 2027'],
     university_fee: payload.university_fee || payload.tuition_range || '€3,500 / yr',
+    tuition_fee_enabled: payload.tuition_fee_enabled !== undefined ? payload.tuition_fee_enabled : true,
     vfs_fee: payload.vfs_fee || '₹15,000',
     agency_fee: payload.agency_fee || '₹25,000',
     agency_fee_description: payload.agency_fee_description,
@@ -437,6 +440,7 @@ export async function createUniversity(payload: {
     tuition_range: fullObject.tuition_range,
     intakes: fullObject.intakes,
     university_fee: fullObject.university_fee,
+    tuition_fee_enabled: fullObject.tuition_fee_enabled,
     vfs_fee: fullObject.vfs_fee,
     agency_fee: fullObject.agency_fee,
     living_cost_monthly: fullObject.living_cost_monthly,
@@ -447,38 +451,36 @@ export async function createUniversity(payload: {
     is_active: true
   };
 
-  (async () => {
-    try {
-      const { error: insErr } = await supabase.from('universities').insert([dbPayload]);
-      if (insErr) {
-        console.warn('[createUniversity supabase Warning]:', insErr.message);
-        try {
-          const admin = await getAdminSupabaseClient();
-          await admin.from('universities').insert([dbPayload]);
-        } catch {}
-      }
-
-      // Also update system_config catalog backup with full object
+  try {
+    const { error: insErr } = await supabase.from('universities').insert([dbPayload]);
+    if (insErr) {
+      console.warn('[createUniversity supabase Warning]:', insErr.message);
       try {
-        await supabase.from('system_config').upsert({
+        const admin = await getAdminSupabaseClient();
+        await admin.from('universities').insert([dbPayload]);
+      } catch {}
+    }
+
+    // Also update system_config catalog backup with full object
+    try {
+      await supabase.from('system_config').upsert({
+        key: 'ferex_universities_catalog',
+        value: updated,
+        updated_at: new Date().toISOString()
+      });
+    } catch {
+      try {
+        const admin = await getAdminSupabaseClient();
+        await admin.from('system_config').upsert({
           key: 'ferex_universities_catalog',
           value: updated,
           updated_at: new Date().toISOString()
         });
-      } catch {
-        try {
-          const admin = await getAdminSupabaseClient();
-          await admin.from('system_config').upsert({
-            key: 'ferex_universities_catalog',
-            value: updated,
-            updated_at: new Date().toISOString()
-          });
-        } catch {}
-      }
-    } catch (err) {
-      console.warn('[createUniversity async sync Notice]:', err);
+      } catch {}
     }
-  })();
+  } catch (err) {
+    console.warn('[createUniversity sync Notice]:', err);
+  }
 
   window.dispatchEvent(new Event('ferex_universities_change'));
   window.dispatchEvent(new Event('ferex_university_change'));
@@ -490,7 +492,7 @@ export async function updateUniversity(id: string, payload: Partial<University>)
   const dbPayload: any = {};
   const allowedCols = [
     'name', 'country', 'city', 'logo_url', 'image_url', 'badge', 'category', 'description',
-    'ranking', 'rating', 'programs', 'tuition_range', 'intakes', 'university_fee',
+    'ranking', 'rating', 'programs', 'tuition_range', 'intakes', 'university_fee', 'tuition_fee_enabled',
     'vfs_fee', 'agency_fee', 'agency_fee_description', 'living_cost_monthly', 'nawa_required',
     'course_programs', 'installments', 'semesters', 'installments_enabled', 'is_active'
   ];

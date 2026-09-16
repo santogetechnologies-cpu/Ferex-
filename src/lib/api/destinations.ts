@@ -224,9 +224,7 @@ function removeDeletedDestKey(id: string, name?: string) {
 }
 
 function isJunkDestination(name: string): boolean {
-  if (!name) return true;
-  const lower = name.toLowerCase().trim();
-  if (lower === 'india' || lower === 'nada' || lower.startsWith('ssss')) return true;
+  if (!name || typeof name !== 'string' || name.trim().length === 0) return true;
   return false;
 }
 
@@ -234,8 +232,9 @@ export async function getDestinations(): Promise<DestinationItem[]> {
   const deletedKeys = getDeletedDestKeys();
   const isPurged = localStorage.getItem(PURGED_DESTS_KEY) === 'true';
   const destMap = new Map<string, DestinationItem>();
+  let hasDbSource = false;
 
-  // 1. SUPABASE DATABASE: Fetch live shared cloud rows
+  // 1. SUPABASE DATABASE: Fetch live shared cloud rows (Definitive Source)
   try {
     const { data, error } = await supabase
       .from('destinations')
@@ -243,6 +242,7 @@ export async function getDestinations(): Promise<DestinationItem[]> {
       .order('name', { ascending: true });
 
     if (!error && data && Array.isArray(data)) {
+      hasDbSource = true;
       data.forEach((d: any) => {
         if (d && d.name && !isJunkDestination(d.name)) {
           const key = d.name.toLowerCase().trim();
@@ -254,16 +254,17 @@ export async function getDestinations(): Promise<DestinationItem[]> {
     console.warn('[getDestinations DB Notice]:', err);
   }
 
-  // 2. Check system_config catalog backup
-  if (!isPurged) {
+  // 2. Check system_config catalog backup if destinations table had 0 items
+  if (!isPurged && destMap.size === 0) {
     try {
-      const { data: cfg } = await supabase
+      const { data: cfg, error: cfgErr } = await supabase
         .from('system_config')
         .select('value')
         .eq('key', 'ferex_destinations_catalog')
         .maybeSingle();
 
-      if (cfg?.value && Array.isArray(cfg.value)) {
+      if (!cfgErr && cfg?.value && Array.isArray(cfg.value)) {
+        hasDbSource = true;
         cfg.value.forEach((d: any) => {
           if (d && d.name && !isJunkDestination(d.name)) {
             const key = d.name.toLowerCase().trim();
@@ -276,8 +277,8 @@ export async function getDestinations(): Promise<DestinationItem[]> {
     } catch {}
   }
 
-  // 3. Check local storage cache (merge in any locally added/edited destinations)
-  if (!isPurged) {
+  // 3. Check local storage cache (only if offline or recovering custom items)
+  if (!isPurged && !hasDbSource) {
     try {
       const local = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (local) {
@@ -297,7 +298,7 @@ export async function getDestinations(): Promise<DestinationItem[]> {
   }
 
   // 4. Fallback to default verified destinations ONLY on clean fresh setup
-  if (destMap.size === 0 && !isPurged && deletedKeys.size === 0) {
+  if (destMap.size === 0 && !isPurged && deletedKeys.size === 0 && !hasDbSource) {
     DEFAULT_STUDY_DESTINATIONS.forEach(d => {
       destMap.set(d.name.toLowerCase().trim(), d);
     });
@@ -360,37 +361,35 @@ export async function createDestination(payload: Omit<DestinationItem, 'id' | 'c
   } catch {}
 
   // 2. Supabase Insert & system_config backup
-  (async () => {
-    try {
-      const { error } = await supabase.from('destinations').insert([newObj]);
-      if (error) {
-        console.warn('[createDestination supabase Warning]:', error.message);
-        try {
-          const admin = await getAdminSupabaseClient();
-          await admin.from('destinations').insert([newObj]);
-        } catch {}
-      }
-
+  try {
+    const { error } = await supabase.from('destinations').insert([newObj]);
+    if (error) {
+      console.warn('[createDestination supabase Warning]:', error.message);
       try {
-        await supabase.from('system_config').upsert({
+        const admin = await getAdminSupabaseClient();
+        await admin.from('destinations').insert([newObj]);
+      } catch {}
+    }
+
+    try {
+      await supabase.from('system_config').upsert({
+        key: 'ferex_destinations_catalog',
+        value: updated,
+        updated_at: new Date().toISOString()
+      });
+    } catch {
+      try {
+        const admin = await getAdminSupabaseClient();
+        await admin.from('system_config').upsert({
           key: 'ferex_destinations_catalog',
           value: updated,
           updated_at: new Date().toISOString()
         });
-      } catch {
-        try {
-          const admin = await getAdminSupabaseClient();
-          await admin.from('system_config').upsert({
-            key: 'ferex_destinations_catalog',
-            value: updated,
-            updated_at: new Date().toISOString()
-          });
-        } catch {}
-      }
-    } catch (err) {
-      console.warn('[createDestination async sync Notice]:', err);
+      } catch {}
     }
-  })();
+  } catch (err) {
+    console.warn('[createDestination sync Notice]:', err);
+  }
 
   window.dispatchEvent(new Event('ferex_destinations_change'));
   window.dispatchEvent(new Event('storage'));

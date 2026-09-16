@@ -245,13 +245,14 @@ export const AdminUniversities: React.FC = () => {
   const [courseProgramsList, setCourseProgramsList] = useState<CourseProgram[]>([]);
 
   // Fee breakdown states
+  const [tuitionFeeEnabled, setTuitionFeeEnabled] = useState<boolean>(true);
   const [universityFee, setUniversityFee] = useState('€3,200 / yr');
   const [vfsFee, setVfsFee] = useState('€150');
   const [agencyFee, setAgencyFee] = useState('€250');
   const [agencyFeeDescription, setAgencyFeeDescription] = useState('FEREX Admissions Processing, Document Legalization Guidance & Offer Letter Handling');
 
   // Installments state
-  const [installmentsEnabled, setInstallmentsEnabled] = useState<boolean>(true);
+  const [installmentsEnabled, setInstallmentsEnabled] = useState<boolean>(false);
   const [installmentsList, setInstallmentsList] = useState<PaymentInstallment[]>([]);
 
   // Semester details state
@@ -469,6 +470,7 @@ export const AdminUniversities: React.FC = () => {
     setLivingCostMonthly('€350 - €500 / mo');
     setNawaRequired(true);
     setSelectedIntakes(['October 2026', 'February 2027']);
+    setTuitionFeeEnabled(true);
     setUniversityFee('€3,200 / yr');
     setVfsFee(config.default_vfs_fee || '₹15,000');
     setAgencyFee(config.default_agency_fee || '₹25,000');
@@ -506,11 +508,12 @@ export const AdminUniversities: React.FC = () => {
     setLivingCostMonthly(u.living_cost_monthly || '€350 - €500 / mo');
     setNawaRequired(u.nawa_required !== undefined ? u.nawa_required : u.country.toLowerCase() === 'poland');
     setSelectedIntakes(u.intakes || ['October 2026', 'February 2027']);
+    setTuitionFeeEnabled(u.tuition_fee_enabled !== undefined ? u.tuition_fee_enabled : true);
     setUniversityFee(u.university_fee || u.tuition_range || '€3,200 / yr');
     setVfsFee(u.vfs_fee || config.default_vfs_fee || '₹15,000');
     setAgencyFee(u.agency_fee || config.default_agency_fee || '₹25,000');
     setAgencyFeeDescription(u.agency_fee_description || 'FEREX Admissions Processing, Document Legalization Guidance & Offer Letter Handling');
-    const hasMilestones = Boolean(u.installments_enabled === true || (Array.isArray(u.installments) && u.installments.length > 0));
+    const hasMilestones = Boolean(u.installments_enabled === true);
     setInstallmentsEnabled(hasMilestones);
 
     if (u.course_programs && u.course_programs.length > 0) {
@@ -586,6 +589,7 @@ export const AdminUniversities: React.FC = () => {
         nawa_required: nawaRequired,
         programs: parsedPrograms.length > 0 ? parsedPrograms : ['Computer Science', 'Business Management'],
         intakes: selectedIntakes.length > 0 ? selectedIntakes : ['October 2026', 'February 2027'],
+        tuition_fee_enabled: tuitionFeeEnabled,
         university_fee: universityFee,
         vfs_fee: vfsFee,
         agency_fee: agencyFee,
@@ -1447,15 +1451,54 @@ export const AdminUniversities: React.FC = () => {
 
                 {activeFormTab === 'fees' && (
                   <div className="space-y-4">
+                    {/* Direct University Tuition Fee Toggle */}
+                    <div
+                      onClick={() => setTuitionFeeEnabled(!tuitionFeeEnabled)}
+                      className="p-4 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer transition-all select-none"
+                    >
+                      <div className="pr-4">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <h4 className="text-xs font-black text-slate-900">Direct University Tuition Fee</h4>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${tuitionFeeEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}>
+                            {tuitionFeeEnabled ? 'Fee Enabled in Student Bill' : 'Waived / Direct with University'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium">
+                          When enabled, annual tuition fee is calculated in the student portal payment schedule and summary bills. Turn off if students handle tuition privately or fee is waived.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTuitionFeeEnabled(!tuitionFeeEnabled);
+                        }}
+                        className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 shrink-0 ${
+                          tuitionFeeEnabled ? 'bg-[#58051E]' : 'bg-slate-300'
+                        }`}
+                      >
+                        <div
+                          className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                            tuitionFeeEnabled ? 'translate-x-6' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">University Tuition Fee</label>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                          University Tuition Fee {tuitionFeeEnabled ? '' : '(Disabled in Billing)'}
+                        </label>
                         <input
                           type="text"
                           value={universityFee}
+                          disabled={!tuitionFeeEnabled}
                           onChange={(e) => setUniversityFee(e.target.value)}
                           placeholder="€3,200 / yr"
-                          className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                          className={`w-full h-9.5 px-3 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none ${
+                            tuitionFeeEnabled ? 'bg-slate-50' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                          }`}
                         />
                         <p className="text-[10px] font-semibold text-slate-400 mt-1">{formatFeeEURandINR(universityFee)}</p>
                       </div>
