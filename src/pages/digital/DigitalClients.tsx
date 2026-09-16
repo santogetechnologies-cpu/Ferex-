@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Search, Plus, Edit3, Trash2, X, CheckCircle2, Mail, Phone, KeyRound, Copy, ShieldAlert, FolderKanban, FileText, CheckSquare, Eye } from 'lucide-react';
+import { Users, Search, Plus, Edit3, Trash2, X, CheckCircle2, Mail, Phone, KeyRound, Copy, ShieldAlert, FolderKanban, FileText, CheckSquare, Eye, Lock } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { useDigitalPermissions } from '../../hooks/usePermissions';
+import { getMasters } from '../../lib/api/masters';
 import {
   getDigitalClients,
   createDigitalClient,
@@ -18,12 +20,21 @@ import {
 import { supabase } from '../../lib/supabase';
 
 export const DigitalClients: React.FC = () => {
+  const { isAdmin } = useDigitalPermissions();
+
   const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingClient, setEditingClient] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(25);
+
+  // Dynamic client types from masters
+  const [clientTypes, setClientTypes] = useState<string[]>(['Internal', 'External']);
 
   // Credential Modal State
   const [activeCredential, setActiveCredential] = useState<ProvisionedClientCredential | null>(null);
@@ -35,7 +46,7 @@ export const DigitalClients: React.FC = () => {
   const [clientTasks, setClientTasks] = useState<any[]>([]);
   const [clientInvoices, setClientInvoices] = useState<any[]>([]);
 
-  const [clientTypeFilter, setClientTypeFilter] = useState<'All' | 'Internal' | 'External'>('All');
+  const [clientTypeFilter, setClientTypeFilter] = useState<string>('All');
   const [newClient, setNewClient] = useState({
     name: '',
     contact: '',
@@ -93,6 +104,28 @@ export const DigitalClients: React.FC = () => {
       window.removeEventListener('ferex_digital_clients_change', handleLocalChange);
     };
   }, [loadClients]);
+
+  useEffect(() => {
+    getMasters('digital', 'client_categories').then(types => {
+      if (types && types.length > 0) setClientTypes(types);
+    });
+  }, []);
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center">
+          <Lock className="w-8 h-8 text-amber-500" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-lg font-black text-slate-900">Client Directory Restricted</h2>
+          <p className="text-sm font-semibold text-slate-500 max-w-sm">
+            The full enterprise client database is restricted to Digital Agency Administrators. You can view your allocated client projects under My Projects.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,14 +231,16 @@ export const DigitalClients: React.FC = () => {
   };
 
   const filteredClients = clients.filter(c => {
-    const isInternal = c.client_type === 'Internal';
-    const matchType = clientTypeFilter === 'All' || (clientTypeFilter === 'Internal' ? isInternal : !isInternal);
+    const matchType = clientTypeFilter === 'All' || c.client_type?.toLowerCase() === clientTypeFilter.toLowerCase();
     const matchSearch =
       (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.contact || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.email || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchType && matchSearch;
   });
+
+  const totalPages = Math.ceil(filteredClients.length / pageSize) || 1;
+  const paginatedClients = filteredClients.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -244,18 +279,18 @@ export const DigitalClients: React.FC = () => {
         </div>
 
         {/* Client Type Filter Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
-          {(['All', 'Internal', 'External'] as const).map((type) => (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          {['All', ...clientTypes].map((tab) => (
             <button
-              key={type}
-              onClick={() => setClientTypeFilter(type)}
-              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                clientTypeFilter === type
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
+              key={tab}
+              onClick={() => { setClientTypeFilter(tab); setCurrentPage(1); }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                clientTypeFilter === tab
+                  ? 'bg-[#58051E] text-white shadow-xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              {type === 'Internal' ? 'Internal Divisions' : type === 'External' ? 'External Clients' : 'All Accounts'}
+              {tab === 'All' ? 'All Clients' : tab}
             </button>
           ))}
         </div>
@@ -266,8 +301,8 @@ export const DigitalClients: React.FC = () => {
       {loading ? (
         <div className="p-8 text-center text-xs font-bold text-slate-400">Loading client directory...</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredClients.map((c) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {paginatedClients.map((c) => (
             <Card key={c.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -339,6 +374,53 @@ export const DigitalClients: React.FC = () => {
               </div>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {filteredClients.length > 0 && (
+        <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-600">
+          <div className="flex items-center gap-2">
+            <span>Showing {Math.min((currentPage - 1) * pageSize + 1, filteredClients.length)} to {Math.min(currentPage * pageSize, filteredClients.length)} of {filteredClients.length} clients</span>
+            <span>·</span>
+            <div className="flex items-center gap-1">
+              <span>Per page:</span>
+              <select
+                value={pageSize}
+                onChange={e => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="h-8 px-2 rounded-lg border border-slate-200 text-xs font-bold bg-white focus:outline-none"
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              className="text-xs h-8 font-bold"
+            >
+              Previous
+            </Button>
+            <span className="text-xs font-bold text-slate-700 px-2">Page {currentPage} of {totalPages}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              className="text-xs h-8 font-bold"
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
 

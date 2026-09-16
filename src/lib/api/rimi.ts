@@ -212,6 +212,9 @@ export async function createRimiInventoryItem(item: {
   batch_number: string;
   warehouse_location?: string;
   quantity_on_hand: number;
+  reserved_quantity?: number;
+  low_stock_threshold?: number;
+  mfg_date?: string;
   production_date?: string;
   expiry_date: string;
 }) {
@@ -224,7 +227,10 @@ export async function createRimiInventoryItem(item: {
     batch_number: item.batch_number,
     warehouse_location: item.warehouse_location || 'Central Cold Storage',
     quantity_on_hand: Number(item.quantity_on_hand) || 0,
-    production_date: item.production_date || new Date().toISOString().split('T')[0],
+    reserved_quantity: Number(item.reserved_quantity) || 0,
+    low_stock_threshold: Number(item.low_stock_threshold) || 50,
+    mfg_date: item.mfg_date || item.production_date || new Date().toISOString().split('T')[0],
+    production_date: item.production_date || item.mfg_date || new Date().toISOString().split('T')[0],
     expiry_date: item.expiry_date || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     product: matchedProd || {
       id: item.product_id,
@@ -272,14 +278,9 @@ export async function deleteRimiInventoryItem(id: string) {
 
 // ─── Customer CRM Types & Interfaces ─────────────────────────────────────────
 
-export type RimiCustomerType = 'Distributor' | 'Shop' | 'Wholesaler';
+export type RimiCustomerType = 'Distributor' | 'Wholesaler' | 'RetailShop' | 'Shop';
 
-export type RimiPipelineStage = 
-  | 'New Lead'
-  | 'Contacted'
-  | 'Sample Sent'
-  | 'Order Placed'
-  | 'Active Customer';
+export type RimiPipelineStage = string; // Now loaded from masters.ts — configurable
 
 export interface RimiActivityNote {
   id: string;
@@ -289,342 +290,60 @@ export interface RimiActivityNote {
   created_at: string;
 }
 
+export interface RimiAssignmentHistoryEntry {
+  staff_id: string;
+  staff_name: string;
+  assigned_by: string;
+  assigned_at: string;
+  notes?: string;
+}
+
 export interface RimiCustomer {
   id: string;
   customer_type: RimiCustomerType;
-  business_name: string; // or shop name
+  business_name: string;
   contact_person: string;
   phone: string;
   email: string;
   address: string;
-  region: string; // territory
-  tier?: string; // backwards compatibility alias
-  territory?: string; // backwards compatibility alias
-  
-  // Specific to Distributors
+  region: string;
+  territory?: string;
+  tier?: string; // backwards compat
+  // Products
   products_distributed?: string[];
-  order_history_volume?: string;
+  preferred_products?: string[];
+  products_ordered?: string[];
+  // Financials
   credit_period_days?: number;
   credit_limit?: number;
   outstanding_balance?: number;
-  
-  // Specific to Shops (Retailers)
-  supplying_distributor?: string; // for territory mapping
-  order_frequency?: string; // e.g. Weekly, Bi-weekly, Monthly
-  preferred_products?: string[];
-  
-  // Specific to Wholesalers
+  order_history_volume?: string;
   order_volume?: string;
-  products_ordered?: string[];
-  payment_terms?: string; // e.g. Net 30, Advance 50%
-  
-  // Shared fields
+  order_frequency?: string;
+  payment_terms?: string;
   payment_status: 'Up to Date' | 'Pending' | 'Overdue' | 'Advance Paid';
+  // Relationships
+  supplying_distributor?: string;
+  // Assignment
   assigned_staff_id?: string;
   assigned_staff_name?: string;
+  assignment_history?: RimiAssignmentHistoryEntry[];
+  // CRM
   pipeline_stage: RimiPipelineStage;
   notes: RimiActivityNote[];
-  tags: string[]; // e.g. 'high-value', 'seasonal', 'at-risk'
+  tags: string[];
   status: 'Active' | 'Inactive' | 'Prospect';
+  // Audit
+  is_deleted?: boolean;
+  created_by?: string;
+  updated_by?: string;
   created_at: string;
   updated_at: string;
 }
 
-// ─── Default Scalable Customer Seed Data ──────────────────────────────────────
-const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [
-  // Distributors
-  {
-    id: 'CUST-DST-001',
-    customer_type: 'Distributor',
-    business_name: 'Apex Cold Logistics Ltd',
-    contact_person: 'Rajesh Sharma',
-    phone: '+91 98201 44556',
-    email: 'rajesh@apexcold.in',
-    address: 'Plot 42, Vashi MIDC Cold Zone, Navi Mumbai',
-    region: 'Western Zone (Maharashtra)',
-    products_distributed: ['Green Peas 1kg', 'Sweet Corn 500g', 'Paneer Block 1kg', 'Mixed Berries'],
-    order_history_volume: '45,000 MT / Year',
-    credit_period_days: 30,
-    credit_limit: 5000000,
-    outstanding_balance: 1420000,
-    payment_status: 'Up to Date',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    pipeline_stage: 'Active Customer',
-    notes: [
-      { id: 'n-1', type: 'call', text: 'Confirmed Q3 reefer allotment for 50 MT Sweet Corn.', author: 'Rimi Operations Desk', created_at: '2026-09-12T10:30:00Z' },
-      { id: 'n-2', type: 'visit', text: 'Audited deep freeze cold storage at Vashi depot. Temp held at -21°C.', author: 'Rimi Operations Desk', created_at: '2026-09-08T14:15:00Z' }
-    ],
-    tags: ['high-value', 'tier-1'],
-    status: 'Active',
-    created_at: '2026-01-15T09:00:00Z',
-    updated_at: '2026-09-12T10:30:00Z'
-  },
-  {
-    id: 'CUST-DST-002',
-    customer_type: 'Distributor',
-    business_name: 'Gujarat Frostline Network',
-    contact_person: 'Ketan Patel',
-    phone: '+91 98980 22334',
-    email: 'ketan@frostlinegujarat.com',
-    address: 'GIDC Naroda, Phase II, Ahmedabad',
-    region: 'Gujarat Territory',
-    products_distributed: ['French Fries Premium', 'Green Peas 1kg', 'Frozen Berries'],
-    order_history_volume: '30,000 MT / Year',
-    credit_period_days: 21,
-    credit_limit: 3500000,
-    outstanding_balance: 850000,
-    payment_status: 'Up to Date',
-    assigned_staff_id: 'stf-rimi-2',
-    assigned_staff_name: 'Rimi Distribution Director',
-    pipeline_stage: 'Active Customer',
-    notes: [
-      { id: 'n-3', type: 'call', text: 'Requested extra 10 MT delivery ahead of festival season.', author: 'Rimi Distribution Director', created_at: '2026-09-10T11:00:00Z' }
-    ],
-    tags: ['high-value', 'seasonal'],
-    status: 'Active',
-    created_at: '2026-02-10T08:00:00Z',
-    updated_at: '2026-09-10T11:00:00Z'
-  },
-  {
-    id: 'CUST-DST-003',
-    customer_type: 'Distributor',
-    business_name: 'Deccan Frozen Distribution',
-    contact_person: 'Suresh Rao',
-    phone: '+91 94480 55667',
-    email: 'suresh@deccanfrost.com',
-    address: 'Auto Nagar, Gachibowli Logistics Corridor, Hyderabad',
-    region: 'South Central Hub',
-    products_distributed: ['Green Peas 1kg', 'Sweet Corn 500g', 'IQF Strawberries'],
-    order_history_volume: '20,000 MT / Year',
-    credit_period_days: 15,
-    credit_limit: 2500000,
-    outstanding_balance: 1950000,
-    payment_status: 'Overdue',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    pipeline_stage: 'Active Customer',
-    notes: [
-      { id: 'n-4', type: 'complaint', text: 'Payment delayed due to banking reconciliation. Promised settlement by Friday.', author: 'Rimi Operations Desk', created_at: '2026-09-14T16:20:00Z' }
-    ],
-    tags: ['at-risk'],
-    status: 'Active',
-    created_at: '2026-03-01T10:00:00Z',
-    updated_at: '2026-09-14T16:20:00Z'
-  },
-  {
-    id: 'CUST-DST-004',
-    customer_type: 'Distributor',
-    business_name: 'Northstar Frost Supply',
-    contact_person: 'Harpreet Singh',
-    phone: '+91 98110 33445',
-    email: 'harpreet@northstarfrost.in',
-    address: 'Kundli Cold Chain Hub, Sonipat, Delhi NCR',
-    region: 'North Zone (NCR & Punjab)',
-    products_distributed: ['Paneer Block 1kg', 'French Fries Premium', 'Mixed Veggies'],
-    order_history_volume: '15,000 MT / Year',
-    credit_period_days: 30,
-    credit_limit: 4000000,
-    outstanding_balance: 0,
-    payment_status: 'Up to Date',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    pipeline_stage: 'Sample Sent',
-    notes: [
-      { id: 'n-5', type: 'visit', text: 'Sent IQF paneer samples for institutional food chain sampling.', author: 'Rimi Operations Desk', created_at: '2026-09-11T12:00:00Z' }
-    ],
-    tags: ['seasonal'],
-    status: 'Prospect',
-    created_at: '2026-08-15T09:00:00Z',
-    updated_at: '2026-09-11T12:00:00Z'
-  },
+// ─── Customer Seed Data (Empty — database-driven) ────────────────────────────
+const DEFAULT_CUSTOMERS_SEED: RimiCustomer[] = [];
 
-  // Shops (Retailers)
-  {
-    id: 'CUST-RET-001',
-    customer_type: 'Shop',
-    business_name: 'HyperCity Supermarket Bandra',
-    contact_person: 'Ramesh Sawant (Store Manager)',
-    phone: '+91 98200 99881',
-    email: 'hypercity.bandra@retail.in',
-    address: 'Turner Road, Bandra West, Mumbai',
-    region: 'Mumbai Suburban',
-    supplying_distributor: 'Apex Cold Logistics Ltd',
-    order_frequency: 'Weekly',
-    preferred_products: ['Green Peas 1kg', 'Sweet Corn 500g', 'French Fries Premium'],
-    credit_limit: 400000,
-    outstanding_balance: 65000,
-    payment_status: 'Up to Date',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    pipeline_stage: 'Active Customer',
-    notes: [
-      { id: 'n-6', type: 'call', text: 'Freezer display unit #3 restocked with 200 packets sweet corn.', author: 'Rimi Operations Desk', created_at: '2026-09-13T09:30:00Z' }
-    ],
-    tags: ['high-value'],
-    status: 'Active',
-    created_at: '2026-02-01T10:00:00Z',
-    updated_at: '2026-09-13T09:30:00Z'
-  },
-  {
-    id: 'CUST-RET-002',
-    customer_type: 'Shop',
-    business_name: 'Nature Fresh Mart Andheri',
-    contact_person: 'Anita Deshmukh',
-    phone: '+91 98211 44550',
-    email: 'orders@naturefreshmart.in',
-    address: 'Lokhandwala Complex, Andheri West, Mumbai',
-    region: 'Mumbai Suburban',
-    supplying_distributor: 'Apex Cold Logistics Ltd',
-    order_frequency: 'Bi-Weekly',
-    preferred_products: ['IQF Strawberries', 'Mixed Berries', 'Green Peas 1kg'],
-    credit_limit: 250000,
-    outstanding_balance: 30000,
-    payment_status: 'Up to Date',
-    assigned_staff_id: 'stf-rimi-2',
-    assigned_staff_name: 'Rimi Distribution Director',
-    pipeline_stage: 'Active Customer',
-    notes: [
-      { id: 'n-7', type: 'visit', text: 'Checked cold shelf display branding and product expiry rotation.', author: 'Rimi Distribution Director', created_at: '2026-09-09T15:00:00Z' }
-    ],
-    tags: ['seasonal'],
-    status: 'Active',
-    created_at: '2026-03-10T11:00:00Z',
-    updated_at: '2026-09-09T15:00:00Z'
-  },
-  {
-    id: 'CUST-RET-003',
-    customer_type: 'Shop',
-    business_name: 'Grand Gourmet Superstore Pune',
-    contact_person: 'Pramod Joshi',
-    phone: '+91 98500 11229',
-    email: 'pune.gourmet@store.com',
-    address: 'Koregaon Park, Lane 7, Pune',
-    region: 'Pune Territory',
-    supplying_distributor: 'Apex Cold Logistics Ltd',
-    order_frequency: 'Weekly',
-    preferred_products: ['Paneer Block 1kg', 'Sweet Corn 500g', 'French Fries Premium'],
-    credit_limit: 300000,
-    outstanding_balance: 120000,
-    payment_status: 'Pending',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    pipeline_stage: 'Active Customer',
-    notes: [
-      { id: 'n-8', type: 'call', text: 'Weekly restocking order received for ₹65,000.', author: 'Rimi Operations Desk', created_at: '2026-09-14T11:45:00Z' }
-    ],
-    tags: ['high-value'],
-    status: 'Active',
-    created_at: '2026-04-12T09:00:00Z',
-    updated_at: '2026-09-14T11:45:00Z'
-  },
-  {
-    id: 'CUST-RET-004',
-    customer_type: 'Shop',
-    business_name: 'Fresh Delite Convenience Stores',
-    contact_person: 'Vinod Nair',
-    phone: '+91 98800 66778',
-    email: 'delite.stores@gmail.com',
-    address: 'Indiranagar 100ft Road, Bangalore',
-    region: 'Bangalore Metro',
-    supplying_distributor: 'Deccan Frozen Distribution',
-    order_frequency: 'Monthly',
-    preferred_products: ['Green Peas 1kg', 'French Fries Premium'],
-    credit_limit: 150000,
-    outstanding_balance: 0,
-    payment_status: 'Up to Date',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    pipeline_stage: 'Contacted',
-    notes: [
-      { id: 'n-9', type: 'call', text: 'Pitch call completed with store owner. Sending product catalog.', author: 'Rimi Operations Desk', created_at: '2026-09-15T14:00:00Z' }
-    ],
-    tags: ['at-risk'],
-    status: 'Prospect',
-    created_at: '2026-09-01T10:00:00Z',
-    updated_at: '2026-09-15T14:00:00Z'
-  },
-
-  // Wholesalers
-  {
-    id: 'CUST-WHL-001',
-    customer_type: 'Wholesaler',
-    business_name: 'Metro Mega Food Wholesalers',
-    contact_person: 'Sunil Chhabra',
-    phone: '+91 98190 77889',
-    email: 'chhabra@metromegafood.com',
-    address: 'APMC Market Phase 2, Turbhe, Navi Mumbai',
-    region: 'Mumbai APMC Zone',
-    order_volume: '150 Tons / Quarter',
-    products_ordered: ['Green Peas 1kg (Institutional Pack)', 'Sweet Corn Bulk 25kg', 'Paneer Block 5kg'],
-    payment_terms: 'Net 30 Days',
-    credit_limit: 4000000,
-    outstanding_balance: 920000,
-    payment_status: 'Up to Date',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    pipeline_stage: 'Active Customer',
-    notes: [
-      { id: 'n-10', type: 'visit', text: 'Reviewed quarterly bulk rebate structure with Sunil.', author: 'Rimi Operations Desk', created_at: '2026-09-10T16:00:00Z' }
-    ],
-    tags: ['high-value', 'tier-1'],
-    status: 'Active',
-    created_at: '2026-01-20T08:00:00Z',
-    updated_at: '2026-09-10T16:00:00Z'
-  },
-  {
-    id: 'CUST-WHL-002',
-    customer_type: 'Wholesaler',
-    business_name: 'Kisan Cold Storage & Wholesale',
-    contact_person: 'Balwant Singh',
-    phone: '+91 98720 11448',
-    email: 'balwant@kisancold.com',
-    address: 'Grain Market Yard, Jalandhar, Punjab',
-    region: 'Punjab & Haryana Corridor',
-    order_volume: '80 Tons / Quarter',
-    products_ordered: ['Green Peas 1kg', 'French Fries Premium', 'Sweet Corn 500g'],
-    payment_terms: 'Advance 50% + 50% on Delivery',
-    credit_limit: 2000000,
-    outstanding_balance: 0,
-    payment_status: 'Advance Paid',
-    assigned_staff_id: 'stf-rimi-2',
-    assigned_staff_name: 'Rimi Distribution Director',
-    pipeline_stage: 'Active Customer',
-    notes: [
-      { id: 'n-11', type: 'call', text: 'Advance wire transfer of ₹4.5 Lakhs received for next container load.', author: 'Rimi Distribution Director', created_at: '2026-09-13T12:00:00Z' }
-    ],
-    tags: ['seasonal'],
-    status: 'Active',
-    created_at: '2026-03-05T09:00:00Z',
-    updated_at: '2026-09-13T12:00:00Z'
-  },
-  {
-    id: 'CUST-WHL-003',
-    customer_type: 'Wholesaler',
-    business_name: 'Southern Frost Wholesale Merchants',
-    contact_person: 'M. Selvaraj',
-    phone: '+91 94430 88990',
-    email: 'selvaraj@southernfrost.in',
-    address: 'Koyambedu Wholesale Complex, Chennai',
-    region: 'Tamil Nadu & Kerala Zone',
-    order_volume: '100 Tons / Quarter',
-    products_ordered: ['IQF Strawberries', 'Green Peas 1kg', 'Paneer Block 1kg'],
-    payment_terms: 'Net 15 Days',
-    credit_limit: 3000000,
-    outstanding_balance: 450000,
-    payment_status: 'Up to Date',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    pipeline_stage: 'Order Placed',
-    notes: [
-      { id: 'n-12', type: 'call', text: 'Confirmed purchase order #SO-2026-8812 for Chennai cold warehouse.', author: 'Rimi Operations Desk', created_at: '2026-09-14T15:30:00Z' }
-    ],
-    tags: ['high-value'],
-    status: 'Active',
-    created_at: '2026-05-18T10:00:00Z',
-    updated_at: '2026-09-14T15:30:00Z'
-  }
-];
 
 // ─── Rimi Customer API Functions ──────────────────────────────────────────────
 
@@ -640,18 +359,30 @@ export async function getRimiCustomers(filters?: {
 }): Promise<RimiCustomer[]> {
   try {
     let customers: RimiCustomer[] = [];
-    const local = localStorage.getItem('ferex_rimi_crm_customers');
-    
-    if (local) {
-      try {
-        customers = JSON.parse(local);
-      } catch {
-        customers = [...DEFAULT_CUSTOMERS_SEED];
+
+    // Try Supabase first
+    try {
+      const { data, error } = await supabase
+        .from('rimi_customers')
+        .select('*')
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false });
+      if (!error && Array.isArray(data) && data.length > 0) {
+        customers = data;
+        try { localStorage.setItem('ferex_rimi_crm_customers', JSON.stringify(customers)); } catch {}
       }
-    } else {
-      customers = [...DEFAULT_CUSTOMERS_SEED];
-      try { localStorage.setItem('ferex_rimi_crm_customers', JSON.stringify(customers)); } catch {}
+    } catch {}
+
+    // Fallback to localStorage
+    if (customers.length === 0) {
+      const local = localStorage.getItem('ferex_rimi_crm_customers');
+      if (local) {
+        try { customers = JSON.parse(local); } catch {}
+      }
     }
+
+    // Filter out soft-deleted
+    customers = customers.filter(c => !c.is_deleted);
 
     // Apply filtering
     let filtered = [...customers];
@@ -697,72 +428,60 @@ export async function getRimiCustomers(filters?: {
 
     return filtered;
   } catch {
-    return DEFAULT_CUSTOMERS_SEED;
+    return [];
   }
 }
 
-export async function createRimiCustomer(cust: Partial<RimiCustomer>): Promise<RimiCustomer> {
+export async function createRimiCustomer(cust: Partial<RimiCustomer> & { created_by?: string }): Promise<RimiCustomer> {
   const current = await getRimiCustomers();
-  const type = cust.customer_type || 'Retailer';
+  const type = (cust.customer_type || 'Distributor') as RimiCustomerType;
   const prefix = type === 'Distributor' ? 'DST' : type === 'Wholesaler' ? 'WHL' : 'RET';
-  
+
   const payload: RimiCustomer = {
-    id: cust.id || `CUST-${prefix}-${Math.floor(100 + Math.random() * 900)}`,
-    customer_type: type as RimiCustomerType,
-    business_name: cust.business_name || 'New Enterprise Client',
-    contact_person: cust.contact_person || 'Procurement Manager',
-    phone: cust.phone || '+91 98200 00000',
-    email: cust.email || 'client@ferex-frozen.com',
-    address: cust.address || 'Industrial Cold Zone, Mumbai',
-    region: cust.region || 'Western Zone (Maharashtra)',
-    products_distributed: cust.products_distributed || ['Green Peas 1kg', 'Sweet Corn 500g'],
-    order_history_volume: cust.order_history_volume || '10,000 MT / Year',
+    id: cust.id || `CUST-${prefix}-${Date.now()}`,
+    customer_type: type,
+    business_name: cust.business_name || '',
+    contact_person: cust.contact_person || '',
+    phone: cust.phone || '',
+    email: cust.email || '',
+    address: cust.address || '',
+    region: cust.region || '',
+    territory: cust.territory,
+    products_distributed: cust.products_distributed || [],
+    order_history_volume: cust.order_history_volume || '',
     credit_period_days: Number(cust.credit_period_days) || 30,
-    credit_limit: Number(cust.credit_limit) || 1000000,
+    credit_limit: Number(cust.credit_limit) || 0,
     outstanding_balance: Number(cust.outstanding_balance) || 0,
     supplying_distributor: cust.supplying_distributor || '',
-    order_frequency: cust.order_frequency || 'Weekly',
-    preferred_products: cust.preferred_products || ['Green Peas 1kg'],
-    order_volume: cust.order_volume || '50 Tons / Quarter',
-    products_ordered: cust.products_ordered || ['Paneer Block 1kg'],
-    payment_terms: cust.payment_terms || 'Net 30 Days',
+    order_frequency: cust.order_frequency || '',
+    preferred_products: cust.preferred_products || [],
+    order_volume: cust.order_volume || '',
+    products_ordered: cust.products_ordered || [],
+    payment_terms: cust.payment_terms || '',
     payment_status: (cust.payment_status as any) || 'Up to Date',
-    assigned_staff_id: cust.assigned_staff_id || 'staff-1',
-    assigned_staff_name: cust.assigned_staff_name || 'Vikram Malhotra',
-    pipeline_stage: cust.pipeline_stage || 'New Lead',
-    notes: cust.notes || [
-      { id: `n-${Date.now()}`, type: 'note', text: 'Account created in Rimi Frozen CRM.', author: 'Admin', created_at: new Date().toISOString() }
-    ],
-    tags: cust.tags || ['tier-1'],
+    assigned_staff_id: cust.assigned_staff_id || '',
+    assigned_staff_name: cust.assigned_staff_name || '',
+    assignment_history: cust.assigned_staff_id ? [{
+      staff_id: cust.assigned_staff_id,
+      staff_name: cust.assigned_staff_name || '',
+      assigned_by: cust.created_by || 'Admin',
+      assigned_at: new Date().toISOString(),
+    }] : [],
+    pipeline_stage: cust.pipeline_stage || 'Lead',
+    notes: cust.notes || [],
+    tags: cust.tags || [],
     status: cust.status || 'Active',
+    is_deleted: false,
+    created_by: cust.created_by || '',
+    updated_by: cust.created_by || '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
 
   const updated = [payload, ...current.filter(c => c.id !== payload.id)];
   try { localStorage.setItem('ferex_rimi_crm_customers', JSON.stringify(updated)); } catch {}
-  
-  // Also sync to legacy rimi_distributors storage for backwards compatibility
-  try {
-    const legacyDists = updated.map(c => ({
-      id: c.id,
-      business_name: c.business_name,
-      contact_person: c.contact_person,
-      tier: c.customer_type,
-      territory: c.region,
-      email: c.email,
-      phone: c.phone,
-      credit_limit: c.credit_limit,
-      outstanding_balance: c.outstanding_balance,
-      status: c.status,
-      created_at: c.created_at,
-      updated_at: c.updated_at
-    }));
-    localStorage.setItem('ferex_rimi_distributors', JSON.stringify(legacyDists));
-  } catch {}
-
+  try { await supabase.from('rimi_customers').insert({ ...payload, notes: JSON.stringify(payload.notes), tags: JSON.stringify(payload.tags) }); } catch {}
   triggerLocalSync('ferex_rimi_crm_customers_change');
-  triggerLocalSync('ferex_rimi_distributors_change');
   return payload;
 }
 
@@ -786,12 +505,36 @@ export async function updateRimiCustomer(id: string, updates: Partial<RimiCustom
   return updatedRecord;
 }
 
-export async function deleteRimiCustomer(id: string): Promise<boolean> {
+// Soft delete
+export async function deleteRimiCustomer(id: string, deleted_by?: string): Promise<boolean> {
   const current = await getRimiCustomers();
-  const updated = current.filter(c => c.id !== id);
+  const updated = current.map(c => c.id === id ? { ...c, is_deleted: true, updated_by: deleted_by || 'Admin', updated_at: new Date().toISOString() } : c);
   try { localStorage.setItem('ferex_rimi_crm_customers', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('rimi_customers').update({ is_deleted: true }).eq('id', id); } catch {}
   triggerLocalSync('ferex_rimi_crm_customers_change');
-  triggerLocalSync('ferex_rimi_distributors_change');
+  return true;
+}
+
+// Assign or reassign customer to staff
+export async function assignRimiCustomer(customerId: string, staffId: string, staffName: string, assignedBy: string): Promise<boolean> {
+  const current = await getRimiCustomers();
+  const customer = current.find(c => c.id === customerId);
+  if (!customer) return false;
+
+  const historyEntry: RimiAssignmentHistoryEntry = {
+    staff_id: staffId,
+    staff_name: staffName,
+    assigned_by: assignedBy,
+    assigned_at: new Date().toISOString(),
+  };
+
+  const updatedHistory = [...(customer.assignment_history || []), historyEntry];
+  await updateRimiCustomer(customerId, {
+    assigned_staff_id: staffId,
+    assigned_staff_name: staffName,
+    assignment_history: updatedHistory,
+    updated_by: assignedBy,
+  });
   return true;
 }
 
@@ -827,30 +570,67 @@ export async function updateRimiCustomerTags(customerId: string, tags: string[])
   return true;
 }
 
-// ─── Legacy Distributor Aliases ───────────────────────────────────────────────
-export async function getRimiDistributors(tier?: string) {
-  const customers = await getRimiCustomers();
-  if (tier && tier !== 'All') {
-    return customers.filter(c => c.customer_type.toLowerCase() === tier.toLowerCase());
-  }
-  return customers;
+// ─── Convenience: get customers by type ──────────────────────────────────────
+export async function getRimiDistributors(filters?: Parameters<typeof getRimiCustomers>[0]) {
+  return getRimiCustomers({ ...filters, type: 'Distributor' });
+}
+export async function getRimiWholesalerCustomers(filters?: Parameters<typeof getRimiCustomers>[0]) {
+  return getRimiCustomers({ ...filters, type: 'Wholesaler' });
+}
+export async function getRimiRetailShops(filters?: Parameters<typeof getRimiCustomers>[0]) {
+  return getRimiCustomers({ ...filters, type: 'RetailShop' });
 }
 
+// ─── Payment Recording ───────────────────────────────────────────────────────
+export interface RimiPaymentRecord {
+  id: string;
+  customer_id: string;
+  customer_name: string;
+  order_id?: string;
+  amount: number;
+  payment_mode: string;
+  reference_number?: string;
+  notes?: string;
+  recorded_by: string;
+  recorded_at: string;
+}
+
+export async function getRimiPayments(customerId?: string): Promise<RimiPaymentRecord[]> {
+  const local = localStorage.getItem('ferex_rimi_payments');
+  let payments: RimiPaymentRecord[] = [];
+  if (local) { try { payments = JSON.parse(local); } catch {} }
+  if (customerId) return payments.filter(p => p.customer_id === customerId);
+  return payments;
+}
+
+export async function recordRimiPayment(payment: Omit<RimiPaymentRecord, 'id' | 'recorded_at'>): Promise<RimiPaymentRecord> {
+  const current = await getRimiPayments();
+  const payload: RimiPaymentRecord = {
+    ...payment,
+    id: `PAY-${Date.now()}`,
+    recorded_at: new Date().toISOString(),
+  };
+  const updated = [payload, ...current];
+  try { localStorage.setItem('ferex_rimi_payments', JSON.stringify(updated)); } catch {}
+  // Update customer outstanding balance
+  const customers = await getRimiCustomers();
+  const customer = customers.find(c => c.id === payment.customer_id);
+  if (customer) {
+    const newOutstanding = Math.max(0, (customer.outstanding_balance || 0) - payment.amount);
+    await updateRimiCustomer(payment.customer_id, { outstanding_balance: newOutstanding, updated_by: payment.recorded_by });
+  }
+  triggerLocalSync('ferex_rimi_payments_change');
+  return payload;
+}
+
+// ─── Legacy alias ─────────────────────────────────────────────────────────────
 export async function createRimiDistributor(dist: any) {
-  return createRimiCustomer({
-    ...dist,
-    customer_type: dist.tier || dist.customer_type || 'Distributor'
-  });
+  return createRimiCustomer({ ...dist, customer_type: dist.tier || dist.customer_type || 'Distributor' });
 }
 
 // ─── Rimi Consolidated Sales List & 5-Stage Order Lifecycle ─────────────────
 
-export type RimiOrderStatus = 
-  | 'Order Received'
-  | 'Confirmed'
-  | 'In Production/Packing'
-  | 'Dispatched'
-  | 'Delivered';
+export type RimiOrderStatus = string; // Loaded from masters.ts — configurable
 
 export interface RimiSalesOrder {
   id: string;
@@ -875,134 +655,13 @@ export interface RimiSalesOrder {
   updated_at: string;
 }
 
+// Empty — database-driven, no hardcoded seed
 const DEFAULT_SALES_ORDERS_SEED: RimiSalesOrder[] = [
-  {
-    id: 'SO-2026-9041',
-    order_no: 'SO-2026-9041',
-    customer_id: 'CUST-DST-001',
-    customer_name: 'Apex Cold Logistics Ltd',
-    customer_type: 'Distributor',
-    region: 'Western Zone (Maharashtra)',
-    products_summary: 'Green Peas 1kg (10,000 Pkts), Sweet Corn 500g (5,000 Pkts)',
-    quantity_kg: 12500,
-    total_amount: 1420000,
-    order_date: '2026-09-14',
-    delivery_date: '2026-09-18',
-    payment_status: 'Paid',
-    order_status: 'In Production/Packing',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    assigned_reefer_truck: 'Reefer Truck #MH-04-GP-8890',
-    notes: 'Pre-cooled packaging verified at -20°C.',
-    created_at: '2026-09-14T08:30:00Z',
-    updated_at: '2026-09-15T11:00:00Z'
-  },
-  {
-    id: 'SO-2026-9042',
-    order_no: 'SO-2026-9042',
-    customer_id: 'CUST-RET-001',
-    customer_name: 'HyperCity Supermarket Bandra',
-    customer_type: 'Shop',
-    region: 'Mumbai Suburban',
-    products_summary: 'Sweet Corn 500g (400 Pkts), French Fries Premium (300 Pkts)',
-    quantity_kg: 500,
-    total_amount: 65000,
-    order_date: '2026-09-15',
-    delivery_date: '2026-09-16',
-    payment_status: 'Paid',
-    order_status: 'Dispatched',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    assigned_reefer_truck: 'City Van #MH-02-CB-1120',
-    notes: 'Morning priority store restocking.',
-    created_at: '2026-09-15T09:15:00Z',
-    updated_at: '2026-09-16T06:00:00Z'
-  },
-  {
-    id: 'SO-2026-9043',
-    order_no: 'SO-2026-9043',
-    customer_id: 'CUST-WHL-001',
-    customer_name: 'Metro Mega Food Wholesalers',
-    customer_type: 'Wholesaler',
-    region: 'Mumbai APMC Zone',
-    products_summary: 'Green Peas 1kg Bulk (8,000 Bags), Paneer Block 5kg (400 Units)',
-    quantity_kg: 10000,
-    total_amount: 920000,
-    order_date: '2026-09-13',
-    delivery_date: '2026-09-17',
-    payment_status: 'Partial',
-    order_status: 'Confirmed',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    assigned_reefer_truck: 'Reefer Truck #MH-12-AZ-8901',
-    notes: '50% advance confirmed by finance.',
-    created_at: '2026-09-13T14:20:00Z',
-    updated_at: '2026-09-14T10:00:00Z'
-  },
-  {
-    id: 'SO-2026-9044',
-    order_no: 'SO-2026-9044',
-    customer_id: 'CUST-DST-002',
-    customer_name: 'Gujarat Frostline Network',
-    customer_type: 'Distributor',
-    region: 'Gujarat Territory',
-    products_summary: 'French Fries Premium (6,000 Pkts), Frozen Berries (2,000 Pkts)',
-    quantity_kg: 7000,
-    total_amount: 850000,
-    order_date: '2026-09-10',
-    delivery_date: '2026-09-14',
-    payment_status: 'Paid',
-    order_status: 'Delivered',
-    assigned_staff_id: 'stf-rimi-2',
-    assigned_staff_name: 'Rimi Distribution Director',
-    assigned_reefer_truck: 'Reefer Truck #GJ-01-XX-4422',
-    notes: 'Signed delivery challan attached. Temperature logged at -19.4°C upon arrival.',
-    created_at: '2026-09-10T11:00:00Z',
-    updated_at: '2026-09-14T17:30:00Z'
-  },
-  {
-    id: 'SO-2026-9045',
-    order_no: 'SO-2026-9045',
-    customer_id: 'CUST-RET-003',
-    customer_name: 'Grand Gourmet Superstore Pune',
-    customer_type: 'Shop',
-    region: 'Pune Territory',
-    products_summary: 'Paneer Block 1kg (150 Units), Sweet Corn 500g (300 Pkts)',
-    quantity_kg: 300,
-    total_amount: 120000,
-    order_date: '2026-09-15',
-    delivery_date: '2026-09-17',
-    payment_status: 'Pending',
-    order_status: 'Order Received',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    assigned_reefer_truck: 'Scheduled Pune Dispatch',
-    notes: 'Pending inventory picking from cold room #2.',
-    created_at: '2026-09-15T15:45:00Z',
-    updated_at: '2026-09-15T15:45:00Z'
-  },
-  {
-    id: 'SO-2026-9046',
-    order_no: 'SO-2026-9046',
-    customer_id: 'CUST-WHL-003',
-    customer_name: 'Southern Frost Wholesale Merchants',
-    customer_type: 'Wholesaler',
-    region: 'Tamil Nadu & Kerala Zone',
-    products_summary: 'IQF Strawberries (2,500 Pkts), Green Peas 1kg (3,000 Bags)',
-    quantity_kg: 5500,
-    total_amount: 450000,
-    order_date: '2026-09-14',
-    delivery_date: '2026-09-20',
-    payment_status: 'Paid',
-    order_status: 'Confirmed',
-    assigned_staff_id: 'stf-rimi-1',
-    assigned_staff_name: 'Rimi Operations Desk',
-    assigned_reefer_truck: 'South Corridor Reefer #TN-09-CC-9011',
-    notes: 'Cold chain quality certificate issued for strawberries batch IQF-SB-09.',
-    created_at: '2026-09-14T10:00:00Z',
-    updated_at: '2026-09-15T09:00:00Z'
-  }
+  // No seed data
+  ...[] as RimiSalesOrder[]
 ];
+
+
 
 export async function getRimiSalesOrders(filters?: {
   search?: string;
@@ -1018,16 +677,22 @@ export async function getRimiSalesOrders(filters?: {
 }): Promise<RimiSalesOrder[]> {
   try {
     let orders: RimiSalesOrder[] = [];
-    const local = localStorage.getItem('ferex_rimi_sales_orders');
-    if (local) {
-      try {
-        orders = JSON.parse(local);
-      } catch {
-        orders = [...DEFAULT_SALES_ORDERS_SEED];
+
+    // Try Supabase first
+    try {
+      const { data, error } = await supabase
+        .from('rimi_sales_orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && Array.isArray(data) && data.length > 0) {
+        orders = data;
+        try { localStorage.setItem('ferex_rimi_sales_orders', JSON.stringify(orders)); } catch {}
       }
-    } else {
-      orders = [...DEFAULT_SALES_ORDERS_SEED];
-      try { localStorage.setItem('ferex_rimi_sales_orders', JSON.stringify(orders)); } catch {}
+    } catch {}
+
+    if (orders.length === 0) {
+      const local = localStorage.getItem('ferex_rimi_sales_orders');
+      if (local) { try { orders = JSON.parse(local); } catch {} }
     }
 
     let filtered = [...orders];
@@ -1073,7 +738,7 @@ export async function getRimiSalesOrders(filters?: {
 
     return filtered;
   } catch {
-    return DEFAULT_SALES_ORDERS_SEED;
+    return [];
   }
 }
 
@@ -1098,23 +763,24 @@ export async function createRimiSalesOrder(order: {
 }): Promise<RimiSalesOrder> {
   const current = await getRimiSalesOrders();
   
+  const year = new Date().getFullYear();
   const payload: RimiSalesOrder = {
-    id: `SO-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-    order_no: `SO-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-    customer_id: order.customer_id || order.distributor_id || 'CUST-GEN-01',
-    customer_name: order.customer_name || 'B2B Client',
+    id: `SO-${year}-${Date.now()}`,
+    order_no: `SO-${year}-${Date.now()}`,
+    customer_id: order.customer_id || order.distributor_id || '',
+    customer_name: order.customer_name || '',
     customer_type: order.customer_type || 'Distributor',
-    region: order.region || 'Western Zone (Maharashtra)',
-    products_summary: order.products_summary || order.items_summary || 'Frozen Green Peas 1kg',
-    quantity_kg: Number(order.quantity_kg) || 500,
-    total_amount: Number(order.total_amount) || 50000,
+    region: order.region || '',
+    products_summary: order.products_summary || order.items_summary || '',
+    quantity_kg: Number(order.quantity_kg) || 0,
+    total_amount: Number(order.total_amount) || 0,
     order_date: order.order_date || new Date().toISOString().split('T')[0],
-    delivery_date: order.delivery_date || new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
+    delivery_date: order.delivery_date || '',
     payment_status: order.payment_status || 'Pending',
-    order_status: order.order_status || 'Order Received',
-    assigned_staff_id: order.assigned_staff_id || 'stf-rimi-1',
-    assigned_staff_name: order.assigned_staff_name || 'Rimi Operations Desk',
-    assigned_reefer_truck: order.assigned_reefer_truck || 'Assigned Reefer Truck',
+    order_status: order.order_status || 'Draft',
+    assigned_staff_id: order.assigned_staff_id || '',
+    assigned_staff_name: order.assigned_staff_name || '',
+    assigned_reefer_truck: order.assigned_reefer_truck || '',
     notes: order.notes || '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -1122,6 +788,7 @@ export async function createRimiSalesOrder(order: {
 
   const updated = [payload, ...current.filter(o => o.id !== payload.id)];
   try { localStorage.setItem('ferex_rimi_sales_orders', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('rimi_sales_orders').insert(payload); } catch {}
   triggerLocalSync('ferex_rimi_sales_orders_change');
   return payload;
 }
@@ -1256,12 +923,19 @@ const DEFAULT_DOCUMENTS_SEED: RimiComplianceDoc[] = [
 ];
 
 export async function getRimiComplianceDocs(): Promise<RimiComplianceDoc[]> {
+  try {
+    const { data, error } = await supabase
+      .from('rimi_compliance_docs')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && Array.isArray(data) && data.length > 0) {
+      try { localStorage.setItem('ferex_rimi_compliance_docs', JSON.stringify(data)); } catch {}
+      return data;
+    }
+  } catch {}
   const local = localStorage.getItem('ferex_rimi_compliance_docs');
-  if (local) {
-    try { return JSON.parse(local); } catch {}
-  }
-  try { localStorage.setItem('ferex_rimi_compliance_docs', JSON.stringify(DEFAULT_DOCUMENTS_SEED)); } catch {}
-  return DEFAULT_DOCUMENTS_SEED;
+  if (local) { try { return JSON.parse(local); } catch {} }
+  return [];
 }
 
 export async function createRimiComplianceDoc(doc: Partial<RimiComplianceDoc>): Promise<RimiComplianceDoc> {
@@ -1316,74 +990,10 @@ export interface RimiTask {
   updated_at: string;
 }
 
-const DEFAULT_TASKS_SEED: RimiTask[] = [
-  {
-    id: 'TASK-RIMI-01',
-    title: 'Audit Cold Chamber #4 Defrost & Sensor Calibration',
-    description: 'Verify digital temperature probe telemetry and check ice buildup in Vashi Central cold room.',
-    category: 'Warehouse Audit',
-    assigned_to_id: 'stf-rimi-1',
-    assigned_to_name: 'Rimi Operations Desk',
-    assigned_to_role: 'Cold Chain Lead',
-    assigned_by: 'Rimi Distribution Director',
-    priority: 'High',
-    status: 'In Progress',
-    due_date: '2026-09-18',
-    created_at: '2026-09-14T09:00:00Z',
-    updated_at: '2026-09-15T10:00:00Z'
-  },
-  {
-    id: 'TASK-RIMI-02',
-    title: 'Collect Overdue Payment & Reconcile Invoices (Deccan Frozen)',
-    description: 'Call Suresh Rao to settle overdue invoice ₹19.5 Lakhs before dispatching next 20 MT consignment.',
-    category: 'Payment Collection',
-    assigned_to_id: 'stf-rimi-1',
-    assigned_to_name: 'Rimi Operations Desk',
-    assigned_to_role: 'Regional Sales Staff',
-    assigned_by: 'Rimi Distribution Director',
-    priority: 'Critical',
-    status: 'Pending',
-    due_date: '2026-09-17',
-    customer_id: 'CUST-DST-003',
-    customer_name: 'Deccan Frozen Distribution',
-    created_at: '2026-09-15T11:00:00Z',
-    updated_at: '2026-09-15T11:00:00Z'
-  },
-  {
-    id: 'TASK-RIMI-03',
-    title: 'Restock Bandra HyperCity & Inspect Display Freezers',
-    description: 'Deliver 500 KG Sweet Corn and verify retail freezer display temp is below -15°C.',
-    category: 'Dispatch & Logistics',
-    assigned_to_id: 'stf-rimi-2',
-    assigned_to_name: 'Rimi Distribution Director',
-    assigned_to_role: 'Operations Staff',
-    assigned_by: 'Rimi Distribution Director',
-    priority: 'Medium',
-    status: 'Completed',
-    due_date: '2026-09-16',
-    customer_id: 'CUST-RET-001',
-    customer_name: 'HyperCity Supermarket Bandra',
-    created_at: '2026-09-14T14:00:00Z',
-    updated_at: '2026-09-16T08:00:00Z'
-  },
-  {
-    id: 'TASK-RIMI-04',
-    title: 'Sample Pitch & Pricing Proposal for Northstar Frost',
-    description: 'Send IQF Paneer commercial rate card and finalize delivery terms for Delhi NCR corridor.',
-    category: 'CRM Followup',
-    assigned_to_id: 'stf-rimi-1',
-    assigned_to_name: 'Rimi Operations Desk',
-    assigned_to_role: 'Regional Sales Staff',
-    assigned_by: 'Rimi Distribution Director',
-    priority: 'Medium',
-    status: 'In Progress',
-    due_date: '2026-09-19',
-    customer_id: 'CUST-DST-004',
-    customer_name: 'Northstar Frost Supply',
-    created_at: '2026-09-15T12:00:00Z',
-    updated_at: '2026-09-15T12:00:00Z'
-  }
-];
+// Tasks seed — empty, database-driven
+const DEFAULT_TASKS_SEED: RimiTask[] = [];
+
+
 
 export async function getRimiTasks(staffFilter?: string): Promise<RimiTask[]> {
   const local = localStorage.getItem('ferex_rimi_tasks');
@@ -1396,22 +1006,22 @@ export async function getRimiTasks(staffFilter?: string): Promise<RimiTask[]> {
   }
 
   if (staffFilter && staffFilter !== 'All') {
-    return tasks.filter(t => t.assigned_to_name === staffFilter || t.assigned_to_id === staffFilter);
+    tasks = tasks.filter(t => t.assigned_to_name === staffFilter || t.assigned_to_id === staffFilter);
   }
-  return tasks;
+  return tasks.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
 export async function createRimiTask(task: Partial<RimiTask>): Promise<RimiTask> {
   const current = await getRimiTasks();
   const payload: RimiTask = {
-    id: `TASK-RIMI-${Math.floor(10 + Math.random() * 90)}`,
-    title: task.title || 'New Cold Chain Operational Task',
+    id: `TASK-RIMI-${Date.now()}`,
+    title: task.title || '',
     description: task.description || '',
     category: task.category || 'Dispatch & Logistics',
-    assigned_to_id: task.assigned_to_id || 'stf-rimi-1',
-    assigned_to_name: task.assigned_to_name || 'Rimi Operations Desk',
+    assigned_to_id: task.assigned_to_id || '',
+    assigned_to_name: task.assigned_to_name || '',
     assigned_to_role: task.assigned_to_role || 'Operations Staff',
-    assigned_by: task.assigned_by || 'Rimi Distribution Director',
+    assigned_by: task.assigned_by || '',
     priority: task.priority || 'Medium',
     status: task.status || 'Pending',
     due_date: task.due_date || new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
@@ -1476,21 +1086,21 @@ export interface RimiStaffMember {
   phone: string;
   role: string;
   roleLabel?: string;
-  assigned_territories: string[];
-  active_accounts_count: number;
+  assigned_territories?: string[];
+  active_accounts_count?: number;
 }
 
 export async function getRimiStaffList(): Promise<RimiStaffMember[]> {
   const staff = await getDivisionStaff('rimi');
+  const customers = await getRimiCustomers();
   return staff.map(s => ({
     id: s.id,
     name: s.name,
     email: s.email,
-    phone: s.phone || '+91 98200 11223',
+    phone: s.phone || '',
     role: s.roleLabel || s.role || 'Operations Staff',
     roleLabel: s.roleLabel || s.role,
-    assigned_territories: ['Western Zone (Maharashtra)', 'North Zone (NCR & Punjab)', 'South Zone'],
-    active_accounts_count: 4
+    active_accounts_count: customers.filter(c => c.assigned_staff_id === s.id || c.assigned_staff_name === s.name).length,
   }));
 }
 
@@ -1500,11 +1110,9 @@ export function getRimiStaffSync(): RimiStaffMember[] {
     id: s.id,
     name: s.name,
     email: s.email,
-    phone: s.phone || '+91 98200 11223',
+    phone: s.phone || '',
     role: s.roleLabel || s.role || 'Operations Staff',
     roleLabel: s.roleLabel || s.role,
-    assigned_territories: ['Western Zone (Maharashtra)', 'North Zone (NCR & Punjab)', 'South Zone'],
-    active_accounts_count: 4
   }));
 }
 
@@ -1833,8 +1441,6 @@ export async function createRimiCollection(col: {
   triggerLocalSync('ferex_rimi_collections_change');
   return payload;
 }
-
-export const getRimiPayments = getRimiCollections;
 
 export async function updateRimiCollectionStatus(id: string, status: string) {
   const current = await getRimiCollections();

@@ -25,8 +25,10 @@ import {
   type RimiActivityNote
 } from '../../lib/api/rimi';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRimiPermissions } from '../../hooks/usePermissions';
+import { getMasters } from '../../lib/api/masters';
 
-const PIPELINE_STAGES: RimiPipelineStage[] = [
+const DEFAULT_PIPELINE_STAGES: RimiPipelineStage[] = [
   'New Lead',
   'Contacted',
   'Sample Sent',
@@ -34,11 +36,11 @@ const PIPELINE_STAGES: RimiPipelineStage[] = [
   'Active Customer'
 ];
 
-const AVAILABLE_TAGS = ['high-value', 'seasonal', 'at-risk', 'tier-1', 'urgent'];
+const DEFAULT_AVAILABLE_TAGS = ['high-value', 'seasonal', 'at-risk', 'tier-1', 'urgent'];
 
 export const RimiCustomers: React.FC = () => {
   const { profile } = useAuth();
-  const isStaff = profile?.role === 'staff' || profile?.role === 'operations_manager' || profile?.role === 'sales_staff';
+  const { isAdmin, isStaff, isCentral, canViewAllCRM, canAssign, canDelete } = useRimiPermissions();
   const currentUserName = profile?.full_name || profile?.email?.split('@')[0] || 'Rimi Operations Desk';
 
   const [activeTab, setActiveTab] = useState<'All' | 'Distributor' | 'Shop' | 'Wholesaler' | 'Pipeline'>('All');
@@ -51,11 +53,18 @@ export const RimiCustomers: React.FC = () => {
 
   const [customers, setCustomers] = useState<RimiCustomer[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
+  const [pipelineStages, setPipelineStages] = useState<string[]>(DEFAULT_PIPELINE_STAGES);
+  const [availableTags, setAvailableTags] = useState<string[]>(DEFAULT_AVAILABLE_TAGS);
+  const [territories, setTerritories] = useState<string[]>([]);
   const [selectedCust, setSelectedCust] = useState<RimiCustomer | null>(null);
   const [editingCust, setEditingCust] = useState<RimiCustomer | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // Pagination state (25 / 50 / 100)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(25);
 
   // Note creation form state inside details drawer
   const [noteType, setNoteType] = useState<'call' | 'visit' | 'complaint' | 'note'>('call');
@@ -68,12 +77,18 @@ export const RimiCustomers: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, realStaff] = await Promise.all([
+      const [data, realStaff, pStages, tagsData, terrData] = await Promise.all([
         getRimiCustomers(),
-        getRimiStaffList()
+        getRimiStaffList(),
+        getMasters('rimi', 'pipeline_stages'),
+        getMasters('rimi', 'tags'),
+        getMasters('rimi', 'territories')
       ]);
       setCustomers(data || []);
       setStaffList(realStaff || []);
+      if (pStages && pStages.length > 0) setPipelineStages(pStages);
+      if (tagsData && tagsData.length > 0) setAvailableTags(tagsData);
+      if (terrData && terrData.length > 0) setTerritories(terrData);
     } finally {
       setLoading(false);
     }
@@ -103,8 +118,27 @@ export const RimiCustomers: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  // Filtered customer list
+  // Helper to test if customer is assigned to current user
+  const isCustomerAssignedToMe = (c: RimiCustomer) => {
+    if (canViewAllCRM) return true;
+    const myId = profile?.id;
+    const myName = (profile?.full_name || '').toLowerCase();
+    const myEmail = (profile?.email || '').toLowerCase();
+    const assignedId = c.assigned_staff_id;
+    const assignedName = (c.assigned_staff_name || '').toLowerCase();
+    return Boolean(
+      (myId && assignedId === myId) ||
+      (myName && assignedName.includes(myName)) ||
+      (myEmail && (assignedName.includes(myEmail.split('@')[0]) || assignedId === myEmail))
+    );
+  };
+
+  // Filtered customer list with strict staff data isolation
   const filteredCustomers = customers.filter(c => {
+    // Role-based scoping: Staff sees only their assigned accounts
+    if (!canViewAllCRM && !isCustomerAssignedToMe(c)) {
+      return false;
+    }
     if (activeTab !== 'All' && activeTab !== 'Pipeline' && c.customer_type !== activeTab) {
       return false;
     }
@@ -136,6 +170,14 @@ export const RimiCustomers: React.FC = () => {
     }
     return true;
   });
+
+  // Reset pagination on filter or tab change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery, selectedRegion, selectedPaymentStatus, selectedStage, selectedTag, selectedStaff]);
+
+  const totalPages = Math.ceil(filteredCustomers.length / pageSize) || 1;
+  const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // KPI Metrics
   const totalCount = customers.length;
@@ -254,15 +296,17 @@ export const RimiCustomers: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <Button
-            variant="primary"
-            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md cursor-pointer flex items-center gap-2"
-            onClick={() => setShowAddModal(true)}
-          >
-            <Plus className="w-4 h-4" /> Add New Customer
-          </Button>
-        </div>
+        {(canAssign || isAdmin) && (
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="primary"
+              className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md cursor-pointer flex items-center gap-2"
+              onClick={() => setShowAddModal(true)}
+            >
+              <Plus className="w-4 h-4" /> Add New Customer
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Top Metric Cards */}
@@ -429,7 +473,7 @@ export const RimiCustomers: React.FC = () => {
               className="w-full px-2.5 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden text-slate-700"
             >
               <option value="All">Pipeline: All Stages</option>
-              {PIPELINE_STAGES.map(s => (
+              {pipelineStages.map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
@@ -443,7 +487,7 @@ export const RimiCustomers: React.FC = () => {
               className="w-full px-2.5 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden text-slate-700"
             >
               <option value="All">Tags: All</option>
-              {AVAILABLE_TAGS.map(t => (
+              {availableTags.map(t => (
                 <option key={t} value={t}>#{t}</option>
               ))}
             </select>
@@ -454,7 +498,7 @@ export const RimiCustomers: React.FC = () => {
       {/* ── View Mode: Pipeline Kanban Funnel ─────────────────────────────── */}
       {activeTab === 'Pipeline' ? (
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {PIPELINE_STAGES.map((stage, idx) => {
+          {pipelineStages.map((stage, idx) => {
             const stageCustomers = filteredCustomers.filter(c => c.pipeline_stage === stage);
             return (
               <div key={stage} className="bg-slate-100/80 rounded-2xl p-3 border border-slate-200/80 space-y-3">
@@ -509,8 +553,8 @@ export const RimiCustomers: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            const nextStageIndex = (idx + 1) % PIPELINE_STAGES.length;
-                            handleUpdatePipelineStage(cust.id, PIPELINE_STAGES[nextStageIndex]);
+                            const nextStageIndex = (idx + 1) % pipelineStages.length;
+                            handleUpdatePipelineStage(cust.id, pipelineStages[nextStageIndex] as RimiPipelineStage);
                           }}
                           className="text-[#58051E] font-black hover:underline flex items-center gap-0.5"
                         >
@@ -548,7 +592,7 @@ export const RimiCustomers: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {filteredCustomers.map(cust => (
+                {paginatedCustomers.map(cust => (
                   <tr
                     key={cust.id}
                     onClick={() => setSelectedCust(cust)}
@@ -644,13 +688,15 @@ export const RimiCustomers: React.FC = () => {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDeleteCust(cust.id, cust.business_name)}
-                          className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 transition-colors"
-                          title="Delete Account"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDeleteCust(cust.id, cust.business_name)}
+                            className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 transition-colors"
+                            title="Delete Account"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -665,6 +711,55 @@ export const RimiCustomers: React.FC = () => {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* ── 25 / 50 / 100 Pagination Toolbar ── */}
+          <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-slate-500 font-medium">
+              <span>Show</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-white border border-slate-200 rounded px-2 py-1 font-bold text-slate-700 focus:outline-hidden"
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span>accounts per page</span>
+              <span className="text-slate-300">|</span>
+              <span>
+                Showing {filteredCustomers.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to{' '}
+                {Math.min(currentPage * pageSize, filteredCustomers.length)} of {filteredCustomers.length} accounts
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                className="px-2.5 py-1 text-xs"
+              >
+                Previous
+              </Button>
+              <div className="px-3 py-1 font-bold text-slate-700 bg-white border border-slate-200 rounded text-xs">
+                Page {currentPage} of {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                className="px-2.5 py-1 text-xs"
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </Card>
       )}
@@ -720,8 +815,8 @@ export const RimiCustomers: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-5 gap-1.5">
-                    {PIPELINE_STAGES.map((st, i) => {
-                      const currentIdx = PIPELINE_STAGES.indexOf(selectedCust.pipeline_stage);
+                    {pipelineStages.map((st: string, i: number) => {
+                      const currentIdx = pipelineStages.indexOf(selectedCust.pipeline_stage);
                       const isPastOrCurrent = i <= currentIdx;
                       const isCurrent = i === currentIdx;
 

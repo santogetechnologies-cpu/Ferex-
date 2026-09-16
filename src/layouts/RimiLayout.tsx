@@ -121,6 +121,7 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
     {
       title: 'OPERATIONS & STAFF',
       items: [
+        { label: 'Staff Management', path: '/rimi/staff', icon: Users },
         { label: 'Tasks & Assignments', path: '/rimi/tasks', icon: CheckCircle2 },
         { label: 'Messages', path: '/rimi/messages', icon: MessageSquare, badge: '3' },
         { label: 'Notifications', path: '/rimi/notifications', icon: Bell, badge: '5' }

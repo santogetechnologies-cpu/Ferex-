@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, Search, Plus, Eye, X, CheckCircle2, Trash2, Printer,
-  FolderKanban, Building2, CheckCircle, Clock, Zap
+  FolderKanban, Building2, CheckCircle, Clock, Zap, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -18,17 +18,27 @@ import {
 } from '../../lib/api/digital';
 import { UnifiedPaymentModal } from '../../components/UnifiedPaymentModal';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { useDigitalPermissions } from '../../hooks/usePermissions';
 
 export const DigitalInvoices: React.FC = () => {
+  const { profile } = useAuth();
+  const { isAdmin, isStaff, isCentral, canDelete } = useDigitalPermissions();
+
   const [invoices, setInvoices] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [allProjects, setAllProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [settlingInvoice, setSettlingInvoice] = useState<any | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
+
+  // Pagination
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   // Multi-Project Consolidated Invoice Form State
   const [newInvClient, setNewInvClient] = useState('');
@@ -54,7 +64,6 @@ export const DigitalInvoices: React.FC = () => {
       ]);
       setClients(clientData || []);
       setAllProjects(projData || []);
-
       setInvoices(invData || []);
     } finally {
       setLoading(false);
@@ -129,7 +138,7 @@ export const DigitalInvoices: React.FC = () => {
 
     setShowAddModal(false);
     showToast(`Issued multi-project invoice ${newInvNo} (₹${grandTotal.toLocaleString('en-IN')})`);
-    
+
     // Reset state
     setNewInvNo(`INV-DIG-${Math.floor(1000 + Math.random() * 9000)}`);
     setNewInvDueDate(new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0]);
@@ -141,6 +150,7 @@ export const DigitalInvoices: React.FC = () => {
   };
 
   const handleTogglePaid = async (inv: any) => {
+    if (!isAdmin && !isCentral) return;
     const nextStatus = inv.status === 'Paid' ? 'Sent' : 'Paid';
     await updateDigitalInvoiceStatus(inv.id, nextStatus);
     setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: nextStatus } : i));
@@ -148,6 +158,7 @@ export const DigitalInvoices: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!canDelete) return;
     try {
       await deleteDigitalInvoice(id);
       setInvoices(prev => prev.filter(i => i.id !== id));
@@ -157,10 +168,43 @@ export const DigitalInvoices: React.FC = () => {
     }
   };
 
+  // Staff Isolation: Determine assigned project IDs
+  const myName = (profile?.full_name || '').toLowerCase();
+  const myEmail = (profile?.email || '').toLowerCase();
+  const myAssignedProjectIds = new Set(
+    allProjects
+      .filter(p => {
+        const staffId = p.assigned_staff_id || '';
+        const staffName = (p.assigned_staff_name || '').toLowerCase();
+        return staffId === profile?.id ||
+          (myName && staffName.includes(myName)) ||
+          (myEmail && (staffName.includes(myEmail.split('@')[0]) || staffName.includes('pm')));
+      })
+      .map(p => p.id)
+  );
+
   const filtered = invoices.filter(i => {
-    return (i.invoice_no || '').toLowerCase().includes(search.toLowerCase()) ||
+    // Search match
+    const matchSearch =
+      (i.invoice_no || '').toLowerCase().includes(search.toLowerCase()) ||
       (i.client?.company_name || i.client?.name || '').toLowerCase().includes(search.toLowerCase());
+
+    // Status filter
+    const matchStatus = statusFilter === 'All' || i.status === statusFilter;
+
+    // Staff confidentiality: Staff only see invoices belonging to their assigned projects
+    if (isStaff) {
+      const items = i.items || getDigitalInvoiceItems(i.id) || [];
+      const matchesAssigned = (i.project_id && myAssignedProjectIds.has(i.project_id)) ||
+        items.some((it: any) => it.projectId && myAssignedProjectIds.has(it.projectId));
+      if (!matchesAssigned) return false;
+    }
+
+    return matchSearch && matchStatus;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // Client available projects for dropdown
   const clientAvailableProjects = allProjects.filter(p => p.client_id === newInvClient || p.client?.id === newInvClient);
@@ -178,60 +222,110 @@ export const DigitalInvoices: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <FileText className="w-6 h-6 text-[#58051E]" /> Agency B2B Invoicing & Multi-Project Ledgers
+            <FileText className="w-6 h-6 text-[#58051E]" />
+            {isStaff ? 'My Project Invoices & Billing Statements' : 'Agency B2B Invoicing & Multi-Project Ledgers'}
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Consolidated billing across multiple projects for single clients, GST breakdown, and payment reconciliations.
+            {isStaff
+              ? 'Billing status, milestones, and tax receipts for your assigned project engagements.'
+              : 'Consolidated billing across multiple projects for single clients, GST breakdown, and payment reconciliations.'}
           </p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddModal(true)}>
-          <Plus className="w-4 h-4 mr-1.5" /> Issue Consolidated Invoice
-        </Button>
+        {(isAdmin || isCentral) && (
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => setShowAddModal(true)}>
+            <Plus className="w-4 h-4 mr-1.5" /> Issue Consolidated Invoice
+          </Button>
+        )}
       </div>
 
-      {/* Summary KPI Banner */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card className="p-4 border border-slate-200/80 bg-white">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Invoiced</span>
-          <div className="text-2xl font-black text-slate-900 mt-1">
-            ₹{invoices.reduce((sum, i) => sum + (Number(i.amount) || 0), 0).toLocaleString('en-IN')}
-          </div>
-          <span className="text-[10px] font-semibold text-slate-500 mt-0.5 block">{invoices.length} Total Bills Generated</span>
-        </Card>
+      {/* Summary KPI Banner (Admin: Revenue Numbers; Staff: Operational Item Counts) */}
+      {isAdmin || isCentral ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Card className="p-4 border border-slate-200/80 bg-white">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Invoiced</span>
+            <div className="text-2xl font-black text-slate-900 mt-1">
+              ₹{invoices.reduce((sum, i) => sum + (Number(i.amount) || 0), 0).toLocaleString('en-IN')}
+            </div>
+            <span className="text-[10px] font-semibold text-slate-500 mt-0.5 block">{invoices.length} Total Bills Generated</span>
+          </Card>
 
-        <Card className="p-4 border border-slate-200/80 bg-white">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Payments Collected</span>
-          <div className="text-2xl font-black text-emerald-600 mt-1">
-            ₹{invoices.filter(i => i.status === 'Paid').reduce((sum, i) => sum + (Number(i.amount) || 0), 0).toLocaleString('en-IN')}
-          </div>
-          <span className="text-[10px] font-semibold text-emerald-700 mt-0.5 block flex items-center gap-1">
-            <CheckCircle className="w-3 h-3" /> {invoices.filter(i => i.status === 'Paid').length} Paid Invoices
-          </span>
-        </Card>
+          <Card className="p-4 border border-slate-200/80 bg-white">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Payments Collected</span>
+            <div className="text-2xl font-black text-emerald-600 mt-1">
+              ₹{invoices.filter(i => i.status === 'Paid').reduce((sum, i) => sum + (Number(i.amount) || 0), 0).toLocaleString('en-IN')}
+            </div>
+            <span className="text-[10px] font-semibold text-emerald-700 mt-0.5 block flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" /> {invoices.filter(i => i.status === 'Paid').length} Paid Invoices
+            </span>
+          </Card>
 
-        <Card className="p-4 border border-slate-200/80 bg-white">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Outstanding Receivables</span>
-          <div className="text-2xl font-black text-amber-600 mt-1">
-            ₹{invoices.filter(i => i.status !== 'Paid').reduce((sum, i) => sum + (Number(i.amount) || 0), 0).toLocaleString('en-IN')}
-          </div>
-          <span className="text-[10px] font-semibold text-amber-700 mt-0.5 block flex items-center gap-1">
-            <Clock className="w-3 h-3" /> {invoices.filter(i => i.status !== 'Paid').length} Awaiting Settlement
-          </span>
-        </Card>
-      </div>
-
-      <Card className="p-4 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search invoice #, client company..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
-          />
+          <Card className="p-4 border border-slate-200/80 bg-white">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Outstanding Receivables</span>
+            <div className="text-2xl font-black text-amber-600 mt-1">
+              ₹{invoices.filter(i => i.status !== 'Paid').reduce((sum, i) => sum + (Number(i.amount) || 0), 0).toLocaleString('en-IN')}
+            </div>
+            <span className="text-[10px] font-semibold text-amber-700 mt-0.5 block flex items-center gap-1">
+              <Clock className="w-3 h-3" /> {invoices.filter(i => i.status !== 'Paid').length} Awaiting Settlement
+            </span>
+          </Card>
         </div>
-        <span className="text-xs font-bold text-slate-400">{filtered.length} Invoices</span>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Card className="p-4 border border-slate-200/80 bg-white">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Assigned Invoices</span>
+            <div className="text-2xl font-black text-slate-900 mt-1">{filtered.length}</div>
+            <span className="text-[10px] font-semibold text-slate-500 mt-0.5 block">For your managed deliverables</span>
+          </Card>
+
+          <Card className="p-4 border border-slate-200/80 bg-white">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Settled Bills</span>
+            <div className="text-2xl font-black text-emerald-600 mt-1">
+              {filtered.filter(i => i.status === 'Paid').length}
+            </div>
+            <span className="text-[10px] font-semibold text-emerald-700 mt-0.5 block flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" /> Fully Cleared
+            </span>
+          </Card>
+
+          <Card className="p-4 border border-slate-200/80 bg-white">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pending Settlements</span>
+            <div className="text-2xl font-black text-amber-600 mt-1">
+              {filtered.filter(i => i.status !== 'Paid').length}
+            </div>
+            <span className="text-[10px] font-semibold text-amber-700 mt-0.5 block flex items-center gap-1">
+              <Clock className="w-3 h-3" /> In Collection Pipeline
+            </span>
+          </Card>
+        </div>
+      )}
+
+      {/* Filter Bar */}
+      <Card className="p-4 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+              placeholder="Search invoice #, client company..."
+              className="w-full h-9 pl-9 pr-4 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            />
+          </div>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+            className="h-9 px-3 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-700"
+          >
+            <option value="All">All Invoices</option>
+            <option value="Paid">Paid</option>
+            <option value="Sent">Sent / Pending</option>
+            <option value="Partial">Partial</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+        </div>
+        <span className="text-xs font-bold text-slate-400">{filtered.length} Invoices Available</span>
       </Card>
 
       {loading ? (
@@ -241,100 +335,156 @@ export const DigitalInvoices: React.FC = () => {
           <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
           <h3 className="text-sm font-black text-slate-800">No invoices found</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-            Generate a new consolidated multi-project invoice for your enterprise clients.
+            {isStaff ? 'No invoices linked to your assigned projects.' : 'Generate a new consolidated multi-project invoice for your enterprise clients.'}
           </p>
-          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
-            <Plus className="w-3.5 h-3.5 mr-1" /> Issue Consolidated Invoice
-          </Button>
+          {(isAdmin || isCentral) && (
+            <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+              <Plus className="w-3.5 h-3.5 mr-1" /> Issue Consolidated Invoice
+            </Button>
+          )}
         </Card>
       ) : (
-        <Card className="overflow-hidden border border-slate-200/80 shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
-                  <th className="py-3.5 px-4">Invoice # & Client Account</th>
-                  <th className="py-3.5 px-4">Taxable Fee (₹)</th>
-                  <th className="py-3.5 px-4">GST (18%)</th>
-                  <th className="py-3.5 px-4">Total Amount (₹)</th>
-                  <th className="py-3.5 px-4">Due Date</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                {filtered.map((inv) => {
-                  const items = inv.items || getDigitalInvoiceItems(inv.id);
-                  const baseAmt = Number(inv.amount || 0);
-                  const taxAmt = Number(inv.tax_amount || Math.round(baseAmt * 0.18));
-                  const total = baseAmt + taxAmt;
-                  return (
-                    <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                        <div className="flex items-center gap-1.5">
-                          <Building2 className="w-3.5 h-3.5 text-[#58051E]" />
-                          {inv.client?.company_name || inv.client?.name || 'Enterprise Client'}
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] font-mono font-bold text-slate-400">{inv.invoice_no || inv.id}</span>
-                          {items && items.length > 1 && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
-                              {items.length} Projects Consolidated
+        <>
+          <Card className="overflow-hidden border border-slate-200/80 shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
+                    <th className="py-3.5 px-4">Invoice # & Client Account</th>
+                    <th className="py-3.5 px-4">Taxable Fee (₹)</th>
+                    <th className="py-3.5 px-4">GST (18%)</th>
+                    <th className="py-3.5 px-4">Total Amount (₹)</th>
+                    <th className="py-3.5 px-4">Due Date</th>
+                    <th className="py-3.5 px-4">Status</th>
+                    <th className="py-3.5 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+                  {paginated.map((inv) => {
+                    const items = inv.items || getDigitalInvoiceItems(inv.id);
+                    const baseAmt = Number(inv.amount || 0);
+                    const taxAmt = Number(inv.tax_amount || Math.round(baseAmt * 0.18));
+                    const total = baseAmt + taxAmt;
+                    return (
+                      <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                          <div className="flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-[#58051E]" />
+                            {inv.client?.company_name || inv.client?.name || 'Enterprise Client'}
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] font-mono font-bold text-slate-400">{inv.invoice_no || inv.id}</span>
+                            {items && items.length > 1 && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                                {items.length} Projects Consolidated
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 font-black text-slate-900">₹{baseAmt.toLocaleString('en-IN')}</td>
+                        <td className="py-3.5 px-4 font-semibold text-slate-500">₹{taxAmt.toLocaleString('en-IN')}</td>
+                        <td className="py-3.5 px-4 font-black text-[#58051E]">₹{total.toLocaleString('en-IN')}</td>
+                        <td className="py-3.5 px-4 font-bold text-slate-500">{inv.due_date || 'Net 15'}</td>
+                        <td className="py-3.5 px-4">
+                          {(isAdmin || isCentral) ? (
+                            <button
+                              onClick={() => handleTogglePaid(inv)}
+                              className={`px-3 py-1 rounded-full text-[10px] font-extrabold border cursor-pointer transition-all ${
+                                inv.status === 'Paid'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                              }`}
+                            >
+                              {inv.status || 'Sent'}
+                            </button>
+                          ) : (
+                            <span
+                              className={`inline-block px-3 py-1 rounded-full text-[10px] font-extrabold border ${
+                                inv.status === 'Paid'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}
+                            >
+                              {inv.status || 'Sent'}
                             </span>
                           )}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 font-black text-slate-900">₹{baseAmt.toLocaleString('en-IN')}</td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-500">₹{taxAmt.toLocaleString('en-IN')}</td>
-                      <td className="py-3.5 px-4 font-black text-[#58051E]">₹{total.toLocaleString('en-IN')}</td>
-                      <td className="py-3.5 px-4 font-bold text-slate-500">{inv.due_date || 'Net 15'}</td>
-                      <td className="py-3.5 px-4">
-                        <button
-                          onClick={() => handleTogglePaid(inv)}
-                          className={`px-3 py-1 rounded-full text-[10px] font-extrabold border cursor-pointer transition-all ${
-                            inv.status === 'Paid'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                              : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                          }`}
-                        >
-                          {inv.status || 'Sent'}
-                        </button>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => {
-                              setSelectedInvoice({
-                                ...inv,
-                                items: inv.items || getDigitalInvoiceItems(inv.id)
-                              });
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg"
-                            title="Inspect Detailed Invoice"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(inv.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                            title="Delete Invoice"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => {
+                                setSelectedInvoice({
+                                  ...inv,
+                                  items: inv.items || getDigitalInvoiceItems(inv.id)
+                                });
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg"
+                              title="Inspect Detailed Invoice"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            {canDelete && (
+                              <button
+                                onClick={() => handleDelete(inv.id)}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                title="Delete Invoice (Admin only)"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* Pagination Controls */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold text-slate-500 pt-2">
+            <div className="flex items-center gap-2">
+              <span>Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filtered.length)} of {filtered.length} bills</span>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700"
+              >
+                <option value={10}>10 / page</option>
+                <option value={25}>25 / page</option>
+                <option value={50}>50 / page</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                className="h-8 px-3 text-xs"
+              >
+                <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Previous
+              </Button>
+              <span className="px-2 font-mono text-slate-700">Page {currentPage} of {totalPages}</span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                className="h-8 px-3 text-xs"
+              >
+                Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </div>
           </div>
-        </Card>
+        </>
       )}
 
       {/* ─── MODAL: ISSUE MULTI-PROJECT CONSOLIDATED INVOICE ─── */}
       <AnimatePresence>
-        {showAddModal && (
+        {showAddModal && (isAdmin || isCentral) && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)} />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto">
@@ -562,7 +712,7 @@ export const DigitalInvoices: React.FC = () => {
                 </div>
 
                 <div className="pt-3 flex gap-2">
-                  {selectedInvoice.status !== 'Paid' && (
+                  {(isAdmin || isCentral) && selectedInvoice.status !== 'Paid' && (
                     <Button
                       type="button"
                       size="sm"

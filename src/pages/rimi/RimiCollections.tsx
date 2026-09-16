@@ -3,15 +3,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DollarSign, Search, CheckCircle2, Download, Plus, Trash2, X, Eye, Printer, Receipt } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getRimiCollections, createRimiCollection, deleteRimiCollection, getRimiDistributors } from '../../lib/api/rimi';
+import {
+  getRimiCollections,
+  createRimiCollection,
+  deleteRimiCollection,
+  getRimiCustomers,
+  updateRimiCustomer,
+  type RimiCustomer
+} from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { useRimiPermissions } from '../../hooks/usePermissions';
 
 export const RimiCollections: React.FC = () => {
+  const { profile } = useAuth();
+  const { isAdmin, isStaff, isCentral, canViewAllCRM, canDelete } = useRimiPermissions();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
   const [collections, setCollections] = useState<any[]>([]);
-  const [distributors, setDistributors] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<RimiCustomer[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
 
@@ -27,16 +39,17 @@ export const RimiCollections: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [colData, distData] = await Promise.all([
+      const [colData, custList] = await Promise.all([
         getRimiCollections(),
-        getRimiDistributors()
+        getRimiCustomers()
       ]);
-      setDistributors(distData || []);
+      setCustomers(custList || []);
 
       if (Array.isArray(colData)) {
         const mapped = colData.map((c: any) => ({
           id: c.reference_no || (c.id ? `COL-${c.id.slice(0, 4).toUpperCase()}` : 'COL-101'),
           rawId: c.id,
+          customerId: c.distributor_id || c.customer_id,
           customer: c.distributor?.business_name || c.customer_name || 'HyperCity Hub',
           amountRaw: Number(c.amount || 0),
           amount: `₹${Number(c.amount || 0).toLocaleString('en-IN')}`,
@@ -79,23 +92,34 @@ export const RimiCollections: React.FC = () => {
 
   const handleAddCollection = async (e: React.FormEvent) => {
     e.preventDefault();
-    const matchedDist = distributors.find(d => d.id === newCol.distributor_id);
-    const custName = newCol.customer_name || matchedDist?.business_name || 'Customer';
+    const matchedCust = customers.find(c => c.id === newCol.distributor_id || c.business_name === newCol.customer_name);
+    const custName = newCol.customer_name || matchedCust?.business_name || 'Customer';
     const cleanAmount = Number(newCol.amount) || 100000;
     const refNo = newCol.reference_no || `REF-${Math.floor(10000 + Math.random() * 90000)}`;
 
     const newItem = await createRimiCollection({
-      distributor_id: newCol.distributor_id || undefined,
+      distributor_id: matchedCust?.id || undefined,
       customer_name: custName,
       amount: cleanAmount,
       payment_method: newCol.payment_method,
       reference_no: refNo
     });
+
+    // Update customer outstanding balance
+    if (matchedCust) {
+      const remainingBalance = Math.max(0, (matchedCust.outstanding_balance || 0) - cleanAmount);
+      await updateRimiCustomer(matchedCust.id, {
+        outstanding_balance: remainingBalance,
+        payment_status: remainingBalance === 0 ? 'Up to Date' : 'Pending'
+      });
+    }
+
     // Optimistic add
     if (newItem) {
       setCollections(prev => [{
         id: newItem.reference_no || `COL-${(newItem.id || '').slice(0, 4).toUpperCase()}`,
         rawId: newItem.id,
+        customerId: matchedCust?.id,
         customer: custName,
         amountRaw: cleanAmount,
         amount: `₹${cleanAmount.toLocaleString('en-IN')}`,
@@ -138,11 +162,29 @@ export const RimiCollections: React.FC = () => {
     showToastMsg('Exported Collections Ledger CSV');
   };
 
-  const filteredCollections = collections.filter(c =>
-    (c.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (c.customer || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (c.mode || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCollections = collections.filter(c => {
+    if (!canViewAllCRM) {
+      const myId = profile?.id;
+      const myName = (profile?.full_name || '').toLowerCase();
+      const myEmail = (profile?.email || '').toLowerCase();
+      const matchedCust = customers.find(cust => cust.id === c.customerId || cust.business_name.toLowerCase() === (c.customer || '').toLowerCase());
+      if (matchedCust) {
+        const assignedId = matchedCust.assigned_staff_id;
+        const assignedName = (matchedCust.assigned_staff_name || '').toLowerCase();
+        const isMine = Boolean(
+          (myId && assignedId === myId) ||
+          (myName && assignedName.includes(myName)) ||
+          (myEmail && (assignedName.includes(myEmail.split('@')[0]) || assignedId === myEmail))
+        );
+        if (!isMine) return false;
+      }
+    }
+    return (
+      (c.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.customer || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.mode || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -165,9 +207,11 @@ export const RimiCollections: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="text-xs font-bold border-slate-200" onClick={handleExportCSV}>
-            <Download className="w-4 h-4 mr-1.5 text-[#58051E]" /> Export CSV
-          </Button>
+          {(isAdmin || isCentral) && (
+            <Button size="sm" variant="outline" className="text-xs font-bold border-slate-200" onClick={handleExportCSV}>
+              <Download className="w-4 h-4 mr-1.5 text-[#58051E]" /> Export CSV
+            </Button>
+          )}
           <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-1.5" /> Log Payment
           </Button>
@@ -218,9 +262,11 @@ export const RimiCollections: React.FC = () => {
                         <button onClick={() => setSelectedReceipt(c)} className="p-1.5 text-[#58051E] hover:bg-[#58051E]/10 rounded-lg" title="View & Download Receipt Voucher">
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDeleteCollection(c.rawId)} className="p-1.5 text-slate-400 hover:text-red-600 rounded">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canDelete && (
+                          <button onClick={() => handleDeleteCollection(c.rawId)} className="p-1.5 text-slate-400 hover:text-red-600 rounded">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -243,12 +289,14 @@ export const RimiCollections: React.FC = () => {
               </div>
               <form onSubmit={handleAddCollection} className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Customer / Distributor</label>
-                  {distributors.length > 0 ? (
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Customer Account</label>
+                  {customers.length > 0 ? (
                     <select value={newCol.distributor_id} onChange={(e) => setNewCol({ ...newCol, distributor_id: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                      <option value="">Select customer / distributor...</option>
-                      {distributors.map(d => (
-                        <option key={d.id} value={d.id}>{d.business_name} ({d.tier || 'Retailer'})</option>
+                      <option value="">Select customer account...</option>
+                      {customers.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.business_name} ({c.customer_type} • Bal: ₹{(c.outstanding_balance || 0).toLocaleString('en-IN')})
+                        </option>
                       ))}
                     </select>
                   ) : (

@@ -254,6 +254,77 @@ export const getRimiStaff = () => getDivisionStaff('rimi');
 export const getDigitalStaff = () => getDivisionStaff('digital');
 export const getEducationStaff = () => getDivisionStaff('education');
 
+export async function createDivisionStaff(staff: {
+  name: string;
+  email: string;
+  role: string;
+  division: 'trade' | 'rimi' | 'digital' | 'education';
+  department?: string;
+  phone?: string;
+}): Promise<DivisionStaffMember> {
+  const roleLabel = ROLE_DISPLAY_NAMES[staff.role] || (staff.role.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()));
+  const newStaff: DivisionStaffMember = {
+    id: `stf-${staff.division.slice(0, 3)}-${Date.now()}`,
+    name: staff.name,
+    email: staff.email.toLowerCase().trim(),
+    role: staff.role,
+    roleLabel,
+    division: staff.division,
+    department: staff.department || `${staff.division.toUpperCase()} Operations`,
+    phone: staff.phone,
+  };
+
+  try {
+    const raw = localStorage.getItem('ferex_staff_users');
+    const existing = raw ? JSON.parse(raw) : [];
+    const updated = [newStaff, ...existing.filter((s: any) => (s.email || '').toLowerCase() !== newStaff.email)];
+    localStorage.setItem('ferex_staff_users', JSON.stringify(updated));
+  } catch {}
+
+  try {
+    const admin = await getAdminSupabaseClient();
+    await admin.from('users').upsert({
+      id: newStaff.id,
+      email: newStaff.email,
+      full_name: newStaff.name,
+      role: newStaff.role,
+      department: newStaff.department,
+      phone: newStaff.phone,
+    });
+  } catch {}
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_staff_users_change'));
+  }
+
+  return newStaff;
+}
+
+export async function deleteDivisionStaff(idOrEmail: string): Promise<boolean> {
+  const target = idOrEmail.toLowerCase().trim();
+  const deleted = getDeletedStaffIds();
+  if (!deleted.includes(target)) {
+    deleted.push(target);
+    try {
+      localStorage.setItem('ferex_deleted_staff_ids', JSON.stringify(deleted));
+    } catch {}
+  }
+
+  try {
+    const raw = localStorage.getItem('ferex_staff_users');
+    if (raw) {
+      const list = JSON.parse(raw);
+      const filtered = list.filter((s: any) => (s.id || '').toLowerCase() !== target && (s.email || '').toLowerCase() !== target);
+      localStorage.setItem('ferex_staff_users', JSON.stringify(filtered));
+    }
+  } catch {}
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_staff_users_change'));
+  }
+  return true;
+}
+
 export async function getStaffAssignedStudents(staffName?: string) {
   try {
     let query = supabase.from('users').select('*').eq('role', 'student');

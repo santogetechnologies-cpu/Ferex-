@@ -1,17 +1,32 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckSquare, Search, Plus, X, CheckCircle2, Trash2, Calendar, User, Clock, AlertCircle, Filter, FolderKanban } from 'lucide-react';
+import {
+  CheckSquare, Search, Plus, X, CheckCircle2, Trash2, Calendar, User, Clock,
+  AlertCircle, Filter, FolderKanban, ChevronLeft, ChevronRight, Check
+} from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getDigitalTasks, createDigitalTask, updateDigitalTaskStatus, deleteDigitalTask, getDigitalProjects, getDigitalStaffMembers } from '../../lib/api/digital';
+import {
+  getDigitalTasks,
+  createDigitalTask,
+  updateDigitalTaskStatus,
+  deleteDigitalTask,
+  getDigitalProjects,
+  getDigitalStaffMembers
+} from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDigitalPermissions } from '../../hooks/usePermissions';
+import { getMasters } from '../../lib/api/masters';
 
 export const DigitalTasks: React.FC = () => {
   const { profile } = useAuth();
+  const { isAdmin, isStaff, isCentral, canDelete } = useDigitalPermissions();
+
   const [tasks, setTasks] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
+  const [taskPriorities, setTaskPriorities] = useState<string[]>(['Critical', 'High', 'Medium', 'Low']);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('All');
@@ -19,6 +34,11 @@ export const DigitalTasks: React.FC = () => {
   const [staffFilter, setStaffFilter] = useState('All');
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
+  const [formError, setFormError] = useState('');
+
+  // Pagination
+  const [pageSize, setPageSize] = useState<number>(12);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   const [newTask, setNewTask] = useState({
     title: '',
@@ -47,17 +67,22 @@ export const DigitalTasks: React.FC = () => {
       setTasks(tasksData || []);
       setStaffList(staffData || []);
 
+      const priorities = await getMasters('digital', 'task_priorities');
+      if (priorities && priorities.length > 0) {
+        setTaskPriorities(priorities);
+      }
+
       if (staffData && staffData.length > 0 && !newTask.assigned_to) {
         setNewTask(prev => ({
           ...prev,
-          assigned_to: staffData[0].name,
-          assigned_to_email: staffData[0].email
+          assigned_to: isStaff ? (profile?.full_name || staffData[0].name) : staffData[0].name,
+          assigned_to_email: isStaff ? (profile?.email || staffData[0].email) : staffData[0].email
         }));
       }
     } finally {
       setLoading(false);
     }
-  }, [newTask.assigned_to]);
+  }, [newTask.assigned_to, isStaff, profile]);
 
   useEffect(() => {
     loadData();
@@ -84,10 +109,20 @@ export const DigitalTasks: React.FC = () => {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTask.title.trim()) return;
+    setFormError('');
 
-    const selectedProj = projects.find(p => p.id === newTask.project_id) || (projects.length > 0 ? projects[0] : undefined);
-    const assignedName = newTask.assigned_to || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Project Manager'));
+    if (!newTask.title.trim()) {
+      setFormError('Task title is required.');
+      return;
+    }
+
+    if (!newTask.project_id) {
+      setFormError('Associated Project is required. All digital tasks must link to an active project.');
+      return;
+    }
+
+    const selectedProj = projects.find(p => p.id === newTask.project_id);
+    const assignedName = newTask.assigned_to || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Staff'));
     const matchedStaff = staffList.find(s => s.name === assignedName);
     const assignedEmail = matchedStaff?.email || newTask.assigned_to_email || profile?.email || 'pm@ferex.com';
 
@@ -108,10 +143,10 @@ export const DigitalTasks: React.FC = () => {
     showToast(`Created task "${newTask.title}"`);
     setNewTask({
       title: '',
-      project_id: projects.length > 0 ? projects[0].id : '',
+      project_id: '',
       assigned_to: profile?.full_name || (staffList.length > 0 ? staffList[0].name : 'Digital Project Manager'),
       assigned_to_email: profile?.email || (staffList.length > 0 ? staffList[0].email : 'pm@ferex.com'),
-      priority: 'Medium',
+      priority: taskPriorities[0] || 'Medium',
       due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
       notes: ''
     });
@@ -129,6 +164,7 @@ export const DigitalTasks: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!canDelete) return;
     try {
       setTasks(prev => prev.filter(t => t.id !== id));
       showToast('Task removed from sprint');
@@ -154,19 +190,33 @@ export const DigitalTasks: React.FC = () => {
     const assignedName = (t.assigned_to_name || '').toLowerCase();
     const assignedEmail = (t.assigned_to_email || '').toLowerCase();
 
-    let matchStaff = true;
-    if (staffFilter === 'ME') {
-      matchStaff = Boolean(
+    // Strict staff role scoping: Staff see ONLY tasks assigned to themselves
+    if (isStaff) {
+      const isAssignedToMe = Boolean(
         (myName && assignedName.includes(myName)) ||
         (myEmail && (assignedEmail === myEmail || assignedName.includes(myEmail.split('@')[0]))) ||
-        (myEmail.includes('digimanager') && (assignedName.includes('manager') || assignedName.includes('digital') || assignedEmail.includes('pm@') || assignedEmail.includes('digimanager')))
+        (myEmail.includes('pm') && (assignedName.includes('pm') || assignedName.includes('manager')))
       );
-    } else if (staffFilter !== 'All') {
-      matchStaff = assignedName === staffFilter.toLowerCase();
+      if (!isAssignedToMe) return false;
+    }
+
+    let matchStaff = true;
+    if (!isStaff) {
+      if (staffFilter === 'ME') {
+        matchStaff = Boolean(
+          (myName && assignedName.includes(myName)) ||
+          (myEmail && (assignedEmail === myEmail || assignedName.includes(myEmail.split('@')[0])))
+        );
+      } else if (staffFilter !== 'All') {
+        matchStaff = assignedName === staffFilter.toLowerCase();
+      }
     }
 
     return matchSearch && matchPriority && matchStatus && matchStaff;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const getPriorityStyle = (priority: string) => {
     switch (priority) {
@@ -196,10 +246,13 @@ export const DigitalTasks: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-[#58051E]" /> Sprint Task Assignment & Pipeline
+            <CheckSquare className="w-5 h-5 text-[#58051E]" />
+            {isStaff ? 'My Assigned Sprint Tasks' : 'Sprint Task Assignment & Pipeline'}
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Ferex Digital ERP • Multi-project sprint backlogs, staff assignments, due dates, and real-time execution tracking.
+            {isStaff
+              ? 'Your active deliverables, tickets, and scheduled deadlines across all assigned client projects.'
+              : 'Ferex Digital ERP • Multi-project sprint backlogs, staff assignments, due dates, and real-time execution tracking.'}
           </p>
         </div>
         <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-sm" onClick={() => setShowAddModal(true)}>
@@ -216,44 +269,45 @@ export const DigitalTasks: React.FC = () => {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search task, project, staff member..."
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+              placeholder={isStaff ? "Search my tasks..." : "Search task, project, staff member..."}
               className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
             />
           </div>
 
           {/* Quick Filters */}
           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-            {/* Staff Filter */}
-            <select
-              value={staffFilter}
-              onChange={(e) => setStaffFilter(e.target.value)}
-              className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
-            >
-              <option value="All">All Assigned Staff</option>
-              <option value="ME">⚡ Assigned To Me</option>
-              {staffList.map((s: any) => (
-                <option key={s.id || s.email} value={s.name}>{s.name}</option>
-              ))}
-            </select>
+            {/* Staff Filter (Admin/Central Only) */}
+            {!isStaff && (
+              <select
+                value={staffFilter}
+                onChange={(e) => { setStaffFilter(e.target.value); setCurrentPage(1); }}
+                className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
+              >
+                <option value="All">All Assigned Staff</option>
+                <option value="ME">⚡ Assigned To Me</option>
+                {staffList.map((s: any) => (
+                  <option key={s.id || s.email} value={s.name}>{s.name}</option>
+                ))}
+              </select>
+            )}
 
-            {/* Priority Filter */}
+            {/* Priority Filter (From Masters) */}
             <select
               value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
+              onChange={(e) => { setPriorityFilter(e.target.value); setCurrentPage(1); }}
               className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
             >
               <option value="All">All Priorities</option>
-              <option value="Critical">Critical</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
+              {taskPriorities.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
             </select>
 
             {/* Status Filter */}
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
               className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
             >
               <option value="All">All Statuses</option>
@@ -265,7 +319,7 @@ export const DigitalTasks: React.FC = () => {
         </div>
 
         <div className="flex items-center justify-between text-xs font-bold text-slate-400 pt-1 border-t border-slate-100">
-          <span>{filtered.length} Sprint Tasks matched</span>
+          <span>{filtered.length} Sprint Tasks matched {isStaff ? '(Personal Queue)' : ''}</span>
           <span className="text-[11px] text-slate-500 font-semibold">Real-time sync with Admin & Staff desks</span>
         </div>
       </Card>
@@ -278,102 +332,144 @@ export const DigitalTasks: React.FC = () => {
           <p className="text-xs font-bold text-slate-500">No sprint tasks found matching your filters.</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((t) => {
-            const isDone = t.status === 'Done';
-            const assigneeName = t.assigned_to_name || 'Digital Project Manager';
-            const initials = assigneeName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {paginated.map((t) => {
+              const isDone = t.status === 'Done';
+              const assigneeName = t.assigned_to_name || 'Digital Staff';
+              const initials = assigneeName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
-            return (
-              <Card
-                key={t.id}
-                className={`p-5 border shadow-xs transition-all flex flex-col justify-between space-y-4 ${
-                  isDone
-                    ? 'border-emerald-200 bg-emerald-50/20'
-                    : 'border-slate-200/80 hover:border-[#58051E]/40 hover:shadow-md'
-                }`}
-              >
-                <div className="space-y-3">
-                  {/* Priority & Status Controls */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${getPriorityStyle(t.priority)}`}>
-                      {t.priority || 'Medium'} Priority
-                    </span>
-                    <button
-                      onClick={() => handleToggleStatus(t)}
-                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border cursor-pointer transition-colors ${
-                        t.status === 'Done'
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                          : t.status === 'In Progress'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : 'bg-slate-100 text-slate-600 border-slate-200'
-                      }`}
-                    >
-                      {t.status || 'To Do'}
-                    </button>
-                  </div>
-
-                  {/* Title & Project Name */}
-                  <div>
-                    <h3 className={`text-base font-black leading-snug ${isDone ? 'line-through text-slate-500' : 'text-slate-900'}`}>
-                      {t.title}
-                    </h3>
-                    <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1.5 truncate">
-                      <FolderKanban className="w-3.5 h-3.5 text-[#58051E] shrink-0" />
-                      <span className="truncate">{t.project?.title || t.project_title || 'General Engineering Sprint'}</span>
-                    </p>
-                    {t.notes && (
-                      <p className="text-[11px] text-slate-600 mt-2 bg-slate-50 p-2 rounded-lg border border-slate-100 line-clamp-2">
-                        {t.notes}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Assignee & Due Date Pill */}
-                  <div className="p-3 bg-slate-50/80 rounded-xl space-y-2 text-xs text-slate-600 border border-slate-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-400 font-bold flex items-center gap-1">
-                        <User className="w-3.5 h-3.5" /> Assigned To:
+              return (
+                <Card
+                  key={t.id}
+                  className={`p-5 border shadow-xs transition-all flex flex-col justify-between space-y-4 ${
+                    isDone
+                      ? 'border-emerald-200 bg-emerald-50/20'
+                      : 'border-slate-200/80 hover:border-[#58051E]/40 hover:shadow-md'
+                  }`}
+                >
+                  <div className="space-y-3">
+                    {/* Priority & Status Controls */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${getPriorityStyle(t.priority)}`}>
+                        {t.priority || 'Medium'} Priority
                       </span>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full bg-[#58051E] text-white text-[9px] font-black flex items-center justify-center">
-                          {initials}
+                      <button
+                        onClick={() => handleToggleStatus(t)}
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border cursor-pointer transition-colors ${
+                          t.status === 'Done'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : t.status === 'In Progress'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'
+                        }`}
+                      >
+                        {t.status || 'To Do'}
+                      </button>
+                    </div>
+
+                    {/* Title & Project Name */}
+                    <div>
+                      <h3 className={`text-base font-black leading-snug ${isDone ? 'line-through text-slate-500' : 'text-slate-900'}`}>
+                        {t.title}
+                      </h3>
+                      <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1.5 truncate">
+                        <FolderKanban className="w-3.5 h-3.5 text-[#58051E] shrink-0" />
+                        <span className="truncate">{t.project?.title || t.project_title || 'General Engineering Sprint'}</span>
+                      </p>
+                      {t.notes && (
+                        <p className="text-[11px] text-slate-600 mt-2 bg-slate-50 p-2 rounded-lg border border-slate-100 line-clamp-2">
+                          {t.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Assignee & Due Date Pill */}
+                    <div className="p-3 bg-slate-50/80 rounded-xl space-y-2 text-xs text-slate-600 border border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-slate-400 font-bold flex items-center gap-1">
+                          <User className="w-3.5 h-3.5" /> Assigned To:
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-full bg-[#58051E] text-white text-[9px] font-black flex items-center justify-center">
+                            {initials}
+                          </div>
+                          <span className="text-xs font-bold text-slate-800">{assigneeName}</span>
                         </div>
-                        <span className="text-xs font-bold text-slate-800">{assigneeName}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[11px]">
+                        <span className="text-slate-400 font-semibold flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5" /> Target Date:
+                        </span>
+                        <span className="font-mono font-bold text-slate-700">{t.due_date || 'Ongoing'}</span>
                       </div>
                     </div>
-
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[11px]">
-                      <span className="text-slate-400 font-semibold flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5" /> Target Date:
-                      </span>
-                      <span className="font-mono font-bold text-slate-700">{t.due_date || 'Ongoing'}</span>
-                    </div>
                   </div>
-                </div>
 
-                {/* Card Action Footer */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 text-xs font-bold"
-                    onClick={() => handleToggleStatus(t)}
-                  >
-                    {isDone ? 'Reopen Task' : t.status === 'In Progress' ? 'Mark Done ✓' : 'Start Task →'}
-                  </Button>
-                  <button
-                    onClick={() => handleDelete(t.id)}
-                    className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                    title="Delete task"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+                  {/* Card Action Footer */}
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 text-xs font-bold"
+                      onClick={() => handleToggleStatus(t)}
+                    >
+                      {isDone ? 'Reopen Task' : t.status === 'In Progress' ? 'Mark Done ✓' : 'Start Task →'}
+                    </Button>
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDelete(t.id)}
+                        className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                        title="Delete task (Admin only)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Pagination Toolbar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs font-bold text-slate-500">
+            <div className="flex items-center gap-2">
+              <span>Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filtered.length)} of {filtered.length} tasks</span>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700"
+              >
+                <option value={12}>12 / page</option>
+                <option value={24}>24 / page</option>
+                <option value={48}>48 / page</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                className="h-8 px-3 text-xs"
+              >
+                <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Previous
+              </Button>
+              <span className="px-2 font-mono text-slate-700">Page {currentPage} of {totalPages}</span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                className="h-8 px-3 text-xs"
+              >
+                Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
+        </>
       )}
 
       {/* ── CREATE SPRINT TASK MODAL ── */}
@@ -388,6 +484,13 @@ export const DigitalTasks: React.FC = () => {
                   <X className="w-5 h-5" />
                 </button>
               </div>
+
+              {formError && (
+                <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {formError}
+                </div>
+              )}
 
               <form onSubmit={handleAdd} className="space-y-4">
                 <div>
@@ -406,38 +509,40 @@ export const DigitalTasks: React.FC = () => {
 
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                    Associated Project *
+                    Associated Project * (Mandatory Link)
                   </label>
                   {projects.length > 0 ? (
                     <select
+                      required
                       value={newTask.project_id}
                       onChange={(e) => setNewTask({ ...newTask, project_id: e.target.value })}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     >
-                      <option value="">-- Select Project --</option>
+                      <option value="">-- Select Project (Required) --</option>
                       {projects.map(p => (
                         <option key={p.id} value={p.id}>{p.title} ({p.client_name || 'Client'})</option>
                       ))}
                     </select>
                   ) : (
-                    <input type="text" disabled value="Default Sprint Project" className="w-full h-10 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <div className="text-xs text-amber-600 font-bold p-2 bg-amber-50 rounded-xl border border-amber-200">
+                      No active projects found. Please create a project first before adding tasks.
+                    </div>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                      Priority Level
+                      Priority Level (From Masters)
                     </label>
                     <select
                       value={newTask.priority}
                       onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     >
-                      <option value="Critical">🔥 Critical</option>
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
+                      {taskPriorities.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -458,25 +563,34 @@ export const DigitalTasks: React.FC = () => {
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
                     Assign Staff Member *
                   </label>
-                  <select
-                    value={newTask.assigned_to}
-                    onChange={(e) => {
-                      const name = e.target.value;
-                      const matched = staffList.find(s => s.name === name);
-                      setNewTask({
-                        ...newTask,
-                        assigned_to: name,
-                        assigned_to_email: matched?.email || `${name.toLowerCase().replace(/[^a-z]/g, '')}@ferex.com`
-                      });
-                    }}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
-                  >
-                    {staffList.map((s: any) => (
-                      <option key={s.id || s.email} value={s.name}>
-                        {s.name} ({s.roleLabel || s.role || 'Staff'}) · {s.email}
-                      </option>
-                    ))}
-                  </select>
+                  {isStaff ? (
+                    <input
+                      type="text"
+                      disabled
+                      value={`${profile?.full_name || 'My Desk'} (${profile?.email || 'pm@ferex.com'})`}
+                      className="w-full h-10 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 cursor-not-allowed"
+                    />
+                  ) : (
+                    <select
+                      value={newTask.assigned_to}
+                      onChange={(e) => {
+                        const name = e.target.value;
+                        const matched = staffList.find(s => s.name === name);
+                        setNewTask({
+                          ...newTask,
+                          assigned_to: name,
+                          assigned_to_email: matched?.email || `${name.toLowerCase().replace(/[^a-z]/g, '')}@ferex.com`
+                        });
+                      }}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    >
+                      {staffList.map((s: any) => (
+                        <option key={s.id || s.email} value={s.name}>
+                          {s.name} ({s.roleLabel || s.role || 'Staff'}) · {s.email}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div>

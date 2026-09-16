@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FolderKanban, Search, Plus, X, CheckCircle2, Trash2,
   ExternalLink, Paperclip, ChevronRight, Layers,
-  Building2, Globe2
+  Building2, Globe2, Edit3
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase';
 import {
   getDigitalProjects,
   createDigitalProject,
+  updateDigitalProject,
   deleteDigitalProject,
   advanceDigitalProjectStage,
   addDigitalDeliverable,
@@ -22,19 +23,33 @@ import {
   type DigitalDeliverable
 } from '../../lib/api/digital';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDigitalPermissions } from '../../hooks/usePermissions';
+import { getMasters } from '../../lib/api/masters';
 
-const STAGES: DigitalProjectStage[] = ['Briefing', 'In Progress', 'Review', 'Revisions', 'Delivered', 'Closed'];
+const DEFAULT_STAGES: DigitalProjectStage[] = ['Briefing', 'In Progress', 'Review', 'Revisions', 'Delivered', 'Closed'];
 
 export const DigitalProjects: React.FC = () => {
   const { profile } = useAuth();
+  const { isAdmin, isStaff, isCentral, canViewAllCRM, canDelete, canAssign } = useDigitalPermissions();
+
   const [projects, setProjects] = useState<DigitalProjectRecord[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
+  const [stages, setStages] = useState<string[]>(DEFAULT_STAGES);
+  const [serviceCategories, setServiceCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [clientTypeFilter, setClientTypeFilter] = useState<'All' | 'Internal' | 'External'>('All');
   const [stageFilter, setStageFilter] = useState<string>('All');
   const [myProjectsOnly, setMyProjectsOnly] = useState(false);
+
+  // Inline project title editing
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+  const [editingTitleVal, setEditingTitleVal] = useState<string>('');
+
+  // Pagination state (10 / 25 / 50)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
   // Modals & Drawers
   const [showAddModal, setShowAddModal] = useState(false);
@@ -76,14 +91,18 @@ export const DigitalProjects: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [projData, clientData, realStaff] = await Promise.all([
+      const [projData, clientData, realStaff, masterStages, categories] = await Promise.all([
         getDigitalProjects(),
         getDigitalClients(),
-        getDigitalStaffMembers()
+        getDigitalStaffMembers(),
+        getMasters('digital', 'project_stages'),
+        getMasters('digital', 'service_categories')
       ]);
       setClients(clientData || []);
       setProjects(projData || []);
       setStaffList(realStaff || []);
+      if (masterStages && masterStages.length > 0) setStages(masterStages);
+      if (categories && categories.length > 0) setServiceCategories(categories);
     } finally {
       setLoading(false);
     }
@@ -171,9 +190,9 @@ export const DigitalProjects: React.FC = () => {
   };
 
   const handleAdvanceStage = async (project: DigitalProjectRecord) => {
-    const currentIndex = STAGES.indexOf(project.status);
-    if (currentIndex < STAGES.length - 1) {
-      const nextStage = STAGES[currentIndex + 1];
+    const currentIndex = stages.indexOf(project.status);
+    if (currentIndex < stages.length - 1) {
+      const nextStage = stages[currentIndex + 1];
       const updated = await advanceDigitalProjectStage(
         project.id,
         nextStage,
@@ -236,17 +255,31 @@ export const DigitalProjects: React.FC = () => {
     const assignedName = (p.assigned_staff_name || '').toLowerCase();
     const assignedEmail = (p.assigned_staff_email || '').toLowerCase();
 
+    const isMine = Boolean(
+      (staffName && assignedName.includes(staffName)) ||
+      (staffEmail && (assignedEmail === staffEmail || assignedName.includes(staffEmail.split('@')[0]))) ||
+      (staffEmail.includes('digimanager') && (assignedName.includes('manager') || assignedName.includes('digital') || assignedEmail.includes('pm@') || assignedEmail.includes('digimanager')))
+    );
+
+    // Strict staff isolation: Staff only sees their assigned projects
+    if (!canViewAllCRM && !isMine) {
+      return false;
+    }
+
     let matchStaff = true;
     if (myProjectsOnly) {
-      matchStaff = Boolean(
-        (staffName && assignedName.includes(staffName)) ||
-        (staffEmail && (assignedEmail === staffEmail || assignedName.includes(staffEmail.split('@')[0]))) ||
-        (staffEmail.includes('digimanager') && (assignedName.includes('manager') || assignedName.includes('digital') || assignedEmail.includes('pm@') || assignedEmail.includes('digimanager')))
-      );
+      matchStaff = isMine;
     }
 
     return matchType && matchStage && matchSearch && matchStaff;
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [clientTypeFilter, stageFilter, search, myProjectsOnly]);
+
+  const totalPages = Math.ceil(filteredProjects.length / pageSize) || 1;
+  const paginatedProjects = filteredProjects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const getStageColor = (stage: DigitalProjectStage) => {
     switch (stage) {
@@ -362,7 +395,7 @@ export const DigitalProjects: React.FC = () => {
           >
             All Stages
           </button>
-          {STAGES.map((st) => (
+          {stages.map((st) => (
             <button
               key={st}
               onClick={() => setStageFilter(st)}
@@ -387,141 +420,255 @@ export const DigitalProjects: React.FC = () => {
           <p className="text-xs font-bold text-slate-500">No matching projects found.</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredProjects.map((p) => {
-            const isInternal = p.client_type === 'Internal';
-            const isFinished = p.status === 'Delivered' || p.status === 'Closed';
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {paginatedProjects.map((p) => {
+              const isInternal = p.client_type === 'Internal';
+              const isFinished = p.status === 'Delivered' || p.status === 'Closed';
 
-            return (
-              <Card
-                key={p.id}
-                className="p-5 border border-slate-200/80 shadow-xs hover:border-[#58051E]/40 hover:shadow-md transition-all flex flex-col justify-between space-y-4"
-              >
-                <div className="space-y-3">
-                  {/* Client Type & Status Header */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${
-                        isInternal
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      }`}
-                    >
-                      {isInternal ? <Building2 className="w-3 h-3" /> : <Globe2 className="w-3 h-3" />}
-                      {isInternal ? 'Internal Division' : 'External Client'}
-                    </span>
+              return (
+                <Card
+                  key={p.id}
+                  className="p-5 border border-slate-200/80 shadow-xs hover:border-[#58051E]/40 hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                >
+                  <div className="space-y-3">
+                    {/* Client Type & Status Header */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                          isInternal
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}
+                      >
+                        {isInternal ? <Building2 className="w-3 h-3" /> : <Globe2 className="w-3 h-3" />}
+                        {isInternal ? 'Internal Division' : 'External Client'}
+                      </span>
 
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${getStageColor(p.status)}`}>
-                      {p.status}
-                    </span>
-                  </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${getStageColor(p.status)}`}>
+                        {p.status}
+                      </span>
+                    </div>
 
-                  {/* Title & Scope */}
-                  <div>
-                    <h3
-                      onClick={() => setSelectedProject(p)}
-                      className="text-base font-black text-slate-900 leading-snug hover:text-[#58051E] cursor-pointer transition-colors line-clamp-2"
-                      title={p.title}
-                    >
-                      {p.title}
-                    </h3>
-                    <p className="text-xs font-bold text-slate-500 mt-0.5 truncate">
-                      {p.client_name || 'Ferex Division Account'}
-                    </p>
-                    {p.scope && (
-                      <p className="text-[11px] text-slate-600 line-clamp-2 mt-1.5 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                        {p.scope}
+                    {/* Title & Scope with inline editing */}
+                    <div>
+                      {editingTitleId === p.id ? (
+                        <input
+                          type="text"
+                          autoFocus
+                          value={editingTitleVal}
+                          onChange={(e) => setEditingTitleVal(e.target.value)}
+                          onBlur={async () => {
+                            if (editingTitleVal.trim() && editingTitleVal !== p.title) {
+                              await updateDigitalProject(p.id, { title: editingTitleVal.trim() });
+                              showToast(`Project title updated to "${editingTitleVal.trim()}"`);
+                              await loadData();
+                            }
+                            setEditingTitleId(null);
+                          }}
+                          onKeyDown={async (e) => {
+                            if (e.key === 'Enter') {
+                              if (editingTitleVal.trim() && editingTitleVal !== p.title) {
+                                await updateDigitalProject(p.id, { title: editingTitleVal.trim() });
+                                showToast(`Project title updated to "${editingTitleVal.trim()}"`);
+                                await loadData();
+                              }
+                              setEditingTitleId(null);
+                            } else if (e.key === 'Escape') {
+                              setEditingTitleId(null);
+                            }
+                          }}
+                          className="w-full text-base font-black text-slate-900 border border-[#58051E] rounded px-2 py-0.5 focus:outline-hidden"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-between group/title gap-1">
+                          <h3
+                            onClick={() => setSelectedProject(p)}
+                            className="text-base font-black text-slate-900 leading-snug hover:text-[#58051E] cursor-pointer transition-colors line-clamp-2"
+                            title={p.title}
+                          >
+                            {p.title}
+                          </h3>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingTitleId(p.id);
+                              setEditingTitleVal(p.title);
+                            }}
+                            className="opacity-0 group-hover/title:opacity-100 p-1 text-slate-400 hover:text-slate-700 transition-opacity"
+                            title="Click to edit title"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                      <p className="text-xs font-bold text-slate-500 mt-0.5 truncate">
+                        {p.client_name || 'Ferex Division Account'}
                       </p>
-                    )}
+                      {p.scope && (
+                        <p className="text-[11px] text-slate-600 line-clamp-2 mt-1.5 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                          {p.scope}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Stage Visual Indicator */}
+                    <div className="space-y-1 pt-1">
+                      <div className="flex justify-between text-[11px] font-bold text-slate-600">
+                        <span>Workflow Stage</span>
+                        <span className="text-[#58051E] font-black">{p.status}</span>
+                      </div>
+                      <div className="grid grid-cols-6 gap-1 h-2">
+                        {stages.map((st, i) => {
+                          const currentIdx = stages.indexOf(p.status);
+                          const isReached = i <= currentIdx;
+                          return (
+                            <div
+                              key={st}
+                              className={`rounded-full transition-all ${
+                                isReached ? 'bg-[#58051E]' : 'bg-slate-200'
+                              }`}
+                              title={`${st} (Step ${i + 1})`}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Meta Details */}
+                    <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-400 font-semibold">Service:</span>
+                        <span className="font-bold text-slate-700 truncate max-w-[170px]">
+                          {p.service_category || 'Marketing'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-400 font-semibold">Assigned Staff:</span>
+                        <span className="font-bold text-slate-900 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          {p.assigned_staff_name}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-400 font-semibold">Deadline:</span>
+                        <span className={`font-bold ${
+                          new Date(p.deadline).getTime() < Date.now() && !isFinished
+                            ? 'text-rose-600'
+                            : 'text-slate-700'
+                        }`}>
+                          {p.deadline ? new Date(p.deadline).toLocaleDateString() : 'TBD'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-200/60">
+                        <span className="text-slate-400">Deliverables Attached:</span>
+                        <span className="font-extrabold text-[#58051E] flex items-center gap-1">
+                          <Paperclip className="w-3 h-3" /> {(p.deliverables || []).length} items
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* 6-Stage Visual Indicator */}
-                  <div className="space-y-1 pt-1">
-                    <div className="flex justify-between text-[11px] font-bold text-slate-600">
-                      <span>Workflow Stage</span>
-                      <span className="text-[#58051E] font-black">{p.status}</span>
-                    </div>
-                    <div className="grid grid-cols-6 gap-1 h-2">
-                      {STAGES.map((st, i) => {
-                        const currentIdx = STAGES.indexOf(p.status);
-                        const isReached = i <= currentIdx;
-                        return (
-                          <div
-                            key={st}
-                            title={st}
-                            className={`rounded-full transition-all duration-300 ${
-                              isReached ? 'bg-[#58051E]' : 'bg-slate-200'
-                            }`}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Project Details Pill */}
-                  <div className="p-3 bg-slate-50/80 rounded-xl space-y-1.5 text-xs text-slate-600 border border-slate-100">
-                    <div className="flex justify-between items-center font-bold">
-                      <span className="text-slate-400">Budget & Terms:</span>
-                      <span className="text-slate-900">
-                        ₹{Number(p.budget || 0).toLocaleString('en-IN')}{' '}
-                        <span className="text-[10px] font-normal text-slate-500">({p.payment_terms || 'Advance'})</span>
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-[11px]">
-                      <span className="text-slate-400">Assigned Staff:</span>
-                      <span className="font-semibold text-slate-800">{p.assigned_staff_name || 'Digital Project Manager'}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[11px]">
-                      <span className="text-slate-400">Target Deadline:</span>
-                      <span className="font-mono text-slate-700">{p.deadline || 'Ongoing'}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-200/60">
-                      <span className="text-slate-400">Deliverables Attached:</span>
-                      <span className="font-extrabold text-[#58051E] flex items-center gap-1">
-                        <Paperclip className="w-3 h-3" /> {(p.deliverables || []).length} items
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions Footer */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 text-xs font-bold"
-                    onClick={() => setSelectedProject(p)}
-                  >
-                    <Layers className="w-3.5 h-3.5 mr-1 text-[#58051E]" /> Deliverables ({ (p.deliverables || []).length })
-                  </Button>
-
-                  {!isFinished ? (
+                  {/* Actions Footer */}
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                     <Button
                       size="sm"
-                      className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold px-2.5"
-                      onClick={() => handleAdvanceStage(p)}
-                      title="Advance to Next Stage"
+                      variant="outline"
+                      className="flex-1 text-xs font-bold"
+                      onClick={() => setSelectedProject(p)}
                     >
-                      <span>Next</span>
-                      <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                      <Layers className="w-3.5 h-3.5 mr-1 text-[#58051E]" /> Deliverables ({ (p.deliverables || []).length })
                     </Button>
-                  ) : (
-                    <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded text-[10px] font-extrabold">
-                      Completed
-                    </span>
-                  )}
 
-                  <button
-                    onClick={() => handleDeleteProject(p.id, p.title)}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                    title="Delete Project"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </Card>
-            );
-          })}
+                    {(() => {
+                      const canAdvance = isAdmin || isCentral || Boolean(
+                        (profile?.full_name && (p.assigned_staff_name || '').toLowerCase().includes(profile.full_name.toLowerCase())) ||
+                        (profile?.email && (p.assigned_staff_email || '').toLowerCase() === profile.email.toLowerCase())
+                      );
+
+                      return !isFinished ? (
+                        <Button
+                          size="sm"
+                          disabled={!canAdvance}
+                          className={`bg-[#58051E] hover:bg-[#430316] text-xs font-bold px-2.5 ${!canAdvance ? 'opacity-60 cursor-not-allowed' : ''}`}
+                          onClick={() => {
+                            if (canAdvance) handleAdvanceStage(p);
+                          }}
+                          title={canAdvance ? 'Advance to Next Stage' : 'Only assigned staff or admin can advance stage'}
+                        >
+                          <span>Next</span>
+                          <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                        </Button>
+                      ) : (
+                        <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded text-[10px] font-extrabold">
+                          Completed
+                        </span>
+                      );
+                    })()}
+
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDeleteProject(p.id, p.title)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                        title="Delete Project"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* ── 10 / 25 / 50 Pagination Controls ── */}
+          <div className="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-slate-500 font-medium">
+              <span>Show</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200 rounded px-2 py-1 font-bold text-slate-700 focus:outline-hidden"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span>projects per page</span>
+              <span className="text-slate-300">|</span>
+              <span>
+                Showing {filteredProjects.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to{' '}
+                {Math.min(currentPage * pageSize, filteredProjects.length)} of {filteredProjects.length} projects
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                className="px-2.5 py-1 text-xs"
+              >
+                Previous
+              </Button>
+              <div className="px-3 py-1 font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded text-xs">
+                Page {currentPage} of {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                className="px-2.5 py-1 text-xs"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -571,8 +718,8 @@ export const DigitalProjects: React.FC = () => {
                   Project Lifecycle (6 Stages)
                 </h4>
                 <div className="grid grid-cols-3 gap-2">
-                  {STAGES.map((st, i) => {
-                    const currentIdx = STAGES.indexOf(selectedProject.status);
+                  {stages.map((st: string, i: number) => {
+                    const currentIdx = stages.indexOf(selectedProject.status);
                     const isPassed = i < currentIdx;
                     const isCurrent = i === currentIdx;
 

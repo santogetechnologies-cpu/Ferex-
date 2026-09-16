@@ -115,6 +115,7 @@ import { RimiNotifications } from './pages/rimi/RimiNotifications';
 import { RimiProfile } from './pages/rimi/RimiProfile';
 import { RimiSettings } from './pages/rimi/RimiSettings';
 import { RimiTasks } from './pages/rimi/RimiTasks';
+import { RimiStaff } from './pages/rimi/RimiStaff';
 import { RimiLoginPage } from './pages/rimi/RimiLoginPage';
 
 // Digital imports
@@ -144,6 +145,8 @@ import { DigitalProjectAnalytics } from './pages/digital/DigitalProjectAnalytics
 import { DigitalNotifications } from './pages/digital/DigitalNotifications';
 import { DigitalProfile } from './pages/digital/DigitalProfile';
 import { DigitalSettings } from './pages/digital/DigitalSettings';
+import { DigitalDeliverables } from './pages/digital/DigitalDeliverables';
+import { DigitalStaff } from './pages/digital/DigitalStaff';
 import { DigitalLoginPage } from './pages/digital/DigitalLoginPage';
 import DigitalClientPortal from './pages/digital/DigitalClientPortal';
 
@@ -182,8 +185,8 @@ const AppInitializer: React.FC = () => {
 const ADMIN_ROLES = ['admin', 'education_admin', 'education', 'super_admin', 'superadmin', 'central'];
 const CENTRAL_ROLES = ['central', 'super_admin', 'superadmin'];
 const TRADE_ROLES = ['trade', 'trade_admin', 'global_trade', 'logistics_officer', 'admin', 'central', 'super_admin', 'superadmin'];
-const RIMI_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen', 'operations_manager', 'admin', 'central', 'super_admin', 'superadmin'];
-const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'project_manager', 'admin', 'central', 'super_admin', 'superadmin'];
+const RIMI_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen', 'operations_manager', 'rimi_staff', 'admin', 'central', 'super_admin', 'superadmin'];
+const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'project_manager', 'digital_staff', 'admin', 'central', 'super_admin', 'superadmin'];
 const STAFF_ROLES = ['staff', 'counselor', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
 
 // Guards portal routes — redirects to login if not authenticated, or to proper portal if role mismatched
@@ -405,6 +408,7 @@ function App() {
           <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/tasks" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiTasks /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/staff" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiStaff /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiSettings /></RimiLayout></ProtectedRoute>} />
 
           {/* ── Ferex Digital Routes ── */}
@@ -413,22 +417,19 @@ function App() {
           <Route path="/digital/leads" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalLeads /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/projects" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProjects /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/tasks" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalTasks /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/deliverables" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalDeliverables /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/staff" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalStaff /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/meetings" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMeetings /></DigitalLayout></ProtectedRoute>} />
 
-          {/* Digital Services */}
-          <Route path="/digital/services" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalServicesHub /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/web-development" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalWebDevelopment /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/web-development" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalWebDevelopment /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/mobile-apps" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMobileApps /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/mobile-apps" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMobileApps /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/ui-ux-design" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalUIUX /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/ui-ux-design" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalUIUX /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/digital-marketing" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMarketing /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/digital-marketing" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMarketing /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/seo" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalSEO /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/seo" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalSEO /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/services/branding" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBranding /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/branding" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBranding /></DigitalLayout></ProtectedRoute>} />
+          {/* Digital Services - Redirect to Projects */}
+          <Route path="/digital/services" element={<Navigate to="/digital/projects" replace />} />
+          <Route path="/digital/services/*" element={<Navigate to="/digital/projects" replace />} />
+          <Route path="/digital/web-development" element={<Navigate to="/digital/projects" replace />} />
+          <Route path="/digital/mobile-apps" element={<Navigate to="/digital/projects" replace />} />
+          <Route path="/digital/ui-ux-design" element={<Navigate to="/digital/projects" replace />} />
+          <Route path="/digital/digital-marketing" element={<Navigate to="/digital/projects" replace />} />
+          <Route path="/digital/seo" element={<Navigate to="/digital/projects" replace />} />
+          <Route path="/digital/branding" element={<Navigate to="/digital/projects" replace />} />
 
           {/* Digital Finance */}
           <Route path="/digital/invoices" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalInvoices /></DigitalLayout></ProtectedRoute>} />
@@ -438,13 +439,13 @@ function App() {
           <Route path="/digital/expenses" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/finance/expenses" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
 
-          {/* Digital Team */}
-          <Route path="/digital/employees" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalEmployees /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/team/employees" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalEmployees /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/attendance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/team/attendance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/performance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalPerformance /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/team/performance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalPerformance /></DigitalLayout></ProtectedRoute>} />
+          {/* Digital Team - Redirect to Staff */}
+          <Route path="/digital/employees" element={<Navigate to="/digital/staff" replace />} />
+          <Route path="/digital/team/employees" element={<Navigate to="/digital/staff" replace />} />
+          <Route path="/digital/attendance" element={<Navigate to="/digital/staff" replace />} />
+          <Route path="/digital/team/attendance" element={<Navigate to="/digital/staff" replace />} />
+          <Route path="/digital/performance" element={<Navigate to="/digital/staff" replace />} />
+          <Route path="/digital/team/performance" element={<Navigate to="/digital/staff" replace />} />
 
           {/* Digital Analytics */}
           <Route path="/digital/reports" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalReports /></DigitalLayout></ProtectedRoute>} />

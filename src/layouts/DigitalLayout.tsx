@@ -114,8 +114,10 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       title: 'OPERATIONS',
       items: [
         { label: 'Clients', path: '/digital/clients', icon: Users, badge: 'Internal/Ext' },
-        { label: 'Projects & Deliverables', path: '/digital/projects', icon: FolderKanban, badge: '6 Stages' },
+        { label: 'Projects', path: '/digital/projects', icon: FolderKanban, badge: '6 Stages' },
+        { label: 'Deliverables Vault', path: '/digital/deliverables', icon: Layers, badge: 'Assets' },
         { label: 'Task Assignment', path: '/digital/tasks', icon: CheckSquare, badge: 'Staff' },
+        { label: 'Staff Management', path: '/digital/staff', icon: Users, badge: 'Team' },
         { label: 'Leads & Pipeline', path: '/digital/leads', icon: UserPlus },
         { label: 'Meetings', path: '/digital/meetings', icon: Calendar }
       ]
@@ -145,7 +147,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     }
   ];
 
-  // ── Staff nav: operational modules only ───────────────────────────────────
+  // ── Staff nav: operational modules only (client confidentiality preserved) ───
   const staffNavSections: NavSection[] = [
     {
       title: 'DASHBOARD',
@@ -154,10 +156,10 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       ]
     },
     {
-      title: 'MY WORK',
+      title: 'MY WORKSPACE',
       items: [
-        { label: 'Clients Directory', path: '/digital/clients', icon: Users },
-        { label: 'Assigned Projects', path: '/digital/projects', icon: FolderKanban, badge: '6 Stages' },
+        { label: 'My Projects', path: '/digital/projects', icon: FolderKanban, badge: 'Assigned' },
+        { label: 'My Deliverables', path: '/digital/deliverables', icon: Layers },
         { label: 'My Tasks Queue', path: '/digital/tasks', icon: CheckSquare },
         { label: 'Meetings', path: '/digital/meetings', icon: Calendar }
       ]

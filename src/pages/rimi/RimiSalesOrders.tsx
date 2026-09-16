@@ -20,6 +20,7 @@ import {
   type RimiCustomerType
 } from '../../lib/api/rimi';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRimiPermissions } from '../../hooks/usePermissions';
 
 const ORDER_LIFECYCLE_STAGES: RimiOrderStatus[] = [
   'Order Received',
@@ -31,7 +32,7 @@ const ORDER_LIFECYCLE_STAGES: RimiOrderStatus[] = [
 
 export const RimiSalesOrders: React.FC = () => {
   const { profile } = useAuth();
-  const isStaff = profile?.role === 'staff' || profile?.role === 'operations_manager';
+  const { isAdmin, isStaff, isCentral, canViewAllCRM, canDelete } = useRimiPermissions();
   const currentUserName = profile?.full_name || profile?.email?.split('@')[0] || 'Rimi Operations Desk';
 
   const [orders, setOrders] = useState<RimiSalesOrder[]>([]);
@@ -40,6 +41,10 @@ export const RimiSalesOrders: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // Pagination state (25 / 50 / 100)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(25);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,8 +83,21 @@ export const RimiSalesOrders: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  // Filter logic
+  // Filter logic with strict staff data isolation
   const filteredOrders = orders.filter(o => {
+    if (!canViewAllCRM) {
+      const myId = profile?.id;
+      const myName = (profile?.full_name || '').toLowerCase();
+      const myEmail = (profile?.email || '').toLowerCase();
+      const assignedId = o.assigned_staff_id;
+      const assignedName = (o.assigned_staff_name || '').toLowerCase();
+      const isMine = Boolean(
+        (myId && assignedId === myId) ||
+        (myName && assignedName.includes(myName)) ||
+        (myEmail && (assignedName.includes(myEmail.split('@')[0]) || assignedId === myEmail))
+      );
+      if (!isMine) return false;
+    }
     if (selectedCustomerType !== 'All' && o.customer_type !== selectedCustomerType) return false;
     if (selectedRegion !== 'All' && !o.region.toLowerCase().includes(selectedRegion.toLowerCase())) return false;
     if (selectedPaymentStatus !== 'All' && o.payment_status !== selectedPaymentStatus) return false;
@@ -95,6 +113,13 @@ export const RimiSalesOrders: React.FC = () => {
     }
     return true;
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCustomerType, selectedRegion, selectedPaymentStatus, selectedOrderStatus, selectedStaff, searchQuery]);
+
+  const totalPages = Math.ceil(filteredOrders.length / pageSize) || 1;
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // KPI Calculations
   const totalOrdersCount = orders.length;
@@ -194,13 +219,15 @@ export const RimiSalesOrders: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            className="text-xs font-bold border-slate-200 hover:bg-slate-50 flex items-center gap-2"
-            onClick={() => exportRimiSalesToCSV(filteredOrders)}
-          >
-            <Download className="w-4 h-4 text-slate-600" /> Export CSV
-          </Button>
+          {(isAdmin || isCentral) && (
+            <Button
+              variant="outline"
+              className="text-xs font-bold border-slate-200 hover:bg-slate-50 flex items-center gap-2"
+              onClick={() => exportRimiSalesToCSV(filteredOrders)}
+            >
+              <Download className="w-4 h-4 text-slate-600" /> Export CSV
+            </Button>
+          )}
 
           <Button
             variant="primary"
@@ -330,105 +357,117 @@ export const RimiSalesOrders: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {filteredOrders.map(o => (
-                <tr
-                  key={o.id}
-                  onClick={() => setSelectedOrder(o)}
-                  className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
-                >
-                  <td className="py-3 px-4">
-                    <span className="font-mono font-bold text-slate-900 group-hover:text-[#58051E]">{o.order_no}</span>
-                    <div className="text-[10px] text-slate-400">{o.region}</div>
-                  </td>
+              {paginatedOrders.map(o => {
+                const canAdvance = isAdmin || isCentral || Boolean(
+                  profile?.id === o.assigned_staff_id ||
+                  (profile?.full_name && o.assigned_staff_name?.toLowerCase().includes(profile.full_name.toLowerCase()))
+                );
 
-                  <td className="py-3 px-4">
-                    <div className="font-bold text-slate-900">{o.customer_name}</div>
-                    <span className={`inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.2 rounded-full border ${
-                      o.customer_type === 'Distributor' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                      o.customer_type === 'Shop' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}>
-                      {o.customer_type}
-                    </span>
-                  </td>
+                return (
+                  <tr
+                    key={o.id}
+                    onClick={() => setSelectedOrder(o)}
+                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                  >
+                    <td className="py-3 px-4">
+                      <span className="font-mono font-bold text-slate-900 group-hover:text-[#58051E]">{o.order_no}</span>
+                      <div className="text-[10px] text-slate-400">{o.region}</div>
+                    </td>
 
-                  <td className="py-3 px-4 max-w-xs">
-                    <div className="font-medium text-slate-800 line-clamp-1">{o.products_summary}</div>
-                    <div className="text-[10px] font-bold text-purple-700">{o.quantity_kg} KG Dispatched</div>
-                  </td>
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-slate-900">{o.customer_name}</div>
+                      <span className={`inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.2 rounded-full border ${
+                        o.customer_type === 'Distributor' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        o.customer_type === 'Shop' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        {o.customer_type}
+                      </span>
+                    </td>
 
-                  <td className="py-3 px-4">
-                    <div className="font-black text-slate-900 text-sm">
-                      ₹{Number(o.total_amount).toLocaleString('en-IN')}
-                    </div>
-                  </td>
+                    <td className="py-3 px-4 max-w-xs">
+                      <div className="font-medium text-slate-800 line-clamp-1">{o.products_summary}</div>
+                      <div className="text-[10px] font-bold text-purple-700">{o.quantity_kg} KG Dispatched</div>
+                    </td>
 
-                  <td className="py-3 px-4">
-                    <div className="text-[11px] font-semibold text-slate-700">Order: {o.order_date}</div>
-                    <div className="text-[10px] text-slate-400">ETA: {o.delivery_date}</div>
-                  </td>
+                    <td className="py-3 px-4">
+                      <div className="font-black text-slate-900 text-sm">
+                        ₹{Number(o.total_amount).toLocaleString('en-IN')}
+                      </div>
+                    </td>
 
-                  <td className="py-3 px-4">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAdvanceOrderStatus(o.id, o.order_status);
-                      }}
-                      className={`inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full cursor-pointer transition-all border ${
-                        o.order_status === 'Delivered'
-                          ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                          : o.order_status === 'Dispatched'
-                          ? 'bg-blue-100 text-blue-900 border-blue-300'
-                          : o.order_status === 'In Production/Packing'
-                          ? 'bg-purple-100 text-purple-900 border-purple-300'
-                          : o.order_status === 'Confirmed'
-                          ? 'bg-amber-100 text-amber-900 border-amber-300'
-                          : 'bg-slate-100 text-slate-800 border-slate-300'
-                      }`}
-                      title="Click to advance stage"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      {o.order_status} <ArrowRight className="w-2.5 h-2.5 ml-0.5" />
-                    </button>
-                  </td>
+                    <td className="py-3 px-4">
+                      <div className="text-[11px] font-semibold text-slate-700">Order: {o.order_date}</div>
+                      <div className="text-[10px] text-slate-400">ETA: {o.delivery_date}</div>
+                    </td>
 
-                  <td className="py-3 px-4">
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                      o.payment_status === 'Paid' ? 'bg-emerald-100 text-emerald-800' :
-                      o.payment_status === 'Partial' ? 'bg-amber-100 text-amber-800' :
-                      'bg-rose-100 text-rose-800'
-                    }`}>
-                      {o.payment_status}
-                    </span>
-                  </td>
-
-                  <td className="py-3 px-4">
-                    <div className="font-semibold text-slate-700 flex items-center gap-1">
-                      <UserCheck className="w-3 h-3 text-[#58051E]" />
-                      {o.assigned_staff_name}
-                    </div>
-                  </td>
-
-                  <td className="py-3 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                    <td className="py-3 px-4">
                       <button
-                        onClick={() => setSelectedOrder(o)}
-                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500"
-                        title="View Full Order"
+                        disabled={!canAdvance}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (canAdvance) {
+                            handleAdvanceOrderStatus(o.id, o.order_status);
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full ${canAdvance ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'} transition-all border ${
+                          o.order_status === 'Delivered'
+                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                            : o.order_status === 'Dispatched'
+                            ? 'bg-blue-100 text-blue-900 border-blue-300'
+                            : o.order_status === 'In Production/Packing'
+                            ? 'bg-purple-100 text-purple-900 border-purple-300'
+                            : o.order_status === 'Confirmed'
+                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                            : 'bg-slate-100 text-slate-800 border-slate-300'
+                        }`}
+                        title={canAdvance ? 'Click to advance stage' : 'Only assigned staff or admin can advance stage'}
                       >
-                        <Eye className="w-4 h-4" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                        {o.order_status} {canAdvance && <ArrowRight className="w-2.5 h-2.5 ml-0.5" />}
                       </button>
-                      <button
-                        onClick={() => handleDelete(o.id, o.order_no)}
-                        className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600"
-                        title="Delete Order"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+
+                    <td className="py-3 px-4">
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        o.payment_status === 'Paid' ? 'bg-emerald-100 text-emerald-800' :
+                        o.payment_status === 'Partial' ? 'bg-amber-100 text-amber-800' :
+                        'bg-rose-100 text-rose-800'
+                      }`}>
+                        {o.payment_status}
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-slate-700 flex items-center gap-1">
+                        <UserCheck className="w-3 h-3 text-[#58051E]" />
+                        {o.assigned_staff_name}
+                      </div>
+                    </td>
+
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => setSelectedOrder(o)}
+                          className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500"
+                          title="View Full Order"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(o.id, o.order_no)}
+                            className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600"
+                            title="Delete Order"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
 
               {filteredOrders.length === 0 && (
                 <tr>
@@ -439,6 +478,55 @@ export const RimiSalesOrders: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* ── 25 / 50 / 100 Pagination Toolbar ── */}
+        <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-slate-500 font-medium">
+            <span>Show</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="bg-white border border-slate-200 rounded px-2 py-1 font-bold text-slate-700 focus:outline-hidden"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span>orders per page</span>
+            <span className="text-slate-300">|</span>
+            <span>
+              Showing {filteredOrders.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to{' '}
+              {Math.min(currentPage * pageSize, filteredOrders.length)} of {filteredOrders.length} orders
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              className="px-2.5 py-1 text-xs"
+            >
+              Previous
+            </Button>
+            <div className="px-3 py-1 font-bold text-slate-700 bg-white border border-slate-200 rounded text-xs">
+              Page {currentPage} of {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              className="px-2.5 py-1 text-xs"
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </Card>
 

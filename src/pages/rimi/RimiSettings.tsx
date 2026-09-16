@@ -9,11 +9,12 @@ import { Button } from '../../components/Button';
 import { useRimiConfig } from '../../hooks/useRimiConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import type { RimiCustomizationConfig, RimiDistributionZone } from '../../lib/api/rimiConfig';
+import { getMasters, createMaster, deleteMaster } from '../../lib/api/masters';
 
 const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
 
 
-type RimiTab = 'branding' | 'cold_chain' | 'customer_policies' | 'broadcast' | 'zones';
+type RimiTab = 'branding' | 'cold_chain' | 'customer_policies' | 'broadcast' | 'zones' | 'masters';
 interface TabItem {
   id: RimiTab;
   label: string;
@@ -31,6 +32,59 @@ export const RimiSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<RimiTab>('branding');
   const [toast, setToast] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Master Data State
+  const [selectedMasterKey, setSelectedMasterKey] = useState<string>('pipeline_stages');
+  const [masterValues, setMasterValues] = useState<string[]>([]);
+  const [newMasterValue, setNewMasterValue] = useState('');
+  const [loadingMaster, setLoadingMaster] = useState(false);
+
+  const RIMI_MASTER_TYPES = [
+    { key: 'pipeline_stages', label: 'Pipeline Stages' },
+    { key: 'territories', label: 'Territories' },
+    { key: 'regions', label: 'Regions' },
+    { key: 'payment_terms', label: 'Payment Terms' },
+    { key: 'tags', label: 'Customer Tags' },
+    { key: 'product_categories', label: 'Product Categories' },
+    { key: 'order_statuses', label: 'Order Statuses' },
+  ];
+
+  const loadMasterData = async (key: string) => {
+    setLoadingMaster(true);
+    try {
+      const data = await getMasters('rimi', key);
+      setMasterValues(data);
+    } finally {
+      setLoadingMaster(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === 'masters') {
+      loadMasterData(selectedMasterKey);
+    }
+  }, [activeTab, selectedMasterKey]);
+
+  const handleAddMasterItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMasterValue.trim()) return;
+    const val = newMasterValue.trim();
+    if (masterValues.includes(val)) {
+      showToastMsg('This item already exists.');
+      return;
+    }
+    await createMaster('rimi', selectedMasterKey, val);
+    setNewMasterValue('');
+    await loadMasterData(selectedMasterKey);
+    showToastMsg(`Added "${val}" to ${selectedMasterKey.replace(/_/g, ' ')}`);
+  };
+
+  const handleDeleteMasterItem = async (val: string) => {
+    if (!window.confirm(`Remove "${val}" from this master list?`)) return;
+    await deleteMaster('rimi', selectedMasterKey, val);
+    await loadMasterData(selectedMasterKey);
+    showToastMsg(`Removed "${val}"`);
+  };
 
   // ── Admin-only guard ──────────────────────────────────────────
   if (!isAdmin) {
@@ -117,6 +171,7 @@ export const RimiSettings: React.FC = () => {
     { id: 'customer_policies', label: 'Customer Order Policies', icon: Sliders },
     { id: 'broadcast', label: 'Live Broadcast Ticker', icon: Megaphone, badge: form.broadcast?.is_active ? 'Live' : undefined },
     { id: 'zones', label: 'Distribution Hubs & Routes', icon: Truck, count: form.zones?.length },
+    { id: 'masters', label: 'Master Dropdowns & Lists', icon: Sliders, badge: 'Config' },
   ];
 
   return (
@@ -746,6 +801,93 @@ export const RimiSettings: React.FC = () => {
                 </Card>
               ))}
             </div>
+          </motion.div>
+        )}
+
+        {/* 6. MASTER DATA & DROPDOWNS */}
+        {activeTab === 'masters' && (
+          <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <Card className="p-6 border border-slate-200/70 shadow-xs space-y-5">
+              <div className="border-b border-slate-100 pb-3">
+                <h2 className="text-sm font-black text-slate-900">
+                  Configurable Master Data & Dropdown Lists
+                </h2>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">
+                  Manage standard choices for pipelines, territories, categories, payment terms, and tags without code edits.
+                </p>
+              </div>
+
+              {/* Master Category Selector */}
+              <div className="flex flex-wrap gap-2">
+                {RIMI_MASTER_TYPES.map((type) => (
+                  <button
+                    key={type.key}
+                    type="button"
+                    onClick={() => setSelectedMasterKey(type.key)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      selectedMasterKey === type.key
+                        ? 'bg-[#58051E] text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Current Items */}
+              <div className="bg-slate-50/75 p-4 rounded-xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-700 uppercase tracking-wider">
+                    {RIMI_MASTER_TYPES.find(t => t.key === selectedMasterKey)?.label} ({masterValues.length} items)
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-semibold">Loaded from masters.ts</span>
+                </div>
+
+                {loadingMaster ? (
+                  <div className="py-6 text-center text-xs text-slate-400 font-semibold">Loading master values...</div>
+                ) : masterValues.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-slate-400 font-semibold">No values in this list.</div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {masterValues.map((val) => (
+                      <div
+                        key={val}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 text-xs font-bold text-slate-800 shadow-2xs group"
+                      >
+                        <span>{val}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMasterItem(val)}
+                          className="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer"
+                          title="Remove item"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add New Item */}
+              <div className="pt-2 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newMasterValue}
+                  onChange={(e) => setNewMasterValue(e.target.value)}
+                  placeholder={`Add new ${RIMI_MASTER_TYPES.find(t => t.key === selectedMasterKey)?.label.toLowerCase()} option...`}
+                  className="flex-1 h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddMasterItem}
+                  className="h-10 px-5 rounded-xl text-xs font-black text-white bg-[#58051E] hover:bg-[#430316] transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Add Option
+                </button>
+              </div>
+            </Card>
           </motion.div>
         )}
 

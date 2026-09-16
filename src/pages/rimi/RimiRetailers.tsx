@@ -18,9 +18,11 @@ import {
   type RimiPipelineStage
 } from '../../lib/api/rimi';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRimiPermissions } from '../../hooks/usePermissions';
 
 export const RimiRetailers: React.FC = () => {
   const { profile } = useAuth();
+  const { isAdmin, isStaff, canViewAllCRM, canAssign, canDelete } = useRimiPermissions();
   const currentUserName = profile?.full_name || profile?.email?.split('@')[0] || 'Rimi Operations Desk';
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,6 +74,19 @@ export const RimiRetailers: React.FC = () => {
   };
 
   const filteredShops = shops.filter(s => {
+    if (!canViewAllCRM) {
+      const myId = profile?.id;
+      const myName = (profile?.full_name || '').toLowerCase();
+      const myEmail = (profile?.email || '').toLowerCase();
+      const assignedId = s.assigned_staff_id;
+      const assignedName = (s.assigned_staff_name || '').toLowerCase();
+      const isMine = Boolean(
+        (myId && assignedId === myId) ||
+        (myName && assignedName.includes(myName)) ||
+        (myEmail && (assignedName.includes(myEmail.split('@')[0]) || assignedId === myEmail))
+      );
+      if (!isMine) return false;
+    }
     if (selectedRegion !== 'All' && !s.region.toLowerCase().includes(selectedRegion.toLowerCase())) return false;
     if (selectedPaymentStatus !== 'All' && s.payment_status !== selectedPaymentStatus) return false;
     if (searchQuery.trim()) {
@@ -179,13 +194,15 @@ export const RimiRetailers: React.FC = () => {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md flex items-center gap-2"
-          onClick={() => setShowAddModal(true)}
-        >
-          <Plus className="w-4 h-4" /> Enroll Retail Shop
-        </Button>
+        {(canAssign || isAdmin) && (
+          <Button
+            variant="primary"
+            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md flex items-center gap-2"
+            onClick={() => setShowAddModal(true)}
+          >
+            <Plus className="w-4 h-4" /> Enroll Retail Shop
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -301,9 +318,11 @@ export const RimiRetailers: React.FC = () => {
                       <button onClick={() => setSelectedShop(s)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500">
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(s.id, s.business_name)} className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {canDelete && (
+                        <button onClick={() => handleDelete(s.id, s.business_name)} className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

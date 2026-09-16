@@ -18,8 +18,10 @@ import {
   type RimiStockAdjustment
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
+import { useRimiPermissions } from '../../hooks/usePermissions';
 
 export const RimiInventory: React.FC = () => {
+  const { isAdmin, isCentral, canDelete } = useRimiPermissions();
   const [activeTab, setActiveTab] = useState<'stock' | 'frost_loss' | 'adjustments'>('stock');
   const [searchQuery, setSearchQuery] = useState('');
   const [stockItems, setStockItems] = useState<any[]>([]);
@@ -34,7 +36,16 @@ export const RimiInventory: React.FC = () => {
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const emptyInward = { product_id: '', batch_number: '', warehouse_location: '', quantity: '' as any, expiry_date: '' };
+  const emptyInward = {
+    product_id: '',
+    batch_number: '',
+    warehouse_location: '',
+    quantity: '' as any,
+    mfg_date: new Date().toISOString().split('T')[0],
+    expiry_date: '',
+    reserved_qty: 0,
+    low_stock_threshold: 50
+  };
   const emptyFrostLoss = { product_name: '', batch_number: '', warehouse_location: '', quantity_lost_kg: '' as any, loss_reason: '' as any, estimated_loss_value: '' as any };
   const emptyAdjustment = { product_name: '', adjustment_type: '' as any, quantity: '' as any, unit: '', source_location: '', target_location: '', reason: '' };
 
@@ -61,19 +72,32 @@ export const RimiInventory: React.FC = () => {
       setAdjustments(adjData);
 
       if (Array.isArray(invData) && invData.length > 0) {
-        const mapped = invData.map((d: any) => ({
-          id: d.id,
-          batchNo: d.batch_number || 'LOT-GEN',
-          productName: d.product?.name || 'Frozen SKU',
-          warehouse: d.warehouse_location || 'Mumbai Central Deep Freeze',
-          quantityNum: Number(d.quantity_on_hand) || 0,
-          unitPrice: Number(d.product?.unit_price || 500),
-          quantity: `${d.quantity_on_hand} ${d.product?.unit || 'KG'}`,
-          valuation: `₹${(Number(d.quantity_on_hand) * Number(d.product?.unit_price || 500)).toLocaleString('en-IN')}`,
-          expiryDate: d.expiry_date,
-          status: Number(d.quantity_on_hand) > 50 ? 'Optimal Stock' : 'Reorder Alert',
-          statusBadge: Number(d.quantity_on_hand) > 50 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-        }));
+        const mapped = invData.map((d: any) => {
+          const qtyOnHand = Number(d.quantity_on_hand) || 0;
+          const reservedQty = Number(d.reserved_quantity != null ? d.reserved_quantity : Math.round(qtyOnHand * 0.15));
+          const availableQty = Math.max(0, qtyOnHand - reservedQty);
+          const threshold = Number(d.low_stock_threshold || d.product?.reorder_level || 50);
+          const isLowStock = availableQty <= threshold;
+          const mfgDate = d.mfg_date || (d.expiry_date ? new Date(new Date(d.expiry_date).getTime() - 365 * 86400000).toISOString().split('T')[0] : '2026-01-15');
+
+          return {
+            id: d.id,
+            batchNo: d.batch_number || 'LOT-GEN',
+            productName: d.product?.name || 'Frozen SKU',
+            warehouse: d.warehouse_location || 'Mumbai Central Deep Freeze',
+            quantityNum: qtyOnHand,
+            reservedQty,
+            availableQty,
+            lowStockThreshold: threshold,
+            mfgDate,
+            unitPrice: Number(d.product?.unit_price || 500),
+            quantity: `${availableQty} / ${qtyOnHand} ${d.product?.unit || 'KG'}`,
+            valuation: `₹${(qtyOnHand * Number(d.product?.unit_price || 500)).toLocaleString('en-IN')}`,
+            expiryDate: d.expiry_date,
+            status: !isLowStock ? 'Optimal Stock' : 'Low Stock Reorder',
+            statusBadge: !isLowStock ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+          };
+        });
         setStockItems(mapped);
       } else {
         setStockItems([]);
@@ -110,6 +134,9 @@ export const RimiInventory: React.FC = () => {
     const prodId = newInward.product_id || (products.length > 0 ? products[0].id : 'PROD-01');
     const matchedProd = products.find(p => p.id === prodId);
     const qty = Number(newInward.quantity) || 100;
+    const reserved = Number(newInward.reserved_qty) || 0;
+    const threshold = Number(newInward.low_stock_threshold) || 50;
+    const mfg = newInward.mfg_date || new Date().toISOString().split('T')[0];
     const batchNo = newInward.batch_number || `LOT-2026-${Math.floor(100 + Math.random() * 900)}`;
 
     const created = await createRimiInventoryItem({
@@ -117,23 +144,14 @@ export const RimiInventory: React.FC = () => {
       batch_number: batchNo,
       warehouse_location: newInward.warehouse_location || 'Central Cold Storage',
       quantity_on_hand: qty,
+      reserved_quantity: reserved,
+      low_stock_threshold: threshold,
+      mfg_date: mfg,
       expiry_date: newInward.expiry_date || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]
     });
 
     if (created) {
-      setStockItems(prev => [{
-        id: created.id,
-        batchNo: created.batch_number,
-        productName: matchedProd?.name || 'Frozen SKU',
-        warehouse: created.warehouse_location,
-        quantityNum: qty,
-        unitPrice: Number(matchedProd?.unit_price || 500),
-        quantity: `${qty} ${matchedProd?.unit || 'KG'}`,
-        valuation: `₹${(qty * Number(matchedProd?.unit_price || 500)).toLocaleString('en-IN')}`,
-        expiryDate: created.expiry_date,
-        status: qty > 50 ? 'Optimal Stock' : 'Reorder Alert',
-        statusBadge: qty > 50 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-      }, ...prev]);
+      await loadData();
     }
 
     setShowInwardModal(false);
@@ -277,12 +295,12 @@ export const RimiInventory: React.FC = () => {
               <Plus className="w-3.5 h-3.5 mr-1.5" /> Inward Stock
             </Button>
           )}
-          {activeTab === 'frost_loss' && (
+          {activeTab === 'frost_loss' && (isAdmin || isCentral) && (
             <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewFrostLoss(emptyFrostLoss); setShowFrostLossModal(true); }}>
               <Snowflake className="w-3.5 h-3.5 mr-1.5" /> Log New Frost Loss
             </Button>
           )}
-          {activeTab === 'adjustments' && (
+          {activeTab === 'adjustments' && (isAdmin || isCentral) && (
             <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewAdjustment(emptyAdjustment); setShowAdjustmentModal(true); }}>
               <ArrowRightLeft className="w-3.5 h-3.5 mr-1.5" /> Cold Transfer / Adjust
             </Button>
@@ -318,35 +336,35 @@ export const RimiInventory: React.FC = () => {
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveTab('stock')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'stock' ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'stock' ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`}
         >
-          Live Cold Stock Balances ({stockItems.length})
+          Cold Storage Inventory ({stockItems.length})
         </button>
         <button
           onClick={() => setActiveTab('frost_loss')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${activeTab === 'frost_loss' ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'frost_loss' ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`}
         >
-          <Snowflake className="w-3.5 h-3.5" /> Frost Loss & Shrinkage ({frostLosses.length})
+          Frost Loss Incident Ledger ({frostLosses.length})
         </button>
         <button
           onClick={() => setActiveTab('adjustments')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${activeTab === 'adjustments' ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'adjustments' ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`}
         >
-          <ArrowRightLeft className="w-3.5 h-3.5" /> Transfers & Adjustments ({adjustments.length})
+          Sub-Zero Transfers ({adjustments.length})
         </button>
       </div>
 
-      {/* Tab 1: Live Cold Stock */}
+      {/* Tab 1: Stock Batches */}
       {activeTab === 'stock' && (
         <div className="space-y-4">
-          <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
             <div className="relative w-full sm:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search product, batch #, or warehouse..."
+                placeholder="Search SKU, batch code, or warehouse bay..."
                 className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
               />
             </div>
@@ -374,10 +392,10 @@ export const RimiInventory: React.FC = () => {
                     <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
                       <th className="py-3 px-4">Product SKU & Batch</th>
                       <th className="py-3 px-4">Cold Warehouse Bay</th>
-                      <th className="py-3 px-4">Available Qty</th>
-                      <th className="py-3 px-4">Est. Valuation</th>
-                      <th className="py-3 px-4">Expiry Date</th>
-                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Available / Total Qty</th>
+                      <th className="py-3 px-4">Reserved Qty</th>
+                      <th className="py-3 px-4">Mfg & Expiry</th>
+                      <th className="py-3 px-4">Threshold & Status</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -386,21 +404,32 @@ export const RimiInventory: React.FC = () => {
                       <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="py-3.5 px-4 font-extrabold text-slate-900">
                           <div>{s.productName}</div>
-                          <span className="text-[10px] font-bold text-slate-400">{s.batchNo}</span>
+                          <span className="text-[10px] font-bold text-slate-400">Batch: {s.batchNo}</span>
                         </td>
                         <td className="py-3.5 px-4 font-bold text-slate-800">{s.warehouse}</td>
-                        <td className="py-3.5 px-4 font-black text-slate-900">{s.quantity}</td>
-                        <td className="py-3.5 px-4 font-black text-emerald-700">{s.valuation}</td>
-                        <td className="py-3.5 px-4 font-bold text-slate-700">{s.expiryDate}</td>
+                        <td className="py-3.5 px-4">
+                          <span className="font-black text-slate-900">{s.availableQty} KG</span>
+                          <span className="text-[10px] text-slate-400 block font-normal">Total: {s.quantityNum} KG</span>
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-amber-700">
+                          {s.reservedQty} KG
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="text-slate-700 font-semibold block">Exp: {s.expiryDate}</span>
+                          <span className="text-[10px] text-slate-400 font-medium">Mfg: {s.mfgDate}</span>
+                        </td>
                         <td className="py-3.5 px-4">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${s.statusBadge}`}>
                             {s.status}
                           </span>
+                          <span className="text-[9px] text-slate-400 block mt-0.5">Threshold: {s.lowStockThreshold} KG</span>
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <button onClick={() => handleDeleteItem(s.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded" title="Delete Stock Batch">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canDelete && (
+                            <button onClick={() => handleDeleteItem(s.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded" title="Delete Stock Batch">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -547,17 +576,33 @@ export const RimiInventory: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Quantity (KG/Units)</label>
-                    <input type="number" required value={newInward.quantity} onChange={(e) => setNewInward({ ...newInward, quantity: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Mfg Date</label>
+                    <input type="date" required value={newInward.mfg_date} onChange={(e) => setNewInward({ ...newInward, mfg_date: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Expiry Date</label>
                     <input type="date" required value={newInward.expiry_date} onChange={(e) => setNewInward({ ...newInward, expiry_date: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Warehouse Location</label>
-                  <input type="text" required value={newInward.warehouse_location} onChange={(e) => setNewInward({ ...newInward, warehouse_location: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Quantity (Total KG)</label>
+                    <input type="number" required value={newInward.quantity} onChange={(e) => setNewInward({ ...newInward, quantity: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Reserved Qty (KG)</label>
+                    <input type="number" value={newInward.reserved_qty} onChange={(e) => setNewInward({ ...newInward, reserved_qty: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Warehouse Location</label>
+                    <input type="text" required value={newInward.warehouse_location} onChange={(e) => setNewInward({ ...newInward, warehouse_location: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Low Stock Alert (KG)</label>
+                    <input type="number" value={newInward.low_stock_threshold} onChange={(e) => setNewInward({ ...newInward, low_stock_threshold: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  </div>
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowInwardModal(false)}>Cancel</Button>
