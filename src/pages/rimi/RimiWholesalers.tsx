@@ -1,80 +1,60 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Boxes, Search, Plus, Eye, Trash2, X, CheckCircle2, KeyRound, Copy, ShieldAlert, ShoppingBag, DollarSign } from 'lucide-react';
+import {
+  Boxes, Search, Plus, Eye, Trash2, X, CheckCircle2,
+  Phone, Mail, MapPin, Tag, MessageSquare, AlertCircle,
+  PhoneCall, Footprints, FileText, UserCheck, ArrowRight
+} from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import {
-  getRimiDistributors,
-  createRimiDistributor,
-  deleteRimiDistributor,
-  provisionRimiCustomerLogin,
-  getRimiCustomerCredentials,
-  getRimiSalesOrders,
-  getRimiPayments,
-  type ProvisionedRimiCredential
+  getRimiCustomers,
+  createRimiCustomer,
+  deleteRimiCustomer,
+  addRimiCustomerActivityNote,
+  updateRimiCustomerPipelineStage,
+  type RimiCustomer,
+  type RimiPipelineStage
 } from '../../lib/api/rimi';
-import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const RimiWholesalers: React.FC = () => {
+  const { profile } = useAuth();
+  const isStaff = profile?.role === 'staff' || profile?.role === 'operations_manager';
+  const staffName = profile?.full_name || 'Vikram Malhotra';
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedWh, setSelectedWh] = useState<any>(null);
+  const [selectedRegion, setSelectedRegion] = useState('All');
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState('All');
+  const [selectedWhl, setSelectedWhl] = useState<RimiCustomer | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
-  const [wholesalers, setWholesalers] = useState<any[]>([]);
+  const [wholesalers, setWholesalers] = useState<RimiCustomer[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Credentials State
-  const [activeCredential, setActiveCredential] = useState<ProvisionedRimiCredential | null>(null);
-  const [copiedKey, setCopiedKey] = useState(false);
-
-  // Mapped Data
-  const [whOrders, setWhOrders] = useState<any[]>([]);
-  const [whPayments, setWhPayments] = useState<any[]>([]);
-
-  const [newWh, setNewWh] = useState({ name: '', contact: '', email: '', phone: '', city: 'Navi Mumbai', credit_limit: 0 });
+  // Note state in drawer
+  const [noteType, setNoteType] = useState<'call' | 'visit' | 'complaint' | 'note'>('call');
+  const [noteText, setNoteText] = useState('');
+  const [isSubmittingNote, setIsSubmittingNote] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getRimiDistributors('Wholesaler');
-      if (Array.isArray(data)) {
-        const mapped = data.map((d: any) => ({
-          id: d.id ? `WHL-${d.id.slice(0, 4).toUpperCase()}` : 'WHL-501',
-          rawId: d.id,
-          name: d.business_name,
-          contact: d.contact_person,
-          email: d.email,
-          phone: d.phone,
-          city: d.territory || 'Navi Mumbai',
-          tier: 'Tier-1 Bulk (10+ Tons)',
-          volume: `Limit: ₹${(Number(d.credit_limit || 2500000) / 100000).toFixed(2)} Lakhs / mo`,
-          status: 'Active Wholesaler',
-          hasCredentials: !!getRimiCustomerCredentials(d.id),
-        }));
-        setWholesalers(mapped);
-      }
+      const data = await getRimiCustomers({
+        type: 'Wholesaler',
+        staffOnlyId: isStaff ? staffName : undefined
+      });
+      setWholesalers(data);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isStaff, staffName]);
 
   useEffect(() => {
     loadData();
-
-    const channel = supabase
-      .channel('realtime_rimi_wholesalers')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_distributors' }, () => {
-        loadData();
-      })
-      .subscribe();
-
-    const handleLocalChange = () => loadData();
-    window.addEventListener('ferex_rimi_distributors_change', handleLocalChange);
-
-    return () => {
-      supabase.removeChannel(channel);
-      window.removeEventListener('ferex_rimi_distributors_change', handleLocalChange);
-    };
+    const handleSync = () => loadData();
+    window.addEventListener('ferex_rimi_crm_customers_change', handleSync);
+    return () => window.removeEventListener('ferex_rimi_crm_customers_change', handleSync);
   }, [loadData]);
 
   const showToastMsg = (msg: string) => {
@@ -82,98 +62,96 @@ export const RimiWholesalers: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleAddWh = async (e: React.FormEvent) => {
+  const filteredWholesalers = wholesalers.filter(w => {
+    if (selectedRegion !== 'All' && !w.region.toLowerCase().includes(selectedRegion.toLowerCase())) {
+      return false;
+    }
+    if (selectedPaymentStatus !== 'All' && w.payment_status !== selectedPaymentStatus) {
+      return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return (
+        w.business_name.toLowerCase().includes(q) ||
+        w.contact_person.toLowerCase().includes(q) ||
+        w.region.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  const [newWhl, setNewWhl] = useState({
+    business_name: '',
+    contact_person: '',
+    phone: '',
+    email: '',
+    address: '',
+    region: 'Mumbai APMC Zone',
+    order_volume: '100 Tons / Quarter',
+    payment_terms: 'Net 30 Days',
+    credit_limit: 4000000,
+    payment_status: 'Up to Date' as const,
+    assigned_staff_name: 'Vikram Malhotra',
+    pipeline_stage: 'Active Customer' as RimiPipelineStage,
+    tags: ['high-value', 'tier-1']
+  });
+
+  const handleCreateWhl = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWh.name) return;
-    const created = await createRimiDistributor({
-      business_name: newWh.name,
-      tier: 'Wholesaler',
-      contact_person: newWh.contact || 'Wholesale In-charge',
-      email: newWh.email || `sales@${newWh.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.in`,
-      phone: newWh.phone || '+91 98190 44556',
-      territory: newWh.city,
-      credit_limit: Number(newWh.credit_limit) || 3500000
+    if (!newWhl.business_name) return;
+
+    await createRimiCustomer({
+      ...newWhl,
+      customer_type: 'Wholesaler',
+      products_ordered: ['Green Peas 1kg Bulk', 'Sweet Corn Bulk 25kg', 'Paneer Block 5kg']
     });
+
     setShowAddModal(false);
-    showToastMsg(`Added wholesaler account ${newWh.name}`);
-    setNewWh({ name: '', contact: '', email: '', phone: '', city: 'Navi Mumbai', credit_limit: 3500000 });
-    await loadData();
-
-    if (created?.id && created?.email) {
-      handleProvisionCredentials({
-        rawId: created.id,
-        name: created.business_name,
-        email: created.email,
-        contact: created.contact_person
-      });
-    }
-  };
-
-  const handleDeleteWh = async (rawId: string) => {
-    try {
-      await deleteRimiDistributor(rawId);
-      setWholesalers(prev => prev.filter(w => w.rawId !== rawId));
-      showToastMsg('Removed wholesaler partner record');
-    } catch (err: any) {
-      showToastMsg(`Error deleting wholesaler: ${err.message || 'Unknown error'}`);
-    }
-  };
-
-  const handleProvisionCredentials = async (wh: any) => {
-    const existing = getRimiCustomerCredentials(wh.rawId || wh.id);
-    if (existing) {
-      setActiveCredential(existing);
-      return;
-    }
-
-    const cred = await provisionRimiCustomerLogin({
-      id: wh.rawId || wh.id,
-      email: wh.email,
-      name: wh.name,
-      business_name: wh.name,
-      contact_person: wh.contact
-    });
-    setActiveCredential(cred);
-    showToastMsg(`Provisioned wholesale customer portal credentials for ${wh.name}`);
+    showToastMsg(`Wholesaler "${newWhl.business_name}" enrolled!`);
     loadData();
   };
 
-  const handleOpenDossier = async (wh: any) => {
-    setSelectedWh(wh);
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedWhl || !noteText.trim()) return;
+    setIsSubmittingNote(true);
     try {
-      const [orders, payments] = await Promise.all([
-        getRimiSalesOrders(),
-        getRimiPayments()
-      ]);
-      setWhOrders(orders.filter((o: any) => o.distributor_name?.includes(wh.name) || o.distributor?.business_name?.includes(wh.name)));
-      setWhPayments(payments.filter((p: any) => p.distributor_name?.includes(wh.name) || p.distributor?.business_name?.includes(wh.name)));
-    } catch {
-      setWhOrders([]);
-      setWhPayments([]);
+      const added = await addRimiCustomerActivityNote(selectedWhl.id, {
+        type: noteType,
+        text: noteText.trim(),
+        author: profile?.full_name || 'Vikram Malhotra'
+      });
+      setSelectedWhl({
+        ...selectedWhl,
+        notes: [added, ...(selectedWhl.notes || [])]
+      });
+      setNoteText('');
+      showToastMsg(`Activity logged: ${noteType.toUpperCase()}`);
+      loadData();
+    } finally {
+      setIsSubmittingNote(false);
     }
   };
 
-  const copyCredentials = () => {
-    if (!activeCredential) return;
-    const text = `FEREX RIMI FROZEN FOODS WHOLESALER ACCESS\nPortal: B2B Wholesaler Console\nEmail: ${activeCredential.email}\nTemporary Password: ${activeCredential.tempPassword}\nRole: ${activeCredential.role}\nNote: Mandatory password reset required on first sign-in.`;
-    navigator.clipboard.writeText(text);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
-    showToastMsg('Wholesaler credentials copied to clipboard!');
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Delete wholesaler "${name}"?`)) return;
+    await deleteRimiCustomer(id);
+    showToastMsg(`Wholesaler "${name}" deleted.`);
+    if (selectedWhl?.id === id) setSelectedWhl(null);
+    loadData();
   };
-
-  const filteredWh = wholesalers.filter(w =>
-    (w.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (w.contact || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (w.city || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 right-6 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             {toast}
           </motion.div>
         )}
@@ -181,299 +159,266 @@ export const RimiWholesalers: React.FC = () => {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Boxes className="w-5 h-5 text-[#58051E]" /> Bulk FMCG Wholesalers & HORECA Suppliers
-          </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Rimi Cold Chain Console • High-tonnage wholesale accounts, containerized frozen lots, and credit lines.
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              Wholesalers & Bulk Traders
+            </h1>
+            <span className="text-[10px] uppercase font-black tracking-wider bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full border border-amber-200">
+              APMC & Mandi Buyers
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 font-semibold mt-1">
+            Institutional buyers, catering suppliers, and cold chain wholesalers with volume metrics, payment terms, and assigned staff.
           </p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
-          <Plus className="w-4 h-4 mr-1.5" /> Add Wholesaler
+
+        <Button
+          variant="primary"
+          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md flex items-center gap-2"
+          onClick={() => setShowAddModal(true)}
+        >
+          <Plus className="w-4 h-4" /> Enroll Wholesaler
         </Button>
       </div>
 
-      <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search wholesaler, contact, or city..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
+      {/* Filters */}
+      <Card className="p-3.5 bg-white border-slate-200 shadow-xs">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Search wholesalers by business, contact, territory..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden"
+            />
+          </div>
+
+          <div>
+            <select
+              value={selectedRegion}
+              onChange={e => setSelectedRegion(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden"
+            >
+              <option value="All">All Territories</option>
+              <option value="Mumbai APMC">Mumbai APMC Zone</option>
+              <option value="Punjab">Punjab & Haryana Corridor</option>
+              <option value="Tamil Nadu">Tamil Nadu & Kerala Zone</option>
+            </select>
+          </div>
+
+          <div>
+            <select
+              value={selectedPaymentStatus}
+              onChange={e => setSelectedPaymentStatus(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden"
+            >
+              <option value="All">All Payment Statuses</option>
+              <option value="Up to Date">Up to Date</option>
+              <option value="Pending">Pending</option>
+              <option value="Advance Paid">Advance Paid</option>
+            </select>
+          </div>
         </div>
-        <span className="text-xs font-bold text-slate-400">{filteredWh.length} Bulk Wholesalers</span>
       </Card>
 
-      {loading ? (
-        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading wholesale accounts...</div>
-      ) : filteredWh.length === 0 ? (
-        <Card className="p-12 text-center border border-dashed border-slate-200">
-          <Boxes className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-sm font-black text-slate-800">No wholesaler accounts recorded</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">There are no wholesale accounts in this view. Register a wholesaler below.</p>
-          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
-            <Plus className="w-3.5 h-3.5 mr-1" /> Add Wholesaler
-          </Button>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredWh.map((w) => (
-            <Card key={w.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-400 uppercase">{w.id}</span>
-                  <div className="flex items-center gap-1.5">
-                    {w.hasCredentials && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
-                        <KeyRound className="w-2.5 h-2.5" /> Portal Active
-                      </span>
-                    )}
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-200">{w.status}</span>
+      {/* Table */}
+      <Card className="p-0 bg-white border-slate-200 overflow-hidden shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 text-slate-500 uppercase text-[9px] font-black tracking-wider border-b border-slate-200">
+              <tr>
+                <th className="py-3 px-4">Wholesale Entity</th>
+                <th className="py-3 px-4">Contact & Phone</th>
+                <th className="py-3 px-4">Order Volume</th>
+                <th className="py-3 px-4">Payment Terms</th>
+                <th className="py-3 px-4">Territory</th>
+                <th className="py-3 px-4">Payment Status</th>
+                <th className="py-3 px-4">Assigned Sales Lead</th>
+                <th className="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium">
+              {filteredWholesalers.map(w => (
+                <tr
+                  key={w.id}
+                  onClick={() => setSelectedWhl(w)}
+                  className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                >
+                  <td className="py-3 px-4">
+                    <div className="font-bold text-slate-900 group-hover:text-[#58051E] flex items-center gap-1.5">
+                      <Boxes className="w-3.5 h-3.5 text-amber-600" />
+                      {w.business_name}
+                    </div>
+                    <div className="text-[10px] text-slate-400">{w.id}</div>
+                  </td>
+
+                  <td className="py-3 px-4">
+                    <div className="font-semibold text-slate-800">{w.contact_person}</div>
+                    <div className="text-[10px] text-slate-500">{w.phone}</div>
+                  </td>
+
+                  <td className="py-3 px-4">
+                    <span className="font-black text-slate-800">{w.order_volume || '100 Tons / Qtr'}</span>
+                  </td>
+
+                  <td className="py-3 px-4">
+                    <span className="font-bold text-slate-700">{w.payment_terms || 'Net 30 Days'}</span>
+                  </td>
+
+                  <td className="py-3 px-4">
+                    <span className="text-slate-800">{w.region}</span>
+                  </td>
+
+                  <td className="py-3 px-4">
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                      w.payment_status === 'Advance Paid' ? 'bg-purple-100 text-purple-800' :
+                      w.payment_status === 'Pending' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {w.payment_status}
+                    </span>
+                  </td>
+
+                  <td className="py-3 px-4">
+                    <div className="font-semibold text-slate-700 flex items-center gap-1">
+                      <UserCheck className="w-3 h-3 text-[#58051E]" />
+                      {w.assigned_staff_name}
+                    </div>
+                  </td>
+
+                  <td className="py-3 px-4 text-right">
+                    <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                      <button onClick={() => setSelectedWhl(w)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDelete(w.id, w.business_name)} className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {filteredWholesalers.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-10 text-center text-slate-400 font-semibold">
+                    No wholesale account records found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* Wholesaler Drawer */}
+      <AnimatePresence>
+        {selectedWhl && (
+          <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedWhl(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" />
+            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="relative w-full max-w-xl bg-white h-full shadow-2xl z-10 flex flex-col overflow-hidden text-left">
+              <div className="p-6 bg-amber-950 text-white flex items-center justify-between shrink-0">
+                <div>
+                  <div className="text-[10px] font-black uppercase text-amber-300">{selectedWhl.id}</div>
+                  <h2 className="text-lg font-black">{selectedWhl.business_name}</h2>
+                  <p className="text-xs text-amber-200">{selectedWhl.address}</p>
+                </div>
+                <button onClick={() => setSelectedWhl(null)} className="p-2 hover:bg-white/10 rounded-xl">
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[10px] text-amber-700 font-bold block">Wholesale Head:</span>
+                    <span className="font-bold text-slate-900">{selectedWhl.contact_person}</span>
+                    <div className="text-[11px] text-slate-600 mt-1">{selectedWhl.phone}</div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-amber-700 font-bold block">Volume & Terms:</span>
+                    <span className="font-bold text-slate-900">{selectedWhl.order_volume || '150 Tons / Qtr'}</span>
+                    <div className="text-[11px] text-slate-600 mt-1">{selectedWhl.payment_terms || 'Net 30 Days'}</div>
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 leading-snug">{w.name}</h3>
-                  <p className="text-xs font-bold text-[#58051E] mt-0.5">{w.city}</p>
-                </div>
-                <div className="space-y-1 text-xs text-slate-500 pt-1">
-                  <div>In-charge: <strong className="text-slate-800">{w.contact}</strong></div>
-                  <div>Email: <strong className="text-slate-800">{w.email}</strong></div>
-                  <div>Phone: <strong className="text-slate-800">{w.phone}</strong></div>
+
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                    <MessageSquare className="w-4 h-4 text-[#58051E]" /> Wholesale Contract & Call Notes ({selectedWhl.notes?.length || 0})
+                  </h3>
+
+                  <form onSubmit={handleAddNote} className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                    <textarea rows={2} placeholder="Log rebate discussions, purchase orders, or pricing inquiries..." value={noteText} onChange={e => setNoteText(e.target.value)} className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg focus:outline-hidden" />
+                    <div className="flex justify-end">
+                      <Button type="submit" disabled={isSubmittingNote || !noteText.trim()} className="bg-[#58051E] text-white text-[10px] py-1 px-3">
+                        Post Note
+                      </Button>
+                    </div>
+                  </form>
+
+                  <div className="space-y-2">
+                    {selectedWhl.notes?.map(n => (
+                      <div key={n.id} className="p-3 bg-white rounded-xl border border-slate-200 text-xs space-y-1">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                          <span className="uppercase text-amber-800">{n.type}</span>
+                          <span>{new Date(n.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-slate-800">{n.text}</p>
+                        <div className="text-[10px] text-slate-400 font-bold">By {n.author}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-
-              <div className="space-y-2.5 pt-3 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-slate-900">{w.volume}</span>
-                  <button onClick={() => handleDeleteWh(w.rawId)} className="p-1.5 text-slate-400 hover:text-red-600 rounded" title="Delete Wholesaler">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-[11px] font-bold h-8 border-slate-200 hover:border-slate-300"
-                    onClick={() => handleOpenDossier(w)}
-                  >
-                    <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> Dossier & Orders
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="text-[11px] font-bold h-8 bg-[#58051E] hover:bg-[#430316]"
-                    onClick={() => handleProvisionCredentials(w)}
-                  >
-                    <KeyRound className="w-3 h-3 mr-1 text-amber-300" />
-                    {w.hasCredentials ? 'View Login' : 'Provision Login'}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Add Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900">Add Bulk FMCG Wholesaler</h3>
-                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddModal(false)} className="fixed inset-0 bg-slate-900/50" />
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="relative w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl z-10 space-y-4">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 className="font-black text-sm text-slate-900">Enroll Wholesaler Entity</h3>
+                <button onClick={() => setShowAddModal(false)}><X className="w-5 h-5 text-slate-400" /></button>
               </div>
-              <form onSubmit={handleAddWh} className="space-y-3">
+
+              <form onSubmit={handleCreateWhl} className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Company / Business Name</label>
-                  <input type="text" required value={newWh.name} onChange={(e) => setNewWh({ ...newWh, name: e.target.value })} placeholder="e.g. Royal Ocean Wholesale Seafood Traders" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Contact Person / Trade Lead</label>
-                  <input type="text" required value={newWh.contact} onChange={(e) => setNewWh({ ...newWh, contact: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <label className="block font-bold text-slate-700 mb-1">Business Name *</label>
+                  <input required placeholder="e.g. Metro Mega Food Wholesalers" value={newWhl.business_name} onChange={e => setNewWhl({ ...newWhl, business_name: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Territory / Hub City</label>
-                    <input type="text" required value={newWh.city} onChange={(e) => setNewWh({ ...newWh, city: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block font-bold text-slate-700 mb-1">Contact Person *</label>
+                    <input required placeholder="e.g. Sunil Chhabra" value={newWhl.contact_person} onChange={e => setNewWhl({ ...newWhl, contact_person: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Credit Limit (₹)</label>
-                    <input type="number" value={newWh.credit_limit} onChange={(e) => setNewWh({ ...newWh, credit_limit: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block font-bold text-slate-700 mb-1">Phone</label>
+                    <input placeholder="+91 98200 00000" value={newWhl.phone} onChange={e => setNewWhl({ ...newWhl, phone: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Email Address</label>
-                    <input type="email" required value={newWh.email} onChange={(e) => setNewWh({ ...newWh, email: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block font-bold text-slate-700 mb-1">Order Volume</label>
+                    <input placeholder="150 Tons / Quarter" value={newWhl.order_volume} onChange={e => setNewWhl({ ...newWhl, order_volume: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Phone</label>
-                    <input type="text" value={newWh.phone} onChange={(e) => setNewWh({ ...newWh, phone: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block font-bold text-slate-700 mb-1">Payment Terms</label>
+                    <input placeholder="Net 30 Days" value={newWhl.payment_terms} onChange={e => setNewWhl({ ...newWhl, payment_terms: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
                   </div>
                 </div>
-                <div className="pt-3 flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save & Provision</Button>
+                <div className="flex justify-end gap-2 pt-3">
+                  <Button type="button" variant="ghost" onClick={() => setShowAddModal(false)}>Cancel</Button>
+                  <Button type="submit" variant="primary" className="bg-[#58051E] text-white">Save Wholesaler</Button>
                 </div>
               </form>
             </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Credentials Modal */}
-      <AnimatePresence>
-        {activeCredential && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setActiveCredential(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
-                    <KeyRound className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900">Wholesaler Portal Access</h3>
-                    <p className="text-[11px] font-semibold text-slate-500">{activeCredential.businessName}</p>
-                  </div>
-                </div>
-                <button onClick={() => setActiveCredential(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-              </div>
-
-              <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-xs font-semibold text-amber-800 flex items-start gap-2.5">
-                <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold block">First-Time Password Reset Required</span>
-                  Wholesaler trade manager will configure permanent password on first login.
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs font-semibold">
-                <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
-                  <span className="text-slate-400">Portal Login:</span>
-                  <span className="font-mono text-slate-700">/login</span>
-                </div>
-                <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
-                  <span className="text-slate-400">Email:</span>
-                  <span className="font-bold text-slate-900">{activeCredential.email}</span>
-                </div>
-                <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
-                  <span className="text-slate-400">Temporary Password:</span>
-                  <span className="font-mono font-black text-[#58051E] text-sm bg-white px-2 py-0.5 rounded border border-slate-200">{activeCredential.tempPassword}</span>
-                </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-slate-400">Authorized Role:</span>
-                  <span className="font-bold text-emerald-700 uppercase text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{activeCredential.role}</span>
-                </div>
-              </div>
-
-              <div className="pt-2 flex gap-2">
-                <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={copyCredentials}>
-                  {copiedKey ? <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
-                  {copiedKey ? 'Copied Details' : 'Copy Access Credentials'}
-                </Button>
-                <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setActiveCredential(null)}>Done</Button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Dossier Drawer */}
-      <AnimatePresence>
-        {selectedWh && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900 z-40" onClick={() => setSelectedWh(null)} />
-            <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-lg bg-white z-50 shadow-2xl p-6 overflow-y-auto">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900">{selectedWh.name}</h3>
-                  <span className="text-[10px] font-bold text-[#58051E] uppercase">Wholesale Account Dossier</span>
-                </div>
-                <button onClick={() => setSelectedWh(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-4 h-4" /></button>
-              </div>
-
-              <div className="space-y-5 text-left text-xs">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-black text-[#58051E] uppercase">{selectedWh.id}</span>
-                  <h4 className="text-base font-black text-slate-900">{selectedWh.name}</h4>
-                  <p className="text-xs font-semibold text-slate-500">{selectedWh.city} · {selectedWh.tier}</p>
-                </div>
-
-                <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs font-semibold text-slate-700">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Trade Lead:</span>
-                    <span className="font-bold text-slate-900">{selectedWh.contact}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Email:</span>
-                    <span className="font-bold text-slate-900">{selectedWh.email}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Phone:</span>
-                    <span className="font-bold text-slate-900">{selectedWh.phone}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Facility Terms:</span>
-                    <span className="font-bold text-slate-900">{selectedWh.volume}</span>
-                  </div>
-                </div>
-
-                {/* Sales Orders */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <ShoppingBag className="w-3.5 h-3.5 text-[#58051E]" /> Tonnage Orders ({whOrders.length})
-                  </h4>
-                  {whOrders.length === 0 ? (
-                    <div className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center font-medium">No sales orders found</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {whOrders.map((o: any) => (
-                        <div key={o.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1">
-                          <div className="flex justify-between font-bold text-slate-900">
-                            <span>{o.order_number || o.id}</span>
-                            <span className="text-[#58051E]">₹{Number(o.total_amount || 0).toLocaleString('en-IN')}</span>
-                          </div>
-                          <div className="flex justify-between text-[11px] text-slate-500">
-                            <span>Target Delivery: {o.delivery_date || 'Cold Logistics'}</span>
-                            <span className="font-bold text-emerald-700">{o.order_status || 'Received'}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Collections */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-[#58051E]" /> Payment Receipts ({whPayments.length})
-                  </h4>
-                  {whPayments.length === 0 ? (
-                    <div className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center font-medium">No recorded settlements</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {whPayments.map((p: any) => (
-                        <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex justify-between items-center">
-                          <div>
-                            <span className="font-bold text-slate-800 block">{p.receipt_number || p.id}</span>
-                            <span className="text-[11px] text-slate-400">Method: {p.payment_method || 'NEFT'}</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-black text-emerald-700 block">₹{Number(p.amount || 0).toLocaleString('en-IN')}</span>
-                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">{p.status || 'Received'}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setSelectedWh(null)}>
-                  Close Dossier
-                </Button>
-              </div>
-            </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
     </div>

@@ -1,177 +1,168 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Search, Plus, Eye, Trash2, X, CheckCircle2, ShoppingBag, DollarSign } from 'lucide-react';
+import {
+  Building2, Search, Plus, Eye, Trash2, X, CheckCircle2,
+  Phone, Mail, MapPin, Tag, MessageSquare, AlertCircle,
+  PhoneCall, Footprints, FileText, UserCheck, ArrowRight
+} from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import {
-  getRimiDistributors,
-  createRimiDistributor,
-  deleteRimiDistributor,
-  provisionRimiCustomerLogin,
-  getRimiCustomerCredentials,
+  getRimiCustomers,
+  createRimiCustomer,
+  deleteRimiCustomer,
+  addRimiCustomerActivityNote,
+  updateRimiCustomerPipelineStage,
   getRimiSalesOrders,
-  getRimiPayments,
-  type ProvisionedRimiCredential
+  type RimiCustomer,
+  type RimiPipelineStage
 } from '../../lib/api/rimi';
-import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const RimiDistributors: React.FC = () => {
+  const { profile } = useAuth();
+  const isStaff = profile?.role === 'staff' || profile?.role === 'operations_manager';
+  const staffName = profile?.full_name || 'Vikram Malhotra';
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDist, setSelectedDist] = useState<any>(null);
+  const [selectedRegion, setSelectedRegion] = useState('All');
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState('All');
+  const [selectedDist, setSelectedDist] = useState<RimiCustomer | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
-  const [distributors, setDistributors] = useState<any[]>([]);
+  const [distributors, setDistributors] = useState<RimiCustomer[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Credentials State
-  const [activeCredential, setActiveCredential] = useState<ProvisionedRimiCredential | null>(null);
-  const [copiedKey, setCopiedKey] = useState(false);
-
-
-  // Mapped Data
+  // Note form in drawer
+  const [noteType, setNoteType] = useState<'call' | 'visit' | 'complaint' | 'note'>('call');
+  const [noteText, setNoteText] = useState('');
+  const [isSubmittingNote, setIsSubmittingNote] = useState(false);
   const [distOrders, setDistOrders] = useState<any[]>([]);
-  const [distPayments, setDistPayments] = useState<any[]>([]);
-
-  const [newDist, setNewDist] = useState({
-    name: '',
-    territory: 'Western Zone (Maharashtra & Gujarat)',
-    contact: '',
-    email: '',
-    phone: '',
-    credit_limit: 5000000
-  });
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getRimiDistributors('Distributor');
-      if (Array.isArray(data)) {
-        const mapped = data.map((d: any) => ({
-          id: d.id ? `DST-${d.id.slice(0, 4).toUpperCase()}` : 'DST-301',
-          rawId: d.id,
-          name: d.business_name,
-          region: d.territory || 'Western Zone',
-          contact: d.contact_person,
-          email: d.email,
-          phone: d.phone,
-          volume: `Limit: ₹${(Number(d.credit_limit || 1000000) / 100000).toFixed(2)} Lakhs`,
-          status: d.status || 'Active Regional',
-        }));
-        setDistributors(mapped);
-      }
+      const data = await getRimiCustomers({
+        type: 'Distributor',
+        staffOnlyId: isStaff ? staffName : undefined
+      });
+      setDistributors(data);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isStaff, staffName]);
 
   useEffect(() => {
     loadData();
-
-    const channel = supabase
-      .channel('realtime_rimi_distributors_sub')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_distributors' }, () => {
-        loadData();
-      })
-      .subscribe();
-
-    const handleLocalChange = () => loadData();
-    window.addEventListener('ferex_rimi_distributors_change', handleLocalChange);
-
-    return () => {
-      supabase.removeChannel(channel);
-      window.removeEventListener('ferex_rimi_distributors_change', handleLocalChange);
-    };
+    const handleSync = () => loadData();
+    window.addEventListener('ferex_rimi_crm_customers_change', handleSync);
+    return () => window.removeEventListener('ferex_rimi_crm_customers_change', handleSync);
   }, [loadData]);
+
+  useEffect(() => {
+    if (!selectedDist) return;
+    (async () => {
+      const allOrders = await getRimiSalesOrders();
+      setDistOrders(allOrders.filter(o => o.customer_id === selectedDist.id || o.customer_name === selectedDist.business_name));
+    })();
+  }, [selectedDist]);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleAddDist = async (e: React.FormEvent) => {
+  const filteredDistributors = distributors.filter(d => {
+    if (selectedRegion !== 'All' && !d.region.toLowerCase().includes(selectedRegion.toLowerCase())) {
+      return false;
+    }
+    if (selectedPaymentStatus !== 'All' && d.payment_status !== selectedPaymentStatus) {
+      return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return (
+        d.business_name.toLowerCase().includes(q) ||
+        d.contact_person.toLowerCase().includes(q) ||
+        d.email.toLowerCase().includes(q) ||
+        d.region.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  const [newDist, setNewDist] = useState({
+    business_name: '',
+    contact_person: '',
+    phone: '',
+    email: '',
+    address: '',
+    region: 'Western Zone (Maharashtra)',
+    order_history_volume: '40,000 MT / Year',
+    credit_period_days: 30,
+    credit_limit: 5000000,
+    payment_status: 'Up to Date' as const,
+    assigned_staff_name: 'Vikram Malhotra',
+    pipeline_stage: 'Active Customer' as RimiPipelineStage,
+    tags: ['high-value']
+  });
+
+  const handleCreateDist = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDist.name) return;
-    const created = await createRimiDistributor({
-      business_name: newDist.name,
-      tier: 'Distributor',
-      territory: newDist.territory,
-      contact_person: newDist.contact || 'Regional Lead',
-      email: newDist.email || `contact@${newDist.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.in`,
-      phone: newDist.phone || '+91 98200 11223',
-      credit_limit: Number(newDist.credit_limit) || 5000000
+    if (!newDist.business_name) return;
+
+    await createRimiCustomer({
+      ...newDist,
+      customer_type: 'Distributor',
+      products_distributed: ['Green Peas 1kg', 'Sweet Corn 500g', 'Paneer Block 1kg', 'Mixed Berries']
     });
+
     setShowAddModal(false);
-    showToastMsg(`Added regional distributor ${newDist.name}`);
-    setNewDist({ name: '', territory: 'Western Zone (Maharashtra & Gujarat)', contact: '', email: '', phone: '', credit_limit: 5000000 });
-    await loadData();
-  };
-
-  const handleDeleteDist = async (rawId: string) => {
-    try {
-      await deleteRimiDistributor(rawId);
-      setDistributors(prev => prev.filter(d => d.rawId !== rawId));
-      showToastMsg('Removed distributor partner record');
-    } catch (err: any) {
-      showToastMsg(`Error deleting distributor: ${err.message || 'Unknown error'}`);
-    }
-  };
-
-  const handleProvisionCredentials = async (dist: any) => {
-    const existing = getRimiCustomerCredentials(dist.rawId || dist.id);
-    if (existing) {
-      setActiveCredential(existing);
-      return;
-    }
-
-    const cred = await provisionRimiCustomerLogin({
-      id: dist.rawId || dist.id,
-      email: dist.email,
-      name: dist.name,
-      business_name: dist.name,
-      contact_person: dist.contact
-    });
-    setActiveCredential(cred);
-    showToastMsg(`Provisioned distributor portal login for ${dist.name}`);
+    showToastMsg(`Regional Distributor "${newDist.business_name}" registered!`);
     loadData();
   };
 
-  const copyCredentials = () => {
-    if (!activeCredential) return;
-    const text = `FEREX RIMI FROZEN FOODS DISTRIBUTOR ACCESS\nPortal: Regional FMCG Distributor Console\nEmail: ${activeCredential.email}\nTemporary Password: ${activeCredential.tempPassword}\nRole: ${activeCredential.role}\nNote: Mandatory password reset required on first sign-in.`;
-    navigator.clipboard.writeText(text);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
-    showToastMsg('Distributor credentials copied to clipboard!');
-  };
-
-  const handleOpenDossier = async (dist: any) => {
-    setSelectedDist(dist);
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDist || !noteText.trim()) return;
+    setIsSubmittingNote(true);
     try {
-      const [orders, payments] = await Promise.all([
-        getRimiSalesOrders(),
-        getRimiPayments()
-      ]);
-      setDistOrders(orders.filter((o: any) => o.distributor_name?.includes(dist.name) || o.distributor?.business_name?.includes(dist.name)));
-      setDistPayments(payments.filter((p: any) => p.distributor_name?.includes(dist.name) || p.distributor?.business_name?.includes(dist.name)));
-    } catch {
-      setDistOrders([]);
-      setDistPayments([]);
+      const added = await addRimiCustomerActivityNote(selectedDist.id, {
+        type: noteType,
+        text: noteText.trim(),
+        author: profile?.full_name || 'Vikram Malhotra'
+      });
+      setSelectedDist({
+        ...selectedDist,
+        notes: [added, ...(selectedDist.notes || [])]
+      });
+      setNoteText('');
+      showToastMsg(`Activity logged: ${noteType.toUpperCase()}`);
+      loadData();
+    } finally {
+      setIsSubmittingNote(false);
     }
   };
 
-
-  const filteredDist = distributors.filter(d =>
-    (d.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (d.region || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (d.contact || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Delete distributor "${name}"?`)) return;
+    await deleteRimiCustomer(id);
+    showToastMsg(`Distributor "${name}" deleted.`);
+    if (selectedDist?.id === id) setSelectedDist(null);
+    loadData();
+  };
 
   return (
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 right-6 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             {toast}
           </motion.div>
         )}
@@ -179,220 +170,328 @@ export const RimiDistributors: React.FC = () => {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-[#58051E]" /> Regional FMCG Distributors Directory
-          </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Rimi Cold Chain Console • Master distributor territories, multi-ton allocations, and portal credentials.
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              Distributor Management
+            </h1>
+            <span className="text-[10px] uppercase font-black tracking-wider bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-200">
+              Regional FMCG Hubs
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 font-semibold mt-1">
+            Cold chain distributors mapped with credit periods, credit limits, distributed products, order history, and assigned sales officers.
           </p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
-          <Plus className="w-4 h-4 mr-1.5" /> Add Regional Distributor
+
+        <Button
+          variant="primary"
+          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md flex items-center gap-2"
+          onClick={() => setShowAddModal(true)}
+        >
+          <Plus className="w-4 h-4" /> Register Distributor
         </Button>
       </div>
 
-      <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search distributor or territory..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
+      {/* Filter Bar */}
+      <Card className="p-3.5 bg-white border-slate-200 shadow-xs">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Search distributors by name, contact, territory..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden"
+            />
+          </div>
+
+          <div>
+            <select
+              value={selectedRegion}
+              onChange={e => setSelectedRegion(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden"
+            >
+              <option value="All">All Territories</option>
+              <option value="Western Zone">Western Zone (Maharashtra)</option>
+              <option value="Gujarat">Gujarat Territory</option>
+              <option value="South Central">South Central Hub</option>
+              <option value="North Zone">North Zone (NCR & Punjab)</option>
+            </select>
+          </div>
+
+          <div>
+            <select
+              value={selectedPaymentStatus}
+              onChange={e => setSelectedPaymentStatus(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden"
+            >
+              <option value="All">All Payment Statuses</option>
+              <option value="Up to Date">Up to Date</option>
+              <option value="Pending">Pending</option>
+              <option value="Overdue">Overdue</option>
+              <option value="Advance Paid">Advance Paid</option>
+            </select>
+          </div>
         </div>
-        <span className="text-xs font-bold text-slate-400">{filteredDist.length} Master Distributors</span>
       </Card>
 
-      {loading ? (
-        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading distributors directory...</div>
-      ) : filteredDist.length === 0 ? (
-        <Card className="p-12 text-center border border-dashed border-slate-200">
-          <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-sm font-black text-slate-800">No regional distributors found</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">There are no active regional distributor accounts recorded. Add one below.</p>
-          <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
-            <Plus className="w-3.5 h-3.5 mr-1" /> Add Regional Distributor
-          </Button>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredDist.map((d) => (
-            <Card key={d.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-400 uppercase">{d.id}</span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-200">{d.status}</span>
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 leading-snug">{d.name}</h3>
-                  <p className="text-xs font-bold text-[#58051E] mt-0.5">{d.region}</p>
-                </div>
-                <div className="space-y-1 text-xs text-slate-500 pt-1">
-                  <div>Contact: <strong className="text-slate-800">{d.contact}</strong></div>
-                  <div>Email: <strong className="text-slate-800">{d.email}</strong></div>
-                  <div>Phone: <strong className="text-slate-800">{d.phone}</strong></div>
-                </div>
-              </div>
+      {/* Table */}
+      <Card className="p-0 bg-white border-slate-200 overflow-hidden shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 text-slate-500 uppercase text-[9px] font-black tracking-wider border-b border-slate-200">
+              <tr>
+                <th className="py-3 px-4">Distributor Entity</th>
+                <th className="py-3 px-4">Contact & Phone</th>
+                <th className="py-3 px-4">Territory / Region</th>
+                <th className="py-3 px-4">Volume History</th>
+                <th className="py-3 px-4">Credit Terms & Limit</th>
+                <th className="py-3 px-4">Payment Status</th>
+                <th className="py-3 px-4">Assigned Staff</th>
+                <th className="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium">
+              {filteredDistributors.map(d => (
+                <tr
+                  key={d.id}
+                  onClick={() => setSelectedDist(d)}
+                  className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                >
+                  <td className="py-3 px-4">
+                    <div className="font-bold text-slate-900 group-hover:text-[#58051E] flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                      {d.business_name}
+                    </div>
+                    <div className="text-[10px] text-slate-400">{d.id}</div>
+                  </td>
 
-              <div className="space-y-2.5 pt-3 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-slate-900">{d.volume}</span>
-                  <button onClick={() => handleDeleteDist(d.rawId)} className="p-1.5 text-slate-400 hover:text-red-600 rounded" title="Delete Distributor">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                  <td className="py-3 px-4">
+                    <div className="font-semibold text-slate-800">{d.contact_person}</div>
+                    <div className="text-[10px] text-slate-500">{d.phone}</div>
+                  </td>
 
-                <div className="grid grid-cols-1 gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-[11px] font-bold h-8 border-slate-200 hover:border-slate-300"
-                    onClick={() => handleOpenDossier(d)}
-                  >
-                    <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> View Dossier & Orders
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
+                  <td className="py-3 px-4">
+                    <div className="font-semibold text-slate-800 flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-slate-400" />
+                      {d.region}
+                    </div>
+                  </td>
+
+                  <td className="py-3 px-4">
+                    <span className="font-bold text-slate-700">{d.order_history_volume || '35,000 MT / Year'}</span>
+                  </td>
+
+                  <td className="py-3 px-4">
+                    <div className="font-bold text-slate-800">₹{Number(d.credit_limit || 0).toLocaleString('en-IN')}</div>
+                    <div className="text-[10px] text-slate-500">{d.credit_period_days || 30} Days Credit</div>
+                  </td>
+
+                  <td className="py-3 px-4">
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                      d.payment_status === 'Overdue' ? 'bg-rose-100 text-rose-800' :
+                      d.payment_status === 'Pending' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {d.payment_status}
+                    </span>
+                  </td>
+
+                  <td className="py-3 px-4">
+                    <div className="font-semibold text-slate-700 flex items-center gap-1">
+                      <UserCheck className="w-3 h-3 text-[#58051E]" />
+                      {d.assigned_staff_name}
+                    </div>
+                  </td>
+
+                  <td className="py-3 px-4 text-right">
+                    <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => setSelectedDist(d)}
+                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(d.id, d.business_name)}
+                        className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {filteredDistributors.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-10 text-center text-slate-400 font-semibold">
+                    No distributor accounts found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </Card>
+
+      {/* Distributor Detail Drawer */}
+      <AnimatePresence>
+        {selectedDist && (
+          <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedDist(null)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs"
+            />
+
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="relative w-full max-w-xl bg-white h-full shadow-2xl z-10 flex flex-col overflow-hidden text-left"
+            >
+              <div className="p-6 bg-[#58051E] text-white flex items-center justify-between shrink-0">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-white/70">{selectedDist.id}</div>
+                  <h2 className="text-lg font-black">{selectedDist.business_name}</h2>
+                  <p className="text-xs text-white/80">{selectedDist.region}</p>
+                </div>
+                <button onClick={() => setSelectedDist(null)} className="p-2 hover:bg-white/10 rounded-xl">
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block">Contact Person:</span>
+                    <span className="font-bold text-slate-900">{selectedDist.contact_person}</span>
+                    <div className="text-[11px] text-slate-600 mt-1">{selectedDist.phone}</div>
+                    <div className="text-[11px] text-slate-600">{selectedDist.email}</div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block">Credit & Terms:</span>
+                    <span className="font-bold text-slate-900">₹{Number(selectedDist.credit_limit || 0).toLocaleString('en-IN')}</span>
+                    <div className="text-[11px] text-slate-600 mt-1">{selectedDist.credit_period_days || 30} Days Net Period</div>
+                    <div className="text-[11px] text-emerald-700 font-black">Status: {selectedDist.payment_status}</div>
+                  </div>
+                </div>
+
+                {/* Products Distributed */}
+                <div className="space-y-2">
+                  <h3 className="text-xs font-black text-slate-900">Distributed Products Catalog</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(selectedDist.products_distributed || ['Green Peas 1kg', 'Sweet Corn 500g', 'Paneer Block 1kg', 'French Fries Premium']).map(p => (
+                      <span key={p} className="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-800 rounded-lg border border-blue-200">
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Activity Logging */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                    <MessageSquare className="w-4 h-4 text-[#58051E]" /> Activity Log & Notes ({selectedDist.notes?.length || 0})
+                  </h3>
+
+                  <form onSubmit={handleAddNote} className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex gap-1.5">
+                      {(['call', 'visit', 'complaint', 'note'] as const).map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setNoteType(t)}
+                          className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                            noteType === t ? 'bg-[#58051E] text-white' : 'bg-white text-slate-600 border border-slate-200'
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      rows={2}
+                      placeholder="Add interaction note..."
+                      value={noteText}
+                      onChange={e => setNoteText(e.target.value)}
+                      className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg focus:outline-hidden"
+                    />
+                    <div className="flex justify-end">
+                      <Button type="submit" disabled={isSubmittingNote || !noteText.trim()} className="bg-[#58051E] text-white text-[10px] py-1 px-3">
+                        Post Log
+                      </Button>
+                    </div>
+                  </form>
+
+                  <div className="space-y-2">
+                    {selectedDist.notes?.map(n => (
+                      <div key={n.id} className="p-3 bg-white rounded-xl border border-slate-200 text-xs space-y-1">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                          <span className="uppercase text-[#58051E]">{n.type}</span>
+                          <span>{new Date(n.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-slate-800 font-medium">{n.text}</p>
+                        <div className="text-[10px] text-slate-400">By {n.author}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Add Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900">Add Regional Master Distributor</h3>
-                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddModal(false)} className="fixed inset-0 bg-slate-900/50" />
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="relative w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl z-10 space-y-4">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 className="font-black text-sm text-slate-900">Register Distributor Entity</h3>
+                <button onClick={() => setShowAddModal(false)}><X className="w-5 h-5 text-slate-400" /></button>
               </div>
-              <form onSubmit={handleAddDist} className="space-y-3">
+
+              <form onSubmit={handleCreateDist} className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Company / Entity Name</label>
-                  <input type="text" required value={newDist.name} onChange={(e) => setNewDist({ ...newDist, name: e.target.value })} placeholder="e.g. Apex Cold Logistics LLP" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Territory / Region</label>
-                  <input type="text" required value={newDist.territory} onChange={(e) => setNewDist({ ...newDist, territory: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <label className="block font-bold text-slate-700 mb-1">Business Name *</label>
+                  <input required placeholder="e.g. Apex Cold Logistics Ltd" value={newDist.business_name} onChange={e => setNewDist({ ...newDist, business_name: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Contact Person</label>
-                    <input type="text" required value={newDist.contact} onChange={(e) => setNewDist({ ...newDist, contact: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block font-bold text-slate-700 mb-1">Contact Person *</label>
+                    <input required placeholder="e.g. Rajesh Sharma" value={newDist.contact_person} onChange={e => setNewDist({ ...newDist, contact_person: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Phone Number</label>
-                    <input type="text" value={newDist.phone} onChange={(e) => setNewDist({ ...newDist, phone: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block font-bold text-slate-700 mb-1">Phone</label>
+                    <input placeholder="+91 98200 00000" value={newDist.phone} onChange={e => setNewDist({ ...newDist, phone: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Email Address</label>
-                  <input type="email" required value={newDist.email} onChange={(e) => setNewDist({ ...newDist, email: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Territory</label>
+                    <input placeholder="Western Zone (Maharashtra)" value={newDist.region} onChange={e => setNewDist({ ...newDist, region: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Credit Limit (INR)</label>
+                    <input type="number" value={newDist.credit_limit} onChange={e => setNewDist({ ...newDist, credit_limit: Number(e.target.value) })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
+                  </div>
                 </div>
-                <div className="pt-3 flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Add Distributor</Button>
+                <div className="flex justify-end gap-2 pt-3">
+                  <Button type="button" variant="ghost" onClick={() => setShowAddModal(false)}>Cancel</Button>
+                  <Button type="submit" variant="primary" className="bg-[#58051E] text-white">Save Distributor</Button>
                 </div>
               </form>
             </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Dossier Drawer */}
-      <AnimatePresence>
-        {selectedDist && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900 z-40" onClick={() => setSelectedDist(null)} />
-            <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-lg bg-white z-50 shadow-2xl p-6 overflow-y-auto">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900">{selectedDist.name}</h3>
-                  <span className="text-[10px] font-bold text-[#58051E] uppercase">Regional Distributor Dossier</span>
-                </div>
-                <button onClick={() => setSelectedDist(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-4 h-4" /></button>
-              </div>
-
-              <div className="space-y-5 text-left text-xs">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-black text-[#58051E] uppercase">{selectedDist.id}</span>
-                  <h4 className="text-base font-black text-slate-900">{selectedDist.name}</h4>
-                  <p className="text-xs font-semibold text-slate-500">{selectedDist.region}</p>
-                </div>
-
-                <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs font-semibold text-slate-700">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Regional Contact:</span>
-                    <span className="font-bold text-slate-900">{selectedDist.contact}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Email:</span>
-                    <span className="font-bold text-slate-900">{selectedDist.email}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Phone:</span>
-                    <span className="font-bold text-slate-900">{selectedDist.phone}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Credit Facility:</span>
-                    <span className="font-bold text-slate-900">{selectedDist.volume}</span>
-                  </div>
-                </div>
-
-                {/* Sales Orders */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <ShoppingBag className="w-3.5 h-3.5 text-[#58051E]" /> Active Bulk Orders ({distOrders.length})
-                  </h4>
-                  {distOrders.length === 0 ? (
-                    <div className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center font-medium">No sales orders found</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {distOrders.map((o: any) => (
-                        <div key={o.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1">
-                          <div className="flex justify-between font-bold text-slate-900">
-                            <span>{o.order_number || o.id}</span>
-                            <span className="text-[#58051E]">₹{Number(o.total_amount || 0).toLocaleString('en-IN')}</span>
-                          </div>
-                          <div className="flex justify-between text-[11px] text-slate-500">
-                            <span>Delivery Due: {o.delivery_date || 'Standard Dispatch'}</span>
-                            <span className="font-bold text-emerald-700">{o.order_status || 'Received'}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Collections */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-[#58051E]" /> Collections & Settlement Slips ({distPayments.length})
-                  </h4>
-                  {distPayments.length === 0 ? (
-                    <div className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center font-medium">No recorded settlements</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {distPayments.map((p: any) => (
-                        <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex justify-between items-center">
-                          <div>
-                            <span className="font-bold text-slate-800 block">{p.receipt_number || p.id}</span>
-                            <span className="text-[11px] text-slate-400">Method: {p.payment_method || 'NEFT'}</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-black text-emerald-700 block">₹{Number(p.amount || 0).toLocaleString('en-IN')}</span>
-                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">{p.status || 'Received'}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setSelectedDist(null)}>
-                  Close Dossier
-                </Button>
-              </div>
-            </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
     </div>

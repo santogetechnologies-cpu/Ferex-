@@ -76,7 +76,7 @@ export const RimiMessages: React.FC = () => {
             baseContacts.push({
               id: `dist-${dist.id || idx}`,
               name: `${dist.contact_person || 'Procurement'} (${dist.business_name})`,
-              role: `${dist.tier || 'Retailer'} Partner • ${dist.territory || 'Hub'}`,
+              role: `${dist.customer_type || dist.tier || 'Retailer'} Partner • ${dist.region || dist.territory || 'Hub'}`,
               type: 'retailer',
               time: 'Recent'
             });

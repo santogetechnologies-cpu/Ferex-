@@ -82,36 +82,36 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       ]
     },
     {
-      title: 'SALES',
+      title: 'CRM & CUSTOMERS',
       items: [
-        { label: 'Customers', path: '/rimi/customers', icon: Users },
+        { label: 'All Customers', path: '/rimi/customers', icon: Users },
         { label: 'Distributors', path: '/rimi/distributors', icon: Building2 },
-        { label: 'Retailers', path: '/rimi/retailers', icon: Store },
+        { label: 'Shops & Retailers', path: '/rimi/retailers', icon: Store },
         { label: 'Wholesalers', path: '/rimi/wholesalers', icon: Boxes },
         { label: 'Sales Orders', path: '/rimi/sales-orders', icon: ShoppingCart }
       ]
     },
     {
-      title: 'INVENTORY',
+      title: 'INVENTORY & BATCHES',
       items: [
         { label: 'Products', path: '/rimi/products', icon: Package },
-        { label: 'Inventory', path: '/rimi/inventory', icon: Boxes },
+        { label: 'Cold Inventory', path: '/rimi/inventory', icon: Boxes },
         { label: 'Warehouses', path: '/rimi/warehouses', icon: Warehouse },
         { label: 'Batch Tracking', path: '/rimi/batch-tracking', icon: QrCode },
         { label: 'Expiry Tracking', path: '/rimi/expiry-tracking', icon: Clock }
       ]
     },
     {
-      title: 'LOGISTICS',
+      title: 'LOGISTICS & FLEET',
       items: [
         { label: 'Deliveries', path: '/rimi/deliveries', icon: Truck },
         { label: 'Collections', path: '/rimi/collections', icon: DollarSign },
-        { label: 'Vehicles', path: '/rimi/vehicles', icon: Truck },
+        { label: 'Reefer Vehicles', path: '/rimi/vehicles', icon: Truck },
         { label: 'Delivery Routes', path: '/rimi/delivery-routes', icon: Navigation }
       ]
     },
     {
-      title: 'ANALYTICS',
+      title: 'ANALYTICS & BI',
       items: [
         { label: 'Sales Reports', path: '/rimi/sales-reports', icon: BarChart3 },
         { label: 'Inventory Analytics', path: '/rimi/inventory-analytics', icon: TrendingUp },
@@ -119,8 +119,9 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       ]
     },
     {
-      title: 'COMMUNICATION',
+      title: 'OPERATIONS & STAFF',
       items: [
+        { label: 'Tasks & Assignments', path: '/rimi/tasks', icon: CheckCircle2 },
         { label: 'Messages', path: '/rimi/messages', icon: MessageSquare, badge: '3' },
         { label: 'Notifications', path: '/rimi/notifications', icon: Bell, badge: '5' }
       ]
@@ -135,7 +136,7 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
     }
   ];
 
-  // ── Staff nav: restricted — operations only (no Reports, Settings, Collections, customer mgmt) ─
+  // ── Staff nav: restricted — operations only (assigned accounts, assigned orders, deliveries, assigned tasks) ─
   const staffNavSections: NavSection[] = [
     {
       title: 'DASHBOARD',
@@ -144,16 +145,18 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       ]
     },
     {
-      title: 'ORDERS',
+      title: 'MY ASSIGNMENTS',
       items: [
-        { label: 'Sales Orders', path: '/rimi/sales-orders', icon: ShoppingCart }
+        { label: 'Assigned Customers', path: '/rimi/customers', icon: Users },
+        { label: 'Assigned Sales Orders', path: '/rimi/sales-orders', icon: ShoppingCart },
+        { label: 'My Assigned Tasks', path: '/rimi/tasks', icon: CheckCircle2 }
       ]
     },
     {
-      title: 'INVENTORY',
+      title: 'INVENTORY & BATCHES',
       items: [
         { label: 'Products', path: '/rimi/products', icon: Package },
-        { label: 'Inventory', path: '/rimi/inventory', icon: Boxes },
+        { label: 'Cold Inventory', path: '/rimi/inventory', icon: Boxes },
         { label: 'Warehouses', path: '/rimi/warehouses', icon: Warehouse },
         { label: 'Batch Tracking', path: '/rimi/batch-tracking', icon: QrCode },
         { label: 'Expiry Tracking', path: '/rimi/expiry-tracking', icon: Clock }
@@ -163,7 +166,7 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       title: 'LOGISTICS',
       items: [
         { label: 'Deliveries', path: '/rimi/deliveries', icon: Truck },
-        { label: 'Vehicles', path: '/rimi/vehicles', icon: Truck },
+        { label: 'Reefer Vehicles', path: '/rimi/vehicles', icon: Truck },
         { label: 'Delivery Routes', path: '/rimi/delivery-routes', icon: Navigation }
       ]
     },
