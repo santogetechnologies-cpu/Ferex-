@@ -49,8 +49,8 @@ export const TradeTickets: React.FC = () => {
     description: '',
     priority: 'Medium' as TicketPriority,
     status: 'Open' as TicketStatus,
-    assigned_staff_name: staffList[0].name,
-    assigned_staff_email: staffList[0].email,
+    assigned_staff_name: staffList[0]?.name || userName,
+    assigned_staff_email: staffList[0]?.email || 'trade@ferex.com',
   };
 
   const [formData, setFormData] = useState(initialForm);

@@ -32,9 +32,10 @@ const ORDER_LIFECYCLE_STAGES: RimiOrderStatus[] = [
 export const RimiSalesOrders: React.FC = () => {
   const { profile } = useAuth();
   const isStaff = profile?.role === 'staff' || profile?.role === 'operations_manager';
-  const staffName = profile?.full_name || 'Vikram Malhotra';
+  const currentUserName = profile?.full_name || profile?.email?.split('@')[0] || 'Rimi Operations Desk';
 
   const [orders, setOrders] = useState<RimiSalesOrder[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<RimiSalesOrder | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [toast, setToast] = useState('');
@@ -52,18 +53,18 @@ export const RimiSalesOrders: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [ordersData, custData] = await Promise.all([
-        getRimiSalesOrders({
-          staffOnlyId: isStaff ? staffName : undefined
-        }),
-        getRimiCustomers()
+      const [ordersData, custData, realStaff] = await Promise.all([
+        getRimiSalesOrders(),
+        getRimiCustomers(),
+        getRimiStaffList()
       ]);
-      setOrders(ordersData);
-      setCustomersList(custData);
+      setOrders(ordersData || []);
+      setCustomersList(custData || []);
+      setStaffList(realStaff || []);
     } finally {
       setLoading(false);
     }
-  }, [isStaff, staffName]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -77,36 +78,25 @@ export const RimiSalesOrders: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
+  // Filter logic
   const filteredOrders = orders.filter(o => {
-    if (selectedCustomerType !== 'All' && o.customer_type !== selectedCustomerType) {
-      return false;
-    }
-    if (selectedRegion !== 'All' && !o.region.toLowerCase().includes(selectedRegion.toLowerCase())) {
-      return false;
-    }
-    if (selectedPaymentStatus !== 'All' && o.payment_status !== selectedPaymentStatus) {
-      return false;
-    }
-    if (selectedOrderStatus !== 'All' && o.order_status !== selectedOrderStatus) {
-      return false;
-    }
-    if (selectedStaff !== 'All' && o.assigned_staff_name !== selectedStaff) {
-      return false;
-    }
+    if (selectedCustomerType !== 'All' && o.customer_type !== selectedCustomerType) return false;
+    if (selectedRegion !== 'All' && !o.region.toLowerCase().includes(selectedRegion.toLowerCase())) return false;
+    if (selectedPaymentStatus !== 'All' && o.payment_status !== selectedPaymentStatus) return false;
+    if (selectedOrderStatus !== 'All' && o.order_status !== selectedOrderStatus) return false;
+    if (selectedStaff !== 'All' && o.assigned_staff_name !== selectedStaff && o.assigned_staff_id !== selectedStaff) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      return (
-        o.order_no.toLowerCase().includes(q) ||
-        o.customer_name.toLowerCase().includes(q) ||
-        o.products_summary.toLowerCase().includes(q) ||
-        o.region.toLowerCase().includes(q) ||
-        o.assigned_staff_name.toLowerCase().includes(q)
-      );
+      const matchNo = o.order_no.toLowerCase().includes(q);
+      const matchCust = o.customer_name.toLowerCase().includes(q);
+      const matchProd = o.products_summary.toLowerCase().includes(q);
+      const matchStaff = (o.assigned_staff_name || '').toLowerCase().includes(q);
+      if (!matchNo && !matchCust && !matchProd && !matchStaff) return false;
     }
     return true;
   });
 
-  // KPI calculations
+  // KPI Calculations
   const totalOrdersCount = orders.length;
   const totalSalesRevenue = orders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
   const activeOrdersCount = orders.filter(o => o.order_status !== 'Delivered').length;
@@ -123,7 +113,7 @@ export const RimiSalesOrders: React.FC = () => {
     delivery_date: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
     payment_status: 'Paid' as const,
     order_status: 'Order Received' as RimiOrderStatus,
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_name: 'Rimi Operations Desk',
     assigned_reefer_truck: 'Reefer Truck #MH-12-AZ-8901',
     notes: 'Standard pre-cooling compliance verified.'
   });
@@ -133,11 +123,16 @@ export const RimiSalesOrders: React.FC = () => {
     if (!newOrder.customer_name) return;
 
     const matchedCust = customersList.find(c => c.business_name === newOrder.customer_name);
+    const assignedName = newOrder.assigned_staff_name || staffList[0]?.name || currentUserName;
+    const matchedStaff = staffList.find(s => s.name === assignedName);
+
     const created = await createRimiSalesOrder({
       ...newOrder,
       customer_id: matchedCust?.id,
       customer_type: matchedCust?.customer_type || newOrder.customer_type,
       region: matchedCust?.region || newOrder.region,
+      assigned_staff_name: assignedName,
+      assigned_staff_id: matchedStaff?.id || 'staff-1',
     });
 
     setShowCreateModal(false);
@@ -617,6 +612,19 @@ export const RimiSalesOrders: React.FC = () => {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Assign Operations Staff</label>
+                  <select
+                    value={newOrder.assigned_staff_name}
+                    onChange={e => setNewOrder({ ...newOrder, assigned_staff_name: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800"
+                  >
+                    {staffList.map((s: any) => (
+                      <option key={s.id || s.email} value={s.name}>{s.name} ({s.roleLabel || s.role})</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3">

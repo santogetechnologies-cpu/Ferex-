@@ -16,6 +16,7 @@ import {
   addDigitalDeliverable,
   deleteDigitalDeliverable,
   getDigitalClients,
+  getDigitalStaffMembers,
   type DigitalProjectRecord,
   type DigitalProjectStage,
   type DigitalDeliverable
@@ -28,6 +29,7 @@ export const DigitalProjects: React.FC = () => {
   const { profile } = useAuth();
   const [projects, setProjects] = useState<DigitalProjectRecord[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [clientTypeFilter, setClientTypeFilter] = useState<'All' | 'Internal' | 'External'>('All');
@@ -52,8 +54,8 @@ export const DigitalProjects: React.FC = () => {
     payment_terms: 'Advance Payment' as 'Advance Payment' | 'Milestone-Based' | 'Full Payment',
     start_date: new Date().toISOString().split('T')[0],
     deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    assigned_staff_name: 'Kavita Iyer',
-    assigned_staff_email: 'kavita.iyer@ferex.com',
+    assigned_staff_name: profile?.full_name || 'Digital Project Manager',
+    assigned_staff_email: profile?.email || 'pm@ferex.com',
     status: 'Briefing' as DigitalProjectStage,
   });
 
@@ -74,12 +76,14 @@ export const DigitalProjects: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [projData, clientData] = await Promise.all([
+      const [projData, clientData, realStaff] = await Promise.all([
         getDigitalProjects(),
-        getDigitalClients()
+        getDigitalClients(),
+        getDigitalStaffMembers()
       ]);
       setClients(clientData || []);
       setProjects(projData || []);
+      setStaffList(realStaff || []);
     } finally {
       setLoading(false);
     }
@@ -836,18 +840,20 @@ export const DigitalProjects: React.FC = () => {
                     value={newProj.assigned_staff_name}
                     onChange={(e) => {
                       const name = e.target.value;
+                      const matched = staffList.find(s => s.name === name);
                       setNewProj({
                         ...newProj,
                         assigned_staff_name: name,
-                        assigned_staff_email: `${name.toLowerCase().replace(/[^a-z]/g, '')}@ferex.com`
+                        assigned_staff_email: matched?.email || `${name.toLowerCase().replace(/[^a-z]/g, '')}@ferex.com`
                       });
                     }}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                   >
-                    <option value="Kavita Iyer">Kavita Iyer (Lead Creative Director)</option>
-                    <option value="Rohan Verma">Rohan Verma (Visual & Brand Designer)</option>
-                    <option value="Priya Nair">Priya Nair (Senior Full-Stack Lead)</option>
-                    <option value="Sneha Sen">Sneha Sen (Digital PR & Media Strategist)</option>
+                    {staffList.map((s: any) => (
+                      <option key={s.id || s.email} value={s.name}>
+                        {s.name} ({s.roleLabel || s.role || 'Project Lead'})
+                      </option>
+                    ))}
                   </select>
                 </div>
 

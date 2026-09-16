@@ -21,8 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export const RimiDistributors: React.FC = () => {
   const { profile } = useAuth();
-  const isStaff = profile?.role === 'staff' || profile?.role === 'operations_manager';
-  const staffName = profile?.full_name || 'Vikram Malhotra';
+  const currentUserName = profile?.full_name || profile?.email?.split('@')[0] || 'Rimi Operations Desk';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('All');
@@ -43,14 +42,13 @@ export const RimiDistributors: React.FC = () => {
     setLoading(true);
     try {
       const data = await getRimiCustomers({
-        type: 'Distributor',
-        staffOnlyId: isStaff ? staffName : undefined
+        type: 'Distributor'
       });
       setDistributors(data);
     } finally {
       setLoading(false);
     }
-  }, [isStaff, staffName]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -59,6 +57,7 @@ export const RimiDistributors: React.FC = () => {
     return () => window.removeEventListener('ferex_rimi_crm_customers_change', handleSync);
   }, [loadData]);
 
+  // Load distributor specific orders when drawer opens
   useEffect(() => {
     if (!selectedDist) return;
     (async () => {
@@ -73,24 +72,23 @@ export const RimiDistributors: React.FC = () => {
   };
 
   const filteredDistributors = distributors.filter(d => {
-    if (selectedRegion !== 'All' && !d.region.toLowerCase().includes(selectedRegion.toLowerCase())) {
-      return false;
-    }
-    if (selectedPaymentStatus !== 'All' && d.payment_status !== selectedPaymentStatus) {
-      return false;
-    }
+    if (selectedRegion !== 'All' && !d.region.toLowerCase().includes(selectedRegion.toLowerCase())) return false;
+    if (selectedPaymentStatus !== 'All' && d.payment_status !== selectedPaymentStatus) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
         d.business_name.toLowerCase().includes(q) ||
         d.contact_person.toLowerCase().includes(q) ||
-        d.email.toLowerCase().includes(q) ||
         d.region.toLowerCase().includes(q)
       );
     }
     return true;
   });
 
+  const totalVolume = distributors.reduce((sum, d) => sum + (parseInt(d.order_history_volume || '0') || 0), 0);
+  const totalOutstanding = distributors.reduce((sum, d) => sum + (d.outstanding_balance || 0), 0);
+
+  // Add Distributor form
   const [newDist, setNewDist] = useState({
     business_name: '',
     contact_person: '',
@@ -98,23 +96,23 @@ export const RimiDistributors: React.FC = () => {
     email: '',
     address: '',
     region: 'Western Zone (Maharashtra)',
-    order_history_volume: '40,000 MT / Year',
+    order_history_volume: '30,000 MT / Year',
     credit_period_days: 30,
     credit_limit: 5000000,
     payment_status: 'Up to Date' as const,
-    assigned_staff_name: 'Vikram Malhotra',
-    pipeline_stage: 'Active Customer' as RimiPipelineStage,
-    tags: ['high-value']
+    assigned_staff_name: 'Rimi Operations Desk',
+    products_distributed: ['Green Peas 1kg', 'Sweet Corn 500g', 'Paneer Block 1kg']
   });
 
-  const handleCreateDist = async (e: React.FormEvent) => {
+  const handleCreateDistributor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDist.business_name) return;
 
     await createRimiCustomer({
       ...newDist,
       customer_type: 'Distributor',
-      products_distributed: ['Green Peas 1kg', 'Sweet Corn 500g', 'Paneer Block 1kg', 'Mixed Berries']
+      pipeline_stage: 'Active Customer',
+      tags: ['high-value', 'tier-1']
     });
 
     setShowAddModal(false);
@@ -130,7 +128,7 @@ export const RimiDistributors: React.FC = () => {
       const added = await addRimiCustomerActivityNote(selectedDist.id, {
         type: noteType,
         text: noteText.trim(),
-        author: profile?.full_name || 'Vikram Malhotra'
+        author: profile?.full_name || profile?.email || currentUserName
       });
       setSelectedDist({
         ...selectedDist,
@@ -460,7 +458,7 @@ export const RimiDistributors: React.FC = () => {
                 <button onClick={() => setShowAddModal(false)}><X className="w-5 h-5 text-slate-400" /></button>
               </div>
 
-              <form onSubmit={handleCreateDist} className="space-y-3 text-xs">
+              <form onSubmit={handleCreateDistributor} className="space-y-3 text-xs">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Business Name *</label>
                   <input required placeholder="e.g. Apex Cold Logistics Ltd" value={newDist.business_name} onChange={e => setNewDist({ ...newDist, business_name: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />

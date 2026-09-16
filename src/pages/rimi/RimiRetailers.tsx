@@ -13,6 +13,7 @@ import {
   deleteRimiCustomer,
   addRimiCustomerActivityNote,
   updateRimiCustomerPipelineStage,
+  getRimiSalesOrders,
   type RimiCustomer,
   type RimiPipelineStage
 } from '../../lib/api/rimi';
@@ -20,8 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export const RimiRetailers: React.FC = () => {
   const { profile } = useAuth();
-  const isStaff = profile?.role === 'staff' || profile?.role === 'operations_manager';
-  const staffName = profile?.full_name || 'Vikram Malhotra';
+  const currentUserName = profile?.full_name || profile?.email?.split('@')[0] || 'Rimi Operations Desk';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('All');
@@ -33,22 +33,22 @@ export const RimiRetailers: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // Note state in drawer
-  const [noteType, setNoteType] = useState<'call' | 'visit' | 'complaint' | 'note'>('visit');
+  const [noteType, setNoteType] = useState<'call' | 'visit' | 'complaint' | 'note'>('call');
   const [noteText, setNoteText] = useState('');
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+  const [shopOrders, setShopOrders] = useState<any[]>([]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getRimiCustomers({
-        type: 'Shop',
-        staffOnlyId: isStaff ? staffName : undefined
+        type: 'Shop'
       });
       setShops(data);
     } finally {
       setLoading(false);
     }
-  }, [isStaff, staffName]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -57,29 +57,35 @@ export const RimiRetailers: React.FC = () => {
     return () => window.removeEventListener('ferex_rimi_crm_customers_change', handleSync);
   }, [loadData]);
 
+  // Load shop specific orders when drawer opens
+  useEffect(() => {
+    if (!selectedShop) return;
+    (async () => {
+      const allOrders = await getRimiSalesOrders();
+      setShopOrders(allOrders.filter((o: any) => o.customer_id === selectedShop.id || o.customer_name === selectedShop.business_name));
+    })();
+  }, [selectedShop]);
+
   const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
 
   const filteredShops = shops.filter(s => {
-    if (selectedRegion !== 'All' && !s.region.toLowerCase().includes(selectedRegion.toLowerCase())) {
-      return false;
-    }
-    if (selectedPaymentStatus !== 'All' && s.payment_status !== selectedPaymentStatus) {
-      return false;
-    }
+    if (selectedRegion !== 'All' && !s.region.toLowerCase().includes(selectedRegion.toLowerCase())) return false;
+    if (selectedPaymentStatus !== 'All' && s.payment_status !== selectedPaymentStatus) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
         s.business_name.toLowerCase().includes(q) ||
         s.contact_person.toLowerCase().includes(q) ||
-        s.region.toLowerCase().includes(q) ||
-        (s.supplying_distributor && s.supplying_distributor.toLowerCase().includes(q))
+        s.region.toLowerCase().includes(q)
       );
     }
     return true;
   });
+
+  const totalOutstanding = shops.reduce((sum, s) => sum + (s.outstanding_balance || 0), 0);
 
   const [newShop, setNewShop] = useState({
     business_name: '',
@@ -92,7 +98,7 @@ export const RimiRetailers: React.FC = () => {
     order_frequency: 'Weekly Delivery',
     credit_limit: 300000,
     payment_status: 'Up to Date' as const,
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_name: 'Rimi Operations Desk',
     pipeline_stage: 'Active Customer' as RimiPipelineStage,
     tags: ['high-value']
   });
@@ -120,7 +126,7 @@ export const RimiRetailers: React.FC = () => {
       const added = await addRimiCustomerActivityNote(selectedShop.id, {
         type: noteType,
         text: noteText.trim(),
-        author: profile?.full_name || 'Vikram Malhotra'
+        author: profile?.full_name || profile?.email || currentUserName
       });
       setSelectedShop({
         ...selectedShop,

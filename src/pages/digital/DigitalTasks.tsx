@@ -3,12 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckSquare, Search, Plus, X, CheckCircle2, Trash2, Calendar } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getDigitalTasks, createDigitalTask, updateDigitalTaskStatus, deleteDigitalTask, getDigitalProjects } from '../../lib/api/digital';
+import { getDigitalTasks, createDigitalTask, updateDigitalTaskStatus, deleteDigitalTask, getDigitalProjects, getDigitalStaffMembers } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const DigitalTasks: React.FC = () => {
+  const { profile } = useAuth();
   const [tasks, setTasks] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -17,6 +20,7 @@ export const DigitalTasks: React.FC = () => {
   const [newTask, setNewTask] = useState({
     title: '',
     project_id: '',
+    assigned_to: profile?.full_name || 'Digital Delivery Team',
     priority: 'Medium',
     due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
   });
@@ -29,13 +33,14 @@ export const DigitalTasks: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [tasksData, projData] = await Promise.all([
+      const [tasksData, projData, staffData] = await Promise.all([
         getDigitalTasks(),
-        getDigitalProjects()
+        getDigitalProjects(),
+        getDigitalStaffMembers()
       ]);
-      setProjects(projData);
-
+      setProjects(projData || []);
       setTasks(tasksData || []);
+      setStaffList(staffData || []);
     } finally {
       setLoading(false);
     }
@@ -73,7 +78,7 @@ export const DigitalTasks: React.FC = () => {
     setTasks(prev => [created, ...prev.filter(t => t.id !== created.id)]);
     setShowAddModal(false);
     showToast(`Created task "${newTask.title}"`);
-    setNewTask({ title: '', project_id: '', priority: 'Medium', due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0] });
+    setNewTask({ title: '', project_id: '', assigned_to: profile?.full_name || 'Digital Delivery Team', priority: 'Medium', due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0] });
     // No loadData() — optimistic update already shows the new task
   };
 
@@ -225,6 +230,20 @@ export const DigitalTasks: React.FC = () => {
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Due Date</label>
                     <input type="date" value={newTask.due_date} onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Assign Team Member</label>
+                  <select
+                    value={newTask.assigned_to}
+                    onChange={(e) => setNewTask({ ...newTask, assigned_to: e.target.value })}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                  >
+                    {staffList.map((s: any) => (
+                      <option key={s.id || s.email} value={s.name}>
+                        {s.name} ({s.roleLabel || s.role || 'Member'})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>

@@ -61,7 +61,7 @@ export const RimiSalesReports: React.FC = () => {
   // Sales by Staff
   const staffMap: Record<string, { name: string; totalSales: number; count: number }> = {};
   filteredOrders.forEach(o => {
-    const staff = o.assigned_staff_name || 'Vikram Malhotra';
+    const staff = o.assigned_staff_name || 'Rimi Operations Desk';
     if (!staffMap[staff]) {
       staffMap[staff] = { name: staff, totalSales: 0, count: 0 };
     }

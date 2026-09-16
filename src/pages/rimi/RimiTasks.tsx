@@ -25,17 +25,20 @@ export const RimiTasks: React.FC = () => {
   const { profile } = useAuth();
   const userRole = profile?.role || '';
   const isAdmin = RIMI_ADMIN_ROLES.includes(userRole);
-  const staffName = profile?.full_name || 'Vikram Malhotra';
+  const currentUserName = profile?.full_name || profile?.email?.split('@')[0] || 'Rimi Operations Desk';
+  const currentUserEmail = profile?.email || 'ops@ferex.com';
 
   const [tasks, setTasks] = useState<RimiTask[]>([]);
   const [staffList, setStaffList] = useState<RimiStaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
+  const [myTasksOnly, setMyTasksOnly] = useState(!isAdmin);
 
   // Filters
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterPriority, setFilterPriority] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [filterStaff, setFilterStaff] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals & Editing State
@@ -49,15 +52,15 @@ export const RimiTasks: React.FC = () => {
     setLoading(true);
     try {
       const [tasksData, staffData] = await Promise.all([
-        getRimiTasks(!isAdmin ? staffName : undefined),
+        getRimiTasks(),
         getRimiStaffList()
       ]);
-      setTasks(tasksData);
-      setStaffList(staffData);
+      setTasks(tasksData || []);
+      setStaffList(staffData || []);
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, staffName]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -75,6 +78,14 @@ export const RimiTasks: React.FC = () => {
     if (filterCategory !== 'All' && t.category !== filterCategory) return false;
     if (filterPriority !== 'All' && t.priority !== filterPriority) return false;
     if (filterStatus !== 'All' && t.status !== filterStatus) return false;
+    if (filterStaff !== 'All' && t.assigned_to_name !== filterStaff && t.assigned_to_id !== filterStaff) return false;
+    if (myTasksOnly) {
+      const assigned = (t.assigned_to_name || '').toLowerCase();
+      const user = currentUserName.toLowerCase();
+      const email = currentUserEmail.toLowerCase();
+      const isMine = assigned.includes(user) || assigned.includes(email) || t.assigned_to_id === currentUserEmail;
+      if (!isMine) return false;
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
@@ -91,7 +102,7 @@ export const RimiTasks: React.FC = () => {
     title: '',
     description: '',
     category: 'Dispatch & Logistics' as const,
-    assigned_to_name: 'Vikram Malhotra',
+    assigned_to_name: staffList[0]?.name || currentUserName,
     priority: 'High' as const,
     due_date: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0]
   });
@@ -100,12 +111,14 @@ export const RimiTasks: React.FC = () => {
     e.preventDefault();
     if (!newTask.title) return;
 
-    const matchedStaff = staffList.find(s => s.name === newTask.assigned_to_name);
+    const assignedName = newTask.assigned_to_name || staffList[0]?.name || currentUserName;
+    const matchedStaff = staffList.find(s => s.name === assignedName);
     await createRimiTask({
       ...newTask,
+      assigned_to_name: assignedName,
       assigned_to_id: matchedStaff?.id || 'staff-1',
-      assigned_to_role: matchedStaff?.role || 'Operations Staff',
-      assigned_by: isAdmin ? 'Rimi Admin' : 'Superadmin'
+      assigned_to_role: (matchedStaff?.role || 'Operations Staff') as any,
+      assigned_by: isAdmin ? 'Rimi Distribution Director' : currentUserName
     });
 
     setShowCreateModal(false);
@@ -114,7 +127,7 @@ export const RimiTasks: React.FC = () => {
       title: '',
       description: '',
       category: 'Dispatch & Logistics',
-      assigned_to_name: 'Vikram Malhotra',
+      assigned_to_name: staffList[0]?.name || currentUserName,
       priority: 'High',
       due_date: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0]
     });

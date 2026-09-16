@@ -20,8 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export const RimiWholesalers: React.FC = () => {
   const { profile } = useAuth();
-  const isStaff = profile?.role === 'staff' || profile?.role === 'operations_manager';
-  const staffName = profile?.full_name || 'Vikram Malhotra';
+  const currentUserName = profile?.full_name || profile?.email?.split('@')[0] || 'Rimi Operations Desk';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('All');
@@ -41,14 +40,13 @@ export const RimiWholesalers: React.FC = () => {
     setLoading(true);
     try {
       const data = await getRimiCustomers({
-        type: 'Wholesaler',
-        staffOnlyId: isStaff ? staffName : undefined
+        type: 'Wholesaler'
       });
       setWholesalers(data);
     } finally {
       setLoading(false);
     }
-  }, [isStaff, staffName]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -63,12 +61,8 @@ export const RimiWholesalers: React.FC = () => {
   };
 
   const filteredWholesalers = wholesalers.filter(w => {
-    if (selectedRegion !== 'All' && !w.region.toLowerCase().includes(selectedRegion.toLowerCase())) {
-      return false;
-    }
-    if (selectedPaymentStatus !== 'All' && w.payment_status !== selectedPaymentStatus) {
-      return false;
-    }
+    if (selectedRegion !== 'All' && !w.region.toLowerCase().includes(selectedRegion.toLowerCase())) return false;
+    if (selectedPaymentStatus !== 'All' && w.payment_status !== selectedPaymentStatus) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
@@ -80,6 +74,9 @@ export const RimiWholesalers: React.FC = () => {
     return true;
   });
 
+  const totalOutstanding = wholesalers.reduce((sum, w) => sum + (w.outstanding_balance || 0), 0);
+
+  // Add Wholesaler form
   const [newWhl, setNewWhl] = useState({
     business_name: '',
     contact_person: '',
@@ -91,7 +88,7 @@ export const RimiWholesalers: React.FC = () => {
     payment_terms: 'Net 30 Days',
     credit_limit: 4000000,
     payment_status: 'Up to Date' as const,
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_name: 'Rimi Operations Desk',
     pipeline_stage: 'Active Customer' as RimiPipelineStage,
     tags: ['high-value', 'tier-1']
   });
@@ -119,7 +116,7 @@ export const RimiWholesalers: React.FC = () => {
       const added = await addRimiCustomerActivityNote(selectedWhl.id, {
         type: noteType,
         text: noteText.trim(),
-        author: profile?.full_name || 'Vikram Malhotra'
+        author: profile?.full_name || profile?.email || currentUserName
       });
       setSelectedWhl({
         ...selectedWhl,

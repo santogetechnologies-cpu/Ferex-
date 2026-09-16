@@ -14,6 +14,7 @@ import {
   reassignTradeTask,
   deleteTradeTask,
   getTradeStaffOfficers,
+  getTradeStaff,
   getTradeOrders,
   type TradeTask,
   type TaskPriority,
@@ -36,7 +37,8 @@ export const TradeTasks: React.FC = () => {
   const [toast, setToast] = useState('');
 
   const [staffList, setStaffList] = useState(getTradeStaffOfficers());
-  const userEmail = profile?.email || 'elena.rostova@ferex.com';
+  const userEmail = profile?.email || 'trade@ferex.com';
+  const userName = profile?.full_name || 'Trade Logistics Desk';
   const isAdmin = profile?.role === 'trade_admin' || profile?.role === 'admin' || profile?.role === 'superadmin' || profile?.role === 'super_admin';
 
   const initialForm = {
@@ -44,8 +46,8 @@ export const TradeTasks: React.FC = () => {
     category: 'Order Handling' as TradeTask['category'],
     order_no: '',
     client_name: '',
-    assigned_staff_name: staffList[0]?.name || 'Marcus Vance',
-    assigned_staff_email: staffList[0]?.email || 'marcus.vance@ferex.com',
+    assigned_staff_name: staffList[0]?.name || userName,
+    assigned_staff_email: staffList[0]?.email || userEmail,
     priority: 'Medium' as TaskPriority,
     status: 'Pending' as TaskStatus,
     due_date: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
@@ -57,13 +59,16 @@ export const TradeTasks: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [allTasks, allOrders] = await Promise.all([
+      const [allTasks, allOrders, realStaff] = await Promise.all([
         getTradeTasks(),
-        getTradeOrders()
+        getTradeOrders(),
+        getTradeStaff()
       ]);
       setTasks(Array.isArray(allTasks) ? allTasks : []);
       setOrders(Array.isArray(allOrders) ? allOrders : []);
-      setStaffList(getTradeStaffOfficers());
+      if (Array.isArray(realStaff) && realStaff.length > 0) {
+        setStaffList(realStaff);
+      }
     } finally {
       setLoading(false);
     }
@@ -412,7 +417,7 @@ export const TradeTasks: React.FC = () => {
                       }}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
                     >
-                      {staffList.map(s => <option key={s.email} value={s.name}>{s.name} ({s.role})</option>)}
+                      {staffList.map(s => <option key={s.email} value={s.name}>{s.name} ({s.roleLabel || s.role})</option>)}
                     </select>
                   </div>
                   <div>
@@ -463,7 +468,7 @@ export const TradeTasks: React.FC = () => {
                     className="w-full p-2.5 rounded-xl border border-slate-200 hover:border-[#58051E] hover:bg-[#58051E]/5 text-left transition-all flex items-center justify-between text-xs font-bold text-slate-800 cursor-pointer"
                   >
                     <span>{s.name}</span>
-                    <span className="text-[10px] text-slate-400">{s.role}</span>
+                    <span className="text-[10px] text-slate-400">{s.roleLabel || s.role}</span>
                   </button>
                 ))}
               </div>

@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { generateUUID } from '../../utils/uuid';
+import { getDivisionStaff, getDivisionStaffSync, type DivisionStaffMember } from './staff';
 
 function triggerLocalSync(eventName: string) {
   if (typeof window !== 'undefined') {
@@ -1404,47 +1405,38 @@ export interface RimiStaffMember {
   name: string;
   email: string;
   phone: string;
-  role: 'Operations Staff' | 'Cold Chain Lead' | 'QC Officer' | 'Regional Sales Staff' | 'Rimi Admin';
+  role: string;
+  roleLabel?: string;
   assigned_territories: string[];
   active_accounts_count: number;
 }
 
-export const RIMI_STAFF_MEMBERS: RimiStaffMember[] = [
-  {
-    id: 'staff-1',
-    name: 'Vikram Malhotra',
-    email: 'vikram.m@ferex.com',
-    phone: '+91 98201 11223',
-    role: 'Cold Chain Lead',
-    assigned_territories: ['Western Zone (Maharashtra)', 'Mumbai Suburban', 'Pune Territory'],
-    active_accounts_count: 5
-  },
-  {
-    id: 'staff-2',
-    name: 'Sneha Patel',
-    email: 'sneha.p@ferex.com',
-    phone: '+91 98980 33445',
-    role: 'Regional Sales Staff',
-    assigned_territories: ['Gujarat Territory', 'Punjab & Haryana Corridor'],
-    active_accounts_count: 4
-  },
-  {
-    id: 'staff-3',
-    name: 'Ananya Roy',
-    email: 'ananya.r@ferex.com',
-    phone: '+91 98110 55667',
-    role: 'Regional Sales Staff',
-    assigned_territories: ['North Zone (NCR & Punjab)', 'Tamil Nadu & Kerala Zone', 'Bangalore Metro'],
-    active_accounts_count: 3
-  }
-];
-
 export async function getRimiStaffList(): Promise<RimiStaffMember[]> {
-  const local = localStorage.getItem('ferex_rimi_staff_list');
-  if (local) {
-    try { return JSON.parse(local); } catch {}
-  }
-  return RIMI_STAFF_MEMBERS;
+  const staff = await getDivisionStaff('rimi');
+  return staff.map(s => ({
+    id: s.id,
+    name: s.name,
+    email: s.email,
+    phone: s.phone || '+91 98200 11223',
+    role: s.roleLabel || s.role || 'Operations Staff',
+    roleLabel: s.roleLabel || s.role,
+    assigned_territories: ['Western Zone (Maharashtra)', 'North Zone (NCR & Punjab)', 'South Zone'],
+    active_accounts_count: 4
+  }));
+}
+
+export function getRimiStaffSync(): RimiStaffMember[] {
+  const staff = getDivisionStaffSync('rimi');
+  return staff.map(s => ({
+    id: s.id,
+    name: s.name,
+    email: s.email,
+    phone: s.phone || '+91 98200 11223',
+    role: s.roleLabel || s.role || 'Operations Staff',
+    roleLabel: s.roleLabel || s.role,
+    assigned_territories: ['Western Zone (Maharashtra)', 'North Zone (NCR & Punjab)', 'South Zone'],
+    active_accounts_count: 4
+  }));
 }
 
 

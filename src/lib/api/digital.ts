@@ -1,5 +1,9 @@
 import { supabase } from '../supabase';
 import { generateUUID } from '../../utils/uuid';
+import { getDivisionStaff, getDivisionStaffSync, type DivisionStaffMember } from './staff';
+
+export const getDigitalStaffMembers = () => getDivisionStaff('digital');
+export const getDigitalStaffMembersSync = () => getDivisionStaffSync('digital');
 
 function triggerLocalSync(eventName: string) {
   if (typeof window !== 'undefined') {
@@ -991,11 +995,34 @@ export async function deleteDigitalExpense(id: string) {
 
 // ─── Digital Employees ──────────────────────────────────────────────────────
 export async function getDigitalEmployees() {
+  const staff = await getDivisionStaff('digital');
   const saved = localStorage.getItem('ferex_digital_employees');
+  let customEmployees: any[] = [];
   if (saved) {
-    try { return JSON.parse(saved); } catch {}
+    try { customEmployees = JSON.parse(saved); } catch {}
   }
-  return [];
+
+  const staffEmployees = staff.map((s, i) => ({
+    id: s.id || `EMP-${100 + i}`,
+    name: s.name,
+    role: s.roleLabel || s.role || 'Senior Full-Stack Engineer',
+    department: s.department || 'Digital Delivery & UX',
+    email: s.email,
+    rating: 4.9,
+    kpiScore: 96,
+    tasksCount: 6,
+    feedback: 'Top-tier sprint velocity and delivery excellence.',
+    status: 'Active',
+    projectsCount: 3,
+  }));
+
+  const merged = [...staffEmployees];
+  for (const ce of customEmployees) {
+    if (!merged.some(m => m.email === ce.email || m.name === ce.name)) {
+      merged.push(ce);
+    }
+  }
+  return merged;
 }
 
 export async function createDigitalEmployee(emp: {

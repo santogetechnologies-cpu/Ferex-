@@ -247,86 +247,19 @@ function uid(): string {
   });
 }
 
-// ─── DEFAULT SEED DATA ──────────────────────────────────────────────────────
-const DEFAULT_STAFF_OFFICERS = [
-  { name: 'Marcus Vance', email: 'marcus.vance@ferex.com', role: 'Trade Officer', department: 'Trade Operations' },
-  { name: 'Elena Rostova', email: 'elena.rostova@ferex.com', role: 'Logistics Officer', department: 'Logistics Desk' },
-  { name: 'Krzysztof Nowak', email: 'krzysztof.nowak@ferex.com', role: 'Documentation Specialist', department: 'Customs Compliance' },
-  { name: 'Rahul Sharma', email: 'trade@ferex.com', role: 'Trade Director', department: 'Executive Desk' },
-];
+import { getDivisionStaff, getDivisionStaffSync, type DivisionStaffMember } from './staff';
 
-export interface TradeStaffOfficer {
-  name: string;
-  email: string;
-  role: string;
-  department?: string;
+export type TradeStaffOfficer = DivisionStaffMember;
+
+export function getTradeStaffOfficers(): DivisionStaffMember[] {
+  return getDivisionStaffSync('trade');
 }
 
-export function getTradeStaffOfficers(): TradeStaffOfficer[] {
-  const staffList: TradeStaffOfficer[] = [...DEFAULT_STAFF_OFFICERS];
-
-  if (typeof localStorage !== 'undefined') {
-    try {
-      // 1. Custom Trade Staff
-      const customTrade = localStorage.getItem('ferex_trade_staff_v2');
-      if (customTrade) {
-        const parsed = JSON.parse(customTrade);
-        if (Array.isArray(parsed)) {
-          for (const s of parsed) {
-            const email = (s.email || '').toLowerCase().trim();
-            if (email && !staffList.some(existing => existing.email.toLowerCase() === email)) {
-              staffList.push({
-                name: s.name || s.full_name || email.split('@')[0],
-                email,
-                role: s.role || 'Trade Officer',
-                department: s.department || 'Trade Operations'
-              });
-            }
-          }
-        }
-      }
-
-      // 2. Global Ferex Staff / Admin Users
-      const globalStaff = localStorage.getItem('ferex_staff_users');
-      if (globalStaff) {
-        const parsed = JSON.parse(globalStaff);
-        if (Array.isArray(parsed)) {
-          for (const s of parsed) {
-            const email = (s.email || '').toLowerCase().trim();
-            if (email && !staffList.some(existing => existing.email.toLowerCase() === email)) {
-              staffList.push({
-                name: s.full_name || s.name || email.split('@')[0],
-                email,
-                role: s.role || 'Logistics Officer',
-                department: s.department || 'Operations Desk'
-              });
-            }
-          }
-        }
-      }
-
-      // 3. Current logged in user (if trade or staff)
-      const curUser = localStorage.getItem('ferex_user');
-      if (curUser) {
-        const parsed = JSON.parse(curUser);
-        const email = (parsed.email || '').toLowerCase().trim();
-        const name = parsed.full_name || parsed.name;
-        if (email && name && !staffList.some(existing => existing.email.toLowerCase() === email)) {
-          staffList.push({
-            name,
-            email,
-            role: parsed.role === 'trade_admin' ? 'Trade Director' : 'Logistics Officer',
-            department: 'Trade Desk'
-          });
-        }
-      }
-    } catch {}
-  }
-
-  return staffList;
+export async function fetchTradeStaffOfficers(): Promise<DivisionStaffMember[]> {
+  return getDivisionStaff('trade');
 }
 
-export const getTradeStaff = getTradeStaffOfficers;
+export const getTradeStaff = fetchTradeStaffOfficers;
 
 
 function initTradeDataIfEmpty() {

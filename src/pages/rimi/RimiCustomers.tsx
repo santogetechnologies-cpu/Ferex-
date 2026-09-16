@@ -39,7 +39,7 @@ const AVAILABLE_TAGS = ['high-value', 'seasonal', 'at-risk', 'tier-1', 'urgent']
 export const RimiCustomers: React.FC = () => {
   const { profile } = useAuth();
   const isStaff = profile?.role === 'staff' || profile?.role === 'operations_manager' || profile?.role === 'sales_staff';
-  const staffName = profile?.full_name || 'Vikram Malhotra';
+  const currentUserName = profile?.full_name || profile?.email?.split('@')[0] || 'Rimi Operations Desk';
 
   const [activeTab, setActiveTab] = useState<'All' | 'Distributor' | 'Shop' | 'Wholesaler' | 'Pipeline'>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,6 +50,7 @@ export const RimiCustomers: React.FC = () => {
   const [selectedStaff, setSelectedStaff] = useState('All');
 
   const [customers, setCustomers] = useState<RimiCustomer[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]);
   const [selectedCust, setSelectedCust] = useState<RimiCustomer | null>(null);
   const [editingCust, setEditingCust] = useState<RimiCustomer | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -67,14 +68,16 @@ export const RimiCustomers: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getRimiCustomers({
-        staffOnlyId: isStaff ? staffName : undefined
-      });
-      setCustomers(data);
+      const [data, realStaff] = await Promise.all([
+        getRimiCustomers(),
+        getRimiStaffList()
+      ]);
+      setCustomers(data || []);
+      setStaffList(realStaff || []);
     } finally {
       setLoading(false);
     }
-  }, [isStaff, staffName]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -157,7 +160,7 @@ export const RimiCustomers: React.FC = () => {
     order_volume: '50 Tons / Quarter',
     payment_terms: 'Net 30 Days',
     payment_status: 'Up to Date' as const,
-    assigned_staff_name: 'Vikram Malhotra',
+    assigned_staff_name: 'Rimi Operations Desk',
     pipeline_stage: 'New Lead' as RimiPipelineStage,
     tags: ['high-value']
   });
@@ -168,6 +171,7 @@ export const RimiCustomers: React.FC = () => {
 
     const created = await createRimiCustomer({
       ...formData,
+      assigned_staff_name: formData.assigned_staff_name || staffList[0]?.name || currentUserName,
       products_distributed: ['Green Peas 1kg', 'Sweet Corn 500g'],
       preferred_products: ['Green Peas 1kg', 'French Fries Premium'],
       products_ordered: ['IQF Strawberries', 'Paneer Block 1kg']
@@ -195,7 +199,7 @@ export const RimiCustomers: React.FC = () => {
       const added = await addRimiCustomerActivityNote(selectedCust.id, {
         type: noteType,
         text: noteText.trim(),
-        author: profile?.full_name || 'Vikram Malhotra'
+        author: profile?.full_name || profile?.email || currentUserName
       });
       setSelectedCust({
         ...selectedCust,
