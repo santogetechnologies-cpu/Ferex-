@@ -239,24 +239,29 @@ function isJunkUniversity(u: any): boolean {
 export async function getUniversities(): Promise<University[]> {
   const deletedKeys = getDeletedUniKeys();
   const isPurged = localStorage.getItem(PURGED_UNIS_KEY) === 'true';
-  let list: University[] = [];
+  const uniMap = new Map<string, University>();
 
-  // 1. SUPABASE DATABASE FIRST: Fetch live rows from Supabase
+  // 1. SUPABASE DATABASE: Fetch live shared cloud rows
   try {
     const { data, error } = await supabase
       .from('universities')
       .select('*')
       .order('ranking', { ascending: true });
 
-    if (!error && data && Array.isArray(data) && data.length > 0) {
-      list = data.filter((u: any) => !isJunkUniversity(u)) as University[];
+    if (!error && data && Array.isArray(data)) {
+      data.forEach((u: any) => {
+        if (u && u.name && !isJunkUniversity(u)) {
+          const key = u.name.toLowerCase().trim();
+          uniMap.set(key, u as University);
+        }
+      });
     }
   } catch (err) {
     console.warn('[getUniversities DB Warning]:', err);
   }
 
-  // 2. Check system_config catalog backup if table returned empty and not explicitly purged
-  if (list.length === 0 && !isPurged) {
+  // 2. Check system_config catalog backup
+  if (!isPurged) {
     try {
       const { data: cfg } = await supabase
         .from('system_config')
@@ -264,32 +269,48 @@ export async function getUniversities(): Promise<University[]> {
         .eq('key', 'ferex_universities_catalog')
         .maybeSingle();
 
-      if (cfg?.value && Array.isArray(cfg.value) && cfg.value.length > 0) {
-        list = cfg.value.filter((u: any) => !isJunkUniversity(u));
+      if (cfg?.value && Array.isArray(cfg.value)) {
+        cfg.value.forEach((u: any) => {
+          if (u && u.name && !isJunkUniversity(u)) {
+            const key = u.name.toLowerCase().trim();
+            if (!uniMap.has(key)) {
+              uniMap.set(key, u as University);
+            }
+          }
+        });
       }
     } catch {}
   }
 
-  // 3. Check local cache
-  if (list.length === 0 && !isPurged) {
+  // 3. Check local cache (merge in any locally added/edited universities)
+  if (!isPurged) {
     try {
       const local = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
       if (local) {
         const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          list = parsed.filter((u: any) => !isJunkUniversity(u));
+        if (Array.isArray(parsed)) {
+          parsed.forEach((u: any) => {
+            if (u && u.name && !isJunkUniversity(u)) {
+              const key = u.name.toLowerCase().trim();
+              if (!uniMap.has(key)) {
+                uniMap.set(key, u as University);
+              }
+            }
+          });
         }
       }
     } catch {}
   }
 
   // 4. Fallback to baseline ONLY on completely fresh initial installs
-  if (list.length === 0 && !isPurged && deletedKeys.size === 0) {
-    list = [...BASELINE_UNIVERSITIES];
+  if (uniMap.size === 0 && !isPurged && deletedKeys.size === 0) {
+    BASELINE_UNIVERSITIES.forEach(u => {
+      uniMap.set(u.name.toLowerCase().trim(), u);
+    });
   }
 
   // Filter out any explicitly deleted universities
-  const activeList = list.filter(u => {
+  const activeList = Array.from(uniMap.values()).filter(u => {
     if (!u || !u.name) return false;
     const idKey = (u.id || '').toLowerCase().trim();
     const nameKey = (u.name || '').toLowerCase().trim();
@@ -311,6 +332,9 @@ export async function getUniversities(): Promise<University[]> {
       installments_enabled: u.installments_enabled !== undefined ? u.installments_enabled : (baselineMatch?.installments_enabled ?? false),
     };
   });
+
+  // Sort by ranking or name
+  enrichedList.sort((a, b) => (a.ranking || 100) - (b.ranking || 100));
 
   // Update local cache
   try {
@@ -396,7 +420,7 @@ export async function createUniversity(payload: {
     localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(updated));
   } catch {}
 
-  // 2. Database insert with all available columns
+  // 2. Database insert with all available columns & system_config backup
   const dbPayload: any = {
     id: fullObject.id,
     name: fullObject.name,
@@ -423,30 +447,38 @@ export async function createUniversity(payload: {
     is_active: true
   };
 
-  try {
-    const { error: insErr } = await supabase.from('universities').insert([dbPayload]);
-    if (insErr) {
-      console.warn('[createUniversity supabase Warning]:', insErr.message);
-      const admin = await getAdminSupabaseClient();
-      await admin.from('universities').insert([dbPayload]).catch(() => {});
-    }
+  (async () => {
+    try {
+      const { error: insErr } = await supabase.from('universities').insert([dbPayload]);
+      if (insErr) {
+        console.warn('[createUniversity supabase Warning]:', insErr.message);
+        try {
+          const admin = await getAdminSupabaseClient();
+          await admin.from('universities').insert([dbPayload]);
+        } catch {}
+      }
 
-    // Also update system_config catalog backup with full object
-    await supabase.from('system_config').upsert({
-      key: 'ferex_universities_catalog',
-      value: updated,
-      updated_at: new Date().toISOString()
-    }).catch(async () => {
-      const admin = await getAdminSupabaseClient();
-      await admin.from('system_config').upsert({
-        key: 'ferex_universities_catalog',
-        value: updated,
-        updated_at: new Date().toISOString()
-      }).catch(() => {});
-    });
-  } catch (err) {
-    console.warn('[createUniversity Error]:', err);
-  }
+      // Also update system_config catalog backup with full object
+      try {
+        await supabase.from('system_config').upsert({
+          key: 'ferex_universities_catalog',
+          value: updated,
+          updated_at: new Date().toISOString()
+        });
+      } catch {
+        try {
+          const admin = await getAdminSupabaseClient();
+          await admin.from('system_config').upsert({
+            key: 'ferex_universities_catalog',
+            value: updated,
+            updated_at: new Date().toISOString()
+          });
+        } catch {}
+      }
+    } catch (err) {
+      console.warn('[createUniversity async sync Notice]:', err);
+    }
+  })();
 
   window.dispatchEvent(new Event('ferex_universities_change'));
   window.dispatchEvent(new Event('ferex_university_change'));
@@ -496,18 +528,22 @@ export async function updateUniversity(id: string, payload: Partial<University>)
     }
 
     if (updatedList.length > 0) {
-      await supabase.from('system_config').upsert({
-        key: 'ferex_universities_catalog',
-        value: updatedList,
-        updated_at: new Date().toISOString()
-      }).catch(async () => {
-        const admin = await getAdminSupabaseClient();
-        await admin.from('system_config').upsert({
+      try {
+        await supabase.from('system_config').upsert({
           key: 'ferex_universities_catalog',
           value: updatedList,
           updated_at: new Date().toISOString()
-        }).catch(() => {});
-      });
+        });
+      } catch {
+        try {
+          const admin = await getAdminSupabaseClient();
+          await admin.from('system_config').upsert({
+            key: 'ferex_universities_catalog',
+            value: updatedList,
+            updated_at: new Date().toISOString()
+          });
+        } catch {}
+      }
     }
   } catch (err) {
     console.warn('[updateUniversity DB Warning]:', err);
@@ -543,18 +579,22 @@ export async function deleteUniversity(id: string, name?: string): Promise<void>
       await supabase.from('universities').delete().ilike('name', name.trim());
     }
 
-    await supabase.from('system_config').upsert({
-      key: 'ferex_universities_catalog',
-      value: filtered,
-      updated_at: new Date().toISOString()
-    }).catch(async () => {
-      const admin = await getAdminSupabaseClient();
-      await admin.from('system_config').upsert({
+    try {
+      await supabase.from('system_config').upsert({
         key: 'ferex_universities_catalog',
         value: filtered,
         updated_at: new Date().toISOString()
-      }).catch(() => {});
-    });
+      });
+    } catch {
+      try {
+        const admin = await getAdminSupabaseClient();
+        await admin.from('system_config').upsert({
+          key: 'ferex_universities_catalog',
+          value: filtered,
+          updated_at: new Date().toISOString()
+        });
+      } catch {}
+    }
   } catch (err) {
     console.warn('[deleteUniversity DB Warning]:', err);
   }
@@ -569,15 +609,21 @@ export const updateUniversityRecord = updateUniversity;
 export async function clearAllUniversities(): Promise<void> {
   try {
     localStorage.setItem(PURGED_UNIS_KEY, 'true');
-    await supabase.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000').catch(async () => {
-      const admin = await getAdminSupabaseClient();
-      await admin.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    });
-    await supabase.from('system_config').upsert({
-      key: 'ferex_universities_catalog',
-      value: [],
-      updated_at: new Date().toISOString()
-    }).catch(() => {});
+    try {
+      await supabase.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    } catch {
+      try {
+        const admin = await getAdminSupabaseClient();
+        await admin.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch {}
+    }
+    try {
+      await supabase.from('system_config').upsert({
+        key: 'ferex_universities_catalog',
+        value: [],
+        updated_at: new Date().toISOString()
+      });
+    } catch {}
   } catch {}
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([]));

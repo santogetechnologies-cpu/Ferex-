@@ -262,6 +262,7 @@ export const AdminUniversities: React.FC = () => {
     const set = new Set<string>();
     countryList.forEach(c => { if (c?.name) set.add(c.name.trim()); });
     universities.forEach(u => { if (u?.country) set.add(u.country.trim()); });
+    if (country && country.trim()) set.add(country.trim());
 
     // Only if nothing is registered anywhere, provide standard starting options
     if (set.size === 0) {
@@ -269,7 +270,7 @@ export const AdminUniversities: React.FC = () => {
     }
 
     return Array.from(set).filter(c => c && c.toLowerCase().trim() !== 'india').sort();
-  }, [countryList, universities]);
+  }, [countryList, universities, country]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -932,8 +933,8 @@ export const AdminUniversities: React.FC = () => {
               />
             </div>
             <button
-              onClick={() => setShowAddCountryModal(true)}
-              className="h-9 px-4 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] flex items-center gap-1.5 shadow-xs"
+              onClick={handleOpenAddCountry}
+              className="h-9 px-4 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Add New Country
             </button>
@@ -947,8 +948,8 @@ export const AdminUniversities: React.FC = () => {
                 Register study destination countries with their legalization authorities, currencies, and visa guidelines.
               </p>
               <button
-                onClick={() => setShowAddCountryModal(true)}
-                className="px-4 py-2 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316]"
+                onClick={handleOpenAddCountry}
+                className="px-4 py-2 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] cursor-pointer"
               >
                 + Register First Destination Country
               </button>
