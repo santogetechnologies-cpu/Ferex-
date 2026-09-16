@@ -42,7 +42,7 @@ const ROLE_ROUTES: Record<string, string> = {
   trade: '/trade/dashboard',
   trade_admin: '/trade/dashboard',
   global_trade: '/trade/dashboard',
-  trade_client: '/trade/client-portal',
+  trade_client: '/trade/dashboard',
   logistics_officer: '/trade/dashboard',
   rimi: '/rimi/dashboard',
   rimi_admin: '/rimi/dashboard',

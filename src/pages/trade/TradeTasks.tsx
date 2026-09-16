@@ -35,7 +35,7 @@ export const TradeTasks: React.FC = () => {
   const [reassigningTask, setReassigningTask] = useState<TradeTask | null>(null);
   const [toast, setToast] = useState('');
 
-  const staffList = getTradeStaffOfficers();
+  const [staffList, setStaffList] = useState(getTradeStaffOfficers());
   const userEmail = profile?.email || 'elena.rostova@ferex.com';
   const isAdmin = profile?.role === 'trade_admin' || profile?.role === 'admin' || profile?.role === 'superadmin' || profile?.role === 'super_admin';
 
@@ -44,8 +44,8 @@ export const TradeTasks: React.FC = () => {
     category: 'Order Handling' as TradeTask['category'],
     order_no: '',
     client_name: '',
-    assigned_staff_name: staffList[0].name,
-    assigned_staff_email: staffList[0].email,
+    assigned_staff_name: staffList[0]?.name || 'Marcus Vance',
+    assigned_staff_email: staffList[0]?.email || 'marcus.vance@ferex.com',
     priority: 'Medium' as TaskPriority,
     status: 'Pending' as TaskStatus,
     due_date: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
@@ -63,6 +63,7 @@ export const TradeTasks: React.FC = () => {
       ]);
       setTasks(Array.isArray(allTasks) ? allTasks : []);
       setOrders(Array.isArray(allOrders) ? allOrders : []);
+      setStaffList(getTradeStaffOfficers());
     } finally {
       setLoading(false);
     }
@@ -80,10 +81,12 @@ export const TradeTasks: React.FC = () => {
 
     const handleLocalChange = () => loadData();
     window.addEventListener('ferex_trade_tasks_change', handleLocalChange);
+    window.addEventListener('ferex_trade_staff_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_trade_tasks_change', handleLocalChange);
+      window.removeEventListener('ferex_trade_staff_change', handleLocalChange);
     };
   }, [loadData]);
 

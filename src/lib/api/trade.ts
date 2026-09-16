@@ -247,15 +247,85 @@ function uid(): string {
 
 // ─── DEFAULT SEED DATA ──────────────────────────────────────────────────────
 const DEFAULT_STAFF_OFFICERS = [
-  { name: 'Marcus Vance', email: 'marcus.vance@ferex.com', role: 'Trade Officer' },
-  { name: 'Elena Rostova', email: 'elena.rostova@ferex.com', role: 'Logistics Officer' },
-  { name: 'Krzysztof Nowak', email: 'krzysztof.nowak@ferex.com', role: 'Documentation Specialist' },
-  { name: 'Ferex Trade Desk', email: 'trade@ferex.com', role: 'Trade Admin' },
+  { name: 'Marcus Vance', email: 'marcus.vance@ferex.com', role: 'Trade Officer', department: 'Trade Operations' },
+  { name: 'Elena Rostova', email: 'elena.rostova@ferex.com', role: 'Logistics Officer', department: 'Logistics Desk' },
+  { name: 'Krzysztof Nowak', email: 'krzysztof.nowak@ferex.com', role: 'Documentation Specialist', department: 'Customs Compliance' },
+  { name: 'Rahul Sharma', email: 'trade@ferex.com', role: 'Trade Director', department: 'Executive Desk' },
 ];
 
-export function getTradeStaffOfficers() {
-  return DEFAULT_STAFF_OFFICERS;
+export interface TradeStaffOfficer {
+  name: string;
+  email: string;
+  role: string;
+  department?: string;
 }
+
+export function getTradeStaffOfficers(): TradeStaffOfficer[] {
+  const staffList: TradeStaffOfficer[] = [...DEFAULT_STAFF_OFFICERS];
+
+  if (typeof localStorage !== 'undefined') {
+    try {
+      // 1. Custom Trade Staff
+      const customTrade = localStorage.getItem('ferex_trade_staff_v2');
+      if (customTrade) {
+        const parsed = JSON.parse(customTrade);
+        if (Array.isArray(parsed)) {
+          for (const s of parsed) {
+            const email = (s.email || '').toLowerCase().trim();
+            if (email && !staffList.some(existing => existing.email.toLowerCase() === email)) {
+              staffList.push({
+                name: s.name || s.full_name || email.split('@')[0],
+                email,
+                role: s.role || 'Trade Officer',
+                department: s.department || 'Trade Operations'
+              });
+            }
+          }
+        }
+      }
+
+      // 2. Global Ferex Staff / Admin Users
+      const globalStaff = localStorage.getItem('ferex_staff_users');
+      if (globalStaff) {
+        const parsed = JSON.parse(globalStaff);
+        if (Array.isArray(parsed)) {
+          for (const s of parsed) {
+            const email = (s.email || '').toLowerCase().trim();
+            if (email && !staffList.some(existing => existing.email.toLowerCase() === email)) {
+              staffList.push({
+                name: s.full_name || s.name || email.split('@')[0],
+                email,
+                role: s.role || 'Logistics Officer',
+                department: s.department || 'Operations Desk'
+              });
+            }
+          }
+        }
+      }
+
+      // 3. Current logged in user (if trade or staff)
+      const curUser = localStorage.getItem('ferex_user');
+      if (curUser) {
+        const parsed = JSON.parse(curUser);
+        const email = (parsed.email || '').toLowerCase().trim();
+        const name = parsed.full_name || parsed.name;
+        if (email && name && !staffList.some(existing => existing.email.toLowerCase() === email)) {
+          staffList.push({
+            name,
+            email,
+            role: parsed.role === 'trade_admin' ? 'Trade Director' : 'Logistics Officer',
+            department: 'Trade Desk'
+          });
+        }
+      }
+    } catch {}
+  }
+
+  return staffList;
+}
+
+export const getTradeStaff = getTradeStaffOfficers;
+
 
 function initTradeDataIfEmpty() {
   if (typeof localStorage === 'undefined') return;
@@ -823,6 +893,32 @@ export async function createTradeOrder(order: Partial<TradeOrder>): Promise<Trad
   const updated = [newOrder, ...current.filter(o => o.id !== newOrder.id && o.order_no !== newOrder.order_no)];
   try { localStorage.setItem('ferex_trade_orders_v2', JSON.stringify(updated)); } catch {}
   try { await supabase.from('trade_orders').insert(newOrder); } catch {}
+
+  // Auto-sync client partner into CRM database if not already present
+  if (newOrder.client_name && newOrder.client_name !== 'Global Trade Client') {
+    try {
+      const clients = await getTradeClients();
+      if (!clients.some(c => c.company_name.toLowerCase() === newOrder.client_name.toLowerCase())) {
+        const newPartner: TradeClientPartner = {
+          id: uid(),
+          company_name: newOrder.client_name,
+          contact_person: newOrder.client_name,
+          email: newOrder.client_email || `${newOrder.client_name.toLowerCase().replace(/[^a-z0-9]/g, '')}@trade.com`,
+          phone: newOrder.client_phone || '+48 58 000 0000',
+          country: newOrder.client_country || 'Poland',
+          city: 'Trade Port Desk',
+          category: 'Buyer / Importer',
+          portal_active: true,
+          created_at: new Date().toISOString()
+        };
+        const updatedClients = [newPartner, ...clients];
+        localStorage.setItem('ferex_trade_clients_v2', JSON.stringify(updatedClients));
+        try { await supabase.from('trade_clients').upsert(newPartner, { onConflict: 'id' }); } catch {}
+        window.dispatchEvent(new Event('ferex_trade_clients_change'));
+        window.dispatchEvent(new Event('ferex_trade_crm_change'));
+      }
+    } catch {}
+  }
 
   // Trigger automated email if confirmed
   if (currentStage === 'Order Confirmed') {
@@ -1798,9 +1894,63 @@ export const createTradeLetterOfCredit = async (...args: any[]): Promise<any> =>
 export const updateTradeLetterOfCreditStatus = async (...args: any[]): Promise<any> => true;
 export const deleteTradeLetterOfCredit = async (...args: any[]): Promise<any> => true;
 export const getTradeCRMContacts = getTradeClients;
-export const createTradeCRMContact = async (...args: any[]): Promise<any> => provisionTradeClientLogin(args[0] || {});
-export const updateTradeCRMContact = async (...args: any[]): Promise<any> => true;
-export const deleteTradeCRMContact = async (...args: any[]): Promise<any> => true;
+
+export async function createTradeCRMContact(partner: Partial<TradeClientPartner>): Promise<TradeClientPartner> {
+  const currentClients = await getTradeClients();
+  const cleanEmail = (partner.email || '').trim().toLowerCase();
+  const companyName = partner.company_name || 'Global Trade Partner';
+  const partnerId = partner.id || uid();
+
+  const newPartner: TradeClientPartner = {
+    id: partnerId,
+    company_name: companyName,
+    contact_person: partner.contact_person || companyName,
+    email: cleanEmail || `${companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}@trade.com`,
+    phone: partner.phone || '+48 58 000 0000',
+    country: partner.country || 'International',
+    city: partner.city || 'Trade Port Desk',
+    category: partner.category || 'Buyer / Importer',
+    portal_active: true,
+    created_at: new Date().toISOString(),
+  };
+
+  const updated = [newPartner, ...currentClients.filter(c => c.id !== partnerId && c.email.toLowerCase() !== cleanEmail)];
+  try { localStorage.setItem('ferex_trade_clients_v2', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_clients').upsert(newPartner, { onConflict: 'id' }); } catch {}
+
+  window.dispatchEvent(new Event('ferex_trade_clients_change'));
+  window.dispatchEvent(new Event('ferex_trade_crm_change'));
+  return newPartner;
+}
+
+export async function updateTradeCRMContact(id: string, updates: Partial<TradeClientPartner>): Promise<boolean> {
+  const currentClients = await getTradeClients();
+  const updated = currentClients.map(c => {
+    if (c.id === id || c.company_name === id) {
+      return { ...c, ...updates };
+    }
+    return c;
+  });
+
+  try { localStorage.setItem('ferex_trade_clients_v2', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('trade_clients').update(updates).or(`id.eq.${id},company_name.eq.${id}`); } catch {}
+
+  window.dispatchEvent(new Event('ferex_trade_clients_change'));
+  window.dispatchEvent(new Event('ferex_trade_crm_change'));
+  return true;
+}
+
+export async function deleteTradeCRMContact(id: string): Promise<boolean> {
+  const currentClients = await getTradeClients();
+  const filtered = currentClients.filter(c => c.id !== id && c.company_name !== id);
+
+  try { localStorage.setItem('ferex_trade_clients_v2', JSON.stringify(filtered)); } catch {}
+  try { await supabase.from('trade_clients').delete().or(`id.eq.${id},company_name.eq.${id}`); } catch {}
+
+  window.dispatchEvent(new Event('ferex_trade_clients_change'));
+  window.dispatchEvent(new Event('ferex_trade_crm_change'));
+  return true;
+}
 export const getTradeMessages = async (convId: string) => {
   const local = localStorage.getItem(`ferex_trade_msgs_${convId}`);
   if (local) {

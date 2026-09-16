@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   PackageCheck, Search, Plus, Filter, CheckCircle2,
@@ -14,18 +15,22 @@ import {
   advanceTradeOrderStage,
   deleteTradeOrder,
   getTradeStaffOfficers,
+  getTradeCRMContacts,
   TRADE_ORDER_STAGES,
   TRADE_INCOTERMS,
   TRADE_CURRENCIES,
   type TradeOrder,
   type TradeOrderStage,
+  type TradeClientPartner,
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const TradeShipments: React.FC = () => {
   const { profile } = useAuth();
+  const location = useLocation();
   const [orders, setOrders] = useState<TradeOrder[]>([]);
+  const [partners, setPartners] = useState<TradeClientPartner[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStage, setFilterStage] = useState<string>('All');
@@ -53,8 +58,8 @@ export const TradeShipments: React.FC = () => {
     payment_terms_desc: '30% Advance Wire, 70% Balance against Shipping B/L copy',
     lc_reference: '',
     stage: 'Inquiry' as TradeOrderStage,
-    assigned_staff_name: staffList[0].name,
-    assigned_staff_email: staffList[0].email,
+    assigned_staff_name: staffList[0]?.name || 'Elena Rostova',
+    assigned_staff_email: staffList[0]?.email || 'elena.rostova@ferex.com',
     carrier: 'MSC (Mediterranean Shipping Company)',
     vessel_flight: 'MSC Gülsün',
     voyage_no: 'VY-2026-088',
@@ -71,8 +76,12 @@ export const TradeShipments: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getTradeOrders();
-      setOrders(Array.isArray(data) ? data : []);
+      const [ordersData, partnersData] = await Promise.all([
+        getTradeOrders(),
+        getTradeCRMContacts()
+      ]);
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setPartners(Array.isArray(partnersData) ? partnersData : []);
     } finally {
       setLoading(false);
     }
@@ -90,16 +99,51 @@ export const TradeShipments: React.FC = () => {
 
     const handleLocalChange = () => loadData();
     window.addEventListener('ferex_trade_orders_change', handleLocalChange);
+    window.addEventListener('ferex_trade_crm_change', handleLocalChange);
+    window.addEventListener('ferex_trade_clients_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_trade_orders_change', handleLocalChange);
+      window.removeEventListener('ferex_trade_crm_change', handleLocalChange);
+      window.removeEventListener('ferex_trade_clients_change', handleLocalChange);
     };
   }, [loadData]);
+
+  // Handle URL params e.g. /trade/shipments?create=true&client=Baltic%20Grain
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const shouldCreate = params.get('create');
+    const clientParam = params.get('client');
+    if (shouldCreate === 'true') {
+      setShowCreateModal(true);
+      if (clientParam) {
+        handlePartnerSelect(clientParam);
+      }
+    }
+  }, [location.search, partners]);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3500);
+  };
+
+  const handlePartnerSelect = (partnerName: string) => {
+    const p = partners.find(item => item.company_name.toLowerCase() === partnerName.toLowerCase());
+    if (p) {
+      setFormData(prev => ({
+        ...prev,
+        client_name: p.company_name,
+        client_email: p.email || prev.client_email,
+        client_phone: p.phone || prev.client_phone,
+        client_country: p.country || prev.client_country,
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        client_name: partnerName
+      }));
+    }
   };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -117,7 +161,7 @@ export const TradeShipments: React.FC = () => {
         order_no: `TRD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
         po_number: `PO-${Math.floor(100 + Math.random() * 900)}`,
       });
-      showToastMsg(`Order ${created.order_no} created & client email triggered!`);
+      showToastMsg(`Order ${created.order_no} created & stage confirmed!`);
       await loadData();
     } catch (err: any) {
       showToastMsg(`Failed to create order: ${err.message || 'Error'}`);
@@ -129,7 +173,7 @@ export const TradeShipments: React.FC = () => {
     try {
       const updated = await advanceTradeOrderStage(order.id, nextStage, userName);
       if (updated) {
-        showToastMsg(`Stage advanced to "${nextStage}"! Automated client email sent.`);
+        showToastMsg(`Stage advanced to "${nextStage}"! Automated notification logged.`);
         await loadData();
         if (selectedOrder?.id === order.id) {
           setSelectedOrder(updated);
@@ -205,7 +249,7 @@ export const TradeShipments: React.FC = () => {
             Order & Shipment Lifecycle Tracker
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Full 7-stage order lifecycle with 1-click stage confirmation and automated client email triggers.
+            Full 7-stage order lifecycle with 1-click stage confirmation and synchronized operations.
           </p>
         </div>
         <Button
@@ -222,7 +266,7 @@ export const TradeShipments: React.FC = () => {
       <Card className="p-4 border border-slate-200/80 bg-gradient-to-r from-slate-900 via-[#3b0413] to-slate-900 text-white shadow-md overflow-x-auto">
         <div className="text-[10px] font-black uppercase tracking-widest text-[#f3cbd4] mb-3 flex items-center justify-between">
           <span>7-Stage Global Trade Workflow</span>
-          <span className="text-emerald-400 font-bold">1-Click Automated Client Email Sync</span>
+          <span className="text-emerald-400 font-bold">1-Click Stage Transition Sync</span>
         </div>
         <div className="flex items-center gap-2 min-w-[760px]">
           {TRADE_ORDER_STAGES.map((st, i) => {
@@ -251,7 +295,7 @@ export const TradeShipments: React.FC = () => {
         </div>
       </Card>
 
-      {/* Filter and Search Bar */}
+      {/* Filters & Search */}
       <Card className="p-3 border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -259,22 +303,29 @@ export const TradeShipments: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by Order #, Client, Commodity, Vessel, Carrier..."
+            placeholder="Search by Order #, Client, Commodity, Vessel, Container..."
             className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
           />
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto">
-          <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="text-[11px] font-bold text-slate-500 shrink-0">Stage:</span>
-          {['All', ...TRADE_ORDER_STAGES].map((st) => (
+          <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+            <Filter className="w-3.5 h-3.5" /> Stage:
+          </span>
+          <button
+            onClick={() => setFilterStage('All')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              filterStage === 'All' ? 'bg-slate-900 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            }`}
+          >
+            All
+          </button>
+          {TRADE_ORDER_STAGES.map(st => (
             <button
               key={st}
               onClick={() => setFilterStage(st)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                filterStage === st
-                  ? 'bg-[#58051E] text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                filterStage === st ? 'bg-[#58051E] text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
               }`}
             >
               {st}
@@ -291,12 +342,16 @@ export const TradeShipments: React.FC = () => {
       ) : filteredOrders.length === 0 ? (
         <Card className="p-12 text-center border border-dashed border-slate-200">
           <PackageCheck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-sm font-black text-slate-800">No trade orders matching criteria</h3>
+          <h3 className="text-sm font-black text-slate-800">No trade orders found</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-            Create an order to track inquiry, quotes, production, vessel boarding, and customs clearance.
+            {searchQuery || filterStage !== 'All' ? 'Try adjusting your search or stage filters.' : 'Log your first international commodity shipment to start the 7-stage workflow.'}
           </p>
-          <Button size="sm" onClick={() => setShowCreateModal(true)} className="mt-4 bg-[#58051E] text-white">
-            <Plus className="w-4 h-4 mr-1" /> Create First Order
+          <Button
+            size="sm"
+            onClick={() => setShowCreateModal(true)}
+            className="mt-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" /> Log New Order
           </Button>
         </Card>
       ) : (
@@ -315,64 +370,63 @@ export const TradeShipments: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                {filteredOrders.map((order) => {
-                  const nextStage = getNextStage(order.stage);
-                  const isAdvancing = advancingId === order.id;
+                {filteredOrders.map((ord) => {
+                  const nextStage = getNextStage(ord.stage);
+                  const isAdvancing = advancingId === ord.id;
 
                   return (
-                    <tr key={order.id} className="hover:bg-slate-50/60 transition-colors">
+                    <tr key={ord.id} className="hover:bg-slate-50/60 transition-colors">
                       {/* Order / PO */}
                       <td className="py-3 px-4">
-                        <div className="font-mono font-black text-slate-900">{order.order_no}</div>
-                        <div className="text-[10px] text-slate-400">{order.po_number}</div>
+                        <div className="font-black text-slate-900 font-mono text-[12px]">{ord.order_no}</div>
+                        {ord.po_number && <div className="text-[10px] text-slate-400 font-mono">{ord.po_number}</div>}
                       </td>
 
                       {/* Client & Commodity */}
-                      <td className="py-3 px-4 max-w-[220px]">
-                        <div className="font-extrabold text-slate-900 truncate">{order.client_name}</div>
-                        <div className="text-[11px] text-slate-500 truncate" title={order.commodity}>
-                          {order.commodity} ({order.quantity_units})
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-slate-900">{ord.client_name}</div>
+                        <div className="text-[11px] text-slate-500 truncate max-w-[200px]" title={ord.commodity}>
+                          {ord.commodity} {ord.quantity_units ? `(${ord.quantity_units})` : ''}
                         </div>
                       </td>
 
-                      {/* Stage Pill */}
+                      {/* Current Stage */}
                       <td className="py-3 px-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border ${getStageColor(order.stage)}`}>
-                          <Clock className="w-3 h-3" />
-                          {order.stage}
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-black border ${getStageColor(ord.stage)}`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                          {ord.stage}
                         </span>
                       </td>
 
                       {/* Financials & Advance */}
                       <td className="py-3 px-4">
                         <div className="font-extrabold text-slate-900">
-                          {order.currency} {Number(order.total_amount).toLocaleString()}
+                          {ord.currency} {ord.total_amount.toLocaleString()}
                         </div>
                         <div className="text-[10px] text-slate-500">
-                          Adv: {order.advance_percentage}% ({order.advance_status === 'Paid' ? '✅ Paid' : '⏳ Pending'})
+                          Adv: {ord.advance_percentage}% ({ord.advance_status === 'Paid' ? <span className="text-emerald-600 font-bold">✓ Paid</span> : <span className="text-amber-600 font-bold">⏳ Pending</span>})
                         </div>
                       </td>
 
-                      {/* Logistics / Vessel */}
-                      <td className="py-3 px-4 max-w-[180px]">
-                        {order.carrier ? (
-                          <>
-                            <div className="font-bold text-slate-800 truncate flex items-center gap-1">
-                              <Ship className="w-3 h-3 text-slate-400 shrink-0" />
-                              {order.carrier}
+                      {/* Logistics */}
+                      <td className="py-3 px-4">
+                        {ord.carrier ? (
+                          <div>
+                            <div className="font-bold text-slate-800 flex items-center gap-1">
+                              <Ship className="w-3.5 h-3.5 text-slate-400" /> {ord.carrier.split('(')[0]}
                             </div>
-                            <div className="text-[10px] text-slate-400 truncate">
-                              {order.vessel_flight || 'Vessel TBA'} • {order.tracking_number || 'Track Live'}
+                            <div className="text-[10px] text-slate-400 font-mono truncate max-w-[140px]">
+                              {ord.vessel_flight || ord.tracking_number}
                             </div>
-                          </>
+                          </div>
                         ) : (
-                          <span className="text-[10px] text-slate-400 italic">Logistics pending</span>
+                          <span className="text-slate-400 text-[11px]">Unassigned</span>
                         )}
                       </td>
 
                       {/* Officer */}
-                      <td className="py-3 px-4">
-                        <span className="text-xs font-bold text-slate-700">{order.assigned_staff_name}</span>
+                      <td className="py-3 px-4 text-slate-600 text-[11px]">
+                        {ord.assigned_staff_name || 'Trade Desk'}
                       </td>
 
                       {/* Actions */}
@@ -381,23 +435,23 @@ export const TradeShipments: React.FC = () => {
                           {nextStage && (
                             <button
                               disabled={isAdvancing}
-                              onClick={() => handle1ClickAdvance(order, nextStage)}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10.5px] font-black flex items-center gap-1 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
-                              title={`Advance to ${nextStage} & send automated email to ${order.client_email}`}
+                              onClick={() => handle1ClickAdvance(ord, nextStage)}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-black shadow-2xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                              title={`Advance to ${nextStage}`}
                             >
-                              <Send className="w-3 h-3" />
+                              {isAdvancing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                               Confirm {nextStage}
                             </button>
                           )}
                           <button
-                            onClick={() => setSelectedOrder(order)}
+                            onClick={() => setSelectedOrder(ord)}
                             className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
-                            title="View Complete Order Dossier"
+                            title="View Full Order Dossier"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(order.id, order.order_no)}
+                            onClick={() => handleDelete(ord.id, ord.order_no)}
                             className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
                             title="Delete Order"
                           >
@@ -423,57 +477,61 @@ export const TradeShipments: React.FC = () => {
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <div>
                   <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-[#58051E]" /> Register New Trade Order
+                    <PackageCheck className="w-4 h-4 text-[#58051E]" /> Log New Global Trade Order
                   </h2>
                   <p className="text-xs text-slate-500 font-semibold">
-                    Configures financial split, incoterms, assigned officer, and live tracking.
+                    Initiates 7-stage international trade lifecycle and activates document tracking.
                   </p>
                 </div>
                 <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
 
-              <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs font-semibold">
+              <form onSubmit={handleCreateSubmit} className="space-y-3.5 text-xs font-semibold">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Order Reference # *</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Order Reference #</label>
                     <input
                       type="text"
                       required
                       value={formData.order_no}
                       onChange={(e) => setFormData({ ...formData, order_no: e.target.value })}
-                      placeholder="TRD-2026-8801"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Client PO Reference #</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Client PO / Contract Ref</label>
                     <input
                       type="text"
                       value={formData.po_number}
                       onChange={(e) => setFormData({ ...formData, po_number: e.target.value })}
                       placeholder="PO-BALTIC-771"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Client / Buyer Name *</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Select Registered Partner / Buyer *</label>
                     <input
                       type="text"
+                      list="partner-options"
                       required
                       value={formData.client_name}
-                      onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
+                      onChange={(e) => handlePartnerSelect(e.target.value)}
                       placeholder="e.g. Baltic Grain Sp. z o.o."
                       className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
+                    <datalist id="partner-options">
+                      {partners.map(p => (
+                        <option key={p.id} value={p.company_name}>{p.company_name} ({p.country})</option>
+                      ))}
+                    </datalist>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Client Login Email *</label>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Client Contact Email</label>
                     <input
                       type="email"
-                      required
                       value={formData.client_email}
                       onChange={(e) => setFormData({ ...formData, client_email: e.target.value })}
                       placeholder="e.g. trade@balticgrain.pl"
@@ -660,7 +718,7 @@ export const TradeShipments: React.FC = () => {
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Create Order & Notify Client</Button>
+                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Create Order & Confirm Stage</Button>
                 </div>
               </form>
             </motion.div>
@@ -668,85 +726,76 @@ export const TradeShipments: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* ── ORDER DETAIL DOSSIER MODAL ── */}
+      {/* ── VIEW ORDER DOSSIER MODAL ── */}
       <AnimatePresence>
         {selectedOrder && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50" onClick={() => setSelectedOrder(null)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50" onClick={() => setSelectedOrder(null)} />
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left">
-              <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                 <div>
-                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black border ${getStageColor(selectedOrder.stage)}`}>
-                    {selectedOrder.stage}
-                  </span>
-                  <h2 className="text-lg font-black text-slate-900 mt-1">{selectedOrder.order_no} Dossier</h2>
-                  <p className="text-xs text-slate-500 font-semibold">{selectedOrder.client_name} • {selectedOrder.po_number}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black font-mono text-slate-400">{selectedOrder.order_no}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${getStageColor(selectedOrder.stage)}`}>
+                      {selectedOrder.stage}
+                    </span>
+                  </div>
+                  <h2 className="text-base font-black text-slate-900 mt-1">{selectedOrder.client_name}</h2>
+                  <p className="text-xs text-slate-500 font-semibold">{selectedOrder.commodity} • {selectedOrder.quantity_units}</p>
                 </div>
                 <button onClick={() => setSelectedOrder(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
 
-              <div className="py-4 space-y-4 text-xs font-semibold">
-                {/* Financial Summary */}
-                <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
-                  <div>
-                    <span className="text-[10px] font-black uppercase text-slate-400 block">Total Value</span>
-                    <span className="text-sm font-black text-slate-900">{selectedOrder.currency} {Number(selectedOrder.total_amount).toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase text-slate-400 block">Advance ({selectedOrder.advance_percentage}%)</span>
-                    <span className={`text-xs font-bold ${selectedOrder.advance_status === 'Paid' ? 'text-emerald-700' : 'text-amber-700'}`}>
-                      {selectedOrder.currency} {Number(selectedOrder.advance_amount).toLocaleString()} ({selectedOrder.advance_status})
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase text-slate-400 block">Balance Due</span>
-                    <span className={`text-xs font-bold ${selectedOrder.balance_status === 'Paid' ? 'text-emerald-700' : 'text-rose-700'}`}>
-                      {selectedOrder.currency} {Number(selectedOrder.balance_amount - (selectedOrder.balance_paid || 0)).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Logistics */}
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 block">Port of Loading</span>
-                      <span className="text-xs font-bold text-slate-800">{selectedOrder.origin_port || 'POL'}</span>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400" />
-                    <div className="text-right">
-                      <span className="text-[10px] font-bold text-slate-400 block">Port of Discharge</span>
-                      <span className="text-xs font-bold text-slate-800">{selectedOrder.destination_port || 'POD'}</span>
-                    </div>
-                  </div>
-                  <div className="pt-2 border-t border-slate-200/60 text-[11px] text-slate-600 flex justify-between">
-                    <span>Carrier: <strong>{selectedOrder.carrier || 'N/A'}</strong> ({selectedOrder.vessel_flight})</span>
-                    <span>Tracking: <strong className="font-mono">{selectedOrder.tracking_number || 'Live'}</strong></span>
-                  </div>
-                </div>
-
-                {/* Stage History Timeline */}
-                <div>
-                  <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">Stage Progression Timeline</h4>
-                  <div className="space-y-2">
-                    {selectedOrder.stage_history?.map((h, i) => (
-                      <div key={i} className="flex items-start gap-2.5 p-2 bg-slate-50 rounded-xl border border-slate-100 text-[11px]">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-extrabold text-slate-900">{h.stage}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">{h.timestamp}</span>
-                          </div>
-                          <p className="text-[10.5px] text-slate-500">Confirmed by: {h.confirmed_by} {h.notes ? `• ${h.notes}` : ''}</p>
+              {/* Lifecycle Stage Progress Bar */}
+              <div className="py-3 border-b border-slate-100">
+                <div className="text-[10px] font-black uppercase text-slate-400 mb-2">Stage Timeline History</div>
+                <div className="space-y-2">
+                  {(selectedOrder.stage_history || []).map((entry, idx) => (
+                    <div key={idx} className="flex items-start gap-2.5 text-xs">
+                      <div className="w-2 h-2 rounded-full bg-[#58051E] mt-1.5 shrink-0" />
+                      <div className="flex-1 flex items-center justify-between">
+                        <div>
+                          <span className="font-black text-slate-900">{entry.stage}</span>
+                          <span className="text-slate-400 ml-2">by {entry.confirmed_by}</span>
+                          {entry.notes && <div className="text-[11px] text-slate-500">{entry.notes}</div>}
                         </div>
+                        <span className="text-[10px] text-slate-400 font-mono shrink-0">{entry.timestamp}</span>
                       </div>
-                    ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 gap-3 py-4 text-xs font-semibold">
+                <div className="p-3 bg-slate-50 rounded-2xl">
+                  <span className="text-slate-400 text-[10px] uppercase font-bold block">Financial Value</span>
+                  <span className="text-slate-900 font-bold text-sm">{selectedOrder.currency} {selectedOrder.total_amount.toLocaleString()}</span>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    Advance: {selectedOrder.advance_percentage}% ({selectedOrder.advance_status}) • Bal: {selectedOrder.currency} {selectedOrder.balance_amount.toLocaleString()}
                   </div>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-2xl">
+                  <span className="text-slate-400 text-[10px] uppercase font-bold block">Shipping & Carrier</span>
+                  <span className="text-slate-900 font-bold">{selectedOrder.carrier || 'Pending carrier'}</span>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    {selectedOrder.origin_port} ➔ {selectedOrder.destination_port}
+                  </div>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-2xl">
+                  <span className="text-slate-400 text-[10px] uppercase font-bold block">Handling Officer</span>
+                  <span className="text-slate-900 font-bold">{selectedOrder.assigned_staff_name}</span>
+                  <div className="text-[11px] text-slate-500">{selectedOrder.assigned_staff_email}</div>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-2xl">
+                  <span className="text-slate-400 text-[10px] uppercase font-bold block">Incoterms & LC</span>
+                  <span className="text-slate-900 font-bold">{selectedOrder.incoterm || 'CIF'}</span>
+                  <div className="text-[11px] text-slate-500 font-mono">{selectedOrder.lc_reference || 'Standard Commercial Terms'}</div>
                 </div>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex justify-end">
-                <Button size="sm" variant="outline" onClick={() => setSelectedOrder(null)}>Close Dossier</Button>
+                <Button size="sm" variant="outline" onClick={() => setSelectedOrder(null)}>Close</Button>
               </div>
             </motion.div>
           </>

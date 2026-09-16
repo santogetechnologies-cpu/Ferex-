@@ -270,7 +270,7 @@ function App() {
           <Route path="/login" element={<AuthLayout><LoginPage /></AuthLayout>} />
           <Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
           <Route path="/admin/login" element={<Navigate to="/login" replace />} />
-          <Route path="/trade/login" element={<TradeLoginPage />} />
+          <Route path="/trade/login" element={<Navigate to="/login" replace />} />
           <Route path="/rimi/login" element={<RimiLoginPage />} />
           <Route path="/digital/login" element={<DigitalLoginPage />} />
 
@@ -359,13 +359,13 @@ function App() {
           <Route path="/trade/reports" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeReports /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/shipment-analytics" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeShipmentAnalytics /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/financial-analytics" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeFinancialAnalytics /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/messages" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeMessages /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/messages" element={<Navigate to="/trade/dashboard" replace />} />
           <Route path="/trade/notifications" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeNotifications /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/tasks" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeTasks /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/tickets" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeTickets /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/profile" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeProfile /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/settings" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeSettings /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/client-portal" element={<ProtectedRoute allowedRoles={['trade_client', ...TRADE_ROLES, ...CENTRAL_ROLES]}><TradeClientPortal /></ProtectedRoute>} />
+          <Route path="/trade/client-portal" element={<Navigate to="/trade/dashboard" replace />} />
 
           {/* ── Rimi Frozen Distribution Routes ── */}
           <Route path="/rimi/dashboard" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDashboard /></RimiLayout></ProtectedRoute>} />

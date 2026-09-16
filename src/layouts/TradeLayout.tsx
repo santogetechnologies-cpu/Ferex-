@@ -126,8 +126,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
       title: 'COMMUNICATION & CRM',
       items: [
         { name: 'Automated Emails', path: '/trade/notifications', icon: Mail, badge: '8 Triggers' },
-        { name: 'Partner CRM & Keys', path: '/trade/crm', icon: Users, badge: null },
-        { name: 'Messages', path: '/trade/messages', icon: MessageSquare, badge: 'Chat' },
+        { name: 'Trade CRM & Partners', path: '/trade/crm', icon: Users, badge: null },
       ]
     },
     {
@@ -154,7 +153,6 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
       title: 'COMMUNICATION',
       items: [
         { name: 'Automated Email Log', path: '/trade/notifications', icon: Mail, badge: null },
-        { name: 'Messages', path: '/trade/messages', icon: MessageSquare, badge: 'Chat' },
       ]
     },
     {
@@ -172,7 +170,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   const handleSignOut = () => {
     try { signOut(); } catch {}
     localStorage.removeItem('ferex_user');
-    navigate('/trade/login');
+    navigate('/login');
   };
 
   return (
@@ -261,22 +259,6 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
             </div>
           ))}
         </nav>
-
-        {/* Client Portal Preview Link */}
-        {!isCollapsed && (
-          <div className="p-3 border-t border-slate-100 bg-slate-50/50">
-            <Link
-              to="/trade/client-portal"
-              className="flex items-center justify-between p-2.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-[#58051E]/40 hover:bg-[#58051E]/5 transition-all text-left group"
-            >
-              <div>
-                <span className="text-[10px] font-extrabold text-[#58051E] uppercase block">Trade Client Portal</span>
-                <span className="text-[11px] font-semibold text-slate-600">Partner View Console</span>
-              </div>
-              <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-[#58051E]" />
-            </Link>
-          </div>
-        )}
       </aside>
 
       {/* Main Content Area */}
