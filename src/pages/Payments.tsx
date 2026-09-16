@@ -189,7 +189,7 @@ export const Payments: React.FC = () => {
 
   // 3. Item 1: Advanced Registration Fee (Platform Intake Deposit from Governance)
   const isAdvanceFeeEnabled = config.advance_registration_fee_enabled !== false;
-  const configuredAdvanceAmount = Number(config.advance_registration_fee_amount || config.advance_registration_fee_inr || 15000);
+  const configuredAdvanceAmount = Number(config.advance_registration_fee_amount ?? config.advance_registration_fee_inr ?? 1500);
   const advanceFeeCurrency = config.advance_registration_fee_currency || 'INR';
 
   // Display actual amount paid if paid, or live configured amount if unpaid
@@ -226,7 +226,7 @@ export const Payments: React.FC = () => {
   };
 
   // 4. Item 2: Separate Agency Processing Fee (Varies upon Country & University)
-  const rawAgencyFeeStr = appliedUniversity?.agency_fee || config.default_agency_fee || '₹25,000';
+  const rawAgencyFeeStr = appliedUniversity?.agency_fee || (config.agency_fee_amount ? (`₹${Number(config.agency_fee_amount).toLocaleString('en-IN')}`) : (config.default_agency_fee || '₹25,000'));
   const configuredAgencyInr = parseFeeToINR(rawAgencyFeeStr);
   const agencyDisplayAmount = isAgencyFeePaid && agencyPaymentRecord?.amount ? Number(agencyPaymentRecord.amount) : configuredAgencyInr;
   const agencyDisplayFormatted = isAgencyFeePaid && agencyPaymentRecord?.amount
@@ -391,7 +391,7 @@ export const Payments: React.FC = () => {
   const totalPendingAmount = Math.max(0, totalDueAmount - totalPaidAmount);
 
   // Modal Submission Handlers
-  const [payMethod, setPayMethod] = useState('UPI / GPay / PhonePe');
+  const [payMethod, setPayMethod] = useState('Direct NEFT / IMPS Bank Wire');
   const [utrNumber, setUtrNumber] = useState('');
   const [receiptUrl, setReceiptUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -399,7 +399,7 @@ export const Payments: React.FC = () => {
 
   // Payment Gateway simulation states
   const [paymentMode, setPaymentMode] = useState<'gateway' | 'manual'>('gateway');
-  const [gatewayType, setGatewayType] = useState<'card' | 'upi' | 'netbanking'>('card');
+  const [gatewayType, setGatewayType] = useState<'card' | 'netbanking'>('card');
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvv, setCardCvv] = useState('');
@@ -428,7 +428,7 @@ export const Payments: React.FC = () => {
       setIsSubmitting(true);
       const studentIdVal = user?.id;
       const studentNameVal = profile?.full_name || user?.email?.split('@')[0] || 'Student';
-      const methodLabel = gatewayType === 'card' ? 'Debit/Credit Card' : gatewayType === 'upi' ? `UPI (${upiId || 'GPay'})` : 'NetBanking';
+      const methodLabel = gatewayType === 'card' ? 'Debit/Credit Card' : 'NetBanking Wire';
 
       const paymentTypeLabel = selectedItem.itemType === 'advanced_registration'
         ? 'Advanced Registration Fee'
@@ -648,9 +648,15 @@ export const Payments: React.FC = () => {
             <h2 className="text-sm font-black text-slate-900">
               Advanced Registration Fee
             </h2>
-            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              Includes 18% GST (SAC 9983)
-            </span>
+            {config.gst_enabled_registration_fee !== false ? (
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                Includes {config.invoice_settings?.tax_rate_percent || 18}% GST ({config.registration_fee_tax_type || 'SAC 9983'})
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                GST Exempt / Zero Tax
+              </span>
+            )}
           </div>
           <span className="text-xs text-slate-400 font-semibold">Fee & Financial Governance</span>
         </div>
@@ -669,7 +675,7 @@ export const Payments: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold uppercase tracking-wider text-[#58051E] bg-[#58051E]/10 px-2.5 py-1 rounded-md">
-                Platform Onboarding & Seat Audit
+                Official Intake Voucher
               </span>
               {advFeeItem.status === 'Paid' && <Badge variant="success" dot>Paid & Cleared</Badge>}
               {advFeeItem.status === 'Pending Verification' && <Badge variant="brand" dot>In Verification</Badge>}
@@ -683,7 +689,7 @@ export const Payments: React.FC = () => {
                 <p className="text-xs text-slate-500 font-medium mt-0.5">{advFeeItem.description}</p>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left sm:text-right shrink-0">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Registration Outlay</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Intake Outlay</span>
                 <span className="text-2xl font-black text-slate-900">
                   {advFeeItem.amountFormatted}
                 </span>
@@ -704,7 +710,7 @@ export const Payments: React.FC = () => {
               <div className="p-3 mb-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
                 <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold block">Under Compliance Review</span>
+                  <span className="font-semibold block">Under Administrative Verification</span>
                   Reference UTR: <span className="font-mono font-semibold">{advFeeItem.utr || 'Logged'}</span>
                 </div>
               </div>
@@ -728,14 +734,14 @@ export const Payments: React.FC = () => {
                       currency: 'INR',
                       description: advFeeItem.title,
                       date: new Date().toISOString(),
-                      payment_method: 'PhonePe UPI / Bank Transfer',
+                      payment_method: 'Direct Bank Wire / NetBanking',
                       utr_number: advFeeItem.utr || 'VERIFIED-BANK-UTR-84920',
                       sac_code: '9983',
                       place_of_supply: 'India'
                     })}
                     leftIcon={<Eye className="w-3.5 h-3.5" />}
                   >
-                    Invoice (18% GST)
+                    Invoice ({config.gst_enabled_registration_fee !== false ? `${config.invoice_settings?.tax_rate_percent || 18}% GST` : 'Tax Exempt'})
                   </Button>
                   <Button
                     size="sm"
@@ -757,9 +763,9 @@ export const Payments: React.FC = () => {
                   size="sm"
                   className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold"
                   onClick={() => setOnlinePayItem(advFeeItem)}
-                  leftIcon={<QrCode className="w-3.5 h-3.5" />}
+                  leftIcon={<CreditCard className="w-3.5 h-3.5" />}
                 >
-                  Pay Online (UPI / Card / NetBanking)
+                  Pay Online (Card / NetBanking)
                 </Button>
                 <Button
                   size="sm"
@@ -790,9 +796,15 @@ export const Payments: React.FC = () => {
             <h2 className="text-sm font-black text-slate-900">
               Separate Agency Processing Fee
             </h2>
-            <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
-              Configured per University
-            </span>
+            {config.gst_enabled_agency_fee !== false ? (
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                Includes 18% GST ({config.agency_fee_tax_type || 'SAC 9983'})
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                GST Exempt / Zero Tax
+              </span>
+            )}
           </div>
           <span className="text-xs text-slate-400 font-semibold">Admissions & Visa Filing Support</span>
         </div>
@@ -1355,19 +1367,19 @@ export const Payments: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">Payment Method</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {['card', 'upi', 'netbanking'].map(type => (
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['card', 'netbanking'] as const).map(type => (
                         <button
                           key={type}
                           type="button"
-                          onClick={() => setGatewayType(type as any)}
+                          onClick={() => setGatewayType(type)}
                           className={`h-9 rounded-xl text-xs font-bold border transition-colors text-center uppercase tracking-wide cursor-pointer ${
                             gatewayType === type
                               ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                               : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                           }`}
                         >
-                          {type}
+                          {type === 'card' ? 'Debit / Credit Card' : 'Net Banking'}
                         </button>
                       ))}
                     </div>
@@ -1426,20 +1438,6 @@ export const Payments: React.FC = () => {
                     </div>
                   )}
 
-                  {gatewayType === 'upi' && (
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Enter UPI ID</label>
-                      <input
-                        required
-                        type="text"
-                        value={upiId}
-                        onChange={(e) => setUpiId(e.target.value)}
-                        placeholder="e.g. yourname@okhdfcbank"
-                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none"
-                      />
-                    </div>
-                  )}
-
                   <div className="flex gap-2 pt-2">
                     <Button
                       type="button"
@@ -1484,10 +1482,9 @@ export const Payments: React.FC = () => {
                       onChange={(e) => setPayMethod(e.target.value)}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none"
                     >
-                      <option value="UPI / GPay / PhonePe">UPI / PhonePe / GPay</option>
                       <option value="Direct NEFT / IMPS Bank Wire">Direct NEFT / IMPS Bank Wire</option>
                       <option value="International SWIFT Wire">International SWIFT Wire (EUR / USD)</option>
-                      <option value="Cash Receipt at Admissions Desk">Cash Receipt at Admissions Desk</option>
+                      <option value="Direct Net Banking Wire Transfer">Direct Net Banking Wire Transfer</option>
                     </select>
                   </div>
 

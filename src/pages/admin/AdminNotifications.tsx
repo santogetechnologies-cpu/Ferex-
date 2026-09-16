@@ -44,7 +44,7 @@ export const AdminNotifications: React.FC = () => {
     clearAllNotifs,
     sendNotification,
     refresh
-  } = useNotifications();
+  } = useNotifications('admin');
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');

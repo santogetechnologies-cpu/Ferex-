@@ -15,9 +15,11 @@ export interface SystemFeeConfig {
   advance_registration_fee_enabled: boolean;
   advance_registration_fee_amount: number;
   advance_registration_fee_currency: 'INR' | 'EUR' | 'USD';
+  gst_enabled_registration_fee: boolean;
 
   // Installment Payment & Verification Schedule
   installment_schedule_enabled: boolean;
+  tuition_installment_enabled: boolean;
   installment_percentages: {
     installment_1: number;
     installment_2: number;
@@ -29,7 +31,23 @@ export interface SystemFeeConfig {
   agency_fee_model: 'agency_fee_only' | 'milestones' | 'milestone_plus_fee';
   agency_fee_amount: number;
   agency_fee_currency: string;
+  gst_enabled_agency_fee: boolean;
+  agency_fee_tax_type: string;
   agency_milestones: AgencyMilestone[];
+
+  // VFS Fee Tax
+  gst_enabled_vfs_fee: boolean;
+  vfs_fee_tax_type: string;
+
+  // Tuition installment control
+  tuition_payment_mode: 'single' | 'installment';
+  tuition_installments_platform_enabled: boolean;
+
+  // Tax type configuration
+  tax_type: 'GST' | 'VAT' | 'SALES_TAX' | string;
+  gst_enabled_tuition_fee: boolean;
+  tuition_fee_tax_type: string;
+  registration_fee_tax_type: string;
 
   // Supported payment channels
   payment_gateways: {
@@ -66,8 +84,10 @@ export const DEFAULT_FEE_CONFIG: SystemFeeConfig = {
   advance_registration_fee_enabled: true,
   advance_registration_fee_amount: 1500,
   advance_registration_fee_currency: 'INR',
+  gst_enabled_registration_fee: true,
 
   installment_schedule_enabled: true,
+  tuition_installment_enabled: true,
   installment_percentages: {
     installment_1: 30,
     installment_2: 40,
@@ -78,12 +98,25 @@ export const DEFAULT_FEE_CONFIG: SystemFeeConfig = {
   agency_fee_model: 'agency_fee_only',
   agency_fee_amount: 25000,
   agency_fee_currency: 'INR',
+  gst_enabled_agency_fee: true,
+  agency_fee_tax_type: 'GST 18% (SAC 9983)',
   agency_milestones: [
     { id: 'm-1', name: 'Application Processing & Eligibility Review', amount: 5000, due_trigger: 'On Application Lodgement', description: 'Document screening & university dossier review' },
     { id: 'm-2', name: 'Offer Letter Issuance & Placement', amount: 8000, due_trigger: 'On Unconditional Offer Release', description: 'Institutional placement & admission validation' },
     { id: 'm-3', name: 'VFS Visa File Preparation & Advisory', amount: 8000, due_trigger: 'On Visa Slot Booking', description: 'SOP crafting, bank statement validation, mock interview' },
     { id: 'm-4', name: 'Pre-Departure Briefing & Airport Transfer', amount: 4000, due_trigger: 'On Visa Result Confirmed', description: 'Foreign exchange, student accommodation & arrival pickup' },
   ],
+
+  gst_enabled_vfs_fee: false,
+  vfs_fee_tax_type: 'No Tax (Govt Fee)',
+
+  tuition_payment_mode: 'installment',
+  tuition_installments_platform_enabled: true,
+
+  tax_type: 'GST',
+  gst_enabled_tuition_fee: false,
+  tuition_fee_tax_type: 'No Tax (Direct University)',
+  registration_fee_tax_type: 'GST 18% (SAC 9983)',
 
   payment_gateways: {
     phonepe_upi_enabled: true,

@@ -150,6 +150,7 @@ export async function createNotification(payload: {
       .select();
 
     if (!error && data && data.length > 0) {
+      window.dispatchEvent(new Event('ferex_notification_change'));
       return data[0] as Notification;
     }
   } catch (err) {}
@@ -162,6 +163,7 @@ export async function createNotification(payload: {
     localStorage.setItem(key, JSON.stringify([notifObj, ...existing]));
   } catch (e) {}
 
+  window.dispatchEvent(new Event('ferex_notification_change'));
   return notifObj as unknown as Notification;
 }
 
@@ -174,6 +176,7 @@ export async function deleteNotification(id: string) {
 
     if (error) console.warn('[deleteNotification Notice]:', error.message);
   } catch (err) {}
+  window.dispatchEvent(new Event('ferex_notification_change'));
   return true;
 }
 
@@ -187,5 +190,6 @@ export async function clearAllNotifications(userId?: string) {
     }
     await query;
   } catch (err) {}
+  window.dispatchEvent(new Event('ferex_notification_change'));
   return true;
 }

@@ -296,6 +296,39 @@ export const AdminPaymentControl: React.FC = () => {
     return payments.filter(p => p.status === 'Rejected');
   }, [payments]);
 
+  // Finance Analytics Model Metrics
+  const totalTransactionsValue = useMemo(() => {
+    return payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }, [payments]);
+
+  const totalVerifiedValue = useMemo(() => {
+    return payments
+      .filter(p => p.status === 'Paid' || p.status === 'Verified')
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }, [payments]);
+
+  const totalPendingValue = useMemo(() => {
+    return payments
+      .filter(p => p.status === 'Pending Verification' || p.status === 'Pending')
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }, [payments]);
+
+  const totalRefundedValue = useMemo(() => {
+    return payments
+      .filter(p => p.status === 'Refunded')
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }, [payments]);
+
+  const realizationRate = useMemo(() => {
+    return totalTransactionsValue > 0
+      ? ((totalVerifiedValue / totalTransactionsValue) * 100).toFixed(1)
+      : '100';
+  }, [totalTransactionsValue, totalVerifiedValue]);
+
+  const avgTransactionValue = useMemo(() => {
+    return payments.length > 0 ? Math.round(totalTransactionsValue / payments.length) : 0;
+  }, [payments, totalTransactionsValue]);
+
   // Method Breakdown
   const methodStats = useMemo(() => {
     const res: Record<string, { count: number; total: number }> = {
@@ -500,85 +533,86 @@ export const AdminPaymentControl: React.FC = () => {
 
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
-            onClick={() => setShowBankModal(true)}
+            onClick={() => loadData()}
             className="px-3.5 py-2.5 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
           >
-            <Landmark className="w-3.5 h-3.5 text-slate-500" />
-            + Manual Bank Transfer
+            <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+            Refresh Analytics
           </button>
-          <button
-            onClick={() => setShowCashModal(true)}
-            className="px-4 py-2.5 bg-[#58051E] text-white hover:bg-[#430316] rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
-          >
-            <Banknote className="w-4 h-4" />
-            + Record Cash Payment
-          </button>
+          <div className="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-xl text-xs font-black flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            Finance Analytics Active
+          </div>
         </div>
       </div>
 
-      {/* Top Overview Metric Cards */}
+      {/* Top Overview: Finance Analytics Model */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        {/* Metric 1: Gross Transaction Volume (All Transactions Total) */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Total Received (All Time)</span>
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Gross Transactions Total</span>
+            <span className="w-7 h-7 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
+              <TrendingUp className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="text-2xl font-black text-slate-900">
+            ₹{totalTransactionsValue.toLocaleString('en-IN')}
+          </div>
+          <div className="text-[11px] font-bold text-slate-500 mt-1 flex items-center gap-1">
+            <span>{payments.length} Total Transactions Logged</span>
+          </div>
+        </div>
+
+        {/* Metric 2: Net Realized Collections */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs relative overflow-hidden">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Realized Collections</span>
             <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
               ₹
             </span>
           </div>
-          <div className="text-2xl font-black text-slate-900">
-            ₹{stats.totalCollected.toLocaleString('en-IN')}
+          <div className="text-2xl font-black text-emerald-700">
+            ₹{totalVerifiedValue.toLocaleString('en-IN')}
           </div>
           <div className="text-[11px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            ₹{totalToday.toLocaleString('en-IN')} collected today
+            <span>{realizationRate}% Realized (₹{totalToday.toLocaleString('en-IN')} today)</span>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        {/* Metric 3: In-Flight Pending Pipeline */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Pending Verifications</span>
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Pending Verification</span>
             <span className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </span>
           </div>
           <div className="text-2xl font-black text-amber-600">
-            {pendingList.length}
+            ₹{totalPendingValue.toLocaleString('en-IN')}
           </div>
           <button
             onClick={() => { setActiveTab('pending'); setActiveStatusFilter('Pending'); }}
-            className="text-[11px] font-bold text-amber-700 hover:underline mt-1 block cursor-pointer"
+            className="text-[11px] font-bold text-amber-700 hover:underline mt-1 block cursor-pointer text-left"
           >
-            Review pending queue &rarr;
+            {pendingList.length} submissions in queue &rarr;
           </button>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        {/* Metric 4: Average Ticket & Settlement Health */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Rejected Transactions</span>
-            <span className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-              <XCircle className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-2xl font-black text-rose-600">
-            {rejectedList.length}
-          </div>
-          <div className="text-[11px] font-medium text-slate-400 mt-1">
-            Flagged for invalid UTR / bounce
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Total Verified Count</span>
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Avg Ticket Size (ATV)</span>
             <span className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4" />
+              <DollarSign className="w-4 h-4" />
             </span>
           </div>
           <div className="text-2xl font-black text-slate-900">
-            {payments.filter(p => p.status === 'Paid' || p.status === 'Verified').length}
+            ₹{avgTransactionValue.toLocaleString('en-IN')}
           </div>
-          <div className="text-[11px] font-medium text-slate-400 mt-1">
-            Receipted and invoiced
+          <div className="text-[11px] font-medium text-slate-500 mt-1">
+            {rejectedList.length} rejected • ₹{totalRefundedValue.toLocaleString('en-IN')} refunded
           </div>
         </div>
       </div>

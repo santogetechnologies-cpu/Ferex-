@@ -116,13 +116,13 @@ export const AdminPayments: React.FC = () => {
 
       // 1. Adv Registration
       const isAdvEnabled = feeConfig.advance_registration_fee_enabled !== false;
-      const advAmount = Number(feeConfig.advance_registration_fee_amount || feeConfig.advance_registration_fee_inr || 15000);
+      const advAmount = Number(feeConfig.advance_registration_fee_amount || feeConfig.advance_registration_fee_inr || 1500);
       const advPay = displayPayments.find(p => p.student_id === sId && (p.stage_number === 1 || p.title?.toLowerCase().includes('registration') || p.payment_type?.toLowerCase().includes('registration') || p.title?.toLowerCase().includes('advance')));
       const isAdvPaid = advPay?.status === 'Paid' || advPay?.status === 'Verified';
       const isAdvPending = advPay?.status === 'Pending Verification' || advPay?.status === 'Pending';
 
       // 2. Agency Fee
-      const rawAgencyFee = studentUni?.agency_fee || feeConfig.default_agency_fee || '₹25,000';
+      const rawAgencyFee = studentUni?.agency_fee || (feeConfig.agency_fee_amount ? (`₹${Number(feeConfig.agency_fee_amount).toLocaleString('en-IN')}`) : (feeConfig.default_agency_fee || '₹25,000'));
       const agencyAmount = parseFeeToINR(rawAgencyFee);
       const agencyPay = displayPayments.find(p => p.student_id === sId && (p.stage_number === 2 || (p.title?.toLowerCase().includes('agency') && !p.title?.toLowerCase().includes('tuition'))));
       const isAgencyPaid = agencyPay?.status === 'Paid' || agencyPay?.status === 'Verified';
@@ -1218,11 +1218,11 @@ export const AdminPayments: React.FC = () => {
                       <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Payment Method *</label>
                       <select value={manualMethod} onChange={e => setManualMethod(e.target.value)}
                         className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer">
-                        <option value="Cash Payment (Counter Voucher)">Cash Payment (Counter Voucher)</option>
-                        <option value="Cheque / Demand Draft (DD)">Cheque / Demand Draft (DD)</option>
                         <option value="Bank Wire Transfer (NEFT/RTGS/IMPS)">Bank Wire Transfer (NEFT/RTGS/IMPS)</option>
-                        <option value="UPI / Instant QR">UPI / Instant QR</option>
-                        <option value="PhonePe UPI / Online Payment">PhonePe UPI / Online Payment</option>
+                        <option value="International SWIFT Wire (EUR/USD)">International SWIFT Wire (EUR/USD)</option>
+                        <option value="Direct Net Banking / Debit Card">Direct Net Banking / Debit Card</option>
+                        <option value="Cheque / Demand Draft (DD)">Cheque / Demand Draft (DD)</option>
+                        <option value="Cash Payment (Counter Voucher)">Cash Payment (Counter Voucher)</option>
                       </select>
                     </div>
                   </div>

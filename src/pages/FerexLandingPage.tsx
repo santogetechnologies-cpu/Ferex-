@@ -253,11 +253,43 @@ export const FerexLandingPage: React.FC = () => {
 
     const legalizationRequired = selectedCalcUni?.nawa_required !== false && Boolean(selectedCalcUni?.country);
     const legalizationEUR = legalizationRequired ? 250 : 0;
-    const vfsEUR = 165;
-    const agencyEUR = 280;
-    const monthlyLivingEUR = calcAccomOption === 'dorm' ? 380 : 550;
-    const annualLivingEUR = monthlyLivingEUR * 12;
 
+    // Dynamic VFS fee from university configuration
+    let vfsEUR = 165;
+    if (selectedCalcUni?.vfs_fee) {
+      const vfsStr = selectedCalcUni.vfs_fee;
+      const numMatch = vfsStr.replace(/,/g, '').match(/\d+/);
+      if (numMatch) {
+        const parsed = parseInt(numMatch[0], 10);
+        vfsEUR = (vfsStr.includes('₹') || vfsStr.toLowerCase().includes('inr')) ? Math.round(parsed / 90) : parsed;
+      }
+    }
+
+    // Dynamic Agency fee from university configuration
+    let agencyEUR = 280;
+    if (selectedCalcUni?.agency_fee) {
+      const agStr = selectedCalcUni.agency_fee;
+      const numMatch = agStr.replace(/,/g, '').match(/\d+/);
+      if (numMatch) {
+        const parsed = parseInt(numMatch[0], 10);
+        agencyEUR = (agStr.includes('₹') || agStr.toLowerCase().includes('inr')) ? Math.round(parsed / 90) : parsed;
+      }
+    }
+
+    // Dynamic Monthly Living Cost from university configuration
+    let monthlyLivingEUR = calcAccomOption === 'dorm' ? 380 : 550;
+    if (selectedCalcUni?.living_cost_monthly) {
+      const livingStr = selectedCalcUni.living_cost_monthly;
+      const matches = livingStr.replace(/,/g, '').match(/\d+/g);
+      if (matches && matches.length > 0) {
+        const minVal = parseInt(matches[0], 10);
+        const maxVal = matches[1] ? parseInt(matches[1], 10) : minVal;
+        const baseVal = calcAccomOption === 'dorm' ? minVal : maxVal;
+        monthlyLivingEUR = (livingStr.includes('₹') || livingStr.toLowerCase().includes('inr')) ? Math.round(baseVal / 90) : baseVal;
+      }
+    }
+
+    const annualLivingEUR = monthlyLivingEUR * 12;
     const totalFirstYearEUR = tuitionEUR + legalizationEUR + vfsEUR + agencyEUR + annualLivingEUR;
 
     return {

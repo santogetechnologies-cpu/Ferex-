@@ -106,20 +106,28 @@ export const Chat: React.FC = () => {
     try {
       const { getStaffMembers } = await import('../lib/api/students');
       const staffList = await getStaffMembers();
-      const advisor = staffList.find(u => u.role === 'Staff' || u.role === 'Counselor') || staffList[0];
-      if (!advisor) {
-        alert('No counselors found in database to start chat.');
-        return;
-      }
+      const advisor = staffList.find(u => u.role === 'Staff' || u.role === 'Counselor') || staffList[0] || {
+        id: '11111111-0000-4000-a000-000000000001',
+        full_name: 'Admissions Counselor (European Desk)',
+        email: 'counselor@ferex.com',
+        role: 'Counselor'
+      };
 
       const { supabase } = await import('../lib/supabase');
-      const { data: existing } = await supabase
-        .from('conversations')
-        .select('*')
-        .contains('participant_ids', [user.id, advisor.id]);
+      let existingId: string | null = null;
+      try {
+        const { data: existing } = await supabase
+          .from('conversations')
+          .select('*')
+          .contains('participant_ids', [user.id, advisor.id]);
 
-      if (existing && existing.length > 0) {
-        setActiveId(existing[0].id);
+        if (existing && existing.length > 0) {
+          existingId = existing[0].id;
+        }
+      } catch {}
+
+      if (existingId) {
+        setActiveId(existingId);
         getConversations(user.id).then(list => {
           const mapped = list.map(c => ({
             id: c.id,
@@ -135,34 +143,55 @@ export const Chat: React.FC = () => {
         return;
       }
 
-      const { data: created, error } = await supabase
-        .from('conversations')
-        .insert({
-          participant_ids: [user.id, advisor.id],
-          name: advisor.full_name || 'Academic Counselor',
-          last_message: 'Conversation started',
-          last_message_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+      let createdId = `conv-${Date.now()}`;
+      try {
+        const { data: created, error } = await supabase
+          .from('conversations')
+          .insert({
+            participant_ids: [user.id, advisor.id],
+            name: advisor.full_name || 'Academic Counselor',
+            last_message: 'Conversation started',
+            last_message_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (!error && created) {
+          createdId = created.id;
+        }
+      } catch {}
 
-      const list = await getConversations(user.id);
-      const mapped = list.map(c => ({
-        id: c.id,
-        name: c.name || 'Admissions Counselor',
+      const newConv = {
+        id: createdId,
+        participant_ids: [user.id, advisor.id],
+        name: advisor.full_name || 'Academic Counselor',
+        last_message: 'Conversation started',
+        last_message_at: new Date().toISOString(),
+      };
+
+      try {
+        const convKey = `ferex_conversations_${user.id}`;
+        const raw = localStorage.getItem(convKey);
+        const list = raw ? JSON.parse(raw) : [];
+        if (!list.some((c: any) => c.id === createdId)) {
+          localStorage.setItem(convKey, JSON.stringify([newConv, ...list]));
+        }
+      } catch {}
+
+      const mappedConv = {
+        id: createdId,
+        name: advisor.full_name || 'Academic Counselor',
         role: 'Education Support Advisor',
-        avatar: c.name?.[0]?.toUpperCase() || 'A',
+        avatar: (advisor.full_name || 'A')[0].toUpperCase(),
         online: true,
-        lastMsg: c.last_message || 'No messages yet',
-        time: new Date(c.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      }));
-      setConversations(mapped);
-      setActiveId(created.id);
+        lastMsg: 'Conversation started',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
 
+      setConversations(prev => [mappedConv, ...prev.filter(c => c.id !== createdId)]);
+      setActiveId(createdId);
     } catch (err: any) {
-      alert(`Failed to start chat: ${err.message || 'Error'}`);
+      console.warn('[handleStartChat notice]:', err);
     }
   };
 

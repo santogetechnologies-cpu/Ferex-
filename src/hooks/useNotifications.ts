@@ -12,7 +12,7 @@ export function useNotifications(userId?: string) {
     try {
       setLoading(true);
       setError(null);
-      const effectiveId = userId || 'STUDENT_GUEST';
+      const effectiveId = userId || 'admin';
       const data = await getNotifications(effectiveId);
       setNotifications(data || []);
     } catch (err: any) {
@@ -25,32 +25,25 @@ export function useNotifications(userId?: string) {
   useEffect(() => {
     fetchNotifications();
 
-    if (!userId) return;
-
     // Realtime notifications subscription safely managed
     let channel: any = null;
     try {
-      const channelId = `realtime_notifs_${userId}_${Math.random().toString(36).substring(2, 9)}`;
+      const channelId = `realtime_notifs_${userId || 'admin'}_${Math.random().toString(36).substring(2, 9)}`;
+      const filterConfig = (userId && userId !== 'admin')
+        ? { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }
+        : { event: '*', schema: 'public', table: 'notifications' };
+
       channel = supabase
         .channel(channelId)
         .on(
           'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${userId}`,
-          },
+          filterConfig as any,
           () => {
             fetchNotifications();
           }
         );
       
-      channel.subscribe((status: string) => {
-        if (status === 'SUBSCRIBED') {
-          // successfully subscribed
-        }
-      });
+      channel.subscribe();
     } catch (err) {
       console.warn('Realtime notifications subscription skipped:', err);
     }
