@@ -56,7 +56,7 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
         .filter(u => u && u.email)
         .map(u => {
           const role = (u.role || 'staff').toLowerCase().trim();
-          const roleLabel = ROLE_DISPLAY_NAMES[role] || role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          const roleLabel = ROLE_DISPLAY_NAMES[role] || role.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
           return {
             id: u.id,
             name: u.full_name || u.email.split('@')[0],
