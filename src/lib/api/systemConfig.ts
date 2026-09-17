@@ -10,22 +10,22 @@ export const DEFAULT_SYSTEM_CONFIG: SystemCustomizationConfig = {
     portal_title: 'FEREX Education Portal',
     division_name: 'European Admissions & Legalization Division',
     tagline: 'Your Direct Gateway to Premier European Higher Education',
-    support_email: 'admissions@ferexeducation.com',
+    support_email: 'info@ferexventures.com',
     support_phone: '+91 80001 22334',
-    whatsapp_number: '+48 571 890 123',
+    whatsapp_number: '',
     emergency_helpline: '+91 99887 76655',
-    office_address: 'Plac Bankowy 2, Warsaw, Poland & Central Desk, Bangalore, India',
-    operating_hours: 'Mon – Sat: 09:00 AM – 07:00 PM CET / IST',
+    office_address: 'FEREX Ventures Tower, Infopark Expressway, Kochi, Kerala 682042',
+    operating_hours: 'Mon – Sat: 09:00 AM – 07:00 PM IST',
     primary_color: '#58051E',
     accent_gold: '#E6CA9E'
   },
   broadcast: {
     id: 'bcast-intake-2026',
-    is_active: true,
-    message: 'Fall 2026 European Intake Applications Open! Early Legalization (NAWA / APS / CIMEA) deadline is approaching fast.',
+    is_active: false,
+    message: '',
     urgency: 'info',
-    link_url: '/student/select-university',
-    link_label: 'Explore Programs',
+    link_url: '',
+    link_label: '',
     target_audience: 'all',
     expires_at: '2026-10-31'
   },
@@ -63,7 +63,7 @@ export const DEFAULT_SYSTEM_CONFIG: SystemCustomizationConfig = {
     enable_landing_calculator: true,
     enable_direct_course_application: true,
     enable_student_meeting_self_booking: true,
-    enable_whatsapp_support_widget: true,
+    enable_whatsapp_support_widget: false,
     enable_maintenance_banner: false
   }
 };

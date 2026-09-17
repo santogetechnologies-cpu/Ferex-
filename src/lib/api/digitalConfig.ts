@@ -67,10 +67,10 @@ export const DEFAULT_DIGITAL_CONFIG: DigitalCustomizationConfig = {
     agency_name: 'FEREX Digital Pvt. Ltd.',
     portal_title: 'FEREX Digital Enterprise Console',
     tagline: 'Enterprise Web, Cloud, AI & Full-Stack Digital Product Engineering',
-    support_email: 'digital@ferex.com',
-    support_phone: '+91 80001 55667',
-    whatsapp_number: '+91 99880 11223',
-    office_address: 'Tech Park Hub, Koramangala, Bangalore, India & Warsaw Tech Desk, Poland',
+    support_email: 'info@ferexventures.com',
+    support_phone: '+91 484 290 1234',
+    whatsapp_number: '',
+    office_address: 'FEREX Ventures Tower, Infopark Expressway, Kochi, Kerala 682042',
     operating_hours: 'Mon – Fri: 09:30 AM – 06:30 PM IST / CET',
     default_currency: 'INR',
     timezone: 'Asia/Kolkata (IST)',
@@ -91,7 +91,7 @@ export const DEFAULT_DIGITAL_CONFIG: DigitalCustomizationConfig = {
     strict_repository_branch_protection: true
   },
   broadcast: {
-    is_active: true,
+    is_active: false,
     message: 'FEREX Digital Cloud & Web Engineering Q3 Sprints are now active. All client deliverables are tracked with 99.9% uptime SLA.',
     urgency: 'info',
     target_audience: 'all',

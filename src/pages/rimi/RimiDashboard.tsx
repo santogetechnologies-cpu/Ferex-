@@ -170,25 +170,6 @@ export const RimiDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Live Broadcast Announcement Ticker */}
-      {config.broadcast?.is_active && config.broadcast.message && (
-        <div className={`p-4 rounded-xl border flex items-center gap-3 shadow-xs ${
-          config.broadcast.urgency === 'urgent'
-            ? 'bg-rose-50 border-rose-200 text-rose-800'
-            : config.broadcast.urgency === 'warning'
-            ? 'bg-amber-50 border-amber-200 text-amber-800'
-            : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-        }`}>
-          <Megaphone className="w-5 h-5 shrink-0 animate-bounce" />
-          <div className="text-xs font-bold leading-relaxed flex-1">
-            <span className="uppercase tracking-wider font-black mr-2 px-2 py-0.5 rounded bg-white/80 border text-[10px]">
-              {config.broadcast.urgency} Announcement
-            </span>
-            {config.broadcast.message}
-          </div>
-        </div>
-      )}
-
       {/* FMCG Cold Chain Hero Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#3B0B16] text-white p-6 md:p-8 shadow-xl border border-[#58051E]/30">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">

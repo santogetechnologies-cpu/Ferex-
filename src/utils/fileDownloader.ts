@@ -65,7 +65,7 @@ export function downloadPackingListDocument(pl: {
     <div class="box">
       <div class="section-title">Consignee (Buyer Details)</div>
       <p><strong>Entity:</strong> ${pl.consignee || 'Warsaw Global Logistics Sp. z o.o.'}</p>
-      <p><strong>Address:</strong> Al. Jerozolimskie 81, Warsaw, Poland</p>
+      <p><strong>Address:</strong> FEREX Ventures Tower, Infopark Expressway, Kochi, Kerala 682042</p>
       <p><strong>Status:</strong> Customs Authorized Importer</p>
     </div>
     <div class="box">
@@ -171,9 +171,9 @@ export function downloadBillOfLadingDocument(bl: {
   <div class="grid-2">
     <div class="box">
       <h4>Shipper / Exporter</h4>
-      <p><strong>FEREX Global Trade Operations Europe</strong></p>
-      <p>Al. Jerozolimskie 81, Warsaw 02-001, Poland</p>
-      <p>VAT ID: PL5289901234</p>
+      <p><strong>FEREX Global Trade Operations</strong></p>
+      <p>FEREX Ventures Tower, Infopark Expressway, Kochi, Kerala 682042</p>
+      <p>Contact: info@ferexventures.com</p>
     </div>
     <div class="box">
       <h4>Consignee / Notify Party</h4>

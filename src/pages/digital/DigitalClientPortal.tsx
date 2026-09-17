@@ -462,36 +462,6 @@ const DigitalClientPortal: React.FC = () => {
         )}
       </div>
 
-      {/* ── Floating WhatsApp Tech Support Widget ── */}
-      {digitalConfig.branding?.whatsapp_number && (
-        <a
-          href={`https://wa.me/${digitalConfig.branding.whatsapp_number.replace(/[^0-9]/g, '')}?text=Hello%20FEREX%20Digital%20Team%2C%20I%20need%20assistance%20with%20my%20project%20deliverables.`}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Chat with Account Manager on WhatsApp"
-          style={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            zIndex: 1000,
-            background: '#10b981',
-            color: '#fff',
-            padding: '12px 18px',
-            borderRadius: 30,
-            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontWeight: 800,
-            fontSize: 13,
-            textDecoration: 'none',
-            border: '2px solid rgba(255,255,255,0.2)'
-          }}
-        >
-          <MessageSquare size={14} />
-          <span>Tech Support</span>
-        </a>
-      )}
 
       {/* ── Unified Stripe & UPI Payment Modal ── */}
       {payingInvoice && (

@@ -367,31 +367,7 @@ export const FerexLandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white text-[#1F2937] font-sans selection:bg-[#570229] selection:text-white">
-      
-      {/* 1. TOP ANNOUNCEMENT BANNER */}
-      <div className="bg-[#570229] text-white py-2 px-4 text-xs font-semibold">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="bg-[#F59E0B] text-slate-900 text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full">
-              Admissions Open
-            </span>
-            <span className="text-white/95 font-medium">
-              Autumn 2026 & Spring 2027 European University Intakes are now accepting applications!
-            </span>
-          </div>
-          <div className="flex items-center gap-4 text-xs">
-            <span className="hidden md:inline text-white/80">Guaranteed Offer Letters within 7–14 Days</span>
-            <button
-              onClick={() => goToLogin('signup')}
-              className="text-[#F59E0B] hover:text-white font-bold underline flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              Start Free Application <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. STICKY FROSTED NAVIGATION HEADER */}
+      {/* STICKY FROSTED NAVIGATION HEADER */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#ECE7EA]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
           
@@ -1261,21 +1237,12 @@ export const FerexLandingPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="space-y-2">
-              <h5 className="font-bold text-[#1F2937] uppercase text-[11px] tracking-wider">European Headquarters</h5>
+            <div className="space-y-2 md:col-span-2">
+              <h5 className="font-bold text-[#1F2937] uppercase text-[11px] tracking-wider">Corporate Headquarters</h5>
               <p className="text-[#6B7280] font-medium leading-relaxed">
-                Al. Jerozolimskie 81, 02-001<br />
-                Warsaw, Republic of Poland (PL)<br />
-                Tel: +48 22 890 1234
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <h5 className="font-bold text-[#1F2937] uppercase text-[11px] tracking-wider">India Admissions Center</h5>
-              <p className="text-[#6B7280] font-medium leading-relaxed">
-                Bandra-Kurla Complex (BKC)<br />
-                Mumbai, Maharashtra, India (IN)<br />
-                Email: admissions@ferex.education
+                FEREX Ventures Tower, Infopark Expressway<br />
+                Kochi, Kerala 682042, India<br />
+                Email: info@ferexventures.com
               </p>
             </div>
 

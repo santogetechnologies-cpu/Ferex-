@@ -394,12 +394,12 @@ export const LoginPage: React.FC = () => {
     <div className="relative overflow-hidden w-full text-left">
 
       {/* Top Header Link */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-3 sm:mb-4 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#58051E] transition-colors cursor-pointer"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Ferex Education
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
         </button>
       </div>
 
@@ -473,13 +473,13 @@ export const LoginPage: React.FC = () => {
             transition={{ duration: 0.25, ease: 'easeInOut' }}
           >
             {/* Header with Tab Switcher */}
-            <div className="text-center sm:text-left mb-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                <div className="p-1 bg-slate-100/90 rounded-2xl flex items-center gap-1 border border-slate-200/80 w-full sm:w-auto">
+            <div className="text-center sm:text-left mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+                <div className="p-1 bg-slate-100/90 rounded-xl flex items-center gap-1 border border-slate-200/80 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={switchToSignIn}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${authMode === 'signin'
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${authMode === 'signin'
                         ? 'bg-[#58051E] text-white shadow-sm'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                       }`}
@@ -489,7 +489,7 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={switchToSignUp}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${authMode === 'signup'
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${authMode === 'signup'
                         ? 'bg-[#58051E] text-white shadow-sm'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                       }`}
@@ -500,19 +500,19 @@ export const LoginPage: React.FC = () => {
               </div>
 
               {prefilledUni && authMode === 'signup' && (
-                <div className="mb-3 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-2">
+                <div className="mb-2.5 p-2 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-2">
                   <span className="text-amber-600">Selected University:</span>
                   <span className="underline">{prefilledUni}</span>
                 </div>
               )}
 
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-1.5">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mb-1">
                 {authMode === 'signin' ? 'Sign in to your portal' : 'Create your student account'}
               </h2>
-              <p className="text-xs sm:text-sm font-semibold text-slate-500">
+              <p className="text-xs font-medium text-slate-500">
                 {authMode === 'signin'
-                  ? 'Access your university applications, academic legalizations, tuition payments, and VFS visa updates.'
-                  : 'Start your European higher education journey with Ferex Education.'}
+                  ? 'Access your applications, legalization, tuition payments, and visa status.'
+                  : 'Start your European higher education journey with FEREX.'}
               </p>
             </div>
 
@@ -523,9 +523,9 @@ export const LoginPage: React.FC = () => {
                   initial={{ opacity: 0, y: -8, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, y: -8, height: 0 }}
-                  className="mb-5 p-4 rounded-xl bg-red-50/90 border border-red-200/80 text-red-700 text-xs font-medium flex items-center gap-3 shadow-xs"
+                  className="mb-3 p-3 rounded-xl bg-red-50/90 border border-red-200/80 text-red-700 text-xs font-medium flex items-center gap-2.5 shadow-xs"
                 >
-                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
                   <span>{errorMsg}</span>
                 </motion.div>
               )}
@@ -538,9 +538,9 @@ export const LoginPage: React.FC = () => {
                   initial={{ opacity: 0, y: -8, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, y: -8, height: 0 }}
-                  className="mb-5 p-4 rounded-xl bg-emerald-50/90 border border-emerald-200/80 text-emerald-700 text-xs font-medium flex items-center gap-3 shadow-xs"
+                  className="mb-3 p-3 rounded-xl bg-emerald-50/90 border border-emerald-200/80 text-emerald-700 text-xs font-medium flex items-center gap-2.5 shadow-xs"
                 >
-                  <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
+                  <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                   <span>{successMsg}</span>
                 </motion.div>
               )}
@@ -549,7 +549,7 @@ export const LoginPage: React.FC = () => {
             {/* Forms */}
             {authMode === 'signin' ? (
               /* SIGN IN FORM */
-              <form onSubmit={handleSignIn} className="space-y-4" autoComplete="on">
+              <form onSubmit={handleSignIn} className="space-y-3" autoComplete="on">
                 <Input
                   label="Email address"
                   type="email"
@@ -727,11 +727,11 @@ export const LoginPage: React.FC = () => {
             )}
 
             {/* Portal Note */}
-            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+            <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-semibold">
               <span className="flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5 text-emerald-600" /> 256-Bit SSL Encrypted
               </span>
-              <span>FEREX Education © {new Date().getFullYear()}</span>
+              <span>FEREX Ventures © {new Date().getFullYear()}</span>
             </div>
           </motion.div>
         ) : (

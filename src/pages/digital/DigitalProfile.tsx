@@ -8,10 +8,10 @@ export const DigitalProfile: React.FC = () => {
   const [profile, setProfile] = useState({
     name: 'Ferex Digital Director',
     role: 'Managing Director & Head of Agency',
-    company: 'Ferex Digital Pvt. Ltd.',
-    email: 'digital@ferex.com',
-    phone: '+91 98200 99887',
-    location: 'Bandra Kurla Complex, Mumbai, India',
+    company: 'FEREX Digital (A FEREX Ventures Company)',
+    email: 'info@ferexventures.com',
+    phone: '+91 484 290 1234',
+    location: 'FEREX Ventures Tower, Infopark Expressway, Kochi, Kerala 682042',
     bio: 'Overseeing agency operations, enterprise client relationships, service delivery across Web, Mobile, Design, Marketing, and SEO.',
   });
 

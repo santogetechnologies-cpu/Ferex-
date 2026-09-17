@@ -5,7 +5,7 @@ import { generateUUID } from '../../utils/uuid';
 import { createNotification } from './notifications';
 
 export const DEFAULT_COUNSELOR_ROSTER = [
-  { id: 'c-1', name: 'Admissions Officer', role: 'European Admissions Lead', desk: 'Admissions Desk', email: 'admissions@ferex.com', country: 'Global' },
+  { id: 'c-1', name: 'Admissions Officer', role: 'European Admissions Lead', desk: 'Admissions Desk', email: 'info@ferexventures.com', country: 'Global' },
 ];
 
 export function getDeletedStudentIds(): string[] {

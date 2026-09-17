@@ -34,7 +34,6 @@ const baseMenuItems = [
   { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
   { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },
   { name: 'Meetings & Planner', path: '/admin/meetings', icon: Calendar, badge: null, hasUpdate: false },
-  { name: 'Fee & Financial Governance', path: '/admin/fee-config', icon: Settings, badge: null, hasUpdate: false },
   { name: 'Notifications', path: '/admin/notifications', icon: Bell, badge: null, hasUpdate: false },
   { name: 'Settings', path: '/admin/settings', icon: Settings, badge: null, hasUpdate: false },
 ];
@@ -395,29 +394,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             </div>
           </div>
         </header>
-
-        {/* Live Broadcast Announcement Banner for Admins */}
-        {config?.broadcast?.is_active && config?.broadcast?.target_audience !== 'students' && (
-          <div className={`px-4 py-2.5 text-xs font-bold flex items-center justify-between border-b shadow-2xs ${
-            config.broadcast.urgency === 'urgent' ? 'bg-red-50 text-red-950 border-red-200' :
-            config.broadcast.urgency === 'warning' ? 'bg-amber-50 text-amber-950 border-amber-200' :
-            config.broadcast.urgency === 'success' ? 'bg-emerald-50 text-emerald-950 border-emerald-200' :
-            'bg-blue-50 text-blue-950 border-blue-200'
-          }`}>
-            <div className="flex items-center gap-2 max-w-5xl mx-auto w-full">
-              <span className="w-2 h-2 rounded-full bg-current animate-ping shrink-0" />
-              <span className="tracking-tight">{config.broadcast.message}</span>
-              {config.broadcast.link_url && (
-                <Link
-                  to={config.broadcast.link_url}
-                  className="ml-auto underline font-black text-current hover:opacity-80 shrink-0"
-                >
-                  {config.broadcast.link_label || 'View Details'} →
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Page Content with smooth route transition */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
