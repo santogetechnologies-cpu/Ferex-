@@ -104,11 +104,13 @@ export async function deleteDocumentRecord(docId: string): Promise<boolean> {
   try {
     localStorage.setItem('ferex_documents_cloud_catalog', JSON.stringify(updated));
   } catch {}
-  await client.from('system_config').upsert({
-    key: DOCUMENTS_CATALOG_ID,
-    value: updated,
-    updated_at: new Date().toISOString()
-  }, { onConflict: 'key' }).catch?.(() => {});
+  try {
+    await client.from('system_config').upsert({
+      key: DOCUMENTS_CATALOG_ID,
+      value: updated,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' });
+  } catch {}
 
   window.dispatchEvent(new Event('ferex_document_change'));
   return true;
@@ -209,7 +211,7 @@ export async function updateDocumentStatus(
       rejection_reason: status === 'Rejected' ? notesText : null,
       reviewer_id: reviewerId || null,
       reviewed_at: now,
-      verified_at: (status === 'Verified' || status === 'Approved') ? now : null,
+      verified_at: (status === 'Approved') ? now : null,
       updated_at: now,
     })
     .eq('id', id)

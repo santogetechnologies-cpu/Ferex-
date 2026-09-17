@@ -482,7 +482,7 @@ export const AdminStudents: React.FC = () => {
             className="w-full h-10 px-3 bg-white border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
           >
             <option value="All">All Counselors (Roster)</option>
-            {DEFAULT_COUNSELOR_ROSTER.map(c => (
+            {DEFAULT_COUNSELOR_ROSTER.map((c: any) => (
               <option key={c.id} value={c.name}>{c.name} ({c.country})</option>
             ))}
           </select>

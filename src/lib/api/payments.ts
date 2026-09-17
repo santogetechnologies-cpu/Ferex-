@@ -98,18 +98,15 @@ export async function getAllPaymentsForAdmin(): Promise<Payment[]> {
       const sName = (p.student_name || '').toLowerCase();
       if (!p.student_id && (!p.student_name || p.student_name === 'Student')) return false;
       if (sId && deletedIds.includes(sId)) return false;
-      if (deletedIds.some(d => sId === d || (d.includes('@') && sName.includes(d.split('@')[0])))) return false;
-      if (sName.includes('jishi') || sName.includes('ajay') || sName.includes('navaneeth')) return false;
+      if (deletedIds.some((d: string) => sId === d || (d.includes('@') && sName.includes(d.split('@')[0])))) return false;
       return true;
     });
   } catch {
     const catalog = await fetchPaymentsCatalog();
     return catalog.filter(p => {
       const sId = (p.student_id || '').toLowerCase();
-      const sName = (p.student_name || '').toLowerCase();
       if (!p.student_id && (!p.student_name || p.student_name === 'Student')) return false;
       if (sId && deletedIds.includes(sId)) return false;
-      if (sName.includes('jishi') || sName.includes('ajay') || sName.includes('navaneeth')) return false;
       return true;
     });
   }

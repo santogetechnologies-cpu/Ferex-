@@ -287,6 +287,31 @@ export async function updateApplicationStatus(
   return { id, status, ...updates };
 }
 
+export async function uploadOfferPdfToSupabase(fileOrBlob: File | Blob, _originalFilename?: string): Promise<string> {
+  try {
+    const { uploadFileToBucket } = await import('../storage');
+    const res = await uploadFileToBucket('offer-letters', fileOrBlob, 'offer_letter');
+    if (res.url && !res.url.startsWith('blob:')) {
+      return res.url;
+    }
+  } catch (err) {
+    console.warn('[uploadOfferPdfToSupabase notice]:', err);
+  }
+
+  return new Promise<string>((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      } else {
+        resolve('');
+      }
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(fileOrBlob);
+  });
+}
+
 export async function withdrawApplication(id: string) {
   return updateApplicationStatus(id, 'Withdrawn', 'Withdrawn by student.');
 }

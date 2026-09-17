@@ -4,6 +4,14 @@ import type { UserProfile } from '../types';
 import { generateUUID } from '../../utils/uuid';
 import { createNotification } from './notifications';
 
+export const DEFAULT_COUNSELOR_ROSTER = [
+  { id: 'c-1', name: 'Admissions Officer', role: 'European Admissions Lead', desk: 'Admissions Desk', email: 'admissions@ferex.com', country: 'Global' },
+];
+
+export function getDeletedStudentIds(): string[] {
+  return [];
+}
+
 export function getDefaultCounselorForCountry(country?: string): string {
   if (!country || country === 'All') return 'Admissions Counselor (Global Desk)';
   return `Admissions Counselor (${country} Desk)`;
@@ -288,11 +296,13 @@ export async function deleteStudent(id: string): Promise<void> {
   }
 
   // Also clean up related records defensively
-  await client.from('student_payments').delete().eq('student_id', cleanId).catch?.(() => {});
-  await client.from('student_documents').delete().eq('student_id', cleanId).catch?.(() => {});
-  await client.from('applications').delete().eq('student_id', cleanId).catch?.(() => {});
-  await client.from('tasks').delete().eq('student_id', cleanId).catch?.(() => {});
-  await client.from('support_tickets').delete().eq('student_id', cleanId).catch?.(() => {});
+  try {
+    await client.from('student_payments').delete().eq('student_id', cleanId);
+    await client.from('student_documents').delete().eq('student_id', cleanId);
+    await client.from('applications').delete().eq('student_id', cleanId);
+    await client.from('tasks').delete().eq('student_id', cleanId);
+    await client.from('support_tickets').delete().eq('student_id', cleanId);
+  } catch {}
 
   // 2. Broadcast change events across tabs and components
   window.dispatchEvent(new Event('ferex_staff_change'));
