@@ -38,7 +38,7 @@ const ROLE_ROUTES: Record<string, string> = {
   digital_admin: '/digital/dashboard',
   ferex_digital: '/digital/dashboard',
   digital_client: '/digital/client-portal',
-  project_manager: '/digital/dashboard',
+  project_manager: '/digital/pm/dashboard',
   trade: '/trade/dashboard',
   trade_admin: '/trade/dashboard',
   global_trade: '/trade/dashboard',
@@ -180,12 +180,17 @@ export function normalizeRole(role?: string | null, email?: string | null): stri
       return 'trade_admin';
     }
     if (
+      cleanEmail.includes('project_manager') ||
+      cleanEmail.includes('digitalpm') ||
+      cleanEmail.includes('pm@ferex.com')
+    ) {
+      return 'project_manager';
+    }
+    if (
       cleanEmail.includes('ferexdigital') ||
       cleanEmail.includes('digitaladmin') ||
       cleanEmail.includes('digital_admin') ||
-      cleanEmail.includes('digital@') ||
-      cleanEmail.includes('project_manager') ||
-      cleanEmail.includes('digitalpm')
+      cleanEmail.includes('digital@')
     ) {
       return 'digital_admin';
     }
@@ -211,6 +216,9 @@ export function normalizeRole(role?: string | null, email?: string | null): stri
   }
   if (!role) return 'student';
   const clean = role.toLowerCase().trim().replace(/[\s-]+/g, '_');
+  if (clean === 'pm' || clean === 'digital_pm' || clean === 'digital_project_manager') {
+    return 'project_manager';
+  }
   return clean;
 }
 

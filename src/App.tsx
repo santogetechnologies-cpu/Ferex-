@@ -151,6 +151,18 @@ import { DigitalStaff } from './pages/digital/DigitalStaff';
 import { DigitalLoginPage } from './pages/digital/DigitalLoginPage';
 import DigitalClientPortal from './pages/digital/DigitalClientPortal';
 
+// Digital Project Manager imports (Pure Supabase Rebuild)
+import { DigitalPMLayout } from './layouts/DigitalPMLayout';
+import { DigitalPMDashboard } from './pages/digital/pm/DigitalPMDashboard';
+import { DigitalPMProjects } from './pages/digital/pm/DigitalPMProjects';
+import { DigitalPMTasks } from './pages/digital/pm/DigitalPMTasks';
+import { DigitalPMTickets } from './pages/digital/pm/DigitalPMTickets';
+import { DigitalPMSprints } from './pages/digital/pm/DigitalPMSprints';
+import { DigitalPMMilestones } from './pages/digital/pm/DigitalPMMilestones';
+import { DigitalPMDocuments } from './pages/digital/pm/DigitalPMDocuments';
+import { DigitalPMNotifications } from './pages/digital/pm/DigitalPMNotifications';
+import { DigitalPMProfile } from './pages/digital/pm/DigitalPMProfile';
+
 // Staff Panel Imports (Admissions Counselor)
 import { StaffLayout } from './components/layout/StaffLayout';
 import { StaffDashboard } from './pages/staff/StaffDashboard';
@@ -188,6 +200,7 @@ const CENTRAL_ROLES = ['central', 'super_admin', 'superadmin'];
 const TRADE_ROLES = ['trade', 'trade_admin', 'global_trade', 'logistics_officer', 'admin', 'central', 'super_admin', 'superadmin'];
 const RIMI_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen', 'operations_manager', 'rimi_staff', 'admin', 'central', 'super_admin', 'superadmin'];
 const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'project_manager', 'digital_staff', 'admin', 'central', 'super_admin', 'superadmin'];
+const PM_ROLES = ['project_manager', 'digital_pm', 'digital_admin', 'digital', 'admin', 'central', 'super_admin', 'superadmin'];
 const STAFF_ROLES = ['staff', 'counselor', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
 
 // Guards portal routes — redirects to login if not authenticated, or to proper portal if role mismatched
@@ -460,6 +473,18 @@ function App() {
           <Route path="/digital/notifications" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalNotifications /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/profile" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProfile /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/settings" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalSettings /></DigitalLayout></ProtectedRoute>} />
+
+          {/* ── Ferex Digital Project Manager Routes (Pure Supabase) ── */}
+          <Route path="/digital/pm" element={<Navigate to="/digital/pm/dashboard" replace />} />
+          <Route path="/digital/pm/dashboard" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMDashboard /></DigitalPMLayout></ProtectedRoute>} />
+          <Route path="/digital/pm/projects" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMProjects /></DigitalPMLayout></ProtectedRoute>} />
+          <Route path="/digital/pm/tasks" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMTasks /></DigitalPMLayout></ProtectedRoute>} />
+          <Route path="/digital/pm/tickets" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMTickets /></DigitalPMLayout></ProtectedRoute>} />
+          <Route path="/digital/pm/sprints" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMSprints /></DigitalPMLayout></ProtectedRoute>} />
+          <Route path="/digital/pm/milestones" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMMilestones /></DigitalPMLayout></ProtectedRoute>} />
+          <Route path="/digital/pm/documents" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMDocuments /></DigitalPMLayout></ProtectedRoute>} />
+          <Route path="/digital/pm/notifications" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMNotifications /></DigitalPMLayout></ProtectedRoute>} />
+          <Route path="/digital/pm/profile" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMProfile /></DigitalPMLayout></ProtectedRoute>} />
 
           {/* ── Ferex Digital Client Portal ── */}
           <Route path="/digital/client-portal" element={<ProtectedRoute allowedRoles={['digital_client']}><DigitalClientPortal /></ProtectedRoute>} />
