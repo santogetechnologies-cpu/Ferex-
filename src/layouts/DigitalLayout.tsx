@@ -117,7 +117,6 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
         { label: 'Projects', path: '/digital/projects', icon: FolderKanban, badge: '6 Stages' },
         { label: 'Deliverables Vault', path: '/digital/deliverables', icon: Layers, badge: 'Assets' },
         { label: 'Task Assignment', path: '/digital/tasks', icon: CheckSquare, badge: 'Staff' },
-        { label: 'Staff Management', path: '/digital/staff', icon: Users, badge: 'Team' },
         { label: 'Leads & Pipeline', path: '/digital/leads', icon: UserPlus },
         { label: 'Meetings', path: '/digital/meetings', icon: Calendar }
       ]
@@ -131,9 +130,9 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       ]
     },
     {
-      title: 'REPORTS & ANALYTICS',
+      title: 'ANALYTICS & METRICS',
       items: [
-        { label: 'Reports & Analytics', path: '/digital/reports', icon: BarChart3 }
+        { label: 'Analytics & Performance', path: '/digital/analytics', icon: BarChart3 }
       ]
     },
     {

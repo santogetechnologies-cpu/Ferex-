@@ -143,6 +143,7 @@ import { DigitalPerformance } from './pages/digital/DigitalPerformance';
 import { DigitalReports } from './pages/digital/DigitalReports';
 import { DigitalRevenueAnalytics } from './pages/digital/DigitalRevenueAnalytics';
 import { DigitalProjectAnalytics } from './pages/digital/DigitalProjectAnalytics';
+import { DigitalAnalytics } from './pages/digital/DigitalAnalytics';
 import { DigitalNotifications } from './pages/digital/DigitalNotifications';
 import { DigitalProfile } from './pages/digital/DigitalProfile';
 import { DigitalSettings } from './pages/digital/DigitalSettings';
@@ -432,7 +433,7 @@ function App() {
           <Route path="/digital/projects" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProjects /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/tasks" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalTasks /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/deliverables" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalDeliverables /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/staff" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalStaff /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/staff" element={<Navigate to="/central/staff" replace />} />
           <Route path="/digital/meetings" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMeetings /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Services - Redirect to Projects */}
@@ -453,21 +454,22 @@ function App() {
           <Route path="/digital/expenses" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/finance/expenses" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
 
-          {/* Digital Team - Redirect to Staff */}
-          <Route path="/digital/employees" element={<Navigate to="/digital/staff" replace />} />
-          <Route path="/digital/team/employees" element={<Navigate to="/digital/staff" replace />} />
-          <Route path="/digital/attendance" element={<Navigate to="/digital/staff" replace />} />
-          <Route path="/digital/team/attendance" element={<Navigate to="/digital/staff" replace />} />
-          <Route path="/digital/performance" element={<Navigate to="/digital/staff" replace />} />
-          <Route path="/digital/team/performance" element={<Navigate to="/digital/staff" replace />} />
+          {/* Digital Team - Handled by Superadmin */}
+          <Route path="/digital/employees" element={<Navigate to="/central/staff" replace />} />
+          <Route path="/digital/team/employees" element={<Navigate to="/central/staff" replace />} />
+          <Route path="/digital/attendance" element={<Navigate to="/central/staff" replace />} />
+          <Route path="/digital/team/attendance" element={<Navigate to="/central/staff" replace />} />
+          <Route path="/digital/performance" element={<Navigate to="/central/staff" replace />} />
+          <Route path="/digital/team/performance" element={<Navigate to="/central/staff" replace />} />
 
-          {/* Digital Analytics */}
-          <Route path="/digital/reports" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalReports /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/analytics/reports" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalReports /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/revenue-analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalRevenueAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/analytics/revenue" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalRevenueAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/project-analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProjectAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/analytics/project" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProjectAnalytics /></DigitalLayout></ProtectedRoute>} />
+          {/* Digital Analytics & Performance (Pure Supabase Telemetry) */}
+          <Route path="/digital/analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/reports" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics/reports" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/revenue-analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics/revenue" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/project-analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics/project" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital System */}
           <Route path="/digital/notifications" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalNotifications /></DigitalLayout></ProtectedRoute>} />

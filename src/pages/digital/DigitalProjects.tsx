@@ -143,50 +143,58 @@ export const DigitalProjects: React.FC = () => {
     e.preventDefault();
     if (!newProj.title.trim()) return;
 
-    let selectedClient = clients.find(c => c.id === newProj.client_id);
-    if (!selectedClient && clients.length > 0) {
-      selectedClient = clients[0];
+    if (!newProj.client_id && !newProj.client_name.trim()) {
+      showToast('Please select a client or subsidiary.');
+      return;
     }
+
+    const selectedClient = clients.find(c => c.id === newProj.client_id);
+    const clientName = selectedClient?.company_name || selectedClient?.name || newProj.client_name || 'Enterprise Client';
+    const clientType = selectedClient?.client_type || newProj.client_type || 'External';
 
     const assignedName = newProj.assigned_staff_name || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Project Manager'));
     const matchedStaff = staffList.find(s => s.name === assignedName);
     const assignedEmail = matchedStaff?.email || newProj.assigned_staff_email || 'pm@ferex.com';
 
-    const created = await createDigitalProject({
-      title: newProj.title,
-      client_id: selectedClient?.id || undefined,
-      client_name: selectedClient?.company_name || newProj.client_name || 'Ferex Division',
-      client_type: selectedClient?.client_type || newProj.client_type,
-      scope: newProj.scope,
-      description: newProj.scope,
-      service_category: newProj.service_category,
-      budget: Number(newProj.budget) || 0,
-      payment_terms: newProj.payment_terms,
-      start_date: newProj.start_date,
-      deadline: newProj.deadline,
-      assigned_staff_name: assignedName,
-      assigned_staff_email: assignedEmail,
-      status: newProj.status,
-    });
+    try {
+      const created = await createDigitalProject({
+        title: newProj.title.trim(),
+        client_id: selectedClient?.id || (newProj.client_id || undefined),
+        client_name: clientName,
+        client_type: clientType as 'Internal' | 'External',
+        scope: newProj.scope,
+        description: newProj.scope,
+        service_category: newProj.service_category,
+        budget: Number(newProj.budget) || 0,
+        payment_terms: newProj.payment_terms,
+        start_date: newProj.start_date,
+        deadline: newProj.deadline,
+        assigned_staff_name: assignedName,
+        assigned_staff_email: assignedEmail,
+        status: newProj.status,
+      });
 
-    setShowAddModal(false);
-    showToast(`Created project "${created.title}" at stage: ${created.status}`);
-    setNewProj({
-      title: '',
-      client_id: '',
-      client_name: '',
-      client_type: 'Internal',
-      scope: '',
-      service_category: 'Digital Marketing & Advertising',
-      budget: 500000,
-      payment_terms: 'Advance Payment',
-      start_date: new Date().toISOString().split('T')[0],
-      deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-      assigned_staff_name: staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Project Manager'),
-      assigned_staff_email: staffList.length > 0 ? staffList[0].email : (profile?.email || 'pm@ferex.com'),
-      status: 'Briefing',
-    });
-    await loadData();
+      setShowAddModal(false);
+      showToast(`Created project "${created.title}" at stage: ${created.status}`);
+      setNewProj({
+        title: '',
+        client_id: '',
+        client_name: '',
+        client_type: 'Internal',
+        scope: '',
+        service_category: 'Digital Marketing & Advertising',
+        budget: 500000,
+        payment_terms: 'Advance Payment',
+        start_date: new Date().toISOString().split('T')[0],
+        deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+        assigned_staff_name: staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Project Manager'),
+        assigned_staff_email: staffList.length > 0 ? staffList[0].email : (profile?.email || 'pm@ferex.com'),
+        status: 'Briefing',
+      });
+      await loadData();
+    } catch (err: any) {
+      showToast(`Error creating project: ${err.message || 'Database error'}`);
+    }
   };
 
   const handleAdvanceStage = async (project: DigitalProjectRecord) => {
@@ -881,31 +889,41 @@ export const DigitalProjects: React.FC = () => {
                   />
                 </div>
 
-                {/* Client Selector with Internal/External Tag */}
+                {/* Client Selector with Internal/External Groups */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
                       Client / Division *
                     </label>
                     <select
+                      required
                       value={newProj.client_id}
                       onChange={(e) => {
                         const sel = clients.find(c => c.id === e.target.value);
                         setNewProj({
                           ...newProj,
                           client_id: e.target.value,
-                          client_name: sel?.company_name || '',
-                          client_type: sel?.client_type || 'Internal'
+                          client_name: sel?.company_name || sel?.name || '',
+                          client_type: sel?.client_type || (sel?.company_name?.toLowerCase().includes('ferex') ? 'Internal' : 'External')
                         });
                       }}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     >
                       <option value="">-- Select Client / Division --</option>
-                      {clients.map(c => (
-                        <option key={c.id} value={c.id}>
-                          [{c.client_type || 'Internal'}] {c.company_name}
-                        </option>
-                      ))}
+                      <optgroup label="Internal Ferex Subsidiaries">
+                        {clients.filter(c => c.client_type === 'Internal' || (c.company_name || '').toLowerCase().includes('ferex') || (c.company_name || '').toLowerCase().includes('rimi')).map(c => (
+                          <option key={c.id} value={c.id}>
+                            🏢 {c.company_name || c.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="External Enterprise Clients">
+                        {clients.filter(c => c.client_type !== 'Internal' && !(c.company_name || '').toLowerCase().includes('ferex') && !(c.company_name || '').toLowerCase().includes('rimi')).map(c => (
+                          <option key={c.id} value={c.id}>
+                            🌐 {c.company_name || c.name} ({c.industry || 'External Account'})
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
 
