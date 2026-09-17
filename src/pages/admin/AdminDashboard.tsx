@@ -35,7 +35,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
   const userRole = (profile?.role || user?.role || user?.user_metadata?.role || localSavedUser?.role || '').toLowerCase().trim();
   const isSuper = isSuperAdmin(userRole, profile?.email || user?.email || localSavedUser?.email);
 
-  const counselorIdentity = profile?.full_name || profile?.email || user?.email || 'counselor';
+  const counselorIdentity = {
+    id: user?.id,
+    email: profile?.email || user?.email,
+    full_name: profile?.full_name,
+    name: profile?.full_name
+  };
   const { tasks: assignedTasks } = useTasks(isStaff ? counselorIdentity : undefined);
 
   const { students: dbStudents } = useStudents();

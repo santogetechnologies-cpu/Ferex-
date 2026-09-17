@@ -492,6 +492,7 @@ export const AdminPaymentControl: React.FC = () => {
       date: new Date(payment.created_at).toLocaleDateString(),
       payment_method: payment.payment_method || 'Official Gateway',
       utr_number: payment.utr_number || payment.ref_no || payment.id.slice(0, 8),
+      sac_code: '9983',
       place_of_supply: 'Kerala (32)',
       course_destination: 'Overseas Higher Education'
     };

@@ -94,7 +94,7 @@ export async function createUniversity(payload: {
     is_active: true,
     intakes: payload.intakes && payload.intakes.length > 0 ? payload.intakes : [],
     university_fee: payload.university_fee || payload.tuition_range || '',
-    tuition_fee_enabled: payload.tuition_fee_enabled !== undefined ? payload.tuition_fee_enabled : true,
+    tuition_fee_enabled: Boolean(payload.tuition_fee_enabled),
     vfs_fee: payload.vfs_fee || '',
     agency_fee: payload.agency_fee || '',
     agency_fee_description: payload.agency_fee_description,

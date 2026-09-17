@@ -248,8 +248,8 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
   // Course programs fee structure list state
   const [courseProgramsList, setCourseProgramsList] = useState<CourseProgram[]>([]);
 
-  // Fee breakdown states
-  const [tuitionFeeEnabled, setTuitionFeeEnabled] = useState<boolean>(true);
+  // Fee breakdown states (Tuition fee default disabled)
+  const [tuitionFeeEnabled, setTuitionFeeEnabled] = useState<boolean>(false);
   const [universityFee, setUniversityFee] = useState('€3,200 / yr');
   const [vfsFee, setVfsFee] = useState('€150');
   const [agencyFee, setAgencyFee] = useState('€250');
@@ -474,7 +474,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
     setLivingCostMonthly('€350 - €500 / mo');
     setNawaRequired(true);
     setSelectedIntakes(['October 2026', 'February 2027']);
-    setTuitionFeeEnabled(true);
+    setTuitionFeeEnabled(false);
     setUniversityFee('€3,200 / yr');
     setVfsFee(config.default_vfs_fee || '₹15,000');
     setAgencyFee(config.default_agency_fee || '₹25,000');
@@ -512,7 +512,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
     setLivingCostMonthly(u.living_cost_monthly || '€350 - €500 / mo');
     setNawaRequired(u.nawa_required !== undefined ? u.nawa_required : u.country.toLowerCase() === 'poland');
     setSelectedIntakes(u.intakes || ['October 2026', 'February 2027']);
-    setTuitionFeeEnabled(u.tuition_fee_enabled !== undefined ? u.tuition_fee_enabled : true);
+    setTuitionFeeEnabled(Boolean(u.tuition_fee_enabled));
     setUniversityFee(u.university_fee || u.tuition_range || '€3,200 / yr');
     setVfsFee(u.vfs_fee || config.default_vfs_fee || '₹15,000');
     setAgencyFee(u.agency_fee || config.default_agency_fee || '₹25,000');

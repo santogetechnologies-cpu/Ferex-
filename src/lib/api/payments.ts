@@ -296,7 +296,7 @@ export function createValidInvoicePdfBlob(payment: {
   const student = (payment.student_name || 'Student').replace(/[()\\]/g, '');
   const title = (payment.title || payment.payment_type || 'Registration Fee - Overseas Education Consultancy Services').replace(/[()\\]/g, '');
   const invNo = payment.invoice_no || `FE/2026-27/${Math.floor(1000 + Math.random() * 9000)}`;
-  const totalAmt = Number(payment.amount) || 5000;
+  const totalAmt = Number(payment.amount) || 1500;
   const taxable = (totalAmt / 1.18).toFixed(2);
   const cgst = ((totalAmt - Number(taxable)) / 2).toFixed(2);
   const sgst = ((totalAmt - Number(taxable)) - Number(cgst)).toFixed(2);
@@ -330,7 +330,7 @@ stream
 BT
 /F1 18 Tf
 50 730 Td
-(FEREX VENTURES PRIVATE LIMITED) Tj
+(FEREX) Tj
 /F2 9 Tf
 0 -15 Td
 (Tel: +91 95448 85077, +44 78678 67779 | Email: ferexventuresoffice@gmail.com) Tj
@@ -343,7 +343,7 @@ BT
 (TAX INVOICE) Tj
 /F1 10 Tf
 -40 -15 Td
-(GSTIN: 32AAGCF8602A1Z8) Tj
+(GSTIN: 32AAGCF8602A1Z8 | PAN: AAGCF8602A) Tj
 /F2 10 Tf
 -170 -25 Td
 (INVOICE TO:) Tj
@@ -369,21 +369,21 @@ BT
 (# | Description | SAC Code | Amount (INR)) Tj
 /F2 10 Tf
 0 -16 Td
-(1 | ${title} | 9992 | INR ${totalAmt.toFixed(2)}) Tj
+(1 | ${title} | 9983 | INR ${totalAmt.toFixed(2)}) Tj
 0 -25 Td
-(Taxable Value: INR ${taxable}) Tj
+(Taxable Base Value: INR ${taxable}) Tj
 0 -14 Td
-(CGST @ 9%: INR ${cgst}) Tj
+(CGST @ 9.0%: INR ${cgst}) Tj
 0 -14 Td
-(SGST @ 9%: INR ${sgst}) Tj
+(SGST @ 9.0%: INR ${sgst}) Tj
 /F1 12 Tf
 0 -18 Td
-(Total Amount Paid: INR ${totalAmt.toFixed(2)}) Tj
+(Total Amount Paid (Payment + 18% GST): INR ${totalAmt.toFixed(2)}) Tj
 /F2 10 Tf
 0 -30 Td
-(STATUS: PAID | Mode: ${method}) Tj
+(STATUS: PAID IN FULL | Mode: ${method}) Tj
 0 -40 Td
-(This is a computer-generated invoice and does not require a physical signature.) Tj
+(This is an authentic computer-generated invoice under Indian GST SAC 9983.) Tj
 ET
 endstream
 endobj

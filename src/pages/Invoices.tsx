@@ -261,7 +261,7 @@ export const Invoices: React.FC = () => {
                       date: inv.issued_at || (inv as any).created_at || new Date().toISOString(),
                       payment_method: extInv.payment_method || 'Bank Transfer / UPI',
                       utr_number: extInv.utr_number,
-                      sac_code: '9992',
+                      sac_code: '9983',
                       place_of_supply: 'Kerala'
                     })}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#6b0027] transition-all shadow-xs"

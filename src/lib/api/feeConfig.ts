@@ -57,7 +57,7 @@ export interface SystemFeeConfig {
     cash_admin_enabled: boolean;
   };
 
-  // Basic Invoice & Tax Settings (18% GST)
+  // Basic Invoice & Tax Settings (18% GST: CGST 9% + SGST 9%)
   invoice_settings: {
     company_gstin: string;
     company_pan: string;
@@ -65,6 +65,9 @@ export interface SystemFeeConfig {
     invoice_prefix: string;
     receipt_prefix: string;
     tax_rate_percent: number;
+    cgst_percent?: number;
+    sgst_percent?: number;
+    sac_code?: string;
     terms_conditions: string;
   };
 
@@ -86,20 +89,20 @@ export const DEFAULT_FEE_CONFIG: SystemFeeConfig = {
   advance_registration_fee_currency: 'INR',
   gst_enabled_registration_fee: true,
 
-  installment_schedule_enabled: true,
-  tuition_installment_enabled: true,
+  installment_schedule_enabled: false,
+  tuition_installment_enabled: false,
   installment_percentages: {
     installment_1: 30,
     installment_2: 40,
     installment_3: 30,
   },
 
-  separate_agency_fee_enabled: false,
+  separate_agency_fee_enabled: true,
   agency_fee_model: 'agency_fee_only',
   agency_fee_amount: 25000,
   agency_fee_currency: 'INR',
   gst_enabled_agency_fee: true,
-  agency_fee_tax_type: 'GST 18% (SAC 9983)',
+  agency_fee_tax_type: 'GST 18% (CGST 9% + SGST 9% | SAC 9983)',
   agency_milestones: [
     { id: 'm-1', name: 'Application Processing & Eligibility Review', amount: 5000, due_trigger: 'On Application Lodgement', description: 'Document screening & university dossier review' },
     { id: 'm-2', name: 'Offer Letter Issuance & Placement', amount: 8000, due_trigger: 'On Unconditional Offer Release', description: 'Institutional placement & admission validation' },
@@ -111,12 +114,12 @@ export const DEFAULT_FEE_CONFIG: SystemFeeConfig = {
   vfs_fee_tax_type: 'No Tax (Govt Fee)',
 
   tuition_payment_mode: 'installment',
-  tuition_installments_platform_enabled: true,
+  tuition_installments_platform_enabled: false,
 
   tax_type: 'GST',
   gst_enabled_tuition_fee: false,
   tuition_fee_tax_type: 'No Tax (Direct University)',
-  registration_fee_tax_type: 'GST 18% (SAC 9983)',
+  registration_fee_tax_type: 'GST 18% (CGST 9% + SGST 9% | SAC 9983)',
 
   payment_gateways: {
     phonepe_upi_enabled: true,
@@ -126,13 +129,16 @@ export const DEFAULT_FEE_CONFIG: SystemFeeConfig = {
   },
 
   invoice_settings: {
-    company_gstin: '32AABCF1234F1Z8',
-    company_pan: 'AABCF1234F',
-    company_address: 'FEREX Ventures Tower, Infopark Expressway, Kochi, Kerala 682042',
+    company_gstin: '32AAGCF8602A1Z8',
+    company_pan: 'AAGCF8602A',
+    company_address: '12/640 Thachukuzhi, Companipady Road, Nellikuzhy PO, Kothamangalam, Kerala - 686 691',
     invoice_prefix: 'FRX-INV',
     receipt_prefix: 'FRX-RCP',
     tax_rate_percent: 18,
-    terms_conditions: 'All consulting and application services are billed under Indian GST SAC 9983. Governed by FEREX Admission Terms.',
+    cgst_percent: 9,
+    sgst_percent: 9,
+    sac_code: '9983',
+    terms_conditions: 'All consulting and onboarding services are billed under Indian GST SAC 9983 (18% GST: CGST 9% + SGST 9%). Governed by FEREX Admission Terms.',
   },
 
   currency: '₹',
@@ -152,14 +158,29 @@ export function getSystemFeeConfig(): SystemFeeConfig {
         ? Number(parsed.advance_registration_fee_amount)
         : (parsed.advance_registration_fee_inr !== undefined ? Number(parsed.advance_registration_fee_inr) : DEFAULT_FEE_CONFIG.advance_registration_fee_amount);
 
+      const mergedInvoiceSettings = {
+        ...DEFAULT_FEE_CONFIG.invoice_settings,
+        ...(parsed.invoice_settings || {}),
+        company_gstin: parsed.invoice_settings?.company_gstin && parsed.invoice_settings.company_gstin !== '32AABCF1234F1Z8' ? parsed.invoice_settings.company_gstin : '32AAGCF8602A1Z8',
+        company_pan: parsed.invoice_settings?.company_pan && parsed.invoice_settings.company_pan !== 'AABCF1234F' ? parsed.invoice_settings.company_pan : 'AAGCF8602A',
+        company_address: parsed.invoice_settings?.company_address && !parsed.invoice_settings.company_address.includes('Infopark') ? parsed.invoice_settings.company_address : '12/640 Thachukuzhi, Companipady Road, Nellikuzhy PO, Kothamangalam, Kerala - 686 691',
+        tax_rate_percent: parsed.invoice_settings?.tax_rate_percent !== undefined && parsed.invoice_settings?.tax_rate_percent > 0 ? parsed.invoice_settings.tax_rate_percent : 18,
+        cgst_percent: parsed.invoice_settings?.cgst_percent ?? 9,
+        sgst_percent: parsed.invoice_settings?.sgst_percent ?? 9,
+        sac_code: parsed.invoice_settings?.sac_code || '9983',
+      };
+
       return {
         ...DEFAULT_FEE_CONFIG,
         ...parsed,
         advance_registration_fee_amount: amount,
         advance_registration_fee_inr: amount,
+        gst_enabled_registration_fee: parsed.gst_enabled_registration_fee !== undefined ? parsed.gst_enabled_registration_fee : true,
+        separate_agency_fee_enabled: parsed.separate_agency_fee_enabled !== undefined ? parsed.separate_agency_fee_enabled : true,
+        gst_enabled_agency_fee: parsed.gst_enabled_agency_fee !== undefined ? parsed.gst_enabled_agency_fee : true,
         installment_percentages: { ...DEFAULT_FEE_CONFIG.installment_percentages, ...(parsed.installment_percentages || {}) },
         payment_gateways: { ...DEFAULT_FEE_CONFIG.payment_gateways, ...(parsed.payment_gateways || {}) },
-        invoice_settings: { ...DEFAULT_FEE_CONFIG.invoice_settings, ...(parsed.invoice_settings || {}) },
+        invoice_settings: mergedInvoiceSettings,
         agency_milestones: Array.isArray(parsed.agency_milestones) && parsed.agency_milestones.length > 0 ? parsed.agency_milestones : DEFAULT_FEE_CONFIG.agency_milestones,
       };
     }

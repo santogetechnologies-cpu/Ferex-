@@ -284,8 +284,8 @@ export const Payments: React.FC = () => {
     utr: vfsPaymentRecord?.utr_number,
   };
 
-  // 6. Item 4: University Tuition Fee / Installments
-  const tuitionFeeEnabled = appliedUniversity ? (appliedUniversity.tuition_fee_enabled !== false) : true;
+  // 6. Item 4: University Tuition Fee / Installments (Default Disabled unless explicitly enabled)
+  const tuitionFeeEnabled = Boolean(appliedUniversity?.tuition_fee_enabled);
   const installmentsEnabled = Boolean(appliedUniversity?.installments_enabled);
   const hasMultipleInstallments = Boolean(appliedUniversity?.installments && appliedUniversity.installments.length > 0);
 
@@ -863,14 +863,36 @@ export const Payments: React.FC = () => {
                   <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Agency Processing Cleared
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownloadInvoice(agencyFeeItem)}
-                    leftIcon={<FileText className="w-3.5 h-3.5" />}
-                  >
-                    PDF Receipt
-                  </Button>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setViewInvoice({
+                        invoice_no: `FE/2026-27/${Math.floor(1000 + Math.random() * 9000)}`,
+                        student_name: studentName,
+                        amount: agencyFeeItem.amount,
+                        currency: 'INR',
+                        description: agencyFeeItem.title,
+                        date: new Date().toISOString(),
+                        payment_method: 'Direct Bank Wire / Online Gateway',
+                        utr_number: agencyFeeItem.utr || 'VERIFIED-BANK-UTR-94821',
+                        sac_code: '9983',
+                        place_of_supply: 'India',
+                        course_destination: selectedUniversityName
+                      })}
+                      leftIcon={<Eye className="w-3.5 h-3.5" />}
+                    >
+                      Invoice ({config.gst_enabled_agency_fee !== false ? '18% GST' : 'Tax Exempt'})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDownloadInvoice(agencyFeeItem)}
+                      leftIcon={<FileText className="w-3.5 h-3.5" />}
+                    >
+                      PDF Receipt
+                    </Button>
+                  </div>
                 </div>
               ) : agencyFeeItem.status === 'Pending Verification' ? (
                 <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
