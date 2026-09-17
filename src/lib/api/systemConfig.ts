@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { SystemCustomizationConfig } from '../types';
 
 export const DEFAULT_SYSTEM_CONFIG: SystemCustomizationConfig = {
@@ -41,7 +42,7 @@ export const DEFAULT_SYSTEM_CONFIG: SystemCustomizationConfig = {
     stage_3_amount: 25000,
     stage_3_currency: 'INR',
     stage_3_due_label: 'Payable upon stamping of Schengen Type-D student visa',
-    tax_percentage: 18,
+    tax_percentage: 0,
     refund_policy_days: 14
   },
   document_policy: {
@@ -70,11 +71,40 @@ export const DEFAULT_SYSTEM_CONFIG: SystemCustomizationConfig = {
 const STORAGE_KEY = 'ferex_system_customization_config';
 
 export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
+  // 1. Fetch from Supabase system_config table (single source of truth)
+  try {
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+
+    const { data } = await client
+      .from('system_config')
+      .select('*')
+      .or('id.eq.ferex-sys-config-v1,key.eq.ferex_system_customization_config')
+      .maybeSingle();
+
+    const configData = data?.config || data?.value;
+    if (configData && typeof configData === 'object') {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(configData)); } catch {}
+      return {
+        ...DEFAULT_SYSTEM_CONFIG,
+        ...configData,
+        branding: { ...DEFAULT_SYSTEM_CONFIG.branding, ...(configData.branding || {}) },
+        broadcast: { ...DEFAULT_SYSTEM_CONFIG.broadcast, ...(configData.broadcast || {}) },
+        installments: { ...DEFAULT_SYSTEM_CONFIG.installments, ...(configData.installments || {}) },
+        document_policy: { ...DEFAULT_SYSTEM_CONFIG.document_policy, ...(configData.document_policy || {}) },
+        features: { ...DEFAULT_SYSTEM_CONFIG.features, ...(configData.features || {}) }
+      };
+    }
+  } catch (err) {
+    console.warn('[getSystemConfig DB notice]:', err);
+  }
+
+  // 2. Local fallback
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.branding) {
+      if (parsed && typeof parsed === 'object') {
         return {
           ...DEFAULT_SYSTEM_CONFIG,
           ...parsed,
@@ -82,28 +112,11 @@ export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
           broadcast: { ...DEFAULT_SYSTEM_CONFIG.broadcast, ...(parsed.broadcast || {}) },
           installments: { ...DEFAULT_SYSTEM_CONFIG.installments, ...(parsed.installments || {}) },
           document_policy: { ...DEFAULT_SYSTEM_CONFIG.document_policy, ...(parsed.document_policy || {}) },
-          visa_mock: { ...DEFAULT_SYSTEM_CONFIG.visa_mock, ...(parsed.visa_mock || {}) },
           features: { ...DEFAULT_SYSTEM_CONFIG.features, ...(parsed.features || {}) }
         };
       }
     }
-  } catch (e) {
-    console.warn('Could not read system config from localStorage:', e);
-  }
-
-  // Try Supabase system_config table if present
-  try {
-    const { data } = await supabase
-      .from('system_config')
-      .select('config')
-      .eq('id', 'ferex-sys-config-v1')
-      .maybeSingle();
-
-    if (data && data.config) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.config));
-      return data.config;
-    }
-  } catch (err) {}
+  } catch {}
 
   return DEFAULT_SYSTEM_CONFIG;
 };
@@ -114,21 +127,28 @@ export const saveSystemConfig = async (config: SystemCustomizationConfig): Promi
     updated_at: new Date().toISOString()
   };
 
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
+
+  // Persist to Supabase system_config
+  const { error } = await client.from('system_config').upsert({
+    id: updated.id || 'ferex-sys-config-v1',
+    key: 'ferex_system_customization_config',
+    config: updated,
+    value: updated,
+    updated_at: updated.updated_at
+  });
+
+  if (error) {
+    console.warn('[saveSystemConfig DB notice]:', error.message);
+  }
+
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('ferex_system_config_change', { detail: updated }));
   } catch (e) {
     console.error('Error saving system config to storage:', e);
   }
-
-  // Persist to Supabase if available
-  try {
-    await supabase.from('system_config').upsert({
-      id: updated.id || 'ferex-sys-config-v1',
-      config: updated,
-      updated_at: updated.updated_at
-    });
-  } catch (err) {}
 
   return updated;
 };

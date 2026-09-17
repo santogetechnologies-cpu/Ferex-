@@ -3,8 +3,7 @@ import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { SupportTicket, TicketReply } from '../types';
 import { generateUUID } from '../../utils/uuid';
 
-const TICKETS_CONFIG_KEY = 'ferex_tickets_catalog';
-const REPLIES_CONFIG_KEY = 'ferex_replies_catalog';
+const TICKETS_CACHE_KEY = 'ferex_all_tickets_cache';
 
 export async function getTickets(studentId?: string): Promise<SupportTicket[]> {
   try {
@@ -21,68 +20,29 @@ export async function getTickets(studentId?: string): Promise<SupportTicket[]> {
     }
 
     const { data, error } = await query;
-    if (!error && data) {
+    if (!error && Array.isArray(data)) {
       if (studentId) {
-        try { localStorage.setItem(`ferex_tickets_${studentId}`, JSON.stringify(data)); } catch (e) {}
+        try { localStorage.setItem(`ferex_tickets_${studentId}`, JSON.stringify(data)); } catch {}
       } else {
-        try { localStorage.setItem('ferex_all_tickets_cache', JSON.stringify(data)); } catch (e) {}
+        try { localStorage.setItem(TICKETS_CACHE_KEY, JSON.stringify(data)); } catch {}
       }
       return data as SupportTicket[];
     }
-
-    // Cloud system_config catalog fallback
-    const { data: catalogData } = await client
-      .from('system_config')
-      .select('value')
-      .eq('key', TICKETS_CONFIG_KEY)
-      .maybeSingle();
-
-    if (catalogData?.value && Array.isArray(catalogData.value)) {
-      const allTickets: SupportTicket[] = catalogData.value;
-      if (studentId) {
-        return allTickets.filter(t => t.student_id === studentId || (t as any).user_id === studentId);
-      }
-      return allTickets;
-    }
-
-    if (studentId) {
-      const local = localStorage.getItem(`ferex_tickets_${studentId}`);
-      if (local) {
-        try {
-          const parsed = JSON.parse(local);
-          if (Array.isArray(parsed)) return parsed;
-        } catch (e) {}
-      }
-    } else {
-      const local = localStorage.getItem('ferex_all_tickets_cache');
-      if (local) {
-        try {
-          const parsed = JSON.parse(local);
-          if (Array.isArray(parsed)) return parsed;
-        } catch (e) {}
-      }
-    }
-    return [];
   } catch (err) {
-    if (studentId) {
-      const local = localStorage.getItem(`ferex_tickets_${studentId}`);
-      if (local) {
-        try {
-          const parsed = JSON.parse(local);
-          if (Array.isArray(parsed)) return parsed;
-        } catch (e) {}
-      }
-    } else {
-      const local = localStorage.getItem('ferex_all_tickets_cache');
-      if (local) {
-        try {
-          const parsed = JSON.parse(local);
-          if (Array.isArray(parsed)) return parsed;
-        } catch (e) {}
-      }
-    }
-    return [];
+    console.warn('[getTickets DB notice]:', err);
   }
+
+  // Offline fallback
+  try {
+    const key = studentId ? `ferex_tickets_${studentId}` : TICKETS_CACHE_KEY;
+    const local = localStorage.getItem(key);
+    if (local) {
+      const parsed = JSON.parse(local);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+
+  return [];
 }
 
 export async function getTicketReplies(ticketId: string): Promise<TicketReply[]> {
@@ -96,51 +56,23 @@ export async function getTicketReplies(ticketId: string): Promise<TicketReply[]>
       .eq('ticket_id', ticketId)
       .order('sent_at', { ascending: true });
 
-    if (!error && data && data.length > 0) {
+    if (!error && Array.isArray(data)) {
+      try { localStorage.setItem(`ferex_replies_${ticketId}`, JSON.stringify(data)); } catch {}
       return data as TicketReply[];
     }
+  } catch (err) {
+    console.warn('[getTicketReplies DB notice]:', err);
+  }
 
-    // Try ticket_messages table fallback
-    const { data: msgData, error: msgErr } = await client
-      .from('ticket_messages')
-      .select('*')
-      .eq('ticket_id', ticketId)
-      .order('created_at', { ascending: true });
-
-    if (!msgErr && msgData && msgData.length > 0) {
-      return msgData.map((m: any) => ({
-        id: m.id,
-        ticket_id: m.ticket_id,
-        sender_id: m.sender_id,
-        sender_name: m.sender_name,
-        message: m.message,
-        is_staff: m.sender_role !== 'student',
-        sent_at: m.created_at
-      }));
-    }
-
-    // Cloud system_config replies catalog
-    const { data: catData } = await client
-      .from('system_config')
-      .select('value')
-      .eq('key', `${REPLIES_CONFIG_KEY}_${ticketId}`)
-      .maybeSingle();
-
-    if (catData?.value && Array.isArray(catData.value)) {
-      return catData.value;
-    }
-
+  try {
     const local = localStorage.getItem(`ferex_replies_${ticketId}`);
     if (local) {
-      try {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
+      const parsed = JSON.parse(local);
+      if (Array.isArray(parsed)) return parsed;
     }
-    return [];
-  } catch (err) {
-    return [];
-  }
+  } catch {}
+
+  return [];
 }
 
 export async function createTicket(payload: {
@@ -150,56 +82,49 @@ export async function createTicket(payload: {
   description: string;
   category?: string;
   priority?: SupportTicket['priority'];
-}) {
+}): Promise<SupportTicket> {
   const newId = generateUUID();
   const ticketNo = payload.ticket_no || `TC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
   const categoryValue = payload.category || 'General Query';
+  const now = new Date().toISOString();
 
-  const ticketObj = {
+  const ticketObj: any = {
     id: newId,
     student_id: payload.student_id,
     user_id: payload.student_id,
-    ticket_no: ticketNo,
-    subject: payload.subject,
-    description: payload.description,
+    ticket_number: ticketNo,
+    subject: payload.subject.trim(),
+    description: payload.description.trim(),
     category: categoryValue,
     priority: payload.priority || 'Medium',
     status: 'Open',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    created_at: now,
+    updated_at: now,
   };
 
-  try {
-    const admin = await getAdminSupabaseClient();
-    const client = admin || supabase;
-    const { data, error } = await client
-      .from('support_tickets')
-      .insert(ticketObj)
-      .select();
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
 
-    // Sync to cloud catalog
-    const { data: curCat } = await client.from('system_config').select('value').eq('key', TICKETS_CONFIG_KEY).maybeSingle();
-    const existing = (curCat?.value && Array.isArray(curCat.value)) ? curCat.value : [];
-    await client.from('system_config').upsert({
-      key: TICKETS_CONFIG_KEY,
-      value: [ticketObj, ...existing.filter((t: any) => t.id !== newId)],
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
+  const { data, error } = await client
+    .from('support_tickets')
+    .insert(ticketObj)
+    .select();
 
-    if (!error && data && data.length > 0) {
-      return data[0] as SupportTicket;
-    }
-  } catch (e) {}
+  if (error) {
+    throw new Error(`Failed to create ticket: ${error.message}`);
+  }
 
-  // Local storage backup
+  const result = (data && data[0]) ? data[0] : ticketObj;
+
   try {
     const key = `ferex_tickets_${payload.student_id}`;
     const local = localStorage.getItem(key);
     const existing = local ? JSON.parse(local) : [];
-    localStorage.setItem(key, JSON.stringify([ticketObj, ...existing]));
-  } catch (e) {}
+    localStorage.setItem(key, JSON.stringify([result, ...existing]));
+    window.dispatchEvent(new Event('ferex_tickets_change'));
+  } catch {}
 
-  return ticketObj as unknown as SupportTicket;
+  return result as SupportTicket;
 }
 
 export async function addTicketReply(payload: {
@@ -208,58 +133,61 @@ export async function addTicketReply(payload: {
   sender_name: string;
   message: string;
   is_staff?: boolean;
-}) {
+}): Promise<TicketReply> {
   const newId = generateUUID();
+  const now = new Date().toISOString();
   const replyObj: TicketReply = {
     id: newId,
     ticket_id: payload.ticket_id,
     sender_id: payload.sender_id,
     sender_name: payload.sender_name || 'Staff',
-    message: payload.message,
+    message: payload.message.trim(),
     is_staff: payload.is_staff || false,
-    sent_at: new Date().toISOString()
+    sent_at: now,
   } as unknown as TicketReply;
 
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
+
+  const { data, error } = await client
+    .from('ticket_replies')
+    .insert({
+      id: newId,
+      ticket_id: payload.ticket_id,
+      sender_id: payload.sender_id,
+      sender_name: payload.sender_name || 'Admin',
+      message: payload.message.trim(),
+      is_staff: payload.is_staff || false,
+      sent_at: now,
+    })
+    .select();
+
+  if (error) {
+    throw new Error(`Failed to send reply: ${error.message}`);
+  }
+
+  const result = (data && data[0]) ? data[0] : replyObj;
+
+  // Also update ticket's last_activity
   try {
-    const admin = await getAdminSupabaseClient();
-    const client = admin || supabase;
-    const { data } = await client
-      .from('ticket_replies')
-      .insert({
-        id: newId,
-        ticket_id: payload.ticket_id,
-        sender_id: payload.sender_id,
-        sender_name: payload.sender_name || 'Admin',
-        message: payload.message,
-        is_staff: payload.is_staff || false
-      })
-      .select();
-
-    // Update cloud catalog for this ticket
-    const { data: curCat } = await client.from('system_config').select('value').eq('key', `${REPLIES_CONFIG_KEY}_${payload.ticket_id}`).maybeSingle();
-    const existing = (curCat?.value && Array.isArray(curCat.value)) ? curCat.value : [];
-    await client.from('system_config').upsert({
-      key: `${REPLIES_CONFIG_KEY}_${payload.ticket_id}`,
-      value: [...existing, replyObj],
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
-
-    if (data && data.length > 0) {
-      return data[0] as TicketReply;
-    }
+    await client
+      .from('support_tickets')
+      .update({ updated_at: now, last_activity: now })
+      .eq('id', payload.ticket_id);
   } catch {}
 
   try {
     const localKey = `ferex_replies_${payload.ticket_id}`;
     const local = localStorage.getItem(localKey);
     const existing = local ? JSON.parse(local) : [];
-    localStorage.setItem(localKey, JSON.stringify([...existing, replyObj]));
+    localStorage.setItem(localKey, JSON.stringify([...existing, result]));
+    window.dispatchEvent(new Event('ferex_tickets_change'));
   } catch {}
 
-  return replyObj;
+  return result as TicketReply;
 }
 
-export async function replyToTicket(ticketId: string, message: string, isStaff: boolean = true) {
+export async function replyToTicket(ticketId: string, message: string, isStaff: boolean = true): Promise<TicketReply> {
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData?.user?.id || '00000000-0000-0000-0000-000000000000';
   const userName = authData?.user?.user_metadata?.full_name || 'Admissions Staff';
@@ -272,39 +200,40 @@ export async function replyToTicket(ticketId: string, message: string, isStaff: 
   });
 }
 
-export async function updateTicketStatus(id: string, status: SupportTicket['status']) {
-  try {
-    const admin = await getAdminSupabaseClient();
-    const client = admin || supabase;
-    const { data } = await client
-      .from('support_tickets')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select();
+export async function updateTicketStatus(id: string, status: SupportTicket['status']): Promise<SupportTicket> {
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
+  const now = new Date().toISOString();
 
-    if (data && data.length > 0) {
-      return data[0] as SupportTicket;
-    }
-  } catch {}
+  const { data, error } = await client
+    .from('support_tickets')
+    .update({ status, updated_at: now })
+    .eq('id', id)
+    .select();
 
-  return { id, status } as unknown as SupportTicket;
+  if (error) {
+    throw new Error(`Failed to update ticket status: ${error.message}`);
+  }
+
+  window.dispatchEvent(new Event('ferex_tickets_change'));
+  return (data && data[0]) ? data[0] : ({ id, status } as unknown as SupportTicket);
 }
 
-export async function updateTicketAssignee(id: string, assignedTo: string | null) {
-  try {
-    const admin = await getAdminSupabaseClient();
-    const client = admin || supabase;
-    const { data } = await client
-      .from('support_tickets')
-      .update({ assigned_to: assignedTo || null, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select();
+export async function updateTicketAssignee(id: string, assignedTo: string | null): Promise<SupportTicket> {
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
+  const now = new Date().toISOString();
 
-    if (data && data.length > 0) {
-      return data[0] as SupportTicket;
-    }
-  } catch {}
+  const { data, error } = await client
+    .from('support_tickets')
+    .update({ assigned_to: assignedTo || null, updated_at: now })
+    .eq('id', id)
+    .select();
 
-  return { id, assigned_to: assignedTo } as unknown as SupportTicket;
+  if (error) {
+    throw new Error(`Failed to assign ticket: ${error.message}`);
+  }
+
+  window.dispatchEvent(new Event('ferex_tickets_change'));
+  return (data && data[0]) ? data[0] : ({ id, assigned_to: assignedTo } as unknown as SupportTicket);
 }
-

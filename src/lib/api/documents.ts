@@ -4,8 +4,6 @@ import type { StudentDocument } from '../types';
 import { generateUUID } from '../../utils/uuid';
 import { logActivity } from './activity';
 
-import { getDeletedStudentIds } from './students';
-
 const isValidUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 const DOCUMENTS_CATALOG_ID = 'ferex_documents_catalog';
 
@@ -50,89 +48,70 @@ async function syncDocumentToCloudCatalog(doc: StudentDocument) {
 // ─── Get documents for a specific student (Student View) ───────────────────────
 export async function getDocumentsForStudent(studentId: string): Promise<StudentDocument[]> {
   if (!studentId) return [];
-  const deletedIds = getDeletedStudentIds();
-  if (deletedIds.includes(studentId.toLowerCase())) return [];
 
   try {
     const admin = await getAdminSupabaseClient();
-    const { data, error } = await admin
+    const client = admin || supabase;
+    const { data, error } = await client
       .from('student_documents')
       .select('*')
       .eq('student_id', studentId)
       .order('uploaded_at', { ascending: false });
-    
-    const dbDocs = (data ?? []) as unknown as StudentDocument[];
-    const cloudCatalog = await fetchDocumentsCatalog();
-    const studentCloud = cloudCatalog.filter(d => d.student_id === studentId);
 
-    const dbIds = new Set(dbDocs.map(d => d.id));
-    const merged = [...dbDocs, ...studentCloud.filter(d => !dbIds.has(d.id))];
-    return merged;
+    if (!error && Array.isArray(data)) {
+      return data as unknown as StudentDocument[];
+    }
   } catch (err) {
-    const cloudCatalog = await fetchDocumentsCatalog();
-    return cloudCatalog.filter(d => d.student_id === studentId);
+    console.warn('[getDocumentsForStudent DB notice]:', err);
   }
+
+  const cloudCatalog = await fetchDocumentsCatalog();
+  return cloudCatalog.filter(d => d.student_id === studentId);
 }
 
 // ─── Get all documents across the system (Admin View) ──────────────────────────
 export async function getDocumentsForAdmin(): Promise<StudentDocument[]> {
-  const deletedIds = getDeletedStudentIds();
   try {
     const admin = await getAdminSupabaseClient();
-    const { data, error } = await admin
+    const client = admin || supabase;
+    const { data, error } = await client
       .from('student_documents')
       .select('*, users:student_id(id, full_name, email, phone)')
       .order('uploaded_at', { ascending: false });
 
-    const dbDocs = (data ?? []) as unknown as StudentDocument[];
-    const cloudCatalog = await fetchDocumentsCatalog();
-    const dbIds = new Set(dbDocs.map(d => d.id));
-    const merged = [...dbDocs, ...cloudCatalog.filter(d => !dbIds.has(d.id))];
-
-    return merged.filter(d => {
-      const sId = (d.student_id || '').toLowerCase();
-      const sName = ((d as any).student_name || (d as any).users?.full_name || '').toLowerCase();
-      const sEmail = ((d as any).student_email || (d as any).users?.email || '').toLowerCase();
-      if (sId && deletedIds.includes(sId)) return false;
-      if (sEmail && deletedIds.includes(sEmail)) return false;
-      if (deletedIds.some(del => sId === del || sEmail.includes(del))) return false;
-      if (sName.includes('jishi') || sName.includes('ajay') || sName.includes('navaneeth')) return false;
-      return true;
-    });
+    if (!error && Array.isArray(data)) {
+      return data as unknown as StudentDocument[];
+    }
   } catch (err) {
-    const cloud = await fetchDocumentsCatalog();
-    return cloud.filter(d => {
-      const sId = (d.student_id || '').toLowerCase();
-      if (sId && deletedIds.includes(sId)) return false;
-      return true;
-    });
+    console.warn('[getDocumentsForAdmin DB notice]:', err);
   }
+
+  return await fetchDocumentsCatalog();
 }
 
 // ─── Delete document ─────────────────────────────────────────────────────────
 export async function deleteDocumentRecord(docId: string): Promise<boolean> {
-  try {
-    const admin = await getAdminSupabaseClient();
-    await admin.from('student_documents').delete().eq('id', docId);
-    await admin.from('documents').delete().eq('id', docId);
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
 
-    const catalog = await fetchDocumentsCatalog();
-    const updated = catalog.filter(d => d.id !== docId);
-    try {
-      localStorage.setItem('ferex_documents_cloud_catalog', JSON.stringify(updated));
-    } catch {}
-    await admin.from('system_config').upsert({
-      key: DOCUMENTS_CATALOG_ID,
-      value: updated,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
-
-    window.dispatchEvent(new Event('ferex_document_change'));
-    return true;
-  } catch (e) {
-    console.warn('[deleteDocumentRecord Error]:', e);
-    return false;
+  const { error } = await client.from('student_documents').delete().eq('id', docId);
+  if (error) {
+    throw new Error(`Failed to delete document: ${error.message}`);
   }
+
+  const catalog = await fetchDocumentsCatalog();
+  const updated = catalog.filter(d => d.id !== docId);
+  try {
+    localStorage.setItem('ferex_documents_cloud_catalog', JSON.stringify(updated));
+  } catch {}
+  await client.from('system_config').upsert({
+    key: DOCUMENTS_CATALOG_ID,
+    value: updated,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'key' }).catch?.(() => {});
+
+  window.dispatchEvent(new Event('ferex_document_change'));
+  return true;
 }
 
 // Backward compatible alias
@@ -150,9 +129,10 @@ export async function uploadDocument(payload: {
   file_url: string;
   file_size?: string;
   doc_type: StudentDocument['doc_type'];
-}) {
+}): Promise<StudentDocument> {
   const newId = generateUUID();
   const validStudentId = isValidUuid(payload.student_id) ? payload.student_id : null;
+  const now = new Date().toISOString();
 
   const insertData: StudentDocument = {
     id: newId,
@@ -164,24 +144,32 @@ export async function uploadDocument(payload: {
     status: 'Submitted',
     reviewer_id: null,
     reviewer_notes: '',
-    uploaded_at: new Date().toISOString(),
+    uploaded_at: now,
     reviewed_at: null,
   };
 
-  try {
-    const admin = await getAdminSupabaseClient();
-    await admin.from('student_documents').insert({
-      id: newId,
-      student_id: validStudentId,
-      file_name: payload.file_name,
-      file_url: payload.file_url,
-      doc_type: payload.doc_type,
-      document_type: payload.doc_type,
-      file_size: payload.file_size || '1.2 MB',
-      status: 'Submitted',
-      uploaded_at: new Date().toISOString()
-    });
-  } catch (e) {}
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
+
+  const { error } = await client.from('student_documents').insert({
+    id: newId,
+    student_id: validStudentId,
+    file_name: payload.file_name,
+    name: payload.file_name,
+    file_url: payload.file_url,
+    type: payload.doc_type || 'Document',
+    doc_type: payload.doc_type,
+    document_type: payload.doc_type,
+    file_size: payload.file_size || '1.2 MB',
+    status: 'Submitted',
+    uploaded_at: now,
+    created_at: now,
+    updated_at: now,
+  });
+
+  if (error) {
+    console.warn('[uploadDocument DB insert notice]:', error.message);
+  }
 
   await syncDocumentToCloudCatalog(insertData);
   window.dispatchEvent(new Event('ferex_document_change'));
@@ -194,7 +182,7 @@ export async function uploadDocument(payload: {
       body: `A new student document (${payload.doc_type || payload.file_name}) was submitted for review & verification.`,
       category: 'Document'
     });
-  } catch (err) {}
+  } catch {}
 
   return insertData;
 }
@@ -205,37 +193,41 @@ export async function updateDocumentStatus(
   status: StudentDocument['status'],
   reviewerId?: string,
   reviewerNotes?: string
-) {
+): Promise<StudentDocument> {
   const notesText = reviewerNotes || (status === 'Re-upload Requested' ? 'Re-upload Requested' : '');
+  const now = new Date().toISOString();
   let docResult: StudentDocument | null = null;
 
-  try {
-    const admin = await getAdminSupabaseClient();
-    const { data } = await admin
-      .from('student_documents')
-      .update({
-        status,
-        reviewer_notes: notesText,
-        reviewer_id: reviewerId || null,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select();
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
 
-    if (data && data.length > 0) {
-      docResult = data[0] as StudentDocument;
-    }
-  } catch (e) {}
+  const { data, error } = await client
+    .from('student_documents')
+    .update({
+      status,
+      reviewer_notes: notesText,
+      rejection_reason: status === 'Rejected' ? notesText : null,
+      reviewer_id: reviewerId || null,
+      reviewed_at: now,
+      verified_at: (status === 'Verified' || status === 'Approved') ? now : null,
+      updated_at: now,
+    })
+    .eq('id', id)
+    .select();
+
+  if (!error && data && data.length > 0) {
+    docResult = data[0] as StudentDocument;
+  }
 
   if (!docResult) {
     const catalog = await fetchDocumentsCatalog();
     const existing = catalog.find(d => d.id === id);
     docResult = {
-      ...(existing || { id, file_name: 'document.pdf', file_url: '', doc_type: 'Identity', uploaded_at: new Date().toISOString() }),
+      ...(existing || { id, file_name: 'document.pdf', file_url: '', doc_type: 'Identity', uploaded_at: now }),
       id,
       status,
       reviewer_notes: notesText,
-      reviewed_at: new Date().toISOString()
+      reviewed_at: now
     } as StudentDocument;
   }
 
@@ -256,7 +248,7 @@ export async function updateDocumentStatus(
           : `Status for "${docResult.doc_type || 'Document'}": ${status}. ${notesText ? 'Notes: ' + notesText : ''}`,
         category: 'Document'
       });
-    } catch (e) {}
+    } catch {}
   }
 
   await logActivity('DOCUMENT_STATUS_UPDATED', 'student_document', id, { status, reviewer_notes: notesText });
@@ -272,29 +264,32 @@ export async function reuploadDocumentRecord(
     file_size?: string;
     doc_type: StudentDocument['doc_type'];
   }
-) {
+): Promise<StudentDocument> {
+  const now = new Date().toISOString();
   let docResult: StudentDocument | null = null;
-  try {
-    const admin = await getAdminSupabaseClient();
-    const { data } = await admin
-      .from('student_documents')
-      .update({
-        file_name: payload.file_name,
-        file_url: payload.file_url,
-        file_size: payload.file_size || '1.2 MB',
-        doc_type: payload.doc_type,
-        document_type: payload.doc_type,
-        status: 'Submitted',
-        uploaded_at: new Date().toISOString(),
-        reviewer_notes: '',
-      })
-      .eq('id', id)
-      .select();
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
 
-    if (data && data.length > 0) {
-      docResult = data[0] as StudentDocument;
-    }
-  } catch (e) {}
+  const { data } = await client
+    .from('student_documents')
+    .update({
+      file_name: payload.file_name,
+      name: payload.file_name,
+      file_url: payload.file_url,
+      file_size: payload.file_size || '1.2 MB',
+      doc_type: payload.doc_type,
+      document_type: payload.doc_type,
+      status: 'Submitted',
+      uploaded_at: now,
+      updated_at: now,
+      reviewer_notes: '',
+    })
+    .eq('id', id)
+    .select();
+
+  if (data && data.length > 0) {
+    docResult = data[0] as StudentDocument;
+  }
 
   if (!docResult) {
     const catalog = await fetchDocumentsCatalog();
@@ -307,7 +302,7 @@ export async function reuploadDocumentRecord(
       file_size: payload.file_size || '1.2 MB',
       doc_type: payload.doc_type,
       status: 'Submitted',
-      uploaded_at: new Date().toISOString(),
+      uploaded_at: now,
       reviewer_notes: ''
     } as StudentDocument;
   }
@@ -318,7 +313,7 @@ export async function reuploadDocumentRecord(
 }
 
 // ─── Get document counts for admin dashboard ──────────────────────────────────
-export async function getDocumentCounts() {
+export async function getDocumentCounts(): Promise<{ total: number; pending: number; verified: number; rejected: number }> {
   const { data, error } = await supabase
     .from('student_documents')
     .select('status');
@@ -327,7 +322,7 @@ export async function getDocumentCounts() {
   const counts = { total: 0, pending: 0, verified: 0, rejected: 0 };
   for (const row of data ?? []) {
     counts.total++;
-    if (row.status === 'Pending Verification' || row.status === 'Pending') counts.pending++;
+    if (row.status === 'Pending Verification' || row.status === 'Pending' || row.status === 'Submitted') counts.pending++;
     if (row.status === 'Verified' || row.status === 'Approved') counts.verified++;
     if (row.status === 'Rejected') counts.rejected++;
   }
