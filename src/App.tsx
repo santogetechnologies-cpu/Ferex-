@@ -104,7 +104,6 @@ import { RimiCollections } from './pages/rimi/RimiCollections';
 import { RimiVehicles } from './pages/rimi/RimiVehicles';
 import { RimiDeliveryRoutes } from './pages/rimi/RimiDeliveryRoutes';
 import { RimiAnalytics } from './pages/rimi/RimiAnalytics';
-import { RimiMessages } from './pages/rimi/RimiMessages';
 import { RimiNotifications } from './pages/rimi/RimiNotifications';
 import { RimiProfile } from './pages/rimi/RimiProfile';
 import { RimiSettings } from './pages/rimi/RimiSettings';
@@ -413,7 +412,7 @@ function App() {
           <Route path="/rimi/sales-reports" element={<Navigate to="/rimi/analytics" replace />} />
           <Route path="/rimi/inventory-analytics" element={<Navigate to="/rimi/analytics" replace />} />
           <Route path="/rimi/revenue-analytics" element={<Navigate to="/rimi/analytics" replace />} />
-          <Route path="/rimi/messages" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiMessages /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/messages" element={<Navigate to="/rimi/dashboard" replace />} />
           <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/tasks" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiTasks /></RimiLayout></ProtectedRoute>} />

@@ -108,6 +108,9 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- 5. UPDATE DIGITAL_CLIENTS TO PROPER FEREX SUBSIDIARIES & INTERNAL DIVISIONS
 -- ─────────────────────────────────────────────────────────────────────────────
 
+ALTER TABLE IF EXISTS public.digital_clients
+  ADD COLUMN IF NOT EXISTS client_type TEXT DEFAULT 'Internal';
+
 -- Delete any legacy mock or test client records with outdated names
 DELETE FROM public.digital_clients 
 WHERE company_name ILIKE '%C Tech%' 

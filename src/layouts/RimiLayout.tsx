@@ -113,7 +113,6 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       title: 'OPERATIONS',
       items: [
         { label: 'Tasks & Assignments', path: '/rimi/tasks', icon: CheckCircle2 },
-        { label: 'Messages', path: '/rimi/messages', icon: MessageSquare },
         { label: 'Notifications', path: '/rimi/notifications', icon: Bell }
       ]
     },
