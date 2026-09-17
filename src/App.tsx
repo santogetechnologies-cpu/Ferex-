@@ -24,6 +24,7 @@ import { PreDeparture } from './pages/PreDeparture';
 
 // Admin imports
 import { AdminLayout } from './layouts/AdminLayout';
+import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminStudents } from './pages/admin/AdminStudents';
 import { AdminUniversities } from './pages/admin/AdminUniversities';

@@ -123,11 +123,11 @@ async function ensureProfile(user: User): Promise<UserProfile> {
     return existing;
   }
 
-  // Use the role from user metadata (set during provisioning), fallback to 'student'
+  // Use the role from user metadata (set during student registration or staff provisioning), fallback to 'superadmin' for direct auth users
   const metaRole = user.user_metadata?.role;
-  const isSuper = isSuperAdmin(metaRole, user.email);
-  const role = isSuper ? 'superadmin' : (metaRole || 'student');
-  const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Student User';
+  const isSuper = isSuperAdmin(metaRole, user.email) || !metaRole || metaRole === 'superadmin' || metaRole === 'super_admin';
+  const role = isSuper ? 'superadmin' : metaRole;
+  const fullName = user.user_metadata?.full_name || user.user_metadata?.name || (isSuper ? 'Central Super Admin' : (user.email?.split('@')[0] || 'User'));
 
   const newProfile: UserProfile = {
     id: user.id,
@@ -166,9 +166,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(currentUser);
 
     if (currentUser) {
-      const isSuper = isSuperAdmin(currentUser.user_metadata?.role, currentUser.email);
       const metaRole = currentUser.user_metadata?.role;
-      const defaultRole = isSuper ? 'superadmin' : (metaRole || 'student');
+      const isSuper = isSuperAdmin(metaRole, currentUser.email) || !metaRole || metaRole === 'superadmin' || metaRole === 'super_admin';
+      const defaultRole = isSuper ? 'superadmin' : metaRole;
 
       try {
         const prof = await Promise.race([
@@ -179,7 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 resolve({
                   id: currentUser.id,
                   email: currentUser.email || '',
-                  full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || (isSuper ? 'Central Super Admin' : 'Student User'),
+                  full_name: currentUser.user_metadata?.full_name || (isSuper ? 'Central Super Admin' : (currentUser.email?.split('@')[0] || 'User')),
                   role: defaultRole,
                   created_at: new Date().toISOString(),
                 }),

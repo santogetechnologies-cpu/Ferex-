@@ -222,13 +222,16 @@ export const LoginPage: React.FC = () => {
       }
     }
 
-    // Direct unassigned Supabase auth defaults to student
+    // Direct unassigned Supabase auth defaults to superadmin; student signups have explicit 'student' metadata
     if (!role) {
-      role = user.user_metadata?.role || (dbProfile as any)?.role || 'student';
+      role = user.user_metadata?.role || (dbProfile as any)?.role || 'superadmin';
     }
 
     // Authoritatively detect Super Admin via email, role, or user metadata
     const isSuper =
+      role === 'superadmin' ||
+      role === 'super_admin' ||
+      role === 'central' ||
       isSuperAdmin(role, cleanEmail) ||
       isSuperAdmin(user.user_metadata?.role, cleanEmail) ||
       isSuperAdmin(dbProfile?.role, cleanEmail);
@@ -242,8 +245,6 @@ export const LoginPage: React.FC = () => {
           .update({ role: 'superadmin', updated_at: new Date().toISOString() })
           .eq('id', user.id);
       } catch {}
-    } else if (!role) {
-      role = 'student';
     }
 
 
@@ -731,7 +732,13 @@ export const LoginPage: React.FC = () => {
               <span className="flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5 text-emerald-600" /> 256-Bit SSL Encrypted
               </span>
-              <span>FEREX Ventures © {new Date().getFullYear()}</span>
+              <button
+                type="button"
+                onClick={() => navigate('/admin/login')}
+                className="text-slate-500 hover:text-[#58051E] font-bold transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-[#58051E]" /> Super Admin Portal
+              </button>
             </div>
           </motion.div>
         ) : (

@@ -341,7 +341,7 @@ export const FerexLandingPage: React.FC = () => {
 
   const testimonials = [
     {
-      name: 'Aarav Patel',
+      name: 'Ashwin Joseph',
       course: 'B.Sc. Computer Science',
       uni: 'Warsaw University of Technology, Poland',
       intake: 'Autumn Intake 2025',
@@ -349,7 +349,7 @@ export const FerexLandingPage: React.FC = () => {
       comment: 'FEREX took care of my application, academic legalization recognition, and VFS visa appointment smoothly. Got my visa stamped on the very first attempt!'
     },
     {
-      name: 'Ananya Sharma',
+      name: 'Anjali Thomas',
       course: 'M.Sc. International Business',
       uni: 'Vistula University, Warsaw',
       intake: 'Spring Intake 2026',
@@ -357,7 +357,7 @@ export const FerexLandingPage: React.FC = () => {
       comment: 'The transparency with fees and direct bank wire confirmation gave my parents complete peace of mind. Now happily settled in Warsaw!'
     },
     {
-      name: 'Rohan Deshmukh',
+      name: 'Rahul George',
       course: 'B.Eng. Mechanical Engineering',
       uni: 'Berlin International University, Germany',
       intake: 'Autumn Intake 2025',
@@ -614,7 +614,7 @@ export const FerexLandingPage: React.FC = () => {
 
           </div>
 
-          {/* Bottom Card (As shown in attached screenshot): "A trusted education partner for 10,000+ students worldwide" */}
+          {/* Bottom Card: "A trusted education partner for 100+ students worldwide" */}
           <div className="bg-[#F7F4F2] rounded-2xl border border-[#ECE7EA] p-6 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-left space-y-1">
               <span className="text-xs sm:text-sm font-semibold text-[#6B7280] block">
@@ -622,7 +622,7 @@ export const FerexLandingPage: React.FC = () => {
               </span>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl sm:text-3xl font-serif font-black text-[#570229]">
-                  10,000+
+                  100+
                 </span>
                 <span className="text-sm sm:text-base font-bold text-[#1F2937]">
                   students worldwide
