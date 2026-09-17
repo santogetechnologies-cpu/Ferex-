@@ -34,7 +34,6 @@ const baseMenuItems = [
   { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
   { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },
   { name: 'Meetings & Planner', path: '/admin/meetings', icon: Calendar, badge: null, hasUpdate: false },
-  { name: 'Notifications', path: '/admin/notifications', icon: Bell, badge: null, hasUpdate: false },
   { name: 'Settings', path: '/admin/settings', icon: Settings, badge: null, hasUpdate: false },
 ];
 
@@ -116,7 +115,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     if (item.path === '/admin/payments') return { ...item, badge: hasUnreadPayments ? (pendingPaymentsCount > 0 ? `VERIFY (${pendingPaymentsCount})` : 'NEW PAYMENT') : null, hasUpdate: hasUnreadPayments };
     if (item.path === '/admin/legalization') return { ...item, badge: hasUnreadLegalization ? 'LEGAL' : null, hasUpdate: hasUnreadLegalization };
     if (item.path === '/admin/visa-tracker') return { ...item, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa };
-    if (item.path === '/admin/notifications') return { ...item, badge: totalUnreadCount > 0 ? String(totalUnreadCount) : null, hasUpdate: totalUnreadCount > 0 };
     return item;
   });
 
@@ -164,7 +162,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           {menuItems.map((item) => {
             const isActive = item.name === active;
             const Icon = item.icon;
-            const badgeValue = item.name === 'Notifications' && unreadNotifs.length > 0 ? String(unreadNotifs.length) : null;
+            const badgeValue = item.badge;
 
             return (
               <Link
