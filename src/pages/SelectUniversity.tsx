@@ -13,6 +13,7 @@ import { useFeeConfig } from '../hooks/useFeeConfig';
 import { Card } from '../components/Card';
 import { UnifiedPaymentModal } from '../components/UnifiedPaymentModal';
 import { canAccessPage, checkPaymentStage } from '../lib/paymentUnlock';
+import { sendStudentApplicationEmail } from '../lib/api/email';
 
 const COUNTRY_FLAGS: Record<string, string> = {
   Poland: '🇵🇱',
@@ -210,6 +211,22 @@ export const SelectUniversity: React.FC = () => {
       }));
       window.dispatchEvent(new Event('ferex_country_change'));
       window.dispatchEvent(new Event('ferex_application_change'));
+
+      // Dispatch automated Resend Application Email to student
+      if (user.email) {
+        sendStudentApplicationEmail({
+          studentEmail: user.email,
+          studentName,
+          universityName: applyUni.name,
+          programName: `${degreeLevel} - ${selectedCourse || 'Higher Studies'}`,
+          intake: intake || 'October 2026',
+          tuitionFee: String(rawTuition),
+          country: applyUni.country || 'Europe',
+          counselorName: assignedCounselorName,
+        }).catch((emailErr) => {
+          console.warn('[University Application email dispatch notice]:', emailErr);
+        });
+      }
 
       setApplyUni(null);
       const successMsg = hasCounselorAssigned 

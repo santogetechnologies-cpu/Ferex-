@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getDashboardRoute, getPortalLabel, isSuperAdmin } from '../lib/roleRouter';
 import { supabase } from '../lib/supabase';
 import { getAdminSupabaseClient } from '../lib/adminAuthClient';
+import { sendStudentWelcomeEmail } from '../lib/api/email';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -295,6 +296,10 @@ export const LoginPage: React.FC = () => {
     }
 
     // Account creation successful
+    sendStudentWelcomeEmail(cleanEmail, cleanName).catch((err) => {
+      console.warn('[Welcome Email trigger notice]:', err);
+    });
+
     setSuccessMsg('Account created with Document Processing Consent verified. Preparing your Student Portal...');
     setIsLoading(false);
 

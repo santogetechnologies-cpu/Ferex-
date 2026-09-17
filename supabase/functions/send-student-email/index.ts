@@ -11,8 +11,8 @@ serve(async (req) => {
   }
 
   try {
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const { studentEmail, to, subject, htmlContent, html, from, studentName, templateType } = await req.json();
+    const { studentEmail, to, subject, htmlContent, html, from, studentName, templateType, apiKey, resendApiKey: bodyKey } = await req.json();
+    const resendApiKey = Deno.env.get('RESEND_API_KEY') || apiKey || bodyKey;
 
     const recipient = studentEmail || to;
 

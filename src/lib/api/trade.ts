@@ -166,6 +166,7 @@ export interface TradeTask {
   category: 'Order Handling' | 'Documentation' | 'Logistics' | 'Customs & Port' | 'Finance';
   order_no?: string;
   client_name?: string;
+  assigned_to?: string;
   assigned_staff_name: string;
   assigned_staff_email: string;
   assigned_staff_id?: string;
@@ -188,6 +189,7 @@ export interface TradeTicket {
   description: string;
   priority: TicketPriority;
   status: TicketStatus;
+  assigned_to?: string;
   assigned_staff_name: string;
   assigned_staff_email: string;
   assigned_staff_id?: string;
@@ -311,11 +313,20 @@ export interface TradeInvoiceRecord {
   order_no: string;
   shipment_no?: string;
   client_name: string;
+  buyer_name?: string;
+  seller_name?: string;
   issue_date: string;
   due_date: string;
   amount: number;
+  subtotal?: number;
+  freight_charges?: number;
+  insurance_charges?: number;
+  tax_charges?: number;
+  payment_terms?: string;
+  lc_reference?: string;
   currency: string;
   incoterm: string;
+  incoterms?: string;
   status: string;
   paid_amount: number;
   notes?: string;
@@ -328,7 +339,13 @@ export interface TradePackingListRecord {
   packing_list_no: string;
   order_no: string;
   shipment_no?: string;
+  invoice_no?: string;
   client_name: string;
+  buyer_name?: string;
+  cargo_description?: string;
+  package_type?: string;
+  dimensions?: string;
+  marks_numbers?: string;
   total_packages: number;
   gross_weight_kg: number;
   net_weight_kg: number;
@@ -343,6 +360,7 @@ export interface TradeLetterOfCreditRecord {
   lc_number: string;
   order_no: string;
   shipment_no?: string;
+  invoice_no?: string;
   applicant: string;
   beneficiary: string;
   issuing_bank: string;
@@ -351,6 +369,7 @@ export interface TradeLetterOfCreditRecord {
   currency: string;
   expiry_date: string;
   status: string;
+  lc_type?: string;
   file_url?: string;
   notes?: string;
   created_at: string;
@@ -364,10 +383,17 @@ export interface TradeBillOfLadingRecord {
   carrier: string;
   vessel_name: string;
   voyage_number: string;
+  voyage_no?: string;
+  freight_terms?: string;
   port_of_loading: string;
   port_of_discharge: string;
   shipper: string;
   consignee: string;
+  notify_party?: string;
+  container_no?: string;
+  cargo_description?: string;
+  total_packages?: number;
+  gross_weight_kg?: number;
   issue_date: string;
   status: string;
   file_url?: string;
@@ -380,9 +406,17 @@ export interface TradePaymentRecord {
   order_no: string;
   order_id?: string;
   invoice_no?: string;
+  shipment_no?: string;
   client_name: string;
   client_id?: string;
   partner_entity?: string;
+  bank_name?: string;
+  account_no?: string;
+  payment_type?: string;
+  flow_type?: string;
+  settlement_date?: string;
+  description?: string;
+  status?: string;
   type: 'Advance Paid' | 'Advance Payment' | 'Settlement' | 'Balance Settlement' | 'Completed' | 'Full Payment' | 'LC Drawdown' | 'Balance Payment' | string;
   amount: number;
   currency: string;
@@ -1867,13 +1901,14 @@ export async function deleteTradePackingList(id: string): Promise<boolean> {
   return deleteTradeDocument(id);
 }
 
-export async function getTradeDossier(orderNo: string): Promise<{
+export async function getTradeDossier(orderNoOrType: string, docId?: string): Promise<{
   order: TradeOrder | null;
   documents: TradeDocument[];
   payments: TradePaymentRecord[];
   tasks: TradeTask[];
   tickets: TradeTicket[];
 }> {
+  const orderNo = docId || orderNoOrType;
   const [order, documents, payments, tasks, tickets] = await Promise.all([
     getTradeOrderById(orderNo),
     getTradeDocuments(orderNo),
@@ -1923,7 +1958,7 @@ export async function getTradeBillsOfLading(): Promise<TradeBillOfLadingRecord[]
 
 export async function createTradeBillOfLading(bl: Partial<TradeBillOfLadingRecord>): Promise<any> {
   return uploadTradeDocument({
-    order_no: bl.order_no || 'TRD-GENERAL',
+    order_no: bl.order_no || bl.shipment_no || 'TRD-GENERAL',
     client_name: bl.consignee || 'Trade Partner',
     doc_type: 'Bill of Lading / Airway Bill',
     doc_number: bl.bl_number || `BL-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -1941,15 +1976,17 @@ export async function deleteTradeBillOfLading(id: string): Promise<boolean> {
   return deleteTradeDocument(id);
 }
 
-export async function createTradeCertificate(cert: Partial<TradeDocument>): Promise<any> {
+export async function createTradeCertificate(cert: Partial<TradeDocument> & Record<string, any>): Promise<any> {
+  const rawStatus = String(cert.status || 'Submitted').toLowerCase();
+  const normStatus = (rawStatus.includes('verif') || rawStatus.includes('issu') || rawStatus.includes('appr')) ? 'Verified' : 'Submitted';
   return uploadTradeDocument({
-    order_no: cert.order_no || 'TRD-GENERAL',
-    client_name: cert.client_name || 'Trade Partner',
-    doc_type: cert.doc_type || 'Certificate of Origin',
-    doc_number: cert.doc_number || `CERT-${Math.floor(1000 + Math.random() * 9000)}`,
-    file_name: cert.file_name || `Certificate_${cert.doc_number || 'Doc'}.pdf`,
-    notes: cert.notes || '',
-    status: (cert.status as any) || 'Verified'
+    order_no: cert.order_no || cert.shipment_no || 'TRD-GENERAL',
+    client_name: cert.client_name || cert.importer || 'Trade Partner',
+    doc_type: (cert.doc_type || (cert.cert_type ? String(cert.cert_type) : 'Certificate of Origin')) as any,
+    doc_number: cert.doc_number || cert.certificate_no || `CERT-${Math.floor(1000 + Math.random() * 9000)}`,
+    file_name: cert.file_name || `Certificate_${cert.doc_number || cert.certificate_no || 'Doc'}.pdf`,
+    notes: cert.notes || `Authority: ${cert.authority || 'Chamber of Commerce'}`,
+    status: normStatus as any
   });
 }
 
@@ -1989,16 +2026,24 @@ export async function sendPaymentReminder(
   }
 }
 
-export async function resolveTradeTicket(
-  ticketId: string,
-  resolutionNotes: string,
-  resolvedBy: string = 'Trade Admin',
-  _extra?: any
-): Promise<TradeTicket | null> {
-  return updateTradeTicket(ticketId, {
-    status: 'Resolved',
-    resolution_notes: `${resolutionNotes} (Resolved by ${resolvedBy})`
-  });
+export const recordTradePayment = createTradePayment;
+
+export async function updateTradeTaskStatus(taskId: string, status: TradeTask['status']): Promise<TradeTask | null> {
+  return updateTradeTask(taskId, { status });
+}
+
+export async function reassignTradeTask(taskId: string, assignedTo: string, ..._rest: any[]): Promise<TradeTask | null> {
+  return updateTradeTask(taskId, { assigned_staff_name: assignedTo, assigned_to: assignedTo });
+}
+
+export async function updateTradeTicketStatus(ticketId: string, status: TradeTicket['status'], resolutionNotes?: string): Promise<TradeTicket | null> {
+  const updates: Partial<TradeTicket> = { status };
+  if (resolutionNotes) updates.resolution_notes = resolutionNotes;
+  return updateTradeTicket(ticketId, updates);
+}
+
+export async function reassignTradeTicket(ticketId: string, assignedTo: string, ..._rest: any[]): Promise<TradeTicket | null> {
+  return updateTradeTicket(ticketId, { assigned_staff_name: assignedTo, assigned_to: assignedTo });
 }
 
 // In-Memory Realtime Message Cache for Client & Admin Portals

@@ -124,7 +124,7 @@ export const TradeCertificates: React.FC = () => {
       importer: newCert.importer,
       issue_date: newCert.issue_date,
       expiry_date: newCert.expiry_date,
-      status: newCert.status,
+      status: newCert.status as any,
     });
 
     setNewCert(initialCert);

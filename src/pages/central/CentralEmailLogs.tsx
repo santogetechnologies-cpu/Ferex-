@@ -6,6 +6,7 @@ import {
   Snowflake, Monitor, X, Inbox
 } from 'lucide-react';
 import { getLocalEmailLogs, type EmailLogEntry, logAutomatedEmail } from '../../lib/api/automatedEmails';
+import { sendStudentEmail } from '../../lib/api/email';
 
 export const CentralEmailLogs: React.FC = () => {
   const [logs, setLogs] = useState<EmailLogEntry[]>([]);
@@ -53,14 +54,14 @@ export const CentralEmailLogs: React.FC = () => {
   const handleResend = async (log: EmailLogEntry) => {
     setResendingId(log.id);
     try {
-      await logAutomatedEmail({
-        division: log.division,
-        recipient_email: log.recipient_email,
-        recipient_name: log.recipient_name,
-        template_type: `${log.template_type}_resend`,
+      await sendStudentEmail({
+        studentEmail: log.recipient_email,
+        studentName: log.recipient_name,
         subject: `[RESEND] ${log.subject}`,
-        body_html: log.body_html,
-        reference_id: log.reference_id,
+        htmlContent: log.body_html,
+        templateType: `${log.template_type}_resend`,
+        division: log.division,
+        referenceId: log.reference_id,
         metadata: { ...log.metadata, resent_from: log.id },
       });
       loadLogs();

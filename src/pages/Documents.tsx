@@ -13,6 +13,7 @@ import { useDocuments } from '../hooks/useDocuments';
 import { useApplications } from '../hooks/useApplications';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { getDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../lib/api/documentRequirements';
+import { sendStudentDocumentUploadedEmail } from '../lib/api/email';
 
 export const Documents: React.FC = () => {
   const { user, profile } = useAuth();
@@ -301,6 +302,19 @@ export const Documents: React.FC = () => {
           doc_type: uploadType,
         });
         showToast(`Document "${baseName}" submitted successfully for verification.`);
+      }
+
+      // Dispatch automated Resend Document Receipt Email to student
+      if (user.email) {
+        sendStudentDocumentUploadedEmail({
+          studentEmail: user.email,
+          studentName: profile?.full_name || user.email.split('@')[0],
+          documentName: baseName,
+          documentType: uploadType,
+          fileSize: fileSizeStr,
+        }).catch((docEmailErr) => {
+          console.warn('[Document upload email dispatch notice]:', docEmailErr);
+        });
       }
 
       setShowUploadModal(false);

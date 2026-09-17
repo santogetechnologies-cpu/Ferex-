@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { sendStudentPaymentEmail } from './email';
 
 export interface StripeGatewayConfig {
   enabled: boolean;
@@ -231,6 +232,36 @@ export async function recordUnifiedPayment(payload: UnifiedPaymentPayload) {
         }
       ]);
     } catch {}
+
+    // Trigger instant Resend Payment Receipt Email to Student
+    try {
+      let recipientEmail = payload.metadata?.payerEmail;
+      if (!recipientEmail || recipientEmail === 'payer@ferexventures.com') {
+        const storedUser = localStorage.getItem('ferex_user');
+        if (storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser);
+            if (parsed?.email) recipientEmail = parsed.email;
+          } catch {}
+        }
+      }
+
+      if (recipientEmail) {
+        sendStudentPaymentEmail({
+          studentEmail: recipientEmail,
+          studentName: payload.studentName || 'Student',
+          amount: payload.amount,
+          currency: payload.currency,
+          receiptNumber: payload.receiptNumber,
+          paymentMethod: methodDisplay,
+          referenceNumber: payload.gatewayRef,
+          purpose: payload.purpose,
+        }).catch((err) => {
+          console.warn('[Payment receipt email dispatch notice]:', err);
+        });
+      }
+    } catch (e) {}
+
     window.dispatchEvent(new Event('ferex_payment_change'));
   } else if (payload.division === 'digital') {
     try {

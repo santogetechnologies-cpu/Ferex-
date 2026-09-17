@@ -80,6 +80,31 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
 
   if (!isOpen) return null;
 
+  const effectivePayerEmail = (() => {
+    if (payerEmail && payerEmail !== 'payer@ferexventures.com') return payerEmail;
+    try {
+      const stored = localStorage.getItem('ferex_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u?.email) return u.email;
+      }
+    } catch {}
+    return payerEmail;
+  })();
+
+  const effectivePayerName = (() => {
+    if (payerName && payerName !== 'Payer Account') return payerName;
+    try {
+      const stored = localStorage.getItem('ferex_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u?.full_name) return u.full_name;
+        if (u?.email) return u.email.split('@')[0];
+      }
+    } catch {}
+    return payerName;
+  })();
+
   const divisionSettings = gateways.divisions[division] || { allowStripe: false, allowUpi: true };
   const upiId = divisionSettings.customUpiId || gateways.upi.upiId;
   const merchantName = divisionSettings.customMerchantName || gateways.upi.merchantName;
@@ -118,18 +143,18 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
         gatewayRef: utrNumber.trim(),
         receiptNumber: receiptNo,
         studentId,
-        studentName: payerName,
+        studentName: effectivePayerName,
         clientId,
-        clientName: payerName,
+        clientName: effectivePayerName,
         customerId,
-        customerName: payerName,
+        customerName: effectivePayerName,
         invoiceId,
         invoiceNo: effectiveInvoiceNo,
         purpose: note,
         metadata: {
           upiIdUsed: upiId,
           merchantName,
-          payerEmail,
+          payerEmail: effectivePayerEmail,
         }
       });
 
@@ -154,18 +179,18 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
         gatewayRef: wireRefNumber.trim(),
         receiptNumber: receiptNo,
         studentId,
-        studentName: payerName,
+        studentName: effectivePayerName,
         clientId,
-        clientName: payerName,
+        clientName: effectivePayerName,
         customerId,
-        customerName: payerName,
+        customerName: effectivePayerName,
         invoiceId,
         invoiceNo: effectiveInvoiceNo,
         purpose: note,
         metadata: {
           beneficiaryAccount: FEREX_OFFICIAL_BANK_ACCOUNTS.inr.accountNumber,
           remitterBank: remitterBank.trim() || 'Direct NEFT/RTGS Wire',
-          payerEmail,
+          payerEmail: effectivePayerEmail,
         }
       });
 
@@ -190,18 +215,18 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
         gatewayRef: voucherNo,
         receiptNumber: voucherNo,
         studentId,
-        studentName: payerName,
+        studentName: effectivePayerName,
         clientId,
-        clientName: payerName,
+        clientName: effectivePayerName,
         customerId,
-        customerName: payerName,
+        customerName: effectivePayerName,
         invoiceId,
         invoiceNo: effectiveInvoiceNo,
         purpose: note,
         metadata: {
           branch: cashBranch,
           depositorPhone: depositorPhone.trim() || 'N/A',
-          payerEmail,
+          payerEmail: effectivePayerEmail,
         }
       });
 

@@ -81,7 +81,30 @@ export async function logAutomatedEmail(entry: Omit<EmailLogEntry, 'id' | 'sent_
   existing.unshift(newLog);
   localStorage.setItem(LOCAL_STORAGE_EMAIL_LOGS, JSON.stringify(existing.slice(0, 200)));
 
-  // 2. Save to Supabase notifications / email_logs table if available
+  // 2. Save to Supabase email_logs & notifications table if available
+  try {
+    await supabase.from('email_logs').insert([
+      {
+        id: newLog.id,
+        division: newLog.division,
+        provider: newLog.provider,
+        sender_email: newLog.sender_email,
+        sender_name: newLog.sender_name,
+        recipient_email: newLog.recipient_email,
+        recipient_name: newLog.recipient_name,
+        template_type: newLog.template_type,
+        subject: newLog.subject,
+        body_html: newLog.body_html,
+        status: newLog.status,
+        reference_id: newLog.reference_id,
+        metadata: newLog.metadata,
+        sent_at: newLog.sent_at,
+      }
+    ]);
+  } catch {
+    // Non-blocking if table or policy is constrained
+  }
+
   try {
     await supabase.from('notifications').insert({
       user_id: null,

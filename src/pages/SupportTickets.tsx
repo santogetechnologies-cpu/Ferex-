@@ -9,6 +9,7 @@ import { getTicketReplies } from '../lib/api/tickets';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/Button';
+import { sendStudentTicketCreatedEmail } from '../lib/api/email';
 const QUICK_REPLIES = [
   "Thank you for the update!",
   "I have uploaded the requested documents.",
@@ -229,6 +230,20 @@ export const SupportTickets: React.FC = () => {
         category: newCategory,
         priority: newPriority,
       });
+
+      // Dispatch automated Resend Support Ticket Receipt Email to student
+      if (user.email) {
+        sendStudentTicketCreatedEmail({
+          studentEmail: user.email,
+          studentName: profile?.full_name || user.email.split('@')[0],
+          ticketNo,
+          subject: newSubject.trim(),
+          category: newCategory,
+          priority: newPriority,
+        }).catch((tickEmailErr) => {
+          console.warn('[Support ticket email dispatch notice]:', tickEmailErr);
+        });
+      }
 
       setShowCreateModal(false);
       setNewSubject('');

@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMeetings } from '../hooks/useMeetings';
 import { computeEndTime } from '../lib/api/meetings';
 import { getStaffMembers } from '../lib/api/students';
+import { sendStudentMeetingScheduledEmail } from '../lib/api/email';
 
 export const Meetings: React.FC = () => {
   const { user, profile } = useAuth();
@@ -111,6 +112,20 @@ export const Meetings: React.FC = () => {
         end_time: computedEnd,
         advisor_name: chosenAdvisor,
       });
+
+      // Dispatch automated Resend Meeting Confirmation Email to student
+      if (user.email) {
+        sendStudentMeetingScheduledEmail({
+          studentEmail: user.email,
+          studentName: profile?.full_name || user.email.split('@')[0],
+          subject,
+          advisorName: chosenAdvisor,
+          scheduledDate,
+          startTime,
+        }).catch((meetEmailErr) => {
+          console.warn('[Meeting confirmation email dispatch notice]:', meetEmailErr);
+        });
+      }
 
       setShowBookModal(false);
       showToast(`Advisory session "${subject}" with ${chosenAdvisor} scheduled!`);
