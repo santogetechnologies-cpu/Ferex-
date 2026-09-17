@@ -71,7 +71,11 @@ export function formatFeeEURandINR(feeStr?: string): string {
 
 export type CountryItem = DestinationItem;
 
-export const AdminUniversities: React.FC = () => {
+interface AdminUniversitiesProps {
+  isStaff?: boolean;
+}
+
+export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = false }) => {
   const { universities, loading, addUniversity, updateUniversity, removeUniversity, clearAll: clearAllUniversitiesData, refresh } = useUniversities();
   const { destinations: countryList, addDestination, editDestination, removeDestination, clearAll: clearAllDestinationsData, refresh: refreshDestinations } = useDestinations();
   const { workflows } = useCountryWorkflows();
@@ -680,24 +684,30 @@ export const AdminUniversities: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">University & Destination Management</h1>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">
+              {isStaff ? 'Universities & Destination Directory' : 'University & Destination Management'}
+            </h1>
             <span className="text-[10.5px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-md border border-amber-300/80">
-              Live Global Catalog
+              {isStaff ? 'Counselor Catalog' : 'Live Global Catalog'}
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-400 mt-1">
-            Separately manage registered destination countries and partner universities with multi-currency fees & course programs.
+            {isStaff
+              ? 'Browse registered partner universities, tuition ranges, intake schedules, and country legalization authorities.'
+              : 'Separately manage registered destination countries and partner universities with multi-currency fees & course programs.'}
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={handleClearAllData}
-            className="flex items-center gap-1.5 h-9.5 px-3 bg-rose-50 hover:bg-rose-100 rounded-xl text-xs font-bold text-rose-700 transition-all cursor-pointer border border-rose-200"
-            title="Clear all mock / test data for fresh setup"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-rose-500" /> Clear All Data
-          </button>
+          {!isStaff && (
+            <button
+              onClick={handleClearAllData}
+              className="flex items-center gap-1.5 h-9.5 px-3 bg-rose-50 hover:bg-rose-100 rounded-xl text-xs font-bold text-rose-700 transition-all cursor-pointer border border-rose-200"
+              title="Clear all mock / test data for fresh setup"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-500" /> Clear All Data
+            </button>
+          )}
           <button
             onClick={async () => {
               await Promise.all([refresh(), refreshDestinations()]);
@@ -708,18 +718,22 @@ export const AdminUniversities: React.FC = () => {
           >
             <RefreshCw className="w-3.5 h-3.5 text-slate-500" /> Refresh
           </button>
-          <button
-            onClick={handleOpenAddCountry}
-            className="flex items-center gap-1.5 h-9.5 px-3.5 bg-slate-900 rounded-xl text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
-          >
-            <Globe className="w-3.5 h-3.5 text-amber-300" /> Add Country
-          </button>
-          <button
-            onClick={() => handleOpenAddModal()}
-            className="flex items-center gap-1.5 h-9.5 px-4 bg-[#58051E] rounded-xl text-xs font-bold text-white hover:bg-[#430316] active:scale-98 transition-all shadow-md shadow-[#58051E]/20 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" /> Add University
-          </button>
+          {!isStaff && (
+            <>
+              <button
+                onClick={handleOpenAddCountry}
+                className="flex items-center gap-1.5 h-9.5 px-3.5 bg-slate-900 rounded-xl text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
+              >
+                <Globe className="w-3.5 h-3.5 text-amber-300" /> Add Country
+              </button>
+              <button
+                onClick={() => handleOpenAddModal()}
+                className="flex items-center gap-1.5 h-9.5 px-4 bg-[#58051E] rounded-xl text-xs font-bold text-white hover:bg-[#430316] active:scale-98 transition-all shadow-md shadow-[#58051E]/20 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" /> Add University
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -852,13 +866,15 @@ export const AdminUniversities: React.FC = () => {
                           </div>
 
                           <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              onClick={() => handleOpenEditModal(u)}
-                              title="Edit University"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
+                            {!isStaff && (
+                              <button
+                                onClick={() => handleOpenEditModal(u)}
+                                title="Edit University"
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => setViewUniversity(u)}
                               title="View Details"
@@ -866,13 +882,15 @@ export const AdminUniversities: React.FC = () => {
                             >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => setDeleteTarget(u)}
-                              title="Delete University"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {!isStaff && (
+                              <button
+                                onClick={() => setDeleteTarget(u)}
+                                title="Delete University"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -1010,26 +1028,30 @@ export const AdminUniversities: React.FC = () => {
                         >
                           View Universities
                         </button>
-                        <button
-                          onClick={() => handleOpenAddModal(c.name)}
-                          className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
-                        >
-                          + Add Uni
-                        </button>
-                        <button
-                          onClick={() => handleOpenEditCountry(c)}
-                          title="Edit Destination"
-                          className="p-1 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCountry(c.id, c.name)}
-                          title="Remove Destination"
-                          className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {!isStaff && (
+                          <>
+                            <button
+                              onClick={() => handleOpenAddModal(c.name)}
+                              className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                            >
+                              + Add Uni
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditCountry(c)}
+                              title="Edit Destination"
+                              className="p-1 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCountry(c.id, c.name)}
+                              title="Remove Destination"
+                              className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

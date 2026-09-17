@@ -49,9 +49,24 @@ const COLUMN_CONFIG: Record<TaskStatus, { color: string; dot: string }> = {
 
 const COLUMNS: TaskStatus[] = ['To Do', 'In Progress', 'Review', 'Done'];
 
-export const AdminTaskManagement: React.FC = () => {
-  const { user } = useAuth();
-  const { tasks: dbTasks, addTask, changeStatus, refresh } = useTasks();
+export interface AdminTaskManagementProps {
+  isStaff?: boolean;
+}
+
+export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaff = false }) => {
+  const { user, profile } = useAuth();
+
+  const counselorIdentity = React.useMemo(() => {
+    if (!isStaff) return undefined;
+    return {
+      id: user?.id,
+      email: user?.email,
+      full_name: profile?.full_name || user?.user_metadata?.full_name,
+      name: profile?.full_name || user?.user_metadata?.full_name,
+    };
+  }, [isStaff, user?.id, user?.email, profile?.full_name, user?.user_metadata?.full_name]);
+
+  const { tasks: dbTasks, addTask, changeStatus, refresh } = useTasks(counselorIdentity);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [staffUsers, setStaffUsers] = useState<any[]>([]);
   const [studentUsers, setStudentUsers] = useState<any[]>([]);
@@ -268,9 +283,16 @@ export const AdminTaskManagement: React.FC = () => {
             </div>
           </div>
           
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black border uppercase tracking-wider shrink-0 ${PRIORITY_BADGES[task.priority].style}`}>
-            {task.priority}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isStaff && (
+              <span className="text-[8.5px] font-black text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                Assigned by Admin
+              </span>
+            )}
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black border uppercase tracking-wider shrink-0 ${PRIORITY_BADGES[task.priority].style}`}>
+              {task.priority}
+            </span>
+          </div>
         </div>
 
         {/* Middle: ID + Category Badge + Title */}
@@ -326,14 +348,16 @@ export const AdminTaskManagement: React.FC = () => {
             >
               {COLUMNS.map(c => <option key={c}>{c}</option>)}
             </select>
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0">
-              <button onClick={() => setEditTask({ ...task })} className="p-0.5 text-slate-400 hover:text-amber-600 rounded" title="Edit">
-                <Edit3 className="w-3 h-3" />
-              </button>
-              <button onClick={() => setDeleteId(task.id)} className="p-0.5 text-slate-400 hover:text-red-600 rounded" title="Delete">
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </div>
+            {!isStaff && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0">
+                <button onClick={() => setEditTask({ ...task })} className="p-0.5 text-slate-400 hover:text-amber-600 rounded" title="Edit">
+                  <Edit3 className="w-3 h-3" />
+                </button>
+                <button onClick={() => setDeleteId(task.id)} className="p-0.5 text-slate-400 hover:text-red-600 rounded" title="Delete">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -355,19 +379,27 @@ export const AdminTaskManagement: React.FC = () => {
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight">Status Tracker</h1>
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20">
-              Operational Workflow
+              {isStaff ? 'My Assigned Deliverables' : 'Operational Workflow'}
             </span>
           </div>
-          <p className="text-xs font-semibold text-slate-400 mt-1">Assign work items, track progress, and manage staff deliverables.</p>
+          <p className="text-xs font-semibold text-slate-400 mt-1">
+            {isStaff ? 'Operational tasks assigned to you by administrators.' : 'Assign work items, track progress, and manage staff deliverables.'}
+          </p>
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 h-9 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] active:scale-98 transition-all shadow-md shadow-[#58051E]/20 shrink-0"
-          >
-            <Plus className="w-4 h-4" /> Create Task
-          </button>
+          {isStaff ? (
+            <span className="flex items-center gap-1.5 h-9 px-3.5 bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold rounded-xl shadow-2xs">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#58051E]" /> Assigned by Admin
+            </span>
+          ) : (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 h-9 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] active:scale-98 transition-all shadow-md shadow-[#58051E]/20 shrink-0"
+            >
+              <Plus className="w-4 h-4" /> Create Task
+            </button>
+          )}
         </div>
       </div>
 

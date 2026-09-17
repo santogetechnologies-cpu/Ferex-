@@ -469,11 +469,17 @@ function App() {
           <Route path="/staff/dashboard" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDashboard /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/tasks" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTasks /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/students" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffStudents /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/applications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffApplications /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/universities" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffUniversities /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/destinations" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDestinations /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/destinations" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffUniversities /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/applications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffApplications /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/offers" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminApplications initialFilter="Offer Issued" /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/documents" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDocuments /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/tickets" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTickets /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/visa-tracker" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminVisaTracker /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/pre-departure" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminPreDeparture /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/support" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTickets /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/tickets" element={<Navigate to="/staff/support" replace />} />
+          <Route path="/staff/meetings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminMeetings /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/notifications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminNotifications /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/profile" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />
 
           {/* Catch-all */}

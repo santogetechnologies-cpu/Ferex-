@@ -14,7 +14,14 @@ import { isSuperAdmin } from '../../lib/roleRouter';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
 
-export const AdminDashboard: React.FC = () => {
+import { useTasks } from '../../hooks/useTasks';
+import { ClipboardList } from 'lucide-react';
+
+interface AdminDashboardProps {
+  isStaff?: boolean;
+}
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false }) => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const localSavedUser = (() => {
@@ -28,16 +35,35 @@ export const AdminDashboard: React.FC = () => {
   const userRole = (profile?.role || user?.role || user?.user_metadata?.role || localSavedUser?.role || '').toLowerCase().trim();
   const isSuper = isSuperAdmin(userRole, profile?.email || user?.email || localSavedUser?.email);
 
+  const counselorIdentity = profile?.full_name || profile?.name || profile?.email || user?.email || 'counselor';
+  const { tasks: assignedTasks } = useTasks(isStaff ? counselorIdentity : undefined);
+
   const { students: dbStudents } = useStudents();
   const { applications: dbApps } = useApplications();
 
   const [statCards, setStatCards] = useState([
-    { label: 'Total Students', value: '0', change: 'Live from DB', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: '/admin/students' },
-    { label: 'Active Applications', value: '0', change: 'Live from DB', icon: FileCheck, color: 'text-violet-600 bg-violet-50/80', trend: 'up', path: '/admin/applications' },
-    { label: 'Pending Applications', value: '0', change: 'Review Needed', icon: Clock3, color: 'text-amber-700 bg-amber-50/80', trend: 'down', path: '/admin/applications' },
-    { label: 'Pending Documents', value: '0', change: 'Vault Verification', icon: FolderOpen, color: 'text-orange-600 bg-orange-50/80', trend: 'down', path: '/admin/documents' },
-    { label: 'Pending Payments', value: '₹0', change: 'Fee Verification', icon: CreditCard, color: 'text-[#58051E] bg-[#58051E]/8', trend: 'up', path: '/admin/payments' },
-    { label: 'Open Tickets', value: '0', change: 'Support Queue', icon: Headphones, color: 'text-red-600 bg-red-50/80', trend: 'down', path: '/admin/support' },
+    { label: 'Total Students', value: '0', change: 'Live from DB', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: isStaff ? '/staff/students' : '/admin/students' },
+    { label: 'Active Applications', value: '0', change: 'Live from DB', icon: FileCheck, color: 'text-violet-600 bg-violet-50/80', trend: 'up', path: isStaff ? '/staff/applications' : '/admin/applications' },
+    { label: 'Pending Applications', value: '0', change: 'Review Needed', icon: Clock3, color: 'text-amber-700 bg-amber-50/80', trend: 'down', path: isStaff ? '/staff/applications' : '/admin/applications' },
+    { label: 'Pending Documents', value: '0', change: 'Vault Verification', icon: FolderOpen, color: 'text-orange-600 bg-orange-50/80', trend: 'down', path: isStaff ? '/staff/documents' : '/admin/documents' },
+    ...(isStaff ? [{
+      label: 'Assigned Tasks',
+      value: String(assignedTasks?.length || 0),
+      change: 'Assigned by Admin',
+      icon: ClipboardList,
+      color: 'text-emerald-700 bg-emerald-50/80',
+      trend: 'up',
+      path: '/staff/tasks'
+    }] : [{
+      label: 'Pending Payments',
+      value: '₹0',
+      change: 'Fee Verification',
+      icon: CreditCard,
+      color: 'text-[#58051E] bg-[#58051E]/8',
+      trend: 'up',
+      path: '/admin/payments'
+    }]),
+    { label: 'Open Tickets', value: '0', change: 'Support Queue', icon: Headphones, color: 'text-red-600 bg-red-50/80', trend: 'down', path: isStaff ? '/staff/support' : '/admin/support' },
   ]);
 
   useEffect(() => {
@@ -47,12 +73,28 @@ export const AdminDashboard: React.FC = () => {
         const pendingAmount = Number(stats.pendingPaymentsAmount) || 0;
         const pendingCount = Number(stats.pendingPaymentsCount) || 0;
         setStatCards([
-          { label: 'Total Students', value: String(stats.totalStudents ?? 0), change: 'Live from DB', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: '/admin/students' },
-          { label: 'Active Applications', value: String(stats.activeApplications ?? 0), change: 'Live from DB', icon: FileCheck, color: 'text-violet-600 bg-violet-50/80', trend: 'up', path: '/admin/applications' },
-          { label: 'Pending Applications', value: String(stats.pendingApplications ?? 0), change: 'Review Needed', icon: Clock3, color: 'text-amber-700 bg-amber-50/80', trend: 'down', path: '/admin/applications' },
-          { label: 'Pending Documents', value: String(stats.pendingDocuments ?? 0), change: 'Vault Verification', icon: FolderOpen, color: 'text-orange-600 bg-orange-50/80', trend: 'down', path: '/admin/documents' },
-          { label: 'Pending Payments', value: `₹${pendingAmount.toLocaleString('en-IN')}`, change: `${pendingCount} Pending Request${pendingCount === 1 ? '' : 's'}`, icon: CreditCard, color: 'text-[#58051E] bg-[#58051E]/8', trend: 'up', path: '/admin/payments' },
-          { label: 'Open Tickets', value: String(stats.openTickets ?? 0), change: 'Support Queue', icon: Headphones, color: 'text-red-600 bg-red-50/80', trend: 'down', path: '/admin/support' },
+          { label: 'Total Students', value: String(stats.totalStudents ?? 0), change: 'Live from DB', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: isStaff ? '/staff/students' : '/admin/students' },
+          { label: 'Active Applications', value: String(stats.activeApplications ?? 0), change: 'Live from DB', icon: FileCheck, color: 'text-violet-600 bg-violet-50/80', trend: 'up', path: isStaff ? '/staff/applications' : '/admin/applications' },
+          { label: 'Pending Applications', value: String(stats.pendingApplications ?? 0), change: 'Review Needed', icon: Clock3, color: 'text-amber-700 bg-amber-50/80', trend: 'down', path: isStaff ? '/staff/applications' : '/admin/applications' },
+          { label: 'Pending Documents', value: String(stats.pendingDocuments ?? 0), change: 'Vault Verification', icon: FolderOpen, color: 'text-orange-600 bg-orange-50/80', trend: 'down', path: isStaff ? '/staff/documents' : '/admin/documents' },
+          ...(isStaff ? [{
+            label: 'Assigned Tasks',
+            value: String(assignedTasks?.length || 0),
+            change: 'Assigned by Admin',
+            icon: ClipboardList,
+            color: 'text-emerald-700 bg-emerald-50/80',
+            trend: 'up',
+            path: '/staff/tasks'
+          }] : [{
+            label: 'Pending Payments',
+            value: `₹${pendingAmount.toLocaleString('en-IN')}`,
+            change: `${pendingCount} Pending Request${pendingCount === 1 ? '' : 's'}`,
+            icon: CreditCard,
+            color: 'text-[#58051E] bg-[#58051E]/8',
+            trend: 'up',
+            path: '/admin/payments'
+          }]),
+          { label: 'Open Tickets', value: String(stats.openTickets ?? 0), change: 'Support Queue', icon: Headphones, color: 'text-red-600 bg-red-50/80', trend: 'down', path: isStaff ? '/staff/support' : '/admin/support' },
         ]);
       }).catch(() => { });
     };
@@ -60,7 +102,7 @@ export const AdminDashboard: React.FC = () => {
     fetchStats();
     window.addEventListener('ferex_payment_change', fetchStats);
     return () => window.removeEventListener('ferex_payment_change', fetchStats);
-  }, []);
+  }, [isStaff, assignedTasks?.length]);
 
   // Dynamic application pipeline calculation
   const safeApps = dbApps || [];
@@ -88,17 +130,19 @@ export const AdminDashboard: React.FC = () => {
               <GraduationCap className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Education Admin Console
+              {isStaff ? 'Admissions Counselor Workspace' : 'Education Admin Console'}
             </h1>
-            <Badge variant="brand">Education Division</Badge>
+            <Badge variant="brand">{isStaff ? 'Admissions Counselor' : 'Education Division'}</Badge>
           </div>
           <p className="text-xs text-slate-500">
-            Admissions pipeline, multi-country legalization dossiers, tuition ledgers, and consular mobility tracking.
+            {isStaff
+              ? 'Student dossiers, university admissions pipeline, assigned tasks, and document compliance.'
+              : 'Admissions pipeline, multi-country legalization dossiers, tuition ledgers, and consular mobility tracking.'}
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {isSuper && (
+          {!isStaff && isSuper && (
             <Button
               variant="outline"
               size="sm"
@@ -110,10 +154,10 @@ export const AdminDashboard: React.FC = () => {
           )}
           <Button
             size="sm"
-            onClick={() => navigate('/admin/tasks')}
-            leftIcon={<Plus className="w-3.5 h-3.5" />}
+            onClick={() => navigate(isStaff ? '/staff/tasks' : '/admin/tasks')}
+            leftIcon={isStaff ? <ClipboardList className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
           >
-            New Task
+            {isStaff ? 'My Assigned Tasks' : 'New Task'}
           </Button>
         </div>
       </div>
@@ -157,7 +201,7 @@ export const AdminDashboard: React.FC = () => {
             <Button
               variant="ghost"
               size="xs"
-              onClick={() => navigate('/admin/applications')}
+              onClick={() => navigate(isStaff ? '/staff/applications' : '/admin/applications')}
               rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
             >
               Manage Applications
@@ -220,7 +264,7 @@ export const AdminDashboard: React.FC = () => {
                 safeStudents.slice(0, 4).map((s, idx) => (
                   <div
                     key={idx}
-                    onClick={() => navigate('/admin/students')}
+                    onClick={() => navigate(isStaff ? '/staff/students' : '/admin/students')}
                     className="flex gap-2.5 items-start group cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors"
                   >
                     <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1.5" />
@@ -241,7 +285,7 @@ export const AdminDashboard: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/admin/notifications')}
+            onClick={() => navigate(isStaff ? '/staff/notifications' : '/admin/notifications')}
             className="w-full mt-4"
             rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
           >

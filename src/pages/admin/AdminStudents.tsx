@@ -41,7 +41,11 @@ const COUNTRY_FLAGS: Record<string, { flag: string; authority: string }> = {
   'Hungary': { flag: 'HU', authority: 'EU Direct' },
 };
 
-export const AdminStudents: React.FC = () => {
+interface AdminStudentsProps {
+  isStaff?: boolean;
+}
+
+export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false }) => {
   const { students: dbStudents, removeStudent, editStudent: updateDbStudent, addStudent } = useStudents();
   const { applications: dbApps } = useApplications();
   const [students, setStudents] = useState<StudentItem[]>([]);
@@ -421,22 +425,26 @@ export const AdminStudents: React.FC = () => {
               <GraduationCap className="w-6 h-6 text-[#58051E]" /> Student Directory & Enrollments
             </h1>
             <span className="text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
-              Multi-Country CRM
+              {isStaff ? 'Counselor CRM' : 'Multi-Country CRM'}
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Global Student Applications • Destination Routing, Auto Counselor Assignment, Document Audit & Country Legalization.
+            {isStaff
+              ? 'Student dossiers, destination routing, document verification audit, and counselor guidance.'
+              : 'Global Student Applications • Destination Routing, Auto Counselor Assignment, Document Audit & Country Legalization.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 h-9.5 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] active:scale-98 transition-all shadow-md shadow-[#58051E]/20 cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" /> Add Student
-          </button>
-        </div>
+        {!isStaff && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-1.5 h-9.5 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] active:scale-98 transition-all shadow-md shadow-[#58051E]/20 cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" /> Add Student
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Multi-Country Destination Filter Bar */}
@@ -567,27 +575,36 @@ export const AdminStudents: React.FC = () => {
                   </td>
                   <td className="px-4 py-3.5">
                     <div
-                      onClick={() => { setCounselorModalStudent(s); setSelectedCounselorToAssign(s.counselor); }}
-                      className="group/c cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 transition-colors"
-                      title="Click to change or reassign counselor"
+                      onClick={() => {
+                        if (!isStaff) {
+                          setCounselorModalStudent(s);
+                          setSelectedCounselorToAssign(s.counselor);
+                        }
+                      }}
+                      className={`group/c inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200/80 transition-colors ${
+                        !isStaff ? 'cursor-pointer hover:bg-rose-50 hover:border-rose-200' : ''
+                      }`}
+                      title={!isStaff ? 'Click to change or reassign counselor' : 'Assigned Counselor'}
                     >
                       <Headphones className="w-3 h-3 text-[#58051E]" />
                       <span className="text-[11px] font-bold text-slate-800 group-hover/c:text-[#58051E] max-w-[140px] truncate">
                         {s.counselor.split('(')[0].trim()}
                       </span>
-                      <span className="text-[9px] font-extrabold text-[#58051E] underline ml-1">Change</span>
+                      {!isStaff && <span className="text-[9px] font-extrabold text-[#58051E] underline ml-1">Change</span>}
                     </div>
                   </td>
                   <td className="px-4 py-3.5 text-slate-500 font-semibold whitespace-nowrap">{s.joined}</td>
                   <td className="px-4 py-3.5 text-center whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50/95 transition-colors z-10 border-l border-slate-150 shadow-[-6px_0_12px_-4px_rgba(0,0,0,0.06)]">
                     <div className="flex items-center justify-center gap-1.5 shrink-0">
-                      <button
-                        onClick={() => { setCounselorModalStudent(s); setSelectedCounselorToAssign(s.counselor); }}
-                        title="Assign Counselor"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#58051E] hover:bg-rose-50 transition-colors cursor-pointer"
-                      >
-                        <UserCheck className="w-4 h-4" />
-                      </button>
+                      {!isStaff && (
+                        <button
+                          onClick={() => { setCounselorModalStudent(s); setSelectedCounselorToAssign(s.counselor); }}
+                          title="Assign Counselor"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#58051E] hover:bg-rose-50 transition-colors cursor-pointer"
+                        >
+                          <UserCheck className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => setViewStudent(s)}
                         title="View Student Dossier"
@@ -602,13 +619,15 @@ export const AdminStudents: React.FC = () => {
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => setDeleteId(s.id)}
-                        title="Delete Student Record"
-                        className="p-1.5 rounded-lg text-red-500 hover:text-white hover:bg-red-600 transition-colors cursor-pointer shadow-2xs"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!isStaff && (
+                        <button
+                          onClick={() => setDeleteId(s.id)}
+                          title="Delete Student Record"
+                          className="p-1.5 rounded-lg text-red-500 hover:text-white hover:bg-red-600 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -657,17 +676,19 @@ export const AdminStudents: React.FC = () => {
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Assigned Counselor</span>
-                    <button
-                      onClick={() => {
-                        const sToEdit = viewStudent;
-                        setViewStudent(null);
-                        setEditStudent(sToEdit);
-                        setEditTemp({ ...sToEdit });
-                      }}
-                      className="text-[10px] font-extrabold text-[#58051E] hover:underline"
-                    >
-                      Change Counselor
-                    </button>
+                    {!isStaff && (
+                      <button
+                        onClick={() => {
+                          const sToEdit = viewStudent;
+                          setViewStudent(null);
+                          setEditStudent(sToEdit);
+                          setEditTemp({ ...sToEdit });
+                        }}
+                        className="text-[10px] font-extrabold text-[#58051E] hover:underline"
+                      >
+                        Change Counselor
+                      </button>
+                    )}
                   </div>
                   <p className="text-slate-900 font-extrabold">{viewStudent.counselor}</p>
                 </div>
