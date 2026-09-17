@@ -1,10 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Trash2, Eye, CheckCircle2, ShieldCheck, Building2, Globe, Lock, Activity, User, Save, X } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 export const TradeProfile: React.FC = () => {
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<'personal' | 'company' | 'trade' | 'security' | 'activity'>('personal');
   const [toast, setToast] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -15,15 +18,27 @@ export const TradeProfile: React.FC = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const [userData, setUserData] = useState({
-    fullName: 'Ferex Trade Director',
-    email: 'trade@ferex.com',
-    phone: '+91 98765 01234',
-    title: 'Director of Global Trade Operations',
-    company: 'Ferex Global Trade Corp',
+    fullName: profile?.full_name || 'Trade Operations Officer',
+    email: profile?.email || 'trade@ferex.com',
+    phone: profile?.phone || '+91 98765 01234',
+    title: profile?.role === 'trade_admin' ? 'Director of Global Trade Operations' : 'Trade Logistics & Compliance Officer',
+    company: 'FEREX Global Trade & Maritime Corp',
     country: 'India / Poland Hub',
-    incoterms: 'FOB / CIF European Ports',
-    primaryBank: 'HSBC London / SBI Overseas'
+    incoterms: 'CIF / FOB / CFR European & Asian Corridors',
+    primaryBank: 'Standard Chartered / BNP Paribas / SBI Overseas'
   });
+
+  useEffect(() => {
+    if (profile) {
+      setUserData(prev => ({
+        ...prev,
+        fullName: profile.full_name || prev.fullName,
+        email: profile.email || prev.email,
+        phone: profile.phone || prev.phone,
+        title: profile.role === 'trade_admin' ? 'Director of Global Trade Operations' : 'Trade Logistics & Compliance Officer'
+      }));
+    }
+  }, [profile]);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -52,9 +67,23 @@ export const TradeProfile: React.FC = () => {
     showToastMsg('Profile photo removed');
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToastMsg('Trade profile settings saved successfully!');
+    try {
+      if (profile?.id) {
+        await supabase
+          .from('users')
+          .update({
+            full_name: userData.fullName,
+            phone: userData.phone,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', profile.id);
+      }
+      showToastMsg('Trade profile saved to database!');
+    } catch {
+      showToastMsg('Profile updated locally.');
+    }
   };
 
   return (
@@ -258,7 +287,7 @@ export const TradeProfile: React.FC = () => {
             </div>
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
               <span className="text-[10px] font-extrabold uppercase text-slate-400">Base Currency</span>
-              <div className="text-xs font-black text-[#58051E]">Indian Rupee (₹ INR) locked for Ferex Trade Demo</div>
+              <div className="text-xs font-black text-[#58051E]">USD ($) / EUR (€) / INR (₹) Multi-Currency International Settlement</div>
             </div>
           </div>
         )}

@@ -132,41 +132,28 @@ export const DEFAULT_TRADE_CONFIG: TradeCustomizationConfig = {
   ]
 };
 
-const STORAGE_KEY = 'ferex_trade_customization_config';
-
 export const getTradeConfig = async (): Promise<TradeCustomizationConfig> => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.branding) {
-        return {
-          ...DEFAULT_TRADE_CONFIG,
-          ...parsed,
-          branding: { ...DEFAULT_TRADE_CONFIG.branding, ...(parsed.branding || {}) },
-          trade_policies: { ...DEFAULT_TRADE_CONFIG.trade_policies, ...(parsed.trade_policies || {}) },
-          client_policies: { ...DEFAULT_TRADE_CONFIG.client_policies, ...(parsed.client_policies || {}) },
-          broadcast: { ...DEFAULT_TRADE_CONFIG.broadcast, ...(parsed.broadcast || {}) },
-          corridors: Array.isArray(parsed.corridors) ? parsed.corridors : DEFAULT_TRADE_CONFIG.corridors
-        };
-      }
-    }
-  } catch (e) {
-    console.warn('Could not read trade config from storage:', e);
-  }
-
-  try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('system_config')
       .select('config')
       .eq('id', 'ferex-trade-config-v1')
       .maybeSingle();
 
-    if (data && data.config) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.config));
-      return data.config;
+    if (!error && data && data.config) {
+      return {
+        ...DEFAULT_TRADE_CONFIG,
+        ...data.config,
+        branding: { ...DEFAULT_TRADE_CONFIG.branding, ...(data.config.branding || {}) },
+        trade_policies: { ...DEFAULT_TRADE_CONFIG.trade_policies, ...(data.config.trade_policies || {}) },
+        client_policies: { ...DEFAULT_TRADE_CONFIG.client_policies, ...(data.config.client_policies || {}) },
+        broadcast: { ...DEFAULT_TRADE_CONFIG.broadcast, ...(data.config.broadcast || {}) },
+        corridors: Array.isArray(data.config.corridors) ? data.config.corridors : DEFAULT_TRADE_CONFIG.corridors
+      };
     }
-  } catch (err) {}
+  } catch (err) {
+    console.warn('[TradeConfig] Could not fetch config from Supabase:', err);
+  }
 
   return DEFAULT_TRADE_CONFIG;
 };
@@ -178,19 +165,16 @@ export const saveTradeConfig = async (config: TradeCustomizationConfig): Promise
   };
 
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('ferex_trade_config_change', { detail: updated }));
-  } catch (e) {
-    console.error('Error saving trade config:', e);
-  }
-
-  try {
-    await supabase.from('system_config').upsert({
+    const { error } = await supabase.from('system_config').upsert({
       id: updated.id || 'ferex-trade-config-v1',
       config: updated,
       updated_at: updated.updated_at
     });
-  } catch (err) {}
+    if (error) throw error;
+    window.dispatchEvent(new CustomEvent('ferex_trade_config_change', { detail: updated }));
+  } catch (e) {
+    console.error('[TradeConfig] Error saving trade config to Supabase:', e);
+  }
 
   return updated;
 };
