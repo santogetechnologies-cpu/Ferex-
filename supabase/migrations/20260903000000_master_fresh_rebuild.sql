@@ -92,7 +92,7 @@ CREATE TABLE public.users (
   id UUID PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   full_name TEXT NOT NULL DEFAULT '',
-  role TEXT NOT NULL DEFAULT 'superadmin' CHECK (
+  role TEXT NOT NULL DEFAULT 'student' CHECK (
     role IN (
       'superadmin', 'super_admin', 'central',
       'admin', 'education_admin', 'education',
@@ -150,7 +150,7 @@ DECLARE
 BEGIN
   v_role := COALESCE(
     NEW.raw_user_meta_data->>'role',
-    'superadmin'
+    'student'
   );
 
   v_full_name := COALESCE(

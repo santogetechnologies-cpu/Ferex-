@@ -90,15 +90,15 @@ DECLARE
     'student', 'trade_client', 'rimi_client', 'digital_client'
   ];
 BEGIN
-  -- Extract role from metadata, validate, else default to 'staff'
+  -- Extract role from metadata, validate, else default strictly to 'student'
   v_role := COALESCE(
     NEW.raw_user_meta_data->>'role',
-    'staff'
+    'student'
   );
 
-  -- Validate role against allowed list; default to 'staff' if invalid
+  -- Validate role against allowed list; default to 'student' if invalid
   IF NOT (v_role = ANY(v_allowed_roles)) THEN
-    v_role := 'staff';
+    v_role := 'student';
   END IF;
 
   v_full_name := COALESCE(

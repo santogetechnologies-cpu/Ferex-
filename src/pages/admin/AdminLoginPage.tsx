@@ -32,7 +32,7 @@ export const AdminLoginPage: React.FC = () => {
       const { error: authErr } = await signIn(cleanEmail, password);
       if (!authErr) {
         const { data: { user } } = await supabase.auth.getUser();
-        let role = isSuperAdmin(user?.user_metadata?.role, cleanEmail) ? 'superadmin' : (user?.user_metadata?.role || 'admin');
+        let role = isSuperAdmin(user?.user_metadata?.role, cleanEmail) ? 'superadmin' : (user?.user_metadata?.role || 'student');
         if (user?.id) {
           const { data: dbProfile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
           if (dbProfile?.role) {

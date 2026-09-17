@@ -210,20 +210,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (localSavedUser && localSavedUser.id) {
         const isSuper = isSuperAdmin(localSavedUser.role, localSavedUser.email);
-        const resolvedRole = isSuper ? 'superadmin' : (localSavedUser.role || 'superadmin');
+        const resolvedRole = isSuper ? 'superadmin' : (localSavedUser.role || 'student');
 
         setProfile({
           id: localSavedUser.id,
-          email: localSavedUser.email || (isSuper ? 'admin@ferex.com' : 'admin@ferex.com'),
-          full_name: localSavedUser.fullName || localSavedUser.full_name || (isSuper ? 'Central Super Admin' : 'System Admin'),
+          email: localSavedUser.email || (isSuper ? 'admin@ferex.com' : 'user@ferex.com'),
+          full_name: localSavedUser.fullName || localSavedUser.full_name || (isSuper ? 'Central Super Admin' : 'Student User'),
           role: resolvedRole,
           created_at: new Date().toISOString(),
         });
         setUser({
           id: localSavedUser.id,
-          email: localSavedUser.email || (isSuper ? 'admin@ferex.com' : 'admin@ferex.com'),
+          email: localSavedUser.email || (isSuper ? 'admin@ferex.com' : 'user@ferex.com'),
           user_metadata: {
-            full_name: localSavedUser.fullName || localSavedUser.full_name || (isSuper ? 'Central Super Admin' : 'System Admin'),
+            full_name: localSavedUser.fullName || localSavedUser.full_name || (isSuper ? 'Central Super Admin' : 'Student User'),
             role: resolvedRole,
           }
         } as any);
