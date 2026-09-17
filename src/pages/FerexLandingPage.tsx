@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   Building2, ArrowRight, LogIn, LogOut, ChevronDown, MapPin,
   User, Calculator, Search, Check, ArrowUpRight,
-  Clock, Briefcase, Globe, Star, X
+  Clock, Briefcase, Globe, Star, X, Phone, Mail, FileText, ShieldCheck, RotateCcw, ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUniversities } from '../hooks/useUniversities';
@@ -108,6 +108,7 @@ export const FerexLandingPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [isMissionModalOpen, setIsMissionModalOpen] = useState<boolean>(false);
+  const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | 'refund' | 'contact' | null>(null);
 
   // Fee Calculator State
   const availableCountries = useMemo(() => {
@@ -1225,45 +1226,100 @@ export const FerexLandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 12. CLEAN LUXURY FOOTER */}
+      {/* 12. CLEAN LUXURY FOOTER WITH PHONEPE GATEWAY COMPLIANCE */}
       <footer className="bg-white border-t border-[#ECE7EA] py-12 text-[#6B7280] text-xs text-left">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 pb-8 border-b border-[#ECE7EA]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8 pb-8 border-b border-[#ECE7EA]">
             
+            {/* Column 1: Brand Info */}
             <div className="space-y-3">
               <Logo size="sm" color="#570229" />
               <p className="text-[#6B7280] font-medium leading-relaxed">
                 FEREX Global Education is the official European higher education admissions division of Santoge Technologies.
               </p>
+              <div className="pt-1 text-[11px] text-[#8C1D4F] font-bold flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#570229]" />
+                <span>Authorized European Higher Education Admissions</span>
+              </div>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <h5 className="font-bold text-[#1F2937] uppercase text-[11px] tracking-wider">Corporate Headquarters</h5>
+            {/* Column 2: Corporate Headquarters */}
+            <div className="space-y-2">
+              <h5 className="font-bold text-[#1F2937] uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-[#570229]" /> Corporate Headquarters
+              </h5>
               <p className="text-[#6B7280] font-medium leading-relaxed">
-                FEREX Ventures Tower, Infopark Expressway<br />
-                Kochi, Kerala 682042, India<br />
-                Email: info@ferexventures.com
+                ■ 12/640 Thachukuzhi, Companipady Road,<br />
+                Nellikuzhy PO, Kothamangalam,<br />
+                Kerala - 686 691, India
               </p>
+              <div className="space-y-1.5 pt-1 text-[11px]">
+                <div className="flex items-center gap-1.5 text-[#4B5563]">
+                  <Phone className="w-3.5 h-3.5 text-[#570229] shrink-0" />
+                  <span className="font-semibold">+91 95448 85077, +44 78678 67779</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[#4B5563]">
+                  <Mail className="w-3.5 h-3.5 text-[#570229] shrink-0" />
+                  <a href="mailto:ferexventuresoffice@gmail.com" className="font-semibold hover:text-[#570229] transition-colors">
+                    ferexventuresoffice@gmail.com
+                  </a>
+                </div>
+              </div>
             </div>
 
+            {/* Column 3: Legal & PhonePe Compliance */}
+            <div className="space-y-2">
+              <h5 className="font-bold text-[#1F2937] uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#570229]" /> Gateway Policies & Trust
+              </h5>
+              <div className="space-y-2 font-medium text-[#4B5563]">
+                <button
+                  onClick={() => setLegalModal('terms')}
+                  className="block text-left hover:text-[#570229] transition-colors cursor-pointer hover:underline"
+                >
+                  Terms & Conditions
+                </button>
+                <button
+                  onClick={() => setLegalModal('privacy')}
+                  className="block text-left hover:text-[#570229] transition-colors cursor-pointer hover:underline"
+                >
+                  Privacy Policy
+                </button>
+                <button
+                  onClick={() => setLegalModal('refund')}
+                  className="block text-left hover:text-[#570229] transition-colors cursor-pointer hover:underline"
+                >
+                  Refund & Cancellation Policy
+                </button>
+                <button
+                  onClick={() => setLegalModal('contact')}
+                  className="block text-left hover:text-[#570229] transition-colors cursor-pointer hover:underline"
+                >
+                  Contact Us
+                </button>
+              </div>
+            </div>
+
+            {/* Column 4: Group Portals */}
             <div className="space-y-2">
               <h5 className="font-bold text-[#1F2937] uppercase text-[11px] tracking-wider">Group Portals</h5>
-              <div className="space-y-1 font-semibold text-[#1F2937]">
-                <Link to="/login" className="block hover:text-[#570229]">Ferex Education Portal</Link>
-                <Link to="/trade/dashboard" className="block hover:text-[#570229]">Global Trade ERP</Link>
-                <Link to="/rimi/dashboard" className="block hover:text-[#570229]">Rimi Frozen FMCG</Link>
-                <Link to="/digital/dashboard" className="block hover:text-[#570229]">Ferex Digital Agency</Link>
+              <div className="space-y-1.5 font-semibold text-[#1F2937]">
+                <Link to="/login" className="block hover:text-[#570229] transition-colors">Ferex Education Portal</Link>
+                <Link to="/trade/dashboard" className="block hover:text-[#570229] transition-colors">Global Trade ERP</Link>
+                <Link to="/rimi/dashboard" className="block hover:text-[#570229] transition-colors">Rimi Frozen FMCG</Link>
+                <Link to="/digital/dashboard" className="block hover:text-[#570229] transition-colors">Ferex Digital Agency</Link>
               </div>
             </div>
 
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#6B7280] font-medium">
-            <span>© {new Date().getFullYear()} FEREX Education Group. All rights reserved.</span>
-            <div className="flex items-center gap-6">
-              <a href="#destinations" className="hover:text-[#1F2937]">Privacy Policy</a>
-              <a href="#destinations" className="hover:text-[#1F2937]">Terms of Admission</a>
-              <a href="#destinations" className="hover:text-[#1F2937]">Academic Legalization</a>
+            <span>© {new Date().getFullYear()} FEREX Education Group (Santoge Technologies). All rights reserved.</span>
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+              <button onClick={() => setLegalModal('terms')} className="hover:text-[#1F2937] cursor-pointer">Terms & Conditions</button>
+              <button onClick={() => setLegalModal('privacy')} className="hover:text-[#1F2937] cursor-pointer">Privacy Policy</button>
+              <button onClick={() => setLegalModal('refund')} className="hover:text-[#1F2937] cursor-pointer">Refund & Cancellation</button>
+              <button onClick={() => setLegalModal('contact')} className="hover:text-[#1F2937] cursor-pointer">Contact Us</button>
             </div>
           </div>
         </div>
@@ -1319,6 +1375,300 @@ export const FerexLandingPage: React.FC = () => {
                 Begin Your Application Journey <ArrowRight className="w-4 h-4" />
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* LEGAL / PHONEPE COMPLIANCE MODALS */}
+      {legalModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-[#ECE7EA] text-left relative my-auto animate-in fade-in zoom-in duration-200">
+            
+            {/* Modal Header */}
+            <div className="p-6 border-b border-[#ECE7EA] flex items-center justify-between sticky top-0 bg-white rounded-t-3xl z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#570229]/10 flex items-center justify-center text-[#570229]">
+                  {legalModal === 'terms' && <FileText className="w-5 h-5" />}
+                  {legalModal === 'privacy' && <ShieldCheck className="w-5 h-5" />}
+                  {legalModal === 'refund' && <RotateCcw className="w-5 h-5" />}
+                  {legalModal === 'contact' && <Phone className="w-5 h-5" />}
+                </div>
+                <div>
+                  <h3 className="text-xl font-serif font-black text-[#1F2937]">
+                    {legalModal === 'terms' && 'Terms & Conditions'}
+                    {legalModal === 'privacy' && 'Privacy Policy'}
+                    {legalModal === 'refund' && 'Refund & Cancellation Policy'}
+                    {legalModal === 'contact' && 'Contact Us'}
+                  </h3>
+                  <p className="text-xs text-[#6B7280]">
+                    FEREX Global Education (Santoge Technologies)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setLegalModal(null)}
+                className="p-2 rounded-full hover:bg-[#F7F4F2] text-[#6B7280] hover:text-[#1F2937] transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Content */}
+            <div className="p-6 sm:p-8 space-y-6 overflow-y-auto text-xs sm:text-sm text-[#4B5563] leading-relaxed">
+              
+              {/* TERMS & CONDITIONS */}
+              {legalModal === 'terms' && (
+                <div className="space-y-5">
+                  <div className="p-4 rounded-xl bg-[#F7F4F2] border border-[#ECE7EA] text-xs space-y-1">
+                    <p className="font-bold text-[#1F2937]">Last Updated: September 2026</p>
+                    <p>Operated by FEREX Education Division, Santoge Technologies.</p>
+                  </div>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">1. Acceptance of Terms</h4>
+                    <p>
+                      By accessing the FEREX Global Education portal, initiating student registration, or paying any administrative or processing fees, you agree to be bound by these Terms and Conditions. If you do not agree with any portion of these terms, please do not use our services.
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">2. Scope of Educational Services</h4>
+                    <p>
+                      FEREX provides end-to-end academic advisory, university admissions processing, document legalization & Apostille guidance, VFS visa filing documentation, and post-arrival settlement support for accredited European universities (Poland, Germany, UK, Czech Republic, Italy, Spain, Switzerland, etc.).
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">3. Fee Schedule & Applicable Taxes</h4>
+                    <p>
+                      All service invoices issued by FEREX for Advanced Registration and Agency Processing are subject to standard applicable taxes (18% Goods & Services Tax - CGST 9% + SGST 9%, SAC 9983). 
+                    </p>
+                    <p>
+                      Official university tuition fees and government embassy/VFS filing fees are non-taxable (0% GST) and are payable either directly to the respective institutional bank accounts or as scheduled milestones.
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">4. Student Obligations & Document Integrity</h4>
+                    <p>
+                      The applicant represents and warrants that all academic transcripts, certificates, identity proofs, and personal declarations submitted through the platform are 100% authentic. Any submission of forged or misleading records will result in immediate termination of the application without refund and mandatory reporting to relevant authorities.
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">5. Admissions Decisions & Visa Issuance</h4>
+                    <p>
+                      While FEREX guarantees verified dossier presentation and high acceptance rates through direct university agreements, official admissions decisions rest solely with university academic senates, and visa decisions rest exclusively with the respective Consulates & Embassies.
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">6. Governing Law & Jurisdiction</h4>
+                    <p>
+                      These terms shall be governed by and construed in accordance with the laws of India. Any disputes arising out of or related to our services shall be subject to the exclusive jurisdiction of the competent courts in Kerala, India.
+                    </p>
+                  </section>
+                </div>
+              )}
+
+              {/* PRIVACY POLICY */}
+              {legalModal === 'privacy' && (
+                <div className="space-y-5">
+                  <div className="p-4 rounded-xl bg-[#F7F4F2] border border-[#ECE7EA] text-xs space-y-1">
+                    <p className="font-bold text-[#1F2937]">Privacy Commitment & Data Protection</p>
+                    <p>Compliant with Information Technology Act (India) & GDPR Data Safeguards.</p>
+                  </div>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">1. Information We Collect</h4>
+                    <p>To process your academic applications, we collect:</p>
+                    <ul className="list-disc pl-5 space-y-1 text-xs">
+                      <li>Personal Identifiers: Full Name, Date of Birth, Nationality, Passport Number, Email, Phone Number.</li>
+                      <li>Academic Credentials: Marksheets, Degree Certificates, Curriculum Vitae, Recommendation Letters.</li>
+                      <li>Payment Metadata: Transaction IDs, payment reference numbers processed securely via certified payment gateways (PhonePe). <em>We never store credit/debit card numbers or CVV.</em></li>
+                    </ul>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">2. How We Use Your Information</h4>
+                    <p>
+                      Your data is utilized strictly for evaluating eligibility, submitting formal admission dossiers to foreign universities, facilitating sworn translations and Apostille legalization, and keeping you updated on visa milestones.
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">3. Third-Party Sharing & Safeguards</h4>
+                    <p>
+                      We DO NOT sell, rent, or trade your personal data. Data is shared exclusively with accredited destination universities, official embassy/consulate portals (VFS Global), and government education ministries solely for fulfilling your study abroad application.
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">4. Data Security & Retention</h4>
+                    <p>
+                      All files and sensitive student documents uploaded to FEREX are encrypted using 256-bit SSL protocols in secure cloud storage. Data is retained for the duration of the admission cycle and compliance requirements.
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">5. Privacy Grievance Contact</h4>
+                    <p>
+                      For data correction, deletion, or privacy queries, contact our Data Protection Officer at: <br />
+                      <strong className="text-[#1F2937]">Email:</strong> ferexventuresoffice@gmail.com
+                    </p>
+                  </section>
+                </div>
+              )}
+
+              {/* REFUND & CANCELLATION POLICY */}
+              {legalModal === 'refund' && (
+                <div className="space-y-5">
+                  <div className="p-4 rounded-xl bg-[#F7F4F2] border border-[#ECE7EA] text-xs space-y-1">
+                    <p className="font-bold text-[#1F2937]">Transparent Refund & Cancellation Policy</p>
+                    <p>Clear milestones and automated gateway settlement guidelines.</p>
+                  </div>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">1. Cancellation Window</h4>
+                    <p>
+                      Applicants may request cancellation of their intake application within 48 hours of initial registration before their application dossier is formally submitted to the university admissions senate.
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">2. Advance Registration Fee Refund Terms</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-xs">
+                      <li>
+                        <strong>University Rejection / Quota Closure:</strong> If an application is rejected by the partner university due to institutional quota closure, 100% of the advance registration deposit is fully refundable or transferable to an alternative European university.
+                      </li>
+                      <li>
+                        <strong>Post-Dossier Submission:</strong> Once official translation, legalization, or university admissions review has commenced, administrative and statutory costs incurred are non-refundable.
+                      </li>
+                    </ul>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">3. Visa Refusal Clause</h4>
+                    <p>
+                      In the rare event of an official visa refusal by the Embassy/Consulate (not resulting from forged documents or fraudulent declarations), tuition fees paid to universities are refunded directly by the university as per their standard refund bylaws. FEREX provides full assistance in claiming tuition refunds from university finance departments.
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">4. Refund Processing Timelines & Mode</h4>
+                    <p>
+                      Approved refunds are initiated within 2 business days and credited back to the original payment source (Credit/Debit Card, UPI, Net Banking) via PhonePe / payment gateway within <strong>5 to 7 working days</strong>.
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">5. Refund Request Procedure</h4>
+                    <p>
+                      To request a refund or cancellation, email your invoice receipt, student ID, and bank details to: <br />
+                      <strong className="text-[#1F2937]">ferexventuresoffice@gmail.com</strong> with the subject line <em>"Refund Request - [Student Name / App ID]"</em>.
+                    </p>
+                  </section>
+                </div>
+              )}
+
+              {/* CONTACT US (PHONEPE MANDATORY REQUIREMENT) */}
+              {legalModal === 'contact' && (
+                <div className="space-y-6">
+                  <div className="p-4 rounded-xl bg-[#570229]/5 border border-[#570229]/15 text-xs">
+                    <p className="font-bold text-[#570229] text-sm mb-1">Official Business & Support Information</p>
+                    <p className="text-[#6B7280]">
+                      We are here to assist prospective students, university partners, and parents with all inquiries regarding European higher education admissions.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    
+                    {/* Address Box */}
+                    <div className="p-4 rounded-2xl bg-[#F7F4F2] border border-[#ECE7EA] space-y-2">
+                      <div className="flex items-center gap-2 text-[#570229] font-bold text-xs uppercase tracking-wider">
+                        <Building2 className="w-4 h-4" />
+                        <span>Physical Office Address</span>
+                      </div>
+                      <p className="text-xs text-[#1F2937] font-semibold leading-relaxed">
+                        12/640 Thachukuzhi,<br />
+                        Companipady Road, Nellikuzhy PO,<br />
+                        Kothamangalam, Kerala - 686 691, India
+                      </p>
+                    </div>
+
+                    {/* Contact Numbers Box */}
+                    <div className="p-4 rounded-2xl bg-[#F7F4F2] border border-[#ECE7EA] space-y-2">
+                      <div className="flex items-center gap-2 text-[#570229] font-bold text-xs uppercase tracking-wider">
+                        <Phone className="w-4 h-4" />
+                        <span>Telephone / Helpline</span>
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <p className="font-semibold text-[#1F2937]">
+                          India: <a href="tel:+919544885077" className="text-[#570229] hover:underline">+91 95448 85077</a>
+                        </p>
+                        <p className="font-semibold text-[#1F2937]">
+                          UK: <a href="tel:+447867867779" className="text-[#570229] hover:underline">+44 78678 67779</a>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Email Box */}
+                    <div className="p-4 rounded-2xl bg-[#F7F4F2] border border-[#ECE7EA] space-y-2">
+                      <div className="flex items-center gap-2 text-[#570229] font-bold text-xs uppercase tracking-wider">
+                        <Mail className="w-4 h-4" />
+                        <span>Business & Support Email</span>
+                      </div>
+                      <p className="text-xs font-semibold text-[#1F2937]">
+                        <a href="mailto:ferexventuresoffice@gmail.com" className="text-[#570229] hover:underline break-all">
+                          ferexventuresoffice@gmail.com
+                        </a>
+                      </p>
+                      <p className="text-[11px] text-[#6B7280]">Response SLA: Within 24 Business Hours</p>
+                    </div>
+
+                    {/* Operational Working Hours */}
+                    <div className="p-4 rounded-2xl bg-[#F7F4F2] border border-[#ECE7EA] space-y-2">
+                      <div className="flex items-center gap-2 text-[#570229] font-bold text-xs uppercase tracking-wider">
+                        <Clock className="w-4 h-4" />
+                        <span>Operating Hours</span>
+                      </div>
+                      <p className="text-xs font-semibold text-[#1F2937]">
+                        Monday – Saturday:<br />
+                        09:00 AM – 06:00 PM IST
+                      </p>
+                      <p className="text-[11px] text-[#6B7280]">Sunday: Closed</p>
+                    </div>
+
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-white border border-[#ECE7EA] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                    <div>
+                      <span className="font-bold text-[#1F2937]">Legal Operating Entity: </span>
+                      <span className="text-[#6B7280]">FEREX Global Education (Santoge Technologies)</span>
+                    </div>
+                    <a
+                      href="mailto:ferexventuresoffice@gmail.com"
+                      className="px-4 py-2 rounded-xl bg-[#570229] hover:bg-[#6F0335] text-white font-bold transition-all shrink-0"
+                    >
+                      Send Message
+                    </a>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-[#ECE7EA] bg-[#F7F4F2] rounded-b-3xl flex justify-end">
+              <button
+                onClick={() => setLegalModal(null)}
+                className="px-6 py-2.5 rounded-xl bg-[#570229] hover:bg-[#6F0335] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
           </div>
         </div>
       )}

@@ -136,6 +136,7 @@ export const AdminPayments: React.FC = () => {
       const isVfsPending = vfsPay?.status === 'Pending Verification' || vfsPay?.status === 'Pending';
 
       // 4. University Tuition / Installments
+      const isTuitionFeeEnabled = Boolean(studentUni?.tuition_fee_enabled);
       const isInstallmentsEnabled = Boolean(studentUni?.installments_enabled && studentUni?.installments && studentUni.installments.length > 0);
       const rawTuition = studentUni?.university_fee || studentUni?.tuition_range || '€3,500 / yr';
       const tuitionInr = parseFeeToINR(rawTuition);
@@ -159,17 +160,22 @@ export const AdminPayments: React.FC = () => {
         };
       }) : [];
 
+      const advTotalWithGst = Math.round(advAmount * 1.18);
+      const agencyTotalWithGst = Math.round(agencyAmount * 1.18);
+
+      const isSingleTuitionPaid = Boolean(displayPayments.find(p => p.student_id === sId && p.title?.toLowerCase().includes('tuition') && (p.status === 'Paid' || p.status === 'Verified')));
+
       const tuitionPaid = isInstallmentsEnabled
         ? milestones.filter(m => m.isPaid).reduce((sum, m) => sum + m.amountInr, 0)
-        : (displayPayments.find(p => p.student_id === sId && p.title?.toLowerCase().includes('tuition') && (p.status === 'Paid' || p.status === 'Verified')) ? tuitionInr : 0);
+        : (isSingleTuitionPaid ? tuitionInr : 0);
 
       const tuitionTotal = isInstallmentsEnabled
         ? milestones.reduce((sum, m) => sum + m.amountInr, 0)
-        : (hasUni ? tuitionInr : 0);
+        : (hasUni && isTuitionFeeEnabled ? tuitionInr : 0);
 
-      const totalOutlay = (isAdvEnabled ? advAmount : 0) + (hasUni ? agencyAmount + vfsAmount + tuitionTotal : 0);
-      const totalCollected = (isAdvPaid ? (Number(advPay?.amount) || advAmount) : 0) +
-        (isAgencyPaid ? (Number(agencyPay?.amount) || agencyAmount) : 0) +
+      const totalOutlay = (isAdvEnabled ? advTotalWithGst : 0) + (hasUni ? agencyTotalWithGst + vfsAmount + tuitionTotal : 0);
+      const totalCollected = (isAdvPaid ? (Number(advPay?.amount) || advTotalWithGst) : 0) +
+        (isAgencyPaid ? (Number(agencyPay?.amount) || agencyTotalWithGst) : 0) +
         (isVfsPaid ? (Number(vfsPay?.amount) || vfsAmount) : 0) +
         tuitionPaid;
       const totalPending = Math.max(0, totalOutlay - totalCollected);
@@ -182,12 +188,14 @@ export const AdminPayments: React.FC = () => {
         courseName,
         studentUni,
         advAmount,
+        advTotalWithGst,
         advPay,
         isAdvPaid,
         isAdvPending,
         isAdvEnabled,
         rawAgencyFee,
         agencyAmount,
+        agencyTotalWithGst,
         agencyPay,
         isAgencyPaid,
         isAgencyPending,
@@ -197,7 +205,10 @@ export const AdminPayments: React.FC = () => {
         isVfsPaid,
         isVfsPending,
         rawTuition,
+        tuitionInr,
+        isTuitionFeeEnabled,
         isInstallmentsEnabled,
+        isSingleTuitionPaid,
         milestones,
         tuitionTotal,
         tuitionPaid,
@@ -586,16 +597,16 @@ export const AdminPayments: React.FC = () => {
 
                       <div className="flex items-center gap-3 self-end md:self-auto">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
-                          item.isInstallmentsEnabled ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          item.isInstallmentsEnabled ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : (item.hasUni && item.isTuitionFeeEnabled ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200')
                         }`}>
-                          {item.isInstallmentsEnabled ? `Milestones Active (${item.milestones.length} Stages)` : 'Direct University Payment'}
+                          {item.isInstallmentsEnabled ? `Milestones Active (${item.milestones.length} Stages)` : (item.hasUni && item.isTuitionFeeEnabled ? 'Platform Tuition Enabled' : 'Direct University Payment')}
                         </span>
                         <button
                           onClick={() => {
                             setManualStudentId(s.id);
                             setManualStudentName(sName);
                             setManualTitle('Advanced Registration Fee');
-                            setManualAmount(String(item.advAmount));
+                            setManualAmount(String(item.advTotalWithGst));
                             setShowManualModal(true);
                           }}
                           className="px-3 py-1.5 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] flex items-center gap-1 shadow-xs cursor-pointer"
@@ -621,7 +632,13 @@ export const AdminPayments: React.FC = () => {
                             )}
                           </div>
                           <p className="text-xs font-black text-slate-900 mt-1">Advanced Registration Fee</p>
-                          <p className="text-base font-black text-[#58051E]">₹{item.advAmount.toLocaleString('en-IN')}</p>
+                          <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                            <p className="text-base font-black text-[#58051E]">₹{item.advAmount.toLocaleString('en-IN')}</p>
+                            <span className="text-[9.5px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                              +18% GST extra (₹{item.advTotalWithGst.toLocaleString('en-IN')})
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">CGST 9% (₹{Math.round(item.advAmount * 0.09).toLocaleString('en-IN')}) + SGST 9% (₹{Math.round(item.advAmount * 0.09).toLocaleString('en-IN')}) • SAC 9983</p>
                         </div>
                         {!item.isAdvPaid && (
                           <button
@@ -629,10 +646,10 @@ export const AdminPayments: React.FC = () => {
                               setManualStudentId(s.id);
                               setManualStudentName(sName);
                               setManualTitle('Advanced Registration Fee');
-                              setManualAmount(String(item.advAmount));
+                              setManualAmount(String(item.advTotalWithGst));
                               setShowManualModal(true);
                             }}
-                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700 cursor-pointer"
                           >
                             + Record Stage 01
                           </button>
@@ -653,7 +670,13 @@ export const AdminPayments: React.FC = () => {
                             )}
                           </div>
                           <p className="text-xs font-black text-slate-900 mt-1">Separate Agency Fee</p>
-                          <p className="text-base font-black text-indigo-900">{formatFeeEURandINR(item.rawAgencyFee)}</p>
+                          <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                            <p className="text-base font-black text-indigo-900">{formatFeeEURandINR(item.rawAgencyFee)}</p>
+                            <span className="text-[9.5px] font-extrabold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                              +18% GST extra (₹{item.agencyTotalWithGst.toLocaleString('en-IN')})
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">CGST 9% (₹{Math.round(item.agencyAmount * 0.09).toLocaleString('en-IN')}) + SGST 9% (₹{Math.round(item.agencyAmount * 0.09).toLocaleString('en-IN')}) • SAC 9983</p>
                         </div>
                         {!item.isAgencyPaid && (
                           <button
@@ -661,10 +684,10 @@ export const AdminPayments: React.FC = () => {
                               setManualStudentId(s.id);
                               setManualStudentName(sName);
                               setManualTitle('Agency Processing Fee');
-                              setManualAmount(String(item.agencyAmount));
+                              setManualAmount(String(item.agencyTotalWithGst));
                               setShowManualModal(true);
                             }}
-                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700 cursor-pointer"
                           >
                             + Record Stage 02
                           </button>
@@ -675,8 +698,10 @@ export const AdminPayments: React.FC = () => {
                       <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase text-slate-400">Stage 03 • Embassy / VFS</span>
-                            {item.isVfsPaid ? (
+                            <span className="text-[10px] font-black uppercase text-slate-400">03. Embassy Filing</span>
+                            {!item.hasUni ? (
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[9.5px] font-bold">Pending Uni</span>
+                            ) : item.isVfsPaid ? (
                               <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Paid</span>
                             ) : item.isVfsPending ? (
                               <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[9.5px] font-bold animate-pulse">In Review</span>
@@ -685,9 +710,24 @@ export const AdminPayments: React.FC = () => {
                             )}
                           </div>
                           <p className="text-xs font-black text-slate-900 mt-1">VFS / Visa Gov Fee</p>
-                          <p className="text-base font-black text-emerald-800">{formatFeeEURandINR(item.rawVfsFee)}</p>
+                          {item.hasUni ? (
+                            <>
+                              <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                                <p className="text-base font-black text-emerald-800">{formatFeeEURandINR(item.rawVfsFee)}</p>
+                                <span className="text-[9.5px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                  0% GST (Govt Fee)
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Consular & Biometrics Filing</p>
+                            </>
+                          ) : (
+                            <div className="mt-1">
+                              <p className="text-xs font-bold text-slate-400">Not Applied</p>
+                              <p className="text-[10px] text-slate-400 leading-tight">Applies after destination university selection.</p>
+                            </div>
+                          )}
                         </div>
-                        {!item.isVfsPaid && (
+                        {item.hasUni && !item.isVfsPaid && (
                           <button
                             onClick={() => {
                               setManualStudentId(s.id);
@@ -696,7 +736,7 @@ export const AdminPayments: React.FC = () => {
                               setManualAmount(String(item.vfsAmount));
                               setShowManualModal(true);
                             }}
-                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700 cursor-pointer"
                           >
                             + Record Stage 03
                           </button>
@@ -707,18 +747,51 @@ export const AdminPayments: React.FC = () => {
                       <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase text-slate-400">Stage 04 • University Tuition</span>
-                            <span className="text-[10px] font-bold text-slate-500">
-                              {item.isInstallmentsEnabled ? `${item.milestones.filter(m => m.isPaid).length}/${item.milestones.length} Paid` : 'Direct Account'}
+                            <span className="text-[10px] font-black uppercase text-slate-400">
+                              04. Tuition Schedule
                             </span>
+                            {!item.hasUni ? (
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[9.5px] font-bold">Pending Uni</span>
+                            ) : item.isInstallmentsEnabled ? (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[9.5px] font-bold">
+                                {item.milestones.filter(m => m.isPaid).length}/{item.milestones.length} Paid
+                              </span>
+                            ) : item.isTuitionFeeEnabled ? (
+                              item.isSingleTuitionPaid ? (
+                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Settled</span>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[9.5px] font-bold">Due</span>
+                              )
+                            ) : (
+                              <span className="px-2 py-0.5 bg-slate-200 text-slate-600 rounded-full text-[9.5px] font-bold">Direct to Uni</span>
+                            )}
                           </div>
                           <p className="text-xs font-black text-slate-900 mt-1">
-                            {item.isInstallmentsEnabled ? 'Platform Milestones' : 'Direct Tuition'}
+                            {item.isInstallmentsEnabled ? 'Tuition Installments & Schedule' : 'University Tuition'}
                           </p>
-                          <p className="text-base font-black text-slate-900">{formatFeeEURandINR(item.rawTuition)}</p>
+                          {item.hasUni ? (
+                            <>
+                              <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                                <p className="text-base font-black text-slate-900">{formatFeeEURandINR(item.rawTuition)}</p>
+                                <span className="text-[9.5px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                  0% GST (Tuition)
+                                </span>
+                              </div>
+                              {!item.isTuitionFeeEnabled && !item.isInstallmentsEnabled && (
+                                <p className="text-[10px] text-slate-500 font-medium leading-tight mt-1">
+                                  Direct University Payment. Does not reflect in platform dues until enabled.
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <div className="mt-1">
+                              <p className="text-xs font-bold text-slate-400">Not Applied</p>
+                              <p className="text-[10px] text-slate-400 leading-tight">Applies after destination university selection.</p>
+                            </div>
+                          )}
                         </div>
 
-                        {item.isInstallmentsEnabled && item.milestones.length > 0 ? (
+                        {item.hasUni && item.isInstallmentsEnabled && item.milestones.length > 0 && (
                           <div className="space-y-1 mt-2">
                             {item.milestones.map((m, mIdx) => (
                               <div key={m.id} className="flex items-center justify-between text-[10.5px] bg-white p-1.5 rounded-lg border border-slate-200">
@@ -736,7 +809,7 @@ export const AdminPayments: React.FC = () => {
                                         setManualAmount(String(m.amountInr));
                                         setShowManualModal(true);
                                       }}
-                                      className="text-[9px] font-bold text-[#58051E] bg-[#58051E]/10 px-1.5 py-0.5 rounded hover:bg-[#58051E] hover:text-white"
+                                      className="text-[9px] font-bold text-[#58051E] bg-[#58051E]/10 px-1.5 py-0.5 rounded hover:bg-[#58051E] hover:text-white cursor-pointer"
                                     >
                                       Record
                                     </button>
@@ -745,10 +818,21 @@ export const AdminPayments: React.FC = () => {
                               </div>
                             ))}
                           </div>
-                        ) : (
-                          <p className="text-[10.5px] text-slate-500 italic mt-2">
-                            Paid directly to university bank account.
-                          </p>
+                        )}
+
+                        {item.hasUni && item.isTuitionFeeEnabled && !item.isInstallmentsEnabled && !item.isSingleTuitionPaid && (
+                          <button
+                            onClick={() => {
+                              setManualStudentId(s.id);
+                              setManualStudentName(sName);
+                              setManualTitle('University Tuition Fee');
+                              setManualAmount(String(item.tuitionInr));
+                              setShowManualModal(true);
+                            }}
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700 cursor-pointer"
+                          >
+                            + Record Stage 04
+                          </button>
                         )}
                       </div>
                     </div>

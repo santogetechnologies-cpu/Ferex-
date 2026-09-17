@@ -190,7 +190,8 @@ export const AdminPaymentControl: React.FC = () => {
       const isVfsPaid = vfsPay?.status === 'Paid' || vfsPay?.status === 'Verified';
       const isVfsPending = vfsPay?.status === 'Pending Verification' || vfsPay?.status === 'Pending';
 
-      // 4. University Tuition / Installments
+      // 4. University Tuition / Installments (Default Disabled unless toggled)
+      const isTuitionFeeEnabled = Boolean(studentUni?.tuition_fee_enabled);
       const isInstallmentsEnabled = Boolean(studentUni?.installments_enabled && studentUni?.installments && studentUni.installments.length > 0);
       const rawTuition = studentUni?.university_fee || studentUni?.tuition_range || '€3,500 / yr';
       const tuitionInr = parseFeeToINR(rawTuition);
@@ -218,9 +219,23 @@ export const AdminPaymentControl: React.FC = () => {
       const isSingleTuitionPaid = singleTuitionPay?.status === 'Paid' || singleTuitionPay?.status === 'Verified';
       const isSingleTuitionPending = singleTuitionPay?.status === 'Pending Verification' || singleTuitionPay?.status === 'Pending';
 
-      const totalExpected = (isAdvEnabled ? advAmount : 0) + agencyAmount + vfsAmount + tuitionInr;
-      const totalPaid = (isAdvPaid ? (advPay?.amount || advAmount) : 0) +
-        (isAgencyPaid ? (agencyPay?.amount || agencyAmount) : 0) +
+      // GST: 18% GST applies strictly to Stage 1 & Stage 2 ONLY. 0% GST for VFS & Tuition.
+      const advTotalWithGst = Math.round(advAmount * 1.18);
+      const agencyTotalWithGst = Math.round(agencyAmount * 1.18);
+      const vfsTotalNoGst = hasUni ? vfsAmount : 0;
+      const tuitionTotalNoGst = hasUni
+        ? (isInstallmentsEnabled
+            ? milestones.reduce((sum, m) => sum + m.amountInr, 0)
+            : (isTuitionFeeEnabled ? tuitionInr : 0))
+        : 0;
+
+      const totalExpected = (isAdvEnabled ? advTotalWithGst : 0) +
+        (hasUni ? agencyTotalWithGst : 0) +
+        vfsTotalNoGst +
+        tuitionTotalNoGst;
+
+      const totalPaid = (isAdvPaid ? (advPay?.amount || advTotalWithGst) : 0) +
+        (isAgencyPaid ? (agencyPay?.amount || agencyTotalWithGst) : 0) +
         (isVfsPaid ? (vfsPay?.amount || vfsAmount) : 0) +
         (isInstallmentsEnabled
           ? milestones.filter(m => m.isPaid).reduce((sum, m) => sum + (m.paymentRecord?.amount || m.amountInr), 0)
@@ -241,11 +256,13 @@ export const AdminPaymentControl: React.FC = () => {
         studentUni,
         isAdvEnabled,
         advAmount,
+        advTotalWithGst,
         isAdvPaid,
         isAdvPending,
         advPay,
         rawAgencyFee,
         agencyAmount,
+        agencyTotalWithGst,
         isAgencyPaid,
         isAgencyPending,
         agencyPay,
@@ -254,16 +271,18 @@ export const AdminPaymentControl: React.FC = () => {
         isVfsPaid,
         isVfsPending,
         vfsPay,
+        isTuitionFeeEnabled,
         isInstallmentsEnabled,
         rawTuition,
         tuitionInr,
+        tuitionTotalNoGst,
         milestones,
         isSingleTuitionPaid,
         isSingleTuitionPending,
         singleTuitionPay,
         totalExpected,
         totalPaid,
-        totalPendingDues
+        totalPendingDues,
       };
     }).filter(st => {
       if (!searchQuery.trim()) return true;
@@ -778,15 +797,15 @@ export const AdminPaymentControl: React.FC = () => {
 
                       <div className="flex items-center gap-2.5 self-end md:self-auto">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
-                          item.isInstallmentsEnabled ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          item.isInstallmentsEnabled ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : (item.hasUni && item.isTuitionFeeEnabled ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200')
                         }`}>
-                          {item.isInstallmentsEnabled ? `Milestones Active (${item.milestones.length} Stages)` : 'Direct University Payment'}
+                          {item.isInstallmentsEnabled ? `Milestones Active (${item.milestones.length} Stages)` : (item.hasUni && item.isTuitionFeeEnabled ? 'Platform Tuition Enabled' : 'Direct University Payment')}
                         </span>
                         <button
                           onClick={() => {
                             setBankStudentId(s.id);
                             setBankStage(1);
-                            setBankAmount(String(item.advAmount));
+                            setBankAmount(String(item.advTotalWithGst));
                             setShowBankModal(true);
                           }}
                           className="px-3 py-1.5 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] flex items-center gap-1 shadow-xs cursor-pointer"
@@ -812,17 +831,23 @@ export const AdminPaymentControl: React.FC = () => {
                             )}
                           </div>
                           <p className="text-xs font-black text-slate-900 mt-1">Advanced Registration Fee</p>
-                          <p className="text-base font-black text-[#58051E]">₹{item.advAmount.toLocaleString('en-IN')}</p>
+                          <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                            <p className="text-base font-black text-[#58051E]">₹{item.advAmount.toLocaleString('en-IN')}</p>
+                            <span className="text-[9.5px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                              +18% GST extra (₹{item.advTotalWithGst.toLocaleString('en-IN')})
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">CGST 9% (₹{Math.round(item.advAmount * 0.09).toLocaleString('en-IN')}) + SGST 9% (₹{Math.round(item.advAmount * 0.09).toLocaleString('en-IN')}) • SAC 9983</p>
                         </div>
                         {!item.isAdvPaid && (
                           <button
                             onClick={() => {
                               setBankStudentId(s.id);
                               setBankStage(1);
-                              setBankAmount(String(item.advAmount));
+                              setBankAmount(String(item.advTotalWithGst));
                               setShowBankModal(true);
                             }}
-                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700 cursor-pointer"
                           >
                             + Record Stage 01
                           </button>
@@ -843,17 +868,23 @@ export const AdminPaymentControl: React.FC = () => {
                             )}
                           </div>
                           <p className="text-xs font-black text-slate-900 mt-1">Separate Agency Fee</p>
-                          <p className="text-base font-black text-indigo-900">{formatFeeEURandINR(item.rawAgencyFee)}</p>
+                          <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                            <p className="text-base font-black text-indigo-900">{formatFeeEURandINR(item.rawAgencyFee)}</p>
+                            <span className="text-[9.5px] font-extrabold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                              +18% GST extra (₹{item.agencyTotalWithGst.toLocaleString('en-IN')})
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">CGST 9% (₹{Math.round(item.agencyAmount * 0.09).toLocaleString('en-IN')}) + SGST 9% (₹{Math.round(item.agencyAmount * 0.09).toLocaleString('en-IN')}) • SAC 9983</p>
                         </div>
                         {!item.isAgencyPaid && (
                           <button
                             onClick={() => {
                               setBankStudentId(s.id);
                               setBankStage(2);
-                              setBankAmount(String(item.agencyAmount));
+                              setBankAmount(String(item.agencyTotalWithGst));
                               setShowBankModal(true);
                             }}
-                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700 cursor-pointer"
                           >
                             + Record Stage 02
                           </button>
@@ -864,8 +895,10 @@ export const AdminPaymentControl: React.FC = () => {
                       <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase text-slate-400">Stage 03 • Embassy / VFS</span>
-                            {item.isVfsPaid ? (
+                            <span className="text-[10px] font-black uppercase text-slate-400">03. Embassy Filing</span>
+                            {!item.hasUni ? (
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[9.5px] font-bold">Pending Uni</span>
+                            ) : item.isVfsPaid ? (
                               <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Paid</span>
                             ) : item.isVfsPending ? (
                               <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[9.5px] font-bold animate-pulse">In Review</span>
@@ -874,9 +907,24 @@ export const AdminPaymentControl: React.FC = () => {
                             )}
                           </div>
                           <p className="text-xs font-black text-slate-900 mt-1">VFS / Visa Gov Fee</p>
-                          <p className="text-base font-black text-amber-900">{formatFeeEURandINR(item.rawVfsFee)}</p>
+                          {item.hasUni ? (
+                            <>
+                              <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                                <p className="text-base font-black text-amber-900">{formatFeeEURandINR(item.rawVfsFee)}</p>
+                                <span className="text-[9.5px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                  0% GST (Govt Fee)
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Consular & Biometrics Filing</p>
+                            </>
+                          ) : (
+                            <div className="mt-1">
+                              <p className="text-xs font-bold text-slate-400">Not Applied</p>
+                              <p className="text-[10px] text-slate-400 leading-tight">Applies after destination university selection.</p>
+                            </div>
+                          )}
                         </div>
-                        {!item.isVfsPaid && (
+                        {item.hasUni && !item.isVfsPaid && (
                           <button
                             onClick={() => {
                               setBankStudentId(s.id);
@@ -884,7 +932,7 @@ export const AdminPaymentControl: React.FC = () => {
                               setBankAmount(String(item.vfsAmount));
                               setShowBankModal(true);
                             }}
-                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700 cursor-pointer"
                           >
                             + Record Stage 03
                           </button>
@@ -896,24 +944,52 @@ export const AdminPaymentControl: React.FC = () => {
                         <div>
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-black uppercase text-slate-400">
-                              {item.isInstallmentsEnabled ? `Stage 04 • ${item.milestones.length} Milestones` : 'Stage 04 • Direct Tuition'}
+                              04. Tuition Schedule
                             </span>
-                            {item.isInstallmentsEnabled ? (
+                            {!item.hasUni ? (
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[9.5px] font-bold">Pending Uni</span>
+                            ) : item.isInstallmentsEnabled ? (
                               <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[9.5px] font-bold">
                                 {item.milestones.filter(m => m.isPaid).length}/{item.milestones.length} Paid
                               </span>
-                            ) : item.isSingleTuitionPaid ? (
-                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Direct Settled</span>
-                            ) : item.isSingleTuitionPending ? (
-                              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[9.5px] font-bold animate-pulse">In Review</span>
+                            ) : item.isTuitionFeeEnabled ? (
+                              item.isSingleTuitionPaid ? (
+                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Settled</span>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[9.5px] font-bold">Due</span>
+                              )
                             ) : (
-                              <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[9.5px] font-bold">Direct Due</span>
+                              <span className="px-2 py-0.5 bg-slate-200 text-slate-600 rounded-full text-[9.5px] font-bold">Direct to Uni</span>
                             )}
                           </div>
-                          <p className="text-xs font-black text-slate-900 mt-1">University Tuition</p>
-                          <p className="text-base font-black text-emerald-900">{formatFeeEURandINR(item.rawTuition)}</p>
+
+                          <p className="text-xs font-black text-slate-900 mt-1">
+                            {item.isInstallmentsEnabled ? 'Tuition Installments & Schedule' : 'University Tuition'}
+                          </p>
+
+                          {item.hasUni ? (
+                            <>
+                              <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                                <p className="text-base font-black text-emerald-900">{formatFeeEURandINR(item.rawTuition)}</p>
+                                <span className="text-[9.5px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                  0% GST (Tuition)
+                                </span>
+                              </div>
+                              {!item.isTuitionFeeEnabled && !item.isInstallmentsEnabled && (
+                                <p className="text-[10px] text-slate-500 font-medium leading-tight mt-1">
+                                  Direct University Payment. Does not reflect in platform dues until enabled.
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <div className="mt-1">
+                              <p className="text-xs font-bold text-slate-400">Not Applied</p>
+                              <p className="text-[10px] text-slate-400 leading-tight">Applies after destination university selection.</p>
+                            </div>
+                          )}
                         </div>
-                        {item.isInstallmentsEnabled ? (
+
+                        {item.hasUni && item.isInstallmentsEnabled && item.milestones.length > 0 && (
                           <div className="space-y-1 mt-2">
                             {item.milestones.map((m, mIdx) => (
                               <div key={m.id} className="flex items-center justify-between text-[10px] bg-white p-1.5 rounded border border-slate-100">
@@ -930,7 +1006,7 @@ export const AdminPaymentControl: React.FC = () => {
                                         setBankAmount(String(m.amountInr));
                                         setShowBankModal(true);
                                       }}
-                                      className="text-blue-600 hover:underline font-bold"
+                                      className="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[9px] font-bold cursor-pointer"
                                     >
                                       Settle
                                     </button>
@@ -939,7 +1015,9 @@ export const AdminPaymentControl: React.FC = () => {
                               </div>
                             ))}
                           </div>
-                        ) : !item.isSingleTuitionPaid && (
+                        )}
+
+                        {item.hasUni && item.isTuitionFeeEnabled && !item.isInstallmentsEnabled && !item.isSingleTuitionPaid && (
                           <button
                             onClick={() => {
                               setBankStudentId(s.id);
@@ -947,9 +1025,9 @@ export const AdminPaymentControl: React.FC = () => {
                               setBankAmount(String(item.tuitionInr));
                               setShowBankModal(true);
                             }}
-                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700"
+                            className="w-full mt-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10.5px] font-bold text-slate-700 cursor-pointer"
                           >
-                            + Record Direct Tuition
+                            + Record Stage 04
                           </button>
                         )}
                       </div>
