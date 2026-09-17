@@ -233,6 +233,7 @@ export async function getDestinations(): Promise<DestinationItem[]> {
   const isPurged = localStorage.getItem(PURGED_DESTS_KEY) === 'true';
   const destMap = new Map<string, DestinationItem>();
   let hasDbSource = false;
+  let dbReachable = false;
 
   // 1. SUPABASE DATABASE: Fetch live shared cloud rows (Definitive Source)
   try {
@@ -241,8 +242,10 @@ export async function getDestinations(): Promise<DestinationItem[]> {
       .select('*')
       .order('name', { ascending: true });
 
-    if (!error && data && Array.isArray(data)) {
-      hasDbSource = true;
+    if (!error && Array.isArray(data)) {
+      // DB responded (even empty = admin purged all)
+      dbReachable = true;
+      hasDbSource = data.length > 0;
       data.forEach((d: any) => {
         if (d && d.name && !isJunkDestination(d.name)) {
           const key = d.name.toLowerCase().trim();
@@ -254,8 +257,8 @@ export async function getDestinations(): Promise<DestinationItem[]> {
     console.warn('[getDestinations DB Notice]:', err);
   }
 
-  // 2. Check system_config catalog backup if destinations table had 0 items
-  if (!isPurged && destMap.size === 0) {
+  // 2. Check system_config backup ONLY if DB was unreachable (offline fallback)
+  if (!dbReachable && !isPurged) {
     try {
       const { data: cfg, error: cfgErr } = await supabase
         .from('system_config')
@@ -277,8 +280,8 @@ export async function getDestinations(): Promise<DestinationItem[]> {
     } catch {}
   }
 
-  // 3. Check local storage cache (only if offline or recovering custom items)
-  if (!isPurged && !hasDbSource) {
+  // 3. Check local storage cache ONLY if fully offline
+  if (!dbReachable && !hasDbSource && !isPurged) {
     try {
       const local = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (local) {
@@ -297,8 +300,8 @@ export async function getDestinations(): Promise<DestinationItem[]> {
     } catch {}
   }
 
-  // 4. Fallback to default verified destinations ONLY on clean fresh setup
-  if (destMap.size === 0 && !isPurged && deletedKeys.size === 0 && !hasDbSource) {
+  // 4. Fallback to default ONLY on true fresh install (DB unreachable, no local data)
+  if (destMap.size === 0 && !isPurged && deletedKeys.size === 0 && !dbReachable && !hasDbSource) {
     DEFAULT_STUDY_DESTINATIONS.forEach(d => {
       destMap.set(d.name.toLowerCase().trim(), d);
     });
@@ -316,10 +319,12 @@ export async function getDestinations(): Promise<DestinationItem[]> {
   // Sort alphabetically
   cleanList.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-  // Mirror to local cache for instant renders
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cleanList));
-  } catch {}
+  // Mirror to local cache only when DB was reachable
+  if (dbReachable) {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cleanList));
+    } catch {}
+  }
 
   return cleanList;
 }
@@ -360,27 +365,33 @@ export async function createDestination(payload: Omit<DestinationItem, 'id' | 'c
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
   } catch {}
 
-  // 2. Supabase Insert & system_config backup
+  // 2. Supabase Insert & system_config backup (admin client first)
   try {
-    const { error } = await supabase.from('destinations').insert([newObj]);
-    if (error) {
-      console.warn('[createDestination supabase Warning]:', error.message);
-      try {
-        const admin = await getAdminSupabaseClient();
-        await admin.from('destinations').insert([newObj]);
-      } catch {}
+    let insertErr: any = null;
+    try {
+      const admin = await getAdminSupabaseClient();
+      const { error } = await admin.from('destinations').insert([newObj]);
+      insertErr = error;
+    } catch (e) {
+      insertErr = e;
+    }
+
+    if (insertErr) {
+      console.warn('[createDestination admin Warning]:', insertErr.message || insertErr);
+      const { error: anonErr } = await supabase.from('destinations').insert([newObj]);
+      if (anonErr) console.error('[createDestination FAILED]:', anonErr.message);
     }
 
     try {
-      await supabase.from('system_config').upsert({
+      const admin = await getAdminSupabaseClient();
+      await admin.from('system_config').upsert({
         key: 'ferex_destinations_catalog',
         value: updated,
         updated_at: new Date().toISOString()
       });
     } catch {
       try {
-        const admin = await getAdminSupabaseClient();
-        await admin.from('system_config').upsert({
+        await supabase.from('system_config').upsert({
           key: 'ferex_destinations_catalog',
           value: updated,
           updated_at: new Date().toISOString()
@@ -419,25 +430,34 @@ export async function updateDestination(id: string, payload: Partial<Destination
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
   } catch {}
 
-  // 2. Supabase Update
+  // 2. Supabase Update (admin client first)
   try {
-    const { error } = await supabase.from('destinations').update(updatedPayload).eq('id', id);
-    if (error) {
+    let updateErr: any = null;
+    try {
       const admin = await getAdminSupabaseClient();
-      await admin.from('destinations').update(updatedPayload).eq('id', id);
+      const { error } = await admin.from('destinations').update(updatedPayload).eq('id', id);
+      updateErr = error;
+    } catch (e) {
+      updateErr = e;
+    }
+
+    if (updateErr) {
+      console.warn('[updateDestination admin Warning]:', updateErr.message || updateErr);
+      const { error: anonErr } = await supabase.from('destinations').update(updatedPayload).eq('id', id);
+      if (anonErr) console.error('[updateDestination FAILED]:', anonErr.message);
     }
 
     if (updated.length > 0) {
       try {
-        await supabase.from('system_config').upsert({
+        const admin = await getAdminSupabaseClient();
+        await admin.from('system_config').upsert({
           key: 'ferex_destinations_catalog',
           value: updated,
           updated_at: new Date().toISOString()
         });
       } catch {
         try {
-          const admin = await getAdminSupabaseClient();
-          await admin.from('system_config').upsert({
+          await supabase.from('system_config').upsert({
             key: 'ferex_destinations_catalog',
             value: updated,
             updated_at: new Date().toISOString()
@@ -467,26 +487,43 @@ export async function deleteDestination(id: string, name?: string): Promise<void
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
   } catch {}
 
-  // 2. Supabase Delete
+  // 2. Supabase Delete (admin client first)
   try {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    let admin: any;
+    try { admin = await getAdminSupabaseClient(); } catch {}
+
     if (isUuid) {
-      await supabase.from('destinations').delete().eq('id', id);
+      let delErr: any;
+      if (admin) {
+        const { error } = await admin.from('destinations').delete().eq('id', id);
+        delErr = error;
+      }
+      if (!admin || delErr) {
+        await supabase.from('destinations').delete().eq('id', id);
+      }
     }
     if (name) {
-      await supabase.from('destinations').delete().ilike('name', name.trim());
+      let delErr: any;
+      if (admin) {
+        const { error } = await admin.from('destinations').delete().ilike('name', name.trim());
+        delErr = error;
+      }
+      if (!admin || delErr) {
+        await supabase.from('destinations').delete().ilike('name', name.trim());
+      }
     }
 
     try {
-      await supabase.from('system_config').upsert({
+      const adminClient = admin || await getAdminSupabaseClient();
+      await adminClient.from('system_config').upsert({
         key: 'ferex_destinations_catalog',
         value: filtered,
         updated_at: new Date().toISOString()
       });
     } catch {
       try {
-        const admin = await getAdminSupabaseClient();
-        await admin.from('system_config').upsert({
+        await supabase.from('system_config').upsert({
           key: 'ferex_destinations_catalog',
           value: filtered,
           updated_at: new Date().toISOString()

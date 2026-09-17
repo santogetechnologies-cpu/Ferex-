@@ -239,6 +239,7 @@ export async function getUniversities(): Promise<University[]> {
   const isPurged = localStorage.getItem(PURGED_UNIS_KEY) === 'true';
   const uniMap = new Map<string, University>();
   let hasDbSource = false;
+  let dbReachable = false;
 
   // 1. SUPABASE DATABASE: Fetch live shared cloud rows (Definitive Source)
   try {
@@ -247,8 +248,10 @@ export async function getUniversities(): Promise<University[]> {
       .select('*')
       .order('ranking', { ascending: true });
 
-    if (!error && data && Array.isArray(data)) {
-      hasDbSource = true;
+    if (!error && Array.isArray(data)) {
+      // DB responded successfully (even if empty = admin purged all)
+      dbReachable = true;
+      hasDbSource = data.length > 0;
       data.forEach((u: any) => {
         if (u && u.name && !isJunkUniversity(u)) {
           const key = u.name.toLowerCase().trim();
@@ -260,8 +263,8 @@ export async function getUniversities(): Promise<University[]> {
     console.warn('[getUniversities DB Warning]:', err);
   }
 
-  // 2. Check system_config catalog backup if universities table had 0 items
-  if (!isPurged && uniMap.size === 0) {
+  // 2. ONLY check system_config backup if DB was unreachable (offline fallback)
+  if (!dbReachable && !isPurged) {
     try {
       const { data: cfg, error: cfgErr } = await supabase
         .from('system_config')
@@ -283,8 +286,8 @@ export async function getUniversities(): Promise<University[]> {
     } catch {}
   }
 
-  // 3. Check local cache (only if offline or to recover custom added items)
-  if (!isPurged && !hasDbSource) {
+  // 3. Check local cache ONLY if fully offline (DB unreachable, system_config failed)
+  if (!dbReachable && !hasDbSource && !isPurged) {
     try {
       const local = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
       if (local) {
@@ -303,11 +306,16 @@ export async function getUniversities(): Promise<University[]> {
     } catch {}
   }
 
-  // 4. Fallback to baseline ONLY on clean first-time install when DB is untouched
-  if (uniMap.size === 0 && !isPurged && deletedKeys.size === 0 && !hasDbSource) {
+  // 4. Fallback to baseline ONLY on true first-time install when DB is unreachable AND no local data
+  if (uniMap.size === 0 && !isPurged && deletedKeys.size === 0 && !dbReachable && !hasDbSource) {
     BASELINE_UNIVERSITIES.forEach(u => {
       uniMap.set(u.name.toLowerCase().trim(), u);
     });
+  }
+
+  // If DB was reachable but empty (admin cleared all), respect that decision - return empty
+  if (dbReachable && uniMap.size === 0 && isPurged) {
+    return [];
   }
 
   // Filter out any explicitly deleted universities
@@ -337,11 +345,13 @@ export async function getUniversities(): Promise<University[]> {
   // Sort by ranking or name
   enrichedList.sort((a, b) => (a.ranking || 100) - (b.ranking || 100));
 
-  // Update local cache
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(enrichedList));
-    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(enrichedList));
-  } catch {}
+  // Update local cache only when DB was reachable (don't overwrite good cache with stale)
+  if (dbReachable) {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(enrichedList));
+      localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(enrichedList));
+    } catch {}
+  }
 
   return enrichedList;
 }
@@ -452,26 +462,35 @@ export async function createUniversity(payload: {
   };
 
   try {
-    const { error: insErr } = await supabase.from('universities').insert([dbPayload]);
-    if (insErr) {
-      console.warn('[createUniversity supabase Warning]:', insErr.message);
-      try {
-        const admin = await getAdminSupabaseClient();
-        await admin.from('universities').insert([dbPayload]);
-      } catch {}
+    // Try admin client first (has proper auth), then fall back to anon
+    let insertErr: any = null;
+    try {
+      const admin = await getAdminSupabaseClient();
+      const { error } = await admin.from('universities').insert([dbPayload]);
+      insertErr = error;
+    } catch (e) {
+      insertErr = e;
+    }
+
+    if (insertErr) {
+      console.warn('[createUniversity admin Warning]:', insertErr.message || insertErr);
+      const { error: anonErr } = await supabase.from('universities').insert([dbPayload]);
+      if (anonErr) {
+        console.error('[createUniversity FAILED]:', anonErr.message);
+      }
     }
 
     // Also update system_config catalog backup with full object
     try {
-      await supabase.from('system_config').upsert({
+      const admin = await getAdminSupabaseClient();
+      await admin.from('system_config').upsert({
         key: 'ferex_universities_catalog',
         value: updated,
         updated_at: new Date().toISOString()
       });
     } catch {
       try {
-        const admin = await getAdminSupabaseClient();
-        await admin.from('system_config').upsert({
+        await supabase.from('system_config').upsert({
           key: 'ferex_universities_catalog',
           value: updated,
           updated_at: new Date().toISOString()
@@ -521,25 +540,34 @@ export async function updateUniversity(id: string, payload: Partial<University>)
     localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(updatedList));
   } catch {}
 
-  // 2. Update Supabase
+  // 2. Update Supabase (try admin client first for proper auth)
   try {
-    const { error } = await supabase.from('universities').update(dbPayload).eq('id', id);
-    if (error) {
+    let updateErr: any = null;
+    try {
       const admin = await getAdminSupabaseClient();
-      await admin.from('universities').update(dbPayload).eq('id', id);
+      const { error } = await admin.from('universities').update(dbPayload).eq('id', id);
+      updateErr = error;
+    } catch (e) {
+      updateErr = e;
+    }
+
+    if (updateErr) {
+      console.warn('[updateUniversity admin Warning]:', updateErr.message || updateErr);
+      const { error: anonErr } = await supabase.from('universities').update(dbPayload).eq('id', id);
+      if (anonErr) console.error('[updateUniversity FAILED]:', anonErr.message);
     }
 
     if (updatedList.length > 0) {
       try {
-        await supabase.from('system_config').upsert({
+        const admin = await getAdminSupabaseClient();
+        await admin.from('system_config').upsert({
           key: 'ferex_universities_catalog',
           value: updatedList,
           updated_at: new Date().toISOString()
         });
       } catch {
         try {
-          const admin = await getAdminSupabaseClient();
-          await admin.from('system_config').upsert({
+          await supabase.from('system_config').upsert({
             key: 'ferex_universities_catalog',
             value: updatedList,
             updated_at: new Date().toISOString()
@@ -571,26 +599,45 @@ export async function deleteUniversity(id: string, name?: string): Promise<void>
     localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(filtered));
   } catch {}
 
-  // 2. Supabase Delete
+  // 2. Supabase Delete (try admin client first)
   try {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    let admin: any;
+    try {
+      admin = await getAdminSupabaseClient();
+    } catch {}
+
     if (isUuid) {
-      await supabase.from('universities').delete().eq('id', id);
+      let delErr: any;
+      if (admin) {
+        const { error } = await admin.from('universities').delete().eq('id', id);
+        delErr = error;
+      }
+      if (!admin || delErr) {
+        await supabase.from('universities').delete().eq('id', id);
+      }
     }
     if (name) {
-      await supabase.from('universities').delete().ilike('name', name.trim());
+      let delErr: any;
+      if (admin) {
+        const { error } = await admin.from('universities').delete().ilike('name', name.trim());
+        delErr = error;
+      }
+      if (!admin || delErr) {
+        await supabase.from('universities').delete().ilike('name', name.trim());
+      }
     }
 
     try {
-      await supabase.from('system_config').upsert({
+      const adminClient = admin || await getAdminSupabaseClient();
+      await adminClient.from('system_config').upsert({
         key: 'ferex_universities_catalog',
         value: filtered,
         updated_at: new Date().toISOString()
       });
     } catch {
       try {
-        const admin = await getAdminSupabaseClient();
-        await admin.from('system_config').upsert({
+        await supabase.from('system_config').upsert({
           key: 'ferex_universities_catalog',
           value: filtered,
           updated_at: new Date().toISOString()
