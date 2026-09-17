@@ -28,6 +28,12 @@ export function useDestinations() {
   }, []);
 
   useEffect(() => {
+    // Clear stale mock-data localStorage keys from previous versions
+    try {
+      localStorage.removeItem('ferex_deleted_destinations');
+      localStorage.removeItem('ferex_destinations_purged');
+    } catch {}
+
     fetchDestinations();
 
     const handleChange = () => {

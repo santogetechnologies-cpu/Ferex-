@@ -4,7 +4,6 @@
  */
 
 import { supabase } from '../supabase';
-import { BASELINE_UNIVERSITIES } from './universities';
 
 // Helper to resolve OpenRouter API key securely from environment or dynamic fallback
 export const getOpenRouterApiKey = (): string => {
@@ -211,10 +210,21 @@ ${appList}
 6. Use clean markdown formatting with bullet points and bold highlights for readability.`;
   }
 
-  // Landing Page Mode with live university catalog
-  const universitiesSummary = BASELINE_UNIVERSITIES.slice(0, 8).map(u => (
-    `- ${u.name} (${u.city}, ${u.country}): Tuition ${u.tuition_range}, Living ${u.living_cost_monthly}, Intakes: ${u.intakes?.join(', ') || 'Oct / Feb'}, Programs: ${u.programs?.slice(0, 3).join(', ')}`
-  )).join('\n');
+  // Landing Page Mode with live university catalog (from DB)
+  let universitiesSummary = 'No partner universities configured yet. Please contact Ferex admissions.';
+  try {
+    const { data: liveUnis } = await supabase
+      .from('universities')
+      .select('name, city, country, tuition_range, living_cost_monthly, intakes, programs, university_fee')
+      .eq('is_active', true)
+      .order('ranking', { ascending: true })
+      .limit(10);
+    if (liveUnis && liveUnis.length > 0) {
+      universitiesSummary = liveUnis.map((u: any) =>
+        `- ${u.name} (${u.city || ''}, ${u.country}): Tuition ${u.tuition_range || u.university_fee || 'Contact for fee'}, Living ${u.living_cost_monthly || 'Varies'}, Intakes: ${(u.intakes || []).join(', ') || 'Contact admissions'}, Programs: ${(u.programs || []).slice(0, 3).join(', ')}`
+      ).join('\n');
+    }
+  } catch {}
 
   return `You are "Ferex AI", the official European study abroad admissions intelligence for Ferex Education.
 

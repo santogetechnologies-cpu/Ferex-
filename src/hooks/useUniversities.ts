@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getUniversities, createUniversity, updateUniversityRecord, deleteUniversity, restoreDefaultUniversities, clearAllUniversities } from '../lib/api/universities';
+import { getUniversities, createUniversity, updateUniversityRecord, deleteUniversity, clearAllUniversities } from '../lib/api/universities';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../lib/types';
 
 export function useUniversities() {
@@ -22,10 +22,15 @@ export function useUniversities() {
   }, []);
 
   useEffect(() => {
+    // Clear any stale mock-data localStorage keys from previous versions
+    try {
+      localStorage.removeItem('ferex_universities_purged');
+      localStorage.removeItem('ferex_deleted_universities');
+    } catch {}
+
     fetchUniversities();
 
     const handleDataChange = () => {
-      console.log('[useUniversities] Data change event received');
       fetchUniversities(true);
     };
 
@@ -54,10 +59,13 @@ export function useUniversities() {
     tuition_range?: string;
     intakes?: string[];
     university_fee?: string;
-    vfs_fee?: string;
+    tuition_fee_enabled?: boolean;
     agency_fee?: string;
+    agency_fee_description?: string;
+    vfs_fee?: string;
     living_cost_monthly?: string;
     nawa_required?: boolean;
+    installments_enabled?: boolean;
     course_programs?: CourseProgram[];
     installments?: PaymentInstallment[];
     semesters?: CourseSemester[];
@@ -69,34 +77,25 @@ export function useUniversities() {
 
   const updateUniversity = async (id: string, payload: Partial<University>) => {
     const updated = await updateUniversityRecord(id, payload);
-    setUniversities(prev => prev.map(u => u.id === id ? { ...u, ...updated } : u));
+    setUniversities(prev => prev.map(u => u.id === id ? { ...u, ...(updated || {}) } : u));
     return updated;
   };
 
   const removeUniversity = async (id: string, name?: string) => {
-    const target = universities.find(u => u.id === id);
-    const resolvedName = name || target?.name;
-
-    // Instant optimistic update so count and grid update immediately
+    // Optimistic update
     setUniversities(prev => prev.filter(u => {
       if (u.id === id) return false;
-      if (resolvedName && u.name.trim().toLowerCase() === resolvedName.trim().toLowerCase()) return false;
+      if (name && u.name.trim().toLowerCase() === name.trim().toLowerCase()) return false;
       return true;
     }));
-
-    await deleteUniversity(id, resolvedName);
+    await deleteUniversity(id, name);
+    // Re-fetch to sync with actual DB state
+    setTimeout(() => fetchUniversities(true), 300);
   };
 
   const clearAll = async () => {
     setUniversities([]);
     await clearAllUniversities();
-  };
-
-  const resetToDefaults = async () => {
-    setLoading(true);
-    const restored = await restoreDefaultUniversities();
-    setUniversities(restored);
-    setLoading(false);
   };
 
   return {
@@ -108,7 +107,5 @@ export function useUniversities() {
     updateUniversity,
     removeUniversity,
     clearAll,
-    resetToDefaults
   };
 }
-

@@ -3,357 +3,45 @@ import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../types';
 import { generateUUID } from '../../utils/uuid';
 
-export const BASELINE_UNIVERSITIES: University[] = [
-  {
-    id: '22222222-0000-4000-a000-000000000001',
-    name: 'Warsaw University of Technology',
-    country: 'Poland',
-    city: 'Warsaw',
-    logo_url: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=150&auto=format&fit=crop&q=80',
-    image_url: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&auto=format&fit=crop&q=80',
-    badge: 'Premier Technical',
-    category: 'Engineering',
-    description: 'One of the leading technology institutes in Central Europe, ranked top in Poland for engineering & computer science programs taught in English.',
-    ranking: 1,
-    rating: 4.9,
-    programs: ['Computer Science & AI', 'Mechanical Engineering', 'Civil Engineering', 'Applied Cybersecurity'],
-    tuition_range: '€3,200 - €4,500 / yr',
-    is_active: true,
-    intakes: ['October 2026', 'February 2027'],
-    university_fee: '€3,500 / yr',
-    vfs_fee: '₹15,000',
-    agency_fee: '₹25,000',
-    living_cost_monthly: '€350 - €500 / mo',
-    nawa_required: true,
-    installments_enabled: false,
-    course_programs: [
-      { id: 'prog-wut-1', name: 'B.Sc. Computer Science & Information Systems', degree: 'Bachelor', duration: '3.5 Years', tuition_fee: '€3,500 / yr', intake: 'October 2026', language: 'English' },
-      { id: 'prog-wut-2', name: 'M.Sc. Artificial Intelligence & Data Science', degree: 'Master', duration: '2 Years', tuition_fee: '€4,000 / yr', intake: 'October 2026', language: 'English' }
-    ],
-    installments: [
-      { id: 'inst-wut-1', stage: 1, title: 'Tuition Deposit / Seat Confirmation', name: 'Tuition Deposit / Seat Confirmation', percentage: 50, amount: '€1,750', due_stage: 'On Unconditional Offer', due_trigger: 'On Unconditional Offer', verification_requirement: 'SWIFT Transfer Receipt Upload' },
-      { id: 'inst-wut-2', stage: 2, title: 'Balance Semester 1 Tuition', name: 'Balance Semester 1 Tuition', percentage: 50, amount: '€1,750', due_stage: 'Before Visa Stamping', due_trigger: 'Before Visa Stamping', verification_requirement: 'Bank Wire Confirmation' }
-    ]
-  },
-  {
-    id: '22222222-0000-4000-a000-000000000002',
-    name: 'Vistula University',
-    country: 'Poland',
-    city: 'Warsaw',
-    logo_url: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=150&auto=format&fit=crop&q=80',
-    image_url: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80',
-    badge: 'Top International',
-    category: 'Business & IT',
-    description: 'Renowned for global student diversity and business-oriented computer engineering degrees with comprehensive career internship programs.',
-    ranking: 5,
-    rating: 4.8,
-    programs: ['International Business', 'Computer Engineering', 'Graphic Design & Media', 'Finance & Accounting'],
-    tuition_range: '€2,800 - €3,800 / yr',
-    is_active: true,
-    intakes: ['October 2026', 'February 2027'],
-    university_fee: '€3,000 / yr',
-    vfs_fee: '₹15,000',
-    agency_fee: '₹25,000',
-    living_cost_monthly: '€350 - €500 / mo',
-    nawa_required: true,
-    installments_enabled: false,
-    course_programs: [
-      { id: 'prog-vis-1', name: 'B.Sc. Software Development & Web Technologies', degree: 'Bachelor', duration: '3 Years', tuition_fee: '€3,000 / yr', intake: 'October 2026', language: 'English' },
-      { id: 'prog-vis-2', name: 'B.A. International Business Management', degree: 'Bachelor', duration: '3 Years', tuition_fee: '€2,800 / yr', intake: 'October 2026', language: 'English' }
-    ],
-    installments: [
-      { id: 'inst-vis-1', stage: 1, title: 'Full Year 1 Tuition Payment', name: 'Full Year 1 Tuition Payment', percentage: 100, amount: '€3,000', due_stage: 'On Admission Acceptance', due_trigger: 'On Admission Acceptance', verification_requirement: 'SWIFT Transfer Receipt Upload' }
-    ]
-  },
-  {
-    id: '22222222-0000-4000-a000-000000000003',
-    name: 'Technical University of Munich (TUM)',
-    country: 'Germany',
-    city: 'Munich',
-    logo_url: 'https://images.unsplash.com/photo-1562774053-701939374585?w=150&auto=format&fit=crop&q=80',
-    image_url: 'https://images.unsplash.com/photo-1562774053-701939374585?w=800&auto=format&fit=crop&q=80',
-    badge: 'Excellence University',
-    category: 'Technology & Science',
-    description: 'German University of Excellence, globally renowned for cutting-edge engineering, computing, and high employment outcomes.',
-    ranking: 1,
-    rating: 4.95,
-    programs: ['Informatics & Data Engineering', 'Automotive & Mobility', 'Bioengineering', 'Aerospace Engineering'],
-    tuition_range: '€4,000 - €6,000 / yr',
-    is_active: true,
-    intakes: ['October 2026'],
-    university_fee: '€4,500 / yr',
-    vfs_fee: '₹18,000',
-    agency_fee: '₹30,000',
-    living_cost_monthly: '€850 - €1,100 / mo',
-    nawa_required: false,
-    installments_enabled: false,
-    course_programs: [
-      { id: 'prog-tum-1', name: 'M.Sc. Data Engineering and Analytics', degree: 'Master', duration: '2 Years', tuition_fee: '€4,500 / yr', intake: 'October 2026', language: 'English' },
-      { id: 'prog-tum-2', name: 'B.Sc. Management and Data Science', degree: 'Bachelor', duration: '3 Years', tuition_fee: '€4,000 / yr', intake: 'October 2026', language: 'English' }
-    ],
-    installments: [
-      { id: 'inst-tum-1', stage: 1, title: 'Semester 1 Contribution', name: 'Semester 1 Administrative & Tuition Contribution', percentage: 50, amount: '€2,250', due_stage: 'On Unconditional Enrollment', due_trigger: 'On Unconditional Enrollment', verification_requirement: 'University Fee Receipt' },
-      { id: 'inst-tum-2', stage: 2, title: 'Semester 2 Contribution', name: 'Semester 2 Contribution', percentage: 50, amount: '€2,250', due_stage: 'End of Semester 1', due_trigger: 'End of Semester 1', verification_requirement: 'Bank Wire Confirmation' }
-    ]
-  },
-  {
-    id: '22222222-0000-4000-a000-000000000004',
-    name: 'Berlin International University of Applied Sciences',
-    country: 'Germany',
-    city: 'Berlin',
-    logo_url: 'https://images.unsplash.com/photo-1592280771190-3e2e4d571952?w=150&auto=format&fit=crop&q=80',
-    image_url: 'https://images.unsplash.com/photo-1592280771190-3e2e4d571952?w=800&auto=format&fit=crop&q=80',
-    badge: 'Accredited Berlin',
-    category: 'Applied Sciences',
-    description: 'State-accredited institution in Berlin offering 100% English-taught bachelor and master degrees in technology, design, and commerce.',
-    ranking: 12,
-    rating: 4.75,
-    programs: ['Data Science & Business Computing', 'Digital Product Management', 'Interior Architecture', 'International Finance'],
-    tuition_range: '€7,200 - €8,400 / yr',
-    is_active: true,
-    intakes: ['October 2026', 'April 2027'],
-    university_fee: '€7,800 / yr',
-    vfs_fee: '₹18,000',
-    agency_fee: '₹30,000',
-    living_cost_monthly: '€850 - €1,100 / mo',
-    nawa_required: false,
-    installments_enabled: false,
-    course_programs: [
-      { id: 'prog-biu-1', name: 'B.Sc. Data Science and Business Analytics', degree: 'Bachelor', duration: '3 Years', tuition_fee: '€7,800 / yr', intake: 'October 2026', language: 'English' }
-    ],
-    installments: [
-      { id: 'inst-biu-1', stage: 1, title: 'Semester 1 Tuition & Registration Deposit', name: 'Semester 1 Tuition & Registration Deposit', percentage: 50, amount: '€3,900', due_stage: 'On Contract Signing', due_trigger: 'On Contract Signing', verification_requirement: 'SWIFT Transfer Receipt Upload' },
-      { id: 'inst-biu-2', stage: 2, title: 'Semester 2 Tuition Fee', name: 'Semester 2 Tuition Fee', percentage: 50, amount: '€3,900', due_stage: 'Prior to Semester 2 start', due_trigger: 'Prior to Semester 2 start', verification_requirement: 'Bank Wire Confirmation' }
-    ]
-  },
-  {
-    id: '22222222-0000-4000-a000-000000000005',
-    name: 'University of Greenwich',
-    country: 'United Kingdom',
-    city: 'London',
-    logo_url: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=150&auto=format&fit=crop&q=80',
-    image_url: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&auto=format&fit=crop&q=80',
-    badge: 'London Campus',
-    category: 'Technology & Computing',
-    description: 'Historic London campus with state-of-the-art computing facilities, extensive business accreditations, and strong UK graduate route visa support.',
-    ranking: 85,
-    rating: 4.7,
-    programs: ['MSc Big Data & Business Intelligence', 'BSc Computing & Systems', 'MBA International Business'],
-    tuition_range: '£15,500 - £17,500 / yr',
-    is_active: true,
-    intakes: ['September 2026', 'January 2027'],
-    university_fee: '£16,000 / yr',
-    vfs_fee: '₹22,000',
-    agency_fee: '₹35,000',
-    living_cost_monthly: '£1,100 - £1,400 / mo',
-    nawa_required: false,
-    installments_enabled: false,
-    course_programs: [
-      { id: 'prog-grw-1', name: 'MSc Data Science & AI', degree: 'Master', duration: '1 Year', tuition_fee: '£16,000 / yr', intake: 'September 2026', language: 'English' }
-    ],
-    installments: [
-      { id: 'inst-grw-1', stage: 1, title: 'Initial CAS Tuition Deposit', name: 'Initial CAS Tuition Deposit', percentage: 50, amount: '£8,000', due_stage: 'For CAS Issuance', due_trigger: 'For CAS Issuance', verification_requirement: 'CAS Statement with Fee Deposit' },
-      { id: 'inst-grw-2', stage: 2, title: 'Enrollment Balance on Arrival', name: 'Enrollment Balance on Arrival', percentage: 50, amount: '£8,000', due_stage: 'During Campus Enrollment', due_trigger: 'During Campus Enrollment', verification_requirement: 'Campus Finance Receipt' }
-    ]
-  },
-  {
-    id: '22222222-0000-4000-a000-000000000006',
-    name: 'Seneca Polytechnic',
-    country: 'Canada',
-    city: 'Toronto',
-    logo_url: 'https://images.unsplash.com/photo-1517935703635-27c946452f7b?w=150&auto=format&fit=crop&q=80',
-    image_url: 'https://images.unsplash.com/photo-1517935703635-27c946452f7b?w=800&auto=format&fit=crop&q=80',
-    badge: 'Polytechnic Leader',
-    category: 'Applied Technology',
-    description: 'Premier Canadian polytechnic institution in Toronto offering provincial attestation letter (PAL) supported programs with co-op work placements.',
-    ranking: 15,
-    rating: 4.8,
-    programs: ['Computer Programming & Analysis', 'Cloud Architecture Administration', 'Global Supply Chain Management'],
-    tuition_range: 'CAD $16,500 - $19,000 / yr',
-    is_active: true,
-    intakes: ['September 2026', 'January 2027'],
-    university_fee: 'CAD $17,500 / yr',
-    vfs_fee: '₹20,000',
-    agency_fee: '₹35,000',
-    living_cost_monthly: 'CAD $1,200 - $1,600 / mo',
-    nawa_required: false,
-    installments_enabled: false,
-    course_programs: [
-      { id: 'prog-sen-1', name: 'Advanced Diploma in Software Development', degree: 'Diploma', duration: '3 Years', tuition_fee: 'CAD $17,500 / yr', intake: 'September 2026', language: 'English' }
-    ],
-    installments: [
-      { id: 'inst-sen-1', stage: 1, title: 'Year 1 Tuition Deposit for PAL / LOA', name: 'Year 1 Tuition Deposit for PAL / LOA', percentage: 100, amount: 'CAD $17,500', due_stage: 'On Unconditional Offer', due_trigger: 'On Unconditional Offer', verification_requirement: 'Flywire / CIBC Receipt' }
-    ]
-  }
-];
+// ─── NO BASELINE/MOCK DATA ────────────────────────────────────────────────────
+// All universities are managed exclusively via Supabase.
+// The app shows an empty state when the DB is empty or unreachable.
+// ─────────────────────────────────────────────────────────────────────────────
 
 const LOCAL_STORAGE_KEY = 'ferex_universities_cache';
 const MASTER_STORAGE_KEY = 'ferex_custom_universities';
-const DELETED_UNIS_KEY = 'ferex_deleted_universities';
-const PURGED_UNIS_KEY = 'ferex_universities_purged';
-
-export const DEFAULT_CAMPUS_IMAGES = [
-  'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1562774053-701939374585?w=800&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1517935703635-27c946452f7b?w=800&auto=format&fit=crop&q=80'
-];
-
-function getDeletedUniKeys(): Set<string> {
-  try {
-    const raw = localStorage.getItem(DELETED_UNIS_KEY);
-    if (!raw) return new Set();
-    const arr = JSON.parse(raw);
-    return new Set(Array.isArray(arr) ? arr.map((k: string) => String(k).toLowerCase().trim()) : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function addDeletedUniKey(id: string, name?: string) {
-  try {
-    const keys = getDeletedUniKeys();
-    if (id) keys.add(id.toLowerCase().trim());
-    if (name) keys.add(name.toLowerCase().trim());
-    localStorage.setItem(DELETED_UNIS_KEY, JSON.stringify(Array.from(keys)));
-  } catch {}
-}
-
-function removeDeletedUniKey(id: string, name?: string) {
-  try {
-    const keys = getDeletedUniKeys();
-    if (id) keys.delete(id.toLowerCase().trim());
-    if (name) keys.delete(name.toLowerCase().trim());
-    localStorage.setItem(DELETED_UNIS_KEY, JSON.stringify(Array.from(keys)));
-  } catch {}
-}
-
-function isJunkUniversity(u: any): boolean {
-  if (!u || !u.name || typeof u.name !== 'string' || u.name.trim().length === 0) return true;
-  return false;
-}
 
 export async function getUniversities(): Promise<University[]> {
-  const deletedKeys = getDeletedUniKeys();
-  const isPurged = localStorage.getItem(PURGED_UNIS_KEY) === 'true';
-  const uniMap = new Map<string, University>();
-  let hasDbSource = false;
-  let dbReachable = false;
-
-  // 1. SUPABASE DATABASE: Fetch live shared cloud rows (Definitive Source)
+  // ── Primary: Supabase DB (always authoritative) ──────────────────────────
   try {
     const { data, error } = await supabase
       .from('universities')
       .select('*')
+      .eq('is_active', true)
       .order('ranking', { ascending: true });
 
     if (!error && Array.isArray(data)) {
-      // DB responded successfully (even if empty = admin purged all)
-      dbReachable = true;
-      hasDbSource = data.length > 0;
-      data.forEach((u: any) => {
-        if (u && u.name && !isJunkUniversity(u)) {
-          const key = u.name.toLowerCase().trim();
-          uniMap.set(key, u as University);
-        }
-      });
+      // DB is reachable — cache it and return
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+        localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(data));
+      } catch {}
+      return data as University[];
     }
   } catch (err) {
-    console.warn('[getUniversities DB Warning]:', err);
+    console.warn('[getUniversities] DB unreachable, trying local cache:', err);
   }
 
-  // 2. ONLY check system_config backup if DB was unreachable (offline fallback)
-  if (!dbReachable && !isPurged) {
-    try {
-      const { data: cfg, error: cfgErr } = await supabase
-        .from('system_config')
-        .select('value')
-        .eq('key', 'ferex_universities_catalog')
-        .maybeSingle();
+  // ── Fallback: local cache when DB is unreachable (offline) ───────────────
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed as University[];
+    }
+  } catch {}
 
-      if (!cfgErr && cfg?.value && Array.isArray(cfg.value)) {
-        hasDbSource = true;
-        cfg.value.forEach((u: any) => {
-          if (u && u.name && !isJunkUniversity(u)) {
-            const key = u.name.toLowerCase().trim();
-            if (!uniMap.has(key)) {
-              uniMap.set(key, u as University);
-            }
-          }
-        });
-      }
-    } catch {}
-  }
-
-  // 3. Check local cache ONLY if fully offline (DB unreachable, system_config failed)
-  if (!dbReachable && !hasDbSource && !isPurged) {
-    try {
-      const local = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
-      if (local) {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed)) {
-          parsed.forEach((u: any) => {
-            if (u && u.name && !isJunkUniversity(u)) {
-              const key = u.name.toLowerCase().trim();
-              if (!uniMap.has(key)) {
-                uniMap.set(key, u as University);
-              }
-            }
-          });
-        }
-      }
-    } catch {}
-  }
-
-  // 4. Fallback to baseline ONLY on true first-time install when DB is unreachable AND no local data
-  if (uniMap.size === 0 && !isPurged && deletedKeys.size === 0 && !dbReachable && !hasDbSource) {
-    BASELINE_UNIVERSITIES.forEach(u => {
-      uniMap.set(u.name.toLowerCase().trim(), u);
-    });
-  }
-
-  // If DB was reachable but empty (admin cleared all), respect that decision - return empty
-  if (dbReachable && uniMap.size === 0 && isPurged) {
-    return [];
-  }
-
-  // Filter out any explicitly deleted universities
-  const activeList = Array.from(uniMap.values()).filter(u => {
-    if (!u || !u.name) return false;
-    const idKey = (u.id || '').toLowerCase().trim();
-    const nameKey = (u.name || '').toLowerCase().trim();
-    if (deletedKeys.has(idKey) || deletedKeys.has(nameKey)) return false;
-    return true;
-  });
-
-  // Enrich with baseline details only for missing optional presentation fields
-  const enrichedList = activeList.map(u => {
-    const baselineMatch = BASELINE_UNIVERSITIES.find(b => b.name.toLowerCase().trim() === u.name.toLowerCase().trim());
-    return {
-      ...u,
-      image_url: u.image_url || baselineMatch?.image_url || DEFAULT_CAMPUS_IMAGES[0],
-      badge: u.badge || baselineMatch?.badge || 'Accredited Partner',
-      category: u.category || baselineMatch?.category || 'Higher Education',
-      description: u.description || baselineMatch?.description || `${u.name} offers internationally accredited degree programs with global recognition.`,
-      living_cost_monthly: (u.living_cost_monthly && u.living_cost_monthly.trim() !== '') ? u.living_cost_monthly : (baselineMatch?.living_cost_monthly || '€450 - €650 / mo'),
-      nawa_required: u.nawa_required !== undefined ? u.nawa_required : (baselineMatch?.nawa_required ?? (u.country?.toLowerCase() === 'poland')),
-      installments_enabled: u.installments_enabled !== undefined ? u.installments_enabled : (baselineMatch?.installments_enabled ?? false),
-    };
-  });
-
-  // Sort by ranking or name
-  enrichedList.sort((a, b) => (a.ranking || 100) - (b.ranking || 100));
-
-  // Update local cache only when DB was reachable (don't overwrite good cache with stale)
-  if (dbReachable) {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(enrichedList));
-      localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(enrichedList));
-    } catch {}
-  }
-
-  return enrichedList;
+  return [];
 }
 
 export async function createUniversity(payload: {
@@ -384,56 +72,40 @@ export async function createUniversity(payload: {
 }): Promise<University> {
   const newId = generateUUID();
   const trimmedName = payload.name.trim();
-  const targetCountry = payload.country.trim() || 'Poland';
+  const targetCountry = payload.country.trim();
 
-  // Unmark from deleted list if re-added
-  removeDeletedUniKey(newId, trimmedName);
-  try { localStorage.removeItem(PURGED_UNIS_KEY); } catch {}
+  if (!trimmedName) throw new Error('University name is required.');
+  if (!targetCountry) throw new Error('Country is required.');
 
   const fullObject: University = {
     id: newId,
     name: trimmedName,
     country: targetCountry,
-    city: payload.city?.trim() || 'Campus Center',
-    logo_url: payload.logo_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=150&auto=format&fit=crop&q=80',
-    image_url: payload.image_url || DEFAULT_CAMPUS_IMAGES[0],
+    city: payload.city?.trim() || '',
+    logo_url: payload.logo_url || '',
+    image_url: payload.image_url || '',
     badge: payload.badge || 'Accredited Partner',
     category: payload.category || 'Higher Education',
-    description: payload.description || `${trimmedName} offers accredited degree programs with global post-study work opportunities.`,
+    description: payload.description || '',
     ranking: payload.ranking || 100,
     rating: payload.rating || 4.8,
-    programs: payload.programs && payload.programs.length > 0 ? payload.programs : ['Computer Science', 'Business Management'],
-    tuition_range: payload.tuition_range || payload.university_fee || '€3,500 / yr',
+    programs: payload.programs && payload.programs.length > 0 ? payload.programs : [],
+    tuition_range: payload.tuition_range || payload.university_fee || '',
     is_active: true,
-    intakes: payload.intakes && payload.intakes.length > 0 ? payload.intakes : ['October 2026', 'February 2027'],
-    university_fee: payload.university_fee || payload.tuition_range || '€3,500 / yr',
+    intakes: payload.intakes && payload.intakes.length > 0 ? payload.intakes : [],
+    university_fee: payload.university_fee || payload.tuition_range || '',
     tuition_fee_enabled: payload.tuition_fee_enabled !== undefined ? payload.tuition_fee_enabled : true,
-    vfs_fee: payload.vfs_fee || '₹15,000',
-    agency_fee: payload.agency_fee || '₹25,000',
+    vfs_fee: payload.vfs_fee || '',
+    agency_fee: payload.agency_fee || '',
     agency_fee_description: payload.agency_fee_description,
     installments_enabled: payload.installments_enabled ?? false,
-    living_cost_monthly: payload.living_cost_monthly || '€450 - €650 / mo',
-    nawa_required: payload.nawa_required !== undefined ? payload.nawa_required : (targetCountry.toLowerCase() === 'poland'),
-    course_programs: payload.course_programs && payload.course_programs.length > 0 ? payload.course_programs : [
-      { id: generateUUID(), name: 'Bachelor of Science (Honours)', degree: 'Bachelor', duration: '3 Years', tuition_fee: payload.university_fee || '€3,500 / yr', intake: 'October 2026', language: 'English' }
-    ],
+    living_cost_monthly: payload.living_cost_monthly || '',
+    nawa_required: payload.nawa_required !== undefined ? payload.nawa_required : false,
+    course_programs: payload.course_programs || [],
     installments: payload.installments || [],
     semesters: payload.semesters || [],
   };
 
-  // 1. Immediately update local storage
-  let existing: University[] = [];
-  try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
-    if (raw) existing = JSON.parse(raw);
-  } catch {}
-  const updated = [fullObject, ...existing.filter(u => u.id !== newId && u.name.toLowerCase().trim() !== trimmedName.toLowerCase())];
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
-    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(updated));
-  } catch {}
-
-  // 2. Database insert with all available columns & system_config backup
   const dbPayload: any = {
     id: fullObject.id,
     name: fullObject.name,
@@ -453,53 +125,62 @@ export async function createUniversity(payload: {
     tuition_fee_enabled: fullObject.tuition_fee_enabled,
     vfs_fee: fullObject.vfs_fee,
     agency_fee: fullObject.agency_fee,
+    agency_fee_description: fullObject.agency_fee_description,
     living_cost_monthly: fullObject.living_cost_monthly,
     nawa_required: fullObject.nawa_required,
+    installments_enabled: fullObject.installments_enabled,
     course_programs: fullObject.course_programs,
     installments: fullObject.installments,
     semesters: fullObject.semesters,
-    is_active: true
+    is_active: true,
   };
 
+  // ── Write to Supabase (throw on failure so the UI shows real errors) ──────
+  let lastError: any = null;
+
+  // Try admin-authed client first
   try {
-    // Try admin client first (has proper auth), then fall back to anon
-    let insertErr: any = null;
-    try {
-      const admin = await getAdminSupabaseClient();
-      const { error } = await admin.from('universities').insert([dbPayload]);
-      insertErr = error;
-    } catch (e) {
-      insertErr = e;
+    const admin = await getAdminSupabaseClient();
+    const { error } = await admin.from('universities').insert([dbPayload]);
+    if (!error) {
+      lastError = null;
+    } else {
+      lastError = error;
+      console.warn('[createUniversity] Admin insert failed:', error.message);
     }
-
-    if (insertErr) {
-      console.warn('[createUniversity admin Warning]:', insertErr.message || insertErr);
-      const { error: anonErr } = await supabase.from('universities').insert([dbPayload]);
-      if (anonErr) {
-        console.error('[createUniversity FAILED]:', anonErr.message);
-      }
-    }
-
-    // Also update system_config catalog backup with full object
-    try {
-      const admin = await getAdminSupabaseClient();
-      await admin.from('system_config').upsert({
-        key: 'ferex_universities_catalog',
-        value: updated,
-        updated_at: new Date().toISOString()
-      });
-    } catch {
-      try {
-        await supabase.from('system_config').upsert({
-          key: 'ferex_universities_catalog',
-          value: updated,
-          updated_at: new Date().toISOString()
-        });
-      } catch {}
-    }
-  } catch (err) {
-    console.warn('[createUniversity sync Notice]:', err);
+  } catch (e) {
+    lastError = e;
+    console.warn('[createUniversity] Admin client threw:', e);
   }
+
+  // Try anon client if admin failed
+  if (lastError) {
+    try {
+      const { error: anonErr } = await supabase.from('universities').insert([dbPayload]);
+      if (!anonErr) {
+        lastError = null;
+      } else {
+        lastError = anonErr;
+        console.error('[createUniversity] Anon insert also failed:', anonErr.message);
+      }
+    } catch (e) {
+      lastError = e;
+      console.error('[createUniversity] Anon client threw:', e);
+    }
+  }
+
+  if (lastError) {
+    throw new Error(`Failed to save university to database: ${lastError.message || lastError}`);
+  }
+
+  // ── Update local cache to reflect the new DB state ────────────────────────
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
+    const existing: University[] = raw ? JSON.parse(raw) : [];
+    const updated = [fullObject, ...existing.filter(u => u.id !== newId && u.name.toLowerCase().trim() !== trimmedName.toLowerCase())];
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(updated));
+  } catch {}
 
   window.dispatchEvent(new Event('ferex_universities_change'));
   window.dispatchEvent(new Event('ferex_university_change'));
@@ -513,7 +194,7 @@ export async function updateUniversity(id: string, payload: Partial<University>)
     'name', 'country', 'city', 'logo_url', 'image_url', 'badge', 'category', 'description',
     'ranking', 'rating', 'programs', 'tuition_range', 'intakes', 'university_fee', 'tuition_fee_enabled',
     'vfs_fee', 'agency_fee', 'agency_fee_description', 'living_cost_monthly', 'nawa_required',
-    'course_programs', 'installments', 'semesters', 'installments_enabled', 'is_active'
+    'installments_enabled', 'course_programs', 'installments', 'semesters', 'is_active'
   ];
 
   for (const k of allowedCols) {
@@ -522,62 +203,60 @@ export async function updateUniversity(id: string, payload: Partial<University>)
     }
   }
 
-  // 1. Update local immediately
   let updatedObj: University | null = null;
-  let updatedList: University[] = [];
+  let lastError: any = null;
+
+  // Try admin client
   try {
-    let current: University[] = [];
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
-    if (raw) current = JSON.parse(raw);
-    updatedList = current.map(u => {
-      if (u.id === id) {
-        updatedObj = { ...u, ...payload };
-        return updatedObj;
-      }
-      return u;
-    });
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
-    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(updatedList));
-  } catch {}
-
-  // 2. Update Supabase (try admin client first for proper auth)
-  try {
-    let updateErr: any = null;
-    try {
-      const admin = await getAdminSupabaseClient();
-      const { error } = await admin.from('universities').update(dbPayload).eq('id', id);
-      updateErr = error;
-    } catch (e) {
-      updateErr = e;
+    const admin = await getAdminSupabaseClient();
+    const { error } = await admin.from('universities').update(dbPayload).eq('id', id);
+    if (!error) {
+      lastError = null;
+    } else {
+      lastError = error;
+      console.warn('[updateUniversity] Admin update failed:', error.message);
     }
-
-    if (updateErr) {
-      console.warn('[updateUniversity admin Warning]:', updateErr.message || updateErr);
-      const { error: anonErr } = await supabase.from('universities').update(dbPayload).eq('id', id);
-      if (anonErr) console.error('[updateUniversity FAILED]:', anonErr.message);
-    }
-
-    if (updatedList.length > 0) {
-      try {
-        const admin = await getAdminSupabaseClient();
-        await admin.from('system_config').upsert({
-          key: 'ferex_universities_catalog',
-          value: updatedList,
-          updated_at: new Date().toISOString()
-        });
-      } catch {
-        try {
-          await supabase.from('system_config').upsert({
-            key: 'ferex_universities_catalog',
-            value: updatedList,
-            updated_at: new Date().toISOString()
-          });
-        } catch {}
-      }
-    }
-  } catch (err) {
-    console.warn('[updateUniversity DB Warning]:', err);
+  } catch (e) {
+    lastError = e;
+    console.warn('[updateUniversity] Admin client threw:', e);
   }
+
+  // Try anon client
+  if (lastError) {
+    try {
+      const { error: anonErr } = await supabase.from('universities').update(dbPayload).eq('id', id);
+      if (!anonErr) {
+        lastError = null;
+      } else {
+        console.error('[updateUniversity] Anon update also failed:', anonErr.message);
+        lastError = anonErr;
+      }
+    } catch (e) {
+      lastError = e;
+      console.error('[updateUniversity] Anon client threw:', e);
+    }
+  }
+
+  if (lastError) {
+    throw new Error(`Failed to update university: ${lastError.message || lastError}`);
+  }
+
+  // Update local cache
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
+    if (raw) {
+      const current: University[] = JSON.parse(raw);
+      const updated = current.map(u => {
+        if (u.id === id) {
+          updatedObj = { ...u, ...payload };
+          return updatedObj;
+        }
+        return u;
+      });
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+      localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(updated));
+    }
+  } catch {}
 
   window.dispatchEvent(new Event('ferex_universities_change'));
   window.dispatchEvent(new Event('ferex_university_change'));
@@ -586,67 +265,55 @@ export async function updateUniversity(id: string, payload: Partial<University>)
 }
 
 export async function deleteUniversity(id: string, name?: string): Promise<void> {
-  addDeletedUniKey(id, name);
+  let lastError: any = null;
 
-  // 1. Local Storage Remove immediately
-  let filtered: University[] = [];
+  // Try admin client
   try {
-    let current: University[] = [];
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
-    if (raw) current = JSON.parse(raw);
-    filtered = current.filter(u => u.id !== id && (!name || u.name.toLowerCase().trim() !== name.toLowerCase().trim()));
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
-    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(filtered));
-  } catch {}
-
-  // 2. Supabase Delete (try admin client first)
-  try {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    let admin: any;
-    try {
-      admin = await getAdminSupabaseClient();
-    } catch {}
-
-    if (isUuid) {
-      let delErr: any;
-      if (admin) {
-        const { error } = await admin.from('universities').delete().eq('id', id);
-        delErr = error;
-      }
-      if (!admin || delErr) {
-        await supabase.from('universities').delete().eq('id', id);
-      }
+    const admin = await getAdminSupabaseClient();
+    const { error } = await admin.from('universities').delete().eq('id', id);
+    if (!error) {
+      lastError = null;
+    } else {
+      lastError = error;
+      console.warn('[deleteUniversity] Admin delete failed:', error.message);
     }
-    if (name) {
-      let delErr: any;
-      if (admin) {
-        const { error } = await admin.from('universities').delete().ilike('name', name.trim());
-        delErr = error;
-      }
-      if (!admin || delErr) {
-        await supabase.from('universities').delete().ilike('name', name.trim());
-      }
-    }
-
-    try {
-      const adminClient = admin || await getAdminSupabaseClient();
-      await adminClient.from('system_config').upsert({
-        key: 'ferex_universities_catalog',
-        value: filtered,
-        updated_at: new Date().toISOString()
-      });
-    } catch {
-      try {
-        await supabase.from('system_config').upsert({
-          key: 'ferex_universities_catalog',
-          value: filtered,
-          updated_at: new Date().toISOString()
-        });
-      } catch {}
-    }
-  } catch (err) {
-    console.warn('[deleteUniversity DB Warning]:', err);
+  } catch (e) {
+    lastError = e;
+    console.warn('[deleteUniversity] Admin client threw:', e);
   }
+
+  // Try anon client
+  if (lastError) {
+    try {
+      const { error: anonErr } = await supabase.from('universities').delete().eq('id', id);
+      if (!anonErr) {
+        lastError = null;
+      } else {
+        lastError = anonErr;
+        console.error('[deleteUniversity] Anon delete also failed:', anonErr.message);
+      }
+    } catch (e) {
+      lastError = e;
+      console.error('[deleteUniversity] Anon client threw:', e);
+    }
+  }
+
+  if (lastError) {
+    throw new Error(`Failed to delete university from database: ${lastError.message || lastError}`);
+  }
+
+  // Remove from local cache
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
+    if (raw) {
+      const current: University[] = JSON.parse(raw);
+      const filtered = current.filter(u =>
+        u.id !== id && (!name || u.name.toLowerCase().trim() !== name.toLowerCase().trim())
+      );
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
+      localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(filtered));
+    }
+  } catch {}
 
   window.dispatchEvent(new Event('ferex_universities_change'));
   window.dispatchEvent(new Event('ferex_university_change'));
@@ -657,23 +324,13 @@ export const updateUniversityRecord = updateUniversity;
 
 export async function clearAllUniversities(): Promise<void> {
   try {
-    localStorage.setItem(PURGED_UNIS_KEY, 'true');
+    const admin = await getAdminSupabaseClient();
+    await admin.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  } catch {
     try {
       await supabase.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    } catch {
-      try {
-        const admin = await getAdminSupabaseClient();
-        await admin.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      } catch {}
-    }
-    try {
-      await supabase.from('system_config').upsert({
-        key: 'ferex_universities_catalog',
-        value: [],
-        updated_at: new Date().toISOString()
-      });
     } catch {}
-  } catch {}
+  }
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([]));
     localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify([]));
@@ -683,65 +340,7 @@ export async function clearAllUniversities(): Promise<void> {
   window.dispatchEvent(new Event('storage'));
 }
 
+// restoreDefaultUniversities: no-op (no mock data to restore)
 export async function restoreDefaultUniversities(): Promise<University[]> {
-  try {
-    localStorage.removeItem(PURGED_UNIS_KEY);
-    localStorage.removeItem(DELETED_UNIS_KEY);
-  } catch {}
-
-  const sanitized = BASELINE_UNIVERSITIES.map(u => ({
-    id: u.id,
-    name: u.name,
-    country: u.country,
-    city: u.city,
-    logo_url: u.logo_url,
-    image_url: u.image_url,
-    badge: u.badge,
-    category: u.category,
-    description: u.description,
-    ranking: u.ranking,
-    rating: u.rating,
-    programs: u.programs,
-    tuition_range: u.tuition_range,
-    intakes: u.intakes,
-    university_fee: u.university_fee,
-    vfs_fee: u.vfs_fee,
-    agency_fee: u.agency_fee,
-    course_programs: u.course_programs,
-    installments: u.installments,
-    semesters: u.semesters,
-    is_active: true
-  }));
-
-  try {
-    await supabase.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('universities').insert(sanitized);
-    await supabase.from('system_config').upsert({
-      key: 'ferex_universities_catalog',
-      value: BASELINE_UNIVERSITIES,
-      updated_at: new Date().toISOString()
-    });
-  } catch {
-    try {
-      const admin = await getAdminSupabaseClient();
-      await admin.from('universities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await admin.from('universities').insert(sanitized);
-      await admin.from('system_config').upsert({
-        key: 'ferex_universities_catalog',
-        value: BASELINE_UNIVERSITIES,
-        updated_at: new Date().toISOString()
-      });
-    } catch {}
-  }
-
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(BASELINE_UNIVERSITIES));
-    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(BASELINE_UNIVERSITIES));
-  } catch {}
-
-  window.dispatchEvent(new Event('ferex_universities_change'));
-  window.dispatchEvent(new Event('ferex_university_change'));
-  window.dispatchEvent(new Event('storage'));
-  return BASELINE_UNIVERSITIES;
+  return [];
 }
-
