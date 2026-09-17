@@ -1,198 +1,127 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DollarSign, Search, CheckCircle2, Download, Plus, Trash2, X, Eye, Printer, Receipt } from 'lucide-react';
+import { DollarSign, Search, CheckCircle2, Plus, Trash2, X, Eye, Receipt, FileText } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import {
-  getRimiCollections,
-  createRimiCollection,
-  deleteRimiCollection,
+  getRimiPayments,
+  createRimiPayment,
   getRimiCustomers,
-  updateRimiCustomer,
-  type RimiCustomer
+  type RimiPaymentRecord,
+  type RimiCustomerRecord
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { useRimiPermissions } from '../../hooks/usePermissions';
+
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
 
 export const RimiCollections: React.FC = () => {
   const { profile } = useAuth();
-  const { isAdmin, isStaff, isCentral, canViewAllCRM, canDelete } = useRimiPermissions();
+  const isAdmin = RIMI_ADMIN_ROLES.includes(profile?.role || '');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
-  const [collections, setCollections] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<RimiCustomer[]>([]);
+  const [payments, setPayments] = useState<RimiPaymentRecord[]>([]);
+  const [customers, setCustomers] = useState<RimiCustomerRecord[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
+  const [selectedPayment, setSelectedPayment] = useState<RimiPaymentRecord | null>(null);
 
-  const emptyCol = {
-    distributor_id: '',
+  const [newPayment, setNewPayment] = useState({
+    customer_id: '',
     customer_name: '',
-    amount: '' as any,
-    payment_method: 'RTGS / Bank Wire',
-    reference_no: ''
-  };
-  const [newCol, setNewCol] = useState(emptyCol);
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [colData, custList] = await Promise.all([
-        getRimiCollections(),
-        getRimiCustomers()
-      ]);
-      setCustomers(custList || []);
-
-      if (Array.isArray(colData)) {
-        const mapped = colData.map((c: any) => ({
-          id: c.reference_no || (c.id ? `COL-${c.id.slice(0, 4).toUpperCase()}` : 'COL-101'),
-          rawId: c.id,
-          customerId: c.distributor_id || c.customer_id,
-          customer: c.distributor?.business_name || c.customer_name || 'HyperCity Hub',
-          amountRaw: Number(c.amount || 0),
-          amount: `₹${Number(c.amount || 0).toLocaleString('en-IN')}`,
-          mode: c.payment_method || 'RTGS / Bank Wire',
-          date: c.payment_date || new Date().toISOString().split('T')[0],
-          status: 'Settled & Cleared'
-        }));
-        setCollections(mapped);
-      } else {
-        setCollections([]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-
-    const channel = supabase
-      .channel('realtime_rimi_collections')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rimi_payment_collections' }, () => {
-        loadData();
-      })
-      .subscribe();
-
-    const handleLocalChange = () => loadData();
-    window.addEventListener('ferex_rimi_collections_change', handleLocalChange);
-
-    return () => {
-      supabase.removeChannel(channel);
-      window.removeEventListener('ferex_rimi_collections_change', handleLocalChange);
-    };
-  }, [loadData]);
+    amount: 50000,
+    payment_method: 'Bank Transfer',
+    reference_no: '',
+    notes: ''
+  });
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleAddCollection = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const matchedCust = customers.find(c => c.id === newCol.distributor_id || c.business_name === newCol.customer_name);
-    const custName = newCol.customer_name || matchedCust?.business_name || 'Customer';
-    const cleanAmount = Number(newCol.amount) || 100000;
-    const refNo = newCol.reference_no || `REF-${Math.floor(10000 + Math.random() * 90000)}`;
-
-    const newItem = await createRimiCollection({
-      distributor_id: matchedCust?.id || undefined,
-      customer_name: custName,
-      amount: cleanAmount,
-      payment_method: newCol.payment_method,
-      reference_no: refNo
-    });
-
-    // Update customer outstanding balance
-    if (matchedCust) {
-      const remainingBalance = Math.max(0, (matchedCust.outstanding_balance || 0) - cleanAmount);
-      await updateRimiCustomer(matchedCust.id, {
-        outstanding_balance: remainingBalance,
-        payment_status: remainingBalance === 0 ? 'Up to Date' : 'Pending'
-      });
-    }
-
-    // Optimistic add
-    if (newItem) {
-      setCollections(prev => [{
-        id: newItem.reference_no || `COL-${(newItem.id || '').slice(0, 4).toUpperCase()}`,
-        rawId: newItem.id,
-        customerId: matchedCust?.id,
-        customer: custName,
-        amountRaw: cleanAmount,
-        amount: `₹${cleanAmount.toLocaleString('en-IN')}`,
-        mode: newCol.payment_method,
-        date: new Date().toISOString().split('T')[0],
-        status: 'Settled & Cleared'
-      }, ...prev]);
-    }
-    setShowAddModal(false);
-    showToastMsg(`Recorded collection of ₹${cleanAmount.toLocaleString('en-IN')}`);
-    setNewCol(emptyCol);
-  };
-
-  const handleDeleteCollection = async (rawId: string) => {
+  const loadData = useCallback(async () => {
+    setLoading(true);
     try {
-      const success = await deleteRimiCollection(rawId);
-      if (success) {
-        setCollections(prev => prev.filter(c => c.rawId !== rawId && c.id !== rawId));
-        showToastMsg('Removed collection record');
-      } else {
-        showToastMsg('Failed to delete collection');
+      const [payList, custList] = await Promise.all([
+        getRimiPayments(),
+        getRimiCustomers()
+      ]);
+      setPayments(payList);
+      setCustomers(custList);
+
+      if (custList.length > 0 && !newPayment.customer_id) {
+        setNewPayment(prev => ({
+          ...prev,
+          customer_id: custList[0].id,
+          customer_name: custList[0].business_name
+        }));
       }
-    } catch (error) {
-      console.error('[RimiCollections] Delete error:', error);
-      showToastMsg('Error deleting collection');
-      const updated = await getRimiCollections();
-      setCollections(updated);
+    } finally {
+      setLoading(false);
+    }
+  }, [newPayment.customer_id]);
+
+  useEffect(() => {
+    loadData();
+
+    const channel = supabase
+      .channel('realtime_rimi_payments_page')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_payments' }, () => loadData())
+      .subscribe();
+
+    const handleSync = () => loadData();
+    window.addEventListener('ferex_rimi_payments_change', handleSync);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_rimi_payments_change', handleSync);
+    };
+  }, [loadData]);
+
+  const handleAddPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPayment.customer_id || !newPayment.amount) return;
+
+    try {
+      const cust = customers.find(c => c.id === newPayment.customer_id);
+      await createRimiPayment({
+        customer_id: newPayment.customer_id,
+        customer_name: cust?.business_name,
+        amount: Number(newPayment.amount),
+        payment_method: newPayment.payment_method,
+        reference_no: newPayment.reference_no,
+        notes: newPayment.notes,
+        collected_by_name: profile?.full_name || 'Finance Team'
+      });
+
+      setShowAddModal(false);
+      showToastMsg(`Logged payment of ₹${Number(newPayment.amount).toLocaleString('en-IN')}`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Error logging payment: ${err.message || 'Database error'}`);
     }
   };
 
-  const handleExportCSV = () => {
-    const headers = ['UTR Reference,Customer,Payment Method,Date,Amount,Status\n'];
-    const rows = filteredCollections.map(c => `"${c.id}","${c.customer}","${c.mode}","${c.date}","${c.amount}","${c.status}"\n`);
-    const blob = new Blob([...headers, ...rows], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Rimi_Collections_Ledger_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    showToastMsg('Exported Collections Ledger CSV');
-  };
-
-  const filteredCollections = collections.filter(c => {
-    if (!canViewAllCRM) {
-      const myId = profile?.id;
-      const myName = (profile?.full_name || '').toLowerCase();
-      const myEmail = (profile?.email || '').toLowerCase();
-      const matchedCust = customers.find(cust => cust.id === c.customerId || cust.business_name.toLowerCase() === (c.customer || '').toLowerCase());
-      if (matchedCust) {
-        const assignedId = matchedCust.assigned_staff_id;
-        const assignedName = (matchedCust.assigned_staff_name || '').toLowerCase();
-        const isMine = Boolean(
-          (myId && assignedId === myId) ||
-          (myName && assignedName.includes(myName)) ||
-          (myEmail && (assignedName.includes(myEmail.split('@')[0]) || assignedId === myEmail))
-        );
-        if (!isMine) return false;
-      }
-    }
+  const filteredPayments = payments.filter(p => {
+    const s = searchQuery.toLowerCase();
     return (
-      (c.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.customer || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.mode || '').toLowerCase().includes(searchQuery.toLowerCase())
+      p.payment_no.toLowerCase().includes(s) ||
+      p.customer_name.toLowerCase().includes(s) ||
+      (p.reference_no && p.reference_no.toLowerCase().includes(s)) ||
+      p.payment_method.toLowerCase().includes(s)
     );
   });
+
+  const totalCollected = payments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
   return (
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {toast}
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
       </AnimatePresence>
@@ -200,131 +129,176 @@ export const RimiCollections: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-[#58051E]" /> Customer Financial Collections Ledger
+            <DollarSign className="w-5 h-5 text-[#58051E]" /> Payment Collections & Receivables Settlement
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Rimi Cold Chain Console • B2B payment collections, bank wire receipts, settlement vouchers, and downloadable statements.
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">
+            Log incoming customer remittances, credit settlements, and auto-sync ledger balances.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {(isAdmin || isCentral) && (
-            <Button size="sm" variant="outline" className="text-xs font-bold border-slate-200" onClick={handleExportCSV}>
-              <Download className="w-4 h-4 mr-1.5 text-[#58051E]" /> Export CSV
-            </Button>
-          )}
-          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
-            <Plus className="w-4 h-4 mr-1.5" /> Log Payment
+
+        <div className="flex items-center gap-3">
+          <div className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-black text-emerald-800">
+            Total Realized: ₹{totalCollected.toLocaleString('en-IN')}
+          </div>
+          <Button
+            size="sm"
+            onClick={() => setShowAddModal(true)}
+            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" /> Record Collection
           </Button>
         </div>
       </div>
 
-      <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
-        <div className="relative w-full sm:w-80">
+      {/* Filter Bar */}
+      <Card className="p-4 border border-slate-200/80 shadow-xs">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search collection ref, customer, or mode..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search payment reference no, customer business name..."
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+          />
         </div>
-        <span className="text-xs font-bold text-slate-400">{filteredCollections.length} Collection Logs</span>
       </Card>
 
-      {loading ? (
-        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading collections ledger...</div>
-      ) : (
-        <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
-                  <th className="py-3 px-4">Bank Ref & Customer</th>
-                  <th className="py-3 px-4">Payment Method</th>
-                  <th className="py-3 px-4">Settlement Date</th>
-                  <th className="py-3 px-4">Collected Amount (₹)</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Action</th>
+      {/* Collections Table */}
+      <Card className="overflow-hidden border border-slate-200/80 shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-extrabold uppercase text-slate-500 tracking-wider">
+              <tr>
+                <th className="p-3.5">Payment Ref No</th>
+                <th className="p-3.5">Customer / Firm</th>
+                <th className="p-3.5">Amount Collected</th>
+                <th className="p-3.5">Payment Method</th>
+                <th className="p-3.5">Bank / UTR Reference</th>
+                <th className="p-3.5">Settlement Date</th>
+                <th className="p-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-400 font-bold">Loading payment collections...</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                {filteredCollections.map((c) => (
-                  <tr key={c.rawId || c.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                      <div>{c.customer}</div>
-                      <span className="text-[10px] font-bold text-slate-400">{c.id}</span>
-                    </td>
-                    <td className="py-3.5 px-4 font-bold text-slate-800">{c.mode}</td>
-                    <td className="py-3.5 px-4 font-bold text-slate-500">{c.date}</td>
-                    <td className="py-3.5 px-4 font-black text-emerald-700">{c.amount}</td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-200">
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => setSelectedReceipt(c)} className="p-1.5 text-[#58051E] hover:bg-[#58051E]/10 rounded-lg" title="View & Download Receipt Voucher">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        {canDelete && (
-                          <button onClick={() => handleDeleteCollection(c.rawId)} className="p-1.5 text-slate-400 hover:text-red-600 rounded">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+              ) : filteredPayments.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-400 font-semibold">No collection remittances recorded.</td>
+                </tr>
+              ) : (
+                filteredPayments.map(p => (
+                  <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="p-3.5 font-bold text-slate-900">
+                      <div className="flex items-center gap-1.5">
+                        <Receipt className="w-3.5 h-3.5 text-[#58051E]" />
+                        <span>{p.payment_no}</span>
                       </div>
                     </td>
+                    <td className="p-3.5 font-bold text-slate-800">{p.customer_name}</td>
+                    <td className="p-3.5 font-black text-emerald-700 text-sm">
+                      ₹{Number(p.amount).toLocaleString('en-IN')}
+                    </td>
+                    <td className="p-3.5">
+                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[10px]">
+                        {p.payment_method}
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-slate-500 font-mono text-[11px]">{p.reference_no || 'Direct Transfer'}</td>
+                    <td className="p-3.5 text-slate-500">{p.payment_date}</td>
+                    <td className="p-3.5 text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedPayment(p)}
+                        className="text-[11px] font-bold h-7 border-slate-200"
+                      >
+                        <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> View Receipt
+                      </Button>
+                    </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
-      {/* Add Modal */}
+      {/* Record Collection Modal */}
       <AnimatePresence>
         {showAddModal && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900">Log Customer Payment Receipt</h3>
-                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 className="text-base font-black text-slate-900">Record Customer Remittance</h3>
+                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
-              <form onSubmit={handleAddCollection} className="space-y-3">
+
+              <form onSubmit={handleAddPayment} className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Customer Account</label>
-                  {customers.length > 0 ? (
-                    <select value={newCol.distributor_id} onChange={(e) => setNewCol({ ...newCol, distributor_id: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                      <option value="">Select customer account...</option>
-                      {customers.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.business_name} ({c.customer_type} • Bal: ₹{(c.outstanding_balance || 0).toLocaleString('en-IN')})
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input type="text" required value={newCol.customer_name} onChange={(e) => setNewCol({ ...newCol, customer_name: e.target.value })} placeholder="e.g. HyperCity Supermarket" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  )}
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Customer Account *</label>
+                  <select
+                    required
+                    value={newPayment.customer_id}
+                    onChange={(e) => {
+                      const cust = customers.find(c => c.id === e.target.value);
+                      setNewPayment({
+                        ...newPayment,
+                        customer_id: e.target.value,
+                        customer_name: cust?.business_name || ''
+                      });
+                    }}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                  >
+                    {customers.map(c => (
+                      <option key={c.id} value={c.id}>{c.business_name} (Due: ₹{Number(c.outstanding_amount || 0).toLocaleString('en-IN')})</option>
+                    ))}
+                  </select>
                 </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Remittance Amount (₹ INR) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={newPayment.amount}
+                    onChange={(e) => setNewPayment({ ...newPayment, amount: Number(e.target.value) })}
+                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-900 focus:outline-none"
+                  />
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Amount (₹ INR)</label>
-                    <input type="number" required value={newCol.amount} onChange={(e) => setNewCol({ ...newCol, amount: e.target.value as any })} placeholder="e.g. 125000" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Payment Method</label>
-                    <select value={newCol.payment_method} onChange={(e) => setNewCol({ ...newCol, payment_method: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                      <option value="RTGS / Bank Wire">RTGS / Bank Wire</option>
-                      <option value="NEFT Transfer">NEFT Transfer</option>
-                      <option value="Cheque Deposit">Cheque Deposit</option>
-                      <option value="UPI / Instant Wire">UPI / Instant Wire</option>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Payment Mode</label>
+                    <select
+                      value={newPayment.payment_method}
+                      onChange={(e) => setNewPayment({ ...newPayment, payment_method: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    >
+                      <option value="Bank Transfer">Bank Transfer (NEFT/RTGS)</option>
+                      <option value="UPI">UPI / QR Payment</option>
+                      <option value="Cheque">Commercial Cheque</option>
+                      <option value="Cash">Cash Receipt</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">UTR / Cheque Ref</label>
+                    <input
+                      type="text"
+                      value={newPayment.reference_no}
+                      onChange={(e) => setNewPayment({ ...newPayment, reference_no: e.target.value })}
+                      placeholder="e.g. UTR-998822"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Bank Reference # / UTR</label>
-                  <input type="text" required value={newCol.reference_no} onChange={(e) => setNewCol({ ...newCol, reference_no: e.target.value })} placeholder="e.g. UTR-2026-98124" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                </div>
+
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Record Settlement</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save & Settle Ledger</Button>
                 </div>
               </form>
             </motion.div>
@@ -332,62 +306,51 @@ export const RimiCollections: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Receipt Voucher Modal */}
+      {/* Payment Receipt Drawer */}
       <AnimatePresence>
-        {selectedReceipt && (
+        {selectedPayment && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setSelectedReceipt(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-                    <Receipt className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900">Cold Chain B2B Settlement Voucher</h3>
-                    <p className="text-[11px] font-semibold text-slate-500">FEREX RIMI FROZEN FOODS DIVISION</p>
-                  </div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900 z-40" onClick={() => setSelectedPayment(null)} />
+            <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-md bg-white z-50 shadow-2xl p-6 overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Official Remittance Receipt</h3>
+                  <span className="text-[10px] font-bold text-[#58051E]">{selectedPayment.payment_no}</span>
                 </div>
-                <button onClick={() => setSelectedReceipt(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+                <button onClick={() => setSelectedPayment(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-xl space-y-3 text-xs">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[10px] uppercase font-extrabold text-slate-400 block">Received From</span>
-                    <span className="font-black text-slate-900 text-sm">{selectedReceipt.customer}</span>
-                    <span className="text-slate-500 block text-[11px]">Ref / UTR: {selectedReceipt.id}</span>
+              <div className="space-y-4 text-xs">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Customer:</span>
+                    <span className="font-bold text-slate-900">{selectedPayment.customer_name}</span>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] uppercase font-extrabold text-slate-400 block">Settlement Date</span>
-                    <span className="font-bold text-slate-700">{selectedReceipt.date}</span>
-                    <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-800">
-                      Bank Cleared
-                    </span>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Settled Amount:</span>
+                    <span className="font-black text-emerald-700 text-sm">₹{Number(selectedPayment.amount).toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Payment Method:</span>
+                    <span className="font-bold text-slate-800">{selectedPayment.payment_method}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Reference No:</span>
+                    <span className="font-mono font-bold text-slate-700">{selectedPayment.reference_no || 'Direct Credit'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Settlement Date:</span>
+                    <span className="font-semibold text-slate-800">{selectedPayment.payment_date}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Collected By:</span>
+                    <span className="font-semibold text-slate-800">{selectedPayment.collected_by_name || 'Finance Team'}</span>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-200/60 space-y-1.5 text-slate-600">
-                  <div className="flex justify-between">
-                    <span>Payment Channel:</span>
-                    <span className="font-bold text-slate-900">{selectedReceipt.mode}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Verification Facility:</span>
-                    <span className="font-bold text-slate-900">Bhiwandi Central Cold Storage</span>
-                  </div>
-                  <div className="flex justify-between pt-1 border-t border-slate-200/80 font-black text-slate-900 text-sm">
-                    <span>Total Amount Credited:</span>
-                    <span className="text-emerald-700">{selectedReceipt.amount}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 flex gap-2">
-                <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => window.print()}>
-                  <Printer className="w-3.5 h-3.5 mr-1" /> Print / Save PDF
+                <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setSelectedPayment(null)}>
+                  Close Receipt
                 </Button>
-                <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setSelectedReceipt(null)}>Close</Button>
               </div>
             </motion.div>
           </>

@@ -1,53 +1,44 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Warehouse, Search, Thermometer, MapPin, Plus, Trash2, X, CheckCircle2 } from 'lucide-react';
+import { Warehouse, Search, Thermometer, MapPin, Plus, Trash2, X, CheckCircle2, Phone, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { getRimiWarehouses, createRimiWarehouse, deleteRimiWarehouse } from '../../lib/api/rimi';
+import {
+  getRimiWarehouses,
+  createRimiWarehouse,
+  deleteRimiWarehouse,
+  type RimiWarehouseRecord
+} from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
 
 export const RimiWarehouses: React.FC = () => {
+  const { profile } = useAuth();
+  const isAdmin = RIMI_ADMIN_ROLES.includes(profile?.role || '');
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [facilities, setFacilities] = useState<any[]>([]);
+  const [facilities, setFacilities] = useState<RimiWarehouseRecord[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const emptyWh = {
-    code: '',
+  const [newWh, setNewWh] = useState({
     name: '',
-    city: '',
+    city: 'Mumbai',
     address: '',
-    cold_room_temp_celsius: '' as any,
-    total_capacity_pallets: '' as any,
-    utilized_pallets: '' as any,
-    manager_name: ''
-  };
-  const [newWh, setNewWh] = useState(emptyWh);
+    cold_room_temp_celsius: -22.0,
+    total_capacity_pallets: 1000,
+    manager_name: 'Hub Manager',
+    manager_phone: '+91 98200 11223'
+  });
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getRimiWarehouses();
-      if (Array.isArray(data)) {
-        const mapped = data.map((d: any) => {
-          const utilPct = d.total_capacity_pallets > 0 ? Math.round((d.utilized_pallets / d.total_capacity_pallets) * 100) : 75;
-          return {
-            id: d.code || d.id,
-            rawId: d.id,
-            name: d.name,
-            city: d.city,
-            address: d.address || `${d.city} Industrial Zone`,
-            temp: `${d.cold_room_temp_celsius || -22.0}°C`,
-            capacity: `${Number(d.total_capacity_pallets || 1000).toLocaleString()} Pallets (${utilPct}% Used)`,
-            manager: d.manager_name || 'Hub Manager',
-            status: 'Active Frozen'
-          };
-        });
-        setFacilities(mapped);
-      } else {
-        setFacilities([]);
-      }
+      setFacilities(data);
     } finally {
       setLoading(false);
     }
@@ -57,18 +48,16 @@ export const RimiWarehouses: React.FC = () => {
     loadData();
 
     const channel = supabase
-      .channel('realtime_rimi_warehouses')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rimi_warehouses' }, () => {
-        loadData();
-      })
+      .channel('realtime_rimi_warehouses_page')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_warehouses' }, () => loadData())
       .subscribe();
 
-    const handleLocalChange = () => loadData();
-    window.addEventListener('ferex_rimi_warehouses_change', handleLocalChange);
+    const handleSync = () => loadData();
+    window.addEventListener('ferex_rimi_warehouses_change', handleSync);
 
     return () => {
       supabase.removeChannel(channel);
-      window.removeEventListener('ferex_rimi_warehouses_change', handleLocalChange);
+      window.removeEventListener('ferex_rimi_warehouses_change', handleSync);
     };
   }, [loadData]);
 
@@ -80,70 +69,58 @@ export const RimiWarehouses: React.FC = () => {
   const handleAddWarehouse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newWh.name || !newWh.city) return;
-    const cityCode = newWh.city.slice(0, 3).toUpperCase();
-    const newItem = await createRimiWarehouse({
-      code: `WH-${cityCode}-${Math.floor(10 + Math.random() * 90)}`,
-      name: newWh.name,
-      city: newWh.city,
-      address: newWh.address,
-      cold_room_temp_celsius: Number(newWh.cold_room_temp_celsius) || -18.0,
-      total_capacity_pallets: Number(newWh.total_capacity_pallets) || 500,
-      utilized_pallets: Number(newWh.utilized_pallets) || 0,
-      manager_name: newWh.manager_name
-    });
-    // Optimistic update — show immediately without waiting for DB re-fetch
-    if (newItem) {
-      const utilPct = newItem.total_capacity_pallets > 0 ? Math.round((newItem.utilized_pallets / newItem.total_capacity_pallets) * 100) : 0;
-      setFacilities(prev => [{
-        id: newItem.code || newItem.id,
-        rawId: newItem.id,
-        name: newItem.name,
-        city: newItem.city,
-        address: newItem.address || `${newItem.city} Industrial Zone`,
-        temp: `${newItem.cold_room_temp_celsius}°C`,
-        capacity: `${Number(newItem.total_capacity_pallets).toLocaleString()} Pallets (${utilPct}% Used)`,
-        manager: newItem.manager_name || 'Hub Manager',
-        status: 'Active Frozen'
-      }, ...prev]);
-    }
-    setShowAddModal(false);
-    showToastMsg(`Added cold storage facility ${newWh.name}`);
-    setNewWh(emptyWh);
-  };
 
-  const handleDeleteWh = async (rawId: string) => {
     try {
-      // Call API first
-      const success = await deleteRimiWarehouse(rawId);
-      
-      if (success) {
-        // Remove from state after successful delete
-        setFacilities(prev => prev.filter(f => f.rawId !== rawId && f.id !== rawId));
-        showToastMsg('Removed warehouse record');
-      } else {
-        showToastMsg('Failed to delete warehouse');
-      }
-    } catch (error) {
-      console.error('[RimiWarehouses] Delete error:', error);
-      showToastMsg('Error deleting warehouse');
-      // Refetch to ensure UI is in sync
-      const updated = await getRimiWarehouses();
-      setFacilities(updated);
+      await createRimiWarehouse({
+        name: newWh.name,
+        city: newWh.city,
+        address: newWh.address,
+        cold_room_temp_celsius: Number(newWh.cold_room_temp_celsius),
+        total_capacity_pallets: Number(newWh.total_capacity_pallets),
+        manager_name: newWh.manager_name,
+        manager_phone: newWh.manager_phone
+      });
+
+      setShowAddModal(false);
+      showToastMsg(`Added cold storage facility "${newWh.name}"`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Error adding facility: ${err.message || 'Database error'}`);
     }
   };
 
-  const filteredFacilities = facilities.filter(f =>
-    (f.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (f.city || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleDelete = async (id: string, name: string) => {
+    if (!isAdmin) {
+      showToastMsg('Restricted: Only Cold Chain Admin can remove warehouse hubs.');
+      return;
+    }
+    if (!window.confirm(`Delete facility "${name}"?`)) return;
+
+    try {
+      await deleteRimiWarehouse(id);
+      showToastMsg(`Deleted ${name}`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Error deleting facility: ${err.message || 'Database error'}`);
+    }
+  };
+
+  const filteredFacilities = facilities.filter(f => {
+    const s = searchQuery.toLowerCase();
+    return (
+      f.name.toLowerCase().includes(s) ||
+      f.city.toLowerCase().includes(s) ||
+      f.code.toLowerCase().includes(s) ||
+      f.manager_name.toLowerCase().includes(s)
+    );
+  });
 
   return (
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {toast}
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
       </AnimatePresence>
@@ -151,98 +128,179 @@ export const RimiWarehouses: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Warehouse className="w-5 h-5 text-[#58051E]" /> Temperature Controlled Cold Hubs
+            <Warehouse className="w-5 h-5 text-[#58051E]" /> Cold Storage Facilities & Warehouses
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Rimi Cold Chain Console • Live telemetry monitoring, deep freeze storage, and regional hub capacity.
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">
+            Regional cold hubs, real-time temperature logs, and pallet occupancy telemetry.
           </p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewWh(emptyWh); setShowAddModal(true); }}>
-          <Plus className="w-4 h-4 mr-1.5" /> Register Cold Hub
-        </Button>
+
+        {isAdmin && (
+          <Button
+            size="sm"
+            onClick={() => setShowAddModal(true)}
+            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" /> Add Cold Facility
+          </Button>
+        )}
       </div>
 
-      <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
-        <div className="relative w-full sm:w-80">
+      <Card className="p-4 border border-slate-200/80 shadow-xs">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search facility name or city..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search facility name, city, code, manager..."
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+          />
         </div>
-        <span className="text-xs font-bold text-slate-400">{filteredFacilities.length} Cold Facilities</span>
       </Card>
 
+      {/* Facilities Grid */}
       {loading ? (
-        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading cold facilities...</div>
+        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading cold facilities...</div>
+      ) : filteredFacilities.length === 0 ? (
+        <Card className="p-12 text-center text-xs font-semibold text-slate-400 border-dashed">
+          No cold storage facilities registered in database.
+        </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {filteredFacilities.map((w) => (
-            <Card key={w.rawId || w.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-400 uppercase">{w.id}</span>
-                  <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">{w.status}</span>
-                </div>
-                <h3 className="text-base font-black text-slate-900 leading-snug">{w.name}</h3>
-                <p className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-[#58051E]" /> {w.address || w.city}
-                </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredFacilities.map(f => {
+            const utilPct = f.total_capacity_pallets > 0
+              ? Math.round((f.utilized_pallets / f.total_capacity_pallets) * 100)
+              : 0;
 
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1 text-xs">
-                  <div className="flex items-center justify-between font-bold text-slate-800">
-                    <span className="flex items-center gap-1 text-blue-600">
-                      <Thermometer className="w-4 h-4" /> Live Room Temp:
+            return (
+              <Card key={f.id} className="p-5 border border-slate-200/80 shadow-xs space-y-3.5 hover:border-slate-300 transition-all flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-slate-400">{f.code}</span>
+                    <span className="text-[10px] font-mono font-black text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200 flex items-center gap-1">
+                      <Thermometer className="w-3 h-3 text-cyan-600" /> {f.cold_room_temp_celsius}°C Nominal
                     </span>
-                    <span className="text-[#58051E] font-black">{w.temp}</span>
                   </div>
-                  <div className="flex items-center justify-between text-slate-500 font-semibold text-[11px] pt-1">
-                    <span>Pallet Capacity:</span>
-                    <span className="font-bold text-slate-800">{w.capacity}</span>
+
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 leading-snug">{f.name}</h3>
+                    <p className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400" /> {f.city} {f.address ? `• ${f.address}` : ''}
+                    </p>
+                  </div>
+
+                  {/* Occupancy Bar */}
+                  <div className="p-3 bg-slate-50 rounded-xl space-y-1.5 text-xs text-slate-600">
+                    <div className="flex justify-between font-bold text-slate-800">
+                      <span>Pallet Occupancy:</span>
+                      <span>{f.utilized_pallets} / {f.total_capacity_pallets} Pallets ({utilPct}%)</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${utilPct > 85 ? 'bg-rose-600' : 'bg-[#58051E]'}`}
+                        style={{ width: `${Math.min(100, utilPct)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-100">
+                    <span>Manager: {f.manager_name}</span>
+                    <span className="font-semibold text-slate-700">{f.manager_phone}</span>
                   </div>
                 </div>
-              </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
-                <span>Lead: {w.manager}</span>
-                <button onClick={() => handleDeleteWh(w.rawId)} className="p-1 text-slate-400 hover:text-red-600 rounded">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </Card>
-          ))}
+                {isAdmin && (
+                  <div className="pt-2 border-t border-slate-100 flex justify-end">
+                    <button
+                      onClick={() => handleDelete(f.id, f.name)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
+                      title="Delete Facility"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
         </div>
       )}
 
-      {/* Add Modal */}
+      {/* Add Facility Modal */}
       <AnimatePresence>
         {showAddModal && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900">Register Cold Storage Hub</h3>
-                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 className="text-base font-black text-slate-900">Add Cold Storage Facility</h3>
+                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
-              <form onSubmit={handleAddWarehouse} className="space-y-3">
+
+              <form onSubmit={handleAddWarehouse} className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Facility Name</label>
-                  <input type="text" required value={newWh.name} onChange={(e) => setNewWh({ ...newWh, name: e.target.value })} placeholder="e.g. Pune Regional Cold Depot" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Facility Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newWh.name}
+                    onChange={(e) => setNewWh({ ...newWh, name: e.target.value })}
+                    placeholder="e.g. Pune Regional Cold Terminal"
+                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                  />
                 </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">City</label>
-                    <input type="text" required value={newWh.city} onChange={(e) => setNewWh({ ...newWh, city: e.target.value })} placeholder="e.g. Pune" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">City / Location *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newWh.city}
+                      onChange={(e) => setNewWh({ ...newWh, city: e.target.value })}
+                      placeholder="Pune"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Cold Temp (°C)</label>
-                    <input type="number" step="0.1" required value={newWh.cold_room_temp_celsius} onChange={(e) => setNewWh({ ...newWh, cold_room_temp_celsius: e.target.value as any })} placeholder="-18.0" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Cold Room Temp (°C)</label>
+                    <input
+                      type="number"
+                      value={newWh.cold_room_temp_celsius}
+                      onChange={(e) => setNewWh({ ...newWh, cold_room_temp_celsius: Number(e.target.value) })}
+                      placeholder="-22.0"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Facility Manager</label>
-                  <input type="text" required value={newWh.manager_name} onChange={(e) => setNewWh({ ...newWh, manager_name: e.target.value })} placeholder="e.g. Rajesh Sharma" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Pallet Capacity</label>
+                    <input
+                      type="number"
+                      value={newWh.total_capacity_pallets}
+                      onChange={(e) => setNewWh({ ...newWh, total_capacity_pallets: Number(e.target.value) })}
+                      placeholder="1000"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Facility Manager</label>
+                    <input
+                      type="text"
+                      value={newWh.manager_name}
+                      onChange={(e) => setNewWh({ ...newWh, manager_name: e.target.value })}
+                      placeholder="Anand Deshmukh"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
+                  </div>
                 </div>
+
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Register Hub</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Register Facility</Button>
                 </div>
               </form>
             </motion.div>

@@ -95,28 +95,20 @@ import { TradeLoginPage } from './pages/trade/TradeLoginPage';
 import { RimiLayout } from './layouts/RimiLayout';
 import { RimiDashboard } from './pages/rimi/RimiDashboard';
 import { RimiCustomers } from './pages/rimi/RimiCustomers';
-import { RimiDistributors } from './pages/rimi/RimiDistributors';
-import { RimiRetailers } from './pages/rimi/RimiRetailers';
-import { RimiWholesalers } from './pages/rimi/RimiWholesalers';
 import { RimiSalesOrders } from './pages/rimi/RimiSalesOrders';
 import { RimiProducts } from './pages/rimi/RimiProducts';
 import { RimiInventory } from './pages/rimi/RimiInventory';
 import { RimiWarehouses } from './pages/rimi/RimiWarehouses';
-import { RimiBatchTracking } from './pages/rimi/RimiBatchTracking';
-import { RimiExpiryTracking } from './pages/rimi/RimiExpiryTracking';
 import { RimiDeliveries } from './pages/rimi/RimiDeliveries';
 import { RimiCollections } from './pages/rimi/RimiCollections';
 import { RimiVehicles } from './pages/rimi/RimiVehicles';
 import { RimiDeliveryRoutes } from './pages/rimi/RimiDeliveryRoutes';
-import { RimiSalesReports } from './pages/rimi/RimiSalesReports';
-import { RimiInventoryAnalytics } from './pages/rimi/RimiInventoryAnalytics';
-import { RimiRevenueAnalytics } from './pages/rimi/RimiRevenueAnalytics';
+import { RimiAnalytics } from './pages/rimi/RimiAnalytics';
 import { RimiMessages } from './pages/rimi/RimiMessages';
 import { RimiNotifications } from './pages/rimi/RimiNotifications';
 import { RimiProfile } from './pages/rimi/RimiProfile';
 import { RimiSettings } from './pages/rimi/RimiSettings';
 import { RimiTasks } from './pages/rimi/RimiTasks';
-import { RimiStaff } from './pages/rimi/RimiStaff';
 import { RimiLoginPage } from './pages/rimi/RimiLoginPage';
 
 // Digital imports
@@ -403,27 +395,29 @@ function App() {
           {/* ── Rimi Frozen Distribution Routes ── */}
           <Route path="/rimi/dashboard" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDashboard /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/customers" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiCustomers /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/distributors" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDistributors /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/retailers" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiRetailers /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/wholesalers" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiWholesalers /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/distributors" element={<Navigate to="/rimi/customers" replace />} />
+          <Route path="/rimi/retailers" element={<Navigate to="/rimi/customers" replace />} />
+          <Route path="/rimi/wholesalers" element={<Navigate to="/rimi/customers" replace />} />
           <Route path="/rimi/sales-orders" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiSalesOrders /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/products" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProducts /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/inventory" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiInventory /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/warehouses" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiWarehouses /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/batch-tracking" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiBatchTracking /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/expiry-tracking" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiExpiryTracking /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/batch-tracking" element={<Navigate to="/rimi/inventory" replace />} />
+          <Route path="/rimi/expiry-tracking" element={<Navigate to="/rimi/inventory" replace />} />
           <Route path="/rimi/deliveries" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDeliveries /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/collections" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiCollections /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/vehicles" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiVehicles /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/delivery-routes" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDeliveryRoutes /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/sales-reports" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiSalesReports /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/inventory-analytics" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiInventoryAnalytics /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/revenue-analytics" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiRevenueAnalytics /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/analytics" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiAnalytics /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/finance" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiAnalytics /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/sales-reports" element={<Navigate to="/rimi/analytics" replace />} />
+          <Route path="/rimi/inventory-analytics" element={<Navigate to="/rimi/analytics" replace />} />
+          <Route path="/rimi/revenue-analytics" element={<Navigate to="/rimi/analytics" replace />} />
           <Route path="/rimi/messages" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiMessages /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/tasks" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiTasks /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/staff" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiStaff /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/staff" element={<Navigate to="/central/staff" replace />} />
           <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiSettings /></RimiLayout></ProtectedRoute>} />
 
           {/* ── Ferex Digital Routes ── */}

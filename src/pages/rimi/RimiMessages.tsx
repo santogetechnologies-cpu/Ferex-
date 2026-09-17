@@ -76,7 +76,7 @@ export const RimiMessages: React.FC = () => {
             baseContacts.push({
               id: `dist-${dist.id || idx}`,
               name: `${dist.contact_person || 'Procurement'} (${dist.business_name})`,
-              role: `${dist.customer_type || dist.tier || 'Retailer'} Partner • ${dist.region || dist.territory || 'Hub'}`,
+              role: `${dist.customer_type || 'Retailer'} Partner • ${dist.territory || 'Hub'}`,
               type: 'retailer',
               time: 'Recent'
             });
@@ -106,13 +106,13 @@ export const RimiMessages: React.FC = () => {
   }, []);
 
   const loadMessages = useCallback(async () => {
-    const data = await getRimiMessages(activeConvId);
+    const data = await getRimiMessages();
     if (data && data.length > 0) {
       setMessages(data);
     } else {
       setMessages([]);
     }
-  }, [activeConvId]);
+  }, []);
 
   useEffect(() => {
     loadContacts();

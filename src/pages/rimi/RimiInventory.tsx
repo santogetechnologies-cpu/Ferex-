@@ -1,59 +1,66 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Boxes, Search, Plus, Trash2, X, CheckCircle2, Snowflake, AlertTriangle, ArrowRightLeft, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Boxes, Search, Plus, QrCode, Clock, AlertTriangle,
+  Warehouse, Calendar, CheckCircle2, X, Trash2, Edit3,
+  FileCheck, ArrowDownRight, ArrowUpRight, Filter, ShieldCheck, Thermometer
+} from 'lucide-react';
+
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { useAuth } from '../../contexts/AuthContext';
 import {
-  getRimiInventory,
+  getRimiBatches,
+  createRimiBatch,
+  updateRimiBatch,
+  deleteRimiBatch,
   getRimiProducts,
-  createRimiInventoryItem,
-  deleteRimiInventoryItem,
-  getRimiFrostLosses,
-  recordRimiFrostLoss,
-  deleteRimiFrostLoss,
-  getRimiStockAdjustments,
-  recordRimiStockAdjustment,
-  deleteRimiStockAdjustment,
-  type RimiFrostLoss,
-  type RimiStockAdjustment
+  getRimiWarehouses,
+  getRimiStockMovements,
+  type RimiInventoryBatchRecord,
+  type RimiStockMovementRecord,
+  type RimiProductRecord,
+  type RimiWarehouseRecord
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
-import { useRimiPermissions } from '../../hooks/usePermissions';
+
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
 
 export const RimiInventory: React.FC = () => {
-  const { isAdmin, isCentral, canDelete } = useRimiPermissions();
-  const [activeTab, setActiveTab] = useState<'stock' | 'frost_loss' | 'adjustments'>('stock');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [stockItems, setStockItems] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
-  const [frostLosses, setFrostLosses] = useState<RimiFrostLoss[]>([]);
-  const [adjustments, setAdjustments] = useState<RimiStockAdjustment[]>([]);
+  const { profile } = useAuth();
+  const isAdmin = RIMI_ADMIN_ROLES.includes(profile?.role || '');
 
-  // Modals
-  const [showInwardModal, setShowInwardModal] = useState(false);
-  const [showFrostLossModal, setShowFrostLossModal] = useState(false);
-  const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
-  const [toast, setToast] = useState('');
+  const [batches, setBatches] = useState<RimiInventoryBatchRecord[]>([]);
+  const [products, setProducts] = useState<RimiProductRecord[]>([]);
+  const [warehouses, setWarehouses] = useState<RimiWarehouseRecord[]>([]);
+  const [movements, setMovements] = useState<RimiStockMovementRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const emptyInward = {
+  // Filters
+  const [search, setSearch] = useState('');
+  const [expiryTab, setExpiryTab] = useState<'All' | 'Active' | 'Expiring Soon' | 'Critical' | 'Expired'>('All');
+  const [warehouseFilter, setWarehouseFilter] = useState<string>('All');
+  const [categoryFilter, setCategoryFilter] = useState<string>('All');
+
+  // Modals
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedBatchHistory, setSelectedBatchHistory] = useState<RimiInventoryBatchRecord | null>(null);
+  const [toast, setToast] = useState('');
+
+  // Form State
+  const [formData, setFormData] = useState({
     product_id: '',
-    batch_number: '',
-    warehouse_location: '',
-    quantity: '' as any,
+    batch_no: '',
     mfg_date: new Date().toISOString().split('T')[0],
-    expiry_date: '',
-    reserved_qty: 0,
-    low_stock_threshold: 50
-  };
-  const emptyFrostLoss = { product_name: '', batch_number: '', warehouse_location: '', quantity_lost_kg: '' as any, loss_reason: '' as any, estimated_loss_value: '' as any };
-  const emptyAdjustment = { product_name: '', adjustment_type: '' as any, quantity: '' as any, unit: '', source_location: '', target_location: '', reason: '' };
+    expiry_date: new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
+    quantity: 500,
+    warehouse_id: '',
+    storage_temp: '-18°C',
+    certificate_url: '',
+    notes: ''
+  });
 
-  const [newInward, setNewInward] = useState(emptyInward);
-  const [newFrostLoss, setNewFrostLoss] = useState(emptyFrostLoss);
-  const [newAdjustment, setNewAdjustment] = useState(emptyAdjustment);
-
-  const showToastMsg = (msg: string) => {
+  const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
@@ -61,663 +68,441 @@ export const RimiInventory: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [invData, prodData, lossesData, adjData] = await Promise.all([
-        getRimiInventory(),
+      const [batchData, prodData, whData, moveData] = await Promise.all([
+        getRimiBatches(),
         getRimiProducts(),
-        getRimiFrostLosses(),
-        getRimiStockAdjustments()
+        getRimiWarehouses(),
+        getRimiStockMovements()
       ]);
+      setBatches(batchData);
       setProducts(prodData);
-      setFrostLosses(lossesData);
-      setAdjustments(adjData);
+      setWarehouses(whData);
+      setMovements(moveData);
 
-      if (Array.isArray(invData) && invData.length > 0) {
-        const mapped = invData.map((d: any) => {
-          const qtyOnHand = Number(d.quantity_on_hand) || 0;
-          const reservedQty = Number(d.reserved_quantity != null ? d.reserved_quantity : Math.round(qtyOnHand * 0.15));
-          const availableQty = Math.max(0, qtyOnHand - reservedQty);
-          const threshold = Number(d.low_stock_threshold || d.product?.reorder_level || 50);
-          const isLowStock = availableQty <= threshold;
-          const mfgDate = d.mfg_date || (d.expiry_date ? new Date(new Date(d.expiry_date).getTime() - 365 * 86400000).toISOString().split('T')[0] : '2026-01-15');
-
-          return {
-            id: d.id,
-            batchNo: d.batch_number || 'LOT-GEN',
-            productName: d.product?.name || 'Frozen SKU',
-            warehouse: d.warehouse_location || 'Mumbai Central Deep Freeze',
-            quantityNum: qtyOnHand,
-            reservedQty,
-            availableQty,
-            lowStockThreshold: threshold,
-            mfgDate,
-            unitPrice: Number(d.product?.unit_price || 500),
-            quantity: `${availableQty} / ${qtyOnHand} ${d.product?.unit || 'KG'}`,
-            valuation: `₹${(qtyOnHand * Number(d.product?.unit_price || 500)).toLocaleString('en-IN')}`,
-            expiryDate: d.expiry_date,
-            status: !isLowStock ? 'Optimal Stock' : 'Low Stock Reorder',
-            statusBadge: !isLowStock ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
-          };
-        });
-        setStockItems(mapped);
-      } else {
-        setStockItems([]);
+      if (prodData.length > 0 && !formData.product_id) {
+        setFormData(prev => ({
+          ...prev,
+          product_id: prodData[0].id,
+          warehouse_id: whData.length > 0 ? whData[0].id : ''
+        }));
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [formData.product_id]);
 
   useEffect(() => {
     loadData();
 
     const channel = supabase
       .channel('realtime_rimi_inventory')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_inventory' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_inventory_batches' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_stock_movements' }, () => loadData())
       .subscribe();
 
-    const handleLocalChange = () => loadData();
-    window.addEventListener('ferex_rimi_inventory_change', handleLocalChange);
-    window.addEventListener('ferex_rimi_frost_losses_change', handleLocalChange);
-    window.addEventListener('ferex_rimi_stock_adjustments_change', handleLocalChange);
+    const handleSync = () => loadData();
+    window.addEventListener('ferex_rimi_batches_change', handleSync);
+    window.addEventListener('ferex_rimi_movements_change', handleSync);
 
     return () => {
       supabase.removeChannel(channel);
-      window.removeEventListener('ferex_rimi_inventory_change', handleLocalChange);
-      window.removeEventListener('ferex_rimi_frost_losses_change', handleLocalChange);
-      window.removeEventListener('ferex_rimi_stock_adjustments_change', handleLocalChange);
+      window.removeEventListener('ferex_rimi_batches_change', handleSync);
+      window.removeEventListener('ferex_rimi_movements_change', handleSync);
     };
   }, [loadData]);
 
-  // Handle Inward Stock
-  const handleAddInward = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const prodId = newInward.product_id || (products.length > 0 ? products[0].id : 'PROD-01');
-    const matchedProd = products.find(p => p.id === prodId);
-    const qty = Number(newInward.quantity) || 100;
-    const reserved = Number(newInward.reserved_qty) || 0;
-    const threshold = Number(newInward.low_stock_threshold) || 50;
-    const mfg = newInward.mfg_date || new Date().toISOString().split('T')[0];
-    const batchNo = newInward.batch_number || `LOT-2026-${Math.floor(100 + Math.random() * 900)}`;
+    if (!formData.product_id || !formData.quantity) return;
 
-    const created = await createRimiInventoryItem({
-      product_id: prodId,
-      batch_number: batchNo,
-      warehouse_location: newInward.warehouse_location || 'Central Cold Storage',
-      quantity_on_hand: qty,
-      reserved_quantity: reserved,
-      low_stock_threshold: threshold,
-      mfg_date: mfg,
-      expiry_date: newInward.expiry_date || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]
-    });
+    try {
+      const matchedWh = warehouses.find(w => w.id === formData.warehouse_id);
+      const matchedProd = products.find(p => p.id === formData.product_id);
 
-    if (created) {
+      await createRimiBatch({
+        product_id: formData.product_id,
+        product_name: matchedProd?.name,
+        batch_no: formData.batch_no || undefined,
+        mfg_date: formData.mfg_date,
+        expiry_date: formData.expiry_date,
+        quantity: Number(formData.quantity),
+        warehouse_id: formData.warehouse_id || undefined,
+        warehouse_name: matchedWh?.name || 'Cold Storage 1 (Chennai)',
+        storage_temp: formData.storage_temp,
+        certificate_url: formData.certificate_url,
+        notes: formData.notes
+      });
+
+      setShowAddModal(false);
+      showToast(`Created production lot batch for ${matchedProd?.name || 'product'}`);
+      setFormData({
+        product_id: products[0]?.id || '',
+        batch_no: '',
+        mfg_date: new Date().toISOString().split('T')[0],
+        expiry_date: new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
+        quantity: 500,
+        warehouse_id: warehouses[0]?.id || '',
+        storage_temp: '-18°C',
+        certificate_url: '',
+        notes: ''
+      });
       await loadData();
-    }
-
-    setShowInwardModal(false);
-    setNewInward(emptyInward);
-    showToastMsg(`Inwarded stock batch ${batchNo}`);
-  };
-
-  // Handle Frost Loss Incident
-  const handleRecordFrostLoss = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const created = await recordRimiFrostLoss({
-      product_name: newFrostLoss.product_name,
-      batch_number: newFrostLoss.batch_number,
-      warehouse_location: newFrostLoss.warehouse_location,
-      quantity_lost_kg: Number(newFrostLoss.quantity_lost_kg) || 0,
-      loss_reason: newFrostLoss.loss_reason,
-      estimated_loss_value: Number(newFrostLoss.estimated_loss_value) || 0
-    });
-
-    if (created) {
-      setFrostLosses(prev => [created, ...prev]);
-    }
-
-    setShowFrostLossModal(false);
-    showToastMsg(`Recorded frost loss incident for ${newFrostLoss.product_name}`);
-    setNewFrostLoss(emptyFrostLoss);
-  };
-
-  // Handle Stock Adjustment / Transfer
-  const handleRecordAdjustment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const created = await recordRimiStockAdjustment({
-      product_name: newAdjustment.product_name,
-      adjustment_type: newAdjustment.adjustment_type,
-      quantity: Number(newAdjustment.quantity) || 0,
-      unit: newAdjustment.unit,
-      source_location: newAdjustment.source_location,
-      target_location: newAdjustment.target_location,
-      reason: newAdjustment.reason
-    });
-
-    if (created) {
-      setAdjustments(prev => [created, ...prev]);
-    }
-
-    setShowAdjustmentModal(false);
-    showToastMsg(`Stock adjustment recorded successfully!`);
-    setNewAdjustment(emptyAdjustment);
-  };
-
-  const handleDeleteItem = async (id: string) => {
-    try {
-      await deleteRimiInventoryItem(id);
-      setStockItems(prev => prev.filter(s => s.id !== id));
-      showToastMsg('Removed stock record');
     } catch (err: any) {
-      showToastMsg(`Error deleting inventory item: ${err.message || 'Unknown error'}`);
+      showToast(`Error creating batch: ${err.message || 'Database error'}`);
     }
   };
 
-  const handleDeleteFrostLoss = async (id: string) => {
+  const handleDelete = async (id: string, batchNo: string) => {
+    if (!isAdmin) {
+      showToast('Restricted: Only Admin can delete production lot records.');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete lot ${batchNo}?`)) return;
+
     try {
-      await deleteRimiFrostLoss(id);
-      setFrostLosses(prev => prev.filter(f => f.id !== id));
-      showToastMsg('Deleted frost loss record');
+      await deleteRimiBatch(id);
+      showToast(`Deleted ${batchNo}`);
+      await loadData();
     } catch (err: any) {
-      showToastMsg(`Error deleting frost loss: ${err.message || 'Unknown error'}`);
+      showToast(`Error deleting batch: ${err.message || 'Database error'}`);
     }
   };
 
-  const handleDeleteAdjustment = async (id: string) => {
-    try {
-      await deleteRimiStockAdjustment(id);
-      setAdjustments(prev => prev.filter(a => a.id !== id));
-      showToastMsg('Removed stock adjustment record');
-    } catch (err: any) {
-      showToastMsg(`Error deleting adjustment: ${err.message || 'Unknown error'}`);
-    }
-  };
+  const filteredBatches = batches.filter(b => {
+    let matchExpiry = true;
+    if (expiryTab === 'Active') matchExpiry = (b.days_to_expiry || 0) > 30 && b.quantity > 0;
+    if (expiryTab === 'Expiring Soon') matchExpiry = (b.days_to_expiry || 0) > 0 && (b.days_to_expiry || 0) <= 30;
+    if (expiryTab === 'Critical') matchExpiry = (b.days_to_expiry || 0) > 0 && (b.days_to_expiry || 0) <= 7;
+    if (expiryTab === 'Expired') matchExpiry = (b.days_to_expiry || 0) <= 0;
 
-  const handleExportCSV = () => {
-    if (activeTab === 'stock') {
-      const headers = ['Product,Batch,Warehouse,Quantity,Valuation,Expiry,Status\n'];
-      const rows = stockItems.map(s => `"${s.productName}","${s.batchNo}","${s.warehouse}","${s.quantity}","${s.valuation}","${s.expiryDate}","${s.status}"\n`);
-      const blob = new Blob([...headers, ...rows], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Rimi_Cold_Stock_Ledger_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-    } else if (activeTab === 'frost_loss') {
-      const headers = ['ID,Product,Batch,Warehouse,Loss (KG),Reason,Loss Value (INR),Date\n'];
-      const rows = frostLosses.map(f => `"${f.id}","${f.product_name}","${f.batch_number}","${f.warehouse_location}","${f.quantity_lost_kg}","${f.loss_reason}","${f.estimated_loss_value}","${f.recorded_at}"\n`);
-      const blob = new Blob([...headers, ...rows], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Rimi_Frost_Loss_Report_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-    }
-    showToastMsg('Exported CSV report');
-  };
+    const matchWarehouse = warehouseFilter === 'All' || b.warehouse_id === warehouseFilter;
+    const matchCategory = categoryFilter === 'All' || b.product_category === categoryFilter;
 
-  const totalStockValuation = stockItems.reduce((sum, item) => sum + (item.quantityNum * item.unitPrice), 0);
-  const totalFrostLossValuation = frostLosses.reduce((sum, loss) => sum + (Number(loss.estimated_loss_value) || 0), 0);
-  const totalFrostLossKg = frostLosses.reduce((sum, loss) => sum + (Number(loss.quantity_lost_kg) || 0), 0);
+    const s = search.toLowerCase();
+    const matchSearch =
+      b.batch_no.toLowerCase().includes(s) ||
+      b.product_name.toLowerCase().includes(s) ||
+      b.warehouse_name.toLowerCase().includes(s);
 
-  const filteredStock = stockItems.filter(s =>
-    (s.productName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (s.warehouse || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (s.batchNo || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    return matchExpiry && matchWarehouse && matchCategory && matchSearch;
+  });
 
   return (
     <div className="space-y-6 text-left antialiased">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {toast}
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Header & Quick Action Ribbon */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Boxes className="w-5 h-5 text-[#58051E]" /> Cold Storage Inventory & Frost Loss Control
+            <Boxes className="w-5 h-5 text-[#58051E]" /> Unified Cold Inventory & Batch Management
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Rimi Cold Chain ERP • Real-time SKU balances, sub-zero warehouse allocations, shrinkage, and frost loss write-offs.
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">
+            Merged batch tracking, automatic expiry shelf life alerts, and continuous stock audit movements.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="outline" className="text-xs font-bold border-slate-200" onClick={handleExportCSV}>
-            <Download className="w-3.5 h-3.5 mr-1.5 text-[#58051E]" /> Export CSV
-          </Button>
-          {activeTab === 'stock' && (
-            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewInward(emptyInward); setShowInwardModal(true); }}>
-              <Plus className="w-3.5 h-3.5 mr-1.5" /> Inward Stock
-            </Button>
-          )}
-          {activeTab === 'frost_loss' && (isAdmin || isCentral) && (
-            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewFrostLoss(emptyFrostLoss); setShowFrostLossModal(true); }}>
-              <Snowflake className="w-3.5 h-3.5 mr-1.5" /> Log New Frost Loss
-            </Button>
-          )}
-          {activeTab === 'adjustments' && (isAdmin || isCentral) && (
-            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewAdjustment(emptyAdjustment); setShowAdjustmentModal(true); }}>
-              <ArrowRightLeft className="w-3.5 h-3.5 mr-1.5" /> Cold Transfer / Adjust
-            </Button>
-          )}
+
+        <Button
+          size="sm"
+          onClick={() => setShowAddModal(true)}
+          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
+        >
+          <Plus className="w-4 h-4" /> Receive Production Batch
+        </Button>
+      </div>
+
+      {/* Expiry & Status Quick Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {(['All', 'Active', 'Expiring Soon', 'Critical', 'Expired'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setExpiryTab(tab)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              expiryTab === tab
+                ? 'bg-[#58051E] text-white shadow-xs'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            {tab === 'Critical' && <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />}
+            {tab === 'Expiring Soon' && <Clock className="w-3.5 h-3.5" />}
+            <span>{tab === 'All' ? 'All Batches' : tab}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Filter Card */}
+      <Card className="p-4 border border-slate-200/80 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search lot batch number, product name..."
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+          />
         </div>
-      </div>
 
-      {/* KPI Stats Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 border border-slate-200/80 space-y-1">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Total Stock Valuation</span>
-          <span className="text-xl font-black text-slate-900">₹{totalStockValuation.toLocaleString('en-IN')}</span>
-          <span className="text-[10px] font-bold text-slate-500 block">{stockItems.length} Monitored SKU Batches</span>
-        </Card>
-        <Card className="p-4 border border-slate-200/80 space-y-1">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Frost Loss / Shrinkage</span>
-          <span className="text-xl font-black text-rose-600">₹{totalFrostLossValuation.toLocaleString('en-IN')}</span>
-          <span className="text-[10px] font-bold text-rose-500 block">{totalFrostLossKg.toFixed(1)} KG Total Weight Lost</span>
-        </Card>
-        <Card className="p-4 border border-slate-200/80 space-y-1">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Active Cold Rooms</span>
-          <span className="text-xl font-black text-slate-900">4 Facilities</span>
-          <span className="text-[10px] font-bold text-emerald-600 block">-18°C to -24°C Nominal</span>
-        </Card>
-        <Card className="p-4 border border-slate-200/80 space-y-1">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Stock Rebalance Logs</span>
-          <span className="text-xl font-black text-slate-900">{adjustments.length} Logged</span>
-          <span className="text-[10px] font-bold text-blue-600 block">Audited & Reconciled</span>
-        </Card>
-      </div>
-
-      {/* Modern Tab Bar */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
-        <button
-          onClick={() => setActiveTab('stock')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'stock' ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`}
+        <select
+          value={warehouseFilter}
+          onChange={(e) => setWarehouseFilter(e.target.value)}
+          className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
         >
-          Cold Storage Inventory ({stockItems.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('frost_loss')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'frost_loss' ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`}
+          <option value="All">All Cold Storage Warehouses</option>
+          {warehouses.map(w => (
+            <option key={w.id} value={w.id}>{w.name} ({w.city})</option>
+          ))}
+        </select>
+
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
         >
-          Frost Loss Incident Ledger ({frostLosses.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('adjustments')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'adjustments' ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`}
-        >
-          Sub-Zero Transfers ({adjustments.length})
-        </button>
-      </div>
+          <option value="All">All Categories</option>
+          <option value="Frozen Seafood">Frozen Seafood</option>
+          <option value="Frozen Meat & Poultry">Frozen Meat & Poultry</option>
+          <option value="Frozen Vegetables">Frozen Vegetables</option>
+          <option value="Ice Cream & Dairy">Ice Cream & Dairy</option>
+          <option value="Processed Food">Processed Food</option>
+        </select>
+      </Card>
 
-      {/* Tab 1: Stock Batches */}
-      {activeTab === 'stock' && (
-        <div className="space-y-4">
-          <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search SKU, batch code, or warehouse bay..."
-                className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
-              />
-            </div>
-            <span className="text-xs font-bold text-slate-400">{filteredStock.length} Active Lines</span>
-          </Card>
-
-          {loading ? (
-            <div className="p-8 text-center text-xs font-bold text-slate-400">Loading cold chain inventory...</div>
-          ) : filteredStock.length === 0 ? (
-            <Card className="p-12 text-center border border-dashed border-slate-200">
-              <Boxes className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <h3 className="text-sm font-black text-slate-800">No inventory balances recorded</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-                There are no active stock batches inwarded. Record your first batch below.
-              </p>
-              <Button size="sm" className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowInwardModal(true)}>
-                <Plus className="w-3.5 h-3.5 mr-1" /> Inward Stock Batch
-              </Button>
-            </Card>
-          ) : (
-            <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
-                      <th className="py-3 px-4">Product SKU & Batch</th>
-                      <th className="py-3 px-4">Cold Warehouse Bay</th>
-                      <th className="py-3 px-4">Available / Total Qty</th>
-                      <th className="py-3 px-4">Reserved Qty</th>
-                      <th className="py-3 px-4">Mfg & Expiry</th>
-                      <th className="py-3 px-4">Threshold & Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                    {filteredStock.map((s) => (
-                      <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                          <div>{s.productName}</div>
-                          <span className="text-[10px] font-bold text-slate-400">Batch: {s.batchNo}</span>
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-slate-800">{s.warehouse}</td>
-                        <td className="py-3.5 px-4">
-                          <span className="font-black text-slate-900">{s.availableQty} KG</span>
-                          <span className="text-[10px] text-slate-400 block font-normal">Total: {s.quantityNum} KG</span>
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-amber-700">
-                          {s.reservedQty} KG
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="text-slate-700 font-semibold block">Exp: {s.expiryDate}</span>
-                          <span className="text-[10px] text-slate-400 font-medium">Mfg: {s.mfgDate}</span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${s.statusBadge}`}>
-                            {s.status}
-                          </span>
-                          <span className="text-[9px] text-slate-400 block mt-0.5">Threshold: {s.lowStockThreshold} KG</span>
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          {canDelete && (
-                            <button onClick={() => handleDeleteItem(s.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded" title="Delete Stock Batch">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* Tab 2: Frost Loss & Shrinkage */}
-      {activeTab === 'frost_loss' && (
-        <div className="space-y-4">
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-              <div>
-                <h4 className="text-xs font-black text-amber-900">Frost Loss & Freezer Burn Telemetry</h4>
-                <p className="text-[11px] font-semibold text-amber-700">
-                  Tracking inventory write-offs caused by defrost cycle crystallization, package seal breaches, or temperature excursions.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
-                    <th className="py-3 px-4">Loss ID & Product</th>
-                    <th className="py-3 px-4">Batch #</th>
-                    <th className="py-3 px-4">Cold Location</th>
-                    <th className="py-3 px-4">Weight Lost (KG)</th>
-                    <th className="py-3 px-4">Loss Reason</th>
-                    <th className="py-3 px-4">Loss Value (₹)</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                  {frostLosses.map((f) => (
-                    <tr key={f.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                        <div>{f.product_name}</div>
-                        <span className="text-[10px] font-bold text-slate-400">{f.id}</span>
-                      </td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-700">{f.batch_number}</td>
-                      <td className="py-3.5 px-4 font-bold text-slate-800">{f.warehouse_location}</td>
-                      <td className="py-3.5 px-4 font-black text-rose-600">{f.quantity_lost_kg} KG</td>
-                      <td className="py-3.5 px-4 font-bold text-amber-800">{f.loss_reason}</td>
-                      <td className="py-3.5 px-4 font-black text-rose-600">₹{Number(f.estimated_loss_value).toLocaleString('en-IN')}</td>
-                      <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap">
-                          {f.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <button onClick={() => handleDeleteFrostLoss(f.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded">
+      {/* Batches Table */}
+      <Card className="overflow-hidden border border-slate-200/80 shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-extrabold uppercase text-slate-500 tracking-wider">
+              <tr>
+                <th className="p-3.5">Batch / Lot No</th>
+                <th className="p-3.5">Product SKU & Category</th>
+                <th className="p-3.5">Available Stock</th>
+                <th className="p-3.5">Cold Facility & Temp</th>
+                <th className="p-3.5">Mfg & Expiry Dates</th>
+                <th className="p-3.5">Shelf Life Status</th>
+                <th className="p-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-400 font-bold">Loading inventory batches...</td>
+                </tr>
+              ) : filteredBatches.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-400 font-semibold">No lot batches found matching filter.</td>
+                </tr>
+              ) : (
+                filteredBatches.map(b => (
+                  <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="p-3.5 font-bold text-slate-900">
+                      <div className="flex items-center gap-1.5">
+                        <QrCode className="w-3.5 h-3.5 text-[#58051E]" />
+                        <span>{b.batch_no}</span>
+                      </div>
+                    </td>
+                    <td className="p-3.5">
+                      <span className="font-bold text-slate-900 block">{b.product_name}</span>
+                      <span className="text-[10px] text-slate-400">{b.product_category}</span>
+                    </td>
+                    <td className="p-3.5">
+                      <span className="font-black text-slate-900">{b.quantity} {b.unit}</span>
+                      <span className="text-[10px] text-slate-400 block font-normal">Initial: {b.initial_quantity} {b.unit}</span>
+                    </td>
+                    <td className="p-3.5">
+                      <span className="block text-slate-800 font-bold">{b.warehouse_name}</span>
+                      <span className="text-[10px] font-mono text-cyan-800 bg-cyan-50 px-1.5 py-0.2 rounded border border-cyan-200 inline-flex items-center gap-1 mt-0.5">
+                        <Thermometer className="w-2.5 h-2.5" /> {b.storage_temp}
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-[11px]">
+                      <span className="text-slate-400 block">Mfg: {b.mfg_date}</span>
+                      <span className="font-bold text-slate-900 block">Exp: {b.expiry_date}</span>
+                    </td>
+                    <td className="p-3.5">
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                        b.status === 'Active'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : b.status === 'Expiring Soon'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : b.status === 'Expired'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : 'bg-slate-50 text-slate-700 border-slate-200'
+                      }`}>
+                        {b.days_to_expiry! > 0 ? `${b.days_to_expiry} Days Left (${b.status})` : 'EXPIRED'}
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-right space-x-1">
+                      <button
+                        onClick={() => setSelectedBatchHistory(b)}
+                        className="p-1.5 text-slate-400 hover:text-slate-700 rounded cursor-pointer"
+                        title="View Movement Audit Trail"
+                      >
+                        <Clock className="w-4 h-4" />
+                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDelete(b.id, b.batch_no)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
+                          title="Delete Lot"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Tab 3: Stock Adjustments & Transfers */}
-      {activeTab === 'adjustments' && (
-        <div className="space-y-4">
-          <Card className="overflow-hidden border border-slate-200/70 shadow-xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
-                    <th className="py-3 px-4">Adjustment ID & SKU</th>
-                    <th className="py-3 px-4">Adjustment Type</th>
-                    <th className="py-3 px-4">Quantity</th>
-                    <th className="py-3 px-4">Source → Target Location</th>
-                    <th className="py-3 px-4">Reason / Audit Trail</th>
-                    <th className="py-3 px-4">Timestamp</th>
-                    <th className="py-3 px-4 text-right">Action</th>
+                      )}
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                  {adjustments.map((a) => (
-                    <tr key={a.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                        <div>{a.product_name}</div>
-                        <span className="text-[10px] font-bold text-slate-400">{a.id}</span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border bg-blue-50 text-blue-700 border-blue-200">
-                          {a.adjustment_type}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-black text-slate-900">{a.quantity} {a.unit}</td>
-                      <td className="py-3.5 px-4 text-slate-800 font-bold">
-                        {a.source_location} {a.target_location ? `→ ${a.target_location}` : ''}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 font-semibold">{a.reason}</td>
-                      <td className="py-3.5 px-4 font-bold text-slate-400">{new Date(a.timestamp).toLocaleDateString()}</td>
-                      <td className="py-3.5 px-4 text-right">
-                        <button onClick={() => handleDeleteAdjustment(a.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded" title="Delete Adjustment">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </Card>
 
-      {/* Inward Modal */}
+      {/* Add Batch Modal */}
       <AnimatePresence>
-        {showInwardModal && (
+        {showAddModal && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowInwardModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900">Inward Cold Storage Stock Batch</h3>
-                <button onClick={() => setShowInwardModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <h3 className="text-base font-black text-slate-900">Receive Production Lot Batch</h3>
+                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
-              <form onSubmit={handleAddInward} className="space-y-3">
+
+              <form onSubmit={handleCreate} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Target Product SKU</label>
-                  <select value={newInward.product_id} onChange={(e) => setNewInward({ ...newInward, product_id: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Product SKU *</label>
+                  <select
+                    required
+                    value={formData.product_id}
+                    onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                  >
                     {products.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
+                      <option key={p.id} value={p.id}>[{p.sku}] {p.name} ({p.category})</option>
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Batch / Lot Code</label>
-                  <input type="text" required value={newInward.batch_number} onChange={(e) => setNewInward({ ...newInward, batch_number: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Mfg Date</label>
-                    <input type="date" required value={newInward.mfg_date} onChange={(e) => setNewInward({ ...newInward, mfg_date: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Expiry Date</label>
-                    <input type="date" required value={newInward.expiry_date} onChange={(e) => setNewInward({ ...newInward, expiry_date: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Quantity (Total KG)</label>
-                    <input type="number" required value={newInward.quantity} onChange={(e) => setNewInward({ ...newInward, quantity: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Reserved Qty (KG)</label>
-                    <input type="number" value={newInward.reserved_qty} onChange={(e) => setNewInward({ ...newInward, reserved_qty: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Warehouse Location</label>
-                    <input type="text" required value={newInward.warehouse_location} onChange={(e) => setNewInward({ ...newInward, warehouse_location: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Low Stock Alert (KG)</label>
-                    <input type="number" value={newInward.low_stock_threshold} onChange={(e) => setNewInward({ ...newInward, low_stock_threshold: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  </div>
-                </div>
-                <div className="pt-3 flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowInwardModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Inward Stock</Button>
-                </div>
-              </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
-      {/* Frost Loss Modal */}
-      <AnimatePresence>
-        {showFrostLossModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowFrostLossModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900">Record Frost Loss Incident</h3>
-                <button onClick={() => setShowFrostLossModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-              </div>
-              <form onSubmit={handleRecordFrostLoss} className="space-y-3">
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Product Name</label>
-                  <input type="text" required value={newFrostLoss.product_name} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, product_name: e.target.value })} placeholder="e.g. Norwegian Atlantic Salmon Fillets" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Batch #</label>
-                    <input type="text" required value={newFrostLoss.batch_number} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, batch_number: e.target.value })} placeholder="e.g. LOT-SAL-8821" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Batch / Lot No (Optional)</label>
+                    <input
+                      type="text"
+                      value={formData.batch_no}
+                      onChange={(e) => setFormData({ ...formData, batch_no: e.target.value })}
+                      placeholder="Auto-generated if blank"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Weight Lost (KG)</label>
-                    <input type="number" required value={newFrostLoss.quantity_lost_kg} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, quantity_lost_kg: e.target.value as any })} placeholder="e.g. 15" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Initial Quantity (KG/Boxes) *</label>
+                    <input
+                      type="number"
+                      required
+                      value={formData.quantity}
+                      onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Loss Reason</label>
-                  <select value={newFrostLoss.loss_reason} onChange={(e: any) => setNewFrostLoss({ ...newFrostLoss, loss_reason: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                    <option value="Freezer Burn">Freezer Burn</option>
-                    <option value="Defrost Cycle Damage">Defrost Cycle Damage</option>
-                    <option value="Packaging Seal Rupture">Packaging Seal Rupture</option>
-                    <option value="Temperature Excursion">Temperature Excursion</option>
-                    <option value="Transit Thaw">Transit Thaw</option>
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Cold Bay / Location</label>
-                    <input type="text" required value={newFrostLoss.warehouse_location} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, warehouse_location: e.target.value })} placeholder="e.g. Mumbai Bay 4" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Estimated Loss (₹ INR)</label>
-                    <input type="number" required value={newFrostLoss.estimated_loss_value} onChange={(e) => setNewFrostLoss({ ...newFrostLoss, estimated_loss_value: e.target.value as any })} placeholder="e.g. 18750" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  </div>
-                </div>
-                <div className="pt-3 flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowFrostLossModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Log Incident</Button>
-                </div>
-              </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
-      {/* Adjustment Modal */}
-      <AnimatePresence>
-        {showAdjustmentModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowAdjustmentModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900">Cold Storage Stock Adjustment / Transfer</h3>
-                <button onClick={() => setShowAdjustmentModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-              </div>
-              <form onSubmit={handleRecordAdjustment} className="space-y-3">
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Product Name</label>
-                  <input type="text" required value={newAdjustment.product_name} onChange={(e) => setNewAdjustment({ ...newAdjustment, product_name: e.target.value })} placeholder="e.g. King Tiger Prawns (500g)" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Adjustment Type</label>
-                    <select value={newAdjustment.adjustment_type} onChange={(e: any) => setNewAdjustment({ ...newAdjustment, adjustment_type: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                      <option value="Inter-Warehouse Transfer">Inter-Warehouse Transfer</option>
-                      <option value="Inward Addition">Inward Addition</option>
-                      <option value="Frost Loss Deduction">Frost Loss Deduction</option>
-                      <option value="Cycle Count Audit">Cycle Count Audit</option>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Manufacturing Date</label>
+                    <input
+                      type="date"
+                      value={formData.mfg_date}
+                      onChange={(e) => setFormData({ ...formData, mfg_date: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Expiry Date *</label>
+                    <input
+                      type="date"
+                      required
+                      value={formData.expiry_date}
+                      onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Cold Storage Facility</label>
+                    <select
+                      value={formData.warehouse_id}
+                      onChange={(e) => setFormData({ ...formData, warehouse_id: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    >
+                      {warehouses.map(w => (
+                        <option key={w.id} value={w.id}>{w.name} ({w.city})</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Quantity</label>
-                    <input type="number" required value={newAdjustment.quantity} onChange={(e) => setNewAdjustment({ ...newAdjustment, quantity: e.target.value as any })} placeholder="e.g. 50" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Storage Temperature</label>
+                    <input
+                      type="text"
+                      value={formData.storage_temp}
+                      onChange={(e) => setFormData({ ...formData, storage_temp: e.target.value })}
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Source Location</label>
-                    <input type="text" required value={newAdjustment.source_location} onChange={(e) => setNewAdjustment({ ...newAdjustment, source_location: e.target.value })} placeholder="e.g. Mumbai Deep Freeze" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Target Location</label>
-                    <input type="text" value={newAdjustment.target_location} onChange={(e) => setNewAdjustment({ ...newAdjustment, target_location: e.target.value })} placeholder="e.g. Pune Regional Depot" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Reason / Notes</label>
-                  <input type="text" required value={newAdjustment.reason} onChange={(e) => setNewAdjustment({ ...newAdjustment, reason: e.target.value })} placeholder="e.g. Rebalancing cold stocks for weekend surge" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                </div>
+
                 <div className="pt-3 flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAdjustmentModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Execute Adjustment</Button>
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Lot Batch</Button>
                 </div>
               </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Movement Audit Trail Drawer */}
+      <AnimatePresence>
+        {selectedBatchHistory && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900 z-40" onClick={() => setSelectedBatchHistory(null)} />
+            <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-md bg-white z-50 shadow-2xl p-6 overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Stock Movements History</h3>
+                  <span className="text-[10px] font-bold text-[#58051E]">{selectedBatchHistory.batch_no}</span>
+                </div>
+                <button onClick={() => setSelectedBatchHistory(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-4 h-4" /></button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                {movements.filter(m => m.batch_id === selectedBatchHistory.id).length === 0 ? (
+                  <div className="p-4 text-center text-slate-400 bg-slate-50 rounded-xl">No dispatch movements recorded yet</div>
+                ) : (
+                  movements.filter(m => m.batch_id === selectedBatchHistory.id).map(m => (
+                    <div key={m.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="font-extrabold text-slate-900">{m.movement_type}</span>
+                        <span className={`font-black ${m.quantity_change < 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                          {m.quantity_change > 0 ? `+${m.quantity_change}` : m.quantity_change}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">{m.notes}</p>
+                      <span className="text-[9px] text-slate-400 block pt-0.5">
+                        Balance after: {m.resulting_quantity} • By: {m.performed_by} • {new Date(m.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
             </motion.div>
           </>
         )}

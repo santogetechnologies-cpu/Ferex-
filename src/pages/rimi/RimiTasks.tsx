@@ -89,9 +89,9 @@ export const RimiTasks: React.FC = () => {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
-        t.title.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        t.assigned_to_name.toLowerCase().includes(q)
+        (t.title || '').toLowerCase().includes(q) ||
+        (t.description || '').toLowerCase().includes(q) ||
+        (t.assigned_to_name || '').toLowerCase().includes(q)
       );
     }
     return true;
@@ -333,7 +333,7 @@ export const RimiTasks: React.FC = () => {
                   <button
                     onClick={() => {
                       setReassigningTask(t);
-                      setSelectedNewStaff(t.assigned_to_name);
+                      setSelectedNewStaff(t.assigned_to_name || staffList[0]?.name || '');
                     }}
                     className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer"
                   >

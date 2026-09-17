@@ -1,507 +1,423 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ShoppingCart, Package, Truck, DollarSign,
-  ArrowUpRight, Thermometer, Boxes, Megaphone,
-  Users, CheckCircle2, Clock, AlertCircle, RefreshCw,
-  Building2, Phone, Calendar, ArrowRight
+  Snowflake, Users, Store, Building2, ShoppingCart,
+  Boxes, Warehouse, Truck, DollarSign,
+  Clock, AlertTriangle, CheckCircle2,
+  ArrowRight, ShieldCheck, Activity, Package
 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+
 import { Card } from '../../components/Card';
-import {
-  getRimiDashboardStats,
-  getRimiSalesOrders,
-  getRimiWarehouses,
-  getRimiVehicles,
-  getRimiCustomers,
-  getRimiTasks,
-  type RimiCustomer,
-  type RimiSalesOrder
-} from '../../lib/api/rimi';
-import { useRimiConfig } from '../../hooks/useRimiConfig';
+import { Button } from '../../components/Button';
 import { useAuth } from '../../contexts/AuthContext';
-import { useRimiPermissions } from '../../hooks/usePermissions';
+import {
+  getRimiDashboardMetrics,
+  type RimiDashboardMetrics
+} from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
+
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
 
 export const RimiDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { config } = useRimiConfig();
   const { profile } = useAuth();
-  const { isAdmin, isStaff } = useRimiPermissions();
-
-  const userName = profile?.full_name?.split(' ')[0] || '';
-  const greeting = (() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  })();
-  const roleTitle = isAdmin ? 'Cold Chain Manager' : 'Operations Specialist';
-  const displayName = userName ? `${greeting}, ${userName}` : `${greeting}, ${roleTitle}`;
-
-  // Migration banner state
-  const [showMigrationBanner, setShowMigrationBanner] = useState(() => {
-    return localStorage.getItem('ferex_rimi_migrated_v2') !== 'true';
-  });
-
-  // Admin Data State
-  const [stats, setStats] = useState({
-    activeOrdersCount: 0,
-    totalOrdersCount: 0,
-    totalRevenueAmount: 0,
-    totalRevenueStr: '₹0',
-    totalCollectedAmount: 0,
-    totalCollectedStr: '₹0',
-    totalOutstandingStr: '₹0',
-    totalProductsCount: 0,
-  });
-  const [recentOrders, setRecentOrders] = useState<RimiSalesOrder[]>([]);
-  const [warehouses, setWarehouses] = useState<any[]>([]);
-  const [vehicles, setVehicles] = useState<any[]>([]);
-
-  // Staff Data State (Zero leakage from other staff)
-  const [myCustomers, setMyCustomers] = useState<RimiCustomer[]>([]);
-  const [myOrders, setMyOrders] = useState<RimiSalesOrder[]>([]);
-  const [myTasks, setMyTasks] = useState<any[]>([]);
+  const isAdmin = RIMI_ADMIN_ROLES.includes(profile?.role || '');
 
   const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState<RimiDashboardMetrics>({
+    totalCustomers: 0,
+    activeDistributors: 0,
+    activeShops: 0,
+    activeWholesalers: 0,
+    ordersToday: 0,
+    pendingDeliveries: 0,
+    outstandingPayments: 0,
+    lowStockCount: 0,
+    expiringBatchesCount: 0,
+    totalStorageCapacity: 0,
+    utilizedStorageCapacity: 0,
+    storageUtilizationPercentage: 0,
+    recentOrders: [],
+    recentActivities: [],
+    warehouses: []
+  });
 
-  const handleClearCache = () => {
-    localStorage.removeItem('ferex_rimi_crm_customers');
-    localStorage.removeItem('ferex_rimi_sales_orders');
-    localStorage.removeItem('ferex_rimi_payments');
-    localStorage.setItem('ferex_rimi_migrated_v2', 'true');
-    setShowMigrationBanner(false);
-    window.location.reload();
-  };
-
-  const loadData = useCallback(async () => {
+  const loadDashboard = useCallback(async () => {
     setLoading(true);
     try {
-      const staffIdentifier = profile?.id || profile?.full_name || '';
-
-      if (isAdmin) {
-        const [dashStats, ordersData, whData, vData] = await Promise.all([
-          getRimiDashboardStats(),
-          getRimiSalesOrders(),
-          getRimiWarehouses(),
-          getRimiVehicles(),
-        ]);
-        setStats(dashStats);
-        setRecentOrders(ordersData.slice(0, 5));
-        setWarehouses(whData);
-        setVehicles(vData);
-      } else {
-        // Staff Workspace: Strictly load only own assigned accounts
-        const [allCusts, allOrders, allTasks] = await Promise.all([
-          getRimiCustomers({ staffOnlyId: staffIdentifier }),
-          getRimiSalesOrders({ staffOnlyId: staffIdentifier }),
-          getRimiTasks(),
-        ]);
-
-        const assignedCusts = (allCusts || []).filter(
-          c => c.assigned_staff_id === profile?.id || c.assigned_staff_name === profile?.full_name || !c.assigned_staff_id
-        );
-        const assignedOrders = (allOrders || []).filter(
-          o => o.assigned_staff_id === profile?.id || o.assigned_staff_name === profile?.full_name
-        );
-        const assignedTasks = (allTasks || []).filter(
-          t => t.assigned_to_name === profile?.full_name || t.assigned_to_id === profile?.id
-        );
-
-        setMyCustomers(assignedCusts);
-        setMyOrders(assignedOrders);
-        setMyTasks(assignedTasks);
-      }
+      const staffEmail = !isAdmin ? profile?.email : undefined;
+      const data = await getRimiDashboardMetrics(staffEmail);
+      setMetrics(data);
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, profile]);
+  }, [isAdmin, profile?.email]);
 
   useEffect(() => {
-    loadData();
+    loadDashboard();
 
     const channel = supabase
       .channel('realtime_rimi_dashboard')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_sales_orders' }, () => loadData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_products' }, () => loadData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_customers' }, () => loadData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_payments' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_customers' }, () => loadDashboard())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_sales_orders' }, () => loadDashboard())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_inventory_batches' }, () => loadDashboard())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_deliveries' }, () => loadDashboard())
       .subscribe();
 
-    const handleLocalChange = () => loadData();
-    window.addEventListener('ferex_rimi_sales_orders_change', handleLocalChange);
-    window.addEventListener('ferex_rimi_crm_customers_change', handleLocalChange);
-    window.addEventListener('ferex_rimi_products_change', handleLocalChange);
-    window.addEventListener('ferex_rimi_collections_change', handleLocalChange);
+    const handleLocalSync = () => loadDashboard();
+    window.addEventListener('ferex_rimi_customers_change', handleLocalSync);
+    window.addEventListener('ferex_rimi_orders_change', handleLocalSync);
+    window.addEventListener('ferex_rimi_batches_change', handleLocalSync);
+    window.addEventListener('ferex_rimi_deliveries_change', handleLocalSync);
+    window.addEventListener('ferex_rimi_payments_change', handleLocalSync);
 
     return () => {
       supabase.removeChannel(channel);
-      window.removeEventListener('ferex_rimi_sales_orders_change', handleLocalChange);
-      window.removeEventListener('ferex_rimi_crm_customers_change', handleLocalChange);
-      window.removeEventListener('ferex_rimi_products_change', handleLocalChange);
-      window.removeEventListener('ferex_rimi_collections_change', handleLocalChange);
+      window.removeEventListener('ferex_rimi_customers_change', handleLocalSync);
+      window.removeEventListener('ferex_rimi_orders_change', handleLocalSync);
+      window.removeEventListener('ferex_rimi_batches_change', handleLocalSync);
+      window.removeEventListener('ferex_rimi_deliveries_change', handleLocalSync);
+      window.removeEventListener('ferex_rimi_payments_change', handleLocalSync);
     };
-  }, [loadData]);
-
-  // Staff KPI calculations
-  const myPendingOrders = myOrders.filter(o => o.order_status !== 'Delivered' && o.order_status !== 'Invoiced');
-  const myTotalCollectionsDue = myCustomers.reduce((acc, c) => acc + (c.outstanding_balance || 0), 0);
+  }, [loadDashboard]);
 
   return (
     <div className="space-y-6 text-left antialiased">
-      {/* Migration Notice Banner */}
-      {showMigrationBanner && (
-        <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <RefreshCw className="w-5 h-5 text-amber-600 shrink-0" />
-            <div>
-              <span className="font-black text-amber-950">Database-Driven CRM Active: </span>
-              <span className="text-amber-800 font-semibold">
-                To guarantee zero mock seeds and synchronize real database accounts, clear your browser demo cache.
-              </span>
-            </div>
+      {/* Top Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-md bg-[#58051E]/10 text-[#58051E] text-[10px] font-black uppercase tracking-wider">
+              {isAdmin ? 'Cold Chain Operations Central' : 'Operations Staff Dashboard'}
+            </span>
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Telemetry
+            </span>
           </div>
-          <button
-            onClick={handleClearCache}
-            className="px-3.5 py-1.5 rounded-lg bg-amber-600 text-white font-bold hover:bg-amber-700 transition-colors shrink-0 cursor-pointer text-xs"
-          >
-            Clear Demo Cache
-          </button>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight mt-1 flex items-center gap-2">
+            <Snowflake className="w-5 h-5 text-cyan-600" /> RIMI Frozen Foods Distribution Console
+          </h1>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">
+            Real-time cold storage inventory telemetry, unified customer CRM, and fleet logistics.
+          </p>
         </div>
-      )}
 
-      {/* FMCG Cold Chain Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#3B0B16] text-white p-6 md:p-8 shadow-xl border border-[#58051E]/30">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] uppercase font-black tracking-widest bg-white/15 px-3 py-1 rounded-full border border-white/20 text-white">
-                {isAdmin ? 'Executive Cold Chain Director' : 'Field Operations Desk'}
-              </span>
-              <span className="text-[10px] font-extrabold text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-400/30 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Supabase Realtime Active
-              </span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
-              {displayName}
-            </h1>
-            <p className="text-xs md:text-sm text-white/85 leading-relaxed font-semibold">
-              {isAdmin
-                ? (config.branding?.tagline || 'Managing regional frozen food logistics, supermarket reefer supply chains, temperature-controlled warehouses, and batch expiration telemetry.')
-                : 'Your dedicated operations workspace. Review assigned customer accounts, pending delivery orders, and today’s collection schedules.'}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
-            {isAdmin ? (
-              <>
-                <button
-                  onClick={() => navigate('/rimi/sales-orders')}
-                  className="h-10 px-5 rounded-xl text-xs font-black text-[#58051E] bg-white hover:bg-slate-100 transition-all shadow-md flex items-center gap-2 cursor-pointer"
-                >
-                  Dispatch New Sales Order <ArrowUpRight className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => navigate('/rimi/staff')}
-                  className="h-10 px-5 rounded-xl text-xs font-black text-white bg-white/15 hover:bg-white/25 border border-white/30 transition-all shadow-xs cursor-pointer"
-                >
-                  Manage Operations Staff
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => navigate('/rimi/customers')}
-                  className="h-10 px-5 rounded-xl text-xs font-black text-[#58051E] bg-white hover:bg-slate-100 transition-all shadow-md flex items-center gap-2 cursor-pointer"
-                >
-                  My Customers <ArrowRight className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => navigate('/rimi/collections')}
-                  className="h-10 px-5 rounded-xl text-xs font-black text-white bg-white/15 hover:bg-white/25 border border-white/30 transition-all shadow-xs cursor-pointer"
-                >
-                  Record Payment Collection
-                </button>
-              </>
-            )}
-          </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigate('/rimi/inventory')}
+            className="text-xs font-bold border-slate-200 hover:border-slate-300"
+          >
+            <Boxes className="w-3.5 h-3.5 mr-1 text-[#58051E]" /> Batches & Expiry
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => navigate('/rimi/sales-orders')}
+            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs"
+          >
+            <ShoppingCart className="w-3.5 h-3.5 mr-1" /> New Sales Order
+          </Button>
         </div>
       </div>
 
-      {/* ─── ROLE-SPLIT WORKSPACE ─── */}
-      {isAdmin ? (
-        /* ════════════════════ ADMIN VIEW ════════════════════ */
-        <>
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { title: 'Total Sales Revenue', value: stats.totalRevenueStr, sub: `${stats.totalOrdersCount} Total Orders Dispatched`, icon: DollarSign, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', badge: 'Live Ledger', path: '/rimi/sales-orders' },
-              { title: 'Total Collected', value: stats.totalCollectedStr, sub: `Outstanding: ${stats.totalOutstandingStr}`, icon: ShoppingCart, color: 'text-[#58051E] bg-[#58051E]/10 border-[#58051E]/20', badge: 'Settled', path: '/rimi/collections' },
-              { title: 'Catalog SKUs', value: `${stats.totalProductsCount} Products`, sub: 'Frozen Seafood, Meats, Dairy', icon: Boxes, color: 'text-blue-600 bg-blue-50 border-blue-100', badge: 'Master Catalog', path: '/rimi/products' },
-              { title: 'Reefer Fleet', value: `${vehicles.length} Trucks`, sub: `${warehouses.length} Active Cold Warehouses`, icon: Truck, color: 'text-indigo-600 bg-indigo-50 border-indigo-100', badge: 'GPS Active', path: '/rimi/vehicles' },
-            ].map((stat, idx) => (
-              <Card key={idx} onClick={() => navigate(stat.path)} className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group flex flex-col justify-between h-full">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-11 h-11 rounded-xl border flex items-center justify-center ${stat.color} group-hover:scale-105 transition-transform`}>
-                      <stat.icon className="w-5 h-5" />
+      {/* KPI Cards Grid (100% Live Calculated from Supabase) */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Customers / Accounts */}
+        <Card className="p-4 border border-slate-200/80 shadow-xs space-y-2 hover:border-slate-300 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">CRM Accounts</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+          <div>
+            <span className="text-2xl font-black text-slate-900 block tracking-tight">
+              {loading ? '...' : metrics.totalCustomers}
+            </span>
+            <div className="flex items-center gap-2 text-[10px] font-extrabold text-slate-500 mt-1">
+              <span className="text-blue-700">{metrics.activeDistributors} Dist.</span>
+              <span>•</span>
+              <span className="text-emerald-700">{metrics.activeShops} Retail</span>
+              <span>•</span>
+              <span className="text-purple-700">{metrics.activeWholesalers} W'sale</span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Orders Today & Active Flow */}
+        <Card className="p-4 border border-slate-200/80 shadow-xs space-y-2 hover:border-slate-300 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Today's Orders</span>
+            <div className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
+              <ShoppingCart className="w-4 h-4" />
+            </div>
+          </div>
+          <div>
+            <span className="text-2xl font-black text-slate-900 block tracking-tight">
+              {loading ? '...' : metrics.ordersToday}
+            </span>
+            <span className="text-[10px] font-extrabold text-slate-500 flex items-center gap-1 mt-1">
+              <Truck className="w-3 h-3 text-amber-600" />
+              <strong className="text-slate-800">{metrics.pendingDeliveries}</strong> dispatches scheduled
+            </span>
+          </div>
+        </Card>
+
+        {/* Outstanding Receivables */}
+        <Card className="p-4 border border-slate-200/80 shadow-xs space-y-2 hover:border-slate-300 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Receivables Ledger</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+              <DollarSign className="w-4 h-4" />
+            </div>
+          </div>
+          <div>
+            <span className="text-2xl font-black text-slate-900 block tracking-tight">
+              {loading ? '...' : `₹${metrics.outstandingPayments.toLocaleString('en-IN')}`}
+            </span>
+            <Link to="/rimi/collections" className="text-[10px] font-bold text-[#58051E] hover:underline flex items-center gap-0.5 mt-1">
+              <span>View Collections Ledger</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+        </Card>
+
+        {/* Cold Storage Utilization */}
+        <Card className="p-4 border border-slate-200/80 shadow-xs space-y-2 hover:border-slate-300 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cold Storage Capacity</span>
+            <div className="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center font-bold">
+              <Warehouse className="w-4 h-4" />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-black text-slate-900 tracking-tight">
+                {loading ? '...' : `${metrics.storageUtilizationPercentage}%`}
+              </span>
+              <span className="text-[11px] font-extrabold text-slate-500">
+                {metrics.utilizedStorageCapacity} / {metrics.totalStorageCapacity || 1000} Pallets
+              </span>
+            </div>
+            <div className="w-full h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  metrics.storageUtilizationPercentage > 85 ? 'bg-rose-600' : 'bg-cyan-600'
+                }`}
+                style={{ width: `${Math.min(100, metrics.storageUtilizationPercentage)}%` }}
+              />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Critical Stock & Expiry Alerts Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Expiring Batches Notice */}
+        <Card className="p-4 border border-slate-200/80 shadow-xs flex items-center justify-between gap-3 bg-gradient-to-r from-amber-50/50 to-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">Batch Shelf Life Watch</span>
+              <h4 className="text-sm font-black text-slate-900 mt-0.5">
+                {metrics.expiringBatchesCount} Lot Batches Expiring in &lt; 30 Days
+              </h4>
+              <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                Automated cold storage rotation priority assigned.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigate('/rimi/inventory')}
+            className="text-xs font-bold border-amber-300 text-amber-900 hover:bg-amber-100 shrink-0"
+          >
+            Review Batches
+          </Button>
+        </Card>
+
+        {/* Low Stock Warning */}
+        <Card className="p-4 border border-slate-200/80 shadow-xs flex items-center justify-between gap-3 bg-gradient-to-r from-rose-50/50 to-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-800 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase text-rose-800 tracking-wider">Inventory Threshold Alert</span>
+              <h4 className="text-sm font-black text-slate-900 mt-0.5">
+                {metrics.lowStockCount} SKUs Below Safety Buffer
+              </h4>
+              <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                Reorder triggers dispatched to central cold processing hub.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigate('/rimi/products')}
+            className="text-xs font-bold border-rose-300 text-rose-900 hover:bg-rose-100 shrink-0"
+          >
+            Stock Buffer
+          </Button>
+        </Card>
+      </div>
+
+      {/* Main Content Split: Recent Sales Orders & Live Activity Stream */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left 2 Cols: Recent Sales Orders */}
+        <Card className="lg:col-span-2 p-5 border border-slate-200/80 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4 text-[#58051E]" /> Active Distribution Orders
+              </h3>
+              <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                Continuous order lifecycle from receipt to reefer delivery.
+              </p>
+            </div>
+            <Link to="/rimi/sales-orders" className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1">
+              <span>View All Orders</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          {metrics.recentOrders.length === 0 ? (
+            <div className="p-8 text-center text-xs font-semibold text-slate-400 bg-slate-50 rounded-2xl">
+              No sales orders placed yet. Create an order to initiate distribution.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {metrics.recentOrders.map((ord) => (
+                <div
+                  key={ord.id}
+                  onClick={() => navigate('/rimi/sales-orders')}
+                  className="p-3.5 bg-slate-50 hover:bg-slate-100/80 transition-all rounded-2xl border border-slate-200/60 flex items-center justify-between cursor-pointer"
+                >
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-900">{ord.order_no}</span>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                        {ord.customer_type}
+                      </span>
                     </div>
-                    <span className="text-[10px] font-extrabold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
-                      {stat.badge}
+                    <p className="text-xs font-bold text-slate-700">{ord.customer_name}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      Delivery: {ord.delivery_date || 'Scheduled'} • Territory: {ord.territory || 'West Zone'}
+                    </p>
+                  </div>
+
+                  <div className="text-right space-y-1">
+                    <span className="text-sm font-black text-slate-900 block">
+                      ₹{Number(ord.total_amount).toLocaleString('en-IN')}
+                    </span>
+                    <span className={`inline-block text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                      ord.order_status === 'Delivered'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : ord.order_status === 'Dispatched'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}>
+                      {ord.order_status}
                     </span>
                   </div>
-                  <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">{stat.title}</span>
-                  <span className="text-2xl font-black text-slate-900 leading-none">{stat.value}</span>
                 </div>
-                <div className="mt-3 pt-3 border-t border-slate-100 text-[10.5px] font-extrabold text-slate-500 truncate">
-                  {stat.sub}
-                </div>
-              </Card>
-            ))}
-          </div>
-
-          {/* Main Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card className="p-6 text-left border border-slate-200/70 shadow-xs">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900">Recent Cold Chain Sales Orders</h3>
-                    <p className="text-xs text-slate-400 font-semibold mt-0.5">Live distributor dispatches and delivery statuses</p>
-                  </div>
-                  <button onClick={() => navigate('/rimi/sales-orders')} className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer">
-                    View All <ArrowUpRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {loading ? (
-                  <div className="py-8 text-center text-xs font-semibold text-slate-400">Loading live sales orders...</div>
-                ) : recentOrders.length === 0 ? (
-                  <div className="py-8 text-center text-xs font-semibold text-slate-400">
-                    <Package className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    No sales orders recorded yet.
-                  </div>
-                ) : (
-                  <div className="divide-y divide-slate-100">
-                    {recentOrders.map((order) => (
-                      <div key={order.id} className="py-3 flex items-center justify-between">
-                        <div>
-                          <div className="font-extrabold text-xs text-slate-900">{order.customer_name || order.order_no}</div>
-                          <span className="text-[10px] font-semibold text-slate-400">Order: {order.order_no} · Staff: {order.assigned_staff_name || 'Unassigned'}</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs font-black text-slate-900">₹{Number(order.total_amount).toLocaleString('en-IN')}</div>
-                          <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                            {order.order_status || 'Draft'}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
+              ))}
             </div>
+          )}
+        </Card>
 
-            <div className="space-y-6">
-              <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <Thermometer className="w-4 h-4 text-[#58051E]" /> Cold Storage Facilities
-                  </h3>
-                </div>
-                <div className="space-y-3">
-                  {[
-                    { name: 'Mumbai Central Deep Freeze', temp: '-22.4°C', capacity: '88% Used', status: 'Optimal' },
-                    { name: 'Delhi NCR Reefer Hub', temp: '-20.1°C', capacity: '64% Used', status: 'Optimal' },
-                    { name: 'Bengaluru Cold Transit Depot', temp: '-18.8°C', capacity: '72% Used', status: 'Optimal' }
-                  ].map((wh, idx) => (
-                    <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                      <div>
-                        <div className="text-xs font-black text-slate-900">{wh.name}</div>
-                        <span className="text-[10px] font-semibold text-slate-500">{wh.capacity}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs font-black text-[#58051E]">{wh.temp}</span>
-                        <span className="block text-[9px] font-extrabold text-emerald-600">{wh.status}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+        {/* Right 1 Col: Live Activity Stream */}
+        <Card className="p-5 border border-slate-200/80 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-[#58051E]" /> Audit Activity Feed
+              </h3>
+              <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                Real-time chronological events.
+              </p>
             </div>
           </div>
-        </>
-      ) : (
-        /* ════════════════════ STAFF VIEW ════════════════════ */
-        /* Staff sees ZERO data from other staff members */
-        <>
-          {/* Staff Personal Workspace KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card onClick={() => navigate('/rimi/customers')} className="p-5 border border-slate-200/80 hover:shadow-md cursor-pointer flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-11 h-11 rounded-xl bg-[#58051E]/10 border border-[#58051E]/20 flex items-center justify-center text-[#58051E]">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-extrabold text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-full">
-                    My Accounts
-                  </span>
-                </div>
-                <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">My Customers</span>
-                <span className="text-2xl font-black text-slate-900">{myCustomers.length}</span>
-              </div>
-              <div className="mt-3 pt-3 border-t border-slate-100 text-[10.5px] font-extrabold text-slate-500">
-                Assigned distribution partners
-              </div>
-            </Card>
 
-            <Card onClick={() => navigate('/rimi/sales-orders')} className="p-5 border border-slate-200/80 hover:shadow-md cursor-pointer flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                    <ShoppingCart className="w-5 h-5" />
+          {metrics.recentActivities.length === 0 ? (
+            <div className="p-8 text-center text-xs font-semibold text-slate-400 bg-slate-50 rounded-2xl">
+              No recent activity recorded yet.
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              {metrics.recentActivities.map((act) => (
+                <div key={act.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-white text-slate-700 border border-slate-200">
+                      {act.activity_type}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
-                    Active Dispatches
+                  <p className="font-bold text-slate-900 text-xs">{act.title}</p>
+                  {act.description && (
+                    <p className="text-[11px] text-slate-500 line-clamp-2">{act.description}</p>
+                  )}
+                  <span className="text-[9px] text-slate-400 font-semibold block pt-0.5">
+                    By: {act.performed_by}
                   </span>
                 </div>
-                <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Orders in Transit</span>
-                <span className="text-2xl font-black text-slate-900">{myPendingOrders.length}</span>
-              </div>
-              <div className="mt-3 pt-3 border-t border-slate-100 text-[10.5px] font-extrabold text-slate-500">
-                Dispatches requiring follow-up
-              </div>
-            </Card>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
 
-            <Card onClick={() => navigate('/rimi/collections')} className="p-5 border border-slate-200/80 hover:shadow-md cursor-pointer flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-                    <DollarSign className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-                    Due from Accounts
-                  </span>
-                </div>
-                <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Collections Due</span>
-                <span className="text-2xl font-black text-amber-600">₹{myTotalCollectionsDue.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="mt-3 pt-3 border-t border-slate-100 text-[10.5px] font-extrabold text-slate-500">
-                Payment collection schedule
-              </div>
-            </Card>
-
-            <Card onClick={() => navigate('/rimi/tasks')} className="p-5 border border-slate-200/80 hover:shadow-md cursor-pointer flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                    Daily Schedule
-                  </span>
-                </div>
-                <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">My Tasks Today</span>
-                <span className="text-2xl font-black text-slate-900">{myTasks.length}</span>
-              </div>
-              <div className="mt-3 pt-3 border-t border-slate-100 text-[10.5px] font-extrabold text-slate-500">
-                Audits, visits & cold room checks
-              </div>
-            </Card>
+      {/* Facilities Live Status Section */}
+      <Card className="p-5 border border-slate-200/80 shadow-xs space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div>
+            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <Warehouse className="w-4 h-4 text-[#58051E]" /> Cold Storage Facilities Live Telemetry
+            </h3>
+            <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+              Live temperature calibration & pallet occupancy across primary hubs.
+            </p>
           </div>
+          <Button size="sm" variant="outline" onClick={() => navigate('/rimi/warehouses')} className="text-xs font-bold">
+            Manage Facilities
+          </Button>
+        </div>
 
-          {/* Staff Main Workspace Feed */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* My Customers Roster */}
-            <Card className="p-6 border border-slate-200/70 shadow-xs text-left">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900">My Assigned Customer Accounts</h3>
-                  <p className="text-xs text-slate-400 font-semibold mt-0.5">Accounts you are directly responsible for servicing</p>
-                </div>
-                <button
-                  onClick={() => navigate('/rimi/customers')}
-                  className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  View CRM <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {metrics.warehouses.map((wh) => (
+            <div key={wh.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-slate-900">{wh.name}</span>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-cyan-50 text-cyan-800 border border-cyan-200 font-mono">
+                  {wh.cold_room_temp_celsius}°C
+                </span>
               </div>
-
-              {myCustomers.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400 font-semibold">
-                  No accounts assigned to your desk yet. Contact administrator for account allocations.
+              <p className="text-[11px] font-semibold text-slate-500">{wh.city} • Manager: {wh.manager_name}</p>
+              
+              <div className="space-y-1 pt-1 border-t border-slate-200/60">
+                <div className="flex justify-between text-[10px] font-extrabold text-slate-600">
+                  <span>Occupancy</span>
+                  <span>{wh.utilized_pallets} / {wh.total_capacity_pallets} Pallets</span>
                 </div>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {myCustomers.slice(0, 5).map(c => (
-                    <div key={c.id} className="py-3 flex items-center justify-between">
-                      <div>
-                        <div className="font-extrabold text-xs text-slate-900">{c.business_name}</div>
-                        <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-2">
-                          <span>{c.customer_type}</span>
-                          <span>·</span>
-                          <span>{c.contact_person}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                          {c.pipeline_stage}
-                        </span>
-                        {c.outstanding_balance !== undefined && c.outstanding_balance > 0 && (
-                          <div className="text-[10px] font-bold text-amber-600 mt-1">
-                            ₹{c.outstanding_balance.toLocaleString('en-IN')}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#58051E] rounded-full"
+                    style={{ width: `${Math.min(100, Math.round((wh.utilized_pallets / (wh.total_capacity_pallets || 1)) * 100))}%` }}
+                  />
                 </div>
-              )}
-            </Card>
-
-            {/* My Active Orders & Dispatches */}
-            <Card className="p-6 border border-slate-200/70 shadow-xs text-left">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900">My Sales Orders in Progress</h3>
-                  <p className="text-xs text-slate-400 font-semibold mt-0.5">Orders for your assigned accounts</p>
-                </div>
-                <button
-                  onClick={() => navigate('/rimi/sales-orders')}
-                  className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  All Orders <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
               </div>
-
-              {myOrders.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400 font-semibold">
-                  No sales orders recorded for your accounts yet.
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {myOrders.slice(0, 5).map(o => (
-                    <div key={o.id} className="py-3 flex items-center justify-between">
-                      <div>
-                        <div className="font-extrabold text-xs text-slate-900">{o.customer_name || o.order_no}</div>
-                        <div className="text-[10px] text-slate-400 font-semibold">
-                          Order: {o.order_no} · Qty: {o.quantity_kg} KG
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs font-black text-slate-900">₹{Number(o.total_amount).toLocaleString('en-IN')}</div>
-                        <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          {o.order_status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
-        </>
-      )}
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 };
