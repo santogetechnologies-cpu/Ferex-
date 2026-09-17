@@ -150,16 +150,16 @@ import { DigitalStaff } from './pages/digital/DigitalStaff';
 import { DigitalLoginPage } from './pages/digital/DigitalLoginPage';
 import DigitalClientPortal from './pages/digital/DigitalClientPortal';
 
-// Staff Panel Imports
+// Staff Panel Imports (Admissions Counselor)
 import { StaffLayout } from './components/layout/StaffLayout';
 import { StaffDashboard } from './pages/staff/StaffDashboard';
 import { StaffTasks } from './pages/staff/StaffTasks';
 import { StaffStudents } from './pages/staff/StaffStudents';
-import { StaffMeetings } from './pages/staff/StaffMeetings';
+import { StaffApplications } from './pages/staff/StaffApplications';
+import { StaffUniversities } from './pages/staff/StaffUniversities';
+import { StaffDestinations } from './pages/staff/StaffDestinations';
 import { StaffDocuments } from './pages/staff/StaffDocuments';
 import { StaffTickets } from './pages/staff/StaffTickets';
-import { StaffNotes } from './pages/staff/StaffNotes';
-import { StaffNotifications } from './pages/staff/StaffNotifications';
 import { StaffProfile } from './pages/staff/StaffProfile';
 
 import { autoSeedAllDataToSupabase } from './lib/api/supabaseAutoSeeder';
@@ -464,16 +464,16 @@ function App() {
           <Route path="/digital/client-portal" element={<ProtectedRoute allowedRoles={['digital_client']}><DigitalClientPortal /></ProtectedRoute>} />
           <Route path="/digital/client" element={<ProtectedRoute allowedRoles={['digital_client']}><DigitalClientPortal /></ProtectedRoute>} />
 
-          {/* ── Ferex Staff Panel Routes ── */}
+          {/* ── Ferex Staff Panel Routes (Admissions Counselor - Education Only) ── */}
           <Route path="/staff" element={<Navigate to="/staff/dashboard" replace />} />
           <Route path="/staff/dashboard" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDashboard /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/tasks" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTasks /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/students" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffStudents /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/meetings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffMeetings /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/applications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffApplications /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/universities" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffUniversities /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/destinations" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDestinations /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/documents" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDocuments /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/tickets" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTickets /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/notes" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffNotes /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/notifications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffNotifications /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/profile" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />
 
           {/* Catch-all */}

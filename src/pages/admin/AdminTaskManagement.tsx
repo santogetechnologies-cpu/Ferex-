@@ -165,10 +165,14 @@ export const AdminTaskManagement: React.FC = () => {
     if (!newTask.title.trim()) return;
 
     try {
+      const selectedStaff = staffUsers.find(s => s.id === newTask.assigneeId || s.email === newTask.assigneeId || s.full_name === newTask.assigneeId);
+      const selectedStudent = studentUsers.find(st => st.id === newTask.studentId);
       await addTask({
-        created_by: user?.id || 'demo-admin-id',
-        assigned_to: newTask.assigneeId || undefined,
+        created_by: user?.id || 'admin',
+        assigned_to: selectedStaff?.full_name || selectedStaff?.email || newTask.assigneeId || undefined,
+        assigned_staff_id: selectedStaff?.id || newTask.assigneeId || undefined,
         student_id: newTask.studentId || undefined,
+        student_name: selectedStudent?.full_name || '',
         title: newTask.title.trim(),
         description: newTask.description.trim(),
         priority: (newTask.priority === 'High' ? 'High' : newTask.priority === 'Low' ? 'Low' : 'Medium') as any,

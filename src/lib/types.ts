@@ -249,12 +249,14 @@ export interface ChatMessage {
 export interface SupportTicket {
   id: string;
   student_id: string;
+  student_name?: string;
   assigned_to: string | null;
-  ticket_no: string;
+  ticket_no?: string;
+  ticket_number?: string;
   subject: string;
   description: string;
   category: string;
-  priority: 'Low' | 'Medium' | 'High';
+  priority: 'Low' | 'Medium' | 'High' | 'Critical';
   status: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
   created_at: string;
   updated_at: string;
@@ -287,17 +289,21 @@ export interface Task {
   id: string;
   created_by: string;
   assigned_to: string | null;
+  assigned_staff_id?: string | null;
   student_id: string | null;
+  student_name?: string;
+  category?: string;
   title: string;
   description: string;
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
   status: 'To Do' | 'In Progress' | 'Review' | 'Completed' | 'Done' | 'Cancelled' | 'Pending';
   due_date: string | null;
   completed_at: string | null;
-  portal: string;
+  portal?: string;
   created_at: string;
   updated_at: string;
   // joined
+  users?: UserProfile;
   assignee?: UserProfile;
   student?: UserProfile;
 }

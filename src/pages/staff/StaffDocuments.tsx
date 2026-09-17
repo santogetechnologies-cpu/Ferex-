@@ -1,25 +1,28 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, CheckCircle2, Upload, X, Folder, Eye, Check, XCircle, Clock, AlertCircle, Search } from 'lucide-react';
+import {
+  FileText, CheckCircle2, XCircle, Search, AlertCircle, RotateCcw,
+  Eye, Check, ShieldCheck, Clock, ExternalLink, X, FileCheck
+} from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { useDocuments } from '../../hooks/useDocuments';
 import { useAuth } from '../../contexts/AuthContext';
 import { getStudents } from '../../lib/api/students';
+import type { StudentDocument } from '../../lib/types';
 
 export const StaffDocuments: React.FC = () => {
-  const { user } = useAuth();
-  const { documents: dbDocs, loading, changeStatus, addDoc } = useDocuments();
+  const { user, profile } = useAuth();
+  const { documents: dbDocs, loading, error, refresh, changeStatus } = useDocuments();
   const [students, setStudents] = useState<any[]>([]);
   const [toast, setToast] = useState('');
-  const [activeTab, setActiveTab] = useState('All');
+  const [activeTab, setActiveTab] = useState<'All' | 'Pending' | 'Verified' | 'Rejected'>('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [previewDoc, setPreviewDoc] = useState<any | null>(null);
   const [rejectionModalDoc, setRejectionModalDoc] = useState<any | null>(null);
   const [rejectionNote, setRejectionNote] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const counselorName = profile?.full_name || user?.user_metadata?.full_name || 'Admissions Counselor';
 
   useEffect(() => {
     getStudents().then(setStudents).catch(() => {});
@@ -27,22 +30,29 @@ export const StaffDocuments: React.FC = () => {
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 3000);
+    setTimeout(() => setToast(''), 3500);
   };
 
-  // Map documents with student names
+  // Map student names
   const documentsList = useMemo(() => {
-    const studentMap = new Map(students.map(s => [s.id, s.full_name || s.email?.split('@')[0] || 'Student']));
+    const studentMap = new Map(
+      students.map(s => [s.id, s.full_name || s.name || s.email?.split('@')[0] || 'Student'])
+    );
 
     return dbDocs.map(d => {
-      const studentName = studentMap.get(d.student_id) || (d as any).users?.full_name || (d as any).student_name || 'Student Candidate';
-      const rawStatus = (d.status || 'Pending').toLowerCase();
-      
-      let normStatus = 'Pending Review';
-      if (rawStatus.includes('verified') || rawStatus.includes('approved')) normStatus = 'Approved';
-      else if (rawStatus.includes('reject') || rawStatus.includes('re-upload')) normStatus = 'Rejected';
-      else if (rawStatus.includes('under review')) normStatus = 'Under Review';
-      else if (rawStatus.includes('submitted')) normStatus = 'Pending Review';
+      const studentName =
+        studentMap.get(d.student_id) ||
+        (d as any).student_name ||
+        (d as any).users?.full_name ||
+        'Student Candidate';
+
+      const raw = (d.status || 'Pending').toLowerCase();
+      let normStatus: 'Pending' | 'Verified' | 'Rejected' = 'Pending';
+      if (raw.includes('verified') || raw.includes('approved')) {
+        normStatus = 'Verified';
+      } else if (raw.includes('reject') || raw.includes('re-upload')) {
+        normStatus = 'Rejected';
+      }
 
       return {
         id: d.id,
@@ -52,63 +62,54 @@ export const StaffDocuments: React.FC = () => {
         studentId: d.student_id,
         category: d.doc_type || 'Academic File',
         status: normStatus,
+        rawStatus: d.status,
         notes: d.reviewer_notes || '',
         size: d.file_size || '1.2 MB',
-        date: new Date(d.uploaded_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+        date: d.uploaded_at
+          ? new Date(d.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+          : 'Recent',
         url: d.file_url || '',
       };
     });
   }, [dbDocs, students]);
 
-  // Dynamic Folder Categories
-  const folderCategories = useMemo(() => {
-    const counts = {
-      sop: documentsList.filter(d => d.category.toLowerCase().includes('sop') || d.category.toLowerCase().includes('statement') || d.category.toLowerCase().includes('transcript')).length,
-      identity: documentsList.filter(d => d.category.toLowerCase().includes('identity') || d.category.toLowerCase().includes('passport') || d.category.toLowerCase().includes('id')).length,
-      financial: documentsList.filter(d => d.category.toLowerCase().includes('financial') || d.category.toLowerCase().includes('bank') || d.category.toLowerCase().includes('solvency')).length,
-      language: documentsList.filter(d => d.category.toLowerCase().includes('language') || d.category.toLowerCase().includes('ielts') || d.category.toLowerCase().includes('toefl') || d.category.toLowerCase().includes('certificate')).length,
+  const counts = useMemo(() => {
+    return {
+      all: documentsList.length,
+      pending: documentsList.filter(d => d.status === 'Pending').length,
+      verified: documentsList.filter(d => d.status === 'Verified').length,
+      rejected: documentsList.filter(d => d.status === 'Rejected').length,
     };
-
-    return [
-      { key: 'sop', name: 'Academic Transcripts & SOPs', count: counts.sop, color: 'text-amber-600 bg-amber-50 border-amber-200' },
-      { key: 'identity', name: 'Passport & Identity Scans', count: counts.identity, color: 'text-blue-600 bg-blue-50 border-blue-200' },
-      { key: 'financial', name: 'Financial Solvency & Banks', count: counts.financial, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
-      { key: 'language', name: 'Language & Certificates', count: counts.language, color: 'text-purple-600 bg-purple-50 border-purple-200' },
-    ];
   }, [documentsList]);
-
-  const tabs = ['All', 'Pending Review', 'Under Review', 'Approved', 'Rejected'];
 
   const filteredDocs = useMemo(() => {
     return documentsList.filter(d => {
       const matchesTab = activeTab === 'All' || d.status === activeTab;
-      const matchesSearch = !searchQuery ||
-        d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.student.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.category.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      let matchesFolder = true;
-      if (selectedFolder === 'sop') {
-        matchesFolder = d.category.toLowerCase().includes('sop') || d.category.toLowerCase().includes('statement') || d.category.toLowerCase().includes('transcript');
-      } else if (selectedFolder === 'identity') {
-        matchesFolder = d.category.toLowerCase().includes('identity') || d.category.toLowerCase().includes('passport') || d.category.toLowerCase().includes('id');
-      } else if (selectedFolder === 'financial') {
-        matchesFolder = d.category.toLowerCase().includes('financial') || d.category.toLowerCase().includes('bank') || d.category.toLowerCase().includes('solvency');
-      } else if (selectedFolder === 'language') {
-        matchesFolder = d.category.toLowerCase().includes('language') || d.category.toLowerCase().includes('ielts') || d.category.toLowerCase().includes('toefl') || d.category.toLowerCase().includes('certificate');
-      }
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        d.title.toLowerCase().includes(q) ||
+        d.student.toLowerCase().includes(q) ||
+        d.category.toLowerCase().includes(q) ||
+        d.id.toLowerCase().includes(q);
 
-      return matchesTab && matchesSearch && matchesFolder;
+      return matchesTab && matchesSearch;
     });
-  }, [documentsList, activeTab, searchQuery, selectedFolder]);
+  }, [documentsList, activeTab, searchQuery]);
 
+  // Actions
   const handleApprove = async (doc: any) => {
     try {
       setIsProcessing(true);
-      await changeStatus(doc.id, 'Approved', 'Verified by Admissions Counselor');
-      showToast(`"${doc.title}" for ${doc.student} approved.`);
+      await changeStatus(
+        doc.id,
+        'Approved',
+        `Verified by Admissions Counselor (${counselorName})`,
+        user?.id
+      );
+      showToast(`Document "${doc.title}" verified and approved successfully.`);
     } catch (err: any) {
-      showToast(`Error: ${err.message || 'Failed to approve document'}`);
+      showToast(`Verification error: ${err.message || 'Database error'}`);
     } finally {
       setIsProcessing(false);
     }
@@ -116,12 +117,17 @@ export const StaffDocuments: React.FC = () => {
 
   const handleRejectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rejectionModalDoc) return;
+    if (!rejectionModalDoc || !rejectionNote.trim()) return;
+
     try {
       setIsProcessing(true);
-      const notes = rejectionNote.trim() || 'Re-upload requested: please provide a clearer scan with valid stamps.';
-      await changeStatus(rejectionModalDoc.id, 'Re-upload Requested', notes);
-      showToast(`Re-upload requested for "${rejectionModalDoc.title}"`);
+      await changeStatus(
+        rejectionModalDoc.id,
+        'Rejected',
+        rejectionNote.trim(),
+        user?.id
+      );
+      showToast(`Document rejected. Feedback sent to student via Supabase.`);
       setRejectionModalDoc(null);
       setRejectionNote('');
     } catch (err: any) {
@@ -132,242 +138,336 @@ export const StaffDocuments: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 text-left antialiased select-none min-h-[600px]">
+    <div className="space-y-6 text-left antialiased select-none font-sans">
+      {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />{toast}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{toast}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
-          <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#58051E]" /> Document Verification Workspace
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2.5 py-0.5 rounded-md border border-[#58051E]/20 flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3 text-[#58051E]" /> ADMISSIONS VERIFICATION DESK
+            </span>
+            <span className="text-[10px] font-bold text-slate-400">● Realtime Supabase Storage & Records</span>
+          </div>
+          <h1 className="text-2xl font-black text-slate-900 mt-1 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-[#58051E]" /> Document Verification
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">Review student visa files, academic transcripts, bank solvency letters, and apostille authentications.</p>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">
+            Review and authenticate student academic transcripts, passports, financial affidavits, and language test certificates.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          {selectedFolder && (
-            <button
-              onClick={() => setSelectedFolder(null)}
-              className="text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all"
-            >
-              <X className="w-3.5 h-3.5" /> Clear Folder Filter
-            </button>
-          )}
+
+        <div className="flex items-center gap-2.5">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => refresh()}
+            disabled={loading}
+            className="text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin text-[#58051E]' : ''}`} />
+            Refresh Documents
+          </Button>
         </div>
       </div>
 
-      {/* Folder Experience Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {folderCategories.map((folder) => {
-          const isSelected = selectedFolder === folder.key;
-          return (
-            <Card
-              key={folder.key}
-              className={`p-4 border transition-all flex items-center gap-3 cursor-pointer ${
-                isSelected ? 'ring-2 ring-[#58051E] bg-rose-50/40 border-[#58051E]' : 'border-slate-200/80 shadow-xs hover:shadow-md'
-              }`}
-              onClick={() => setSelectedFolder(isSelected ? null : folder.key)}
-            >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold border ${folder.color}`}>
-                <Folder className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-black text-slate-900 line-clamp-1">{folder.name}</h4>
-                <span className="text-[10px] text-slate-400 font-bold block">{folder.count} Documents</span>
-              </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Dossiers', val: counts.all, color: 'text-slate-900', border: 'border-slate-200' },
+          { label: 'Pending Review', val: counts.pending, color: 'text-amber-700', border: 'border-amber-200 bg-amber-50/20' },
+          { label: 'Verified & Approved', val: counts.verified, color: 'text-emerald-700', border: 'border-emerald-200 bg-emerald-50/20' },
+          { label: 'Rejected / Re-upload', val: counts.rejected, color: 'text-rose-700', border: 'border-rose-200 bg-rose-50/20' },
+        ].map((kpi, idx) => (
+          <Card key={idx} className={`p-4 border ${kpi.border} shadow-xs`}>
+            <span className="text-[10px] font-extrabold uppercase text-slate-400 block">{kpi.label}</span>
+            <span className={`text-2xl font-black ${kpi.color} block mt-1`}>
+              {loading ? '—' : kpi.val}
+            </span>
+          </Card>
+        ))}
+      </div>
+
+      {/* Toolbar */}
+      <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          {/* Status Filter */}
+          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+            {(['All', 'Pending', 'Verified', 'Rejected'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === tab
+                    ? 'bg-[#58051E] text-white shadow-xs'
+                    : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {tab}
+                <span className="ml-1.5 text-[10px] opacity-75">
+                  ({tab === 'All' ? counts.all : tab === 'Pending' ? counts.pending : tab === 'Verified' ? counts.verified : counts.rejected})
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <div className="relative w-full sm:w-72">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search by student, file, or type..."
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Real DB Error Alert */}
+      {error && (
+        <Card className="p-6 border border-red-200 bg-red-50/40 shadow-xs text-center space-y-3">
+          <div className="w-10 h-10 rounded-full bg-red-100 text-red-700 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-red-900">Database Connection Notice</h3>
+            <p className="text-xs font-semibold text-red-700 mt-1 max-w-md mx-auto leading-relaxed">
+              {error}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => refresh()}
+            className="bg-[#58051E] text-white hover:bg-[#430316] font-bold text-xs"
+          >
+            <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Retry Connection
+          </Button>
+        </Card>
+      )}
+
+      {/* Loading Skeleton */}
+      {loading && !error && (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="p-5 border border-slate-200/80 shadow-xs animate-pulse">
+              <div className="h-4 bg-slate-200 rounded w-1/4 mb-2" />
+              <div className="h-3 bg-slate-100 rounded w-1/2" />
             </Card>
-          );
-        })}
-      </div>
-
-      {/* Controls: Tabs & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {tabs.map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                activeTab === tab ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {tab}
-            </button>
           ))}
         </div>
+      )}
 
-        <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search documents or student..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#58051E]/20"
-          />
-        </div>
-      </div>
-
-      {/* Main Document Table */}
-      <Card className="p-6 border border-slate-200/80 shadow-xs space-y-4">
-        {loading ? (
-          <div className="py-12 text-center text-xs font-bold text-slate-400">Loading student documents...</div>
-        ) : filteredDocs.length === 0 ? (
-          <div className="py-12 text-center text-xs font-bold text-slate-400 space-y-1">
-            <p>No documents found matching your criteria.</p>
-            <p className="text-[11px] text-slate-300 font-normal">Student uploads will appear here in real-time.</p>
+      {/* Empty State — Strictly no mock fallback */}
+      {!loading && !error && filteredDocs.length === 0 && (
+        <Card className="p-12 border border-slate-200/80 shadow-xs text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+            <FileCheck className="w-6 h-6" />
           </div>
-        ) : (
+          <div>
+            <h3 className="text-base font-black text-slate-800">
+              {documentsList.length === 0 ? 'No documents awaiting verification' : 'No matching documents'}
+            </h3>
+            <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
+              {documentsList.length === 0
+                ? 'There are currently zero documents uploaded by students in the database. When applicants upload files, they will appear here in real time.'
+                : 'No documents match your active status tab or search query.'}
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {/* Real Documents Table */}
+      {!loading && !error && filteredDocs.length > 0 && (
+        <Card className="border border-slate-200/80 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase text-slate-400">
-                  <th className="py-2.5 px-3">Document Title</th>
-                  <th className="py-2.5 px-3">Student Name</th>
-                  <th className="py-2.5 px-3">Category / Date</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3 text-right">Verification Actions</th>
+                <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                  <th className="py-3 px-4">Document Details</th>
+                  <th className="py-3 px-4">Student Candidate</th>
+                  <th className="py-3 px-4">Category</th>
+                  <th className="py-3 px-4">Uploaded</th>
+                  <th className="py-3 px-4">Verification Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                {filteredDocs.map(doc => (
-                  <tr key={doc.id} className="hover:bg-slate-50/80">
-                    <td className="py-3 px-3">
-                      <div className="font-extrabold text-slate-900">{doc.title}</div>
-                      <span className="text-[10px] text-slate-400">{doc.id.slice(0, 8)} • {doc.size}</span>
-                      {doc.notes && (
-                        <p className="text-[10.5px] text-slate-500 italic mt-0.5">Note: {doc.notes}</p>
-                      )}
-                    </td>
-                    <td className="py-3 px-3">
-                      <span className="font-bold text-slate-800">{doc.student}</span>
-                    </td>
-                    <td className="py-3 px-3">
-                      <span className="text-[10.5px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 inline-block">{doc.category}</span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">{doc.date}</span>
-                    </td>
-                    <td className="py-3 px-3">
-                      <span className={`px-2.5 py-0.5 rounded text-[10px] font-black inline-block ${
-                        doc.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                        doc.status === 'Rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
-                        'bg-amber-50 text-amber-700 border border-amber-200'
-                      }`}>
-                        {doc.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setPreviewDoc(doc)}
-                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold flex items-center gap-1 transition-all"
+                {filteredDocs.map(doc => {
+                  return (
+                    <tr key={doc.id} className="hover:bg-slate-50/70 transition-all">
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-[#58051E]/10 text-[#58051E] font-black flex items-center justify-center text-xs shrink-0">
+                            <FileText className="w-4 h-4 text-[#58051E]" />
+                          </div>
+                          <div>
+                            <span className="font-extrabold text-slate-900 block leading-tight">{doc.title}</span>
+                            <span className="text-[10px] text-slate-400 font-medium block mt-0.5">
+                              Size: {doc.size}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900">
+                        {doc.student}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600">
+                        {doc.category}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-500">
+                        {doc.date}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`px-2.5 py-0.5 rounded text-[10px] font-black border ${
+                            doc.status === 'Verified'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : doc.status === 'Rejected'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}
                         >
-                          <Eye className="w-3 h-3" /> View
-                        </button>
-                        {doc.status !== 'Approved' && (
-                          <button
-                            onClick={() => handleApprove(doc)}
-                            disabled={isProcessing}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10.5px] font-bold flex items-center gap-1 transition-all"
-                          >
-                            <Check className="w-3 h-3" /> Approve
-                          </button>
+                          {doc.rawStatus || doc.status}
+                        </span>
+                        {doc.notes && (
+                          <span className="text-[10px] text-slate-400 block mt-0.5 truncate max-w-[150px]">
+                            {doc.notes}
+                          </span>
                         )}
-                        {doc.status !== 'Rejected' && (
-                          <button
-                            onClick={() => { setRejectionModalDoc(doc); setRejectionNote(doc.notes || ''); }}
-                            disabled={isProcessing}
-                            className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-[10.5px] font-bold flex items-center gap-1 transition-all"
-                          >
-                            <XCircle className="w-3 h-3" /> Request Re-upload
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {doc.url && (
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all"
+                              title="Open in Supabase Storage"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          )}
+
+                          {doc.status !== 'Verified' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleApprove(doc)}
+                              disabled={isProcessing}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-1 px-2.5 h-auto"
+                            >
+                              <Check className="w-3.5 h-3.5 mr-1" /> Verify
+                            </Button>
+                          )}
+
+                          {doc.status !== 'Rejected' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setRejectionModalDoc(doc);
+                                setRejectionNote(doc.notes || '');
+                              }}
+                              disabled={isProcessing}
+                              className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs py-1 px-2.5 h-auto"
+                            >
+                              <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        )}
-      </Card>
+        </Card>
+      )}
 
-      {/* Rejection / Re-upload Request Modal */}
+      {/* Reject / Feedback Modal */}
       <AnimatePresence>
         {rejectionModalDoc && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900 z-40" onClick={() => setRejectionModalDoc(null)} />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl space-y-4 text-left">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900 z-50"
+              onClick={() => setRejectionModalDoc(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl space-y-4 text-left"
+            >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-sm font-black text-slate-900">Request Document Re-upload</h3>
-                <button onClick={() => setRejectionModalDoc(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-              </div>
-
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
-                <span className="font-bold">{rejectionModalDoc.title}</span> for <span className="font-bold">{rejectionModalDoc.student}</span>
-              </div>
-
-              <form onSubmit={handleRejectSubmit} className="space-y-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Reason / Instructions for Student</label>
+                  <h3 className="text-base font-black text-slate-900">Request Document Re-Upload</h3>
+                  <span className="text-[10px] font-semibold text-slate-400">
+                    Document: {rejectionModalDoc.title}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setRejectionModalDoc(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleRejectSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                    Deficiency Notice / Rejection Reason
+                  </label>
                   <textarea
-                    rows={3}
-                    placeholder="e.g. Please upload higher resolution scan with visible university seal/apostille..."
+                    required
                     value={rejectionNote}
                     onChange={e => setRejectionNote(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-red-500/20"
-                    required
+                    placeholder="e.g. Scanned copy is illegible. Please upload high-resolution PDF with official stamp..."
+                    rows={4}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-rose-500"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setRejectionModalDoc(null)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-red-600 hover:bg-red-700 text-white font-bold" disabled={isProcessing}>
-                    Send Re-upload Request
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRejectionModalDoc(null)}
+                    className="text-xs font-bold"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isProcessing || !rejectionNote.trim()}
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs"
+                  >
+                    {isProcessing ? 'Saving in Supabase...' : 'Submit Rejection Feedback'}
                   </Button>
                 </div>
               </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Preview Modal */}
-      <AnimatePresence>
-        {previewDoc && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900 z-40" onClick={() => setPreviewDoc(null)} />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl space-y-4 text-left">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900">{previewDoc.title}</h3>
-                  <p className="text-xs text-slate-500">{previewDoc.student} • {previewDoc.category}</p>
-                </div>
-                <button onClick={() => setPreviewDoc(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-              </div>
-
-              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-3">
-                <FileText className="w-12 h-12 text-[#58051E] mx-auto opacity-80" />
-                <div>
-                  <p className="text-xs font-black text-slate-800">{previewDoc.title}</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Status: <span className="font-bold">{previewDoc.status}</span></p>
-                </div>
-                {previewDoc.url ? (
-                  <a
-                    href={previewDoc.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#58051E] text-white text-xs font-bold hover:bg-[#430316] transition-all"
-                  >
-                    Open Document File ↗
-                  </a>
-                ) : (
-                  <span className="text-xs text-slate-400 italic">No direct file URL attached.</span>
-                )}
-              </div>
             </motion.div>
           </>
         )}

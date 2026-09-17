@@ -74,7 +74,7 @@ export const AdminSupportTickets: React.FC = () => {
       const mapped = dbTickets.map(t => {
         return {
           id: t.id,
-          ticketNo: t.ticket_no,
+          ticketNo: t.ticket_no || t.ticket_number || `TCK-${t.id.slice(0, 6)}`,
           studentId: t.student_id,
           studentName: t.users?.full_name || t.users?.email?.split('@')[0] || 'Student',
           subject: t.subject,
