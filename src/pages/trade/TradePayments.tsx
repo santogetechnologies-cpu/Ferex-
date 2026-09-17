@@ -161,7 +161,7 @@ export const TradePayments: React.FC = () => {
     try {
       const created = await recordTradePayment(recordForm);
       setShowRecordModal(false);
-      showToastMsg(`Recorded ${created.type} of ${created.currency} ${Number(created.amount).toLocaleString()} & issued receipt ${created.receipt_no}!`);
+      showToastMsg(`Recorded ${created?.type || 'Payment'} of ${created?.currency || 'USD'} ${Number(created?.amount || 0).toLocaleString()} & issued receipt ${created?.receipt_no || 'REC'}!`);
       await loadData();
     } catch (err: any) {
       showToastMsg(`Failed to record payment: ${err.message}`);

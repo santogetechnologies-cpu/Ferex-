@@ -41,25 +41,26 @@ export const TradeLoginPage: React.FC = () => {
     }
 
     try {
-      const { error, user } = await signIn(em, pass);
-      if (error) {
+      const res = await signIn(em, pass);
+      if (res.error) {
         setIsLoading(false);
-        setErrorMsg(error.message || 'Invalid login credentials. Please verify your trade email and password.');
+        setErrorMsg(res.error || 'Invalid login credentials. Please verify your trade email and password.');
         return;
       }
 
       // Check role
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
       const { data: userProfile } = await supabase
         .from('users')
         .select('role, full_name, company_name')
-        .eq('id', user?.id)
+        .eq('id', currentUser?.id)
         .maybeSingle();
 
       setIsLoading(false);
-      setSuccessMsg(`Welcome, ${userProfile?.full_name || user?.email || 'Officer'}. Entering trade terminal...`);
+      setSuccessMsg(`Welcome, ${userProfile?.full_name || currentUser?.email || 'Officer'}. Entering trade terminal...`);
       setTimeout(() => {
         if (userProfile?.role === 'trade_client') {
-          navigate('/trade/dashboard', { replace: true });
+          navigate('/trade/client-portal', { replace: true });
         } else {
           navigate('/trade/dashboard', { replace: true });
         }

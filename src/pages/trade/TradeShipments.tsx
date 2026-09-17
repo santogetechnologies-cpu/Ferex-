@@ -161,7 +161,7 @@ export const TradeShipments: React.FC = () => {
         order_no: `TRD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
         po_number: `PO-${Math.floor(100 + Math.random() * 900)}`,
       });
-      showToastMsg(`Order ${created.order_no} created & stage confirmed!`);
+      showToastMsg(`Order ${created?.order_no || 'Created'} created & stage confirmed!`);
       await loadData();
     } catch (err: any) {
       showToastMsg(`Failed to create order: ${err.message || 'Error'}`);

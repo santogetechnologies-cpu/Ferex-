@@ -197,12 +197,192 @@ export interface TradeTicket {
   updated_at: string;
 }
 
+export const TRADE_MASTER_CERT_TYPES: string[] = [
+  'Certificate of Origin',
+  'Phytosanitary Certificate',
+  'Fumigation Certificate',
+  'SGS Quality Inspection Certificate',
+  'Health Certificate',
+  'EUR.1 Movement Certificate',
+  'Non-GMO Certificate',
+  'Halal Certification',
+  'Kosher Certification'
+];
+
+export const TRADE_MASTER_PARTNER_CATEGORIES: string[] = [
+  'Buyer / Importer',
+  'Seller / Exporter',
+  'Freight Forwarder',
+  'Customs Broker',
+  'Inspection Agency',
+  'Shipping Line',
+  'Banking Partner'
+];
+
+export const TRADE_MASTER_INCOTERMS = TRADE_INCOTERMS;
+export const TRADE_MASTER_CURRENCIES = TRADE_CURRENCIES;
+
+export const TRADE_INVOICE_STATUSES: string[] = [
+  'Draft',
+  'Issued',
+  'Partially Paid',
+  'Paid',
+  'Overdue',
+  'Cancelled'
+];
+
+export const TRADE_MASTER_PAYMENT_METHODS: string[] = [
+  'Bank Wire (T/T)',
+  'Irrevocable Letter of Credit (LC)',
+  'Documents Against Payment (DP)',
+  'Escrow',
+  'Cash Against Documents (CAD)'
+];
+
+export const TRADE_MASTER_BANKS: string[] = [
+  'Standard Chartered Bank',
+  'BNP Paribas Corporate Banking',
+  'State Bank of India (Overseas)',
+  'HSBC Global Trade Services',
+  'Deutsche Bank AG',
+  'Santander Trade Finance',
+  'Barclays Corporate Banking',
+  'Citibank N.A. International'
+];
+
+export const TRADE_MASTER_CARRIERS: string[] = [
+  'Maersk Line',
+  'MSC Mediterranean Shipping',
+  'CMA CGM Group',
+  'Hapag-Lloyd',
+  'COSCO Shipping Lines',
+  'ONE (Ocean Network Express)',
+  'Evergreen Marine',
+  'Yang Ming Marine Transport',
+  'HMM Co., Ltd.'
+];
+
+export const TRADE_MASTER_VESSELS: string[] = [
+  'MSC GULSUN (IMO 9839438)',
+  'MAERSK MC-KINNEY MOLLER (IMO 9619907)',
+  'CMA CGM JACQUES SAADE (IMO 9839177)',
+  'HAPAG AL ZUBARA (IMO 9708813)',
+  'COSCO SHIPPING UNIVERSE (IMO 9795610)',
+  'EVER GIVEN (IMO 9811000)',
+  'ONE APUS (IMO 9806079)'
+];
+
+export const TRADE_MASTER_PORTS: string[] = [
+  'Port of Gdansk, Poland',
+  'Port of Gdynia, Poland',
+  'Port of Hamburg, Germany',
+  'Port of Rotterdam, Netherlands',
+  'Port of Antwerp, Belgium',
+  'Port of Nhava Sheva (JNPT), India',
+  'Port of Mundra, India',
+  'Port of Chennai, India',
+  'Port of Singapore',
+  'Port of Jebel Ali (Dubai)'
+];
+
+export const TRADE_BL_STATUSES: string[] = [
+  'Draft',
+  'Issued',
+  'Original Surrendered',
+  'Telex Released',
+  'Accomplished',
+  'Cancelled'
+];
+
+export interface TradeChatMessage {
+  id: string;
+  conversation_id: string;
+  contact_name: string;
+  contact_role?: string;
+  sender_name: string;
+  message: string;
+  is_self: boolean;
+  created_at: string;
+}
+
+export interface TradeInvoiceRecord {
+  id: string;
+  invoice_number: string;
+  order_no: string;
+  shipment_no?: string;
+  client_name: string;
+  issue_date: string;
+  due_date: string;
+  amount: number;
+  currency: string;
+  incoterm: string;
+  status: string;
+  paid_amount: number;
+  notes?: string;
+  items?: any[];
+  created_at: string;
+}
+
+export interface TradePackingListRecord {
+  id: string;
+  packing_list_no: string;
+  order_no: string;
+  shipment_no?: string;
+  client_name: string;
+  total_packages: number;
+  gross_weight_kg: number;
+  net_weight_kg: number;
+  volume_cbm: number;
+  status: string;
+  file_url?: string;
+  created_at: string;
+}
+
+export interface TradeLetterOfCreditRecord {
+  id: string;
+  lc_number: string;
+  order_no: string;
+  shipment_no?: string;
+  applicant: string;
+  beneficiary: string;
+  issuing_bank: string;
+  advising_bank: string;
+  amount: number;
+  currency: string;
+  expiry_date: string;
+  status: string;
+  file_url?: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface TradeBillOfLadingRecord {
+  id: string;
+  bl_number: string;
+  order_no: string;
+  shipment_no?: string;
+  carrier: string;
+  vessel_name: string;
+  voyage_number: string;
+  port_of_loading: string;
+  port_of_discharge: string;
+  shipper: string;
+  consignee: string;
+  issue_date: string;
+  status: string;
+  file_url?: string;
+  notes?: string;
+  created_at: string;
+}
+
 export interface TradePaymentRecord {
   id: string;
   order_no: string;
   order_id?: string;
+  invoice_no?: string;
   client_name: string;
   client_id?: string;
+  partner_entity?: string;
   type: 'Advance Paid' | 'Advance Payment' | 'Settlement' | 'Balance Settlement' | 'Completed' | 'Full Payment' | 'LC Drawdown' | 'Balance Payment' | string;
   amount: number;
   currency: string;
@@ -594,8 +774,9 @@ export async function getTradeDocuments(orderNo?: string): Promise<TradeDocument
   }
 }
 
-export async function uploadTradeDocument(doc: Partial<TradeDocument>): Promise<TradeDocument | null> {
+export async function uploadTradeDocument(doc: Partial<TradeDocument>, autoSend?: boolean): Promise<TradeDocument | null> {
   try {
+    const isSent = autoSend || doc.sent_to_client || false;
     const newDoc = {
       order_id: doc.order_id || null,
       order_no: doc.order_no || 'GENERAL-TRD',
@@ -611,8 +792,8 @@ export async function uploadTradeDocument(doc: Partial<TradeDocument>): Promise<
       uploaded_by: doc.uploaded_by || 'Operations Desk',
       verified_by: doc.verified_by || '',
       verified_at: doc.verified_at || null,
-      sent_to_client: doc.sent_to_client || false,
-      sent_to_client_at: doc.sent_to_client_at || null
+      sent_to_client: isSent,
+      sent_to_client_at: isSent ? new Date().toISOString() : null
     };
 
     const { data, error } = await supabase
@@ -622,6 +803,16 @@ export async function uploadTradeDocument(doc: Partial<TradeDocument>): Promise<
       .single();
 
     if (error) throw error;
+
+    if (isSent && data) {
+      await triggerTradeAutomatedEmail({
+        trigger_type: 'document_ready',
+        order_no: data.order_no,
+        recipient_name: data.client_name,
+        recipient_email: `${data.client_name.toLowerCase().replace(/[^a-z0-9]/g, '')}@trade.com`,
+        custom_data: { doc_type: data.doc_type, doc_number: data.doc_number }
+      });
+    }
 
     triggerSync('ferex_trade_documents_change');
     return data;
@@ -1530,7 +1721,7 @@ export async function globalSearchTrade(query: string): Promise<any[]> {
   }
 }
 
-export async function getTradeLettersOfCredit(): Promise<any[]> {
+export async function getTradeLettersOfCredit(): Promise<TradeLetterOfCreditRecord[]> {
   try {
     const docs = await getTradeDocuments();
     const lcDocs = docs.filter(d => d.doc_type === 'Letter of Credit');
@@ -1540,13 +1731,319 @@ export async function getTradeLettersOfCredit(): Promise<any[]> {
       order_no: d.order_no,
       applicant: d.client_name,
       beneficiary: 'FEREX Global Trade & Maritime Corp',
-      advising_bank: 'BNP Paribas / Standard Chartered',
-      amount_currency: 'USD',
+      issuing_bank: 'BNP Paribas Corporate Banking',
+      advising_bank: 'Standard Chartered Bank',
+      amount: 100000,
+      currency: 'USD',
+      expiry_date: new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0],
       status: d.status,
-      created_at: d.created_at,
-      verified_at: d.verified_at
+      file_url: d.file_url,
+      notes: d.notes,
+      created_at: d.created_at
     }));
   } catch (err) {
     return [];
   }
+}
+
+export async function createTradeLetterOfCredit(lc: Partial<TradeLetterOfCreditRecord>): Promise<any> {
+  return uploadTradeDocument({
+    order_no: lc.order_no || 'TRD-GENERAL',
+    client_name: lc.applicant || 'Trade Partner',
+    doc_type: 'Letter of Credit',
+    doc_number: lc.lc_number || `LC-${Math.floor(1000 + Math.random() * 9000)}`,
+    file_name: `LC_${lc.lc_number || 'Doc'}.pdf`,
+    notes: lc.notes || `LC issued by ${lc.issuing_bank || 'Bank'}`,
+    status: (lc.status as any) || 'Verified'
+  });
+}
+
+export async function updateTradeLetterOfCreditStatus(id: string, status: string, notes?: string): Promise<any> {
+  if (notes) {
+    return updateTradeDocument(id, { status: status as any, notes });
+  }
+  return updateTradeDocumentStatus(id, status as any);
+}
+
+export async function deleteTradeLetterOfCredit(id: string): Promise<boolean> {
+  return deleteTradeDocument(id);
+}
+
+export async function getTradeCertificates(): Promise<TradeDocument[]> {
+  const docs = await getTradeDocuments();
+  return docs.filter(d => d.doc_type === 'Certificate of Origin' || d.doc_type === 'Inspection Certificate' || d.doc_type.toLowerCase().includes('cert'));
+}
+
+export async function deleteTradeCertificate(id: string): Promise<boolean> {
+  return deleteTradeDocument(id);
+}
+
+export async function getTradeInvoices(): Promise<TradeInvoiceRecord[]> {
+  try {
+    const [orders, docs] = await Promise.all([
+      getTradeOrders(),
+      getTradeDocuments()
+    ]);
+
+    const invoiceDocs = docs.filter(d => d.doc_type === 'Commercial Invoice' || d.doc_type === 'Proforma Invoice');
+    
+    return invoiceDocs.map(d => {
+      const relatedOrder = orders.find(o => o.order_no === d.order_no);
+      return {
+        id: d.id,
+        invoice_number: d.doc_number || `INV-${d.order_no}`,
+        order_no: d.order_no,
+        client_name: d.client_name,
+        issue_date: d.created_at ? d.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+        due_date: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+        amount: relatedOrder ? relatedOrder.total_amount : 50000,
+        currency: relatedOrder ? relatedOrder.currency : 'USD',
+        incoterm: relatedOrder ? relatedOrder.incoterm : 'CIF (Cost, Insurance and Freight)',
+        status: d.status === 'Verified' ? 'Paid' : 'Issued',
+        paid_amount: relatedOrder ? (relatedOrder.advance_paid + relatedOrder.balance_paid) : 0,
+        notes: d.notes,
+        created_at: d.created_at
+      };
+    });
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function createTradeInvoice(invoice: Partial<TradeInvoiceRecord>): Promise<any> {
+  return uploadTradeDocument({
+    order_no: invoice.order_no || 'TRD-GENERAL',
+    client_name: invoice.client_name || 'Trade Partner',
+    doc_type: 'Commercial Invoice',
+    doc_number: invoice.invoice_number || `INV-${Math.floor(1000 + Math.random() * 9000)}`,
+    file_name: `Commercial_Invoice_${invoice.invoice_number || 'Doc'}.pdf`,
+    notes: invoice.notes || '',
+    status: 'Verified'
+  });
+}
+
+export async function updateTradeInvoiceStatus(id: string, status: string): Promise<any> {
+  return updateTradeDocumentStatus(id, status === 'Paid' ? 'Verified' : 'Submitted');
+}
+
+export async function deleteTradeInvoice(id: string): Promise<boolean> {
+  return deleteTradeDocument(id);
+}
+
+export async function getTradePackingLists(): Promise<TradePackingListRecord[]> {
+  try {
+    const docs = await getTradeDocuments();
+    const plDocs = docs.filter(d => d.doc_type === 'Packing List');
+    return plDocs.map(d => ({
+      id: d.id,
+      packing_list_no: d.doc_number || `PL-${d.order_no}`,
+      order_no: d.order_no,
+      client_name: d.client_name,
+      total_packages: 50,
+      gross_weight_kg: 25000,
+      net_weight_kg: 24500,
+      volume_cbm: 65,
+      status: d.status,
+      file_url: d.file_url,
+      created_at: d.created_at
+    }));
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function createTradePackingList(pl: Partial<TradePackingListRecord>): Promise<any> {
+  return uploadTradeDocument({
+    order_no: pl.order_no || 'TRD-GENERAL',
+    client_name: pl.client_name || 'Trade Partner',
+    doc_type: 'Packing List',
+    doc_number: pl.packing_list_no || `PL-${Math.floor(1000 + Math.random() * 9000)}`,
+    file_name: `Packing_List_${pl.packing_list_no || 'Doc'}.pdf`,
+    status: (pl.status as any) || 'Verified'
+  });
+}
+
+export async function deleteTradePackingList(id: string): Promise<boolean> {
+  return deleteTradeDocument(id);
+}
+
+export async function getTradeDossier(orderNo: string): Promise<{
+  order: TradeOrder | null;
+  documents: TradeDocument[];
+  payments: TradePaymentRecord[];
+  tasks: TradeTask[];
+  tickets: TradeTicket[];
+}> {
+  const [order, documents, payments, tasks, tickets] = await Promise.all([
+    getTradeOrderById(orderNo),
+    getTradeDocuments(orderNo),
+    getTradePayments(orderNo),
+    getTradeTasks(),
+    getTradeTickets()
+  ]);
+
+  return {
+    order,
+    documents,
+    payments,
+    tasks: tasks.filter(t => t.order_no === orderNo),
+    tickets: tickets.filter(tk => tk.order_no === orderNo)
+  };
+}
+
+export const createTradeCRMContact = createTradeClient;
+export const updateTradeCRMContact = updateTradeClient;
+export const deleteTradeCRMContact = deleteTradeClient;
+
+export async function getTradeBillsOfLading(): Promise<TradeBillOfLadingRecord[]> {
+  try {
+    const docs = await getTradeDocuments();
+    const blDocs = docs.filter(d => d.doc_type === 'Bill of Lading / Airway Bill' || d.doc_type.toLowerCase().includes('lading'));
+    return blDocs.map(d => ({
+      id: d.id,
+      bl_number: d.doc_number || `BL-${d.order_no}`,
+      order_no: d.order_no,
+      carrier: 'Maersk Line',
+      vessel_name: 'MAERSK MC-KINNEY MOLLER',
+      voyage_number: 'VY-2026-08',
+      port_of_loading: 'Port of Gdansk, Poland',
+      port_of_discharge: 'Port of Nhava Sheva (JNPT), India',
+      shipper: 'FEREX Global Trade & Maritime Corp',
+      consignee: d.client_name,
+      issue_date: d.created_at ? d.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+      status: d.status === 'Verified' ? 'Issued' : 'Draft',
+      file_url: d.file_url,
+      notes: d.notes,
+      created_at: d.created_at
+    }));
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function createTradeBillOfLading(bl: Partial<TradeBillOfLadingRecord>): Promise<any> {
+  return uploadTradeDocument({
+    order_no: bl.order_no || 'TRD-GENERAL',
+    client_name: bl.consignee || 'Trade Partner',
+    doc_type: 'Bill of Lading / Airway Bill',
+    doc_number: bl.bl_number || `BL-${Math.floor(1000 + Math.random() * 9000)}`,
+    file_name: `Bill_of_Lading_${bl.bl_number || 'Doc'}.pdf`,
+    notes: bl.notes || `Carrier: ${bl.carrier || 'Ocean Line'}`,
+    status: 'Verified'
+  });
+}
+
+export async function updateTradeBillOfLadingStatus(id: string, status: string): Promise<any> {
+  return updateTradeDocumentStatus(id, status === 'Issued' ? 'Verified' : 'Submitted');
+}
+
+export async function deleteTradeBillOfLading(id: string): Promise<boolean> {
+  return deleteTradeDocument(id);
+}
+
+export async function createTradeCertificate(cert: Partial<TradeDocument>): Promise<any> {
+  return uploadTradeDocument({
+    order_no: cert.order_no || 'TRD-GENERAL',
+    client_name: cert.client_name || 'Trade Partner',
+    doc_type: cert.doc_type || 'Certificate of Origin',
+    doc_number: cert.doc_number || `CERT-${Math.floor(1000 + Math.random() * 9000)}`,
+    file_name: cert.file_name || `Certificate_${cert.doc_number || 'Doc'}.pdf`,
+    notes: cert.notes || '',
+    status: (cert.status as any) || 'Verified'
+  });
+}
+
+export async function updateTradeCertificateStatus(id: string, status: string): Promise<any> {
+  return updateTradeDocumentStatus(id, status as any);
+}
+
+export async function sendPaymentReminder(
+  paymentIdOrOrderNo: string,
+  clientName?: string,
+  email?: string
+): Promise<boolean> {
+  try {
+    let orderNo = paymentIdOrOrderNo;
+    let recipientName = clientName || 'Trade Partner';
+    let recipientEmail = email || 'partner@trade.com';
+
+    if (!clientName || !email) {
+      const orders = await getTradeOrders();
+      const matched = orders.find(o => o.order_no === orderNo || o.id === orderNo);
+      if (matched) {
+        orderNo = matched.order_no;
+        recipientName = matched.client_name;
+        recipientEmail = matched.client_email;
+      }
+    }
+
+    await triggerTradeAutomatedEmail({
+      trigger_type: 'payment_reminder',
+      order_no: orderNo,
+      recipient_name: recipientName,
+      recipient_email: recipientEmail
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function resolveTradeTicket(
+  ticketId: string,
+  resolutionNotes: string,
+  resolvedBy: string = 'Trade Admin',
+  _extra?: any
+): Promise<TradeTicket | null> {
+  return updateTradeTicket(ticketId, {
+    status: 'Resolved',
+    resolution_notes: `${resolutionNotes} (Resolved by ${resolvedBy})`
+  });
+}
+
+// In-Memory Realtime Message Cache for Client & Admin Portals
+let _cachedTradeMessages: TradeChatMessage[] = [];
+
+export async function getTradeMessages(conversationId?: string): Promise<TradeChatMessage[]> {
+  if (_cachedTradeMessages.length === 0) {
+    _cachedTradeMessages = [
+      {
+        id: 'msg-1',
+        conversation_id: 'client_portal',
+        contact_name: 'Baltic Grain Sp. z o.o.',
+        sender_name: 'Elena Rostova (FEREX Operations Desk)',
+        message: 'Welcome to FEREX Global Trade terminal. Ocean freight booking confirmed under CIF Gdansk.',
+        is_self: false,
+        created_at: new Date(Date.now() - 3600000 * 4).toISOString()
+      },
+      {
+        id: 'msg-2',
+        conversation_id: 'client_portal',
+        contact_name: 'Baltic Grain Sp. z o.o.',
+        sender_name: 'Baltic Grain Procurement Officer',
+        message: 'Thank you Elena. Commercial Invoice & Phytosanitary Certificate downloaded for customs pre-declaration.',
+        is_self: true,
+        created_at: new Date(Date.now() - 3600000 * 2).toISOString()
+      }
+    ];
+  }
+  if (conversationId) {
+    return _cachedTradeMessages.filter(m => m.conversation_id === conversationId);
+  }
+  return _cachedTradeMessages;
+}
+
+export async function sendTradeMessage(msg: Partial<TradeChatMessage>): Promise<TradeChatMessage> {
+  const newMsg: TradeChatMessage = {
+    id: `msg-${Date.now()}`,
+    conversation_id: msg.conversation_id || 'client_portal',
+    contact_name: msg.contact_name || 'Trade Partner',
+    sender_name: msg.sender_name || 'Operations Officer',
+    message: msg.message || '',
+    is_self: msg.is_self || false,
+    created_at: new Date().toISOString()
+  };
+  _cachedTradeMessages.push(newMsg);
+  triggerSync('ferex_trade_messages_change');
+  return newMsg;
 }

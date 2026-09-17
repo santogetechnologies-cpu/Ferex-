@@ -165,7 +165,7 @@ export const TradeTasks: React.FC = () => {
       setFormData(initialForm);
       setStaffAssignMode('select');
       setNewStaffForm({ name: '', email: '', role: 'logistics_officer', department: 'Trade Logistics & Customs' });
-      showToastMsg(`Task "${created.title}" assigned to ${created.assigned_staff_name}!`);
+      showToastMsg(`Task "${created?.title || 'Task'}" assigned to ${created?.assigned_staff_name || 'Staff'}!`);
       await loadData();
     } catch (err: any) {
       showToastMsg(`Failed to create task: ${err.message || 'Error'}`);

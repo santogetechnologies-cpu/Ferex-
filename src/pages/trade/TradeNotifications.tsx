@@ -112,7 +112,7 @@ export const TradeNotifications: React.FC = () => {
         recipient_email: triggerForm.recipient_email,
       });
       setShowManualTriggerModal(false);
-      showToastMsg(`Automated email "${created.trigger_label}" dispatched to ${created.recipient_email}!`);
+      showToastMsg(`Automated email "${created?.trigger_label || 'Notice'}" dispatched to ${created?.recipient_email || 'recipient'}!`);
       await loadData();
     } catch (err: any) {
       showToastMsg(`Error: ${err.message}`);

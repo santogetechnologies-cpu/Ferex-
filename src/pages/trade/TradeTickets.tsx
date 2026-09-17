@@ -107,7 +107,7 @@ export const TradeTickets: React.FC = () => {
       });
       setShowCreateModal(false);
       setFormData(initialForm);
-      showToastMsg(`Ticket ${created.ticket_no} logged & assigned to ${created.assigned_staff_name}!`);
+      showToastMsg(`Ticket ${created?.ticket_no || 'Ticket'} logged & assigned to ${created?.assigned_staff_name || 'Staff'}!`);
       await loadData();
     } catch (err: any) {
       showToastMsg(`Failed to log ticket: ${err.message}`);

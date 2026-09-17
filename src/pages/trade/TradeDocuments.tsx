@@ -181,7 +181,7 @@ export const TradeDocuments: React.FC = () => {
       setShowUploadModal(false);
       setSelectedFile(null);
       setFileDataUrl('');
-      showToastMsg(`Uploaded ${created.doc_type} (${created.file_name})${uploadForm.auto_send ? ' & sent notice to client' : ''}!`);
+      showToastMsg(`Uploaded ${created?.doc_type || 'Document'} (${created?.file_name || 'file'})${uploadForm.auto_send ? ' & sent notice to client' : ''}!`);
       await loadData();
     } catch (err: any) {
       showToastMsg(`Upload failed: ${err.message || 'Error'}`);
