@@ -47,6 +47,7 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
         { name: 'Dashboard', path: '/staff/dashboard', icon: LayoutDashboard },
         { name: 'Operational Tasks', path: '/staff/tasks', icon: CheckSquare },
         { name: 'Assigned Students', path: '/staff/students', icon: Users },
+        { name: 'Document Verification', path: '/staff/documents', icon: FileText },
         { name: 'Meetings & Planner', path: '/staff/meetings', icon: Calendar },
         { name: 'Support Tickets', path: '/staff/tickets', icon: Ticket },
       ]

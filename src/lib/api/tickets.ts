@@ -21,9 +21,11 @@ export async function getTickets(studentId?: string): Promise<SupportTicket[]> {
     }
 
     const { data, error } = await query;
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       if (studentId) {
         try { localStorage.setItem(`ferex_tickets_${studentId}`, JSON.stringify(data)); } catch (e) {}
+      } else {
+        try { localStorage.setItem('ferex_all_tickets_cache', JSON.stringify(data)); } catch (e) {}
       }
       return data as SupportTicket[];
     }
@@ -35,7 +37,7 @@ export async function getTickets(studentId?: string): Promise<SupportTicket[]> {
       .eq('key', TICKETS_CONFIG_KEY)
       .maybeSingle();
 
-    if (catalogData?.value && Array.isArray(catalogData.value) && catalogData.value.length > 0) {
+    if (catalogData?.value && Array.isArray(catalogData.value)) {
       const allTickets: SupportTicket[] = catalogData.value;
       if (studentId) {
         return allTickets.filter(t => t.student_id === studentId || (t as any).user_id === studentId);
@@ -51,11 +53,27 @@ export async function getTickets(studentId?: string): Promise<SupportTicket[]> {
           if (Array.isArray(parsed)) return parsed;
         } catch (e) {}
       }
+    } else {
+      const local = localStorage.getItem('ferex_all_tickets_cache');
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (e) {}
+      }
     }
     return [];
   } catch (err) {
     if (studentId) {
       const local = localStorage.getItem(`ferex_tickets_${studentId}`);
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (e) {}
+      }
+    } else {
+      const local = localStorage.getItem('ferex_all_tickets_cache');
       if (local) {
         try {
           const parsed = JSON.parse(local);

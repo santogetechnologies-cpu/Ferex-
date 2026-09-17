@@ -1183,6 +1183,7 @@ export const Payments: React.FC = () => {
                 </div>
               )}
             </div>
+          </Card>
         ) : hasMultipleInstallments ? (
           /* Milestone-wise Tuition Installments */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

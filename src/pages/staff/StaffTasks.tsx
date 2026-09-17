@@ -331,38 +331,53 @@ export const StaffTasks: React.FC = () => {
                     Created: <span className="font-mono text-slate-600">{task.created_at ? new Date(task.created_at).toLocaleDateString() : 'Active'}</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {isPending && (
-                      <Button
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black cursor-pointer shadow-xs"
-                        onClick={() => handleStatusChange(task.id, 'In Progress')}
-                      >
-                        <Zap className="w-3.5 h-3.5 mr-1 text-blue-200" /> Start Processing ➔
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {isPending && (
+                        <Button
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black cursor-pointer shadow-xs"
+                          onClick={() => handleStatusChange(task.id, 'In Progress')}
+                        >
+                          <Zap className="w-3.5 h-3.5 mr-1 text-blue-200" /> Start Processing ➔
+                        </Button>
+                      )}
 
-                    {isProcessing && (
-                      <Button
-                        size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black cursor-pointer shadow-xs"
-                        onClick={() => handleStatusChange(task.id, 'Completed')}
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark as Completed ✓
-                      </Button>
-                    )}
+                      {isProcessing && (
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black cursor-pointer shadow-xs"
+                          onClick={() => handleStatusChange(task.id, 'Completed')}
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark as Completed ✓
+                        </Button>
+                      )}
 
-                    {isCompleted && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs font-bold border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
-                        onClick={() => handleStatusChange(task.id, 'In Progress')}
+                      {isCompleted && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs font-bold border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
+                          onClick={() => handleStatusChange(task.id, 'In Progress')}
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 mr-1 text-slate-500" /> Reopen as Processing
+                        </Button>
+                      )}
+
+                      <button
+                        onClick={async () => {
+                          if (window.confirm('Delete this task?')) {
+                            const { deleteTask } = await import('../../lib/api/tasks');
+                            await deleteTask(task.id);
+                            showToast('Task removed.');
+                            window.dispatchEvent(new Event('ferex_tasks_change'));
+                          }
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
+                        title="Delete Task"
                       >
-                        <RotateCcw className="w-3.5 h-3.5 mr-1 text-slate-500" /> Reopen as Processing
-                      </Button>
-                    )}
-                  </div>
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                 </div>
               </Card>
             );

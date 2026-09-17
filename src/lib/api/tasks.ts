@@ -47,9 +47,9 @@ export async function getTasks(): Promise<Task[]> {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data && Array.isArray(data) && data.length > 0) {
+    if (!error && data && Array.isArray(data)) {
       const dbTasks = data as Task[];
-      saveLocalTasks(dbTasks);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(dbTasks)); } catch (e) {}
       return dbTasks;
     }
 
@@ -60,8 +60,8 @@ export async function getTasks(): Promise<Task[]> {
       .eq('key', SYSTEM_CONFIG_KEY)
       .maybeSingle();
 
-    if (catalogData?.value && Array.isArray(catalogData.value) && catalogData.value.length > 0) {
-      saveLocalTasks(catalogData.value);
+    if (catalogData?.value && Array.isArray(catalogData.value)) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(catalogData.value)); } catch (e) {}
       return catalogData.value;
     }
   } catch (err) {
