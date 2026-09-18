@@ -359,28 +359,42 @@ export const RolesUsers: React.FC = () => {
   const roleOptions = [
     {
       group: 'Ferex Education Roles',
+      icon: GraduationCap,
       groupColor: 'text-rose-800 bg-rose-50 border-rose-200',
+      activeRing: 'ring-rose-600',
       options: [
         { role: 'counselor', label: 'Admissions Counselor', desc: 'Assigned to students in Education portal', icon: Users, color: 'border-purple-300 text-purple-900 bg-purple-50/60' },
         { role: 'education_admin', label: 'Ferex Education Admin', desc: 'Full Education Portal control & admissions', icon: GraduationCap, color: 'border-rose-300 text-rose-900 bg-rose-50/60' },
       ],
     },
     {
-      group: 'Ferex Digital Roles',
-      groupColor: 'text-emerald-800 bg-emerald-50 border-emerald-200',
-      options: [
-        { role: 'project_manager', label: 'Digital Project Manager', desc: 'Sprint lead, client tickets & milestones', icon: Briefcase, color: 'border-teal-300 text-teal-900 bg-teal-50/60' },
-        { role: 'digital_admin', label: 'Ferex Digital Admin', desc: 'Full Digital agency admin & retainers', icon: Monitor, color: 'border-emerald-300 text-emerald-900 bg-emerald-50/60' },
-      ],
-    },
-    {
-      group: 'Trade & Logistics Roles',
+      group: 'Global Trade & Logistics Roles',
+      icon: Globe,
       groupColor: 'text-indigo-800 bg-indigo-50 border-indigo-200',
+      activeRing: 'ring-indigo-600',
       options: [
         { role: 'logistics_officer', label: 'Trade Logistics Officer', desc: 'Cargo tracking, shipping & customs', icon: Truck, color: 'border-blue-300 text-blue-900 bg-blue-50/60' },
         { role: 'trade_admin', label: 'Global Trade Admin', desc: 'Full Trade CRM & LC settlements', icon: Globe, color: 'border-indigo-300 text-indigo-900 bg-indigo-50/60' },
+      ],
+    },
+    {
+      group: 'Rimi Frozen Distribution Roles',
+      icon: Snowflake,
+      groupColor: 'text-cyan-800 bg-cyan-50 border-cyan-200',
+      activeRing: 'ring-cyan-600',
+      options: [
         { role: 'operations_manager', label: 'Rimi Warehouse Lead', desc: 'Cold storage hubs, batch & fleet', icon: Box, color: 'border-sky-300 text-sky-900 bg-sky-50/60' },
         { role: 'rimi_admin', label: 'Rimi Frozen Admin', desc: 'Full FMCG & Cold chain distribution', icon: Snowflake, color: 'border-cyan-300 text-cyan-900 bg-cyan-50/60' },
+      ],
+    },
+    {
+      group: 'Ferex Digital Agency Roles',
+      icon: Monitor,
+      groupColor: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+      activeRing: 'ring-emerald-600',
+      options: [
+        { role: 'project_manager', label: 'Digital Project Manager', desc: 'Sprint lead, client tickets & milestones', icon: Briefcase, color: 'border-teal-300 text-teal-900 bg-teal-50/60' },
+        { role: 'digital_admin', label: 'Ferex Digital Admin', desc: 'Full Digital agency admin & retainers', icon: Monitor, color: 'border-emerald-300 text-emerald-900 bg-emerald-50/60' },
       ],
     },
   ];
@@ -717,58 +731,86 @@ export const RolesUsers: React.FC = () => {
                 </div>
 
                 {/* Role Selector */}
-                <div>
-                  <label className="block text-xs font-extrabold text-slate-700 mb-2 uppercase tracking-wider">
+                <div className="space-y-2">
+                  <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
                     Select Role & Division Scope:
                   </label>
-                  <div className="space-y-3">
-                    {roleOptions.map(group => (
-                      <div key={group.group}>
-                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border mb-1.5 inline-block ${group.groupColor}`}>
-                          {group.group}
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                          {group.options.map(opt => {
-                            const OptIcon = opt.icon;
-                            return (
-                              <button
-                                key={opt.role}
-                                type="button"
-                                onClick={() => setSelectedRole(opt.role)}
-                                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2 ${
-                                  selectedRole === opt.role
-                                    ? `${opt.color} ring-2 ring-[#58051E] font-black shadow-xs`
-                                    : 'border-slate-200 bg-white hover:bg-slate-50'
-                                }`}
-                              >
-                                <OptIcon className="w-4 h-4 shrink-0 mt-0.5 text-[#58051E]" />
-                                <div>
-                                  <p className="text-xs font-extrabold">{opt.label}</p>
-                                  <p className="text-[10px] text-slate-500 font-medium">{opt.desc}</p>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
+                  
+                  <div className="space-y-3.5">
+                    {roleOptions.map(group => {
+                      const GroupIcon = group.icon;
+                      return (
+                        <div key={group.group} className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border inline-flex items-center gap-1.5 ${group.groupColor}`}>
+                              <GroupIcon className="w-3 h-3" />
+                              {group.group}
+                            </span>
+                          </div>
 
-                    {/* Central Super Admin */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedRole('superadmin')}
-                      className={`w-full p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
-                        selectedRole === 'superadmin'
-                          ? 'border-amber-300 bg-amber-50/80 ring-2 ring-amber-600 font-black shadow-xs'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
-                      }`}
-                    >
-                      <Crown className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
-                      <div>
-                        <p className="text-xs font-black text-amber-900">Central Super Admin</p>
-                        <p className="text-[10.5px] text-amber-700/80 font-medium">Unrestricted master access across all 4 enterprise applications, global finance & user governance</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {group.options.map(opt => {
+                              const OptIcon = opt.icon;
+                              const isSelected = selectedRole === opt.role;
+                              return (
+                                <button
+                                  key={opt.role}
+                                  type="button"
+                                  onClick={() => setSelectedRole(opt.role)}
+                                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                                    isSelected
+                                      ? `${opt.color} ring-2 ${group.activeRing} font-black shadow-xs`
+                                      : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                                  }`}
+                                >
+                                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                                    isSelected ? 'bg-white shadow-xs' : 'bg-slate-100 text-slate-600'
+                                  }`}>
+                                    <OptIcon className="w-3.5 h-3.5 text-[#58051E]" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-extrabold text-slate-900 leading-tight">{opt.label}</p>
+                                    <p className="text-[10px] text-slate-500 font-medium mt-0.5 leading-snug">{opt.desc}</p>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Central Super Admin Section */}
+                    <div className="p-3 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent rounded-2xl border border-amber-200/90 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-amber-300 bg-amber-100 text-amber-900 inline-flex items-center gap-1.5">
+                          <Crown className="w-3 h-3 text-amber-700" />
+                          Enterprise Master Authority
+                        </span>
                       </div>
-                    </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRole('superadmin')}
+                        className={`w-full p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                          selectedRole === 'superadmin'
+                            ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-600 font-black shadow-xs'
+                            : 'border-amber-200/80 bg-white hover:bg-amber-50/50'
+                        }`}
+                      >
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                          selectedRole === 'superadmin' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          <Crown className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black text-amber-950">Central Super Admin</p>
+                          <p className="text-[10px] text-amber-800/80 font-medium mt-0.5 leading-snug">
+                            Unrestricted master access across all 4 enterprise applications, global finance & user governance
+                          </p>
+                        </div>
+                      </button>
+                    </div>
                   </div>
                 </div>
 

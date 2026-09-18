@@ -609,114 +609,199 @@ export const CentralAdmins: React.FC = () => {
                     Select Role & Authority Scope:
                   </label>
 
-                  <div className="space-y-3">
+                  <div className="space-y-3.5">
                     {/* Education Suite */}
-                    <div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 mb-1.5 inline-block">
-                        Ferex Education Roles
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                    <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200 inline-flex items-center gap-1.5">
+                          <GraduationCap className="w-3 h-3 text-rose-700" />
+                          Ferex Education Roles
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {[
                           { role: 'counselor', label: 'Admissions Counselor', desc: 'Can be assigned to students in Education CRM', icon: Users, color: 'border-purple-300 text-purple-900 bg-purple-50/60' },
                           { role: 'education_admin', label: 'Ferex Education Admin', desc: 'Full Education Portal control & admissions', icon: GraduationCap, color: 'border-rose-300 text-rose-900 bg-rose-50/60' },
-                        ].map(opt => (
-                          <button
-                            key={opt.role}
-                            type="button"
-                            onClick={() => setSelectedRole(opt.role)}
-                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2 ${
-                              selectedRole === opt.role
-                                ? `${opt.color} ring-2 ring-[#58051E] font-black shadow-xs`
-                                : 'border-slate-200 bg-white hover:bg-slate-50'
-                            }`}
-                          >
-                            <opt.icon className="w-4 h-4 shrink-0 mt-0.5 text-[#58051E]" />
-                            <div>
-                              <p className="text-xs font-extrabold">{opt.label}</p>
-                              <p className="text-[10px] text-slate-500 font-medium">{opt.desc}</p>
-                            </div>
-                          </button>
-                        ))}
+                        ].map(opt => {
+                          const OptIcon = opt.icon;
+                          const isSelected = selectedRole === opt.role;
+                          return (
+                            <button
+                              key={opt.role}
+                              type="button"
+                              onClick={() => setSelectedRole(opt.role)}
+                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                                isSelected
+                                  ? `${opt.color} ring-2 ring-rose-600 font-black shadow-xs`
+                                  : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                              }`}
+                            >
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                                isSelected ? 'bg-white shadow-xs' : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                <OptIcon className="w-3.5 h-3.5 text-[#58051E]" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-extrabold text-slate-900 leading-tight">{opt.label}</p>
+                                <p className="text-[10px] text-slate-500 font-medium mt-0.5 leading-snug">{opt.desc}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Global Trade Suite */}
+                    <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 inline-flex items-center gap-1.5">
+                          <Globe className="w-3 h-3 text-indigo-700" />
+                          Global Trade & Logistics Roles
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {[
+                          { role: 'logistics_officer', label: 'Trade Logistics Officer', desc: 'Cargo tracking, shipping & customs', icon: Truck, color: 'border-blue-300 text-blue-900 bg-blue-50/60' },
+                          { role: 'trade_admin', label: 'Global Trade Admin', desc: 'Full Trade CRM & LC settlements', icon: Globe, color: 'border-indigo-300 text-indigo-900 bg-indigo-50/60' },
+                        ].map(opt => {
+                          const OptIcon = opt.icon;
+                          const isSelected = selectedRole === opt.role;
+                          return (
+                            <button
+                              key={opt.role}
+                              type="button"
+                              onClick={() => setSelectedRole(opt.role)}
+                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                                isSelected
+                                  ? `${opt.color} ring-2 ring-indigo-600 font-black shadow-xs`
+                                  : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                              }`}
+                            >
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                                isSelected ? 'bg-white shadow-xs' : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                <OptIcon className="w-3.5 h-3.5 text-indigo-700" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-extrabold text-slate-900 leading-tight">{opt.label}</p>
+                                <p className="text-[10px] text-slate-500 font-medium mt-0.5 leading-snug">{opt.desc}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Rimi Frozen Suite */}
+                    <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded-md border border-cyan-200 inline-flex items-center gap-1.5">
+                          <Snowflake className="w-3 h-3 text-cyan-700" />
+                          Rimi Frozen Distribution Roles
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {[
+                          { role: 'operations_manager', label: 'Rimi Warehouse Lead', desc: 'Cold storage hubs, batch & fleet', icon: Box, color: 'border-sky-300 text-sky-900 bg-sky-50/60' },
+                          { role: 'rimi_admin', label: 'Rimi Frozen Admin', desc: 'Full FMCG & Cold chain distribution', icon: Snowflake, color: 'border-cyan-300 text-cyan-900 bg-cyan-50/60' },
+                        ].map(opt => {
+                          const OptIcon = opt.icon;
+                          const isSelected = selectedRole === opt.role;
+                          return (
+                            <button
+                              key={opt.role}
+                              type="button"
+                              onClick={() => setSelectedRole(opt.role)}
+                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                                isSelected
+                                  ? `${opt.color} ring-2 ring-cyan-600 font-black shadow-xs`
+                                  : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                              }`}
+                            >
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                                isSelected ? 'bg-white shadow-xs' : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                <OptIcon className="w-3.5 h-3.5 text-cyan-700" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-extrabold text-slate-900 leading-tight">{opt.label}</p>
+                                <p className="text-[10px] text-slate-500 font-medium mt-0.5 leading-snug">{opt.desc}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
                     {/* Digital Suite */}
-                    <div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 mb-1.5 inline-block">
-                        Ferex Digital Roles
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                    <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 inline-flex items-center gap-1.5">
+                          <Monitor className="w-3 h-3 text-emerald-700" />
+                          Ferex Digital Roles
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {[
                           { role: 'project_manager', label: 'Digital Project Manager', desc: 'Sprint lead, client tickets & milestones', icon: Briefcase, color: 'border-teal-300 text-teal-900 bg-teal-50/60' },
                           { role: 'digital_admin', label: 'Ferex Digital Admin', desc: 'Full Digital agency admin & retainers', icon: Monitor, color: 'border-emerald-300 text-emerald-900 bg-emerald-50/60' },
-                        ].map(opt => (
-                          <button
-                            key={opt.role}
-                            type="button"
-                            onClick={() => setSelectedRole(opt.role)}
-                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2 ${
-                              selectedRole === opt.role
-                                ? `${opt.color} ring-2 ring-emerald-600 font-black shadow-xs`
-                                : 'border-slate-200 bg-white hover:bg-slate-50'
-                            }`}
-                          >
-                            <opt.icon className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
-                            <div>
-                              <p className="text-xs font-extrabold">{opt.label}</p>
-                              <p className="text-[10px] text-slate-500 font-medium">{opt.desc}</p>
-                            </div>
-                          </button>
-                        ))}
+                        ].map(opt => {
+                          const OptIcon = opt.icon;
+                          const isSelected = selectedRole === opt.role;
+                          return (
+                            <button
+                              key={opt.role}
+                              type="button"
+                              onClick={() => setSelectedRole(opt.role)}
+                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                                isSelected
+                                  ? `${opt.color} ring-2 ring-emerald-600 font-black shadow-xs`
+                                  : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                              }`}
+                            >
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                                isSelected ? 'bg-white shadow-xs' : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                <OptIcon className="w-3.5 h-3.5 text-emerald-700" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-extrabold text-slate-900 leading-tight">{opt.label}</p>
+                                <p className="text-[10px] text-slate-500 font-medium mt-0.5 leading-snug">{opt.desc}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    {/* Trade & Rimi Suite */}
-                    <div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 mb-1.5 inline-block">
-                        Trade & Logistics Roles
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                        {[
-                          { role: 'logistics_officer', label: 'Trade Logistics Officer', desc: 'Cargo tracking, shipping & customs', icon: Truck, color: 'border-blue-300 text-blue-900 bg-blue-50/60' },
-                          { role: 'trade_admin', label: 'Global Trade Admin', desc: 'Full Trade CRM & LC settlements', icon: Globe, color: 'border-indigo-300 text-indigo-900 bg-indigo-50/60' },
-                          { role: 'operations_manager', label: 'Rimi Warehouse Lead', desc: 'Cold storage hubs, batch & fleet', icon: Box, color: 'border-sky-300 text-sky-900 bg-sky-50/60' },
-                          { role: 'rimi_admin', label: 'Rimi Frozen Admin', desc: 'Full FMCG & Cold chain distribution', icon: Snowflake, color: 'border-cyan-300 text-cyan-900 bg-cyan-50/60' },
-                        ].map(opt => (
-                          <button
-                            key={opt.role}
-                            type="button"
-                            onClick={() => setSelectedRole(opt.role)}
-                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2 ${
-                              selectedRole === opt.role
-                                ? `${opt.color} ring-2 ring-indigo-600 font-black shadow-xs`
-                                : 'border-slate-200 bg-white hover:bg-slate-50'
-                            }`}
-                          >
-                            <opt.icon className="w-4 h-4 shrink-0 mt-0.5 text-indigo-600" />
-                            <div>
-                              <p className="text-xs font-extrabold">{opt.label}</p>
-                              <p className="text-[10px] text-slate-500 font-medium">{opt.desc}</p>
-                            </div>
-                          </button>
-                        ))}
+                    {/* Central Super Admin Section */}
+                    <div className="p-3 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent rounded-2xl border border-amber-200/90 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-amber-300 bg-amber-100 text-amber-900 inline-flex items-center gap-1.5">
+                          <Crown className="w-3 h-3 text-amber-700" />
+                          Enterprise Master Authority
+                        </span>
                       </div>
-                    </div>
 
-                    {/* Central Super Admin */}
-                    <div>
                       <button
                         type="button"
                         onClick={() => setSelectedRole('superadmin')}
                         className={`w-full p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
                           selectedRole === 'superadmin'
-                            ? 'border-amber-300 bg-amber-50/80 ring-2 ring-amber-600 font-black shadow-xs'
-                            : 'border-slate-200 bg-white hover:bg-slate-50'
+                            ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-600 font-black shadow-xs'
+                            : 'border-amber-200/80 bg-white hover:bg-amber-50/50'
                         }`}
                       >
-                        <Crown className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
-                        <div>
-                          <p className="text-xs font-black text-amber-900">Central Super Admin</p>
-                          <p className="text-[10.5px] text-amber-700/80 font-medium">Unrestricted Master Access across all 4 Enterprise applications, global finance & user governance</p>
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                          selectedRole === 'superadmin' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          <Crown className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black text-amber-950">Central Super Admin</p>
+                          <p className="text-[10px] text-amber-800/80 font-medium mt-0.5 leading-snug">
+                            Unrestricted Master Access across all 4 Enterprise applications, global finance & user governance
+                          </p>
                         </div>
                       </button>
                     </div>
