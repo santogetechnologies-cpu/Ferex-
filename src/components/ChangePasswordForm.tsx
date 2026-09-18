@@ -114,11 +114,12 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
 
       // 4. Update public.users record timestamp if logged in
       if (user?.id) {
-        await supabase
-          .from('users')
-          .update({ must_change_password: false, updated_at: new Date().toISOString() })
-          .eq('id', user.id)
-          .catch(() => {});
+        try {
+          await supabase
+            .from('users')
+            .update({ must_change_password: false, updated_at: new Date().toISOString() })
+            .eq('id', user.id);
+        } catch {}
       }
 
       setSuccess('Password changed successfully! Your new password is now active.');
