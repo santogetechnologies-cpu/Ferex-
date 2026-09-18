@@ -5,7 +5,7 @@ import {
   CheckCircle2, XCircle, AlertCircle, Clock, Eye, Download,
   Plus, RotateCcw, Sparkles, X, ChevronRight, FileText,
   DollarSign, TrendingUp, ShieldCheck, ArrowUpRight, GraduationCap,
-  Layers, Check, ExternalLink, RefreshCw, Building2
+  Layers, Check, ExternalLink, RefreshCw, Building2, Trash2
 } from 'lucide-react';
 import {
   getAllPaymentsAdmin,
@@ -13,7 +13,8 @@ import {
   verifyPayment,
   rejectPayment,
   issueRefund,
-  createAndCompletePayment
+  createAndCompletePayment,
+  deletePaymentRecord
 } from '../../lib/api/payments';
 import { getApplications } from '../../lib/api/applications';
 import { useUniversities } from '../../hooks/useUniversities';
@@ -53,6 +54,7 @@ export const AdminPaymentControl: React.FC = () => {
   const [verifyNotes, setVerifyNotes] = useState('');
   const [rejectItem, setRejectItem] = useState<Payment | null>(null);
   const [rejectReason, setRejectReason] = useState('Invalid or unmatched UTR transaction reference number.');
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState<Payment | null>(null);
 
   // Manual Bank Transfer Entry Form State
   const [bankStudentId, setBankStudentId] = useState('');
@@ -496,6 +498,21 @@ export const AdminPaymentControl: React.FC = () => {
       loadData();
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Action failed'}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeletePayment = async (p: Payment) => {
+    try {
+      setIsProcessing(true);
+      await deletePaymentRecord(p.id);
+      setPayments(prev => prev.filter(item => item.id !== p.id));
+      setDeleteConfirmItem(null);
+      showToast(`Payment record #${p.ref_no || p.utr_number || p.id.slice(0, 8)} deleted from ledger.`);
+      window.dispatchEvent(new Event('ferex_payment_change'));
+    } catch (e: any) {
+      showToast(`Error deleting payment: ${e?.message || 'Failed'}`);
     } finally {
       setIsProcessing(false);
     }
@@ -1277,6 +1294,13 @@ export const AdminPaymentControl: React.FC = () => {
                               </button>
                             </>
                           )}
+                          <button
+                            onClick={() => setDeleteConfirmItem(p)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Delete Record from Ledger"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1598,6 +1622,64 @@ export const AdminPaymentControl: React.FC = () => {
                 >
                   <XCircle className="w-4 h-4" />
                   {isProcessing ? 'Rejecting...' : 'Confirm Rejection'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirmItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 text-left"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Delete Payment Record</h3>
+                  <p className="text-xs text-slate-500 font-medium">This transaction will be permanently removed from the ledger.</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1.5 mb-5">
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-semibold">Student / Client:</span>
+                  <span className="font-extrabold text-slate-900">{deleteConfirmItem.student_name || 'Student'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-semibold">Reference / UTR:</span>
+                  <span className="font-mono font-bold text-slate-900">{deleteConfirmItem.utr_number || deleteConfirmItem.ref_no || deleteConfirmItem.id.slice(0, 8)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-semibold">Amount:</span>
+                  <span className="font-black text-slate-900">₹{Number(deleteConfirmItem.amount).toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmItem(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isProcessing}
+                  onClick={() => handleDeletePayment(deleteConfirmItem)}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {isProcessing ? 'Deleting...' : 'Confirm Delete'}
                 </button>
               </div>
             </motion.div>

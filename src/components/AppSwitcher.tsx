@@ -6,6 +6,9 @@ import {
   ArrowUpRight, Check
 } from 'lucide-react';
 
+import { useAuth } from '../contexts/AuthContext';
+import { isSuperAdmin } from '../lib/roleRouter';
+
 interface AppItem {
   id: string;
   name: string;
@@ -71,10 +74,21 @@ const FEREX_APPS: AppItem[] = [
 ];
 
 export const AppSwitcher: React.FC = () => {
+  const { user, profile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // App Switcher is strictly reserved for Central Super Admin ONLY.
+  // Disabled / Hidden for all division admins (Education, Trade, Rimi, Digital, Staff, Student).
+  const rawRole = profile?.role || user?.user_metadata?.role || (user as any)?.role;
+  const userEmail = profile?.email || user?.email;
+  const isSuper = isSuperAdmin(rawRole, userEmail);
+
+  if (!isSuper) {
+    return null;
+  }
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {

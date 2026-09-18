@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CreditCard, Search, Download, CheckCircle2, TrendingUp,
-  GraduationCap, Globe, Snowflake, Monitor, Check
+  GraduationCap, Globe, Snowflake, Monitor, Check, Trash2
 } from 'lucide-react';
+import { deletePaymentRecord } from '../../lib/api/payments';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
@@ -36,6 +37,8 @@ export const CentralPayments: React.FC = () => {
   const [toast, setToast] = useState('');
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteModalItem, setDeleteModalItem] = useState<TransactionItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -174,6 +177,31 @@ export const CentralPayments: React.FC = () => {
       prev.map(t => (t.id === id ? { ...t, status: 'Verified', statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200' } : t))
     );
     showToastMsg(`Settlement Reference ${ref} Verified & Cleared`);
+  };
+
+  const handleDeleteTransaction = async (t: TransactionItem) => {
+    setIsDeleting(true);
+    try {
+      if (t.division === 'Education') {
+        await deletePaymentRecord(t.id);
+        await supabase.from('payments').delete().eq('id', t.id);
+      } else if (t.division === 'Trade') {
+        await supabase.from('trade_payments').delete().eq('id', t.id);
+      } else if (t.division === 'Rimi') {
+        await supabase.from('rimi_sales_orders').delete().eq('id', t.id);
+      } else if (t.division === 'Digital') {
+        await supabase.from('digital_invoices').delete().eq('id', t.id);
+      }
+
+      setTransactions(prev => prev.filter(x => x.id !== t.id));
+      setDeleteModalItem(null);
+      showToastMsg(`Transaction record ${t.refNo} permanently deleted from ledger.`);
+      window.dispatchEvent(new Event('ferex_payment_change'));
+    } catch (err: any) {
+      showToastMsg(`Error deleting transaction: ${err?.message || 'Failed'}`);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleExportLedger = () => {
@@ -412,18 +440,27 @@ export const CentralPayments: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      {t.status === 'Pending' ? (
+                      <div className="flex items-center justify-end gap-1.5">
+                        {t.status === 'Pending' ? (
+                          <button
+                            onClick={() => handleVerify(t.id, t.refNo)}
+                            className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer"
+                          >
+                            Verify Wire
+                          </button>
+                        ) : (
+                          <span className="text-[10.5px] font-extrabold text-emerald-700 flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" /> Cleared
+                          </span>
+                        )}
                         <button
-                          onClick={() => handleVerify(t.id, t.refNo)}
-                          className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer"
+                          onClick={() => setDeleteModalItem(t)}
+                          title="Delete Record from Ledger"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                         >
-                          Verify Wire
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                      ) : (
-                        <span className="text-[10.5px] font-extrabold text-emerald-700 flex items-center justify-end gap-1">
-                          <Check className="w-3.5 h-3.5" /> Cleared
-                        </span>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -438,6 +475,67 @@ export const CentralPayments: React.FC = () => {
           </table>
         </div>
       </Card>
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteModalItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 text-left"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Delete Treasury Record</h3>
+                  <p className="text-xs text-slate-500 font-medium">This transaction will be permanently removed from the central treasury ledger.</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1.5 mb-5">
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-semibold">Division:</span>
+                  <span className="font-extrabold text-slate-900">{deleteModalItem.division}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-semibold">Client / Entity:</span>
+                  <span className="font-extrabold text-slate-900">{deleteModalItem.client}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-semibold">Reference:</span>
+                  <span className="font-mono font-bold text-slate-900">{deleteModalItem.refNo}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-semibold">Amount:</span>
+                  <span className="font-black text-slate-900">{deleteModalItem.amountFormatted}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteModalItem(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => handleDeleteTransaction(deleteModalItem)}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

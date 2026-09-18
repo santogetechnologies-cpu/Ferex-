@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Eye, CheckCircle2, X, CreditCard, Clock, Sparkles, AlertCircle,
   ExternalLink, Download, RefreshCw, TrendingUp, RotateCcw, FileText, Filter, Plus,
-  Building2, GraduationCap, Layers, ArrowRight, CheckCircle, ShieldCheck
+  Building2, GraduationCap, Layers, ArrowRight, CheckCircle, ShieldCheck, Trash2
 } from 'lucide-react';
 import { usePayments } from '../../hooks/usePayments';
 import { useStudents } from '../../hooks/useStudents';
@@ -15,7 +15,7 @@ import type { Payment, Application } from '../../lib/types';
 import {
   getAllPaymentsAdmin, getPaymentStats, issueRefund, verifyPayment, rejectPayment,
   createValidInvoicePdfBlob, createReceiptPdfBlob, createCreditNotePdfBlob,
-  createAndCompletePayment
+  createAndCompletePayment, deletePaymentRecord
 } from '../../lib/api/payments';
 import { InvoiceModal, type InvoiceData } from '../../components/InvoiceModal';
 
@@ -48,6 +48,7 @@ export const AdminPayments: React.FC = () => {
   const [refundPaymentItem, setRefundPaymentItem] = useState<Payment | null>(null);
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
+  const [deleteModalItem, setDeleteModalItem] = useState<Payment | null>(null);
 
   // Manual payment entry modal
   const [showManualModal, setShowManualModal] = useState(false);
@@ -360,6 +361,24 @@ export const AdminPayments: React.FC = () => {
       showToast(`Refund of INR ${amt.toLocaleString()} issued successfully. Credit note PDF downloaded.`);
       fetchAll();
     } catch (err: any) { showToast(`Error issuing refund: ${err.message}`); } finally { setIsProcessing(null); }
+  };
+
+  // Delete Payment Handler
+  const handleDeletePayment = async (p: Payment) => {
+    try {
+      setIsProcessing(p.id);
+      await deletePaymentRecord(p.id);
+      setAllPayments(prev => prev.filter(x => x.id !== p.id));
+      setDeleteModalItem(null);
+      if (viewPayment?.id === p.id) setViewPayment(null);
+      showToast(`Payment record #${p.ref_no || p.utr_number || p.id.slice(0, 8)} deleted from ledger.`);
+      window.dispatchEvent(new Event('ferex_payment_change'));
+      fetchAll();
+    } catch (err: any) {
+      showToast(`Error deleting payment: ${err.message || 'Failed'}`);
+    } finally {
+      setIsProcessing(null);
+    }
   };
 
   // Manual Offline Payment Submit
@@ -1070,6 +1089,15 @@ export const AdminPayments: React.FC = () => {
                             </>
                           )}
 
+                          {/* Delete action */}
+                          <button
+                            onClick={() => setDeleteModalItem(p)}
+                            title="Delete Record from Ledger"
+                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 border border-rose-100 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+
                           {/* Rejection action */}
                           {isPending && (
                             <button
@@ -1529,6 +1557,62 @@ export const AdminPayments: React.FC = () => {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteModalItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setDeleteModalItem(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Delete Payment Record</h3>
+                  <p className="text-xs text-slate-500 font-medium">Permanently removes this transaction from the database & ledger.</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1.5 mb-5">
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-semibold">Student / Client:</span>
+                  <span className="font-extrabold text-slate-900">{deleteModalItem.student_name || 'Student'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-semibold">Reference / UTR:</span>
+                  <span className="font-mono font-bold text-slate-900">{deleteModalItem.utr_number || deleteModalItem.ref_no || deleteModalItem.id.slice(0, 8)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-semibold">Amount:</span>
+                  <span className="font-black text-slate-900">INR {Number(deleteModalItem.amount).toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteModalItem(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={Boolean(isProcessing)}
+                  onClick={() => handleDeletePayment(deleteModalItem)}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {isProcessing === deleteModalItem.id ? 'Deleting...' : 'Confirm Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

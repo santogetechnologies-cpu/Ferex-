@@ -184,13 +184,13 @@ const AppInitializer: React.FC = () => {
 };
 
 // Role equivalence lists across all 4 enterprise divisions + Central + Staff
-const ADMIN_ROLES = ['admin', 'education_admin', 'education', 'super_admin', 'superadmin', 'central'];
+const ADMIN_ROLES = ['admin', 'education_admin', 'education'];
 const CENTRAL_ROLES = ['central', 'super_admin', 'superadmin'];
-const TRADE_ROLES = ['trade', 'trade_admin', 'global_trade', 'logistics_officer', 'admin', 'central', 'super_admin', 'superadmin'];
-const RIMI_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen', 'operations_manager', 'rimi_staff', 'admin', 'central', 'super_admin', 'superadmin'];
-const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'project_manager', 'digital_staff', 'admin', 'central', 'super_admin', 'superadmin'];
-const PM_ROLES = ['project_manager', 'digital_pm', 'digital_admin', 'digital', 'admin', 'central', 'super_admin', 'superadmin'];
-const STAFF_ROLES = ['staff', 'counselor', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+const TRADE_ROLES = ['trade', 'trade_admin', 'global_trade', 'logistics_officer'];
+const RIMI_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen', 'operations_manager', 'rimi_staff'];
+const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'project_manager', 'digital_staff'];
+const PM_ROLES = ['project_manager', 'digital_pm', 'digital_admin', 'digital'];
+const STAFF_ROLES = ['staff', 'counselor', 'admin', 'education_admin'];
 
 // Guards portal routes — redirects to login if not authenticated, or to proper portal if role mismatched
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
@@ -243,19 +243,28 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
 
   // Check role authorization if specified
   if (allowedRoles && allowedRoles.length > 0) {
-    const normalizedAllowed = allowedRoles.map(r => normalizeRole(r));
-    const isAdminRoute = normalizedAllowed.includes('admin') || normalizedAllowed.some(r => ADMIN_ROLES.includes(r));
-    const isEducationAdminUser = ADMIN_ROLES.includes(currentRole);
+    const isCentralRoute = location.pathname.startsWith('/central');
 
-    const isAllowed =
-      (isSuper && !normalizedAllowed.includes('student')) ||
-      normalizedAllowed.includes(currentRole) ||
-      (isAdminRoute && isEducationAdminUser);
+    // 1. STRICT CENTRAL GUARD: Only real Central Super Admin can access Central Admin (/central/*)
+    if (isCentralRoute && !isSuper) {
+      const correctDashboard = getDashboardRoute(currentRole, userEmail);
+      return <Navigate to={correctDashboard} replace />;
+    }
+
+    const normalizedAllowed = allowedRoles.map(r => normalizeRole(r));
+
+    let isAllowed = false;
+    if (isSuper) {
+      // Super admin has universal governance across all enterprise apps (except pure student-only routes)
+      isAllowed = !normalizedAllowed.includes('student') || normalizedAllowed.length > 1;
+    } else {
+      // Division users must match permitted roles
+      isAllowed = normalizedAllowed.includes(currentRole) || allowedRoles.includes(rawRole || '');
+    }
 
     if (!isAllowed) {
-      // Guard against infinite self-redirect loops:
       const correctDashboard = getDashboardRoute(currentRole, userEmail);
-      if (correctDashboard === location.pathname || (location.pathname.startsWith('/admin') && isEducationAdminUser)) {
+      if (correctDashboard === location.pathname) {
         return <>{children}</>;
       }
       return <Navigate to={correctDashboard} replace />;
