@@ -57,7 +57,6 @@ import { CentralTasks } from './pages/central/CentralTasks';
 import { CentralActivity } from './pages/central/CentralActivity';
 import { CentralNotifications } from './pages/central/CentralNotifications';
 import { CentralSettings } from './pages/central/CentralSettings';
-import { WorkflowGuide } from './pages/central/WorkflowGuide';
 import { CentralTrade } from './pages/central/CentralTrade';
 import { CentralRimi } from './pages/central/CentralRimi';
 import { CentralDigital } from './pages/central/CentralDigital';
@@ -65,7 +64,6 @@ import { CentralSupport } from './pages/central/CentralSupport';
 import { CentralEducation } from './pages/central/CentralEducation';
 import { CentralStudents } from './pages/central/CentralStudents';
 import { CentralEmailLogs } from './pages/central/CentralEmailLogs';
-import { CentralEmailSettings } from './pages/central/CentralEmailSettings';
 
 // Trade imports
 import { TradeLayout } from './layouts/TradeLayout';
@@ -355,8 +353,9 @@ function App() {
           <Route path="/central/tasks" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralTasks /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/activity" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralActivity /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/notifications" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralNotifications /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/finance-analytics" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralReports /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/settings" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralSettings /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/workflow-guide" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><WorkflowGuide /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/workflow-guide" element={<Navigate to="/central/dashboard" replace />} />
           <Route path="/central/education" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralStudents /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/universities" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralEducation /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/students" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralStudents /></CentralLayout></ProtectedRoute>} />
@@ -365,7 +364,7 @@ function App() {
           <Route path="/central/digital" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralDigital /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/support" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralSupport /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/emails" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralEmailLogs /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/email-settings" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralEmailSettings /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/email-settings" element={<Navigate to="/central/settings" replace />} />
           <Route path="/central/documents" element={<Navigate to="/admin/documents" replace />} />
           <Route path="/central/insights" element={<Navigate to="/central/reports" replace />} />
 

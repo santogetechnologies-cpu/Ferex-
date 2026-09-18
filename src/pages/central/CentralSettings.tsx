@@ -1,75 +1,99 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Settings, Shield, Database, Globe, CheckCircle2,
-  RefreshCw, Save, Mail, CreditCard, QrCode
+  Settings, Save, RefreshCw, CheckCircle2, Shield,
+  Globe, Mail, Building, Bell, Lock, Database,
+  Check, AlertTriangle, Key, Activity, Laptop, Zap
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import {
-  getGlobalPaymentGateways,
-  saveGlobalPaymentGateways,
-  type GlobalPaymentGatewayConfig,
-  DEFAULT_PAYMENT_GATEWAYS
-} from '../../lib/api/paymentGateways';
+import { supabase } from '../../lib/supabase';
+import { getSystemConfig, saveSystemConfig } from '../../lib/api/systemConfig';
+import type { SystemCustomizationConfig } from '../../lib/types';
 import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 
 export const CentralSettings: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'branding' | 'subsidiaries' | 'security' | 'database' | 'password'>('branding');
+  const [config, setConfig] = useState<SystemCustomizationConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
-  const [activeTab, setActiveTab] = useState<'gateways' | 'security' | 'currency' | 'backup' | 'smtp'>('gateways');
-  const [gateways, setGateways] = useState<GlobalPaymentGatewayConfig>(DEFAULT_PAYMENT_GATEWAYS);
-  const [testingStripe, setTestingStripe] = useState(false);
-
-  const [settings, setSettings] = useState({
-    enforce2FA: true,
-    sessionTimeoutMins: 60,
-    autoAuditLogRetentionDays: 365,
-    eurInrRate: 90.0,
-    usdInrRate: 86.0,
-    autoFxSync: true,
-    smtpHost: 'smtp.sendgrid.net',
-    smtpPort: 587,
-    smtpUser: 'apikey',
-    smtpFrom: 'alerts@ferex.com',
-    backupFrequency: 'Daily (02:00 UTC)',
-    storageBucket: 'ferex-central-vault-prod',
-  });
-
-  useEffect(() => {
-    getGlobalPaymentGateways().then(setGateways);
-  }, []);
+  const [dbLatency, setDbLatency] = useState<number | null>(null);
+  const [testingDb, setTestingDb] = useState(false);
+  const [lastSaved, setLastSaved] = useState('');
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 3000);
+    setTimeout(() => setToast(''), 3500);
   };
 
-  const handleSaveSettings = (e: React.FormEvent) => {
-    e.preventDefault();
-    showToastMsg('Central Enterprise System Settings saved successfully');
+  useEffect(() => {
+    const fetchConfig = async () => {
+      setLoading(true);
+      try {
+        const data = await getSystemConfig();
+        setConfig(data);
+        if (data.updated_at) {
+          setLastSaved(new Date(data.updated_at).toLocaleTimeString());
+        }
+      } catch {
+        showToastMsg('Failed to load system settings.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConfig();
+  }, []);
+
+  const handleSave = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!config) return;
+    setSaving(true);
+    try {
+      const updated = await saveSystemConfig(config);
+      setConfig(updated);
+      setLastSaved(new Date().toLocaleTimeString());
+      showToastMsg('Enterprise settings synchronized with Supabase database!');
+    } catch {
+      showToastMsg('Failed to synchronize settings with database.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleSaveGateways = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await saveGlobalPaymentGateways(gateways, 'Super Admin');
-    showToastMsg('Stripe & UPI Payment Gateways configured & synchronized across all 4 apps!');
+  const handleTestDatabase = async () => {
+    setTestingDb(true);
+    const start = performance.now();
+    try {
+      const { error } = await supabase.from('users').select('id', { count: 'exact', head: true });
+      const elapsed = Math.round(performance.now() - start);
+      if (!error) {
+        setDbLatency(elapsed);
+        showToastMsg(`Database connection optimal! Ping: ${elapsed}ms`);
+      } else {
+        setDbLatency(-1);
+        showToastMsg(`Database warning: ${error.message}`);
+      }
+    } catch {
+      setDbLatency(-1);
+      showToastMsg('Database ping failed. Check network or Supabase credentials.');
+    } finally {
+      setTestingDb(false);
+    }
   };
 
-  const handleTestStripe = () => {
-    setTestingStripe(true);
-    setTimeout(() => {
-      setTestingStripe(false);
-      showToastMsg('Stripe API Connection Verified (HTTP 200 OK)');
-    }, 1000);
-  };
-
-  const handleTriggerBackup = () => {
-    showToastMsg('Database snapshot snapshot_central_2026_09.sql initiated...');
-  };
+  if (loading || !config) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400">
+        <RefreshCw className="w-8 h-8 animate-spin text-[#58051E] mb-3" />
+        <p className="text-sm font-bold">Synchronizing Central HQ Settings...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 text-left antialiased">
-      {/* Toast Notification */}
+      {/* Toast Alert */}
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -84,522 +108,306 @@ export const CentralSettings: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Settings className="w-6 h-6 text-[#58051E]" /> Global System & Payment Gateways Configuration
+              <Settings className="w-6 h-6 text-[#58051E]" /> Central Enterprise System Settings
             </h1>
-            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
-              Super Admin Console
+            <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+              Live DB Sync
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Master gateway credentials (Stripe & UPI), division-level payment routing, security policies, and exchange rate parameters.
+            Global governance parameters, branding, security policies, and 4-subsidiary operational switches stored in Supabase.
           </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {lastSaved && (
+            <span className="text-[11px] font-bold text-slate-400 bg-white border border-slate-200/80 px-3 py-1.5 rounded-xl">
+              Synced: <strong className="text-slate-700">{lastSaved}</strong>
+            </span>
+          )}
+          <Button
+            size="sm"
+            onClick={() => handleSave()}
+            disabled={saving}
+            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs"
+          >
+            <Save className={`w-3.5 h-3.5 mr-1.5 ${saving ? 'animate-spin' : ''}`} />
+            {saving ? 'Syncing to DB...' : 'Save & Sync DB'}
+          </Button>
         </div>
       </div>
 
-      {/* Settings Navigation Tabs */}
-      <Card className="p-3 border border-slate-200/80 shadow-xs flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-slate-200/80 overflow-x-auto scrollbar-none shadow-xs">
         {[
-          { key: 'gateways', label: 'Payment Gateways (Stripe & UPI)', icon: CreditCard },
-          { key: 'security', label: 'Security & Access Policy', icon: Shield },
-          { key: 'currency', label: 'Multi-Currency & FX Rates', icon: Globe },
-          { key: 'backup', label: 'Database & Backup Vault', icon: Database },
-          { key: 'smtp', label: 'SMTP & Email Gateway', icon: Mail },
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-              activeTab === tab.key
-                ? 'bg-[#58051E] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <tab.icon className="w-3.5 h-3.5" />
-            {tab.label}
-          </button>
-        ))}
-      </Card>
+          { id: 'branding', label: 'Enterprise Identity & Branding', icon: Building },
+          { id: 'subsidiaries', label: 'Subsidiary & Gateway Switches', icon: Globe },
+          { id: 'security', label: 'Security & Session Policy', icon: Shield },
+          { id: 'database', label: 'Database Health & Telemetry', icon: Database },
+          { id: 'password', label: 'Super Admin Password', icon: Key },
+        ].map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                isActive
+                  ? 'bg-[#58051E] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
-      {/* ─── TAB: PAYMENT GATEWAYS (STRIPE & UPI) ─────────────────────────── */}
-      {activeTab === 'gateways' && (
-        <form onSubmit={handleSaveGateways} className="space-y-6">
-          {/* Top Banner Notice */}
-          <div className="p-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-[#58051E] text-white rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      {/* Tab 1: Enterprise Branding */}
+      {activeTab === 'branding' && (
+        <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
+          <div className="border-b border-slate-100 pb-3">
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Enterprise Brand & Organization Identity</h2>
+            <p className="text-xs font-medium text-slate-400 mt-0.5">Parameters broadcasted across invoices, notifications, and customer portals.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full text-amber-300">
-                Universal Settlement Hub
-              </span>
-              <h3 className="text-sm font-black text-white mt-1">Stripe & UPI Global Gateway Provisioning</h3>
-              <p className="text-xs text-white/80 font-medium">
-                Configure your Stripe keys once and set merchant UPI VPAs. All 4 apps (Education, Digital, Rimi, Trade) will automatically use these gateways for student tuition, client retainers, and distribution invoices.
-              </p>
+              <label className="font-bold text-slate-700 block mb-1">Organization Legal Name</label>
+              <input
+                type="text"
+                value={config.branding.org_name}
+                onChange={(e) => setConfig({ ...config, branding: { ...config.branding, org_name: e.target.value } })}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#58051E]"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Master Portal Title</label>
+              <input
+                type="text"
+                value={config.branding.portal_title}
+                onChange={(e) => setConfig({ ...config, branding: { ...config.branding, portal_title: e.target.value } })}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#58051E]"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Corporate Tagline</label>
+              <input
+                type="text"
+                value={config.branding.tagline}
+                onChange={(e) => setConfig({ ...config, branding: { ...config.branding, tagline: e.target.value } })}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#58051E]"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Central Support Email</label>
+              <input
+                type="email"
+                value={config.branding.support_email}
+                onChange={(e) => setConfig({ ...config, branding: { ...config.branding, support_email: e.target.value } })}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#58051E]"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Official Telephone / Helpline</label>
+              <input
+                type="text"
+                value={config.branding.support_phone}
+                onChange={(e) => setConfig({ ...config, branding: { ...config.branding, support_phone: e.target.value } })}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#58051E]"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">HQ Office Address</label>
+              <input
+                type="text"
+                value={config.branding.office_address}
+                onChange={(e) => setConfig({ ...config, branding: { ...config.branding, office_address: e.target.value } })}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#58051E]"
+              />
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Tab 2: Subsidiary Switches */}
+      {activeTab === 'subsidiaries' && (
+        <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
+          <div className="border-b border-slate-100 pb-3">
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Subsidiary Feature Controls & Maintenance Modes</h2>
+            <p className="text-xs font-medium text-slate-400 mt-0.5">Toggle live application modules and maintenance states dynamically across all 4 subsidiaries.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black text-slate-900">Direct Course Applications</p>
+                <p className="text-[11px] font-medium text-slate-500 mt-0.5">Allow students to self-apply to European partner universities.</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={config.features.enable_direct_course_application}
+                onChange={(e) => setConfig({ ...config, features: { ...config.features, enable_direct_course_application: e.target.checked } })}
+                className="w-5 h-5 accent-[#58051E] cursor-pointer"
+              />
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black text-slate-900">Student Meeting Self-Booking</p>
+                <p className="text-[11px] font-medium text-slate-500 mt-0.5">Enable Google Meet automated calendar booking for applicants.</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={config.features.enable_student_meeting_self_booking}
+                onChange={(e) => setConfig({ ...config, features: { ...config.features, enable_student_meeting_self_booking: e.target.checked } })}
+                className="w-5 h-5 accent-[#58051E] cursor-pointer"
+              />
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black text-slate-900">Landing Tuition Calculator</p>
+                <p className="text-[11px] font-medium text-slate-500 mt-0.5">Show public study-abroad cost estimation tool.</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={config.features.enable_landing_calculator}
+                onChange={(e) => setConfig({ ...config, features: { ...config.features, enable_landing_calculator: e.target.checked } })}
+                className="w-5 h-5 accent-[#58051E] cursor-pointer"
+              />
+            </div>
+
+            <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-200/70 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black text-rose-900">Emergency Maintenance Banner</p>
+                <p className="text-[11px] font-medium text-rose-600 mt-0.5">Broadcast system-wide maintenance alert across all 4 portals.</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={config.features.enable_maintenance_banner}
+                onChange={(e) => setConfig({ ...config, features: { ...config.features, enable_maintenance_banner: e.target.checked } })}
+                className="w-5 h-5 accent-rose-700 cursor-pointer"
+              />
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Tab 3: Security & Session Policy */}
+      {activeTab === 'security' && (
+        <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
+          <div className="border-b border-slate-100 pb-3">
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Central Security & Access Governance</h2>
+            <p className="text-xs font-medium text-slate-400 mt-0.5">Session timeouts, multi-factor authentication requirements, and password strength policies.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-2">
+              <span className="font-bold text-slate-800 block">Admin Session Idle Timeout</span>
+              <select className="w-full p-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700">
+                <option value="15">15 Minutes</option>
+                <option value="30">30 Minutes (Recommended)</option>
+                <option value="60">60 Minutes</option>
+                <option value="240">4 Hours</option>
+              </select>
+              <p className="text-[10px] text-slate-400">Forces automatic logout after period of inactivity.</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-2">
+              <span className="font-bold text-slate-800 block">MFA Enforcement Scope</span>
+              <select className="w-full p-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700">
+                <option value="superadmin">Central Super Admins Only</option>
+                <option value="all_admins">All 4 Division Admins</option>
+                <option value="all_staff">All Admins & Operations Staff</option>
+              </select>
+              <p className="text-[10px] text-slate-400">Requires 2-Factor Authentication via TOTP / Authenticator app.</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-2">
+              <span className="font-bold text-slate-800 block">Password Complexity Policy</span>
+              <select className="w-full p-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700">
+                <option value="standard">Standard (Min 6 Chars)</option>
+                <option value="strong">High Security (8+ Chars, Digits & Symbols)</option>
+              </select>
+              <p className="text-[10px] text-slate-400">Enforced during user provisioning and password resets.</p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Tab 4: Database Health & Telemetry */}
+      {activeTab === 'database' && (
+        <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Supabase Live Database Connectivity</h2>
+              <p className="text-xs font-medium text-slate-400 mt-0.5">Real-time health ping and schema synchronization diagnostics.</p>
             </div>
             <Button
-              type="submit"
               size="sm"
-              className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs shrink-0 shadow-lg"
+              onClick={handleTestDatabase}
+              disabled={testingDb}
+              variant="outline"
+              className="text-xs font-bold text-slate-700 bg-slate-50"
             >
-              <Save className="w-4 h-4 mr-1" /> Deploy Gateways
+              <Zap className={`w-3.5 h-3.5 mr-1.5 ${testingDb ? 'animate-spin text-[#58051E]' : ''}`} />
+              {testingDb ? 'Testing Connection...' : 'Ping Supabase DB'}
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Stripe Card Config */}
-            <Card className="p-6 border border-slate-200/80 shadow-xs space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900">Stripe Payment Gateway</h3>
-                    <p className="text-[11px] font-semibold text-slate-400">Credit/Debit Cards, Apple Pay & Global Currencies</p>
-                  </div>
-                </div>
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={gateways.stripe.enabled}
-                    onChange={e => setGateways({
-                      ...gateways,
-                      stripe: { ...gateways.stripe, enabled: e.target.checked }
-                    })}
-                    className="w-4 h-4 accent-blue-600"
-                  />
-                  <span>Active</span>
-                </label>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100">
+              <span className="text-[10px] font-bold text-emerald-700 uppercase block">Database Engine</span>
+              <span className="text-sm font-black text-emerald-900 mt-1 block">Supabase PostgreSQL 15</span>
+              <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">Active & Synchronized</span>
+            </div>
 
-              <div className="space-y-4 text-xs font-semibold text-slate-700">
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Environment Mode</label>
-                  <select
-                    value={gateways.stripe.environment}
-                    onChange={e => setGateways({
-                      ...gateways,
-                      stripe: { ...gateways.stripe, environment: e.target.value as any }
-                    })}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
-                  >
-                    <option value="sandbox">Sandbox / Test Mode (pk_test / sk_test)</option>
-                    <option value="production">Live Production Mode (pk_live / sk_live)</option>
-                  </select>
-                </div>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">Round-Trip Latency</span>
+              <span className="text-sm font-black text-slate-900 mt-1 block">
+                {dbLatency === null ? 'Click "Ping" to measure' : dbLatency === -1 ? 'Connection Error' : `${dbLatency} ms`}
+              </span>
+              <span className="text-[10px] text-slate-400 font-semibold mt-1 block">Direct REST / WebSocket</span>
+            </div>
 
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Stripe Publishable Key *</label>
-                  <input
-                    type="text"
-                    required
-                    value={gateways.stripe.publishableKey}
-                    onChange={e => setGateways({
-                      ...gateways,
-                      stripe: { ...gateways.stripe, publishableKey: e.target.value }
-                    })}
-                    placeholder="pk_test_... or pk_live_..."
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Stripe Secret Key *</label>
-                  <input
-                    type="password"
-                    required
-                    value={gateways.stripe.secretKey}
-                    onChange={e => setGateways({
-                      ...gateways,
-                      stripe: { ...gateways.stripe, secretKey: e.target.value }
-                    })}
-                    placeholder="sk_test_... or sk_live_..."
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Stripe Webhook Signing Secret</label>
-                  <input
-                    type="password"
-                    value={gateways.stripe.webhookSecret}
-                    onChange={e => setGateways({
-                      ...gateways,
-                      stripe: { ...gateways.stripe, webhookSecret: e.target.value }
-                    })}
-                    placeholder="whsec_..."
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-900"
-                  />
-                </div>
-
-                <div className="pt-2 flex items-center justify-between">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={testingStripe}
-                    onClick={handleTestStripe}
-                    className="text-xs font-bold"
-                  >
-                    {testingStripe ? 'Testing Connection...' : 'Test Stripe API Keys'}
-                  </Button>
-                  <span className="text-[10px] text-slate-400">Supports INR, EUR & USD</span>
-                </div>
-              </div>
-            </Card>
-
-            {/* UPI Gateway Config */}
-            <Card className="p-6 border border-slate-200/80 shadow-xs space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
-                    <QrCode className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900">Unified UPI & Dynamic QR Gateway</h3>
-                    <p className="text-[11px] font-semibold text-slate-400">Instant UPI VPA, QR generation & Auto-UTR Logging</p>
-                  </div>
-                </div>
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={gateways.upi.enabled}
-                    onChange={e => setGateways({
-                      ...gateways,
-                      upi: { ...gateways.upi, enabled: e.target.checked }
-                    })}
-                    className="w-4 h-4 accent-emerald-600"
-                  />
-                  <span>Active</span>
-                </label>
-              </div>
-
-              <div className="space-y-4 text-xs font-semibold text-slate-700">
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Central Merchant UPI ID (VPA) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={gateways.upi.upiId}
-                    onChange={e => setGateways({
-                      ...gateways,
-                      upi: { ...gateways.upi, upiId: e.target.value }
-                    })}
-                    placeholder="e.g. ferex.payments@icici or merchant@upi"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-black text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Merchant Display Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={gateways.upi.merchantName}
-                    onChange={e => setGateways({
-                      ...gateways,
-                      upi: { ...gateways.upi, merchantName: e.target.value }
-                    })}
-                    placeholder="e.g. FEREX ENTERPRISE GROUP"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Merchant Category Code (MCC)</label>
-                  <input
-                    type="text"
-                    value={gateways.upi.merchantCode || '5411'}
-                    onChange={e => setGateways({
-                      ...gateways,
-                      upi: { ...gateways.upi, merchantCode: e.target.value }
-                    })}
-                    placeholder="e.g. 5411 or 8220 (Education)"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
-                  />
-                </div>
-
-                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between text-[11px] font-semibold text-emerald-900">
-                  <span>Dynamic QR Generation Enabled</span>
-                  <span className="font-black text-emerald-700">Live API</span>
-                </div>
-              </div>
-            </Card>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">Realtime Subscriptions</span>
+              <span className="text-sm font-black text-slate-900 mt-1 block">4 Active Channels</span>
+              <span className="text-[10px] text-slate-400 font-semibold mt-1 block">Payments, Users, Audit, Emails</span>
+            </div>
           </div>
-
-          {/* Division-Level Gateway Routing Table */}
-          <Card className="p-6 border border-slate-200/80 shadow-xs space-y-4">
-            <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-2">
-              Division Payment Gateway Allocations
-            </h3>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 border-b border-slate-200">
-                    <th className="py-2.5 px-3">Enterprise Division</th>
-                    <th className="py-2.5 px-3">Allow Stripe</th>
-                    <th className="py-2.5 px-3">Allow UPI</th>
-                    <th className="py-2.5 px-3">Division Specific UPI VPA</th>
-                    <th className="py-2.5 px-3">Merchant Header</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                  {[
-                    { key: 'education', name: 'Ferex Education (Students)' },
-                    { key: 'digital', name: 'Ferex Digital ERP (Clients)' },
-                    { key: 'rimi', name: 'Rimi Frozen Logistics (Customers)' },
-                    { key: 'trade', name: 'Global Trade (Port Buyers)' },
-                  ].map(div => {
-                    const divConfig = gateways.divisions[div.key as keyof typeof gateways.divisions];
-                    return (
-                      <tr key={div.key} className="hover:bg-slate-50/70">
-                        <td className="py-3 px-3 font-black text-slate-900">{div.name}</td>
-                        <td className="py-3 px-3">
-                          <input
-                            type="checkbox"
-                            checked={divConfig.allowStripe}
-                            onChange={e => {
-                              const updatedDiv = { ...divConfig, allowStripe: e.target.checked };
-                              setGateways({
-                                ...gateways,
-                                divisions: { ...gateways.divisions, [div.key]: updatedDiv }
-                              });
-                            }}
-                            className="w-4 h-4 accent-blue-600"
-                          />
-                        </td>
-                        <td className="py-3 px-3">
-                          <input
-                            type="checkbox"
-                            checked={divConfig.allowUpi}
-                            onChange={e => {
-                              const updatedDiv = { ...divConfig, allowUpi: e.target.checked };
-                              setGateways({
-                                ...gateways,
-                                divisions: { ...gateways.divisions, [div.key]: updatedDiv }
-                              });
-                            }}
-                            className="w-4 h-4 accent-emerald-600"
-                          />
-                        </td>
-                        <td className="py-3 px-3">
-                          <input
-                            type="text"
-                            value={divConfig.customUpiId || ''}
-                            onChange={e => {
-                              const updatedDiv = { ...divConfig, customUpiId: e.target.value };
-                              setGateways({
-                                ...gateways,
-                                divisions: { ...gateways.divisions, [div.key]: updatedDiv }
-                              });
-                            }}
-                            className="h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold w-48"
-                          />
-                        </td>
-                        <td className="py-3 px-3">
-                          <input
-                            type="text"
-                            value={divConfig.customMerchantName || ''}
-                            onChange={e => {
-                              const updatedDiv = { ...divConfig, customMerchantName: e.target.value };
-                              setGateways({
-                                ...gateways,
-                                divisions: { ...gateways.divisions, [div.key]: updatedDiv }
-                              });
-                            }}
-                            className="h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold w-48"
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="pt-3 flex justify-end">
-              <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-md">
-                <Save className="w-4 h-4 mr-1.5" /> Save Gateways Configuration
-              </Button>
-            </div>
-          </Card>
-        </form>
+        </Card>
       )}
 
-      {/* ─── TAB: OTHER SYSTEM SETTINGS ────────────────────────────────────── */}
-      {activeTab !== 'gateways' && (
-        <form onSubmit={handleSaveSettings}>
-          <Card className="p-6 border border-slate-200/80 shadow-xs space-y-6">
-            {activeTab === 'security' && (
-              <div className="space-y-4">
-                <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3">
-                  Enterprise Authentication & RBAC Policy
-                </h3>
+      {/* Tab 5: Change Super Admin Password */}
+      {activeTab === 'password' && (
+        <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-4">
+          <div className="border-b border-slate-100 pb-3">
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Super Admin Security Credential Update</h2>
+            <p className="text-xs font-medium text-slate-400 mt-0.5">Securely change the master administrator login password.</p>
+          </div>
 
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900">Enforce 2-Factor Authentication (2FA)</h4>
-                    <p className="text-[11px] font-semibold text-slate-500">Require TOTP authenticator app verification for all 4 Division Admins.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={settings.enforce2FA}
-                    onChange={e => setSettings({ ...settings, enforce2FA: e.target.checked })}
-                    className="w-4 h-4 accent-[#58051E]"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Session Inactivity Timeout (Minutes)</label>
-                    <input
-                      type="number"
-                      value={settings.sessionTimeoutMins}
-                      onChange={e => setSettings({ ...settings, sessionTimeoutMins: Number(e.target.value) })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Audit Log Retention (Days)</label>
-                    <input
-                      type="number"
-                      value={settings.autoAuditLogRetentionDays}
-                      onChange={e => setSettings({ ...settings, autoAuditLogRetentionDays: Number(e.target.value) })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100">
-                  <ChangePasswordForm
-                    title="Change Super Admin Password"
-                    subtitle="Update your master root credentials in Supabase Auth"
-                    variant="plain"
-                  />
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'currency' && (
-              <div className="space-y-4">
-                <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3">
-                  Multi-Currency Parity & Exchange Rates
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">1 EUR to INR Rate (₹)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={settings.eurInrRate}
-                      onChange={e => setSettings({ ...settings, eurInrRate: Number(e.target.value) })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">1 USD to INR Rate (₹)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={settings.usdInrRate}
-                      onChange={e => setSettings({ ...settings, usdInrRate: Number(e.target.value) })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'backup' && (
-              <div className="space-y-4">
-                <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
-                  <span>Database Backup & Storage Vault</span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleTriggerBackup}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-xs"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 mr-1" /> Snapshot Now
-                  </Button>
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Automated Snapshot Frequency</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={settings.backupFrequency}
-                      className="w-full h-9 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Primary Storage Bucket</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={settings.storageBucket}
-                      className="w-full h-9 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'smtp' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900">
-                      SMTP Gateway & Multi-Provider Delivery Engine
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Manage Resend, Brevo, AWS SES, SendGrid, Postmark, and Custom SMTP relays.
-                    </p>
-                  </div>
-                  <a
-                    href="#/central/email-settings"
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black text-white bg-[#58051E] hover:bg-[#430316] rounded-xl shadow-xs transition-colors"
-                  >
-                    <Mail className="w-3.5 h-3.5" /> Open Full Email Settings Console
-                  </a>
-                </div>
-
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black">
-                      <Mail className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-slate-900">Dedicated Email Provider Engine Active</h4>
-                      <p className="text-[11px] text-slate-500">
-                        Multi-provider switching, API key encryption, subsidiary sender routing, and real-time edge testing are available in the dedicated console.
-                      </p>
-                    </div>
-                  </div>
-                  <a
-                    href="#/central/email-settings"
-                    className="text-xs font-bold text-[#58051E] hover:underline"
-                  >
-                    Configure Providers →
-                  </a>
-                </div>
-              </div>
-            )}
-
-            <div className="pt-4 border-t border-slate-100 flex justify-end">
-              <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs">
-                <Save className="w-4 h-4 mr-1.5" /> Save Configuration
-              </Button>
-            </div>
-          </Card>
-        </form>
+          <div className="max-w-md">
+            <ChangePasswordForm
+              title="Super Admin Password"
+              subtitle="Update your master Central HQ authentication password"
+              onSuccess={() => showToastMsg('Super Admin password successfully updated!')}
+            />
+          </div>
+        </Card>
       )}
     </div>
   );

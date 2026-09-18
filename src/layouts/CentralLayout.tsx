@@ -39,43 +39,41 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
 
   const menuSections = [
     {
-      title: 'EXECUTIVE COMMAND',
+      title: 'HQ COMMAND',
       items: [
-        { name: 'Dashboard', path: '/central/dashboard', icon: LayoutDashboard, badge: 'HQ Live' },
-        { name: 'Enterprise Finance', path: '/central/finance', icon: CreditCard, badge: 'Gateways' },
-        { name: 'Executive Reports', path: '/central/reports', icon: BarChart3, badge: '4-App' },
+        { name: 'Dashboard', path: '/central/dashboard', icon: LayoutDashboard, badge: 'Live HQ' },
       ]
     },
     {
-      title: 'SUBSIDIARY OVERSIGHT',
+      title: 'ENTERPRISE FINANCE',
+      items: [
+        { name: 'Finance & Analytics', path: '/central/reports', icon: BarChart3, badge: 'Detailed' },
+        { name: 'Enterprise Ledger', path: '/central/finance', icon: CreditCard, badge: 'Treasury' },
+      ]
+    },
+    {
+      title: 'SUBSIDIARIES',
       items: [
         { name: 'Ferex Education', path: '/central/education', icon: GraduationCap, badge: 'Core' },
-        { name: 'Global Trade', path: '/central/trade', icon: Globe, badge: 'Trade' },
-        { name: 'Rimi Frozen', path: '/central/rimi', icon: Snowflake, badge: 'Cold Chain' },
-        { name: 'Ferex Digital', path: '/central/digital', icon: Monitor, badge: 'Digital' },
+        { name: 'Global Trade ERP', path: '/central/trade', icon: Globe, badge: 'Trade' },
+        { name: 'Rimi Frozen FMCG', path: '/central/rimi', icon: Snowflake, badge: 'Cold Chain' },
+        { name: 'Ferex Digital Agency', path: '/central/digital', icon: Monitor, badge: 'Digital' },
       ]
     },
     {
-      title: 'OPERATIONS & ESCALATIONS',
+      title: 'OPERATIONS & AUDIT',
       items: [
-        { name: 'Cross-App Tasks', path: '/central/tasks', icon: CheckSquare, badge: 'Assign' },
-        { name: 'Support & Tickets', path: '/central/support', icon: ShieldCheck, badge: 'Tickets' },
-        { name: 'Email Dispatch Vault', path: '/central/emails', icon: Bell, badge: 'Audit' },
-        { name: 'Email & SMTP Providers', path: '/central/email-settings', icon: Mail, badge: 'Gateways' },
+        { name: 'Cross-App Tasks', path: '/central/tasks', icon: CheckSquare, badge: 'Tasks' },
+        { name: 'Support Tickets', path: '/central/support', icon: ShieldCheck, badge: 'Tickets' },
+        { name: 'Enterprise Audit Trail', path: '/central/activity', icon: Activity, badge: 'Realtime' },
+        { name: 'Email Delivery Logs', path: '/central/emails', icon: Mail, badge: 'Live Logs' },
       ]
     },
     {
-      title: 'DOCUMENTATION & GUIDES',
-      items: [
-        { name: 'Workflow Guide', path: '/central/workflow-guide', icon: BookOpen, badge: '4-App Flows' },
-      ]
-    },
-    {
-      title: 'ADMIN & GOVERNANCE',
+      title: 'GOVERNANCE & SYSTEM',
       items: [
         { name: 'Roles & Users', path: '/central/roles-users', icon: UserCheck, badge: 'RBAC' },
-        { name: 'Audit & Activity Log', path: '/central/activity', icon: Activity, badge: 'Realtime' },
-        { name: 'System Settings', path: '/central/settings', icon: Settings, badge: 'Config' },
+        { name: 'System Settings', path: '/central/settings', icon: Settings, badge: 'DB Sync' },
       ]
     }
   ];

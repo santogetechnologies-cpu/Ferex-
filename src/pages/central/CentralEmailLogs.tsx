@@ -1,55 +1,99 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Mail, Send, CheckCircle2, Search, Eye, RefreshCw, 
-  Download, Clock, Check, Globe, GraduationCap, 
-  Snowflake, Monitor, X, Inbox
+import {
+  Mail, Send, CheckCircle2, Search, Eye, RefreshCw,
+  Download, Clock, Check, Globe, GraduationCap,
+  Snowflake, Monitor, X, Inbox, ArrowUpRight, AlertCircle
 } from 'lucide-react';
+import { Card } from '../../components/Card';
+import { Button } from '../../components/Button';
+import { supabase } from '../../lib/supabase';
 import { getLocalEmailLogs, type EmailLogEntry, logAutomatedEmail } from '../../lib/api/automatedEmails';
 import { sendStudentEmail } from '../../lib/api/email';
 
 export const CentralEmailLogs: React.FC = () => {
   const [logs, setLogs] = useState<EmailLogEntry[]>([]);
   const [filterDivision, setFilterDivision] = useState<'all' | 'education' | 'trade' | 'rimi' | 'digital'>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLog, setSelectedLog] = useState<EmailLogEntry | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
-  const [resendSuccess, setResendSuccess] = useState<string | null>(null);
+  const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [lastRefreshed, setLastRefreshed] = useState('');
 
-  const loadLogs = () => {
-    const data = getLocalEmailLogs();
-    setLogs(data);
+  const showToastMsg = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
   };
+
+  const loadLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      // 1. Fetch from Supabase email_logs table
+      const { data, error } = await supabase
+        .from('email_logs')
+        .select('*')
+        .order('sent_at', { ascending: false })
+        .limit(100);
+
+      const localLogs = getLocalEmailLogs();
+      let combined: EmailLogEntry[] = [];
+
+      if (!error && data && Array.isArray(data) && data.length > 0) {
+        const dbMapped: EmailLogEntry[] = data.map((d: any) => ({
+          id: d.id || `EML-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+          division: d.division || 'education',
+          provider: d.provider || 'Resend SMTP',
+          sender_email: d.sender_email || 'notifications@ferexventures.com',
+          sender_name: d.sender_name || 'Ferex Ventures Enterprise HQ',
+          recipient_email: d.recipient_email || 'user@ferex.com',
+          recipient_name: d.recipient_name || 'System Recipient',
+          template_type: d.template_type || 'system_notification',
+          subject: d.subject || 'Automated Enterprise Dispatch',
+          body_html: d.body_html || '<p>Automated notification message body.</p>',
+          status: d.status || 'Delivered',
+          reference_id: d.reference_id,
+          metadata: d.metadata || {},
+          sent_at: d.sent_at || d.created_at || new Date().toISOString(),
+        }));
+
+        // Merge with local logs removing duplicates by id
+        const map = new Map<string, EmailLogEntry>();
+        dbMapped.forEach(l => map.set(l.id, l));
+        localLogs.forEach(l => { if (!map.has(l.id)) map.set(l.id, l); });
+        combined = Array.from(map.values());
+      } else {
+        combined = localLogs;
+      }
+
+      // Sort by sent_at desc
+      combined.sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime());
+      setLogs(combined);
+      setLastRefreshed(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    } catch {
+      setLogs(getLocalEmailLogs());
+      setLastRefreshed(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     loadLogs();
     const handleEmailEvent = () => loadLogs();
     window.addEventListener('ferex_automated_email_sent', handleEmailEvent);
-    return () => window.removeEventListener('ferex_automated_email_sent', handleEmailEvent);
-  }, []);
 
-  const filteredLogs = logs.filter(log => {
-    if (filterDivision !== 'all' && log.division !== filterDivision) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return (
-        log.recipient_name?.toLowerCase().includes(q) ||
-        log.recipient_email?.toLowerCase().includes(q) ||
-        log.subject?.toLowerCase().includes(q) ||
-        log.reference_id?.toLowerCase().includes(q) ||
-        log.template_type?.toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
+    const channel = supabase
+      .channel('realtime_central_email_logs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'email_logs' }, () => loadLogs())
+      .subscribe();
 
-  const stats = {
-    total: logs.length,
-    education: logs.filter(l => l.division === 'education').length,
-    trade: logs.filter(l => l.division === 'trade').length,
-    rimi: logs.filter(l => l.division === 'rimi').length,
-    digital: logs.filter(l => l.division === 'digital').length,
-  };
+    return () => {
+      window.removeEventListener('ferex_automated_email_sent', handleEmailEvent);
+      supabase.removeChannel(channel);
+    };
+  }, [loadLogs]);
 
   const handleResend = async (log: EmailLogEntry) => {
     setResendingId(log.id);
@@ -64,35 +108,73 @@ export const CentralEmailLogs: React.FC = () => {
         referenceId: log.reference_id,
         metadata: { ...log.metadata, resent_from: log.id },
       });
-      loadLogs();
-      setResendSuccess(log.id);
-      setTimeout(() => setResendSuccess(null), 3000);
+      await loadLogs();
+      showToastMsg(`Email successfully re-dispatched to ${log.recipient_email}`);
+    } catch {
+      showToastMsg(`Re-dispatch failed. Check SMTP configuration.`);
     } finally {
       setResendingId(null);
     }
   };
 
-  const exportCSV = () => {
-    const headers = ['ID', 'Division', 'Recipient Name', 'Recipient Email', 'Subject', 'Status', 'Reference ID', 'Sent At'];
+  const handleExportCSV = () => {
+    if (logs.length === 0) {
+      showToastMsg('No email records to export.');
+      return;
+    }
+    const headers = ['Log ID', 'Timestamp', 'Recipient Email', 'Recipient Name', 'Subject', 'Division', 'Status', 'Provider', 'Template Type', 'Reference ID'];
     const rows = filteredLogs.map(l => [
       l.id,
-      l.division,
+      new Date(l.sent_at).toLocaleString(),
+      `"${l.recipient_email}"`,
       `"${l.recipient_name || ''}"`,
-      l.recipient_email,
       `"${l.subject.replace(/"/g, '""')}"`,
+      l.division,
       l.status,
+      l.provider || 'Resend',
+      l.template_type,
       l.reference_id || '',
-      l.sent_at
     ]);
+
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `ferex_automated_email_audit_${Date.now()}.csv`);
+    link.setAttribute('download', `Ferex_Email_Delivery_Logs_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    showToastMsg('Exported Email Delivery Logs CSV');
   };
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
+      if (filterDivision !== 'all' && log.division !== filterDivision) return false;
+      if (statusFilter !== 'All' && log.status !== statusFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return (
+          log.recipient_name?.toLowerCase().includes(q) ||
+          log.recipient_email?.toLowerCase().includes(q) ||
+          log.subject?.toLowerCase().includes(q) ||
+          log.reference_id?.toLowerCase().includes(q) ||
+          log.template_type?.toLowerCase().includes(q) ||
+          log.id.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [logs, filterDivision, statusFilter, searchQuery]);
+
+  const stats = useMemo(() => ({
+    total: logs.length,
+    delivered: logs.filter(l => l.status === 'Delivered' || l.status === 'Sent').length,
+    failed: logs.filter(l => l.status === 'Failed').length,
+    education: logs.filter(l => l.division === 'education').length,
+    trade: logs.filter(l => l.division === 'trade').length,
+    rimi: logs.filter(l => l.division === 'rimi').length,
+    digital: logs.filter(l => l.division === 'digital').length,
+  }), [logs]);
 
   const getDivisionBadge = (div: string) => {
     switch (div) {
@@ -105,271 +187,309 @@ export const CentralEmailLogs: React.FC = () => {
       case 'digital':
         return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200"><Monitor className="w-3 h-3" /> Ferex Digital</span>;
       default:
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">{div}</span>;
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-200">Central HQ</span>;
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+    <div className="space-y-6 text-left antialiased">
+      {/* Toast Alert */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
         <div>
-          <div className="flex items-center gap-2 text-xs font-black tracking-widest text-[#58051E] uppercase">
-            <Mail className="w-4 h-4" /> Cross-Subsidiary Communications
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <Mail className="w-6 h-6 text-[#58051E]" /> Automated Email Delivery & Dispatch Logs
+            </h1>
+            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
+              4-Portal Vault
+            </span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 mt-1">Automated Email Dispatch Vault</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Audit trail of all transactional emails, stage confirmations, trade notices, cold-chain telemetry, and digital milestone alerts.
+          <p className="text-xs font-semibold text-slate-500 mt-1">
+            Complete delivery audit showing exact timestamps, recipient addresses, subject lines, and dispatch telemetry across all subsidiaries.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <a
-            href="#/central/email-settings"
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black text-[#58051E] bg-[#58051E]/10 hover:bg-[#58051E]/15 border border-[#58051E]/20 rounded-xl transition-colors cursor-pointer"
-          >
-            <Mail className="w-3.5 h-3.5" /> Configure Providers & SMTP
-          </a>
-          <button
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="text-[11px] font-bold text-slate-400 bg-white border border-slate-200/80 px-3 py-1.5 rounded-xl">
+            Live Stream: <span className="text-slate-700 font-extrabold">{lastRefreshed || 'Active'}</span>
+          </div>
+
+          <Button
+            size="sm"
             onClick={loadLogs}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+            variant="outline"
+            className="text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border-slate-200/80"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh Vault
-          </button>
-          <button
-            onClick={exportCSV}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black text-white bg-[#58051E] hover:bg-[#581626] rounded-xl shadow-md shadow-[#58051E]/20 transition-all cursor-pointer"
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin text-[#58051E]' : ''}`} /> Refresh
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleExportCSV}
+            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs"
           >
-            <Download className="w-3.5 h-3.5" /> Export Audit Log (.CSV)
-          </button>
+            <Download className="w-3.5 h-3.5 mr-1.5" /> Export Logs CSV
+          </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Dispatches</p>
-          <p className="text-2xl font-black text-slate-900 mt-1">{stats.total}</p>
-          <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-bold mt-1">
-            <CheckCircle2 className="w-3 h-3" /> 100% Delivery rate
-          </div>
+      {/* Metrics Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase block">Total Dispatches</span>
+          <span className="text-xl font-black text-slate-900 mt-0.5 block">{stats.total}</span>
+          <span className="text-[10px] text-slate-400 font-medium mt-1 block">Across 4 Subsidiaries</span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-rose-100 shadow-xs">
-          <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Education Journey</p>
-          <p className="text-2xl font-black text-slate-900 mt-1">{stats.education}</p>
-          <p className="text-[10px] text-slate-400 font-semibold mt-1">Stage & Visa updates</p>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase block">Delivered & Verified</span>
+          <span className="text-xl font-black text-emerald-700 mt-0.5 block">{stats.delivered}</span>
+          <span className="text-[10px] text-emerald-600 font-bold mt-1 block">
+            {stats.total > 0 ? Math.round((stats.delivered / stats.total) * 100) : 100}% Delivery Rate
+          </span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-xs">
-          <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Global Trade</p>
-          <p className="text-2xl font-black text-slate-900 mt-1">{stats.trade}</p>
-          <p className="text-[10px] text-slate-400 font-semibold mt-1">BL & LC alerts</p>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase block">Education & Student Mails</span>
+          <span className="text-xl font-black text-rose-700 mt-0.5 block">{stats.education}</span>
+          <span className="text-[10px] text-slate-400 font-medium mt-1 block">Milestones & Offers</span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-cyan-100 shadow-xs">
-          <p className="text-[10px] font-bold text-cyan-600 uppercase tracking-wider">Rimi Frozen</p>
-          <p className="text-2xl font-black text-slate-900 mt-1">{stats.rimi}</p>
-          <p className="text-[10px] text-slate-400 font-semibold mt-1">Reefer temp & invoice</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-emerald-100 shadow-xs">
-          <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Ferex Digital</p>
-          <p className="text-2xl font-black text-slate-900 mt-1">{stats.digital}</p>
-          <p className="text-[10px] text-slate-400 font-semibold mt-1">Milestone delivery</p>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase block">Trade & Commercial Mails</span>
+          <span className="text-xl font-black text-indigo-700 mt-0.5 block">{stats.trade + stats.rimi + stats.digital}</span>
+          <span className="text-[10px] text-slate-400 font-medium mt-1 block">B2B, Cold Chain & Agency</span>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
-        {/* Division Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto p-1 bg-slate-100 rounded-xl">
-          {[
-            { id: 'all', label: 'All Dispatches' },
-            { id: 'education', label: 'Ferex Education' },
-            { id: 'trade', label: 'Global Trade' },
-            { id: 'rimi', label: 'Rimi Frozen' },
-            { id: 'digital', label: 'Ferex Digital' },
-          ].map((tab) => (
+      <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3 bg-white">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by recipient email, recipient name, subject, or reference ID..."
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40"
+            />
+          </div>
+
+          {/* Division Selector */}
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
+            {[
+              { id: 'all', label: 'All Portals' },
+              { id: 'education', label: 'Education' },
+              { id: 'trade', label: 'Global Trade' },
+              { id: 'rimi', label: 'Rimi Frozen' },
+              { id: 'digital', label: 'Ferex Digital' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setFilterDivision(tab.id as any)}
+                className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
+                  filterDivision === tab.id
+                    ? 'bg-[#58051E] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 text-xs">
+          <span className="text-[11px] font-bold text-slate-400">Delivery Status:</span>
+          {['All', 'Delivered', 'Sent', 'Failed'].map(st => (
             <button
-              key={tab.id}
-              onClick={() => setFilterDivision(tab.id as any)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all whitespace-nowrap cursor-pointer ${
-                filterDivision === tab.id
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900'
+              key={st}
+              onClick={() => setStatusFilter(st)}
+              className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                statusFilter === st
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-500 hover:bg-slate-100'
               }`}
             >
-              {tab.label}
+              {st}
             </button>
           ))}
         </div>
+      </Card>
 
-        {/* Search */}
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search email, recipient, subject, ID..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E] transition-all"
-          />
-        </div>
-      </div>
-
-      {/* Dispatches List */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {filteredLogs.length === 0 ? (
-          <div className="p-12 text-center">
-            <Inbox className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-slate-700">No email logs found</h3>
-            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-              Automated emails will appear here when steps are confirmed in Education, Global Trade consignments change stage, Rimi sales dispatch, or Digital milestone updates are triggered.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200/80 text-slate-400 font-extrabold uppercase tracking-wider">
+      {/* Email Logs Table */}
+      <Card className="border border-slate-200/80 shadow-xs overflow-hidden bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+                <th className="py-3 px-4">Exact Timestamp</th>
+                <th className="py-3 px-4">Division</th>
+                <th className="py-3 px-4">Recipient (To Email)</th>
+                <th className="py-3 px-4">Subject Line</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Template / Rail</th>
+                <th className="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs">
+              {loading ? (
                 <tr>
-                  <th className="py-3 px-4">Dispatch ID & Time</th>
-                  <th className="py-3 px-4">Division & Gateway</th>
-                  <th className="py-3 px-4">Recipient</th>
-                  <th className="py-3 px-4">Subject & Reference</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <td colSpan={7} className="py-12 text-center text-slate-400 font-bold">
+                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#58051E]" />
+                    Loading email dispatch records...
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
-                      <div>{log.id}</div>
-                      <div className="text-[10px] text-slate-400 font-sans font-normal flex items-center gap-1 mt-0.5">
-                        <Clock className="w-3 h-3" />
-                        {new Date(log.sent_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
-                      </div>
+              ) : filteredLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400 font-bold">
+                    No automated email records found.
+                  </td>
+                </tr>
+              ) : (
+                filteredLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                      <div className="font-bold text-slate-800">{new Date(log.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                      <div className="text-[9.5px] text-slate-400">{new Date(log.sent_at).toLocaleDateString()}</div>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-col gap-1">
-                        {getDivisionBadge(log.division)}
-                        <span className="text-[9.5px] font-mono font-bold text-slate-400 uppercase">
-                          Via: {log.provider || 'Resend'}
-                        </span>
-                      </div>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {getDivisionBadge(log.division)}
                     </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-extrabold text-slate-900">{log.recipient_name || 'Client'}</div>
-                      <div className="text-[11px] text-slate-500 font-medium">{log.recipient_email}</div>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className="font-bold text-slate-900 text-[11px]">{log.recipient_email}</div>
+                      <div className="text-[9.5px] font-semibold text-slate-400">{log.recipient_name}</div>
                     </td>
-                    <td className="py-3.5 px-4 max-w-xs">
-                      <div className="font-bold text-slate-800 truncate" title={log.subject}>
-                        {log.subject}
-                      </div>
+                    <td className="py-3 px-4 max-w-sm">
+                      <p className="font-bold text-slate-900 truncate">{log.subject}</p>
                       {log.reference_id && (
-                        <div className="text-[10px] text-[#58051E] font-black font-mono mt-0.5">
-                          Ref: #{log.reference_id}
-                        </div>
+                        <span className="text-[9.5px] font-mono text-[#58051E] bg-[#58051E]/5 px-1.5 py-0.2 rounded border border-[#58051E]/10">
+                          Ref: {log.reference_id}
+                        </span>
                       )}
                     </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <Check className="w-3 h-3" /> Delivered
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                        log.status === 'Delivered'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : log.status === 'Sent'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}>
+                        <Check className="w-2.5 h-2.5" /> {log.status}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="py-3 px-4 font-mono text-[10px] text-slate-500 whitespace-nowrap">
+                      <span className="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                        {log.template_type}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setSelectedLog(log)}
-                          className="p-1.5 text-slate-600 hover:text-[#58051E] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                          title="Preview Email HTML Body"
+                          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          title="Preview HTML Email"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleResend(log)}
                           disabled={resendingId === log.id}
-                          className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-extrabold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                          title="Resend email to recipient"
+                          className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-[#58051E]/10 rounded-lg transition-colors cursor-pointer"
+                          title="Re-send Email"
                         >
-                          {resendingId === log.id ? (
-                            <RefreshCw className="w-3 h-3 animate-spin" />
-                          ) : resendSuccess === log.id ? (
-                            <Check className="w-3 h-3 text-emerald-600" />
-                          ) : (
-                            <Send className="w-3 h-3" />
-                          )}
-                          <span>{resendSuccess === log.id ? 'Resent' : 'Resend'}</span>
+                          <Send className={`w-3.5 h-3.5 ${resendingId === log.id ? 'animate-spin' : ''}`} />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
-      {/* Email Body Inspector Modal */}
+      {/* HTML Email Modal Preview */}
       <AnimatePresence>
         {selectedLog && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white border border-slate-200/80 rounded-2xl shadow-2xl max-w-2xl w-full p-6 text-left space-y-4 max-h-[90vh] flex flex-col"
             >
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-[#58051E]" />
-                  <span className="text-xs font-black text-slate-900 uppercase">Email Dispatch Inspector</span>
-                  {getDivisionBadge(selectedLog.division)}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">{selectedLog.subject}</h3>
+                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                    To: <strong className="text-slate-800">{selectedLog.recipient_name}</strong> ({selectedLog.recipient_email})
+                  </p>
                 </div>
                 <button
                   onClick={() => setSelectedLog(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="p-5 border-b border-slate-100 space-y-2 bg-white">
-                <div className="text-xs font-bold text-slate-500">
-                  <span className="text-slate-400 uppercase font-black text-[10px] w-16 inline-block">Subject:</span>
-                  <span className="text-slate-900 font-extrabold">{selectedLog.subject}</span>
+              <div className="grid grid-cols-3 gap-2 text-[10.5px]">
+                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                  <span className="text-slate-400 font-bold block">Timestamp</span>
+                  <span className="font-mono text-slate-900 font-bold">{new Date(selectedLog.sent_at).toLocaleString()}</span>
                 </div>
-                <div className="text-xs font-bold text-slate-500">
-                  <span className="text-slate-400 uppercase font-black text-[10px] w-16 inline-block">To:</span>
-                  <span className="text-slate-800">{selectedLog.recipient_name} ({selectedLog.recipient_email})</span>
+                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                  <span className="text-slate-400 font-bold block">Division</span>
+                  <span className="font-bold text-slate-900 uppercase">{selectedLog.division}</span>
                 </div>
-                <div className="text-xs font-bold text-slate-500">
-                  <span className="text-slate-400 uppercase font-black text-[10px] w-16 inline-block">Sent:</span>
-                  <span className="text-slate-600 font-mono">{new Date(selectedLog.sent_at).toLocaleString()}</span>
-                </div>
-              </div>
-
-              <div className="p-6 overflow-y-auto bg-slate-50/50 flex-1">
-                <div className="bg-white p-6 rounded-xl border border-slate-200/80 shadow-xs prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: selectedLog.body_html }} />
+                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                  <span className="text-slate-400 font-bold block">Delivery Status</span>
+                  <span className="font-bold text-emerald-700">{selectedLog.status}</span>
                 </div>
               </div>
 
-              <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50">
-                <div className="text-[11px] font-mono text-slate-400">
-                  Log ID: {selectedLog.id}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleResend(selectedLog)}
-                    disabled={resendingId === selectedLog.id}
-                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-white bg-[#58051E] hover:bg-[#581626] rounded-xl shadow-xs transition-colors cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5" /> Resend Now
-                  </button>
-                </div>
+              {/* Rendered HTML Container */}
+              <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 overflow-y-auto max-h-64 text-slate-800 text-xs">
+                <div dangerouslySetInnerHTML={{ __html: selectedLog.body_html }} />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleResend(selectedLog)}
+                  disabled={resendingId === selectedLog.id}
+                  className="text-xs font-bold text-slate-700 bg-white"
+                >
+                  <Send className="w-3.5 h-3.5 mr-1.5" /> Re-dispatch Now
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setSelectedLog(null)}
+                  className="bg-[#58051E] text-white text-xs font-bold"
+                >
+                  Close
+                </Button>
               </div>
             </motion.div>
           </div>

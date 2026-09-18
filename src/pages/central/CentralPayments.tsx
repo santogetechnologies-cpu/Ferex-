@@ -85,7 +85,7 @@ export const CentralPayments: React.FC = () => {
             description: t.description || `Letter of Credit / Freight Wire (${t.payment_type || 'LC MT700'})`,
             amount: isEur ? amt * 90 : amt,
             currency: isEur ? 'EUR' : 'INR',
-            amountFormatted: isEur ? `€${amt.toLocaleString()} (~₹${((amt * 90) / 100000).toFixed(1)} L)` : `₹${amt.toLocaleString('en-IN')}`,
+            amountFormatted: isEur ? `€${amt.toLocaleString()} (~₹${Math.round(amt * 90).toLocaleString('en-IN')})` : `₹${amt.toLocaleString('en-IN')}`,
             method: t.payment_type || 'SWIFT Wire',
             date: t.payment_date || t.settlement_date || (t.created_at ? new Date(t.created_at).toLocaleDateString() : 'Recent'),
             status: t.status === 'Completed' || t.status === 'Settled' ? 'Settled' : 'Pending',
@@ -271,10 +271,10 @@ export const CentralPayments: React.FC = () => {
             Total Combined Inflow
           </span>
           <div className="text-2xl font-black text-slate-900">
-            ₹{(totalInflow / 10000000).toFixed(2)} Cr
+            ₹{totalInflow.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] font-bold text-emerald-600 mt-2 block flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> +24.8% YoY Volume
+            <TrendingUp className="w-3 h-3" /> Live Multi-Subsidiary Aggregate
           </span>
         </Card>
 
@@ -283,7 +283,7 @@ export const CentralPayments: React.FC = () => {
             Verified & Cleared
           </span>
           <div className="text-2xl font-black text-emerald-700">
-            ₹{(verifiedInflow / 10000000).toFixed(2)} Cr
+            ₹{verifiedInflow.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] font-bold text-slate-400 mt-2 block">
             {totalInflow > 0 ? Math.round((verifiedInflow / totalInflow) * 100) : 100}% Settlement Rate
@@ -295,7 +295,7 @@ export const CentralPayments: React.FC = () => {
             Pending Clearance
           </span>
           <div className="text-2xl font-black text-amber-700">
-            ₹{(pendingInflow / 100000).toFixed(1)} L
+            ₹{pendingInflow.toLocaleString('en-IN')}
           </div>
           <span className="text-[10px] font-bold text-amber-600 mt-2 block">
             Requires Executive Review
