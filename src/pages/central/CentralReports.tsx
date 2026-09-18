@@ -240,26 +240,97 @@ export const CentralReports: React.FC = () => {
 
       setSubsidiaries(subList);
 
-      // Calculate Payment Platform & Gateway Distribution
-      const grandTotal = eduTotal + tradeTotal + rimiTotal + digTotal || 1;
-      const gatewayMap: Record<string, { volume: number; count: number; color: string; type: string }> = {
-        'SWIFT / LC MT700': { volume: tradeTotal, count: tradeCount, color: '#4f46e5', type: 'Trade Documentary Credit' },
-        'Bank Wire / NEFT / RTGS': { volume: Math.round(eduTotal * 0.6 + rimiTotal * 0.7), count: Math.round(eduCount * 0.6 + rimiCount * 0.7), color: '#0284c7', type: 'Direct Interbank' },
-        'Razorpay Payment Gateway': { volume: Math.round(digTotal * 0.7 + eduTotal * 0.25), count: Math.round(digCount * 0.7 + eduCount * 0.25), color: '#059669', type: 'Online Card / NetBanking' },
-        'Stripe International': { volume: Math.round(digTotal * 0.3), count: Math.round(digCount * 0.3), color: '#6366f1', type: 'Global Card Processing' },
-        'UPI & Instant QR': { volume: Math.round(eduTotal * 0.15), count: Math.round(eduCount * 0.15), color: '#e11d48', type: 'Mobile Payments' },
-        'B2B Wholesale Settlement': { volume: Math.round(rimiTotal * 0.3), count: Math.round(rimiCount * 0.3), color: '#0891b2', type: 'Distributor Clearing' },
-      };
+      // ─── Real Dynamic Payment Gateway & Platform Aggregation ────────────
+      const standardRails = [
+        {
+          id: 'bank_wire',
+          name: 'Direct Bank Wire & RTGS / NEFT',
+          code: 'WIRE',
+          type: 'Direct Interbank Settlement',
+          color: '#0284c7',
+          match: (m: string) => /bank|wire|neft|rtgs|transfer|netbanking|net banking|direct/i.test(m),
+          volume: 0,
+          count: 0,
+        },
+        {
+          id: 'razorpay',
+          name: 'Razorpay Payment Gateway',
+          code: 'RAZORPAY',
+          type: 'Online Cards, NetBanking & Auto-debit',
+          color: '#059669',
+          match: (m: string) => /razorpay|razor/i.test(m),
+          volume: 0,
+          count: 0,
+        },
+        {
+          id: 'upi',
+          name: 'UPI & Instant QR Payments',
+          code: 'UPI',
+          type: 'Instant Mobile VPA & QR',
+          color: '#e11d48',
+          match: (m: string) => /upi|gpay|phonepe|paytm|vpa|qr/i.test(m),
+          volume: 0,
+          count: 0,
+        },
+        {
+          id: 'swift_lc',
+          name: 'SWIFT & Letters of Credit (LC)',
+          code: 'SWIFT',
+          type: 'Trade Documentary Credit (MT700/103)',
+          color: '#4f46e5',
+          match: (m: string) => /swift|lc|letter of credit|mt700|mt103|trade/i.test(m),
+          volume: 0,
+          count: 0,
+        },
+        {
+          id: 'stripe',
+          name: 'Stripe International Gateway',
+          code: 'STRIPE',
+          type: 'Global Cards & Multi-Currency',
+          color: '#6366f1',
+          match: (m: string) => /stripe/i.test(m),
+          volume: 0,
+          count: 0,
+        },
+        {
+          id: 'b2b_cash',
+          name: 'B2B Wholesale & Cash Clearing',
+          code: 'B2B',
+          type: 'Distributor & Partner Settlements',
+          color: '#0891b2',
+          match: (m: string) => /b2b|cash|pos|distributor|retail|cheque|cod|order/i.test(m),
+          volume: 0,
+          count: 0,
+        },
+      ];
 
-      const gwList: GatewayBreakdown[] = Object.entries(gatewayMap).map(([name, data]) => ({
-        name,
-        code: name.split(' ')[0].toUpperCase(),
-        volume: data.volume,
-        transactions: data.count,
-        share: Math.round((data.volume / grandTotal) * 100),
-        color: data.color,
-        type: data.type,
-      })).sort((a, b) => b.volume - a.volume);
+      // Exact iteration over every real transaction record
+      rawTxns.forEach(txn => {
+        const methodStr = (txn.gateway || '').toLowerCase();
+        let matched = standardRails.find(r => r.match(methodStr));
+        if (!matched) {
+          if (txn.division === 'Trade') matched = standardRails.find(r => r.id === 'swift_lc');
+          else if (txn.division === 'Rimi') matched = standardRails.find(r => r.id === 'b2b_cash');
+          else if (txn.division === 'Digital') matched = standardRails.find(r => r.id === 'razorpay');
+          else matched = standardRails.find(r => r.id === 'bank_wire');
+        }
+        if (matched) {
+          matched.volume += Number(txn.amount) || 0;
+          matched.count += 1;
+        }
+      });
+
+      const grandTotal = rawTxns.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+      const gwList: GatewayBreakdown[] = standardRails.map(rail => ({
+        name: rail.name,
+        code: rail.code,
+        volume: rail.volume,
+        transactions: rail.count,
+        share: grandTotal > 0 ? Math.round((rail.volume / grandTotal) * 100) : 0,
+        color: rail.color,
+        type: rail.type,
+      })).sort((a, b) => b.volume - a.volume || b.transactions - a.transactions);
 
       setGateways(gwList);
       setLastRefreshed(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
@@ -585,8 +656,10 @@ export const CentralReports: React.FC = () => {
                   />
                 </div>
                 <div className="flex items-center justify-between text-[9.5px] text-slate-400 font-semibold mt-1">
-                  <span>{gw.transactions} settlements processed</span>
-                  <span className="text-emerald-600 font-bold">100% System Verified</span>
+                  <span>{gw.transactions > 0 ? `${gw.transactions} settlements processed` : '0 settlements recorded'}</span>
+                  <span className={gw.transactions > 0 ? 'text-emerald-600 font-bold' : 'text-slate-400 font-medium'}>
+                    {gw.transactions > 0 ? '100% System Verified' : 'Rail Active & Ready'}
+                  </span>
                 </div>
               </div>
             ))}
