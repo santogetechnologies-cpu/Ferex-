@@ -3,16 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Camera, CheckCircle2, Save } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 
 export const DigitalProfile: React.FC = () => {
   const [profile, setProfile] = useState({
-    name: 'Ferex Digital Director',
-    role: 'Managing Director & Head of Agency',
-    company: 'FEREX Digital (A FEREX Ventures Company)',
-    email: 'info@ferexventures.com',
+    name: 'Digital Admin',
+    email: 'digital@ferex.com',
     phone: '+91 484 290 1234',
-    location: 'FEREX Ventures Tower, Infopark Expressway, Kochi, Kerala 682042',
-    bio: 'Overseeing agency operations, enterprise client relationships, service delivery across Web, Mobile, Design, Marketing, and SEO.',
+    role: 'Admin'
   });
 
   const [avatar, setAvatar] = useState<string>('');
@@ -76,11 +74,10 @@ export const DigitalProfile: React.FC = () => {
           {/* Header Details */}
           <div className="space-y-2 text-center md:text-left flex-1">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-              <span className="text-[10px] font-black uppercase tracking-widest bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white">Agency Executive</span>
-              <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-400/30">Active Account</span>
+              <span className="text-[10px] font-black uppercase tracking-widest bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white">{profile.role}</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-sm">{profile.name}</h1>
-            <p className="text-xs md:text-sm font-semibold text-white/85">{profile.role} • {profile.company}</p>
+            <p className="text-xs md:text-sm font-semibold text-white/85">{profile.email}</p>
           </div>
         </div>
       </div>
@@ -98,35 +95,29 @@ export const DigitalProfile: React.FC = () => {
 
         <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Full Display Name</label>
+            <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Full Name</label>
             <input type="text" value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
           <div>
-            <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Designation & Role</label>
-            <input type="text" value={profile.role} onChange={e => setProfile({...profile, role: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
-          </div>
-          <div>
-            <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Company / Organization</label>
-            <input type="text" value={profile.company} onChange={e => setProfile({...profile, company: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
-          </div>
-          <div>
-            <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Email Address</label>
+            <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Email</label>
             <input type="email" value={profile.email} onChange={e => setProfile({...profile, email: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
           <div>
-            <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Phone Number</label>
-            <input type="text" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
+            <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Role</label>
+            <input type="text" value={profile.role} disabled className="w-full h-10 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-500" />
           </div>
           <div>
-            <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Office Location</label>
-            <input type="text" value={profile.location} onChange={e => setProfile({...profile, location: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Executive Summary / Bio</label>
-            <textarea rows={3} value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
+            <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Phone</label>
+            <input type="text" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
         </form>
       </Card>
+
+      {/* Security & Password Card */}
+      <ChangePasswordForm
+        title="Ferex Digital Account Password"
+        subtitle="Update your credentials for Ferex Digital Agency console"
+      />
     </div>
   );
 };

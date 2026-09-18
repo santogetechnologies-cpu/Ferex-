@@ -10,7 +10,8 @@ import {
   getDigitalMeetings,
 } from '../../lib/api/digital';
 import { UnifiedPaymentModal } from '../../components/UnifiedPaymentModal';
-import { Layers, CheckCircle2, CreditCard, Clock, Calendar, MessageSquare, Receipt, Zap } from 'lucide-react';
+import { ChangePasswordForm } from '../../components/ChangePasswordForm';
+import { Layers, CheckCircle2, CreditCard, Clock, Calendar, MessageSquare, Receipt, Zap, Lock, Settings } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ClientData {
@@ -55,7 +56,7 @@ const DigitalClientPortal: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'invoices' | 'meetings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'invoices' | 'meetings' | 'settings'>('overview');
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
 
   const loadData = useCallback(async () => {
@@ -149,6 +150,7 @@ const DigitalClientPortal: React.FC = () => {
     { key: 'projects', label: 'Projects', count: projects.length },
     { key: 'invoices', label: 'Invoices', count: invoices.length },
     { key: 'meetings', label: 'Meetings', count: meetings.length },
+    { key: 'settings', label: 'Security & Password' },
   ];
 
   return (
@@ -458,6 +460,16 @@ const DigitalClientPortal: React.FC = () => {
                   ))}
                 </div>
             }
+          </div>
+        )}
+
+        {/* ── Settings Tab ── */}
+        {activeTab === 'settings' && (
+          <div style={{ maxWidth: 640, margin: '0 auto' }}>
+            <ChangePasswordForm
+              title="Client Account Password"
+              subtitle="Update your client portal login password across Supabase"
+            />
           </div>
         )}
       </div>

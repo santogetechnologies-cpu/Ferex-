@@ -5,6 +5,7 @@ import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 
 export const TradeProfile: React.FC = () => {
   const { profile } = useAuth();
@@ -245,10 +246,12 @@ export const TradeProfile: React.FC = () => {
         )}
 
         {activeTab === 'security' && (
-          <div className="space-y-4 max-w-xl">
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <span className="text-xs font-bold text-slate-700">Security settings coming soon</span>
-            </div>
+          <div className="max-w-xl">
+            <ChangePasswordForm
+              title="Global Trade Account Password"
+              subtitle="Update your Trade portal authentication credentials"
+              variant="plain"
+            />
           </div>
         )}
       </Card>

@@ -311,6 +311,7 @@ function App() {
           <Route path="/student/support" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><SupportTickets /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/notifications" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Notifications /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><MyProfile /></StudentLayout></ProtectedRoute>} />
+          <Route path="/student/settings" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><MyProfile defaultTab="Account & Security" /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/visa-tracker" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><VisaTracker /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/pre-departure" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><PreDeparture /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/housing" element={<Navigate to="/student/dashboard" replace />} />
@@ -414,6 +415,7 @@ function App() {
           <Route path="/rimi/messages" element={<Navigate to="/rimi/dashboard" replace />} />
           <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/tasks" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiTasks /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/staff" element={<Navigate to="/central/staff" replace />} />
 
@@ -500,6 +502,7 @@ function App() {
           <Route path="/staff/meetings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminMeetings /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/notifications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminNotifications /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/profile" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/settings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />

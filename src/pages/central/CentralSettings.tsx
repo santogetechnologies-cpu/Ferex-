@@ -12,6 +12,7 @@ import {
   type GlobalPaymentGatewayConfig,
   DEFAULT_PAYMENT_GATEWAYS
 } from '../../lib/api/paymentGateways';
+import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 
 export const CentralSettings: React.FC = () => {
   const [toast, setToast] = useState('');
@@ -471,6 +472,14 @@ export const CentralSettings: React.FC = () => {
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
                     />
                   </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100">
+                  <ChangePasswordForm
+                    title="Change Super Admin Password"
+                    subtitle="Update your master root credentials in Supabase Auth"
+                    variant="plain"
+                  />
                 </div>
               </div>
             )}

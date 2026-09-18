@@ -11,6 +11,7 @@ import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { updateStudent } from '../lib/api/students';
 import { supabase } from '../lib/supabase';
+import { ChangePasswordForm } from '../components/ChangePasswordForm';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PersonalInfo {
@@ -139,7 +140,7 @@ const Toggle: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked,
 );
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export const MyProfile: React.FC = () => {
+export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => {
   const { user, profile, updatePassword } = useAuth();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -150,7 +151,7 @@ export const MyProfile: React.FC = () => {
     return localStorage.getItem(key) || profile?.avatar_url || null;
   });
   const [toast, setToast] = useState('');
-  const [activeTab, setActiveTab] = useState('Personal Information');
+  const [activeTab, setActiveTab] = useState(defaultTab || 'Personal Information');
   const [completionPct] = useState(85);
 
   // Editing states
@@ -1216,49 +1217,23 @@ export const MyProfile: React.FC = () => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowPasswordModal(false)} />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 flex items-center justify-center">
-                    <Lock className="w-5 h-5 text-[#58051E]" />
-                  </div>
-                  <h3 className="text-sm font-extrabold text-slate-900">Change Password</h3>
-                </div>
-                <button onClick={() => { setShowPasswordModal(false); setPasswordError(''); }}
-                  className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <button onClick={() => setShowPasswordModal(false)}
+                  className="ml-auto p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handlePasswordChange} className="space-y-4">
-                {(['current', 'newPwd', 'confirm'] as const).map((field, idx) => (
-                  <div key={field}>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
-                      {idx === 0 ? 'Current Password' : idx === 1 ? 'New Password' : 'Confirm New Password'}
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      value={passwordForm[field]}
-                      onChange={(e) => setPasswordForm(p => ({ ...p, [field]: e.target.value }))}
-                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]/50 focus:ring-4 focus:ring-[#58051E]/5 transition-all"
-                    />
-                  </div>
-                ))}
-
-                {passwordError && (
-                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-lg">
-                    <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
-                    <p className="text-xs font-bold text-red-600">{passwordError}</p>
-                  </div>
-                )}
-
-                <div className="pt-2">
-                  <Button type="submit" className="w-full text-sm font-bold">
-                    Update Password
-                  </Button>
-                </div>
-              </form>
+              <ChangePasswordForm
+                title="Change Student Password"
+                subtitle="Update your student portal login password across Supabase"
+                variant="plain"
+                onSuccess={() => {
+                  setShowPasswordModal(false);
+                  showToast('Password updated securely in Supabase!');
+                }}
+              />
             </motion.div>
           </>
         )}

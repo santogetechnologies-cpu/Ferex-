@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Save, CheckCircle2, Building2 } from 'lucide-react';
+import { Save, CheckCircle2, Building2, Shield, Lock } from 'lucide-react';
+import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 
-const TABS = ['Organization'];
+const TABS = ['Organization', 'Security & Password'];
 
 const TAB_ICONS: Record<string, any> = {
   Organization: <Building2 className="w-4 h-4 text-blue-600" />,
+  'Security & Password': <Shield className="w-4 h-4 text-[#58051E]" />,
 };
 
 const INITIAL_ORG = { 
@@ -98,8 +100,8 @@ export const AdminSettings: React.FC = () => {
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">Organization Settings</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">Manage your FEREX Ventures corporate information and organization details</p>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight">Education Admin Settings</h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">Manage your organization profile, corporate configurations, and account security credentials</p>
         </div>
       </div>
 
@@ -129,12 +131,26 @@ export const AdminSettings: React.FC = () => {
 
         {/* Tab Content Panel */}
         <div className="flex-1 min-w-0 w-full bg-white border border-slate-200/80 rounded-2xl p-5 md:p-6 shadow-xs">
-          <h2 className="text-sm font-black text-slate-900 mb-5 border-b border-slate-100 pb-3">
-            Organization Profile & Headquarters
-          </h2>
-          <div className="w-full min-w-0 overflow-x-visible">
-            {renderOrg()}
-          </div>
+          {activeTab === 'Organization' && (
+            <>
+              <h2 className="text-sm font-black text-slate-900 mb-5 border-b border-slate-100 pb-3">
+                Organization Profile & Headquarters
+              </h2>
+              <div className="w-full min-w-0 overflow-x-visible">
+                {renderOrg()}
+              </div>
+            </>
+          )}
+
+          {activeTab === 'Security & Password' && (
+            <div className="w-full max-w-xl">
+              <ChangePasswordForm
+                title="Admin Account Password"
+                subtitle="Change your Education Administrator password across Supabase Auth"
+                variant="plain"
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

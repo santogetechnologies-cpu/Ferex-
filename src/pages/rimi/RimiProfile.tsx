@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Trash2, Eye, CheckCircle2, ShieldCheck, Building2, Globe, Lock, User, Save, X } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 
 export const RimiProfile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'personal' | 'company' | 'security'>('personal');
@@ -192,10 +193,12 @@ export const RimiProfile: React.FC = () => {
         )}
 
         {activeTab === 'security' && (
-          <div className="space-y-4 max-w-xl">
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <span className="text-xs font-bold text-slate-700">Security settings coming soon</span>
-            </div>
+          <div className="max-w-xl">
+            <ChangePasswordForm
+              title="Rimi Frozen Account Password"
+              subtitle="Update your Rimi Frozen distribution portal credentials"
+              variant="plain"
+            />
           </div>
         )}
       </Card>

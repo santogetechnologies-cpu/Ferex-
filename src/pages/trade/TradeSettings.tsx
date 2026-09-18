@@ -9,11 +9,12 @@ import { Button } from '../../components/Button';
 import { useTradeConfig } from '../../hooks/useTradeConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import type { TradeCustomizationConfig, TradeFreightCorridor } from '../../lib/api/tradeConfig';
+import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 
 const TRADE_ADMIN_ROLES = ['trade_admin', 'global_trade', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
 
 
-type TradeTab = 'branding' | 'incoterms' | 'client_policies' | 'broadcast' | 'corridors';
+type TradeTab = 'branding' | 'incoterms' | 'client_policies' | 'broadcast' | 'corridors' | 'security';
 interface TabItem {
   id: TradeTab;
   label: string;
@@ -117,6 +118,7 @@ export const TradeSettings: React.FC = () => {
     { id: 'client_policies', label: 'Client Portal & Cargo Rules', icon: Sliders },
     { id: 'broadcast', label: 'Live Maritime Broadcast', icon: Megaphone, badge: form.broadcast?.is_active ? 'Live' : undefined },
     { id: 'corridors', label: 'Shipping Corridors & Routes', icon: Ship, count: form.corridors?.length },
+    { id: 'security', label: 'Security & Password', icon: Lock },
   ];
 
   return (
@@ -709,6 +711,16 @@ export const TradeSettings: React.FC = () => {
                 </Card>
               ))}
             </div>
+          </motion.div>
+        )}
+
+        {/* ─── TAB: SECURITY & PASSWORD ─────────────────────────────────── */}
+        {activeTab === 'security' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-xl">
+            <ChangePasswordForm
+              title="Trade Administrator Password"
+              subtitle="Update your Global Trade administrative credentials"
+            />
           </motion.div>
         )}
 
