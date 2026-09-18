@@ -4,6 +4,7 @@ import { FileText, Download, Check, X, Sparkles, GraduationCap, ArrowRight, Eye,
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
 import { useApplications } from '../hooks/useApplications';
 import { isRealApplication } from '../lib/api/applications';
@@ -225,19 +226,7 @@ export const OfferLetters: React.FC = () => {
   return (
     <div className="space-y-6 text-left relative min-h-[500px]">
       {/* Toast Notification */}
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#58051E] text-white px-4 py-3 rounded-xl shadow-xl text-xs font-bold flex items-center gap-2 max-w-md"
-          >
-            <Sparkles className="w-4 h-4 text-amber-300 shrink-0" />
-            {toastMessage}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toastMessage} onClose={() => setToastMessage('')} />
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

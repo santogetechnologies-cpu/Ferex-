@@ -6,6 +6,7 @@ import {
   ArrowRight, CheckCircle2, Users
 } from 'lucide-react';
 import { Card } from '../../components/Card';
+import { ToastNotification } from '../../components/ToastNotification';
 
 export interface ServiceCardData {
   id: string;
@@ -79,19 +80,7 @@ export const DigitalServicesHub: React.FC = () => {
   return (
     <div className="space-y-8 text-left antialiased select-none">
       {/* Toast Notification */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Hero Header */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#3B0B16] text-white p-8 md:p-10 shadow-xl">

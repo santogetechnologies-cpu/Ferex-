@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { ToastNotification } from '../../components/ToastNotification';
 import { useTradeConfig } from '../../hooks/useTradeConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import type { TradeCustomizationConfig, TradeFreightCorridor } from '../../lib/api/tradeConfig';
@@ -123,19 +124,7 @@ export const TradeSettings: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left antialiased">
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#24020B] text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 border border-[#E6CA9E]/40"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0A1128] rounded-2xl p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-blue-500/30 shadow-md">

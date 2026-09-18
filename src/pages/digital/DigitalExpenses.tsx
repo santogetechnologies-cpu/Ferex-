@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { ToastNotification } from '../../components/ToastNotification';
 import {
   getDigitalExpenses,
   createDigitalExpense,
@@ -174,13 +175,7 @@ export const DigitalExpenses: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left antialiased max-w-7xl mx-auto">
-      <AnimatePresence>
-        {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-rose-900/40">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />{toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

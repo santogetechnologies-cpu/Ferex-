@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { getSystemConfig, saveSystemConfig } from '../../lib/api/systemConfig';
 import type { SystemCustomizationConfig } from '../../lib/types';
 import { ChangePasswordForm } from '../../components/ChangePasswordForm';
+import { ToastNotification } from '../../components/ToastNotification';
 
 export const CentralSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'branding' | 'subsidiaries' | 'security' | 'database' | 'password'>('branding');
@@ -94,19 +95,7 @@ export const CentralSettings: React.FC = () => {
   return (
     <div className="space-y-6 text-left antialiased">
       {/* Toast Alert */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">

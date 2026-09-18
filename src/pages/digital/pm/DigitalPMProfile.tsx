@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../../../contexts/AuthContext';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
+import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
 
 export const DigitalPMProfile: React.FC = () => {
@@ -82,12 +83,7 @@ export const DigitalPMProfile: React.FC = () => {
   return (
     <div className="space-y-6 relative text-left pb-8 max-w-4xl mx-auto">
       {/* Toast Notification */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-[#58051E] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-white/20">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          {toast}
-        </div>
-      )}
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header */}
       <div>

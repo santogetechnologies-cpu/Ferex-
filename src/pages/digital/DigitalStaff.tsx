@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { ToastNotification } from '../../components/ToastNotification';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
 import {
@@ -194,13 +195,7 @@ export const DigitalStaff: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left antialiased">
-      {/* Toast */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-fade-in text-xs font-bold">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          {toast}
-        </div>
-      )}
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-950 via-slate-900 to-indigo-950 text-white p-6 md:p-8 shadow-xl border border-cyan-800/30">

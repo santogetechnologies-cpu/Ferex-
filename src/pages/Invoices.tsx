@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileSpreadsheet, Download, Sparkles, Search, CheckCircle2, RotateCcw, FileText, Eye } from 'lucide-react';
 import { Card } from '../components/Card';
+import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
 import { usePayments } from '../hooks/usePayments';
 import { createValidInvoicePdfBlob, createCreditNotePdfBlob, getCreditNotes } from '../lib/api/payments';
@@ -132,16 +133,7 @@ export const Invoices: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left relative min-h-[500px]">
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#58051E] text-white px-4 py-3 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2"
-          >
-            <Sparkles className="w-4 h-4 text-amber-300" /> {toastMessage}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toastMessage} onClose={() => setToastMessage('')} />
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
