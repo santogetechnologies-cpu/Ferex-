@@ -423,6 +423,39 @@ export async function assignDigitalProject(
   return true;
 }
 
+export async function reassignDigitalProject(projectId: string, leadName: string, staffEmail?: string, staffId?: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('digital_projects')
+      .update({
+        lead_developer: leadName,
+        assigned_staff_name: leadName,
+        assigned_staff_email: staffEmail || `${leadName.toLowerCase().replace(/\s+/g, '.')}@ferex.com`,
+        assigned_staff_id: staffId || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', projectId);
+
+    if (error) {
+      console.warn('[DigitalAPI] Could not update supabase digital_projects:', error);
+    }
+    triggerLocalSync('ferex_digital_projects_change');
+    return true;
+  } catch (err) {
+    console.error('[DigitalAPI] Error reassigning digital project:', err);
+    throw err;
+  }
+}
+
+export async function updateDigitalProjectStage(projectId: string, newStage: DigitalProjectStage | string): Promise<boolean> {
+  try {
+    await advanceDigitalProjectStage(projectId, newStage, 'Super Admin');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function advanceDigitalProjectStage(
   projectId: string,
   newStage: DigitalProjectStage | string,

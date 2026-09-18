@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabase';
 
 export const TradeProfile: React.FC = () => {
   const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'personal' | 'company' | 'trade' | 'security' | 'activity'>('personal');
+  const [activeTab, setActiveTab] = useState<'personal' | 'security'>('personal');
   const [toast, setToast] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -18,14 +18,10 @@ export const TradeProfile: React.FC = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const [userData, setUserData] = useState({
-    fullName: profile?.full_name || 'Trade Operations Officer',
+    fullName: profile?.full_name || 'Trade Admin',
     email: profile?.email || 'trade@ferex.com',
     phone: profile?.phone || '+91 98765 01234',
-    title: profile?.role === 'trade_admin' ? 'Director of Global Trade Operations' : 'Trade Logistics & Compliance Officer',
-    company: 'FEREX Global Trade & Maritime Corp',
-    country: 'India / Poland Hub',
-    incoterms: 'CIF / FOB / CFR European & Asian Corridors',
-    primaryBank: 'Standard Chartered / BNP Paribas / SBI Overseas'
+    role: profile?.role || 'Admin'
   });
 
   useEffect(() => {
@@ -35,7 +31,7 @@ export const TradeProfile: React.FC = () => {
         fullName: profile.full_name || prev.fullName,
         email: profile.email || prev.email,
         phone: profile.phone || prev.phone,
-        title: profile.role === 'trade_admin' ? 'Director of Global Trade Operations' : 'Trade Logistics & Compliance Officer'
+        role: profile.role || 'Admin'
       }));
     }
   }, [profile]);
@@ -109,10 +105,7 @@ export const TradeProfile: React.FC = () => {
           {/* Top Right Console Badges */}
           <div className="absolute top-4 right-4 flex items-center gap-2 flex-wrap z-10">
             <span className="bg-white/15 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white border border-white/20 shadow-xs flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" /> Certified Global Trade Console
-            </span>
-            <span className="bg-emerald-500/20 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-extrabold text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Active Session
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" /> {userData.role}
             </span>
           </div>
 
@@ -122,15 +115,9 @@ export const TradeProfile: React.FC = () => {
               <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight drop-shadow-sm select-none">
                 {userData.fullName}
               </h1>
-              <span className="text-[10px] font-extrabold uppercase text-emerald-300 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-400/30">
-                Verified Executive
-              </span>
             </div>
             <p className="text-xs md:text-sm font-bold text-white/95 flex items-center gap-1.5 drop-shadow-xs">
-              <Building2 className="w-4 h-4 text-emerald-400 shrink-0" /> {userData.title}
-            </p>
-            <p className="text-xs font-semibold text-white/80 flex items-center gap-1.5 truncate">
-              <Globe className="w-3.5 h-3.5 text-white/70 shrink-0" /> {userData.company} · {userData.country}
+              {userData.email}
             </p>
           </div>
         </div>
@@ -205,10 +192,7 @@ export const TradeProfile: React.FC = () => {
         <div className="flex border-t border-slate-100 px-6 overflow-x-auto bg-slate-50/50">
           {[
             { key: 'personal', label: 'Personal Info', icon: User },
-            { key: 'company', label: 'Company Details', icon: Building2 },
-            { key: 'trade', label: 'Trade Preferences', icon: Globe },
             { key: 'security', label: 'Security & 2FA', icon: Lock },
-            { key: 'activity', label: 'Audit Log', icon: Activity },
           ].map((t) => (
             <button
               key={t.key}
@@ -238,17 +222,19 @@ export const TradeProfile: React.FC = () => {
                 <input type="text" value={userData.fullName} onChange={(e) => setUserData({ ...userData, fullName: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
               </div>
               <div>
-                <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Official Email</label>
+                <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Email</label>
                 <input type="email" value={userData.email} onChange={(e) => setUserData({ ...userData, email: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
               </div>
             </div>
-            <div>
-              <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Executive Title / Designation</label>
-              <input type="text" value={userData.title} onChange={(e) => setUserData({ ...userData, title: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
-            </div>
-            <div>
-              <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Contact Phone</label>
-              <input type="text" value={userData.phone} onChange={(e) => setUserData({ ...userData, phone: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Role</label>
+                <input type="text" value={userData.role} disabled className="w-full h-9 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-500" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Phone</label>
+                <input type="text" value={userData.phone} onChange={(e) => setUserData({ ...userData, phone: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
+              </div>
             </div>
             <div className="pt-2">
               <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold flex items-center gap-1.5">
@@ -258,76 +244,10 @@ export const TradeProfile: React.FC = () => {
           </form>
         )}
 
-        {activeTab === 'company' && (
-          <div className="space-y-4 max-w-xl text-xs font-semibold text-slate-700">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2">
-              <h3 className="text-sm font-black text-slate-900">Corporate & Banking Entity</h3>
-            </div>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400">Corporate Entity Name</span>
-              <div className="text-sm font-black text-slate-900">{userData.company}</div>
-              <div className="text-[10.5px] font-semibold text-slate-500">{userData.country}</div>
-            </div>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400">Default Incoterms & Primary Banking</span>
-              <div className="text-xs font-black text-slate-900">{userData.incoterms}</div>
-              <div className="text-xs font-semibold text-slate-500">{userData.primaryBank}</div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'trade' && (
-          <div className="space-y-4 max-w-xl text-xs font-semibold text-slate-700">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2">
-              <h3 className="text-sm font-black text-slate-900">European Freight & Customs Rules</h3>
-            </div>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400">Primary Maritime Ports</span>
-              <div className="text-xs font-black text-slate-900">Port of Gdansk (Poland) · Port of Hamburg (Germany) · Port of Rotterdam (Netherlands)</div>
-            </div>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400">Base Currency</span>
-              <div className="text-xs font-black text-[#58051E]">USD ($) / EUR (€) / INR (₹) Multi-Currency International Settlement</div>
-            </div>
-          </div>
-        )}
-
         {activeTab === 'security' && (
-          <div className="space-y-4 max-w-xl text-xs font-semibold text-slate-700">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2">
-              <h3 className="text-sm font-black text-slate-900">Security Credentials & Hardware 2FA</h3>
-            </div>
-            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between">
-              <div>
-                <span className="font-extrabold text-emerald-950 block">Hardware Token 2FA Active</span>
-                <span className="text-[10.5px] font-semibold text-emerald-700">Hardware token verified for LC issuance</span>
-              </div>
-              <span className="text-[10px] font-black uppercase text-emerald-700 bg-white px-2.5 py-1 rounded-full border border-emerald-300">
-                Enabled
-              </span>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'activity' && (
-          <div className="space-y-3 max-w-xl text-xs font-semibold text-slate-700">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2">
-              <h3 className="text-sm font-black text-slate-900">Executive Audit Log</h3>
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Live Session Tracking</span>
-            </div>
-            <div className="space-y-2">
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                <span className="font-bold text-slate-900">Console Session Authenticated & Hardware Security Verified</span>
-                <span className="text-[10px] font-extrabold text-slate-400">Active</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                <span className="font-bold text-slate-900">Global Trade Operations Ledger Initialized</span>
-                <span className="text-[10px] font-extrabold text-slate-400">Today</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                <span className="font-bold text-slate-900">Automated Webhooks & Real-time Postgres Listener Synced</span>
-                <span className="text-[10px] font-extrabold text-slate-400">Today</span>
-              </div>
+          <div className="space-y-4 max-w-xl">
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <span className="text-xs font-bold text-slate-700">Security settings coming soon</span>
             </div>
           </div>
         )}

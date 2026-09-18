@@ -738,6 +738,40 @@ export async function advanceTradeOrderStage(
   }
 }
 
+export async function reassignTradeOrder(orderId: string, staffName: string, staffEmail?: string, staffId?: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('trade_orders')
+      .update({
+        assigned_staff_name: staffName,
+        assigned_staff_email: staffEmail || `${staffName.toLowerCase().replace(/\s+/g, '.')}@ferex.com`,
+        assigned_staff_id: staffId || null,
+        updated_at: new Date().toISOString()
+      })
+      .or(`id.eq.${orderId},order_no.eq.${orderId}`);
+
+    if (error) {
+      // Try trade_shipments if trade_orders not matched
+      await supabase
+        .from('trade_shipments')
+        .update({
+          assigned_staff: staffName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+    }
+
+    triggerSync('ferex_trade_orders_change');
+    triggerSync('ferex_trade_shipments_change');
+    return true;
+  } catch (err) {
+    console.error('[TradeAPI] Error reassigning trade shipment/order:', err);
+    throw err;
+  }
+}
+
+export const reassignTradeShipment = reassignTradeOrder;
+
 export async function updateTradeOrder(orderId: string, updates: Partial<TradeOrder>): Promise<TradeOrder | null> {
   try {
     const { data, error } = await supabase

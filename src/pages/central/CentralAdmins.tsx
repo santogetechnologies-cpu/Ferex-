@@ -311,26 +311,12 @@ export const CentralAdmins: React.FC = () => {
   };
 
   const handleDelete = async (id: string, emailToDelete: string) => {
-    if (!window.confirm(`Are you sure you want to remove administrator / staff login for ${emailToDelete}?`)) {
-      return;
-    }
-
+    if (!window.confirm(`Remove login access for ${emailToDelete}?`)) return;
     try {
       await supabase.from('users').delete().eq('id', id);
-      localStorage.removeItem(`ferex_admin_cred_${emailToDelete.toLowerCase()}`);
-      
-      // Update deleted tracking
-      try {
-        const deletedRaw = localStorage.getItem('ferex_deleted_staff_ids') || '[]';
-        const parsed = JSON.parse(deletedRaw);
-        localStorage.setItem('ferex_deleted_staff_ids', JSON.stringify([...parsed, id, emailToDelete.toLowerCase()]));
-      } catch {}
-
-      setAdminList(prev => prev.filter(a => a.id !== id && a.email.toLowerCase() !== emailToDelete.toLowerCase()));
+      setAdminList(prev => prev.filter(a => a.id !== id));
       showToastMsg(`Login for ${emailToDelete} removed.`);
-      
       window.dispatchEvent(new Event('ferex_staff_change'));
-      window.dispatchEvent(new Event('storage'));
       loadAdmins();
     } catch (err: any) {
       showToastMsg(`Failed to delete: ${err.message || 'Error'}`);

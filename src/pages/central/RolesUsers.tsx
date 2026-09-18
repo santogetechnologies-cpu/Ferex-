@@ -320,11 +320,6 @@ export const RolesUsers: React.FC = () => {
     if (!window.confirm(`Remove login access for ${emailToDelete}?`)) return;
     try {
       await supabase.from('users').delete().eq('id', id);
-      localStorage.removeItem(`ferex_admin_cred_${emailToDelete.toLowerCase()}`);
-      try {
-        const raw = localStorage.getItem('ferex_deleted_staff_ids') || '[]';
-        localStorage.setItem('ferex_deleted_staff_ids', JSON.stringify([...JSON.parse(raw), id, emailToDelete.toLowerCase()]));
-      } catch {}
       setAdminList(prev => prev.filter(a => a.id !== id));
       showToastMsg(`Login for ${emailToDelete} removed.`);
       window.dispatchEvent(new Event('ferex_staff_change'));

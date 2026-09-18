@@ -120,7 +120,6 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       title: 'SYSTEM',
       items: [
         { label: 'Profile', path: '/rimi/profile', icon: User },
-        ...(isAdmin ? [{ label: 'Settings', path: '/rimi/settings', icon: Settings }] : []),
         { label: 'Logout', path: '/', icon: LogOut, isLogout: true }
       ]
     }
@@ -344,11 +343,6 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
                       <button onClick={() => { setShowProfileDropdown(false); navigate('/rimi/profile'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer">
                         <User className="w-3.5 h-3.5 text-slate-500" /> Account Profile
                       </button>
-                      {isAdmin && (
-                        <button onClick={() => { setShowProfileDropdown(false); navigate('/rimi/settings'); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer">
-                          <Settings className="w-3.5 h-3.5 text-slate-500" /> Cold Chain Settings
-                        </button>
-                      )}
                       <button onClick={() => { setShowProfileDropdown(false); handleLogout(); }} className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 cursor-pointer">
                         <LogOut className="w-3.5 h-3.5" /> Logout
                       </button>

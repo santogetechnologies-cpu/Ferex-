@@ -106,7 +106,6 @@ import { RimiDeliveryRoutes } from './pages/rimi/RimiDeliveryRoutes';
 import { RimiAnalytics } from './pages/rimi/RimiAnalytics';
 import { RimiNotifications } from './pages/rimi/RimiNotifications';
 import { RimiProfile } from './pages/rimi/RimiProfile';
-import { RimiSettings } from './pages/rimi/RimiSettings';
 import { RimiTasks } from './pages/rimi/RimiTasks';
 import { RimiLoginPage } from './pages/rimi/RimiLoginPage';
 
@@ -417,7 +416,6 @@ function App() {
           <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/tasks" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiTasks /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/staff" element={<Navigate to="/central/staff" replace />} />
-          <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiSettings /></RimiLayout></ProtectedRoute>} />
 
           {/* ── Ferex Digital Routes ── */}
           <Route path="/digital/dashboard" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalDashboard /></DigitalLayout></ProtectedRoute>} />

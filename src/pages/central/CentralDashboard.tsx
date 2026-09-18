@@ -8,6 +8,7 @@ import {
   Calendar, Download, Layers, CheckCircle2
 } from 'lucide-react';
 import { Card } from '../../components/Card';
+import { supabase } from '../../lib/supabase';
 import { getCentralEnterpriseMetrics, getCentralLiveActivities, type CentralEnterpriseStats, type CentralActivityItem } from '../../lib/api/central';
 
 type DateFilterType = 'today' | '7days' | '1month' | 'custom';
@@ -78,8 +79,24 @@ export const CentralDashboard: React.FC = () => {
   const loadMetrics = useCallback(async () => {
     setIsSyncing(true);
     try {
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+
+      const now = new Date();
+      if (dateFilter === 'today') {
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        startDate = start.toISOString();
+      } else if (dateFilter === '7days') {
+        startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      } else if (dateFilter === '1month') {
+        startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      } else if (dateFilter === 'custom') {
+        if (customStartDate) startDate = new Date(customStartDate + 'T00:00:00').toISOString();
+        if (customEndDate) endDate = new Date(customEndDate + 'T23:59:59').toISOString();
+      }
+
       const [data, acts] = await Promise.all([
-        getCentralEnterpriseMetrics(),
+        getCentralEnterpriseMetrics(startDate, endDate),
         getCentralLiveActivities()
       ]);
       if (data) {
@@ -94,10 +111,40 @@ export const CentralDashboard: React.FC = () => {
     } finally {
       setIsSyncing(false);
     }
-  }, []);
+  }, [dateFilter, customStartDate, customEndDate]);
 
   useEffect(() => {
     loadMetrics();
+
+    // Supabase Realtime subscriptions across all 4 divisions
+    const channel = supabase
+      .channel('central_dashboard_realtime_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => loadMetrics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => loadMetrics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_shipments' }, () => loadMetrics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_orders' }, () => loadMetrics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_invoices' }, () => loadMetrics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_sales_orders' }, () => loadMetrics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_projects' }, () => loadMetrics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_invoices' }, () => loadMetrics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => loadMetrics())
+      .subscribe();
+
+    const handleSyncEvent = () => loadMetrics();
+    window.addEventListener('ferex_tasks_change', handleSyncEvent);
+    window.addEventListener('ferex_payment_change', handleSyncEvent);
+    window.addEventListener('ferex_trade_orders_change', handleSyncEvent);
+    window.addEventListener('ferex_rimi_customers_change', handleSyncEvent);
+    window.addEventListener('ferex_digital_projects_change', handleSyncEvent);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_tasks_change', handleSyncEvent);
+      window.removeEventListener('ferex_payment_change', handleSyncEvent);
+      window.removeEventListener('ferex_trade_orders_change', handleSyncEvent);
+      window.removeEventListener('ferex_rimi_customers_change', handleSyncEvent);
+      window.removeEventListener('ferex_digital_projects_change', handleSyncEvent);
+    };
   }, [loadMetrics]);
 
   const handleRefreshSync = () => {
@@ -105,35 +152,15 @@ export const CentralDashboard: React.FC = () => {
     showToastMsg('Consolidated live metrics synchronized from database');
   };
 
-  // Date Multiplier calculation for interactive dynamic filtering
-  const filterMultiplier = useMemo(() => {
-    switch (dateFilter) {
-      case 'today':
-        return 0.045;
-      case '7days':
-        return 0.28;
-      case '1month':
-        return 1.0;
-      case 'custom': {
-        const start = new Date(customStartDate).getTime();
-        const end = new Date(customEndDate).getTime();
-        const diffDays = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
-        return Math.min(3.0, Math.max(0.04, diffDays / 30));
-      }
-      default:
-        return 1.0;
-    }
-  }, [dateFilter, customStartDate, customEndDate]);
-
   // Date range label
   const dateRangeLabel = useMemo(() => {
     switch (dateFilter) {
       case 'today':
         return `Today (${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})`;
       case '7days':
-        return 'Last 7 Days (Rolling)';
+        return 'Last 7 Days (Live DB)';
       case '1month':
-        return `Past 30 Days (Current Cycle)`;
+        return `Past 30 Days (Live DB)`;
       case 'custom':
         return `${customStartDate} to ${customEndDate}`;
     }
@@ -168,10 +195,10 @@ export const CentralDashboard: React.FC = () => {
 
   // Consolidated Divisions Data Calculation
   const divisionsData: DivisionFinancials[] = useMemo(() => {
-    const eduInr = (baseMetrics.educationRevenueInr || 0) * filterMultiplier;
-    const tradeInr = ((baseMetrics.tradeRevenueEur || 0) * EUR_TO_INR) * filterMultiplier;
-    const rimiInr = (baseMetrics.rimiRevenueInr || 0) * filterMultiplier;
-    const digInr = (baseMetrics.digitalRevenueInr || 0) * filterMultiplier;
+    const eduInr = baseMetrics.educationRevenueInr || 0;
+    const tradeInr = (baseMetrics.tradeRevenueEur || 0) * EUR_TO_INR;
+    const rimiInr = baseMetrics.rimiRevenueInr || 0;
+    const digInr = baseMetrics.digitalRevenueInr || 0;
 
     return [
       {
@@ -206,7 +233,7 @@ export const CentralDashboard: React.FC = () => {
         route: '/trade/dashboard',
         revenueInr: tradeInr,
         revenueFormatted: formatCurrency(tradeInr),
-        originalCurrency: `€${Math.round((baseMetrics.tradeRevenueEur || 0) * filterMultiplier).toLocaleString()} EUR`,
+        originalCurrency: `€${Math.round(baseMetrics.tradeRevenueEur || 0).toLocaleString()} EUR`,
         growth: baseMetrics.tradeRevenueEur > 0 ? '+100%' : '0%',
         transactionsCount: baseMetrics.tradeShipments,
         keyMetricLabel: 'Active Cargo Shipments',
@@ -259,7 +286,7 @@ export const CentralDashboard: React.FC = () => {
         features: ['Client Deliverables', 'Sprint Milestones', 'Razorpay Webhooks', 'SEO Retainers']
       }
     ];
-  }, [baseMetrics, filterMultiplier, formatCurrency]);
+  }, [baseMetrics, formatCurrency]);
 
   // Grand Total Consolidated Revenue
   const grandTotalRevenueInr = useMemo(() => {

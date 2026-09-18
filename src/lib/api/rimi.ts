@@ -1677,6 +1677,37 @@ export async function getRimiDistributors(staffEmail?: string): Promise<RimiCust
   return getRimiCustomers({ staffEmail });
 }
 
+export async function reassignRimiCustomerStaff(customerId: string, staffName: string, staffEmail?: string, staffId?: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('rimi_customers')
+      .update({
+        assigned_staff_name: staffName,
+        assigned_staff_email: staffEmail || `${staffName.toLowerCase().replace(/\s+/g, '.')}@ferex.com`,
+        assigned_staff_id: staffId || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', customerId);
+
+    if (error) {
+      await supabase
+        .from('rimi_distributors')
+        .update({
+          assigned_sales_staff: staffName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', customerId);
+    }
+
+    triggerLocalSync('ferex_rimi_customers_change');
+    triggerLocalSync('ferex_rimi_distributors_change');
+    return true;
+  } catch (err) {
+    console.error('[RimiAPI] Error reassigning customer staff:', err);
+    throw err;
+  }
+}
+
 // Messages & Notifications helpers
 export async function getRimiMessages(): Promise<any[]> {
   try {

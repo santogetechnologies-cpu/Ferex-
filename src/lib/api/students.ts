@@ -322,3 +322,154 @@ export async function getStudentStats(): Promise<{ total: number }> {
 
   return { total: error ? 0 : (count ?? 0) };
 }
+
+export interface StudentOversightItem {
+  id: string;
+  displayId: string;
+  name: string;
+  email: string;
+  phone: string;
+  country: string;
+  targetUni: string;
+  course: string;
+  stage: string;
+  stageBadge: string;
+  paymentStatus: string;
+  paymentBadge: string;
+  totalPaid: number;
+  docStatus: string;
+  docBadge: string;
+  docCount: number;
+  counselor: string;
+  joined: string;
+}
+
+export async function getStudentsConsolidatedOversight(): Promise<StudentOversightItem[]> {
+  try {
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+
+    // Fetch students, applications, payments, and documents concurrently
+    const [studentsRes, appsRes, payRes, docsRes] = await Promise.all([
+      client.from('users').select('*').eq('role', 'student').order('created_at', { ascending: false }),
+      client.from('applications').select('*'),
+      client.from('payments').select('id, user_id, student_id, amount, status, purpose'),
+      client.from('student_documents').select('id, student_id, status, doc_type'),
+    ]);
+
+    const students = studentsRes.data || [];
+    const apps = appsRes.data || [];
+    const payments = payRes.data || [];
+    const docs = docsRes.data || [];
+
+    return students.map((s: any) => {
+      const studentApps = apps.filter((a: any) => a.student_id === s.id || a.user_id === s.id);
+      const studentPayments = payments.filter((p: any) => p.student_id === s.id || p.user_id === s.id);
+      const studentDocs = docs.filter((d: any) => d.student_id === s.id);
+
+      // 1. Target University & Course
+      const primaryApp = studentApps[0];
+      const targetUni = primaryApp?.university_name || primaryApp?.university || 'University Application Pending';
+      const course = primaryApp?.course_name || primaryApp?.program_name || primaryApp?.program || 'Direct Enrollment';
+
+      // 2. Journey Stage
+      let stage = 'Profile Setup';
+      let stageBadge = 'bg-slate-100 text-slate-700 border-slate-200';
+      if (primaryApp?.status) {
+        const st = primaryApp.status.toLowerCase();
+        if (st.includes('enroll') || st.includes('admit') || st.includes('accept')) {
+          stage = 'Enrolled & Verified';
+          stageBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        } else if (st.includes('visa')) {
+          stage = 'Visa Processing';
+          stageBadge = 'bg-blue-50 text-blue-700 border-blue-200';
+        } else if (st.includes('legal') || st.includes('nawa')) {
+          stage = 'NAWA Legalization';
+          stageBadge = 'bg-purple-50 text-purple-700 border-purple-200';
+        } else if (st.includes('offer')) {
+          stage = 'Offer Letter Received';
+          stageBadge = 'bg-amber-50 text-amber-700 border-amber-200';
+        } else if (st.includes('submit') || st.includes('review')) {
+          stage = 'Application Submitted';
+          stageBadge = 'bg-rose-50 text-rose-700 border-rose-200';
+        } else {
+          stage = primaryApp.status;
+          stageBadge = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+        }
+      }
+
+      // 3. Payment Status
+      const paidTxns = studentPayments.filter((p: any) => p.status === 'Paid' || p.status === 'Verified');
+      const totalPaid = paidTxns.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+      let paymentStatus = 'Pending Settlement';
+      let paymentBadge = 'bg-amber-50 text-amber-700 border-amber-200';
+      if (totalPaid > 0) {
+        paymentStatus = `Paid (₹${totalPaid.toLocaleString('en-IN')})`;
+        paymentBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      } else if (studentPayments.length === 0) {
+        paymentStatus = 'No Invoices';
+        paymentBadge = 'bg-slate-100 text-slate-600 border-slate-200';
+      }
+
+      // 4. Document Status
+      const verifiedDocs = studentDocs.filter((d: any) => d.status === 'Verified' || d.status === 'Approved');
+      const docCount = studentDocs.length;
+      let docStatus = '0 Docs';
+      let docBadge = 'bg-slate-100 text-slate-600 border-slate-200';
+      if (docCount > 0) {
+        if (verifiedDocs.length === docCount) {
+          docStatus = `Approved (${verifiedDocs.length}/${docCount})`;
+          docBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        } else {
+          docStatus = `In Audit (${verifiedDocs.length}/${docCount})`;
+          docBadge = 'bg-blue-50 text-blue-700 border-blue-200';
+        }
+      }
+
+      return {
+        id: s.id,
+        displayId: `FX-${s.id.slice(0, 6).toUpperCase()}`,
+        name: s.full_name || s.email.split('@')[0],
+        email: s.email,
+        phone: s.phone || '—',
+        country: s.department || 'India',
+        targetUni,
+        course,
+        stage,
+        stageBadge,
+        paymentStatus,
+        paymentBadge,
+        totalPaid,
+        docStatus,
+        docBadge,
+        docCount,
+        counselor: s.assigned_counselor || 'Unassigned',
+        joined: s.created_at ? new Date(s.created_at).toLocaleDateString() : 'Active',
+      };
+    });
+  } catch (err) {
+    console.warn('[getStudentsConsolidatedOversight error]:', err);
+    return [];
+  }
+}
+
+export async function reassignStudentCounselor(studentId: string, counselorName: string): Promise<boolean> {
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
+
+  const { error } = await client
+    .from('users')
+    .update({
+      assigned_counselor: counselorName,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', studentId);
+
+  if (error) {
+    throw new Error(`Failed to reassign counselor: ${error.message}`);
+  }
+
+  window.dispatchEvent(new Event('ferex_students_change'));
+  window.dispatchEvent(new Event('ferex_student_profile_change'));
+  return true;
+}

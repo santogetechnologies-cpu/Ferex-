@@ -26,27 +26,33 @@ export interface CentralActivityItem {
   canApprove: boolean;
 }
 
-export async function getCentralEnterpriseMetrics(): Promise<CentralEnterpriseStats> {
+export async function getCentralEnterpriseMetrics(startDate?: string, endDate?: string): Promise<CentralEnterpriseStats> {
   try {
-    // 1. Try fetching from stored procedure / view if present
-    const { data: rpcData, error: rpcError } = await supabase.rpc('get_central_dashboard_metrics');
-    if (!rpcError && rpcData) {
-      return {
-        educationStudents: rpcData.education_students_total ?? 0,
-        educationApplications: rpcData.education_applications_total ?? 0,
-        educationRevenueInr: rpcData.education_revenue_inr ?? 0,
-        digitalClients: rpcData.digital_active_clients ?? 0,
-        digitalProjects: rpcData.digital_running_projects ?? 0,
-        digitalRevenueInr: rpcData.digital_revenue_inr ?? 0,
-        tradeShipments: rpcData.trade_active_shipments ?? 0,
-        tradeRevenueEur: rpcData.trade_revenue_eur ?? 0,
-        rimiOrders: rpcData.rimi_total_orders ?? 0,
-        rimiRevenueInr: rpcData.rimi_revenue_inr ?? 0,
-        staffCount: rpcData.staff_count_total ?? 0,
-      };
+    // 1. Direct parallel aggregation queries across tables with date filtering where appropriate
+    let payQuery = supabase.from('payments').select('amount, status, created_at');
+    let appsQuery = supabase.from('applications').select('*', { count: 'exact', head: true });
+    let digInvQuery = supabase.from('digital_invoices').select('amount, status, created_at, issued_at');
+    let tradeInvQuery = supabase.from('trade_invoices').select('amount, status, created_at');
+    let tradeShipQuery = supabase.from('trade_shipments').select('*', { count: 'exact', head: true }).eq('status', 'In Transit');
+    let rimiOrdersQuery = supabase.from('rimi_sales_orders').select('total_amount, payment_status, order_status, created_at');
+
+    if (startDate) {
+      payQuery = payQuery.gte('created_at', startDate);
+      appsQuery = appsQuery.gte('created_at', startDate);
+      digInvQuery = digInvQuery.gte('created_at', startDate);
+      tradeInvQuery = tradeInvQuery.gte('created_at', startDate);
+      tradeShipQuery = tradeShipQuery.gte('created_at', startDate);
+      rimiOrdersQuery = rimiOrdersQuery.gte('created_at', startDate);
+    }
+    if (endDate) {
+      payQuery = payQuery.lte('created_at', endDate);
+      appsQuery = appsQuery.lte('created_at', endDate);
+      digInvQuery = digInvQuery.lte('created_at', endDate);
+      tradeInvQuery = tradeInvQuery.lte('created_at', endDate);
+      tradeShipQuery = tradeShipQuery.lte('created_at', endDate);
+      rimiOrdersQuery = rimiOrdersQuery.lte('created_at', endDate);
     }
 
-    // 2. Direct parallel aggregation queries across tables
     const [
       studentsRes,
       appsRes,
@@ -60,15 +66,15 @@ export async function getCentralEnterpriseMetrics(): Promise<CentralEnterpriseSt
       staffRes,
     ] = await Promise.all([
       supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student'),
-      supabase.from('applications').select('*', { count: 'exact', head: true }),
-      supabase.from('payments').select('amount, status'),
+      appsQuery,
+      payQuery,
       supabase.from('digital_clients').select('*', { count: 'exact', head: true }).eq('status', 'Active'),
       supabase.from('digital_projects').select('*', { count: 'exact', head: true }).eq('status', 'In Progress'),
-      supabase.from('digital_invoices').select('amount, status'),
-      supabase.from('trade_shipments').select('*', { count: 'exact', head: true }).eq('status', 'In Transit'),
-      supabase.from('trade_invoices').select('amount, status'),
-      supabase.from('rimi_sales_orders').select('total_amount, payment_status, order_status'),
-      supabase.from('users').select('*', { count: 'exact', head: true }).in('role', ['staff', 'counselor', 'admin']),
+      digInvQuery,
+      tradeShipQuery,
+      tradeInvQuery,
+      rimiOrdersQuery,
+      supabase.from('users').select('*', { count: 'exact', head: true }).in('role', ['staff', 'counselor', 'admin', 'education_admin', 'trade_admin', 'rimi_admin', 'digital_admin', 'superadmin', 'super_admin', 'central', 'project_manager', 'logistics_officer', 'operations_manager']),
     ]);
 
     const eduRevenue = (paymentsRes.data ?? []).filter((p: any) => p.status === 'Paid' || p.status === 'Verified').reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);

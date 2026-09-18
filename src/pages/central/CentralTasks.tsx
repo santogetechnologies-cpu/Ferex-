@@ -1,91 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CheckSquare, Plus, Search, CheckCircle2, Trash2, X
+  CheckSquare, Plus, Search, CheckCircle2, Trash2, X, RefreshCw,
+  Clock, AlertCircle, User, Layers, Calendar
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-
-interface ExecutiveTask {
-  id: string;
-  division: 'Education' | 'Trade' | 'Rimi' | 'Digital';
-  divisionBadge: string;
-  title: string;
-  description: string;
-  assignee: string;
-  priority: 'High' | 'Medium' | 'Normal';
-  priorityBadge: string;
-  dueDate: string;
-  status: 'Pending' | 'In Progress' | 'Completed';
-}
+import { getTasks, createTask, updateTaskStatus, deleteTask, reassignTask } from '../../lib/api/tasks';
+import { getDivisionStaff, type DivisionStaffMember } from '../../lib/api/staff';
+import { supabase } from '../../lib/supabase';
+import type { Task } from '../../lib/types';
 
 export const CentralTasks: React.FC = () => {
   const [toast, setToast] = useState('');
   const [selectedDivision, setSelectedDivision] = useState<string>('All');
   const [selectedPriority, setSelectedPriority] = useState<string>('All');
+  const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [reassignTask, setReassignTask] = useState<ExecutiveTask | null>(null);
-  const [reassignName, setReassignName] = useState('');
-
-  const [tasks, setTasks] = useState<ExecutiveTask[]>([
-    {
-      id: 'TSK-901',
-      division: 'Trade',
-      divisionBadge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-      title: 'Approve Hamburg Port Letter of Credit Release (€120,000)',
-      description: 'Review bill of lading BL-DE-882 and issue bank wire confirmation.',
-      assignee: 'Executive Super Admin',
-      priority: 'High',
-      priorityBadge: 'bg-red-50 text-red-700 border-red-200',
-      dueDate: 'Today, 5:00 PM',
-      status: 'Pending',
-    },
-    {
-      id: 'TSK-902',
-      division: 'Education',
-      divisionBadge: 'bg-rose-50 text-rose-700 border-rose-200',
-      title: 'Verify Warsaw University Tuition Wire Receipt Batch #12',
-      description: 'Audit 12 student wire receipts against university bank records.',
-      assignee: 'Rahul Mehta (Admissions Admin)',
-      priority: 'High',
-      priorityBadge: 'bg-red-50 text-red-700 border-red-200',
-      dueDate: 'Tomorrow',
-      status: 'In Progress',
-    },
-    {
-      id: 'TSK-903',
-      division: 'Rimi',
-      divisionBadge: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-      title: 'Cold-Chain Warehouse Hub-4 Inspection Audit',
-      description: 'Verify temperature compliance and batch lifecycle sensor telemetry.',
-      assignee: 'Suresh Kumar (Rimi Admin)',
-      priority: 'Medium',
-      priorityBadge: 'bg-amber-50 text-amber-700 border-amber-200',
-      dueDate: 'In 2 days',
-      status: 'Pending',
-    },
-    {
-      id: 'TSK-904',
-      division: 'Digital',
-      divisionBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      title: 'Client Sign-off & Milestone 3 Invoicing for Nexus FinTech',
-      description: 'Finalize sprint deliverable review and trigger automated webhook settlement.',
-      assignee: 'Priya Nair (Digital Admin)',
-      priority: 'Normal',
-      priorityBadge: 'bg-slate-100 text-slate-700 border-slate-200',
-      dueDate: 'In 3 days',
-      status: 'In Progress',
-    },
-  ]);
+  const [reassigningTask, setReassigningTask] = useState<Task | null>(null);
+  const [reassignStaffName, setReassignStaffName] = useState('');
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [staffList, setStaffList] = useState<DivisionStaffMember[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
-    division: 'Education' as 'Education' | 'Trade' | 'Rimi' | 'Digital',
-    assignee: 'Division Admin',
-    priority: 'High' as 'High' | 'Medium' | 'Normal',
-    dueDate: '2026-09-10',
+    division: 'Education',
+    assignee: 'Admissions Lead',
+    priority: 'High' as 'High' | 'Medium' | 'Low',
+    dueDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
   });
 
   const showToastMsg = (msg: string) => {
@@ -93,80 +38,143 @@ export const CentralTasks: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleToggleStatus = (id: string) => {
-    setTasks(prev =>
-      prev.map(t => {
-        if (t.id === id) {
-          const nextStatus = t.status === 'Completed' ? 'Pending' : 'Completed';
-          return { ...t, status: nextStatus };
-        }
-        return t;
-      })
-    );
-    showToastMsg('Task status updated');
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [tasksData, staffData] = await Promise.all([
+        getTasks(),
+        getDivisionStaff('all')
+      ]);
+      setTasks(tasksData || []);
+      setStaffList(staffData || []);
+      if (staffData && staffData.length > 0 && !newTask.assignee) {
+        setNewTask(prev => ({ ...prev, assignee: staffData[0].name }));
+      }
+    } catch (err: any) {
+      console.warn('[CentralTasks load error]:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [newTask.assignee]);
+
+  useEffect(() => {
+    loadData();
+
+    // Supabase Realtime channel subscription
+    const channel = supabase
+      .channel('central_tasks_realtime_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => loadData())
+      .subscribe();
+
+    const handleSync = () => loadData();
+    window.addEventListener('ferex_tasks_change', handleSync);
+    window.addEventListener('ferex_staff_users_change', handleSync);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('ferex_tasks_change', handleSync);
+      window.removeEventListener('ferex_staff_users_change', handleSync);
+    };
+  }, [loadData]);
+
+  const handleToggleStatus = async (task: Task) => {
+    const nextStatus = task.status === 'Completed' ? 'Pending' : 'Completed';
+    try {
+      await updateTaskStatus(task.id, nextStatus);
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: nextStatus } : t));
+      showToastMsg(`Task updated to ${nextStatus}`);
+    } catch (err: any) {
+      showToastMsg(`Error: ${err.message}`);
+    }
   };
 
-  const handleDeleteTask = (id: string) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
-    showToastMsg('Task removed from executive registry');
+  const handleDeleteTask = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
+    try {
+      await deleteTask(id);
+      setTasks(prev => prev.filter(t => t.id !== id));
+      showToastMsg('Task removed from registry');
+    } catch (err: any) {
+      showToastMsg(`Failed to delete task: ${err.message}`);
+    }
   };
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTask.title.trim()) return;
 
-    const divBadges: Record<string, string> = {
-      Education: 'bg-rose-50 text-rose-700 border-rose-200',
-      Trade: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-      Rimi: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-      Digital: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    };
+    try {
+      const created = await createTask({
+        title: newTask.title.trim(),
+        description: newTask.description.trim(),
+        assigned_to: newTask.assignee,
+        priority: newTask.priority,
+        due_date: newTask.dueDate,
+        category: newTask.division,
+      });
 
-    const prioBadges: Record<string, string> = {
-      High: 'bg-red-50 text-red-700 border-red-200',
-      Medium: 'bg-amber-50 text-amber-700 border-amber-200',
-      Normal: 'bg-slate-100 text-slate-700 border-slate-200',
-    };
+      setTasks(prev => [created, ...prev]);
+      setShowAddModal(false);
+      setNewTask({
+        title: '',
+        description: '',
+        division: 'Education',
+        assignee: staffList[0]?.name || 'Admissions Lead',
+        priority: 'High',
+        dueDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
+      });
+      showToastMsg('Operational Task Created & Dispatched');
+    } catch (err: any) {
+      showToastMsg(`Error creating task: ${err.message}`);
+    }
+  };
 
-    const item: ExecutiveTask = {
-      id: `TSK-${Math.floor(1000 + Math.random() * 9000)}`,
-      division: newTask.division,
-      divisionBadge: divBadges[newTask.division] || 'bg-slate-100 text-slate-700 border-slate-200',
-      title: newTask.title.trim(),
-      description: newTask.description.trim() || 'Cross-divisional executive operational requirement.',
-      assignee: newTask.assignee,
-      priority: newTask.priority,
-      priorityBadge: prioBadges[newTask.priority],
-      dueDate: newTask.dueDate,
-      status: 'Pending',
-    };
+  const handleConfirmReassignment = async () => {
+    if (!reassigningTask || !reassignStaffName) return;
+    try {
+      const staffMember = staffList.find(s => s.name === reassignStaffName || s.email === reassignStaffName);
+      await reassignTask({
+        taskId: reassigningTask.id,
+        assignedTo: reassignStaffName,
+        assignedStaffId: staffMember?.id,
+        division: reassigningTask.category,
+      });
+      setTasks(prev => prev.map(t => t.id === reassigningTask.id ? { ...t, assigned_to: reassignStaffName } : t));
+      showToastMsg(`Task reassigned to ${reassignStaffName}!`);
+      setReassigningTask(null);
+    } catch (err: any) {
+      showToastMsg(`Failed to reassign task: ${err.message}`);
+    }
+  };
 
-    setTasks([item, ...tasks]);
-    setShowAddModal(false);
-    setNewTask({
-      title: '',
-      description: '',
-      division: 'Education',
-      assignee: 'Division Admin',
-      priority: 'High',
-      dueDate: '2026-09-10',
-    });
-    showToastMsg('New Executive Operation Task Created');
+  const divBadges: Record<string, string> = {
+    Education: 'bg-rose-50 text-rose-700 border-rose-200',
+    Trade: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    Rimi: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+    Digital: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    General: 'bg-slate-100 text-slate-700 border-slate-200',
+  };
+
+  const prioBadges: Record<string, string> = {
+    High: 'bg-red-50 text-red-700 border-red-200',
+    Medium: 'bg-amber-50 text-amber-700 border-amber-200',
+    Low: 'bg-slate-100 text-slate-700 border-slate-200',
+    Urgent: 'bg-rose-50 text-rose-700 border-rose-200 font-bold',
   };
 
   const filteredTasks = tasks.filter(t => {
     const matchSearch =
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.assignee.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchDiv = selectedDivision === 'All' || t.division === selectedDivision;
+      (t.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.assigned_to || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchDiv = selectedDivision === 'All' || (t.category || 'Education').toLowerCase() === selectedDivision.toLowerCase();
     const matchPrio = selectedPriority === 'All' || t.priority === selectedPriority;
-    return matchSearch && matchDiv && matchPrio;
+    const matchStatus = selectedStatus === 'All' || t.status === selectedStatus;
+    return matchSearch && matchDiv && matchPrio && matchStatus;
   });
 
   return (
     <div className="space-y-6 text-left antialiased">
-      {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -189,276 +197,253 @@ export const CentralTasks: React.FC = () => {
               <CheckSquare className="w-6 h-6 text-[#58051E]" /> Cross-Divisional Operations & Task Center
             </h1>
             <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
-              Live Governance
+              Live Supabase Sync
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Centrally delegate, track, and enforce high-priority operational workflows across all 4 enterprise subsidiary platforms.
+            Centrally delegate, track, and reassign high-priority operational workflows across all 4 enterprise subsidiaries.
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadData}>
+            <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
+          </Button>
           <Button
             size="sm"
+            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold"
             onClick={() => setShowAddModal(true)}
-            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs"
           >
-            <Plus className="w-4 h-4 mr-1.5" /> Create Executive Task
+            <Plus className="w-4 h-4 mr-1.5" /> Create New Task
           </Button>
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Division Filter */}
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
-              {['All', 'Education', 'Trade', 'Rimi', 'Digital'].map(div => (
-                <button
-                  key={div}
-                  onClick={() => setSelectedDivision(div)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
-                    selectedDivision === div
-                      ? 'bg-[#58051E] text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {div === 'All' ? 'All Divisions' : div}
-                </button>
-              ))}
-            </div>
-
-            {/* Priority Filter */}
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
-              {['All', 'High', 'Medium', 'Normal'].map(prio => (
-                <button
-                  key={prio}
-                  onClick={() => setSelectedPriority(prio)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    selectedPriority === prio
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {prio}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Search Box */}
-          <div className="relative w-full lg:w-72">
+      {/* Filter Bar */}
+      <Card className="p-4 border border-slate-200/70 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+          <div className="relative w-full md:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search tasks, assignees..."
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-[#58051E]"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search tasks, descriptions, or assigned staff..."
+              className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
             />
           </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto">
+            {['All', 'Education', 'Trade', 'Rimi', 'Digital'].map((div) => (
+              <button
+                key={div}
+                onClick={() => setSelectedDivision(div)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  selectedDivision === div ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {div}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-slate-100 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-extrabold uppercase text-slate-400">Status:</span>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="h-7 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-extrabold uppercase text-slate-400">Priority:</span>
+            <select
+              value={selectedPriority}
+              onChange={(e) => setSelectedPriority(e.target.value)}
+              className="h-7 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"
+            >
+              <option value="All">All Priorities</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+
+          <span className="ml-auto text-xs font-bold text-slate-400">
+            {filteredTasks.length} Live Tasks ({tasks.filter(t => t.status === 'Completed').length} Completed)
+          </span>
         </div>
       </Card>
 
-      {/* Task Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredTasks.map(t => (
-          <Card
-            key={t.id}
-            className={`p-5 border transition-all flex flex-col justify-between ${
-              t.status === 'Completed'
-                ? 'bg-slate-50/70 border-slate-200/60 opacity-80'
-                : 'bg-white border-slate-200/80 hover:shadow-md'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black border ${t.divisionBadge}`}>
-                    {t.division}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold border ${t.priorityBadge}`}>
-                    {t.priority} Priority
-                  </span>
-                </div>
-                <span className="text-[10px] font-bold text-slate-400">{t.dueDate}</span>
-              </div>
+      {/* Task Cards Listing */}
+      {loading ? (
+        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading operations tasks from Supabase...</div>
+      ) : filteredTasks.length === 0 ? (
+        <Card className="p-12 text-center border border-slate-200/70 shadow-xs">
+          <CheckSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-black text-slate-800">No Operations Tasks Listed</h3>
+          <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto">
+            No tasks match the active filters. Click "Create New Task" to delegate operational work to subsidiary staff.
+          </p>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredTasks.map((task) => {
+            const div = task.category || 'Education';
+            const badge = divBadges[div] || 'bg-slate-100 text-slate-700 border-slate-200';
+            const isCompleted = task.status === 'Completed';
 
-              <h3 className={`text-sm font-black text-slate-900 leading-snug ${t.status === 'Completed' ? 'line-through text-slate-500' : ''}`}>
-                {t.title}
-              </h3>
-              <p className="text-xs text-slate-600 font-medium mt-1.5 leading-relaxed">{t.description}</p>
-            </div>
-
-            <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
-              <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
-                <span>Assigned to:</span>
-                <strong className="text-slate-800">{t.assignee}</strong>
-                <button
-                  onClick={() => setReassignTask(t)}
-                  className="text-[10px] font-extrabold text-[#58051E] hover:underline cursor-pointer ml-1"
-                >
-                  (Reassign)
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleToggleStatus(t.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    t.status === 'Completed'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                      : 'bg-[#58051E] text-white hover:bg-[#430316] shadow-xs'
-                  }`}
-                >
-                  {t.status === 'Completed' ? (
-                    <span className="flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Completed
-                    </span>
-                  ) : (
-                    'Mark Done'
-                  )}
-                </button>
-                <button
-                  onClick={() => handleDeleteTask(t.id)}
-                  className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                  title="Delete Task"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Modal to Reassign Task */}
-      <AnimatePresence>
-        {reassignTask && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setReassignTask(null)}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 text-left"
-            >
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                <h3 className="text-sm font-black text-slate-900">Reassign Cross-Divisional Task</h3>
-                <button onClick={() => setReassignTask(null)} className="p-1 text-slate-400 hover:text-slate-600">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="space-y-4 text-xs">
-                <p className="font-bold text-slate-700">Task: <span className="text-slate-900">{reassignTask.title}</span></p>
+            return (
+              <Card
+                key={task.id}
+                className={`p-5 border transition-all flex flex-col justify-between ${
+                  isCompleted ? 'bg-slate-50/50 border-slate-200/50 opacity-75' : 'border-slate-200/70 shadow-xs hover:border-slate-300'
+                }`}
+              >
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">New Assignee (Admin or Staff)</label>
-                  <select
-                    value={reassignName || reassignTask.assignee}
-                    onChange={(e) => setReassignName(e.target.value)}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
-                  >
-                    <option value="Rahul Mehta (Admissions Admin - Education)">Rahul Mehta (Admissions Admin - Education)</option>
-                    <option value="Sanjay Sharma (Counselor - Education)">Sanjay Sharma (Counselor - Education)</option>
-                    <option value="Marek Kowalski (Port Logistics Admin - Trade)">Marek Kowalski (Port Logistics Admin - Trade)</option>
-                    <option value="Jan Nowak (Customs Staff - Trade)">Jan Nowak (Customs Staff - Trade)</option>
-                    <option value="Rajesh Kulkarni (Cold Warehouse Lead - Rimi)">Rajesh Kulkarni (Cold Warehouse Lead - Rimi)</option>
-                    <option value="Sunil Jadhav (Reefer Fleet Staff - Rimi)">Sunil Jadhav (Reefer Fleet Staff - Rimi)</option>
-                    <option value="Priya Nair (Engineering Admin - Digital)">Priya Nair (Engineering Admin - Digital)</option>
-                    <option value="Arun Patel (Senior Dev - Digital)">Arun Patel (Senior Dev - Digital)</option>
-                    <option value="Executive Super Admin">Executive Super Admin</option>
-                  </select>
-                </div>
-                <div className="pt-3 flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setReassignTask(null)}>Cancel</Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
-                    onClick={() => {
-                      const updatedAssignee = reassignName || reassignTask.assignee;
-                      setTasks(prev => prev.map(t => t.id === reassignTask.id ? { ...t, assignee: updatedAssignee } : t));
-                      setReassignTask(null);
-                      setReassignName('');
-                      showToastMsg(`Task reassigned to ${updatedAssignee}!`);
-                    }}
-                  >
-                    Confirm Reassignment
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                  <div className="flex items-start justify-between gap-2 mb-2.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold border ${badge}`}>
+                        {div}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold border ${prioBadges[task.priority] || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                        {task.priority} Priority
+                      </span>
+                    </div>
 
-      {/* Modal to Create Executive Task */}
+                    <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold border ${
+                      isCompleted ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}>
+                      {task.status || 'Pending'}
+                    </span>
+                  </div>
+
+                  <h3 className={`text-sm font-black text-slate-900 ${isCompleted ? 'line-through text-slate-400' : ''}`}>
+                    {task.title}
+                  </h3>
+                  <p className="text-xs font-semibold text-slate-500 mt-1 line-clamp-2">
+                    {task.description || 'Cross-divisional operational directive.'}
+                  </p>
+
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Assigned Owner</span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <strong className="text-slate-800 font-bold">{task.assigned_to || 'Unassigned'}</strong>
+                        <button
+                          onClick={() => {
+                            setReassigningTask(task);
+                            setReassignStaffName(task.assigned_to || (staffList[0]?.name || ''));
+                          }}
+                          className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                        >
+                          (Reassign)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[9.5px] font-extrabold uppercase text-slate-400 block">Target Due Date</span>
+                      <span className="text-slate-700 font-semibold font-mono text-[11px] mt-0.5 block">
+                        {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'Immediate'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <button
+                    onClick={() => handleToggleStatus(task)}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                      isCompleted
+                        ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                    }`}
+                  >
+                    {isCompleted ? 'Mark Pending' : 'Mark Completed'}
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        setReassigningTask(task);
+                        setReassignStaffName(task.assigned_to || (staffList[0]?.name || ''));
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-rose-50 rounded-lg transition-colors cursor-pointer text-xs font-bold"
+                      title="Reassign Task"
+                    >
+                      Reassign
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      title="Delete Task"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Create Task Modal */}
       <AnimatePresence>
         {showAddModal && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAddModal(false)}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 text-left"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                <h3 className="text-sm font-black text-slate-900">Create Executive Operation Task</h3>
-                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600">
-                  <X className="w-4 h-4" />
-                </button>
+                <h3 className="text-sm font-black text-slate-900">Create Operational Task</h3>
+                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
 
-              <form onSubmit={handleCreateTask} className="space-y-3.5">
+              <form onSubmit={handleCreateTask} className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Task Title</label>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Task Title *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Audit Trade Bill of Lading..."
                     value={newTask.title}
-                    onChange={e => setNewTask({ ...newTask, title: e.target.value })}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                    onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                    placeholder="e.g. Audit Warsaw Student Wire Receipts"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Description</label>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Description / Deliverables</label>
                   <textarea
                     rows={2}
-                    placeholder="Operational requirements and deadlines..."
                     value={newTask.description}
-                    onChange={e => setNewTask({ ...newTask, description: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                    placeholder="Provide specific instructions or audit criteria..."
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Division</label>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Target Subsidiary</label>
                     <select
                       value={newTask.division}
-                      onChange={e => setNewTask({ ...newTask, division: e.target.value as any })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                      onChange={(e) => setNewTask({ ...newTask, division: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
                     >
-                      <option value="Education">Ferex Education</option>
+                      <option value="Education">Education</option>
                       <option value="Trade">Global Trade</option>
                       <option value="Rimi">Rimi Frozen</option>
-                      <option value="Digital">Ferex Digital</option>
+                      <option value="Digital">Digital Agency</option>
                     </select>
                   </div>
 
@@ -466,31 +451,94 @@ export const CentralTasks: React.FC = () => {
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Priority</label>
                     <select
                       value={newTask.priority}
-                      onChange={e => setNewTask({ ...newTask, priority: e.target.value as any })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                      onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as any })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
                     >
                       <option value="High">High</option>
                       <option value="Medium">Medium</option>
-                      <option value="Normal">Normal</option>
+                      <option value="Low">Low</option>
                     </select>
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Assignee / Staff</label>
+                    <select
+                      value={newTask.assignee}
+                      onChange={(e) => setNewTask({ ...newTask, assignee: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                    >
+                      {staffList.map((s) => (
+                        <option key={s.id || s.email} value={s.name}>
+                          {s.name} ({s.roleLabel || s.division})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Due Date</label>
+                    <input
+                      type="date"
+                      value={newTask.dueDate}
+                      onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+
                 <div className="pt-3 flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-xs font-bold"
-                    onClick={() => setShowAddModal(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">
-                    Create Task
-                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Dispatch Task</Button>
                 </div>
               </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Reassign Task Modal */}
+      <AnimatePresence>
+        {reassigningTask && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setReassigningTask(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 className="text-sm font-black text-slate-900">Reassign Operational Task</h3>
+                <button onClick={() => setReassigningTask(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
+              </div>
+
+              <div className="space-y-4 text-xs">
+                <p className="font-bold text-slate-700">Task: <span className="text-slate-900 font-extrabold">{reassigningTask.title}</span></p>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Select New Assignee / Staff</label>
+                  <select
+                    value={reassignStaffName}
+                    onChange={(e) => setReassignStaffName(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                  >
+                    {staffList.map((s) => (
+                      <option key={s.id || s.email} value={s.name}>
+                        {s.name} ({s.roleLabel || s.division})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="pt-3 flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setReassigningTask(null)}>Cancel</Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
+                    onClick={handleConfirmReassignment}
+                  >
+                    Confirm Reassignment
+                  </Button>
+                </div>
+              </div>
             </motion.div>
           </>
         )}

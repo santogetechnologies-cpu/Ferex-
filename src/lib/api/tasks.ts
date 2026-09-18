@@ -195,3 +195,46 @@ export async function deleteTask(id: string): Promise<boolean> {
   window.dispatchEvent(new Event('ferex_tasks_change'));
   return true;
 }
+
+/**
+ * Super Admin / Admin reassigns a task to another staff member or admin in Supabase.
+ */
+export async function reassignTask(payload: {
+  taskId: string;
+  assignedTo: string;
+  assignedStaffId?: string;
+  division?: string;
+}): Promise<boolean> {
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
+  const now = new Date().toISOString();
+
+  let assignedStaffId = payload.assignedStaffId || null;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.assignedTo);
+  if (isUuid && !assignedStaffId) {
+    assignedStaffId = payload.assignedTo;
+  }
+
+  const updatePayload: Record<string, any> = {
+    assigned_to: payload.assignedTo,
+    updated_at: now,
+  };
+  if (assignedStaffId) {
+    updatePayload.assigned_staff_id = assignedStaffId;
+  }
+  if (payload.division) {
+    updatePayload.category = payload.division;
+  }
+
+  const { error } = await client
+    .from('tasks')
+    .update(updatePayload)
+    .eq('id', payload.taskId);
+
+  if (error) {
+    throw new Error(`Failed to reassign task in database: ${error.message}`);
+  }
+
+  window.dispatchEvent(new Event('ferex_tasks_change'));
+  return true;
+}
