@@ -214,7 +214,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       </AnimatePresence>
 
       {/* SIDEBAR NAVIGATION PANEL */}
-      <aside className={`fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-slate-200/80 z-50 flex flex-col transition-all duration-200 ease-out select-none
+      <aside className={`fixed top-0 left-0 bottom-0 h-screen bg-white border-r border-slate-200/80 z-40 flex flex-col transition-all duration-200 ease-out select-none
         ${isCollapsed ? 'w-18' : 'w-60'}
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
 
@@ -290,7 +290,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       </aside>
 
       {/* CONTENT WORKSPACE VIEWPORT */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200 ${isCollapsed ? 'lg:pl-18' : 'lg:pl-60'}`}>
 
         {/* STICKY TOP NAVBAR */}
         <header className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0">

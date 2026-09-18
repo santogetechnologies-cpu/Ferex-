@@ -191,7 +191,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
 
       {/* Sidebar Panel */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-slate-200/80 z-50 flex flex-col justify-between transition-all duration-200 ease-out select-none
+        className={`fixed top-0 left-0 bottom-0 h-screen bg-white border-r border-slate-200/80 z-40 flex flex-col justify-between transition-all duration-200 ease-out select-none
           ${isCollapsed ? 'lg:w-[70px]' : 'lg:w-[250px]'} 
           ${isMobileOpen ? 'translate-x-0 w-[250px]' : '-translate-x-full lg:translate-x-0'}`}
       >
@@ -262,7 +262,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200 ${isCollapsed ? 'lg:pl-[70px]' : 'lg:pl-[250px]'}`}>
         
         {/* Top Sticky Navbar */}
         <header className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0">

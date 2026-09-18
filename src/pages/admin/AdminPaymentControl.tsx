@@ -876,7 +876,9 @@ export const AdminPaymentControl: React.FC = () => {
                         <div>
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-black uppercase text-slate-400">Stage 02 • Agency Processing</span>
-                            {item.isAgencyPaid ? (
+                            {!item.hasUni ? (
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[9.5px] font-bold">Pending Uni</span>
+                            ) : item.isAgencyPaid ? (
                               <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9.5px] font-bold">Paid</span>
                             ) : item.isAgencyPending ? (
                               <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[9.5px] font-bold animate-pulse">In Review</span>
@@ -885,15 +887,24 @@ export const AdminPaymentControl: React.FC = () => {
                             )}
                           </div>
                           <p className="text-xs font-black text-slate-900 mt-1">Separate Agency Fee</p>
-                          <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
-                            <p className="text-base font-black text-indigo-900">{formatFeeEURandINR(item.rawAgencyFee)}</p>
-                            <span className="text-[9.5px] font-extrabold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
-                              +18% GST extra (₹{item.agencyTotalWithGst.toLocaleString('en-IN')})
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">CGST 9% (₹{Math.round(item.agencyAmount * 0.09).toLocaleString('en-IN')}) + SGST 9% (₹{Math.round(item.agencyAmount * 0.09).toLocaleString('en-IN')}) • SAC 9983</p>
+                          {item.hasUni ? (
+                            <>
+                              <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                                <p className="text-base font-black text-indigo-900">{formatFeeEURandINR(item.rawAgencyFee)}</p>
+                                <span className="text-[9.5px] font-extrabold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                                  +18% GST extra (₹{item.agencyTotalWithGst.toLocaleString('en-IN')})
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">CGST 9% (₹{Math.round(item.agencyAmount * 0.09).toLocaleString('en-IN')}) + SGST 9% (₹{Math.round(item.agencyAmount * 0.09).toLocaleString('en-IN')}) • SAC 9983</p>
+                            </>
+                          ) : (
+                            <div className="mt-1">
+                              <p className="text-xs font-bold text-slate-400">Not Applied</p>
+                              <p className="text-[10px] text-slate-400 leading-tight">Applies after destination university selection.</p>
+                            </div>
+                          )}
                         </div>
-                        {!item.isAgencyPaid && (
+                        {item.hasUni && !item.isAgencyPaid && (
                           <button
                             onClick={() => {
                               setBankStudentId(s.id);
