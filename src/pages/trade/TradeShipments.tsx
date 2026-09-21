@@ -44,30 +44,30 @@ export const TradeShipments: React.FC = () => {
 
   const initialForm = {
     order_no: `TRD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-    po_number: `PO-${Math.floor(100 + Math.random() * 900)}`,
+    po_number: '',
     client_name: '',
     client_email: '',
     client_phone: '',
-    client_country: 'Poland',
+    client_country: '',
     commodity: '',
-    quantity_units: '1,000 MT',
+    quantity_units: '',
     incoterm: 'CIF (Cost, Insurance and Freight)',
     currency: 'USD',
-    total_amount: 500000,
-    advance_percentage: 30,
-    payment_terms_desc: '30% Advance Wire, 70% Balance against Shipping B/L copy',
+    total_amount: '' as unknown as number,
+    advance_percentage: '' as unknown as number,
+    payment_terms_desc: '',
     lc_reference: '',
     stage: 'Inquiry' as TradeOrderStage,
     assigned_staff_name: staffList[0]?.name || userName,
     assigned_staff_email: staffList[0]?.email || profile?.email || 'logistics@ferex.com',
-    carrier: 'MSC (Mediterranean Shipping Company)',
-    vessel_flight: 'MSC Gülsün',
-    voyage_no: 'VY-2026-088',
-    tracking_number: 'MSCU9839438PL',
-    origin_port: 'Port of Gdansk, Poland',
-    destination_port: 'Port of Nhava Sheva (JNPT), India',
-    etd: new Date().toISOString().split('T')[0],
-    eta: new Date(Date.now() + 24 * 86400000).toISOString().split('T')[0],
+    carrier: '',
+    vessel_flight: '',
+    voyage_no: '',
+    tracking_number: '',
+    origin_port: '',
+    destination_port: '',
+    etd: '',
+    eta: '',
     notes: '',
   };
 
@@ -570,8 +570,8 @@ export const TradeShipments: React.FC = () => {
                     <input
                       type="number"
                       required
-                      value={formData.total_amount}
-                      onChange={(e) => setFormData({ ...formData, total_amount: Number(e.target.value) })}
+                      value={formData.total_amount || ''}
+                      onChange={(e) => setFormData({ ...formData, total_amount: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
                       placeholder="1450000"
                       className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />
@@ -592,8 +592,8 @@ export const TradeShipments: React.FC = () => {
                       type="number"
                       min="0"
                       max="100"
-                      value={formData.advance_percentage}
-                      onChange={(e) => setFormData({ ...formData, advance_percentage: Number(e.target.value) })}
+                      value={formData.advance_percentage !== undefined && formData.advance_percentage !== null ? formData.advance_percentage : ''}
+                      onChange={(e) => setFormData({ ...formData, advance_percentage: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
                       placeholder="30"
                       className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     />

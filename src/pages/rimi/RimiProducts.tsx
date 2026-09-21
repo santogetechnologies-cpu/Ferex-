@@ -116,23 +116,30 @@ export const RimiProducts: React.FC = () => {
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProd.name.trim()) return;
-    const chosenCategory = newProd.category || categories[0] || 'Frozen Foods';
-    const cleanPrice = parseFloat(newProd.price.replace(/[^0-9.]/g, '')) || 450;
-    const cleanCatPrefix = chosenCategory.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'CAT';
-    
-    const created = await createRimiProduct({
-      sku: `RIMI-${cleanCatPrefix}-${Math.floor(100 + Math.random() * 900)}`,
-      name: newProd.name.trim(),
-      category: chosenCategory,
-      unit: newProd.unit || 'KG',
-      unit_price: cleanPrice,
-      storage_temp: newProd.temp || '-18°C',
-      min_stock_alert: Number(newProd.minStock) || 50,
-    });
-    setShowAddModal(false);
-    showToastMsg(`Added frozen SKU ${created.sku || created.name}`);
-    setNewProd({ name: '', category: categories[0] || '', unit: 'KG', price: '₹450', temp: '-18°C', minStock: 50 });
-    await loadData();
+    try {
+      const chosenCategory = newProd.category || categories[0] || 'Frozen Seafood';
+      const cleanPrice = parseFloat(newProd.price.replace(/[^0-9.]/g, '')) || 450;
+      const cleanCatPrefix = chosenCategory.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'CAT';
+      const newSku = `RIMI-${cleanCatPrefix}-${Math.floor(100 + Math.random() * 900)}`;
+
+      const created = await createRimiProduct({
+        sku: newSku,
+        name: newProd.name.trim(),
+        category: chosenCategory,
+        unit: newProd.unit || 'KG',
+        unit_price: cleanPrice,
+        storage_temp: newProd.temp || '-18°C',
+        min_stock_alert: Number(newProd.minStock) || 50,
+      });
+
+      setShowAddModal(false);
+      showToastMsg(`Added frozen SKU ${created?.sku || newSku}`);
+      setNewProd({ name: '', category: categories[0] || '', unit: 'KG', price: '₹450', temp: '-18°C', minStock: 50 });
+      await loadData();
+    } catch (err: any) {
+      console.error('[RimiProducts] Error saving product SKU:', err);
+      showToastMsg(`Failed to save SKU: ${err.message || 'Error'}`);
+    }
   };
 
   const handleSaveEdit = async (e: React.FormEvent) => {

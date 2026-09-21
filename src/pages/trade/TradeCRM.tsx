@@ -132,23 +132,32 @@ export const TradeCRM: React.FC = () => {
 
   const handleAddCompany = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCompany.name || !newCompany.email) return;
-    const created = await createTradeCRMContact({
-      company_name: newCompany.name,
-      country: newCompany.country,
-      city: newCompany.city,
-      contact_person: newCompany.contact,
-      email: newCompany.email,
-      phone: newCompany.phone,
-      vat_number: newCompany.vat_number,
-      category: newCompany.category,
-      portal_active: true,
-    });
+    if (!newCompany.name.trim() || !newCompany.email.trim()) {
+      showToastMsg('Please enter company name and primary email.');
+      return;
+    }
+    try {
+      const created = await createTradeCRMContact({
+        company_name: newCompany.name.trim(),
+        country: newCompany.country || 'Poland',
+        city: newCompany.city || 'Gdansk',
+        contact_person: newCompany.contact.trim() || 'Procurement Lead',
+        email: newCompany.email.trim(),
+        phone: newCompany.phone.trim(),
+        vat_number: newCompany.vat_number.trim(),
+        category: newCompany.category as any,
+        payment_terms: newCompany.payment_terms,
+        credit_limit: Number(newCompany.credit_limit) || 1000000,
+        portal_active: true,
+      });
 
-    setNewCompany(initialCompany);
-    setShowAddModal(false);
-    showToastMsg(`Registered Trade Partner: ${created?.company_name || 'Partner'}`);
-    await loadData();
+      setNewCompany(initialCompany);
+      setShowAddModal(false);
+      showToastMsg(`Registered Trade Partner: ${created?.company_name || newCompany.name}`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Failed to register partner: ${err.message || 'Error'}`);
+    }
   };
 
   const handleUpdateCompany = async (e: React.FormEvent) => {

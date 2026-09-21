@@ -31,11 +31,11 @@ export const RimiVehicles: React.FC = () => {
         const formatted = data.map((d: any) => ({
           id: d.id ? `TRK-${d.id.slice(0, 4).toUpperCase()}` : 'TRK-101',
           rawId: d.id,
-          regNo: d.vehicle_number,
-          model: `${d.capacity_tonnes || 14}-Ton Ultra Cold Reefer`,
-          temp: `${d.current_temp_celsius || -20.0}°C`,
-          tempNum: d.current_temp_celsius || -20.0,
-          driver: d.driver_name,
+          regNo: d.vehicle_number || d.vehicle_no || 'MH-12-AZ-0000',
+          model: `${d.capacity_tonnes || d.capacity_metric_tons || 14}-Ton Ultra Cold Reefer`,
+          temp: `${d.current_temp_celsius || -18.0}°C`,
+          tempNum: Number(d.current_temp_celsius) || -18.0,
+          driver: d.driver_name || 'Assigned Driver',
           phone: d.driver_phone || '+91 98765 43210',
           route: d.status === 'On Route' ? 'Active Delivery Route' : 'Stationed Cold Logistics Depot',
           status: d.status || 'Stationed',
@@ -54,7 +54,7 @@ export const RimiVehicles: React.FC = () => {
 
     const channel = supabase
       .channel('realtime_rimi_vehicles')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rimi_vehicles' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_vehicles' }, () => {
         loadData();
       })
       .subscribe();
@@ -75,33 +75,26 @@ export const RimiVehicles: React.FC = () => {
 
   const handleAddVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newVehicle.regNo) return;
-    const newItem = await createRimiVehicle({
-      vehicle_number: newVehicle.regNo,
-      driver_name: newVehicle.driver,
-      driver_phone: newVehicle.driver_phone,
-      capacity_tonnes: Number(newVehicle.capacity_tonnes) || 14,
-      current_temp_celsius: Number(newVehicle.temp) || -18.0,
-      status: 'Stationed'
-    });
-    // Optimistic add
-    if (newItem) {
-      setVehicles(prev => [{
-        id: newItem.id ? `TRK-${newItem.id.slice(0, 4).toUpperCase()}` : 'TRK-NEW',
-        rawId: newItem.id,
-        regNo: newVehicle.regNo,
-        model: `${newVehicle.capacity_tonnes || 14}-Ton Ultra Cold Reefer`,
-        temp: `${newVehicle.temp || -18.0}°C`,
-        tempNum: Number(newVehicle.temp) || -18.0,
-        driver: newVehicle.driver,
-        phone: newVehicle.driver_phone,
-        route: 'Stationed Cold Logistics Depot',
-        status: 'Stationed',
-      }, ...prev]);
+    if (!newVehicle.regNo.trim()) return;
+    try {
+      const newItem = await createRimiVehicle({
+        vehicle_number: newVehicle.regNo.trim(),
+        vehicle_no: newVehicle.regNo.trim(),
+        driver_name: newVehicle.driver.trim() || 'Assigned Driver',
+        driver_phone: newVehicle.driver_phone.trim() || '+91 98765 43210',
+        capacity_tonnes: Number(newVehicle.capacity_tonnes) || 14,
+        capacity_metric_tons: Number(newVehicle.capacity_tonnes) || 14,
+        current_temp_celsius: Number(newVehicle.temp) || -18.0,
+        status: 'Stationed'
+      });
+      setShowAddModal(false);
+      showToastMsg(`Registered reefer vehicle ${newVehicle.regNo}`);
+      setNewVehicle(emptyVehicle);
+      await loadData();
+    } catch (err: any) {
+      console.error('[RimiVehicles] Registration error:', err);
+      showToastMsg(`Failed to register vehicle: ${err.message || 'Error'}`);
     }
-    setShowAddModal(false);
-    showToastMsg(`Registered reefer vehicle ${newVehicle.regNo}`);
-    setNewVehicle(emptyVehicle);
   };
 
   const handleToggleStatus = async (rawId: string, currentStatus: string) => {

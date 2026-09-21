@@ -167,11 +167,11 @@ export const TradeDocuments: React.FC = () => {
 
     try {
       const created = await uploadTradeDocument({
-        order_no: uploadForm.order_no,
-        client_name: uploadForm.client_name,
+        order_no: uploadForm.order_no.trim(),
+        client_name: uploadForm.client_name.trim(),
         doc_type: uploadForm.doc_type,
-        doc_number: uploadForm.doc_number,
-        file_name: uploadForm.file_name || (selectedFile ? selectedFile.name : `${uploadForm.doc_type.replace(/[^a-zA-Z0-9]/g, '_')}_${uploadForm.order_no}.pdf`),
+        doc_number: uploadForm.doc_number || `DOC-${Math.floor(1000 + Math.random() * 9000)}`,
+        file_name: uploadForm.file_name.trim() || (selectedFile ? selectedFile.name : `${uploadForm.doc_type.replace(/[^a-zA-Z0-9]/g, '_')}_${uploadForm.order_no}.pdf`),
         file_url: fileDataUrl || '',
         file_size: calculatedFileSize,
         notes: uploadForm.notes,
@@ -182,6 +182,12 @@ export const TradeDocuments: React.FC = () => {
       setShowUploadModal(false);
       setSelectedFile(null);
       setFileDataUrl('');
+      setUploadForm({
+        ...initialUploadForm,
+        doc_number: `DOC-${Math.floor(1000 + Math.random() * 9000)}`,
+        order_no: orders[0]?.order_no || '',
+        client_name: orders[0]?.client_name || ''
+      });
       showToastMsg(`Uploaded ${created?.doc_type || 'Document'} (${created?.file_name || 'file'})${uploadForm.auto_send ? ' & sent notice to client' : ''}!`);
       await loadData();
     } catch (err: any) {

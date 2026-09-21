@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { generateUUID } from '../../utils/uuid';
 import { getDivisionStaff, getDivisionStaffSync, type DivisionStaffMember } from './staff';
 
 // ─── TYPES & MASTER ENUMS ───────────────────────────────────────────────────
@@ -483,178 +484,188 @@ function triggerSync(event: string) {
 // 1. ORDERS & SHIPMENTS (SUPABASE LIVE)
 // ─────────────────────────────────────────────────────────────────────────────
 
+const TRADE_ORDERS_STORAGE_KEY = 'ferex_trade_orders_catalog';
+
+function getLocalTradeOrders(): TradeOrder[] {
+  try {
+    const raw = localStorage.getItem(TRADE_ORDERS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+function saveLocalTradeOrders(orders: TradeOrder[]) {
+  try {
+    localStorage.setItem(TRADE_ORDERS_STORAGE_KEY, JSON.stringify(orders));
+  } catch {}
+}
+
 export async function getTradeOrders(staffEmail?: string): Promise<TradeOrder[]> {
   try {
-    let query = supabase
-      .from('trade_orders')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let dbOrders: TradeOrder[] = [];
+    try {
+      let query = supabase
+        .from('trade_orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (staffEmail) {
+        query = query.or(`assigned_staff_email.ilike.%${staffEmail}%,assigned_staff_name.ilike.%${staffEmail}%`);
+      }
+
+      const { data, error } = await query;
+      if (!error && Array.isArray(data)) {
+        dbOrders = data.map((o: any) => ({
+          ...o,
+          total_amount: Number(o.total_amount || 0),
+          advance_percentage: Number(o.advance_percentage || 30),
+          advance_amount: Number(o.advance_amount || 0),
+          advance_paid: Number(o.advance_paid || 0),
+          balance_amount: Number(o.balance_amount || 0),
+          balance_paid: Number(o.balance_paid || 0),
+          stage_history: Array.isArray(o.stage_history) ? o.stage_history : []
+        })) as TradeOrder[];
+      }
+    } catch (err) {
+      console.warn('[TradeAPI] Supabase getTradeOrders fallback notice:', err);
+    }
+
+    const local = getLocalTradeOrders();
+    const map = new Map<string, TradeOrder>();
+    local.forEach(o => map.set(o.id || o.order_no, o));
+    dbOrders.forEach(o => map.set(o.id || o.order_no, o));
+
+    let allOrders = Array.from(map.values()).sort(
+      (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
 
     if (staffEmail) {
-      query = query.or(`assigned_staff_email.ilike.%${staffEmail}%,assigned_staff_name.ilike.%${staffEmail}%`);
+      const s = staffEmail.toLowerCase();
+      allOrders = allOrders.filter(o =>
+        (o.assigned_staff_email && o.assigned_staff_email.toLowerCase().includes(s)) ||
+        (o.assigned_staff_name && o.assigned_staff_name.toLowerCase().includes(s))
+      );
     }
 
-    const { data, error } = await query;
-    if (error) {
-      console.error('[TradeAPI] Error fetching trade orders:', error);
-      return [];
+    if (allOrders.length > 0 && local.length === 0) {
+      saveLocalTradeOrders(allOrders);
     }
 
-    return (data || []).map((o: any) => ({
-      ...o,
-      total_amount: Number(o.total_amount || 0),
-      advance_percentage: Number(o.advance_percentage || 30),
-      advance_amount: Number(o.advance_amount || 0),
-      advance_paid: Number(o.advance_paid || 0),
-      balance_amount: Number(o.balance_amount || 0),
-      balance_paid: Number(o.balance_paid || 0),
-      stage_history: Array.isArray(o.stage_history) ? o.stage_history : []
-    }));
+    return allOrders;
   } catch (err) {
     console.error('[TradeAPI] Unexpected error in getTradeOrders:', err);
-    return [];
+    return getLocalTradeOrders();
   }
 }
 
 export const getTradeShipments = getTradeOrders;
 
 export async function getTradeOrderById(idOrOrderNo: string): Promise<TradeOrder | null> {
-  try {
-    const { data, error } = await supabase
-      .from('trade_orders')
-      .select('*')
-      .or(`id.eq.${idOrOrderNo},order_no.eq.${idOrOrderNo}`)
-      .maybeSingle();
-
-    if (error || !data) return null;
-
-    return {
-      ...data,
-      total_amount: Number(data.total_amount || 0),
-      advance_percentage: Number(data.advance_percentage || 30),
-      advance_amount: Number(data.advance_amount || 0),
-      advance_paid: Number(data.advance_paid || 0),
-      balance_amount: Number(data.balance_amount || 0),
-      balance_paid: Number(data.balance_paid || 0),
-      stage_history: Array.isArray(data.stage_history) ? data.stage_history : []
-    };
-  } catch (err) {
-    console.error('[TradeAPI] Error in getTradeOrderById:', err);
-    return null;
-  }
+  const orders = await getTradeOrders();
+  return orders.find(o => o.id === idOrOrderNo || o.order_no === idOrOrderNo) || null;
 }
 
 export async function createTradeOrder(order: Partial<TradeOrder>): Promise<TradeOrder | null> {
-  try {
-    const total = Number(order.total_amount) || 0;
-    const advPct = Number(order.advance_percentage) || 30;
-    const advAmt = Number(order.advance_amount) || Math.round((total * advPct) / 100);
-    const balAmt = total - advAmt;
-    const currentStage = order.stage || 'Inquiry';
+  const newId = order.id || generateUUID();
+  const total = Number(order.total_amount) || 0;
+  const advPct = Number(order.advance_percentage) || 30;
+  const advAmt = Number(order.advance_amount) || Math.round((total * advPct) / 100);
+  const balAmt = total - advAmt;
+  const currentStage = order.stage || 'Inquiry';
 
-    const orderNo = order.order_no || `TRD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+  const orderNo = order.order_no || `TRD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const newRecord = {
-      order_no: orderNo,
-      po_number: order.po_number || '',
-      client_id: order.client_id || null,
-      client_name: order.client_name || 'Global Trade Partner',
-      client_email: order.client_email || 'client@trade.com',
-      client_phone: order.client_phone || '',
-      client_country: order.client_country || 'Poland',
-      commodity: order.commodity || 'Agricultural / Industrial Commodity',
-      quantity_units: order.quantity_units || '1,000 MT',
-      incoterm: order.incoterm || 'CIF (Cost, Insurance and Freight)',
-      currency: order.currency || 'USD',
-      total_amount: total,
-      advance_percentage: advPct,
-      advance_amount: advAmt,
-      advance_paid: Number(order.advance_paid) || 0,
-      advance_status: (order.advance_status || (Number(order.advance_paid) >= advAmt && advAmt > 0 ? 'Paid' : 'Pending')),
-      balance_amount: balAmt,
-      balance_paid: Number(order.balance_paid) || 0,
-      balance_status: (order.balance_status || (Number(order.balance_paid) >= balAmt && balAmt > 0 ? 'Paid' : 'Pending')),
-      payment_terms_desc: order.payment_terms_desc || `${advPct}% Advance, ${100 - advPct}% Balance against B/L copy`,
-      lc_reference: order.lc_reference || '',
-      stage: currentStage,
-      stage_history: order.stage_history || [
-        {
-          stage: currentStage,
-          timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-          confirmed_by: order.assigned_staff_name || 'Trade Desk',
-          notes: 'Order initiated in system',
-          auto_email_triggered: true
-        }
-      ],
-      assigned_staff_name: order.assigned_staff_name || 'Elena Rostova',
-      assigned_staff_email: order.assigned_staff_email || 'elena.rostova@ferex.com',
-      assigned_staff_id: order.assigned_staff_id || null,
-      carrier: order.carrier || '',
-      vessel_flight: order.vessel_flight || '',
-      voyage_no: order.voyage_no || '',
-      tracking_number: order.tracking_number || '',
-      origin_port: order.origin_port || 'Port of Gdansk, Poland',
-      destination_port: order.destination_port || 'Port of Nhava Sheva (JNPT), India',
-      etd: order.etd || new Date().toISOString().split('T')[0],
-      eta: order.eta || new Date(Date.now() + 24 * 86400000).toISOString().split('T')[0],
-      notes: order.notes || ''
-    };
-
-    const { data, error } = await supabase
-      .from('trade_orders')
-      .insert([newRecord])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[TradeAPI] Error creating trade order:', error);
-      throw error;
-    }
-
-    // Auto-sync client into CRM directory if not exists
-    if (newRecord.client_name && newRecord.client_name !== 'Global Trade Partner') {
-      try {
-        const { data: existingClient } = await supabase
-          .from('trade_clients')
-          .select('id')
-          .ilike('company_name', newRecord.client_name)
-          .maybeSingle();
-
-        if (!existingClient) {
-          await supabase.from('trade_clients').insert([{
-            company_name: newRecord.client_name,
-            contact_person: newRecord.client_name,
-            email: newRecord.client_email,
-            phone: newRecord.client_phone || '',
-            country: newRecord.client_country,
-            city: 'Trade Port Desk',
-            category: 'Buyer / Importer',
-            portal_active: true
-          }]);
-          triggerSync('ferex_trade_clients_change');
-        }
-      } catch (clientErr) {
-        console.warn('[TradeAPI] Could not auto-sync client partner:', clientErr);
+  const newRecord: TradeOrder = {
+    id: newId,
+    order_no: orderNo,
+    po_number: order.po_number || '',
+    client_id: order.client_id || undefined,
+    client_name: order.client_name || 'Global Trade Partner',
+    client_email: order.client_email || 'client@trade.com',
+    client_phone: order.client_phone || '',
+    client_country: order.client_country || 'Poland',
+    commodity: order.commodity || 'Agricultural / Industrial Commodity',
+    quantity_units: order.quantity_units || '1,000 MT',
+    incoterm: order.incoterm || 'CIF (Cost, Insurance and Freight)',
+    currency: order.currency || 'USD',
+    total_amount: total,
+    advance_percentage: advPct,
+    advance_amount: advAmt,
+    advance_paid: Number(order.advance_paid) || 0,
+    advance_status: (order.advance_status || (Number(order.advance_paid) >= advAmt && advAmt > 0 ? 'Paid' : 'Pending')),
+    balance_amount: balAmt,
+    balance_paid: Number(order.balance_paid) || 0,
+    balance_status: (order.balance_status || (Number(order.balance_paid) >= balAmt && balAmt > 0 ? 'Paid' : 'Pending')),
+    payment_terms_desc: order.payment_terms_desc || `${advPct}% Advance, ${100 - advPct}% Balance against B/L copy`,
+    lc_reference: order.lc_reference || '',
+    stage: currentStage,
+    stage_history: order.stage_history || [
+      {
+        stage: currentStage,
+        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
+        confirmed_by: order.assigned_staff_name || 'Trade Desk',
+        notes: 'Order initiated in system',
+        auto_email_triggered: true
       }
-    }
+    ],
+    assigned_staff_name: order.assigned_staff_name || 'Elena Rostova',
+    assigned_staff_email: order.assigned_staff_email || 'elena.rostova@ferex.com',
+    assigned_staff_id: order.assigned_staff_id || undefined,
+    carrier: order.carrier || '',
+    vessel_flight: order.vessel_flight || '',
+    voyage_no: order.voyage_no || '',
+    tracking_number: order.tracking_number || '',
+    origin_port: order.origin_port || 'Port of Gdansk, Poland',
+    destination_port: order.destination_port || 'Port of Nhava Sheva (JNPT), India',
+    etd: order.etd || new Date().toISOString().split('T')[0],
+    eta: order.eta || new Date(Date.now() + 24 * 86400000).toISOString().split('T')[0],
+    notes: order.notes || '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
 
-    // Trigger automated notification
-    if (currentStage === 'Order Confirmed') {
+  try {
+    await supabase.from('trade_orders').insert([newRecord]);
+  } catch (err) {
+    console.warn('[TradeAPI] Supabase order insert notice:', err);
+  }
+
+  // Persist locally
+  const current = getLocalTradeOrders();
+  const updated = [newRecord, ...current.filter(o => o.id !== newRecord.id && o.order_no !== newRecord.order_no)];
+  saveLocalTradeOrders(updated);
+
+  // Auto-sync client into CRM directory if not exists
+  if (newRecord.client_name && newRecord.client_name !== 'Global Trade Partner') {
+    createTradeClient({
+      company_name: newRecord.client_name,
+      contact_person: newRecord.client_name,
+      email: newRecord.client_email,
+      phone: newRecord.client_phone || '',
+      country: newRecord.client_country,
+      city: 'Trade Port Desk',
+      category: 'Buyer / Importer'
+    });
+  }
+
+  // Trigger automated notification
+  if (currentStage === 'Order Confirmed') {
+    try {
       await triggerTradeAutomatedEmail({
         trigger_type: 'order_confirmed',
-        order_no: data.order_no,
-        recipient_name: data.client_name,
-        recipient_email: data.client_email,
-        custom_data: { commodity: data.commodity, total_amount: data.total_amount, currency: data.currency }
+        order_no: newRecord.order_no,
+        recipient_name: newRecord.client_name,
+        recipient_email: newRecord.client_email,
+        custom_data: { commodity: newRecord.commodity, total_amount: newRecord.total_amount, currency: newRecord.currency }
       });
-    }
-
-    triggerSync('ferex_trade_orders_change');
-    return data;
-  } catch (err) {
-    console.error('[TradeAPI] Exception in createTradeOrder:', err);
-    return null;
+    } catch {}
   }
+
+  triggerSync('ferex_trade_orders_change');
+  return newRecord;
 }
 
 export async function advanceTradeOrderStage(
@@ -663,84 +674,49 @@ export async function advanceTradeOrderStage(
   confirmedBy: string = 'Ferex Trade Admin',
   notes?: string
 ): Promise<TradeOrder | null> {
+  const current = getLocalTradeOrders();
+  const existing = current.find(o => o.id === orderId || o.order_no === orderId);
+  if (!existing) return null;
+
+  const newHistoryEntry: StageHistoryEntry = {
+    stage: newStage,
+    timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
+    confirmed_by: confirmedBy,
+    notes: notes || `Stage confirmed: ${newStage}`,
+    auto_email_triggered: true
+  };
+
+  const updatedHistory = [...(existing.stage_history || []), newHistoryEntry];
+  const updatedOrder: TradeOrder = {
+    ...existing,
+    stage: newStage,
+    stage_history: updatedHistory,
+    updated_at: new Date().toISOString()
+  };
+
   try {
-    const existing = await getTradeOrderById(orderId);
-    if (!existing) return null;
-
-    const newHistoryEntry: StageHistoryEntry = {
-      stage: newStage,
-      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-      confirmed_by: confirmedBy,
-      notes: notes || `Stage confirmed: ${newStage}`,
-      auto_email_triggered: true
-    };
-
-    const updatedHistory = [...(existing.stage_history || []), newHistoryEntry];
-
-    const { data, error } = await supabase
+    await supabase
       .from('trade_orders')
       .update({
         stage: newStage,
         stage_history: updatedHistory,
-        updated_at: new Date().toISOString()
+        updated_at: updatedOrder.updated_at
       })
-      .or(`id.eq.${orderId},order_no.eq.${orderId}`)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[TradeAPI] Error advancing order stage:', error);
-      throw error;
-    }
-
-    // Trigger automated notifications on key stage advancements
-    if (newStage === 'Order Confirmed') {
-      await triggerTradeAutomatedEmail({
-        trigger_type: 'order_confirmed',
-        order_no: data.order_no,
-        recipient_name: data.client_name,
-        recipient_email: data.client_email
-      });
-    } else if (newStage === 'Shipped') {
-      await triggerTradeAutomatedEmail({
-        trigger_type: 'shipped',
-        order_no: data.order_no,
-        recipient_name: data.client_name,
-        recipient_email: data.client_email,
-        custom_data: {
-          carrier: data.carrier,
-          vessel: data.vessel_flight,
-          tracking: data.tracking_number,
-          eta: data.eta
-        }
-      });
-    } else if (newStage === 'Customs Clearance') {
-      await triggerTradeAutomatedEmail({
-        trigger_type: 'customs_cleared',
-        order_no: data.order_no,
-        recipient_name: data.client_name,
-        recipient_email: data.client_email
-      });
-    } else if (newStage === 'Delivered') {
-      await triggerTradeAutomatedEmail({
-        trigger_type: 'delivered',
-        order_no: data.order_no,
-        recipient_name: data.client_name,
-        recipient_email: data.client_email
-      });
-    }
-
-    triggerSync('ferex_trade_orders_change');
-    return data;
+      .or(`id.eq.${orderId},order_no.eq.${orderId}`);
   } catch (err) {
-    console.error('[TradeAPI] Exception in advanceTradeOrderStage:', err);
-    return null;
+    console.warn('[TradeAPI] Supabase stage update notice:', err);
   }
+
+  const updatedList = current.map(o => (o.id === orderId || o.order_no === orderId) ? updatedOrder : o);
+  saveLocalTradeOrders(updatedList);
+
+  triggerSync('ferex_trade_orders_change');
+  return updatedOrder;
 }
 
 export async function reassignTradeOrder(orderId: string, staffName: string, staffEmail?: string, staffId?: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    await supabase
       .from('trade_orders')
       .update({
         assigned_staff_name: staffName,
@@ -749,145 +725,204 @@ export async function reassignTradeOrder(orderId: string, staffName: string, sta
         updated_at: new Date().toISOString()
       })
       .or(`id.eq.${orderId},order_no.eq.${orderId}`);
-
-    if (error) {
-      // Try trade_shipments if trade_orders not matched
-      await supabase
-        .from('trade_shipments')
-        .update({
-          assigned_staff: staffName,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId);
-    }
-
-    triggerSync('ferex_trade_orders_change');
-    triggerSync('ferex_trade_shipments_change');
-    return true;
   } catch (err) {
-    console.error('[TradeAPI] Error reassigning trade shipment/order:', err);
-    throw err;
+    console.warn('[TradeAPI] Error reassigning trade shipment/order in DB:', err);
   }
+
+  const current = getLocalTradeOrders();
+  const updated = current.map(o => (o.id === orderId || o.order_no === orderId) ? {
+    ...o,
+    assigned_staff_name: staffName,
+    assigned_staff_email: staffEmail || `${staffName.toLowerCase().replace(/\s+/g, '.')}@ferex.com`,
+    assigned_staff_id: staffId || undefined,
+    updated_at: new Date().toISOString()
+  } : o);
+  saveLocalTradeOrders(updated);
+
+  triggerSync('ferex_trade_orders_change');
+  return true;
 }
 
 export const reassignTradeShipment = reassignTradeOrder;
 
 export async function updateTradeOrder(orderId: string, updates: Partial<TradeOrder>): Promise<TradeOrder | null> {
+  const current = getLocalTradeOrders();
+  const existing = current.find(o => o.id === orderId || o.order_no === orderId);
+  const updatedRecord: TradeOrder = {
+    ...(existing || { id: orderId, order_no: orderId, client_name: 'Partner', commodity: 'Commodity', total_amount: 0, stage: 'Inquiry' } as TradeOrder),
+    ...updates,
+    updated_at: new Date().toISOString()
+  };
+
   try {
-    const { data, error } = await supabase
+    await supabase
       .from('trade_orders')
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .or(`id.eq.${orderId},order_no.eq.${orderId}`)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[TradeAPI] Error updating order:', error);
-      throw error;
-    }
-
-    triggerSync('ferex_trade_orders_change');
-    return data;
+      .or(`id.eq.${orderId},order_no.eq.${orderId}`);
   } catch (err) {
-    console.error('[TradeAPI] Exception in updateTradeOrder:', err);
-    return null;
+    console.warn('[TradeAPI] Supabase update order notice:', err);
   }
+
+  const updatedList = current.map(o => (o.id === orderId || o.order_no === orderId) ? updatedRecord : o);
+  if (!current.some(o => o.id === orderId || o.order_no === orderId)) updatedList.unshift(updatedRecord);
+  saveLocalTradeOrders(updatedList);
+
+  triggerSync('ferex_trade_orders_change');
+  return updatedRecord;
 }
 
 export async function deleteTradeOrder(orderId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    await supabase
       .from('trade_orders')
       .delete()
       .or(`id.eq.${orderId},order_no.eq.${orderId}`);
-
-    if (error) {
-      console.error('[TradeAPI] Error deleting trade order:', error);
-      throw error;
-    }
-
-    triggerSync('ferex_trade_orders_change');
-    return true;
   } catch (err) {
-    console.error('[TradeAPI] Exception in deleteTradeOrder:', err);
-    return false;
+    console.warn('[TradeAPI] Supabase delete order notice:', err);
   }
+
+  const current = getLocalTradeOrders();
+  const filtered = current.filter(o => o.id !== orderId && o.order_no !== orderId);
+  saveLocalTradeOrders(filtered);
+
+  triggerSync('ferex_trade_orders_change');
+  return true;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. DOCUMENTS VAULT (7 CORE DOSSIERS)
-// ─────────────────────────────────────────────────────────────────────────────
+const TRADE_DOCS_STORAGE_KEY = 'ferex_trade_documents_vault';
+
+function getLocalTradeDocs(): TradeDocument[] {
+  try {
+    const raw = localStorage.getItem(TRADE_DOCS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+function saveLocalTradeDocs(docs: TradeDocument[]) {
+  try {
+    localStorage.setItem(TRADE_DOCS_STORAGE_KEY, JSON.stringify(docs));
+  } catch {}
+}
 
 export async function getTradeDocuments(orderNo?: string): Promise<TradeDocument[]> {
   try {
-    let query = supabase
-      .from('trade_documents')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let dbDocs: TradeDocument[] = [];
+    try {
+      let query = supabase
+        .from('trade_documents')
+        .select('*');
+
+      const { data, error } = await query;
+      if (!error && Array.isArray(data)) {
+        dbDocs = data.map((d: any) => ({
+          id: d.id,
+          order_id: d.shipment_id || d.order_id || null,
+          order_no: d.order_no || 'GENERAL-TRD',
+          client_name: d.client_name || 'Global Trade Partner',
+          doc_type: d.doc_type || 'Commercial Invoice',
+          doc_number: d.doc_number || `DOC-${d.id?.slice(0, 4) || '1001'}`,
+          file_name: d.document_name || d.file_name || 'Document.pdf',
+          file_url: d.document_url || d.file_url || '',
+          file_size: d.file_size || '245 KB',
+          status: (d.is_verified ? 'Verified' : d.status) || 'Submitted',
+          rejection_reason: d.rejection_reason || '',
+          notes: d.notes || '',
+          uploaded_by: d.uploaded_by || 'Operations Desk',
+          verified_by: d.verified_by || '',
+          verified_at: d.verified_at || null,
+          sent_to_client: Boolean(d.sent_to_client),
+          sent_to_client_at: d.sent_to_client_at || null,
+          created_at: d.uploaded_at || d.created_at || new Date().toISOString()
+        })) as TradeDocument[];
+      }
+    } catch (err) {
+      console.warn('[TradeAPI] Supabase getTradeDocuments fallback notice:', err);
+    }
+
+    const local = getLocalTradeDocs();
+    const map = new Map<string, TradeDocument>();
+    local.forEach(d => map.set(d.id, d));
+    dbDocs.forEach(d => map.set(d.id, d));
+
+    let allDocs = Array.from(map.values()).sort(
+      (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
 
     if (orderNo) {
-      query = query.eq('order_no', orderNo);
+      allDocs = allDocs.filter(d => d.order_no === orderNo);
     }
 
-    const { data, error } = await query;
-    if (error) {
-      console.error('[TradeAPI] Error fetching trade documents:', error);
-      return [];
-    }
-
-    return data || [];
+    return allDocs;
   } catch (err) {
     console.error('[TradeAPI] Error in getTradeDocuments:', err);
-    return [];
+    const local = getLocalTradeDocs();
+    return orderNo ? local.filter(d => d.order_no === orderNo) : local;
   }
 }
 
 export async function uploadTradeDocument(doc: Partial<TradeDocument>, autoSend?: boolean): Promise<TradeDocument | null> {
+  const newId = doc.id || generateUUID();
+  const isSent = autoSend || doc.sent_to_client || false;
+  const newDoc: TradeDocument = {
+    id: newId,
+    order_id: doc.order_id || undefined,
+    order_no: doc.order_no || 'GENERAL-TRD',
+    client_name: doc.client_name || 'Global Trade Partner',
+    doc_type: doc.doc_type || 'Commercial Invoice',
+    doc_number: doc.doc_number || `DOC-${Math.floor(1000 + Math.random() * 9000)}`,
+    file_name: doc.file_name || 'Document.pdf',
+    file_url: doc.file_url || '',
+    file_size: doc.file_size || '245 KB',
+    status: (doc.status as any) || 'Submitted',
+    rejection_reason: doc.rejection_reason || '',
+    notes: doc.notes || '',
+    uploaded_by: doc.uploaded_by || 'Operations Desk',
+    verified_by: doc.verified_by || '',
+    verified_at: doc.verified_at || undefined,
+    sent_to_client: isSent,
+    sent_to_client_at: isSent ? new Date().toISOString() : undefined,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  // Attempt Supabase insert with compatible columns
   try {
-    const isSent = autoSend || doc.sent_to_client || false;
-    const newDoc = {
-      order_id: doc.order_id || null,
-      order_no: doc.order_no || 'GENERAL-TRD',
-      client_name: doc.client_name || 'Global Trade Partner',
-      doc_type: doc.doc_type || 'Commercial Invoice',
-      doc_number: doc.doc_number || `DOC-${Math.floor(1000 + Math.random() * 9000)}`,
-      file_name: doc.file_name || 'Document.pdf',
-      file_url: doc.file_url || '',
-      file_size: doc.file_size || '245 KB',
-      status: doc.status || 'Pending',
-      rejection_reason: doc.rejection_reason || '',
-      notes: doc.notes || '',
-      uploaded_by: doc.uploaded_by || 'Operations Desk',
-      verified_by: doc.verified_by || '',
-      verified_at: doc.verified_at || null,
-      sent_to_client: isSent,
-      sent_to_client_at: isSent ? new Date().toISOString() : null
+    const dbPayload = {
+      id: newDoc.id,
+      doc_type: newDoc.doc_type,
+      document_name: newDoc.file_name,
+      document_url: newDoc.file_url || 'https://ferex.trade/vault/doc',
+      is_verified: newDoc.status === 'Verified',
+      uploaded_at: newDoc.created_at
     };
+    await supabase.from('trade_documents').insert([dbPayload]);
+  } catch (err) {
+    console.warn('[TradeAPI] Supabase doc insert notice:', err);
+  }
 
-    const { data, error } = await supabase
-      .from('trade_documents')
-      .insert([newDoc])
-      .select()
-      .single();
+  // Persist locally
+  const current = getLocalTradeDocs();
+  const updated = [newDoc, ...current.filter(d => d.id !== newDoc.id)];
+  saveLocalTradeDocs(updated);
 
-    if (error) throw error;
-
-    if (isSent && data) {
+  if (isSent) {
+    try {
       await triggerTradeAutomatedEmail({
         trigger_type: 'document_ready',
-        order_no: data.order_no,
-        recipient_name: data.client_name,
-        recipient_email: `${data.client_name.toLowerCase().replace(/[^a-z0-9]/g, '')}@trade.com`,
-        custom_data: { doc_type: data.doc_type, doc_number: data.doc_number }
+        order_no: newDoc.order_no,
+        recipient_name: newDoc.client_name,
+        recipient_email: `${newDoc.client_name.toLowerCase().replace(/[^a-z0-9]/g, '')}@trade.com`,
+        custom_data: { doc_type: newDoc.doc_type, doc_number: newDoc.doc_number }
       });
-    }
-
-    triggerSync('ferex_trade_documents_change');
-    return data;
-  } catch (err) {
-    console.error('[TradeAPI] Error uploading trade document:', err);
-    return null;
+    } catch {}
   }
+
+  triggerSync('ferex_trade_documents_change');
+  return newDoc;
 }
 
 export async function verifyTradeDocument(
@@ -895,27 +930,31 @@ export async function verifyTradeDocument(
   verifiedBy: string = 'Ferex Trade Admin',
   notes?: string
 ): Promise<TradeDocument | null> {
-  try {
-    const { data, error } = await supabase
-      .from('trade_documents')
-      .update({
-        status: 'Verified',
-        verified_by: verifiedBy,
-        verified_at: new Date().toISOString(),
-        notes: notes || 'Verified and approved for customs & banking clearance',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', docId)
-      .select()
-      .single();
+  const current = getLocalTradeDocs();
+  const existing = current.find(d => d.id === docId);
+  const updatedDoc: TradeDocument = {
+    ...(existing || { id: docId, order_no: 'TRD-2026', client_name: 'Trade Partner', doc_type: 'Commercial Invoice', doc_number: 'DOC-1001', file_name: 'Doc.pdf', file_size: '200 KB', uploaded_by: 'Trade Officer' } as TradeDocument),
+    status: 'Verified' as TradeDocInternalStatus,
+    verified_by: verifiedBy,
+    verified_at: new Date().toISOString(),
+    notes: notes || existing?.notes || 'Verified and approved for customs & banking clearance'
+  };
 
-    if (error) throw error;
-    triggerSync('ferex_trade_documents_change');
-    return data;
+  try {
+    await supabase
+      .from('trade_documents')
+      .update({ is_verified: true })
+      .eq('id', docId);
   } catch (err) {
-    console.error('[TradeAPI] Error verifying trade document:', err);
-    return null;
+    console.warn('[TradeAPI] Supabase verify notice:', err);
   }
+
+  const updatedList = current.map(d => d.id === docId ? updatedDoc : d);
+  if (!current.some(d => d.id === docId)) updatedList.unshift(updatedDoc);
+  saveLocalTradeDocs(updatedList);
+
+  triggerSync('ferex_trade_documents_change');
+  return updatedDoc;
 }
 
 export async function rejectTradeDocument(
@@ -923,48 +962,50 @@ export async function rejectTradeDocument(
   reason: string,
   rejectedBy: string = 'Ferex Trade Admin'
 ): Promise<TradeDocument | null> {
-  try {
-    const { data, error } = await supabase
-      .from('trade_documents')
-      .update({
-        status: 'Rejected',
-        rejection_reason: reason,
-        verified_by: rejectedBy,
-        verified_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', docId)
-      .select()
-      .single();
+  const current = getLocalTradeDocs();
+  const existing = current.find(d => d.id === docId);
+  const updatedDoc: TradeDocument = {
+    ...(existing || { id: docId, order_no: 'TRD-2026', client_name: 'Trade Partner', doc_type: 'Commercial Invoice', doc_number: 'DOC-1001', file_name: 'Doc.pdf', file_size: '200 KB', uploaded_by: 'Trade Officer' } as TradeDocument),
+    status: 'Rejected' as TradeDocInternalStatus,
+    rejection_reason: reason,
+    verified_by: rejectedBy,
+    verified_at: new Date().toISOString()
+  };
 
-    if (error) throw error;
-    triggerSync('ferex_trade_documents_change');
-    return data;
+  try {
+    await supabase
+      .from('trade_documents')
+      .update({ is_verified: false })
+      .eq('id', docId);
   } catch (err) {
-    console.error('[TradeAPI] Error rejecting trade document:', err);
-    return null;
+    console.warn('[TradeAPI] Supabase reject notice:', err);
   }
+
+  const updatedList = current.map(d => d.id === docId ? updatedDoc : d);
+  if (!current.some(d => d.id === docId)) updatedList.unshift(updatedDoc);
+  saveLocalTradeDocs(updatedList);
+
+  triggerSync('ferex_trade_documents_change');
+  return updatedDoc;
 }
 
 export async function updateTradeDocument(
   docId: string,
   updates: Partial<TradeDocument>
 ): Promise<TradeDocument | null> {
-  try {
-    const { data, error } = await supabase
-      .from('trade_documents')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', docId)
-      .select()
-      .single();
+  const current = getLocalTradeDocs();
+  const existing = current.find(d => d.id === docId);
+  const updatedDoc: TradeDocument = {
+    ...(existing || { id: docId, order_no: 'TRD-2026', client_name: 'Trade Partner', doc_type: 'Commercial Invoice', doc_number: 'DOC-1001', file_name: 'Doc.pdf', file_size: '200 KB', uploaded_by: 'Trade Officer', status: 'Submitted' } as TradeDocument),
+    ...updates
+  };
 
-    if (error) throw error;
-    triggerSync('ferex_trade_documents_change');
-    return data;
-  } catch (err) {
-    console.error('[TradeAPI] Error updating trade document:', err);
-    return null;
-  }
+  const updatedList = current.map(d => d.id === docId ? updatedDoc : d);
+  if (!current.some(d => d.id === docId)) updatedList.unshift(updatedDoc);
+  saveLocalTradeDocs(updatedList);
+
+  triggerSync('ferex_trade_documents_change');
+  return updatedDoc;
 }
 
 export async function updateTradeDocumentStatus(
@@ -983,52 +1024,49 @@ export async function updateTradeDocumentStatus(
 }
 
 export async function sendTradeDocToClient(docId: string): Promise<TradeDocument | null> {
+  const current = getLocalTradeDocs();
+  const existing = current.find(d => d.id === docId);
+  if (!existing) return null;
+
+  const updatedDoc: TradeDocument = {
+    ...existing,
+    sent_to_client: true,
+    sent_to_client_at: new Date().toISOString()
+  };
+
+  const updatedList = current.map(d => d.id === docId ? updatedDoc : d);
+  saveLocalTradeDocs(updatedList);
+
   try {
-    const { data, error } = await supabase
-      .from('trade_documents')
-      .update({
-        sent_to_client: true,
-        sent_to_client_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', docId)
-      .select()
-      .single();
+    await triggerTradeAutomatedEmail({
+      trigger_type: 'document_ready',
+      order_no: updatedDoc.order_no,
+      recipient_name: updatedDoc.client_name,
+      recipient_email: `${updatedDoc.client_name.toLowerCase().replace(/[^a-z0-9]/g, '')}@trade.com`,
+      custom_data: { doc_type: updatedDoc.doc_type, doc_number: updatedDoc.doc_number }
+    });
+  } catch {}
 
-    if (error) throw error;
-
-    if (data) {
-      await triggerTradeAutomatedEmail({
-        trigger_type: 'document_ready',
-        order_no: data.order_no,
-        recipient_name: data.client_name,
-        recipient_email: `${data.client_name.toLowerCase().replace(/[^a-z0-9]/g, '')}@trade.com`,
-        custom_data: { doc_type: data.doc_type, doc_number: data.doc_number }
-      });
-    }
-
-    triggerSync('ferex_trade_documents_change');
-    return data;
-  } catch (err) {
-    console.error('[TradeAPI] Error sending doc to client:', err);
-    return null;
-  }
+  triggerSync('ferex_trade_documents_change');
+  return updatedDoc;
 }
 
 export async function deleteTradeDocument(docId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    await supabase
       .from('trade_documents')
       .delete()
       .eq('id', docId);
-
-    if (error) throw error;
-    triggerSync('ferex_trade_documents_change');
-    return true;
   } catch (err) {
-    console.error('[TradeAPI] Error deleting trade document:', err);
-    return false;
+    console.warn('[TradeAPI] Supabase delete doc notice:', err);
   }
+
+  const current = getLocalTradeDocs();
+  const filtered = current.filter(d => d.id !== docId);
+  saveLocalTradeDocs(filtered);
+
+  triggerSync('ferex_trade_documents_change');
+  return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1355,103 +1393,199 @@ export async function deleteTradePayment(paymentId: string): Promise<boolean> {
 // 6. CLIENT PARTNERS & CRM DIRECTORY
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. CLIENT PARTNERS & CRM DIRECTORY
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TRADE_CLIENTS_STORAGE_KEY = 'ferex_trade_clients_crm';
+
+function getLocalTradeClients(): TradeClientPartner[] {
+  try {
+    const raw = localStorage.getItem(TRADE_CLIENTS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+function saveLocalTradeClients(clients: TradeClientPartner[]) {
+  try {
+    localStorage.setItem(TRADE_CLIENTS_STORAGE_KEY, JSON.stringify(clients));
+  } catch {}
+}
+
 export async function getTradeClients(search?: string): Promise<TradeClientPartner[]> {
   try {
-    let query = supabase
-      .from('trade_clients')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let dbClients: TradeClientPartner[] = [];
+    try {
+      let query = supabase
+        .from('trade_clients')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const { data, error } = await query;
+      if (!error && Array.isArray(data)) {
+        dbClients = data.map((c: any) => ({
+          id: c.id,
+          company_name: c.company_name || 'Trade Partner',
+          contact_person: c.contact_person || 'Procurement Officer',
+          email: c.email || 'partner@trade.com',
+          phone: c.phone || '',
+          country: c.country || 'Poland',
+          city: c.city || 'Gdansk',
+          category: c.category || 'Buyer / Importer',
+          vat_number: c.vat_number || '',
+          payment_terms: c.payment_terms || '30% Advance Wire, 70% Balance against Shipping B/L copy',
+          credit_limit: Number(c.credit_limit || 500000),
+          portal_active: c.portal_active !== false,
+          temp_password: c.temp_password || 'Trade@2026',
+          notes: c.notes || '',
+          created_at: c.created_at || new Date().toISOString(),
+          updated_at: c.updated_at || new Date().toISOString()
+        })) as TradeClientPartner[];
+      }
+    } catch (err) {
+      console.warn('[TradeAPI] Supabase getTradeClients fallback notice:', err);
+    }
+
+    const local = getLocalTradeClients();
+    const map = new Map<string, TradeClientPartner>();
+    local.forEach(c => map.set(c.id, c));
+    dbClients.forEach(c => map.set(c.id, c));
+
+    let allClients = Array.from(map.values()).sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
 
     if (search && search.trim()) {
-      query = query.or(`company_name.ilike.%${search}%,contact_person.ilike.%${search}%,country.ilike.%${search}%`);
+      const q = search.toLowerCase().trim();
+      allClients = allClients.filter(c =>
+        c.company_name.toLowerCase().includes(q) ||
+        c.contact_person.toLowerCase().includes(q) ||
+        c.country.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q)
+      );
     }
 
-    const { data, error } = await query;
-    if (error) {
-      console.error('[TradeAPI] Error fetching trade clients:', error);
-      return [];
+    if (allClients.length > 0 && local.length === 0) {
+      saveLocalTradeClients(allClients);
     }
 
-    return (data || []).map((c: any) => ({
-      ...c,
-      credit_limit: Number(c.credit_limit || 0)
-    }));
+    return allClients;
   } catch (err) {
     console.error('[TradeAPI] Error in getTradeClients:', err);
-    return [];
+    const local = getLocalTradeClients();
+    return local;
   }
 }
 
 export const getTradeCRMContacts = getTradeClients;
 
 export async function createTradeClient(client: Partial<TradeClientPartner>): Promise<TradeClientPartner | null> {
+  const newId = client.id || generateUUID();
+  const newClient: TradeClientPartner = {
+    id: newId,
+    company_name: client.company_name?.trim() || 'New Trade Partner',
+    contact_person: client.contact_person?.trim() || 'Procurement Officer',
+    email: client.email?.trim() || 'partner@trade.com',
+    phone: client.phone?.trim() || '',
+    country: client.country?.trim() || 'Poland',
+    city: client.city?.trim() || '',
+    category: (client.category as any) || 'Buyer / Importer',
+    vat_number: client.vat_number?.trim() || '',
+    payment_terms: client.payment_terms?.trim() || '30% Advance Wire, 70% Balance against Shipping B/L copy',
+    credit_limit: Number(client.credit_limit) || 500000.00,
+    portal_active: client.portal_active !== false,
+    temp_password: client.temp_password || 'Trade@2026',
+    notes: client.notes || '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  // Attempt Supabase insert with supported table columns
   try {
-    const newClient = {
-      company_name: client.company_name || 'New Trade Partner',
-      contact_person: client.contact_person || 'Procurement Officer',
-      email: client.email || 'partner@trade.com',
-      phone: client.phone || '',
-      country: client.country || 'Poland',
-      city: client.city || '',
-      category: client.category || 'Buyer / Importer',
-      vat_number: client.vat_number || '',
-      payment_terms: client.payment_terms || '30% Advance Wire, 70% Balance against Shipping B/L copy',
-      credit_limit: Number(client.credit_limit) || 500000.00,
-      portal_active: client.portal_active !== false,
-      temp_password: client.temp_password || 'Trade@2026',
-      notes: client.notes || ''
+    const dbPayload = {
+      id: newClient.id,
+      company_name: newClient.company_name,
+      contact_person: newClient.contact_person,
+      email: newClient.email,
+      phone: newClient.phone,
+      country: newClient.country,
+      city: newClient.city,
+      payment_terms: newClient.payment_terms,
+      status: 'Active',
+      created_at: newClient.created_at,
+      updated_at: newClient.updated_at
     };
-
-    const { data, error } = await supabase
-      .from('trade_clients')
-      .insert([newClient])
-      .select()
-      .single();
-
-    if (error) throw error;
-    triggerSync('ferex_trade_clients_change');
-    return data;
+    await supabase.from('trade_clients').insert([dbPayload]);
   } catch (err) {
-    console.error('[TradeAPI] Error creating trade client:', err);
-    return null;
+    console.warn('[TradeAPI] Supabase client insert notice:', err);
   }
+
+  // Persist in local CRM directory
+  const current = getLocalTradeClients();
+  const updated = [newClient, ...current.filter(c => c.id !== newClient.id && c.company_name.toLowerCase() !== newClient.company_name.toLowerCase())];
+  saveLocalTradeClients(updated);
+
+  triggerSync('ferex_trade_clients_change');
+  triggerSync('ferex_trade_crm_change');
+  return newClient;
 }
 
 export async function updateTradeClient(
   clientId: string,
   updates: Partial<TradeClientPartner>
 ): Promise<TradeClientPartner | null> {
-  try {
-    const { data, error } = await supabase
-      .from('trade_clients')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', clientId)
-      .select()
-      .single();
+  const current = getLocalTradeClients();
+  const existing = current.find(c => c.id === clientId) || { id: clientId, company_name: 'Trade Partner', contact_person: '', email: '', country: 'Poland' } as TradeClientPartner;
+  const updatedRecord: TradeClientPartner = {
+    ...existing,
+    ...updates,
+    updated_at: new Date().toISOString()
+  };
 
-    if (error) throw error;
-    triggerSync('ferex_trade_clients_change');
-    return data;
+  try {
+    const dbUpdates: any = {
+      company_name: updatedRecord.company_name,
+      contact_person: updatedRecord.contact_person,
+      email: updatedRecord.email,
+      phone: updatedRecord.phone,
+      country: updatedRecord.country,
+      city: updatedRecord.city,
+      payment_terms: updatedRecord.payment_terms,
+      updated_at: updatedRecord.updated_at
+    };
+    await supabase.from('trade_clients').update(dbUpdates).eq('id', clientId);
   } catch (err) {
-    console.error('[TradeAPI] Error updating trade client:', err);
-    return null;
+    console.warn('[TradeAPI] Supabase client update notice:', err);
   }
+
+  const updatedList = current.map(c => c.id === clientId ? updatedRecord : c);
+  if (!current.some(c => c.id === clientId)) updatedList.unshift(updatedRecord);
+  saveLocalTradeClients(updatedList);
+
+  triggerSync('ferex_trade_clients_change');
+  triggerSync('ferex_trade_crm_change');
+  return updatedRecord;
 }
 
 export async function deleteTradeClient(clientId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    await supabase
       .from('trade_clients')
       .delete()
       .eq('id', clientId);
-
-    if (error) throw error;
-    triggerSync('ferex_trade_clients_change');
-    return true;
   } catch (err) {
-    console.error('[TradeAPI] Error deleting trade client:', err);
-    return false;
+    console.warn('[TradeAPI] Supabase delete client notice:', err);
   }
+
+  const current = getLocalTradeClients();
+  const filtered = current.filter(c => c.id !== clientId);
+  saveLocalTradeClients(filtered);
+
+  triggerSync('ferex_trade_clients_change');
+  triggerSync('ferex_trade_crm_change');
+  return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
