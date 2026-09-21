@@ -5,7 +5,7 @@ import {
   LayoutDashboard, CreditCard, BarChart3, ShieldCheck, UserCheck,
   CheckSquare, Activity, Bell, Settings, Mail, BookOpen,
   Search, Menu, ChevronDown, ChevronRight, LogOut, X, Crown,
-  Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight
+  Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight, Sparkles
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
@@ -177,6 +177,27 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
                   </Link>
                 );
               })}
+
+              {/* AI Copilot Sidebar Launcher directly below Dashboard */}
+              {sIdx === 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileOpen(false);
+                    window.dispatchEvent(new CustomEvent('ferex_open_ai_sidebar'));
+                  }}
+                  className="w-full relative flex items-center rounded-xl h-8.5 px-2.5 transition-all duration-150 text-xs font-bold bg-gradient-to-r from-[#58051E]/12 via-[#58051E]/6 to-transparent text-[#58051E] hover:bg-[#58051E]/18 border border-[#58051E]/20 text-left cursor-pointer group mt-1 mb-1"
+                  title={isCollapsed ? "Ferex AI Copilot" : undefined}
+                >
+                  <Sparkles className={`w-4 h-4 shrink-0 transition-transform duration-150 text-[#58051E] group-hover:scale-110 ${isCollapsed ? 'mx-auto' : 'mr-2.5'}`} />
+                  {!isCollapsed && <span className="truncate flex-1 font-bold">AI Copilot</span>}
+                  {!isCollapsed && (
+                    <span className="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-[#58051E] text-white shrink-0 tracking-wider">
+                      LIVE AI
+                    </span>
+                  )}
+                </button>
+              )}
             </div>
           ))}
         </nav>

@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, X, RotateCcw, Maximize2, Minimize2,
   Copy, Check, User, ShieldCheck, RefreshCw,
-  Mic, MicOff, Volume2, VolumeX, Sparkles, MessageSquare,
-  Globe2, Bot, HelpCircle, ChevronRight, Play, Square
+  Mic, Volume2, VolumeX, MessageSquare,
+  Bot, ChevronRight, Sparkles
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { AIVoiceVisualizer } from './ai/AIVoiceVisualizer';
@@ -13,7 +13,6 @@ import {
   detectLanguage,
   speakTextWithLanguage,
   type UserRoleType,
-  type EnterpriseLiveContext
 } from '../lib/api/aiRealtimeService';
 import { useAuth } from '../contexts/AuthContext';
 import { getSystemConfig, getEffectiveOpenAIApiKey } from '../lib/api/systemConfig';
@@ -23,12 +22,12 @@ interface EnterpriseAIChatbotProps {
   role?: UserRoleType;
   studentContext?: LiveStudentContext;
   initialOpen?: boolean;
+  docked?: boolean;
 }
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
-  language?: string;
 }
 
 export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
@@ -49,8 +48,6 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const [voiceTranscript, setVoiceTranscript] = useState('');
-  const [detectedVoiceLang, setDetectedVoiceLang] = useState('English');
-  const [selectedVoiceLang, setSelectedVoiceLang] = useState('auto');
   const [isMuted, setIsMuted] = useState(false);
 
   // Audio / Speech Recognition Refs
@@ -62,23 +59,23 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
 
   const storageKey = `ferex_ai_copilot_${role}_${user?.id || 'guest'}`;
 
-  // Role Badges & Welcome Text
+  // Role Badges & Clean Welcome Text (no language enumeration)
   const getRoleWelcome = (): string => {
     const name = profile?.full_name || user?.email?.split('@')[0] || 'Administrator';
     switch (role) {
       case 'central_admin':
-        return `Welcome **${name}** (Central Super Admin HQ).\n\nI am your **Ferex Enterprise Copilot**. I have live access to the entire Ferex ecosystem:\n- **Ferex Education**: Universities, applications, visa telemetry\n- **Global Trade ERP**: Shipments, manifests, customs invoices\n- **Rimi Frozen FMCG**: Cold chain warehouses, stock & logistics\n- **Ferex Digital Agency**: Software projects, client accounts\n\nSpeak or type in **Malayalam, English, Tamil, Polish, or Hindi** — I will reply in your language.`;
+        return `Welcome **${name}** (Central Super Admin HQ).\n\nI am your **Ferex Enterprise Copilot**. I have live access to the entire Ferex ecosystem:\n- **Ferex Education**: Universities, applications, visa telemetry\n- **Global Trade ERP**: Shipments, manifests, customs invoices\n- **Rimi Frozen FMCG**: Cold chain warehouses, stock & logistics\n- **Ferex Digital Agency**: Software projects, client accounts\n\nHow may I assist your enterprise operations today?`;
       case 'education_admin':
-        return `Welcome **${name}** (Ferex Education Lead).\n\nI can assist with university applications, NAWA legalizations, Schengen D-Visa readiness, student documents, and admissions queries. Ask or speak anything!`;
+        return `Welcome **${name}** (Ferex Education Lead).\n\nI can assist with university applications, NAWA legalizations, Schengen D-Visa readiness, student documents, and admissions queries.`;
       case 'digital_admin':
       case 'digital_pm':
-        return `Welcome **${name}** (Digital Agency Lead).\n\nI can query active tech sprints, client tasks, milestones, and system logs across Ferex Digital. How can I help?`;
+        return `Welcome **${name}** (Digital Agency Lead).\n\nI can query active tech sprints, client tasks, milestones, and system logs across Ferex Digital.`;
       case 'rimi_admin':
         return `Welcome **${name}** (Rimi Frozen FMCG Lead).\n\nI can assist with cold storage inventory, warehouse distributions, temperature monitoring, and logistics orders.`;
       case 'trade_admin':
         return `Welcome **${name}** (Global Trade Lead).\n\nI can assist with global shipment manifests, container tracking, customs documentation, and commercial invoices.`;
       case 'student':
-        return `Welcome **${studentContext?.studentName || name}**.\n\nI am your official **Ferex European Education & Visa Copilot**. I can help you prepare for your university admission, NAWA recognition, MEA Apostille, and Schengen D-Visa interview. You can speak to me in Malayalam, Tamil, English, or Polish anytime!`;
+        return `Welcome **${studentContext?.studentName || name}**.\n\nI am your official **Ferex European Education & Visa Copilot**. I can help you prepare for your university admission, NAWA recognition, MEA Apostille, and Schengen D-Visa interview.`;
       default:
         return `Welcome to **Ferex Enterprise AI**. How can I assist you today?`;
     }
@@ -114,6 +111,13 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
       sessionStorage.setItem(storageKey, JSON.stringify(messages));
     } catch {}
   }, [messages, storageKey]);
+
+  // Listen to custom event to open sidebar from left navigation
+  useEffect(() => {
+    const handleOpenCopilot = () => setIsOpen(true);
+    window.addEventListener('ferex_open_ai_sidebar', handleOpenCopilot);
+    return () => window.removeEventListener('ferex_open_ai_sidebar', handleOpenCopilot);
+  }, []);
 
   // Quick Action Prompts by Role
   const quickPrompts: Record<UserRoleType, string[]> = {
@@ -194,9 +198,6 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
         recog.continuous = true;
         recog.interimResults = true;
 
-        // Multi-language support: start with user-selected or auto
-        recog.lang = selectedVoiceLang === 'auto' ? 'en-US' : selectedVoiceLang;
-
         recog.onresult = (event: any) => {
           let interim = '';
           let final = '';
@@ -210,9 +211,6 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
 
           const currentText = final || interim;
           setVoiceTranscript(currentText);
-
-          const det = detectLanguage(currentText);
-          setDetectedVoiceLang(det.name);
 
           if (final.trim()) {
             handleVoiceUserMessage(final.trim());
@@ -263,7 +261,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
     return () => {
       stopVoiceCapture();
     };
-  }, [activeMode, isOpen, selectedVoiceLang]);
+  }, [activeMode, isOpen]);
 
   // Send message from voice input
   const handleVoiceUserMessage = async (transcript: string) => {
@@ -289,7 +287,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
     try {
       const config = await getSystemConfig();
       const openAIKey = getEffectiveOpenAIApiKey(config);
-      const voiceTimber = config?.ai_config?.realtime_voice || 'verse';
+      const voiceTimber = config?.ai_config?.realtime_voice || 'alloy';
 
       const fullResponse = await streamEnterpriseChat({
         messages: updated,
@@ -415,77 +413,48 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 antialiased font-sans select-none print:hidden">
-      {/* ── Floating Launcher Trigger ── */}
-      <AnimatePresence>
-        {!isOpen && (
-          <div className="flex flex-col items-end gap-1.5">
-            {/* Hi speech bubble */}
-            <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.94 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.94 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setIsOpen(true)}
-              className="relative bg-white text-slate-800 px-3.5 py-1.5 rounded-2xl shadow-xl border border-slate-200/90 text-xs font-semibold flex items-center gap-2 cursor-pointer hover:shadow-2xl hover:border-[#58051E]/40 transition-all group"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span className="font-bold text-[#58051E]">Ferex AI</span>
-              <span className="text-slate-600 font-medium">Copilot & Voice</span>
-              <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-white border-r border-b border-slate-200/90 rotate-45" />
-            </motion.div>
-
-            {/* Glowing Wine Round Launcher */}
-            <motion.button
-              initial={{ scale: 0.85, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.85, opacity: 0 }}
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-              onClick={() => setIsOpen(true)}
-              className="group relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-[#58051E] via-[#722F37] to-[#800020] text-white shadow-2xl hover:shadow-[#58051E]/50 border-2 border-white cursor-pointer transition-all duration-300"
-              aria-label="Open Ferex AI Copilot"
-              title="Open Ferex AI Copilot"
-            >
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center p-1.5 shadow-inner transition-transform duration-300 group-hover:scale-105">
-                <Logo variant="icon" size="sm" color="#58051E" />
-              </div>
-              <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-xs" />
-            </motion.button>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Main Chatbot Drawer Modal ── */}
+    <>
+      {/* ── BACKDROP WHEN SIDEBAR IS OPEN ── */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 30, scale: 0.96 }}
-            transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-            className={`flex flex-col bg-white rounded-3xl shadow-2xl border border-slate-200/90 overflow-hidden transition-all duration-300 ${
-              isExpanded
-                ? 'w-[95vw] sm:w-[720px] h-[88vh] fixed bottom-4 right-4 sm:bottom-6 sm:right-6'
-                : 'w-[92vw] sm:w-[460px] h-[620px] max-h-[88vh]'
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.3 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsOpen(false)}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 transition-opacity"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── DOCKED SIDEBAR COPILOT DRAWER (Sliding in from Right / Docked beside dashboard) ── */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.aside
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+            className={`fixed top-0 right-0 bottom-0 h-screen bg-white z-50 shadow-2xl border-l border-slate-200 flex flex-col justify-between overflow-hidden select-none transition-all duration-300 ${
+              isExpanded ? 'w-full sm:w-[680px] lg:w-[740px]' : 'w-full sm:w-[420px] lg:w-[460px]'
             }`}
           >
             {/* ── Header ── */}
             <div className="bg-gradient-to-r from-[#58051E] via-[#6f0335] to-[#800020] text-white p-3.5 flex items-center justify-between border-b border-white/10 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-xs shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8.5 h-8.5 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-xs shrink-0">
                   <Logo variant="icon" size="sm" color="#58051E" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold tracking-tight text-white">Ferex AI Intelligence</h3>
-                    <span className="text-[9px] font-black uppercase bg-white/20 px-2 py-0.5 rounded-full text-white/95">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-xs font-black tracking-tight text-white uppercase">Ferex AI Copilot</h3>
+                    <span className="text-[8.5px] font-black uppercase bg-white/20 px-2 py-0.5 rounded-full text-white/95">
                       {role.replace('_', ' ')}
                     </span>
                   </div>
-                  <p className="text-[10px] text-white/80 font-medium flex items-center gap-1.5 mt-0.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span>Realtime Multi-Language Intelligence</span>
+                  <p className="text-[10px] text-white/80 font-medium flex items-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Live Enterprise Intelligence</span>
                   </p>
                 </div>
               </div>
@@ -493,7 +462,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
               {/* Mode Toggle & Window Controls */}
               <div className="flex items-center gap-1.5">
                 {/* Switch between Chat & Voice */}
-                <div className="bg-black/25 p-1 rounded-xl flex items-center gap-0.5 border border-white/15">
+                <div className="bg-black/25 p-0.5 rounded-xl flex items-center gap-0.5 border border-white/15">
                   <button
                     onClick={() => setActiveMode('chat')}
                     className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
@@ -512,7 +481,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                         ? 'bg-white text-[#58051E] shadow-xs animate-pulse'
                         : 'text-white/80 hover:text-white hover:bg-white/10'
                     }`}
-                    title="Realtime 3D Voice Mode"
+                    title="Realtime Voice Mode"
                   >
                     <Mic className="w-3.5 h-3.5" />
                   </button>
@@ -523,7 +492,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                   title="Reset conversation"
                   className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-xl transition-all cursor-pointer"
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <RotateCcw className="w-3.5 h-3.5" />
                 </button>
 
                 <button
@@ -531,12 +500,12 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                   title={isExpanded ? 'Collapse' : 'Expand'}
                   className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-xl transition-all cursor-pointer hidden sm:block"
                 >
-                  {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                 </button>
 
                 <button
                   onClick={() => setIsOpen(false)}
-                  title="Close"
+                  title="Close Sidebar"
                   className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-xl transition-all cursor-pointer"
                 >
                   <X className="w-4 h-4" />
@@ -544,61 +513,38 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
               </div>
             </div>
 
-            {/* ── MODE 1: REALTIME VOICE VIEW WITH 3D TORUS & WHITE CAP ── */}
+            {/* ── MODE 1: REALTIME VOICE VIEW WITH 10 WHITE SOUNDWAVE BARS & CAP ── */}
             {activeMode === 'voice' ? (
-              <div className="flex-1 flex flex-col items-center justify-between p-4 bg-gradient-to-b from-[#180108] via-[#2A020E] to-[#120005] text-white relative overflow-hidden">
-                {/* Top Status & Language Bar */}
-                <div className="w-full flex items-center justify-between z-10 text-xs">
-                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/15">
-                    <Globe2 className="w-3.5 h-3.5 text-[#E6CA9E]" />
-                    <span className="font-bold text-[11px] text-slate-200">
-                      Spoken: <strong className="text-white">{detectedVoiceLang}</strong>
-                    </span>
-                  </div>
-
-                  <select
-                    value={selectedVoiceLang}
-                    onChange={(e) => setSelectedVoiceLang(e.target.value)}
-                    className="bg-white/10 backdrop-blur-md border border-white/15 text-white font-bold text-[11px] px-2.5 py-1.5 rounded-2xl focus:outline-none cursor-pointer"
-                  >
-                    <option value="auto" className="bg-[#2A020E]">🌐 Auto-Detect Language</option>
-                    <option value="ml-IN" className="bg-[#2A020E]">🇮🇳 Malayalam (മലയാളം)</option>
-                    <option value="en-US" className="bg-[#2A020E]">🇺🇸 English (US/UK)</option>
-                    <option value="ta-IN" className="bg-[#2A020E]">🇮🇳 Tamil (தமிழ்)</option>
-                    <option value="pl-PL" className="bg-[#2A020E]">🇵🇱 Polish (Polski)</option>
-                    <option value="hi-IN" className="bg-[#2A020E]">🇮🇳 Hindi (हिन्दी)</option>
-                  </select>
-                </div>
-
-                {/* 3D Wave Visualizer with Centered White Graduation Cap */}
-                <div className="w-full flex-1 flex items-center justify-center my-2">
+              <div className="flex-1 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-[#180108] via-[#2A020E] to-[#120005] text-white relative overflow-hidden">
+                {/* Voice Visualizer with Centered White Graduation Cap & 10 White Sound Bars */}
+                <div className="w-full flex-1 flex items-center justify-center my-auto">
                   <AIVoiceVisualizer
                     isListening={isListening}
                     isSpeaking={isSpeaking}
                     audioLevel={audioLevel}
-                    className="w-full h-full max-h-[340px]"
+                    className="w-full max-w-sm"
                   />
                 </div>
 
                 {/* Live Speech Subtitles / Transcript */}
-                <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-3 text-center z-10 min-h-[56px] flex flex-col items-center justify-center">
-                  <p className="text-xs text-white/90 font-medium line-clamp-2">
+                <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-3.5 text-center z-10 min-h-[56px] flex flex-col items-center justify-center mb-2">
+                  <p className="text-xs text-white/95 font-medium line-clamp-2">
                     {voiceTranscript || (
-                      <span className="text-white/50 italic flex items-center justify-center gap-1.5">
+                      <span className="text-white/60 italic flex items-center justify-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                        Listening... Speak in Malayalam, English, Tamil, Polish, or Hindi
+                        Listening...
                       </span>
                     )}
                   </p>
                   {isSpeaking && (
-                    <span className="text-[10px] font-bold text-[#E6CA9E] mt-1 flex items-center gap-1">
-                      <Volume2 className="w-3 h-3 animate-bounce" /> Speaking response...
+                    <span className="text-[10px] font-bold text-white mt-1 flex items-center gap-1">
+                      <Volume2 className="w-3 h-3 animate-bounce" /> Speaking...
                     </span>
                   )}
                 </div>
 
                 {/* Voice Controls Bar */}
-                <div className="w-full flex items-center justify-center gap-4 mt-3 z-10">
+                <div className="w-full flex items-center justify-center gap-4 mt-2 z-10">
                   <button
                     onClick={() => setIsMuted(!isMuted)}
                     className={`p-3 rounded-full border backdrop-blur-md transition-all cursor-pointer ${
@@ -739,7 +685,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                       type="text"
                       value={inputMessage}
                       onChange={(e) => setInputMessage(e.target.value)}
-                      placeholder="Type whatever in Malayalam, English, Tamil, Polish..."
+                      placeholder="Type whatever to get instant answers..."
                       disabled={isLoading}
                       className="flex-1 h-11 px-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#58051E] disabled:opacity-50 transition-all"
                     />
@@ -748,7 +694,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                       type="button"
                       onClick={() => setActiveMode('voice')}
                       className="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-[#58051E]/10 text-slate-700 hover:text-[#58051E] flex items-center justify-center transition-all cursor-pointer shrink-0"
-                      title="Switch to 3D Realtime Voice Mode"
+                      title="Switch to Realtime Voice Mode"
                     >
                       <Mic className="w-4 h-4" />
                     </button>
@@ -770,17 +716,17 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
 
                   <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium px-1 mt-2">
                     <span className="flex items-center gap-1 text-[#58051E] font-semibold">
-                      <ShieldCheck className="w-3 h-3" /> Ferex Universal Enterprise AI
+                      <ShieldCheck className="w-3 h-3" /> Ferex Enterprise AI
                     </span>
                     <span>All Subsidiaries Connected</span>
                   </div>
                 </div>
               </div>
             )}
-          </motion.div>
+          </motion.aside>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 };
 

@@ -148,38 +148,57 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
             }
 
             return (
-              <Link
-                key={item.name}
-                to={item.path}
-                onClick={() => setIsMobileOpen(false)}
-                className={`relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-semibold transition-all duration-150 group
-                  ${isActive
-                    ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
-              >
-                <Icon
-                  className={`w-4 h-4 shrink-0 transition-transform duration-150 ${
-                    isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'
-                  }`}
-                />
-                <span className="truncate flex-1 flex items-center justify-between">
-                  <span className="truncate">{item.name}</span>
-                </span>
-
-                {badge && (
-                  <span
-                    className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 ${
-                      isActive
-                        ? 'bg-[#58051E]/15 text-[#58051E]'
-                        : item.name === 'Client Tickets'
-                        ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                        : 'bg-rose-50 text-rose-700 border border-rose-200'
+              <React.Fragment key={item.name}>
+                <Link
+                  to={item.path}
+                  onClick={() => setIsMobileOpen(false)}
+                  className={`relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-semibold transition-all duration-150 group
+                    ${isActive
+                      ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
+                >
+                  <Icon
+                    className={`w-4 h-4 shrink-0 transition-transform duration-150 ${
+                      isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'
                     }`}
-                  >
-                    {badge}
+                  />
+                  <span className="truncate flex-1 flex items-center justify-between">
+                    <span className="truncate">{item.name}</span>
                   </span>
+
+                  {badge && (
+                    <span
+                      className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 ${
+                        isActive
+                          ? 'bg-[#58051E]/15 text-[#58051E]'
+                          : item.name === 'Client Tickets'
+                          ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                      }`}
+                    >
+                      {badge}
+                    </span>
+                  )}
+                </Link>
+
+                {/* AI Copilot Sidebar Launcher directly below Dashboard */}
+                {item.path === '/digital/pm/dashboard' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileOpen(false);
+                      window.dispatchEvent(new CustomEvent('ferex_open_ai_sidebar'));
+                    }}
+                    className="w-full relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-bold transition-all duration-150 bg-gradient-to-r from-[#58051E]/12 via-[#58051E]/6 to-transparent text-[#58051E] hover:bg-[#58051E]/18 border border-[#58051E]/20 text-left cursor-pointer group my-1"
+                  >
+                    <Sparkles className="w-4 h-4 shrink-0 text-[#58051E] group-hover:scale-110 transition-transform" />
+                    <span className="truncate flex-1 font-bold">AI Copilot</span>
+                    <span className="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-[#58051E] text-white shrink-0 tracking-wider">
+                      LIVE AI
+                    </span>
+                  </button>
                 )}
-              </Link>
+              </React.Fragment>
             );
           })}
         </nav>

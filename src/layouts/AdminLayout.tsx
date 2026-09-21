@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
   CreditCard, Headphones, BarChart3, Crown, GraduationCap,
-  Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane, FileText, Home
+  Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane, FileText, Home, Sparkles
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -166,37 +166,56 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             const badgeValue = item.badge;
 
             return (
-              <Link
-                key={item.name}
-                to={item.path}
-                onClick={() => setIsMobileOpen(false)}
-                className={`relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-semibold transition-all duration-150 group
-                  ${isActive
-                    ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
-              >
-                <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'}`} />
-                <span className="truncate flex-1 flex items-center justify-between">
-                  <span className="truncate">{item.name}</span>
-                  {item.hasUpdate && (
-                    <span className="relative flex h-1.5 w-1.5 ml-1.5 shrink-0">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+              <React.Fragment key={item.name}>
+                <Link
+                  to={item.path}
+                  onClick={() => setIsMobileOpen(false)}
+                  className={`relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-semibold transition-all duration-150 group
+                    ${isActive
+                      ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
+                >
+                  <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'}`} />
+                  <span className="truncate flex-1 flex items-center justify-between">
+                    <span className="truncate">{item.name}</span>
+                    {item.hasUpdate && (
+                      <span className="relative flex h-1.5 w-1.5 ml-1.5 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                      </span>
+                    )}
+                  </span>
+
+                  {(badgeValue || item.badge) && (
+                    <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 transition-colors ${isActive
+                        ? 'bg-[#58051E]/15 text-[#58051E]'
+                        : item.badge === 'VERIFY' || item.badge === 'REVIEW'
+                          ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                      }`}>
+                      {badgeValue || item.badge}
                     </span>
                   )}
-                </span>
+                </Link>
 
-                {(badgeValue || item.badge) && (
-                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 transition-colors ${isActive
-                      ? 'bg-[#58051E]/15 text-[#58051E]'
-                      : item.badge === 'VERIFY' || item.badge === 'REVIEW'
-                        ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                        : 'bg-rose-50 text-rose-700 border border-rose-200'
-                    }`}>
-                    {badgeValue || item.badge}
-                  </span>
+                {/* AI Copilot Sidebar Launcher directly below Dashboard */}
+                {item.path === '/admin/dashboard' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileOpen(false);
+                      window.dispatchEvent(new CustomEvent('ferex_open_ai_sidebar'));
+                    }}
+                    className="w-full relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-bold transition-all duration-150 bg-gradient-to-r from-[#58051E]/12 via-[#58051E]/6 to-transparent text-[#58051E] hover:bg-[#58051E]/18 border border-[#58051E]/20 text-left cursor-pointer group my-1"
+                  >
+                    <Sparkles className="w-4 h-4 shrink-0 text-[#58051E] group-hover:scale-110 transition-transform" />
+                    <span className="truncate flex-1 font-bold">AI Copilot</span>
+                    <span className="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-[#58051E] text-white shrink-0 tracking-wider">
+                      LIVE AI
+                    </span>
+                  </button>
                 )}
-              </Link>
+              </React.Fragment>
             );
           })}
         </nav>

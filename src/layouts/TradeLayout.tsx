@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, PackageCheck, FolderArchive,
   CreditCard, MessageSquare, Bell, User, Settings, LogOut,
   Search, Menu, X, ArrowUpRight, ListTodo, LifeBuoy, Mail,
-  Ship, ShieldCheck, DollarSign
+  Ship, ShieldCheck, DollarSign, Sparkles
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -228,33 +228,55 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                 const Icon = item.icon;
 
                 return (
-                  <Link
-                    key={item.name}
-                    to={item.path}
-                    onClick={() => setIsMobileOpen(false)}
-                    className={`relative flex items-center rounded-xl h-8.5 px-2.5 transition-all duration-150 text-xs font-semibold group
-                      ${isActive 
-                        ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]' 
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
-                    title={isCollapsed ? item.name : undefined}
-                  >
-                    <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isCollapsed ? 'mx-auto' : 'mr-2.5'} ${isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'}`} />
+                  <React.Fragment key={item.name}>
+                    <Link
+                      to={item.path}
+                      onClick={() => setIsMobileOpen(false)}
+                      className={`relative flex items-center rounded-xl h-8.5 px-2.5 transition-all duration-150 text-xs font-semibold group
+                        ${isActive 
+                          ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]' 
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
+                      title={isCollapsed ? item.name : undefined}
+                    >
+                      <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isCollapsed ? 'mx-auto' : 'mr-2.5'} ${isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'}`} />
 
-                    {!isCollapsed && (
-                      <span className="truncate flex-1">
-                        {item.name}
-                      </span>
-                    )}
+                      {!isCollapsed && (
+                        <span className="truncate flex-1">
+                          {item.name}
+                        </span>
+                      )}
 
-                    {!isCollapsed && item.badge && (
-                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 transition-colors
-                        ${isActive
-                          ? 'bg-[#58051E]/15 text-[#58051E]'
-                          : 'bg-slate-100 text-slate-500'}`}>
-                        {item.badge}
-                      </span>
+                      {!isCollapsed && item.badge && (
+                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 transition-colors
+                          ${isActive
+                            ? 'bg-[#58051E]/15 text-[#58051E]'
+                            : 'bg-slate-100 text-slate-500'}`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+
+                    {/* AI Copilot Sidebar Launcher directly below Dashboard */}
+                    {item.path === '/trade/dashboard' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMobileOpen(false);
+                          window.dispatchEvent(new CustomEvent('ferex_open_ai_sidebar'));
+                        }}
+                        className="w-full relative flex items-center rounded-xl h-8.5 px-2.5 transition-all duration-150 text-xs font-bold bg-gradient-to-r from-[#58051E]/12 via-[#58051E]/6 to-transparent text-[#58051E] hover:bg-[#58051E]/18 border border-[#58051E]/20 text-left cursor-pointer group my-1"
+                        title={isCollapsed ? "Ferex AI Copilot" : undefined}
+                      >
+                        <Sparkles className={`w-4 h-4 shrink-0 transition-transform duration-150 text-[#58051E] group-hover:scale-110 ${isCollapsed ? 'mx-auto' : 'mr-2.5'}`} />
+                        {!isCollapsed && <span className="truncate flex-1 font-bold">AI Copilot</span>}
+                        {!isCollapsed && (
+                          <span className="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-[#58051E] text-white shrink-0 tracking-wider">
+                            LIVE AI
+                          </span>
+                        )}
+                      </button>
                     )}
-                  </Link>
+                  </React.Fragment>
                 );
               })}
             </div>
