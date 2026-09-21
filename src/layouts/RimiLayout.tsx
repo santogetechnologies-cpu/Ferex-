@@ -12,6 +12,7 @@ import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
+import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
 
 interface RimiLayoutProps {
   children: React.ReactNode;
@@ -437,6 +438,9 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
           </>
         )}
       </AnimatePresence>
+
+      {/* ── RIMI FROZEN FMCG ADMIN AI COPILOT & REALTIME VOICE ── */}
+      <EnterpriseAIChatbot role="rimi_admin" />
     </div>
   );
 };

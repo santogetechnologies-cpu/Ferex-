@@ -423,6 +423,30 @@ export interface OrganizationBrandingConfig {
   accent_gold: string;
 }
 
+export interface AIConfiguration {
+  openai_api_key?: string;
+  openai_model?: string;
+  realtime_voice?: string;
+  transcription_model?: string;
+  noise_reduction?: 'far_field' | 'near_field' | 'off' | string;
+  turn_detection_type?: 'server_vad' | 'none' | string;
+  vad_threshold?: number;
+  vad_prefix_padding_ms?: number;
+  vad_silence_duration_ms?: number;
+  audio_sample_rate?: number;
+  audio_format?: string;
+  output_modalities?: string[];
+  reasoning_effort?: 'low' | 'medium' | 'high' | string;
+  max_output_tokens?: string | number;
+  openrouter_api_key?: string;
+  openrouter_model?: string;
+  system_instructions?: string;
+  auto_detect_language?: boolean;
+  default_language?: string;
+  enable_realtime_voice?: boolean;
+  enable_chat_fallback?: boolean;
+}
+
 export interface SystemCustomizationConfig {
   id: string;
   updated_at: string;
@@ -432,6 +456,7 @@ export interface SystemCustomizationConfig {
   document_policy: DocumentPolicyConfig;
   visa_mock: VisaMockConfig;
   features: FeatureTogglesConfig;
+  ai_config?: AIConfiguration;
 }
 
 

@@ -11,9 +11,10 @@ import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { useSystemConfig } from '../hooks/useSystemConfig';
-import { getAllPaymentsAdmin } from '../lib/api/payments';
 import { isSuperAdmin } from '../lib/roleRouter';
+import { getAllPaymentsAdmin } from '../lib/api/payments';
 import { AppSwitcher } from '../components/AppSwitcher';
+import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
@@ -64,7 +65,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     const checkPendingPayments = async () => {
       try {
         const allPays = await getAllPaymentsAdmin();
-        const pending = allPays.filter(p => p.status === 'Pending Verification' || p.status === 'Pending');
+        const pending = allPays.filter((p: any) => p.status === 'Pending Verification' || p.status === 'Pending');
         setPendingPaymentsCount(pending.length);
       } catch (err) { }
     };
@@ -405,6 +406,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </motion.div>
         </main>
       </div>
+
+      {/* ── FEREX EDUCATION ADMIN AI COPILOT & REALTIME VOICE ── */}
+      <EnterpriseAIChatbot role="education_admin" />
     </div>
   );
 };

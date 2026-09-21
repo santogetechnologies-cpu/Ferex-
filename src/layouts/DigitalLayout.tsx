@@ -14,6 +14,7 @@ import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
 import { getDigitalNotifications } from '../lib/api/digital';
 import { supabase } from '../lib/supabase';
+import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
 
 interface DigitalLayoutProps {
   children: React.ReactNode;
@@ -541,6 +542,9 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
           </>
         )}
       </AnimatePresence>
+
+      {/* ── FEREX DIGITAL AGENCY ADMIN AI COPILOT & REALTIME VOICE ── */}
+      <EnterpriseAIChatbot role="digital_admin" />
     </div>
   );
 };

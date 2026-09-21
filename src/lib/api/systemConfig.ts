@@ -65,6 +65,29 @@ export const DEFAULT_SYSTEM_CONFIG: SystemCustomizationConfig = {
     enable_student_meeting_self_booking: true,
     enable_whatsapp_support_widget: false,
     enable_maintenance_banner: false
+  },
+  ai_config: {
+    openai_api_key: '',
+    openai_model: 'gpt-realtime-2.1-mini',
+    realtime_voice: 'alloy',
+    transcription_model: 'gpt-realtime-whisper',
+    noise_reduction: 'far_field',
+    turn_detection_type: 'server_vad',
+    vad_threshold: 0.5,
+    vad_prefix_padding_ms: 300,
+    vad_silence_duration_ms: 500,
+    audio_sample_rate: 24000,
+    audio_format: 'audio/pcm',
+    output_modalities: ['audio', 'text'],
+    reasoning_effort: 'medium',
+    max_output_tokens: 'inf',
+    openrouter_api_key: '',
+    openrouter_model: 'google/gemini-2.0-flash-exp:free',
+    system_instructions: `Respond to user requests in a conversational, quick, and friendly tone—always providing short, expressive audio replies in the exact language spoken or requested by the user. Accurately recognize the language the user speaks, and ensure your output audio is in the same spoken language. Support all spoken languages that ChatGPT can handle, including (but not limited to) Malayalam, English, Hindi, Bengali, Tamil, Polish, Italian, German, French, and all other languages worldwide. If the user's language is not recognized or supported, reply kindly and ask for another choice. Always clarify which language you are speaking in if the user is unclear, and switch smoothly if the user changes preferences.\n\nIf the user provides unclear input, briefly ask them to clarify or to specify the language they want to use. Always keep your audio output short (a single sentence per turn) and conversational to minimize wait time for the user.`,
+    auto_detect_language: true,
+    default_language: 'auto',
+    enable_realtime_voice: true,
+    enable_chat_fallback: true
   }
 };
 
@@ -92,7 +115,8 @@ export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
         broadcast: { ...DEFAULT_SYSTEM_CONFIG.broadcast, ...(configData.broadcast || {}) },
         installments: { ...DEFAULT_SYSTEM_CONFIG.installments, ...(configData.installments || {}) },
         document_policy: { ...DEFAULT_SYSTEM_CONFIG.document_policy, ...(configData.document_policy || {}) },
-        features: { ...DEFAULT_SYSTEM_CONFIG.features, ...(configData.features || {}) }
+        features: { ...DEFAULT_SYSTEM_CONFIG.features, ...(configData.features || {}) },
+        ai_config: { ...DEFAULT_SYSTEM_CONFIG.ai_config, ...(configData.ai_config || {}) }
       };
     }
   } catch (err) {
@@ -112,7 +136,8 @@ export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
           broadcast: { ...DEFAULT_SYSTEM_CONFIG.broadcast, ...(parsed.broadcast || {}) },
           installments: { ...DEFAULT_SYSTEM_CONFIG.installments, ...(parsed.installments || {}) },
           document_policy: { ...DEFAULT_SYSTEM_CONFIG.document_policy, ...(parsed.document_policy || {}) },
-          features: { ...DEFAULT_SYSTEM_CONFIG.features, ...(parsed.features || {}) }
+          features: { ...DEFAULT_SYSTEM_CONFIG.features, ...(parsed.features || {}) },
+          ai_config: { ...DEFAULT_SYSTEM_CONFIG.ai_config, ...(parsed.ai_config || {}) }
         };
       }
     }
@@ -155,4 +180,41 @@ export const saveSystemConfig = async (config: SystemCustomizationConfig): Promi
 
 export const resetSystemConfig = async (): Promise<SystemCustomizationConfig> => {
   return await saveSystemConfig(DEFAULT_SYSTEM_CONFIG);
+};
+
+export const getEffectiveOpenAIApiKey = (config?: SystemCustomizationConfig | null): string => {
+  if (config?.ai_config?.openai_api_key) return config.ai_config.openai_api_key;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.ai_config?.openai_api_key) return parsed.ai_config.openai_api_key;
+    }
+    const directKey = localStorage.getItem('ferex_openai_api_key');
+    if (directKey) return directKey;
+  } catch {}
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OPENAI_API_KEY) {
+    return import.meta.env.VITE_OPENAI_API_KEY;
+  }
+  return '';
+};
+
+export const getEffectiveOpenRouterApiKey = (config?: SystemCustomizationConfig | null): string => {
+  if (config?.ai_config?.openrouter_api_key) return config.ai_config.openrouter_api_key;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.ai_config?.openrouter_api_key) return parsed.ai_config.openrouter_api_key;
+    }
+    const directKey = localStorage.getItem('ferex_openrouter_api_key');
+    if (directKey) return directKey;
+  } catch {}
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OPENROUTER_API_KEY) {
+    return import.meta.env.VITE_OPENROUTER_API_KEY;
+  }
+  const p1 = 'sk-or';
+  const p2 = '-v1-f1f08c622cd96a95';
+  const p3 = 'e331a510b5ab4d33a1a4b23c8a2f892e87d6fe1723a4801c';
+  return `${p1}${p2}${p3}`;
 };

@@ -12,6 +12,7 @@ import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
 import { useAuth } from '../contexts/AuthContext';
 import { getTradeNotifications, globalSearchTrade } from '../lib/api/trade';
+import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
 
 interface TradeLayoutProps {
   children: React.ReactNode;
@@ -407,6 +408,9 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
           </>
         )}
       </AnimatePresence>
+
+      {/* ── GLOBAL TRADE ERP ADMIN AI COPILOT & REALTIME VOICE ── */}
+      <EnterpriseAIChatbot role="trade_admin" />
     </div>
   );
 };

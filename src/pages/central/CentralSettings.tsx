@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, Save, RefreshCw, CheckCircle2, Shield,
-  Globe, Mail, Building, Bell, Lock, Database,
-  Check, AlertTriangle, Key, Activity, Laptop, Zap
+  Building, Database, Check, AlertTriangle, Key,
+  Zap, Bot, Sparkles, Eye, EyeOff, Mic, Volume2,
+  Globe2, Cpu, ArrowRight, HelpCircle
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -14,13 +15,17 @@ import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 import { ToastNotification } from '../../components/ToastNotification';
 
 export const CentralSettings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'branding' | 'subsidiaries' | 'security' | 'database' | 'password'>('branding');
+  const [activeTab, setActiveTab] = useState<'ai' | 'branding' | 'database' | 'password'>('ai');
   const [config, setConfig] = useState<SystemCustomizationConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
   const [dbLatency, setDbLatency] = useState<number | null>(null);
   const [testingDb, setTestingDb] = useState(false);
+  const [testingOpenAI, setTestingOpenAI] = useState(false);
+  const [openAITestStatus, setOpenAITestStatus] = useState<{ success?: boolean; message?: string } | null>(null);
+  const [showOpenAIKey, setShowOpenAIKey] = useState(false);
+  const [showOpenRouterKey, setShowOpenRouterKey] = useState(false);
   const [lastSaved, setLastSaved] = useState('');
 
   const showToastMsg = (msg: string) => {
@@ -54,7 +59,7 @@ export const CentralSettings: React.FC = () => {
       const updated = await saveSystemConfig(config);
       setConfig(updated);
       setLastSaved(new Date().toLocaleTimeString());
-      showToastMsg('Enterprise settings synchronized with Supabase database!');
+      showToastMsg('Enterprise AI & System Settings synchronized with Supabase database!');
     } catch {
       showToastMsg('Failed to synchronize settings with database.');
     } finally {
@@ -83,6 +88,37 @@ export const CentralSettings: React.FC = () => {
     }
   };
 
+  const handleTestOpenAI = async () => {
+    const key = config?.ai_config?.openai_api_key?.trim();
+    if (!key) {
+      setOpenAITestStatus({ success: false, message: 'Please enter an OpenAI API key first.' });
+      return;
+    }
+    setTestingOpenAI(true);
+    setOpenAITestStatus(null);
+    try {
+      const res = await fetch('https://api.openai.com/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${key}`
+        }
+      });
+      if (res.ok) {
+        setOpenAITestStatus({ success: true, message: 'OpenAI API key authenticated successfully!' });
+        showToastMsg('OpenAI Realtime API key verified successfully!');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setOpenAITestStatus({
+          success: false,
+          message: err?.error?.message || `Authentication failed (Status ${res.status})`
+        });
+      }
+    } catch (err: any) {
+      setOpenAITestStatus({ success: false, message: err?.message || 'Connection error to OpenAI' });
+    } finally {
+      setTestingOpenAI(false);
+    }
+  };
+
   if (loading || !config) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400">
@@ -91,6 +127,41 @@ export const CentralSettings: React.FC = () => {
       </div>
     );
   }
+
+  const aiConfig = config.ai_config || {
+    openai_api_key: '',
+    openai_model: 'gpt-realtime-2.1-mini',
+    realtime_voice: 'alloy',
+    transcription_model: 'gpt-realtime-whisper',
+    noise_reduction: 'far_field',
+    turn_detection_type: 'server_vad',
+    vad_threshold: 0.5,
+    vad_prefix_padding_ms: 300,
+    vad_silence_duration_ms: 500,
+    audio_sample_rate: 24000,
+    audio_format: 'audio/pcm',
+    output_modalities: ['audio', 'text'],
+    reasoning_effort: 'medium',
+    max_output_tokens: 'inf',
+    openrouter_api_key: '',
+    openrouter_model: 'google/gemini-2.0-flash-exp:free',
+    system_instructions: `Respond to user requests in a conversational, quick, and friendly tone—always providing short, expressive audio replies in the exact language spoken or requested by the user. Accurately recognize the language the user speaks, and ensure your output audio is in the same spoken language. Support all spoken languages that ChatGPT can handle, including (but not limited to) Malayalam, English, Hindi, Bengali, Tamil, Polish, Italian, German, French, and all other languages worldwide. If the user's language is not recognized or supported, reply kindly and ask for another choice. Always clarify which language you are speaking in if the user is unclear, and switch smoothly if the user changes preferences.\n\nIf the user provides unclear input, briefly ask them to clarify or to specify the language they want to use. Always keep your audio output short (a single sentence per turn) and conversational to minimize wait time for the user.`,
+    auto_detect_language: true,
+    default_language: 'auto',
+    enable_realtime_voice: true,
+    enable_chat_fallback: true
+  };
+
+  const handleResetPromptTemplate = () => {
+    setConfig({
+      ...config,
+      ai_config: {
+        ...aiConfig,
+        system_instructions: `Respond to user requests in a conversational, quick, and friendly tone—always providing short, expressive audio replies in the exact language spoken or requested by the user. Accurately recognize the language the user speaks, and ensure your output audio is in the same spoken language. Support all spoken languages that ChatGPT can handle, including (but not limited to) Malayalam, English, Hindi, Bengali, Tamil, Polish, Italian, German, French, and all other languages worldwide. If the user's language is not recognized or supported, reply kindly and ask for another choice. Always clarify which language you are speaking in if the user is unclear, and switch smoothly if the user changes preferences.\n\nIf the user provides unclear input, briefly ask them to clarify or to specify the language they want to use. Always keep your audio output short (a single sentence per turn) and conversational to minimize wait time for the user.`
+      }
+    });
+    showToastMsg('Realtime Audio Prompt Template loaded!');
+  };
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -109,7 +180,7 @@ export const CentralSettings: React.FC = () => {
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Global governance parameters, branding, security policies, and 4-subsidiary operational switches stored in Supabase.
+            Configure OpenAI Realtime Audio & Voice intelligence, Server VAD, noise reduction, and multi-language speech.
           </p>
         </div>
 
@@ -123,7 +194,7 @@ export const CentralSettings: React.FC = () => {
             size="sm"
             onClick={() => handleSave()}
             disabled={saving}
-            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs"
+            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs cursor-pointer"
           >
             <Save className={`w-3.5 h-3.5 mr-1.5 ${saving ? 'animate-spin' : ''}`} />
             {saving ? 'Syncing to DB...' : 'Save & Sync DB'}
@@ -134,9 +205,8 @@ export const CentralSettings: React.FC = () => {
       {/* Navigation Tabs */}
       <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-slate-200/80 overflow-x-auto scrollbar-none shadow-xs">
         {[
+          { id: 'ai', label: 'AI Realtime Voice & Session Studio', icon: Bot },
           { id: 'branding', label: 'Enterprise Identity & Branding', icon: Building },
-          { id: 'subsidiaries', label: 'Subsidiary & Gateway Switches', icon: Globe },
-          { id: 'security', label: 'Security & Session Policy', icon: Shield },
           { id: 'database', label: 'Database Health & Telemetry', icon: Database },
           { id: 'password', label: 'Super Admin Password', icon: Key },
         ].map(tab => {
@@ -159,7 +229,412 @@ export const CentralSettings: React.FC = () => {
         })}
       </div>
 
-      {/* Tab 1: Enterprise Branding */}
+      {/* Tab 1: AI & Realtime Configuration */}
+      {activeTab === 'ai' && (
+        <div className="space-y-6">
+          {/* OpenAI Realtime API Key & Authentication */}
+          <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#58051E]" />
+                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                    OpenAI Realtime API Credential Configuration
+                  </h2>
+                </div>
+                <p className="text-xs font-medium text-slate-400 mt-0.5">
+                  Used for low-latency WebRTC/WebSocket audio streaming (<a href="https://developers.openai.com/api/docs/models/gpt-realtime-2.1-mini" target="_blank" rel="noreferrer" className="text-[#58051E] font-bold underline">gpt-realtime-2.1-mini</a>) and client secret creation.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleTestOpenAI}
+                disabled={testingOpenAI}
+                className="text-xs font-bold border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
+              >
+                <Zap className={`w-3.5 h-3.5 mr-1 text-[#58051E] ${testingOpenAI ? 'animate-spin' : ''}`} />
+                {testingOpenAI ? 'Testing Key...' : 'Verify OpenAI Key'}
+              </Button>
+            </div>
+
+            {/* Test Status Feedback */}
+            {openAITestStatus && (
+              <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                openAITestStatus.success
+                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                  : 'bg-rose-50 text-rose-800 border border-rose-200'
+              }`}>
+                {openAITestStatus.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />}
+                <span>{openAITestStatus.message}</span>
+              </div>
+            )}
+
+            {/* OpenAI API Key with Eye Toggle */}
+            <div>
+              <label className="font-bold text-slate-800 flex items-center justify-between mb-1.5 text-xs">
+                <span className="flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-[#58051E]" />
+                  OpenAI API Key (Bearer Secret Token)
+                </span>
+                <span className="text-[11px] text-slate-400 font-normal">
+                  View and edit your key anytime with the toggle below
+                </span>
+              </label>
+              <div className="relative flex items-center">
+                <input
+                  type={showOpenAIKey ? 'text' : 'password'}
+                  value={aiConfig.openai_api_key || ''}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    ai_config: { ...aiConfig, openai_api_key: e.target.value }
+                  })}
+                  placeholder="sk-proj-..."
+                  className="w-full p-3 pr-11 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E] text-slate-800 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOpenAIKey(!showOpenAIKey)}
+                  className="absolute right-3 p-1 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
+                  title={showOpenAIKey ? 'Hide API Key' : 'View API Key'}
+                >
+                  {showOpenAIKey ? <EyeOff className="w-4 h-4 text-[#58051E]" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Realtime Session Parameters (Matching OpenAI Playground) */}
+          <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-6">
+            <div className="border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-[#58051E]" />
+                <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                  Model & Audio Architecture Settings
+                </h2>
+              </div>
+              <p className="text-xs font-medium text-slate-400 mt-0.5">
+                Full parameter controls for OpenAI Realtime session creation (`/v1/realtime/client_secrets`).
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+              {/* Realtime Model */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 block">Realtime Model</label>
+                <input
+                  type="text"
+                  value={aiConfig.openai_model || 'gpt-realtime-2.1-mini'}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    ai_config: { ...aiConfig, openai_model: e.target.value }
+                  })}
+                  placeholder="gpt-realtime-2.1-mini"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                />
+                <div className="flex flex-wrap gap-1">
+                  {['gpt-realtime-2.1-mini', 'gpt-4o-realtime-preview', 'gpt-4o-mini'].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setConfig({
+                        ...config,
+                        ai_config: { ...aiConfig, openai_model: m }
+                      })}
+                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                        aiConfig.openai_model === m ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* User Transcript Model */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 block">User Transcript Model</label>
+                <input
+                  type="text"
+                  value={aiConfig.transcription_model || 'gpt-realtime-whisper'}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    ai_config: { ...aiConfig, transcription_model: e.target.value }
+                  })}
+                  placeholder="gpt-realtime-whisper"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                />
+                <p className="text-[10px] text-slate-400">Audio input transcription model.</p>
+              </div>
+
+              {/* Reasoning Effort */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 block">Reasoning Effort</label>
+                <select
+                  value={aiConfig.reasoning_effort || 'medium'}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    ai_config: { ...aiConfig, reasoning_effort: e.target.value }
+                  })}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                >
+                  <option value="low">Low (Fastest Audio Response)</option>
+                  <option value="medium">Medium (Balanced Speed & Reasoning)</option>
+                  <option value="high">High (Maximum Reasoning Depth)</option>
+                </select>
+                <p className="text-[10px] text-slate-400">Controls inference depth per audio turn.</p>
+              </div>
+
+              {/* Realtime Spoken Voice */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 block">Realtime Spoken Voice</label>
+                <select
+                  value={aiConfig.realtime_voice || 'alloy'}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    ai_config: { ...aiConfig, realtime_voice: e.target.value }
+                  })}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                >
+                  <option value="alloy">Alloy (Clear & Direct)</option>
+                  <option value="verse">Verse (Natural & Expressive)</option>
+                  <option value="shimmer">Shimmer (Warm & Academic)</option>
+                  <option value="echo">Echo (Crisp & Focused)</option>
+                  <option value="coral">Coral (Friendly & Bright)</option>
+                  <option value="sage">Sage (Calm & Professional)</option>
+                  <option value="ash">Ash (Gentle & Smooth)</option>
+                  <option value="ballad">Ballad (Melodic & Soft)</option>
+                </select>
+                <p className="text-[10px] text-slate-400">Generated audio voice personality.</p>
+              </div>
+
+              {/* Noise Reduction */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 block">Acoustic Noise Reduction</label>
+                <select
+                  value={aiConfig.noise_reduction || 'far_field'}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    ai_config: { ...aiConfig, noise_reduction: e.target.value }
+                  })}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                >
+                  <option value="far_field">Far Field (Dynamic Ambient & Echo Cancellation)</option>
+                  <option value="near_field">Near Field (Headset / Close Mic)</option>
+                  <option value="off">Off (Raw Audio Stream)</option>
+                </select>
+                <p className="text-[10px] text-slate-400">Filters microphone background noise.</p>
+              </div>
+
+              {/* Max Output Tokens */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 block">Max Output Tokens</label>
+                <input
+                  type="text"
+                  value={aiConfig.max_output_tokens || 'inf'}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    ai_config: { ...aiConfig, max_output_tokens: e.target.value }
+                  })}
+                  placeholder="inf (Unlimited)"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                />
+                <p className="text-[10px] text-slate-400">Use 'inf' for unlimited conversational length.</p>
+              </div>
+            </div>
+
+            {/* Turn Detection (Server VAD) Settings */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase">
+                    Turn Detection & Server VAD (Voice Activity Detection)
+                  </h3>
+                  <p className="text-[11px] font-medium text-slate-500">
+                    Automatically detects when user stops speaking to deliver instant audio responses.
+                  </p>
+                </div>
+                <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                  Server VAD Active
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    VAD Threshold: <span className="text-[#58051E] font-black">{aiConfig.vad_threshold ?? 0.5}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="0.9"
+                    step="0.05"
+                    value={aiConfig.vad_threshold ?? 0.5}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      ai_config: { ...aiConfig, vad_threshold: parseFloat(e.target.value) }
+                    })}
+                    className="w-full accent-[#58051E] cursor-pointer"
+                  />
+                  <span className="text-[10px] text-slate-400">Default: 0.5</span>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Prefix Padding: <span className="text-[#58051E] font-black">{aiConfig.vad_prefix_padding_ms ?? 300} ms</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={aiConfig.vad_prefix_padding_ms ?? 300}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      ai_config: { ...aiConfig, vad_prefix_padding_ms: parseInt(e.target.value, 10) || 300 }
+                    })}
+                    className="w-full p-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800"
+                  />
+                  <span className="text-[10px] text-slate-400">Audio buffer before speech (ms)</span>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Silence Duration: <span className="text-[#58051E] font-black">{aiConfig.vad_silence_duration_ms ?? 500} ms</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={aiConfig.vad_silence_duration_ms ?? 500}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      ai_config: { ...aiConfig, vad_silence_duration_ms: parseInt(e.target.value, 10) || 500 }
+                    })}
+                    className="w-full p-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800"
+                  />
+                  <span className="text-[10px] text-slate-400">Silence required to trigger reply (ms)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Audio Format & Modalities */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <span className="font-bold text-slate-800 block mb-0.5">Input & Output Audio Format</span>
+                <span className="font-mono font-bold text-xs text-[#58051E] block">audio/pcm @ 24,000 Hz</span>
+                <p className="text-[10px] text-slate-400 mt-1">High-fidelity 24kHz PCM mono audio encoding.</p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <span className="font-bold text-slate-800 block mb-0.5">Output Modalities</span>
+                <span className="font-mono font-bold text-xs text-[#58051E] block">["audio", "text"]</span>
+                <p className="text-[10px] text-slate-400 mt-1">Simultaneous natural voice and text transcript stream.</p>
+              </div>
+            </div>
+          </Card>
+
+          {/* System Instructions & Realtime Prompt */}
+          <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-[#58051E]" />
+                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                    Realtime Audio Prompt & Multi-Language Instructions
+                  </h2>
+                </div>
+                <p className="text-xs font-medium text-slate-400 mt-0.5">
+                  Directs the AI to recognize any language spoken (Malayalam, English, Tamil, Polish, Hindi, etc.) and reply in that language.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleResetPromptTemplate}
+                className="text-xs font-bold border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1 text-[#58051E]" />
+                Load Realtime Audio Prompt Template
+              </Button>
+            </div>
+
+            <div>
+              <textarea
+                rows={7}
+                value={aiConfig.system_instructions || ''}
+                onChange={(e) => setConfig({
+                  ...config,
+                  ai_config: { ...aiConfig, system_instructions: e.target.value }
+                })}
+                placeholder="Realtime audio instructions..."
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-medium focus:bg-white focus:outline-none focus:border-[#58051E] text-slate-800"
+              />
+            </div>
+          </Card>
+
+          {/* OpenRouter Fallback Section */}
+          <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
+            <div className="border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Globe2 className="w-4 h-4 text-[#58051E]" />
+                <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                  OpenRouter Multi-Model Chat Fallback
+                </h2>
+              </div>
+              <p className="text-xs font-medium text-slate-400 mt-0.5">
+                Fast text chat streaming with automatic fallback to OpenAI if OpenRouter is unavailable.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              {/* OpenRouter Key with Eye Toggle */}
+              <div>
+                <label className="font-bold text-slate-800 flex items-center justify-between mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <Key className="w-3.5 h-3.5 text-slate-500" />
+                    OpenRouter API Key
+                  </span>
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type={showOpenRouterKey ? 'text' : 'password'}
+                    value={aiConfig.openrouter_api_key || ''}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      ai_config: { ...aiConfig, openrouter_api_key: e.target.value }
+                    })}
+                    placeholder="sk-or-v1-..."
+                    className="w-full p-2.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E] text-slate-800"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOpenRouterKey(!showOpenRouterKey)}
+                    className="absolute right-3 p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
+                    title={showOpenRouterKey ? 'Hide' : 'View'}
+                  >
+                    {showOpenRouterKey ? <EyeOff className="w-3.5 h-3.5 text-[#58051E]" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* OpenRouter Primary Model */}
+              <div>
+                <label className="font-bold text-slate-800 block mb-1.5">
+                  OpenRouter Default Model
+                </label>
+                <input
+                  type="text"
+                  value={aiConfig.openrouter_model || 'google/gemini-2.0-flash-exp:free'}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    ai_config: { ...aiConfig, openrouter_model: e.target.value }
+                  })}
+                  placeholder="google/gemini-2.0-flash-exp:free"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-medium focus:bg-white focus:outline-none focus:border-[#58051E] text-slate-800"
+                />
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Tab 2: Enterprise Branding */}
       {activeTab === 'branding' && (
         <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
           <div className="border-b border-slate-100 pb-3">
@@ -231,113 +706,7 @@ export const CentralSettings: React.FC = () => {
         </Card>
       )}
 
-      {/* Tab 2: Subsidiary Switches */}
-      {activeTab === 'subsidiaries' && (
-        <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
-          <div className="border-b border-slate-100 pb-3">
-            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Subsidiary Feature Controls & Maintenance Modes</h2>
-            <p className="text-xs font-medium text-slate-400 mt-0.5">Toggle live application modules and maintenance states dynamically across all 4 subsidiaries.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black text-slate-900">Direct Course Applications</p>
-                <p className="text-[11px] font-medium text-slate-500 mt-0.5">Allow students to self-apply to European partner universities.</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={config.features.enable_direct_course_application}
-                onChange={(e) => setConfig({ ...config, features: { ...config.features, enable_direct_course_application: e.target.checked } })}
-                className="w-5 h-5 accent-[#58051E] cursor-pointer"
-              />
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black text-slate-900">Student Meeting Self-Booking</p>
-                <p className="text-[11px] font-medium text-slate-500 mt-0.5">Enable Google Meet automated calendar booking for applicants.</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={config.features.enable_student_meeting_self_booking}
-                onChange={(e) => setConfig({ ...config, features: { ...config.features, enable_student_meeting_self_booking: e.target.checked } })}
-                className="w-5 h-5 accent-[#58051E] cursor-pointer"
-              />
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black text-slate-900">Landing Tuition Calculator</p>
-                <p className="text-[11px] font-medium text-slate-500 mt-0.5">Show public study-abroad cost estimation tool.</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={config.features.enable_landing_calculator}
-                onChange={(e) => setConfig({ ...config, features: { ...config.features, enable_landing_calculator: e.target.checked } })}
-                className="w-5 h-5 accent-[#58051E] cursor-pointer"
-              />
-            </div>
-
-            <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-200/70 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black text-rose-900">Emergency Maintenance Banner</p>
-                <p className="text-[11px] font-medium text-rose-600 mt-0.5">Broadcast system-wide maintenance alert across all 4 portals.</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={config.features.enable_maintenance_banner}
-                onChange={(e) => setConfig({ ...config, features: { ...config.features, enable_maintenance_banner: e.target.checked } })}
-                className="w-5 h-5 accent-rose-700 cursor-pointer"
-              />
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Tab 3: Security & Session Policy */}
-      {activeTab === 'security' && (
-        <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
-          <div className="border-b border-slate-100 pb-3">
-            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Central Security & Access Governance</h2>
-            <p className="text-xs font-medium text-slate-400 mt-0.5">Session timeouts, multi-factor authentication requirements, and password strength policies.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-2">
-              <span className="font-bold text-slate-800 block">Admin Session Idle Timeout</span>
-              <select className="w-full p-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700">
-                <option value="15">15 Minutes</option>
-                <option value="30">30 Minutes (Recommended)</option>
-                <option value="60">60 Minutes</option>
-                <option value="240">4 Hours</option>
-              </select>
-              <p className="text-[10px] text-slate-400">Forces automatic logout after period of inactivity.</p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-2">
-              <span className="font-bold text-slate-800 block">MFA Enforcement Scope</span>
-              <select className="w-full p-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700">
-                <option value="superadmin">Central Super Admins Only</option>
-                <option value="all_admins">All 4 Division Admins</option>
-                <option value="all_staff">All Admins & Operations Staff</option>
-              </select>
-              <p className="text-[10px] text-slate-400">Requires 2-Factor Authentication via TOTP / Authenticator app.</p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-2">
-              <span className="font-bold text-slate-800 block">Password Complexity Policy</span>
-              <select className="w-full p-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700">
-                <option value="standard">Standard (Min 6 Chars)</option>
-                <option value="strong">High Security (8+ Chars, Digits & Symbols)</option>
-              </select>
-              <p className="text-[10px] text-slate-400">Enforced during user provisioning and password resets.</p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Tab 4: Database Health & Telemetry */}
+      {/* Tab 3: Database Health & Telemetry */}
       {activeTab === 'database' && (
         <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -350,7 +719,7 @@ export const CentralSettings: React.FC = () => {
               onClick={handleTestDatabase}
               disabled={testingDb}
               variant="outline"
-              className="text-xs font-bold text-slate-700 bg-slate-50"
+              className="text-xs font-bold text-slate-700 bg-slate-50 cursor-pointer"
             >
               <Zap className={`w-3.5 h-3.5 mr-1.5 ${testingDb ? 'animate-spin text-[#58051E]' : ''}`} />
               {testingDb ? 'Testing Connection...' : 'Ping Supabase DB'}
@@ -381,7 +750,7 @@ export const CentralSettings: React.FC = () => {
         </Card>
       )}
 
-      {/* Tab 5: Change Super Admin Password */}
+      {/* Tab 4: Change Super Admin Password */}
       {activeTab === 'password' && (
         <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-4">
           <div className="border-b border-slate-100 pb-3">
@@ -401,3 +770,5 @@ export const CentralSettings: React.FC = () => {
     </div>
   );
 };
+
+export default CentralSettings;

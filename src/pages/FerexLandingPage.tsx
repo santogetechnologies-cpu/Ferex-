@@ -11,7 +11,7 @@ import { useDestinations } from '../hooks/useDestinations';
 import { getDashboardRoute } from '../lib/roleRouter';
 import type { University } from '../lib/types';
 import { Logo } from '../components/Logo';
-import { AIChatbot } from '../components/AIChatbot';
+import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
 
 // Student images provided by the user
 import heroStudentTransparent from '../assets/hero-student-transparent.png';
@@ -1673,8 +1673,8 @@ export const FerexLandingPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── 24/7 OPENROUTER AI ADMISSIONS CHATBOT ── */}
-      <AIChatbot mode="landing" />
+      {/* ── 24/7 FEREX AI ADMISSIONS COPILOT & REALTIME VOICE ── */}
+      <EnterpriseAIChatbot role="guest" />
     </div>
   );
 };

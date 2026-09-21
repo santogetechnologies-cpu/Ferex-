@@ -12,7 +12,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useSystemConfig } from '../hooks/useSystemConfig';
 import { supabase } from '../lib/supabase';
 import { normalizeRole, getDashboardRoute } from '../lib/roleRouter';
-import { AIChatbot } from '../components/AIChatbot';
+import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -544,9 +544,9 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
         </main>
       </div>
 
-      {/* ── 24/7 OPENROUTER AI STUDENT COPILOT ── */}
-      <AIChatbot
-        mode="student"
+      {/* ── 24/7 FEREX AI STUDENT COPILOT & REALTIME VOICE ── */}
+      <EnterpriseAIChatbot
+        role="student"
         studentContext={{
           studentName: studentDetail.name || profile?.full_name || 'Student',
           email: studentDetail.email || profile?.email || user?.email,
