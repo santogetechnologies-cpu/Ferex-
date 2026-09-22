@@ -61,7 +61,21 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
 
   // Role Badges & Clean Welcome Text (no language enumeration)
   const getRoleWelcome = (): string => {
-    const name = profile?.full_name || user?.email?.split('@')[0] || 'Administrator';
+    let name = profile?.full_name || user?.email?.split('@')[0] || 'Administrator';
+    if (name.toUpperCase() === 'CENTRAL ADMIN' && role !== 'central_admin') {
+      const roleNameMap: Record<UserRoleType, string> = {
+        trade_admin: 'Global Trade Lead',
+        education_admin: 'Education Admissions Lead',
+        rimi_admin: 'Rimi FMCG Lead',
+        digital_admin: 'Digital Agency Lead',
+        digital_pm: 'Digital Project Manager',
+        central_admin: 'Central Super Admin',
+        student: 'Student',
+        guest: 'Guest',
+      };
+      name = roleNameMap[role] || 'Administrator';
+    }
+
     switch (role) {
       case 'central_admin':
         return `Welcome **${name}** (Central Super Admin HQ).\n\nI am your **Ferex Enterprise Copilot**. I have live access to the entire Ferex ecosystem:\n- **Ferex Education**: Universities, applications, visa telemetry\n- **Global Trade ERP**: Shipments, manifests, customs invoices\n- **Rimi Frozen FMCG**: Cold chain warehouses, stock & logistics\n- **Ferex Digital Agency**: Software projects, client accounts\n\nHow may I assist your enterprise operations today?`;
