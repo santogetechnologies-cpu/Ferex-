@@ -49,15 +49,28 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
   const [audioLevel, setAudioLevel] = useState(0);
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [isMuted, setIsMuted] = useState(false);
+  const [selectedVoiceLang, setSelectedVoiceLang] = useState('auto');
 
   // Audio / Speech Recognition Refs
   const recognitionRef = useRef<any>(null);
+  const isSpeakingRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number | null>(null);
 
   const storageKey = `ferex_ai_copilot_${role}_${user?.id || 'guest'}`;
+
+  const VOICE_LANG_OPTIONS = [
+    { code: 'auto', label: 'Auto (Global / All Languages)' },
+    { code: 'ml-IN', label: 'Malayalam (മലയാളം)' },
+    { code: 'ta-IN', label: 'Tamil (தமிழ்)' },
+    { code: 'hi-IN', label: 'Hindi (हिन्दी)' },
+    { code: 'en-IN', label: 'English (India)' },
+    { code: 'en-US', label: 'English (US)' },
+    { code: 'pl-PL', label: 'Polish (Polski)' },
+    { code: 'ar-SA', label: 'Arabic (العربية)' },
+  ];
 
   // Role Badges & Clean Welcome Text (no language enumeration)
   const getRoleWelcome = (): string => {
@@ -178,6 +191,9 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
   // ── Speech & Web Audio Setup for Realtime Voice ──
   const startVoiceCapture = async () => {
     try {
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach(t => t.stop());
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       micStreamRef.current = stream;
 
@@ -208,11 +224,19 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
       // Initialize Browser SpeechRecognition
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
+        if (recognitionRef.current) {
+          try { recognitionRef.current.stop(); } catch {}
+        }
+
         const recog = new SpeechRecognition();
         recog.continuous = true;
         recog.interimResults = true;
+        recog.lang = selectedVoiceLang === 'auto' ? 'en-IN' : selectedVoiceLang;
 
         recog.onresult = (event: any) => {
+          // Ignore microphone inputs while the assistant is speaking to avoid feedback loop
+          if (isSpeakingRef.current) return;
+
           let interim = '';
           let final = '';
           for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -232,7 +256,14 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
         };
 
         recog.onerror = (err: any) => {
-          console.warn('SpeechRecognition event notice:', err);
+          console.warn('SpeechRecognition notice:', err);
+        };
+
+        recog.onend = () => {
+          // Auto restart if still in voice mode and not unmounted
+          if (activeMode === 'voice' && isOpen && !isSpeakingRef.current) {
+            try { recog.start(); } catch {}
+          }
         };
 
         recog.start();
@@ -263,6 +294,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
     }
     setIsListening(false);
     setIsSpeaking(false);
+    isSpeakingRef.current = false;
     setAudioLevel(0);
   };
 
@@ -275,7 +307,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
     return () => {
       stopVoiceCapture();
     };
-  }, [activeMode, isOpen]);
+  }, [activeMode, isOpen, selectedVoiceLang]);
 
   // Send message from voice input
   const handleVoiceUserMessage = async (transcript: string) => {
@@ -327,12 +359,19 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
       if (activeMode === 'voice' || isFromVoice) {
         if (!isMuted && fullResponse) {
           setIsSpeaking(true);
+          isSpeakingRef.current = true;
           await speakTextWithLanguage(
             fullResponse,
             openAIKey,
             voiceTimber,
-            () => setIsSpeaking(true),
-            () => setIsSpeaking(false)
+            () => {
+              setIsSpeaking(true);
+              isSpeakingRef.current = true;
+            },
+            () => {
+              setIsSpeaking(false);
+              isSpeakingRef.current = false;
+            }
           );
         }
       }
@@ -530,6 +569,22 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
             {/* ── MODE 1: REALTIME VOICE VIEW WITH 10 WHITE SOUNDWAVE BARS & CAP ── */}
             {activeMode === 'voice' ? (
               <div className="flex-1 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-[#180108] via-[#2A020E] to-[#120005] text-white relative overflow-hidden">
+                {/* Spoken Language Selector Bar */}
+                <div className="w-full flex items-center justify-between gap-2 z-10 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/15 text-xs">
+                  <span className="text-[11px] font-bold text-white/80 shrink-0">Voice Language:</span>
+                  <select
+                    value={selectedVoiceLang}
+                    onChange={(e) => setSelectedVoiceLang(e.target.value)}
+                    className="bg-black/40 text-white border border-white/20 rounded-lg px-2 py-1 text-[11px] font-bold focus:outline-none focus:border-[#E6CA9E] cursor-pointer"
+                  >
+                    {VOICE_LANG_OPTIONS.map((lang) => (
+                      <option key={lang.code} value={lang.code} className="bg-slate-900 text-white">
+                        {lang.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Voice Visualizer with Centered White Graduation Cap & 10 White Sound Bars */}
                 <div className="w-full flex-1 flex items-center justify-center my-auto">
                   <AIVoiceVisualizer

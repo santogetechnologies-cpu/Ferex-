@@ -119,7 +119,35 @@ export const CentralSettings: React.FC = () => {
     }
   };
 
+  const handleSaveOpenAIKey = async () => {
+    if (!config) return;
+    setSaving(true);
+    try {
+      const updated = await saveSystemConfig(config);
+      setConfig(updated);
+      setLastSaved(new Date().toLocaleTimeString());
+      showToastMsg('OpenAI Realtime API Key saved & activated successfully!');
+    } catch {
+      showToastMsg('Failed to save OpenAI API Key.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClearOpenAIKey = async () => {
+    if (!config) return;
+    const updatedConfig = {
+      ...config,
+      ai_config: { ...config.ai_config, openai_api_key: '' }
+    };
+    setConfig(updatedConfig);
+    await saveSystemConfig(updatedConfig);
+    setOpenAITestStatus(null);
+    showToastMsg('OpenAI API Key removed.');
+  };
+
   if (loading || !config) {
+
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400">
         <RefreshCw className="w-8 h-8 animate-spin text-[#58051E] mb-3" />
@@ -234,28 +262,47 @@ export const CentralSettings: React.FC = () => {
         <div className="space-y-6">
           {/* OpenAI Realtime API Key & Authentication */}
           <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#58051E]" />
                   <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
                     OpenAI Realtime API Credential Configuration
                   </h2>
+                  {aiConfig.openai_api_key ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      ✓ Saved & Active
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                      Key Not Set
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs font-medium text-slate-400 mt-0.5">
                   Used for low-latency WebRTC/WebSocket audio streaming (<a href="https://developers.openai.com/api/docs/models/gpt-realtime-2.1-mini" target="_blank" rel="noreferrer" className="text-[#58051E] font-bold underline">gpt-realtime-2.1-mini</a>) and client secret creation.
                 </p>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleTestOpenAI}
-                disabled={testingOpenAI}
-                className="text-xs font-bold border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
-              >
-                <Zap className={`w-3.5 h-3.5 mr-1 text-[#58051E] ${testingOpenAI ? 'animate-spin' : ''}`} />
-                {testingOpenAI ? 'Testing Key...' : 'Verify OpenAI Key'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleTestOpenAI}
+                  disabled={testingOpenAI || !aiConfig.openai_api_key}
+                  className="text-xs font-bold border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
+                >
+                  <Zap className={`w-3.5 h-3.5 mr-1 text-[#58051E] ${testingOpenAI ? 'animate-spin' : ''}`} />
+                  {testingOpenAI ? 'Testing Key...' : 'Verify OpenAI Key'}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveOpenAIKey}
+                  disabled={saving}
+                  className="text-xs font-bold bg-[#58051E] hover:bg-[#430316] text-white cursor-pointer shadow-xs"
+                >
+                  {saving ? 'Saving...' : 'Save API Key'}
+                </Button>
+              </div>
             </div>
 
             {/* Test Status Feedback */}
@@ -271,38 +318,115 @@ export const CentralSettings: React.FC = () => {
             )}
 
             {/* OpenAI API Key with Eye Toggle */}
-            <div>
-              <label className="font-bold text-slate-800 flex items-center justify-between mb-1.5 text-xs">
-                <span className="flex items-center gap-1.5">
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                <label className="font-bold text-slate-800 flex items-center gap-1.5">
                   <Key className="w-3.5 h-3.5 text-[#58051E]" />
                   OpenAI API Key (Bearer Secret Token)
-                </span>
-                <span className="text-[11px] text-slate-400 font-normal">
-                  View and edit your key anytime with the toggle below
-                </span>
-              </label>
+                </label>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-slate-400 font-normal">
+                    View, test, or update your key anytime
+                  </span>
+                  {aiConfig.openai_api_key && (
+                    <button
+                      type="button"
+                      onClick={handleClearOpenAIKey}
+                      className="text-[11px] text-rose-600 hover:text-rose-800 font-bold underline cursor-pointer"
+                    >
+                      Remove Key
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="relative flex items-center">
                 <input
                   type={showOpenAIKey ? 'text' : 'password'}
                   value={aiConfig.openai_api_key || ''}
-                  onChange={(e) => setConfig({
-                    ...config,
-                    ai_config: { ...aiConfig, openai_api_key: e.target.value }
-                  })}
-                  placeholder="sk-proj-..."
-                  className="w-full p-3 pr-11 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E] text-slate-800 transition-all"
+                  onChange={(e) => {
+                    const newKey = e.target.value.trim();
+                    setConfig({
+                      ...config,
+                      ai_config: { ...aiConfig, openai_api_key: newKey }
+                    });
+                    try {
+                      if (newKey) localStorage.setItem('ferex_openai_api_key', newKey);
+                      else localStorage.removeItem('ferex_openai_api_key');
+                    } catch {}
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSaveOpenAIKey();
+                    }
+                  }}
+                  placeholder="Paste your key here: sk-proj-..."
+                  className="w-full p-3 pr-24 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E] text-slate-800 transition-all shadow-inner"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowOpenAIKey(!showOpenAIKey)}
-                  className="absolute right-3 p-1 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
-                  title={showOpenAIKey ? 'Hide API Key' : 'View API Key'}
-                >
-                  {showOpenAIKey ? <EyeOff className="w-4 h-4 text-[#58051E]" /> : <Eye className="w-4 h-4" />}
-                </button>
+                <div className="absolute right-2.5 flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowOpenAIKey(!showOpenAIKey)}
+                    className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 rounded-lg cursor-pointer transition-colors"
+                    title={showOpenAIKey ? 'Hide API Key' : 'View API Key'}
+                  >
+                    {showOpenAIKey ? <EyeOff className="w-4 h-4 text-[#58051E]" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveOpenAIKey}
+                    disabled={saving || !aiConfig.openai_api_key}
+                    className="h-7 px-2.5 text-[10px] font-bold bg-[#58051E] hover:bg-[#430316] text-white cursor-pointer shadow-xs rounded-lg"
+                  >
+                    {saving ? 'Saving...' : 'Save'}
+                  </Button>
+                </div>
               </div>
+
+              {/* Status and Key Management Helper */}
+              {aiConfig.openai_api_key ? (
+                <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-emerald-900">API Key Configured & Ready: </span>
+                      <span className="font-mono text-[11px] text-emerald-700">
+                        {aiConfig.openai_api_key.length > 12
+                          ? `${aiConfig.openai_api_key.substring(0, 7)}••••••••••••${aiConfig.openai_api_key.slice(-4)}`
+                          : '••••••••••••'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOpenAIKey(true);
+                      }}
+                      className="text-[11px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                    >
+                      Edit Key
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={handleClearOpenAIKey}
+                      className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
+                    >
+                      Change / Replace
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl flex items-center gap-2 text-xs text-amber-800 font-medium">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Enter your OpenAI API secret key above and click <strong>Save</strong> to activate low-latency real-time voice & AI streaming.</span>
+                </div>
+              )}
             </div>
           </Card>
+
 
           {/* Realtime Session Parameters (Matching OpenAI Playground) */}
           <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-6">

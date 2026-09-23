@@ -94,6 +94,9 @@ export const DEFAULT_SYSTEM_CONFIG: SystemCustomizationConfig = {
 const STORAGE_KEY = 'ferex_system_customization_config';
 
 export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
+  // Check direct local key first
+  const directOpenAIKey = typeof localStorage !== 'undefined' ? localStorage.getItem('ferex_openai_api_key') || '' : '';
+
   // 1. Fetch from Supabase system_config table (single source of truth)
   try {
     const admin = await getAdminSupabaseClient();
@@ -102,13 +105,12 @@ export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
     const { data } = await client
       .from('system_config')
       .select('*')
-      .or('id.eq.ferex-sys-config-v1,key.eq.ferex_system_customization_config')
+      .eq('key', 'ferex_system_customization_config')
       .maybeSingle();
 
-    const configData = data?.config || data?.value;
+    const configData = data?.value || data?.config;
     if (configData && typeof configData === 'object') {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(configData)); } catch {}
-      return {
+      const mergedConfig: SystemCustomizationConfig = {
         ...DEFAULT_SYSTEM_CONFIG,
         ...configData,
         branding: { ...DEFAULT_SYSTEM_CONFIG.branding, ...(configData.branding || {}) },
@@ -116,8 +118,15 @@ export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
         installments: { ...DEFAULT_SYSTEM_CONFIG.installments, ...(configData.installments || {}) },
         document_policy: { ...DEFAULT_SYSTEM_CONFIG.document_policy, ...(configData.document_policy || {}) },
         features: { ...DEFAULT_SYSTEM_CONFIG.features, ...(configData.features || {}) },
-        ai_config: { ...DEFAULT_SYSTEM_CONFIG.ai_config, ...(configData.ai_config || {}) }
+        ai_config: {
+          ...DEFAULT_SYSTEM_CONFIG.ai_config,
+          ...(configData.ai_config || {}),
+          openai_api_key: configData.ai_config?.openai_api_key || directOpenAIKey || DEFAULT_SYSTEM_CONFIG.ai_config?.openai_api_key || ''
+        }
       };
+
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedConfig)); } catch {}
+      return mergedConfig;
     }
   } catch (err) {
     console.warn('[getSystemConfig DB notice]:', err);
@@ -137,11 +146,26 @@ export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
           installments: { ...DEFAULT_SYSTEM_CONFIG.installments, ...(parsed.installments || {}) },
           document_policy: { ...DEFAULT_SYSTEM_CONFIG.document_policy, ...(parsed.document_policy || {}) },
           features: { ...DEFAULT_SYSTEM_CONFIG.features, ...(parsed.features || {}) },
-          ai_config: { ...DEFAULT_SYSTEM_CONFIG.ai_config, ...(parsed.ai_config || {}) }
+          ai_config: {
+            ...DEFAULT_SYSTEM_CONFIG.ai_config,
+            ...(parsed.ai_config || {}),
+            openai_api_key: parsed.ai_config?.openai_api_key || directOpenAIKey || DEFAULT_SYSTEM_CONFIG.ai_config?.openai_api_key || ''
+          }
         };
       }
     }
   } catch {}
+
+
+  if (directOpenAIKey) {
+    return {
+      ...DEFAULT_SYSTEM_CONFIG,
+      ai_config: {
+        ...DEFAULT_SYSTEM_CONFIG.ai_config,
+        openai_api_key: directOpenAIKey
+      }
+    };
+  }
 
   return DEFAULT_SYSTEM_CONFIG;
 };
@@ -152,20 +176,47 @@ export const saveSystemConfig = async (config: SystemCustomizationConfig): Promi
     updated_at: new Date().toISOString()
   };
 
+  const apiKey = updated.ai_config?.openai_api_key?.trim() || '';
+
+  // Explicitly sync the OpenAI key to local storage
+  if (typeof localStorage !== 'undefined') {
+    try {
+      if (apiKey) {
+        localStorage.setItem('ferex_openai_api_key', apiKey);
+      } else {
+        localStorage.removeItem('ferex_openai_api_key');
+      }
+    } catch {}
+  }
+
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
 
-  // Persist to Supabase system_config
-  const { error } = await client.from('system_config').upsert({
-    id: updated.id || 'ferex-sys-config-v1',
-    key: 'ferex_system_customization_config',
-    config: updated,
-    value: updated,
-    updated_at: updated.updated_at
-  });
+  // Persist to Supabase system_config with key conflict target
+  try {
+    const { error } = await client.from('system_config').upsert({
+      key: 'ferex_system_customization_config',
+      value: updated,
+      updated_at: updated.updated_at
+    }, { onConflict: 'key' });
 
-  if (error) {
-    console.warn('[saveSystemConfig DB notice]:', error.message);
+    if (error) {
+      console.warn('[saveSystemConfig DB notice]:', error.message);
+      // Fallback: try update if row exists, or insert
+      const { error: updateError } = await client
+        .from('system_config')
+        .update({ value: updated, updated_at: updated.updated_at })
+        .eq('key', 'ferex_system_customization_config');
+      if (updateError) {
+        await client.from('system_config').insert({
+          key: 'ferex_system_customization_config',
+          value: updated,
+          updated_at: updated.updated_at
+        });
+      }
+    }
+  } catch (err: any) {
+    console.warn('[saveSystemConfig DB catch]:', err.message);
   }
 
   try {
@@ -177,6 +228,7 @@ export const saveSystemConfig = async (config: SystemCustomizationConfig): Promi
 
   return updated;
 };
+
 
 export const resetSystemConfig = async (): Promise<SystemCustomizationConfig> => {
   return await saveSystemConfig(DEFAULT_SYSTEM_CONFIG);
