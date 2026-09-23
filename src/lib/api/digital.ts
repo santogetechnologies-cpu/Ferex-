@@ -140,35 +140,49 @@ export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
   ];
 
   try {
+    const local = localStorage.getItem('ferex_digital_clients');
+    const localClients: DigitalClientRecord[] = local ? JSON.parse(local) : [];
+
     const { data, error } = await supabase
       .from('digital_clients')
       .select('*')
       .order('created_at', { ascending: false });
 
+    const clientMap = new Map<string, DigitalClientRecord>();
+
+    // 1. Seed official internal subsidiaries
+    for (const sub of officialInternalSubsidiaries) {
+      clientMap.set(sub.id || sub.company_name, sub);
+    }
+
+    // 2. Add local clients (preserves newly added leads before/during db sync)
+    for (const item of localClients) {
+      if (item && !item.is_deleted) {
+        clientMap.set(item.id || item.company_name, item);
+      }
+    }
+
+    // 3. Merge Supabase clients
     if (!error && Array.isArray(data) && data.length > 0) {
-      // Filter out deleted and legacy outdated mock names
       const filtered = data.filter((c: any) => 
         !c.is_deleted && 
         !c.company_name?.toLowerCase().includes('c tech') && 
         !c.company_name?.toLowerCase().includes('santoge digital')
       );
 
-      // Ensure all 4 official internal subsidiaries exist in list
-      const clientMap = new Map<string, DigitalClientRecord>();
-      for (const sub of officialInternalSubsidiaries) {
-        clientMap.set(sub.company_name, sub);
-      }
       for (const item of filtered) {
-        clientMap.set(item.company_name, item);
+        clientMap.set(item.id || item.company_name, item);
       }
-
-      const merged = Array.from(clientMap.values());
-      try { localStorage.setItem('ferex_digital_clients', JSON.stringify(merged)); } catch {}
-      return merged;
     }
 
-    return officialInternalSubsidiaries;
+    const merged = Array.from(clientMap.values());
+    try { localStorage.setItem('ferex_digital_clients', JSON.stringify(merged)); } catch {}
+    return merged;
   } catch {
+    try {
+      const local = localStorage.getItem('ferex_digital_clients');
+      if (local) return JSON.parse(local);
+    } catch {}
     return officialInternalSubsidiaries;
   }
 }
@@ -183,21 +197,27 @@ export async function createDigitalClient(client: {
   city?: string;
   client_type?: string;
   status?: string;
+  estimated_budget?: number;
+  total_revenue?: number;
   notes?: string;
   tags?: string[];
   created_by?: string;
 }) {
+  const newId = generateUUID();
+  const estimatedVal = Number(client.estimated_budget || client.total_revenue || 0);
+
   const payload: DigitalClientRecord = {
-    id: generateUUID(),
+    id: newId,
     company_name: client.company_name || client.name || '',
     contact_person: client.contact_person || '',
     email: client.email,
     phone: client.phone || '',
     industry: client.industry || '',
     city: client.city || '',
-    client_type: client.client_type || 'External',
-    status: client.status || 'Active',
-    total_revenue: 0,
+    client_type: (client.client_type || 'External') as any,
+    status: (client.status || 'Active') as any,
+    total_revenue: estimatedVal,
+    estimated_budget: estimatedVal,
     notes: client.notes || '',
     tags: client.tags || [],
     is_deleted: false,
@@ -210,7 +230,38 @@ export async function createDigitalClient(client: {
   const current = await getDigitalClients();
   const updated = [payload, ...current.filter(c => c.id !== payload.id)];
   try { localStorage.setItem('ferex_digital_clients', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_clients').insert(payload); } catch {}
+
+  // Attempt Supabase insert with schema resilience
+  try {
+    let res = await supabase.from('digital_clients').insert(payload);
+    if (res.error) {
+      // Retry without extended non-standard columns
+      const corePayload = {
+        id: payload.id,
+        company_name: payload.company_name,
+        contact_person: payload.contact_person,
+        email: payload.email,
+        phone: payload.phone,
+        industry: payload.industry,
+        status: payload.status,
+        total_revenue: payload.total_revenue,
+        created_at: payload.created_at,
+        updated_at: payload.updated_at
+      };
+      res = await supabase.from('digital_clients').insert(corePayload);
+      if (res.error) {
+        // Retry with minimal columns
+        await supabase.from('digital_clients').insert({
+          id: payload.id,
+          company_name: payload.company_name,
+          contact_person: payload.contact_person,
+          email: payload.email,
+          status: payload.status
+        });
+      }
+    }
+  } catch {}
+
   triggerLocalSync('ferex_digital_clients_change');
   return payload;
 }
@@ -248,8 +299,15 @@ export async function createDigitalLead(lead: {
   estimated_budget?: number;
   client_type?: 'Internal' | 'External';
 }) {
-  return createDigitalClient({ ...lead, status: 'Lead', client_type: lead.client_type || 'External' });
+  return createDigitalClient({
+    ...lead,
+    status: 'Lead',
+    client_type: lead.client_type || 'External',
+    estimated_budget: Number(lead.estimated_budget) || 0,
+    total_revenue: Number(lead.estimated_budget) || 0
+  });
 }
+
 
 
 export async function getDigitalProjects(filters?: {

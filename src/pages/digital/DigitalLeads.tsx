@@ -23,11 +23,11 @@ export const DigitalLeads: React.FC = () => {
         setLeads(data.map(d => ({
           id: d.id,
           company: d.company_name || 'Prospect Company',
-          contact: d.contact_person,
-          email: d.email,
+          contact: d.contact_person || 'Direct Contact',
+          email: d.email || '',
           service: d.industry || 'Web & App Development',
-          value: `₹${Number(d.estimated_budget || d.total_revenue || 850000).toLocaleString('en-IN')}`,
-          valueNum: Number(d.estimated_budget || d.total_revenue || 850000),
+          value: `₹${Number(d.estimated_budget ?? d.total_revenue ?? 0).toLocaleString('en-IN')}`,
+          valueNum: Number(d.estimated_budget ?? d.total_revenue ?? 0),
           status: 'Lead',
         })));
       } else {
@@ -62,19 +62,35 @@ export const DigitalLeads: React.FC = () => {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newLead.company) return;
-    await createDigitalLead({
-      company_name: newLead.company,
-      contact_person: newLead.contact,
-      email: newLead.email,
+    if (!newLead.company.trim()) return;
+
+    const valNum = Number(newLead.value) || 0;
+    const created = await createDigitalLead({
+      company_name: newLead.company.trim(),
+      contact_person: newLead.contact.trim() || 'Direct Contact',
+      email: newLead.email.trim(),
       industry: newLead.service,
-      estimated_budget: Number(newLead.value)
+      estimated_budget: valNum
     });
+
+    const newLeadItem = {
+      id: created.id,
+      company: created.company_name,
+      contact: created.contact_person,
+      email: created.email,
+      service: created.industry || newLead.service,
+      value: `₹${valNum.toLocaleString('en-IN')}`,
+      valueNum: valNum,
+      status: 'Lead',
+    };
+
+    setLeads(prev => [newLeadItem, ...prev.filter(l => l.id !== created.id)]);
     setShowAddModal(false);
     showToast(`Added lead ${newLead.company}`);
-    setNewLead({ company: '', contact: '', email: '', service: 'Web & App Development', value: 850000 });
+    setNewLead({ company: '', contact: '', email: '', service: 'Web & App Development', value: 0 });
     await loadData();
   };
+
 
   const handleConvertLead = async (lead: any) => {
     await updateDigitalClient(lead.id, { status: 'Active' });

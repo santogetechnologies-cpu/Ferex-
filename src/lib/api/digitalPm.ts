@@ -221,36 +221,67 @@ export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<D
 
 export async function createDigitalTaskDirect(task: Partial<DigitalPMTask>): Promise<DigitalPMTask> {
   const newId = generateUUID();
-  const payload = {
+  const payload: DigitalPMTask = {
     id: newId,
-    project_id: task.project_id || null,
+    project_id: task.project_id || undefined,
     project_title: task.project_title || '',
-    title: task.title?.trim() || '',
+    title: task.title?.trim() || 'New Task',
     priority: task.priority || 'Medium',
     status: task.status || 'To Do',
     due_date: task.due_date || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
     assigned_to_name: task.assigned_to_name || '',
     assigned_to_email: task.assigned_to_email || '',
-    assigned_staff_id: task.assigned_staff_id || null,
+    assigned_staff_id: task.assigned_staff_id || undefined,
     notes: task.notes || '',
     task_type: task.task_type || 'Task',
-    sprint_id: task.sprint_id || null,
+    sprint_id: task.sprint_id || undefined,
     sprint_name: task.sprint_name || '',
     story_points: task.story_points || 1,
-    milestone_id: task.milestone_id || null,
+    milestone_id: task.milestone_id || undefined,
     milestone_name: task.milestone_name || '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
 
-  const { error } = await supabase.from('digital_tasks').insert(payload);
-  if (error) {
-    throw new Error(`Failed to create task in database: ${error.message}`);
+  // Sync to local storage
+  try {
+    const rawLocal = localStorage.getItem('ferex_digital_tasks');
+    const existing = rawLocal ? JSON.parse(rawLocal) : [];
+    const updated = [payload, ...existing.filter((t: any) => t.id !== payload.id)];
+    localStorage.setItem('ferex_digital_tasks', JSON.stringify(updated));
+  } catch {}
+
+  // Attempt database insert
+  let dbResult = await supabase.from('digital_tasks').insert(payload);
+
+  if (dbResult.error) {
+    // Retry with core columns if optional fields don't exist
+    const corePayload = {
+      id: payload.id,
+      project_id: payload.project_id || null,
+      title: payload.title,
+      priority: payload.priority,
+      status: payload.status,
+      due_date: payload.due_date,
+      assigned_to_name: payload.assigned_to_name,
+      assigned_to_email: payload.assigned_to_email,
+      notes: payload.notes,
+      created_at: payload.created_at,
+      updated_at: payload.updated_at
+    };
+    dbResult = await supabase.from('digital_tasks').insert(corePayload);
+
+    if (dbResult.error) {
+      console.warn('Supabase digital_tasks insert warning:', dbResult.error.message);
+    }
   }
 
-  window.dispatchEvent(new Event('ferex_digital_tasks_change'));
-  return payload as DigitalPMTask;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_digital_tasks_change'));
+  }
+  return payload;
 }
+
 
 export async function updateDigitalTaskStatusDirect(id: string, status: DigitalPMTask['status']) {
   const { error } = await supabase

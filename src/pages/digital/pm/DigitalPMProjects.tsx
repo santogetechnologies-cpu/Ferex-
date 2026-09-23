@@ -2,13 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FolderKanban, Search, ChevronRight, X, Layers, Target,
-  Calendar, CheckCircle2, AlertCircle, FileText, ArrowUpRight
+  Calendar, CheckCircle2, AlertCircle, FileText, ArrowUpRight, Plus, Building2
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
+import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
-import { advanceDigitalProjectStage } from '../../../lib/api/digital';
+import {
+  advanceDigitalProjectStage,
+  getDigitalClients,
+  createDigitalProject,
+  type DigitalProjectStage
+} from '../../../lib/api/digital';
 import {
   getAssignedDigitalProjects,
   getAssignedDigitalMilestones,
@@ -22,8 +28,10 @@ export const DigitalPMProjects: React.FC = () => {
   const { user, profile } = useAuth();
 
   const [projects, setProjects] = useState<any[]>([]);
+  const [clientsList, setClientsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [toast, setToast] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
@@ -31,9 +39,30 @@ export const DigitalPMProjects: React.FC = () => {
   const [projectMilestones, setProjectMilestones] = useState<any[]>([]);
   const [projectDeliverables, setProjectDeliverables] = useState<any[]>([]);
 
+  // Create Project modal
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newProj, setNewProj] = useState({
+    title: '',
+    client_id: '',
+    client_name: '',
+    client_type: 'Internal' as 'Internal' | 'External',
+    service_category: 'Web & App Development',
+    scope: '',
+    budget: 500000,
+    payment_terms: 'Advance Payment',
+    start_date: new Date().toISOString().split('T')[0],
+    deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+    status: 'Briefing' as DigitalProjectStage
+  });
+
   // Add deliverable modal inside drawer
   const [showAddDeliv, setShowAddDeliv] = useState(false);
   const [newDeliv, setNewDeliv] = useState({ title: '', file_url: '', version: 'v1.0' });
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
 
   const pmIdentity = {
     id: user?.id,
@@ -46,28 +75,37 @@ export const DigitalPMProjects: React.FC = () => {
     setLoading(true);
     setErrorMsg('');
     try {
-      const { data, error } = await supabase
-        .from('digital_projects')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const [projRes, cList] = await Promise.all([
+        supabase
+          .from('digital_projects')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        getDigitalClients()
+      ]);
 
-      if (error) throw error;
+      setClientsList(cList || []);
+
+      if (projRes.error) throw projRes.error;
 
       // Filter for PM assigned projects
       const myEmail = (profile?.email || user?.email || '').toLowerCase().trim();
       const myName = (profile?.full_name || '').toLowerCase().trim();
       const myId = user?.id;
 
-      const filtered = (data || []).filter((p: any) => {
+      const filtered = (projRes.data || []).filter((p: any) => {
         if (!myEmail && !myName && !myId) return true;
         const pEmail = (p.assigned_staff_email || '').toLowerCase().trim();
         const pName = (p.assigned_staff_name || '').toLowerCase().trim();
         const pId = p.assigned_staff_id;
+        const pCreatedBy = (p.created_by || '').toLowerCase().trim();
 
         return (
           (myId && pId === myId) ||
           (myEmail && pEmail.includes(myEmail)) ||
-          (myName && pName.includes(myName))
+          (myName && pName.includes(myName)) ||
+          (myEmail && pCreatedBy.includes(myEmail)) ||
+          (myName && pCreatedBy.includes(myName)) ||
+          (!p.assigned_staff_name && !p.assigned_staff_email)
         );
       });
 
@@ -78,6 +116,7 @@ export const DigitalPMProjects: React.FC = () => {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     loadProjects();
@@ -140,8 +179,61 @@ export const DigitalPMProjects: React.FC = () => {
       setProjectDeliverables(prev => [created, ...prev]);
       setShowAddDeliv(false);
       setNewDeliv({ title: '', file_url: '', version: 'v1.0' });
+      showToast(`Added deliverable "${created.title}"`);
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Error creating deliverable: ${err.message}`);
+    }
+  };
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProj.title.trim()) {
+      showToast('Project title is required');
+      return;
+    }
+
+    try {
+      const selectedClient = clientsList.find(c => c.id === newProj.client_id);
+      const clientName = selectedClient?.company_name || newProj.client_name || 'FEREX Enterprise Client';
+
+      const created = await createDigitalProject({
+        title: newProj.title.trim(),
+        client_id: selectedClient?.id || newProj.client_id || '00000000-0000-0000-0000-000000000001',
+        client_name: clientName,
+        client_type: newProj.client_type,
+        service_category: newProj.service_category,
+        scope: newProj.scope,
+        description: newProj.scope,
+        budget: Number(newProj.budget) || 500000,
+        payment_terms: newProj.payment_terms,
+        start_date: newProj.start_date,
+        deadline: newProj.deadline,
+        status: newProj.status as any,
+        assigned_staff_id: user?.id,
+        assigned_staff_name: profile?.full_name || 'Digital Project Manager',
+        assigned_staff_email: profile?.email || user?.email || 'pm@ferex.com',
+        created_by: profile?.full_name || user?.email || 'Project Manager'
+      });
+
+      setProjects(prev => [created, ...prev.filter(p => p.id !== created.id)]);
+      setShowCreateModal(false);
+      showToast(`Created project "${newProj.title}" successfully`);
+      setNewProj({
+        title: '',
+        client_id: '',
+        client_name: '',
+        client_type: 'Internal',
+        service_category: 'Web & App Development',
+        scope: '',
+        budget: 500000,
+        payment_terms: 'Advance Payment',
+        start_date: new Date().toISOString().split('T')[0],
+        deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+        status: 'Briefing'
+      });
+      await loadProjects();
+    } catch (err: any) {
+      showToast(`Error creating project: ${err.message}`);
     }
   };
 
@@ -156,6 +248,8 @@ export const DigitalPMProjects: React.FC = () => {
 
   return (
     <div className="space-y-6 relative text-left pb-8">
+      <ToastNotification message={toast} onClose={() => setToast('')} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -172,7 +266,16 @@ export const DigitalPMProjects: React.FC = () => {
             End-to-end milestone tracking, deliverable sign-offs, and 6-stage lifecycle management.
           </p>
         </div>
+
+        <Button
+          size="sm"
+          onClick={() => setShowCreateModal(true)}
+          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-xs cursor-pointer"
+        >
+          <Plus className="w-4 h-4" /> Create Project
+        </Button>
       </div>
+
 
       {errorMsg && (
         <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
@@ -528,6 +631,195 @@ export const DigitalPMProjects: React.FC = () => {
           </>
         )}
       </AnimatePresence>
+
+      {/* Create Project Modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50"
+              onClick={() => setShowCreateModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 p-6 text-left max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center">
+                    <FolderKanban className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Create New Project</h3>
+                    <p className="text-[11px] text-slate-400">Initialize a project with client details, budget, and scope.</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateProject} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Project Title *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newProj.title}
+                    onChange={(e) => setNewProj({ ...newProj, title: e.target.value })}
+                    placeholder="e.g. Enterprise Client Mobile App Portal"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Client / Subsidiary *</label>
+                    <select
+                      value={newProj.client_id}
+                      onChange={(e) => {
+                        const selected = clientsList.find(c => c.id === e.target.value);
+                        setNewProj({
+                          ...newProj,
+                          client_id: e.target.value,
+                          client_name: selected?.company_name || '',
+                          client_type: (selected?.client_type as any) || 'Internal'
+                        });
+                      }}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    >
+                      <option value="">-- Select Client --</option>
+                      {clientsList.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.company_name} ({c.client_type || 'Internal'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Client Type</label>
+                    <select
+                      value={newProj.client_type}
+                      onChange={(e) => setNewProj({ ...newProj, client_type: e.target.value as any })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    >
+                      <option value="Internal">Internal Subsidiary</option>
+                      <option value="External">External Enterprise Client</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Service Category</label>
+                    <select
+                      value={newProj.service_category}
+                      onChange={(e) => setNewProj({ ...newProj, service_category: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    >
+                      <option value="Web & App Development">Web & App Development</option>
+                      <option value="UI/UX Design">UI/UX Design</option>
+                      <option value="Digital Marketing">Digital Marketing & Advertising</option>
+                      <option value="SEO & Performance">SEO & Performance Optimization</option>
+                      <option value="Branding & Identity">Branding & Corporate Identity</option>
+                      <option value="Cloud Infrastructure">Cloud Infrastructure & DevOps</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Initial Stage</label>
+                    <select
+                      value={newProj.status}
+                      onChange={(e) => setNewProj({ ...newProj, status: e.target.value as any })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    >
+                      {STAGES.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Scope & Description</label>
+                  <textarea
+                    rows={2}
+                    value={newProj.scope}
+                    onChange={(e) => setNewProj({ ...newProj, scope: e.target.value })}
+                    placeholder="Brief description of requirements, deliverables, tech stack..."
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Budget (₹ INR)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={10000}
+                      value={newProj.budget}
+                      onChange={(e) => setNewProj({ ...newProj, budget: Number(e.target.value) })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Payment Terms</label>
+                    <select
+                      value={newProj.payment_terms}
+                      onChange={(e) => setNewProj({ ...newProj, payment_terms: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    >
+                      <option value="Advance Payment">Advance Payment (30% Upfront)</option>
+                      <option value="Milestone-Based">Milestone-Based (Pay per milestone)</option>
+                      <option value="Full Payment">Full Payment (100% Upfront)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Start Date</label>
+                    <input
+                      type="date"
+                      value={newProj.start_date}
+                      onChange={(e) => setNewProj({ ...newProj, start_date: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Target Deadline</label>
+                    <input
+                      type="date"
+                      value={newProj.deadline}
+                      onChange={(e) => setNewProj({ ...newProj, deadline: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                  <Button variant="ghost" size="sm" type="button" onClick={() => setShowCreateModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" type="submit" className="bg-[#58051E] hover:bg-[#430316] text-white">
+                    Create Project
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
+

@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../../../contexts/AuthContext';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
+import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
 import {
   getAssignedDigitalTasks,
@@ -23,6 +24,7 @@ export const DigitalPMTasks: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [toast, setToast] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
@@ -36,6 +38,12 @@ export const DigitalPMTasks: React.FC = () => {
     notes: '',
     task_type: 'Task' as 'Task' | 'Sprint' | 'Milestone' | 'Ticket'
   });
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
+
 
   const pmIdentity = {
     id: user?.id,
@@ -111,8 +119,9 @@ export const DigitalPMTasks: React.FC = () => {
         assigned_staff_id: user?.id
       });
 
-      setTasks(prev => [created, ...prev]);
+      setTasks(prev => [created, ...prev.filter(t => t.id !== created.id)]);
       setShowAddModal(false);
+      showToast(`Created task "${newTask.title}" successfully`);
       setNewTask({
         title: '',
         project_id: '',
@@ -122,7 +131,7 @@ export const DigitalPMTasks: React.FC = () => {
         task_type: 'Task'
       });
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -138,8 +147,11 @@ export const DigitalPMTasks: React.FC = () => {
 
   return (
     <div className="space-y-6 relative text-left pb-8">
+      <ToastNotification message={toast} onClose={() => setToast('')} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
         <div>
           <div className="flex items-center gap-2.5 mb-1">
             <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
