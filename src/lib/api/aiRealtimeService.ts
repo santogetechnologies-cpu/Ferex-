@@ -512,13 +512,70 @@ export async function streamEnterpriseChat({
   const configuredPrimaryModel = config?.ai_config?.openrouter_model || 'google/gemini-2.0-flash-exp:free';
   const openAIModel = config?.ai_config?.openai_model || 'gpt-4o-mini';
 
-  // Multi-model failover pipeline
+  // 1. If OpenAI API Key is directly configured by user, prioritize OpenAI Direct Streaming for ultra low-latency
+  if (openAIKey) {
+    try {
+      const cleanModel = openAIModel.includes('realtime') ? 'gpt-4o-mini' : openAIModel;
+
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: cleanModel,
+          messages: fullMessages,
+          stream: true,
+          temperature: 0.6,
+          max_tokens: 1500,
+        }),
+      });
+
+      if (res.ok && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let complete = '';
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed === 'data: [DONE]') continue;
+            if (trimmed.startsWith('data: ')) {
+              try {
+                const parsed = JSON.parse(trimmed.slice(6));
+                const text = parsed.choices?.[0]?.delta?.content;
+                if (text) {
+                  complete += text;
+                  onChunk(text);
+                }
+              } catch {}
+            }
+          }
+        }
+
+        if (complete.trim()) {
+          return complete;
+        }
+      }
+    } catch (err) {
+      console.warn('[OpenAI Streaming Notice, trying OpenRouter fallback]:', err);
+    }
+  }
+
+  // 2. OpenRouter Models Failover Pipeline
   const modelsToTry = [
     configuredPrimaryModel,
     ...ENTERPRISE_AI_MODELS.filter(m => m !== configuredPrimaryModel),
   ];
 
-  // 1. Try OpenRouter Models in Priority Sequence
   if (openRouterKey) {
     for (let i = 0; i < modelsToTry.length; i++) {
       const activeModel = modelsToTry[i];
@@ -579,64 +636,6 @@ export async function streamEnterpriseChat({
     }
   }
 
-  // 2. Fallback to OpenAI Direct API
-  if (openAIKey) {
-    try {
-      const cleanModel = openAIModel.includes('realtime') ? 'gpt-4o-mini' : openAIModel;
-
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: cleanModel,
-          messages: fullMessages,
-          stream: true,
-          temperature: 0.7,
-          max_tokens: 1800,
-        }),
-      });
-
-      if (res.ok && res.body) {
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let complete = '';
-        let buffer = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed || trimmed === 'data: [DONE]') continue;
-            if (trimmed.startsWith('data: ')) {
-              try {
-                const parsed = JSON.parse(trimmed.slice(6));
-                const text = parsed.choices?.[0]?.delta?.content;
-                if (text) {
-                  complete += text;
-                  onChunk(text);
-                }
-              } catch {}
-            }
-          }
-        }
-
-        if (complete.trim()) {
-          return complete;
-        }
-      }
-    } catch (err) {
-      console.error('[OpenAI Fallback Error]:', err);
-    }
-  }
-
   // 3. Intelligent Local Query Engine (Offline/Network Failure Fallback)
   const lastUserMsg = messages[messages.length - 1]?.content || '';
   const answer = generateIntelligentLocalResponse(lastUserMsg, context);
@@ -651,19 +650,33 @@ export async function streamEnterpriseChat({
 export async function speakTextWithLanguage(
   text: string,
   openAIKey?: string,
-  voice: string = 'verse',
+  voice: string = 'alloy',
   onStart?: () => void,
   onEnd?: () => void
 ): Promise<void> {
   const lang = detectLanguage(text);
 
-  // 1. If OpenAI API Key is available, use OpenAI TTS HD API for crystal-clear natural speech
+  // Clean raw markdown, symbols, and formatting for natural spoken audio
+  const cleanSpeechText = text
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+    .replace(/[#*_`~>•]/g, '')
+    .replace(/[-*]\s+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleanSpeechText) {
+    onEnd?.();
+    return;
+  }
+
+  // 1. If OpenAI API Key is available, use OpenAI TTS API for crystal-clear natural speech
   if (openAIKey) {
     try {
       onStart?.();
       const cleanVoice = ['alloy', 'ash', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer'].includes(voice)
         ? voice
-        : 'shimmer';
+        : 'alloy';
 
       const res = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
@@ -674,7 +687,7 @@ export async function speakTextWithLanguage(
         body: JSON.stringify({
           model: 'tts-1',
           voice: cleanVoice,
-          input: text.slice(0, 4000),
+          input: cleanSpeechText.slice(0, 4000),
           speed: 1.0,
         }),
       });

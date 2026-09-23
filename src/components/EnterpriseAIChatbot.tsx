@@ -54,6 +54,8 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
   // Audio / Speech Recognition Refs
   const recognitionRef = useRef<any>(null);
   const isSpeakingRef = useRef(false);
+  const silenceTimerRef = useRef<any>(null);
+  const pendingTranscriptRef = useRef('');
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -247,11 +249,23 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
             }
           }
 
-          const currentText = final || interim;
-          setVoiceTranscript(currentText);
+          const currentText = (final || interim).trim();
+          if (currentText) {
+            setVoiceTranscript(currentText);
+            pendingTranscriptRef.current = currentText;
 
-          if (final.trim()) {
-            handleVoiceUserMessage(final.trim());
+            // Clear any active silence timer
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+
+            // VAD silence auto-dispatch: if user pauses for 1100ms or speech is finalized, trigger response
+            const delay = final ? 400 : 1100;
+            silenceTimerRef.current = setTimeout(() => {
+              if (pendingTranscriptRef.current && !isSpeakingRef.current && !isLoading) {
+                const queryToSend = pendingTranscriptRef.current;
+                pendingTranscriptRef.current = '';
+                handleVoiceUserMessage(queryToSend);
+              }
+            }, delay);
           }
         };
 
@@ -260,10 +274,12 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
         };
 
         recog.onend = () => {
-          // Auto restart if still in voice mode and not unmounted
-          if (activeMode === 'voice' && isOpen && !isSpeakingRef.current) {
-            try { recog.start(); } catch {}
-          }
+          // Auto restart safely if still in voice mode and not unmounted
+          setTimeout(() => {
+            if (activeMode === 'voice' && isOpen && !isSpeakingRef.current) {
+              try { recog.start(); } catch {}
+            }
+          }, 250);
         };
 
         recog.start();
@@ -276,6 +292,11 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
   };
 
   const stopVoiceCapture = () => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    pendingTranscriptRef.current = '';
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch {}
@@ -312,6 +333,8 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
   // Send message from voice input
   const handleVoiceUserMessage = async (transcript: string) => {
     if (!transcript.trim() || isLoading) return;
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    pendingTranscriptRef.current = '';
     await handleSendMessage(transcript, true);
   };
 
@@ -371,6 +394,13 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
             () => {
               setIsSpeaking(false);
               isSpeakingRef.current = false;
+              setVoiceTranscript('');
+              // Resume listening after speech output
+              setTimeout(() => {
+                if (activeMode === 'voice' && isOpen) {
+                  try { recognitionRef.current?.start(); } catch {}
+                }
+              }, 200);
             }
           );
         }
@@ -596,18 +626,40 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                 </div>
 
                 {/* Live Speech Subtitles / Transcript */}
-                <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-3.5 text-center z-10 min-h-[56px] flex flex-col items-center justify-center mb-2">
-                  <p className="text-xs text-white/95 font-medium line-clamp-2">
-                    {voiceTranscript || (
-                      <span className="text-white/60 italic flex items-center justify-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                        Listening...
-                      </span>
-                    )}
-                  </p>
+                <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-3.5 text-center z-10 min-h-[64px] flex flex-col items-center justify-center mb-2 shadow-lg">
+                  {voiceTranscript ? (
+                    <div className="w-full flex items-center justify-between gap-2">
+                      <p className="text-xs text-white font-semibold line-clamp-2 text-left flex-1">
+                        "{voiceTranscript}"
+                      </p>
+                      <button
+                        onClick={() => {
+                          if (voiceTranscript.trim() && !isLoading) {
+                            handleVoiceUserMessage(voiceTranscript.trim());
+                          }
+                        }}
+                        disabled={isLoading}
+                        className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all shadow-md"
+                        title="Send Spoken Message"
+                      >
+                        <Send className="w-3 h-3" /> Send
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-white/70 italic flex items-center justify-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      Listening to your voice... Speak anytime
+                    </p>
+                  )}
+
                   {isSpeaking && (
-                    <span className="text-[10px] font-bold text-white mt-1 flex items-center gap-1">
-                      <Volume2 className="w-3 h-3 animate-bounce" /> Speaking...
+                    <span className="text-[11px] font-bold text-amber-300 mt-1 flex items-center gap-1.5 animate-pulse">
+                      <Volume2 className="w-3.5 h-3.5" /> Speaking response...
+                    </span>
+                  )}
+                  {isLoading && !isSpeaking && (
+                    <span className="text-[11px] font-bold text-emerald-300 mt-1 flex items-center gap-1.5">
+                      <RefreshCw className="w-3 h-3 animate-spin" /> Generating answer...
                     </span>
                   )}
                 </div>
