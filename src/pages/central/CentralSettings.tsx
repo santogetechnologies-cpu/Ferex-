@@ -25,8 +25,8 @@ export const CentralSettings: React.FC = () => {
   const [testingOpenAI, setTestingOpenAI] = useState(false);
   const [openAITestStatus, setOpenAITestStatus] = useState<{ success?: boolean; message?: string } | null>(null);
   const [showOpenAIKey, setShowOpenAIKey] = useState(false);
-  const [showOpenRouterKey, setShowOpenRouterKey] = useState(false);
   const [lastSaved, setLastSaved] = useState('');
+
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -567,72 +567,9 @@ export const CentralSettings: React.FC = () => {
               />
             </div>
           </Card>
-
-          {/* OpenRouter Fallback Section */}
-          <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
-            <div className="border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Globe2 className="w-4 h-4 text-[#58051E]" />
-                <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                  OpenRouter Multi-Model Chat Fallback
-                </h2>
-              </div>
-              <p className="text-xs font-medium text-slate-400 mt-0.5">
-                Fast text chat streaming with automatic fallback to OpenAI if OpenRouter is unavailable.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              {/* OpenRouter Key with Eye Toggle */}
-              <div>
-                <label className="font-bold text-slate-800 flex items-center justify-between mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <Key className="w-3.5 h-3.5 text-slate-500" />
-                    OpenRouter API Key
-                  </span>
-                </label>
-                <div className="relative flex items-center">
-                  <input
-                    type={showOpenRouterKey ? 'text' : 'password'}
-                    value={aiConfig.openrouter_api_key || ''}
-                    onChange={(e) => setConfig({
-                      ...config,
-                      ai_config: { ...aiConfig, openrouter_api_key: e.target.value }
-                    })}
-                    placeholder="sk-or-v1-..."
-                    className="w-full p-2.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E] text-slate-800"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowOpenRouterKey(!showOpenRouterKey)}
-                    className="absolute right-3 p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
-                    title={showOpenRouterKey ? 'Hide' : 'View'}
-                  >
-                    {showOpenRouterKey ? <EyeOff className="w-3.5 h-3.5 text-[#58051E]" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* OpenRouter Primary Model */}
-              <div>
-                <label className="font-bold text-slate-800 block mb-1.5">
-                  OpenRouter Default Model
-                </label>
-                <input
-                  type="text"
-                  value={aiConfig.openrouter_model || 'google/gemini-2.0-flash-exp:free'}
-                  onChange={(e) => setConfig({
-                    ...config,
-                    ai_config: { ...aiConfig, openrouter_model: e.target.value }
-                  })}
-                  placeholder="google/gemini-2.0-flash-exp:free"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-medium focus:bg-white focus:outline-none focus:border-[#58051E] text-slate-800"
-                />
-              </div>
-            </div>
-          </Card>
         </div>
       )}
+
 
       {/* Tab 2: Enterprise Branding */}
       {activeTab === 'branding' && (
