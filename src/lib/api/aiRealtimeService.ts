@@ -482,6 +482,34 @@ export function generateIntelligentLocalResponse(
 }
 
 /**
+ * Build & return the full Ferex enterprise system prompt for use in Realtime WebRTC sessions
+ */
+export async function getRealtimeSystemPrompt(
+  role: UserRoleType,
+  userId?: string,
+  userEmail?: string,
+  customInstructions?: string
+): Promise<string> {
+  const config = await getSystemConfig();
+  const context = await fetchUnifiedEnterpriseContext(role, userId, userEmail);
+  const basePrompt = await buildEnterpriseSystemPrompt(
+    context,
+    customInstructions || config?.ai_config?.system_instructions
+  );
+
+  // Append realtime-specific guidance for the WebRTC session
+  return `${basePrompt}
+
+=== REALTIME VOICE SESSION DIRECTIVES ===
+- You are now in a live two-way voice call. Respond naturally and conversationally.
+- Keep answers concise and spoken-friendly. Avoid markdown tables or bullet lists unless explicitly requested.
+- If the user interrupts you or starts speaking, stop immediately and listen.
+- ALWAYS auto-detect the language the user is speaking and respond in that exact language — no need for the user to ask.
+- If they switch from English to Malayalam mid-conversation, immediately switch to Malayalam and continue.
+- You are a real-time voice AI — be warm, fast, and helpful like a human assistant.`;
+}
+
+/**
  * High-speed chat streaming with OpenRouter primary and automatic OpenAI fallback
  */
 export async function streamEnterpriseChat({

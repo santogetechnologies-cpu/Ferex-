@@ -3,19 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, X, RotateCcw, Maximize2, Minimize2,
   Copy, Check, User, ShieldCheck, RefreshCw,
-  Mic, Volume2, VolumeX, MessageSquare,
-  Bot, ChevronRight, Sparkles
+  Mic, MessageSquare,
 } from 'lucide-react';
 import { Logo } from './Logo';
-import { AIVoiceVisualizer } from './ai/AIVoiceVisualizer';
+import { RealtimeVoiceWebRTC } from './ai/RealtimeVoiceWebRTC';
 import {
   streamEnterpriseChat,
-  detectLanguage,
-  speakTextWithLanguage,
   type UserRoleType,
 } from '../lib/api/aiRealtimeService';
 import { useAuth } from '../contexts/AuthContext';
-import { getSystemConfig, getEffectiveOpenAIApiKey } from '../lib/api/systemConfig';
 import type { LiveStudentContext } from '../lib/api/openrouterChat';
 
 interface EnterpriseAIChatbotProps {
@@ -43,36 +39,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
-  // Voice Interaction States
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [audioLevel, setAudioLevel] = useState(0);
-  const [voiceTranscript, setVoiceTranscript] = useState('');
-  const [isMuted, setIsMuted] = useState(false);
-  const [selectedVoiceLang, setSelectedVoiceLang] = useState('auto');
-
-  // Audio / Speech Recognition Refs
-  const recognitionRef = useRef<any>(null);
-  const isSpeakingRef = useRef(false);
-  const silenceTimerRef = useRef<any>(null);
-  const pendingTranscriptRef = useRef('');
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const micStreamRef = useRef<MediaStream | null>(null);
-  const animFrameRef = useRef<number | null>(null);
-
   const storageKey = `ferex_ai_copilot_${role}_${user?.id || 'guest'}`;
-
-  const VOICE_LANG_OPTIONS = [
-    { code: 'auto', label: 'Auto (Global / All Languages)' },
-    { code: 'ml-IN', label: 'Malayalam (മലയാളം)' },
-    { code: 'ta-IN', label: 'Tamil (தமிழ்)' },
-    { code: 'hi-IN', label: 'Hindi (हिन्दी)' },
-    { code: 'en-IN', label: 'English (India)' },
-    { code: 'en-US', label: 'English (US)' },
-    { code: 'pl-PL', label: 'Polish (Polski)' },
-    { code: 'ar-SA', label: 'Arabic (العربية)' },
-  ];
 
   // Role Badges & Clean Welcome Text (no language enumeration)
   const getRoleWelcome = (): string => {
@@ -190,156 +157,18 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
     ]
   };
 
-  // ── Speech & Web Audio Setup for Realtime Voice ──
-  const startVoiceCapture = async () => {
-    try {
-      if (micStreamRef.current) {
-        micStreamRef.current.getTracks().forEach(t => t.stop());
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      micStreamRef.current = stream;
-
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      const audioCtx = new AudioCtx();
-      audioContextRef.current = audioCtx;
-
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 64;
-      analyserRef.current = analyser;
-
-      const source = audioCtx.createMediaStreamSource(stream);
-      source.connect(analyser);
-
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      const updateLevel = () => {
-        analyser.getByteFrequencyData(dataArray);
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-          sum += dataArray[i];
-        }
-        const avg = sum / dataArray.length;
-        setAudioLevel(Math.min(1, avg / 128));
-        animFrameRef.current = requestAnimationFrame(updateLevel);
-      };
-      updateLevel();
-
-      // Initialize Browser SpeechRecognition
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        if (recognitionRef.current) {
-          try { recognitionRef.current.stop(); } catch {}
-        }
-
-        const recog = new SpeechRecognition();
-        recog.continuous = true;
-        recog.interimResults = true;
-        recog.lang = selectedVoiceLang === 'auto' ? 'en-IN' : selectedVoiceLang;
-
-        recog.onresult = (event: any) => {
-          // Ignore microphone inputs while the assistant is speaking to avoid feedback loop
-          if (isSpeakingRef.current) return;
-
-          let interim = '';
-          let final = '';
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              final += event.results[i][0].transcript;
-            } else {
-              interim += event.results[i][0].transcript;
-            }
-          }
-
-          const currentText = (final || interim).trim();
-          if (currentText) {
-            setVoiceTranscript(currentText);
-            pendingTranscriptRef.current = currentText;
-
-            // Clear any active silence timer
-            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-
-            // VAD silence auto-dispatch: if user pauses for 1100ms or speech is finalized, trigger response
-            const delay = final ? 400 : 1100;
-            silenceTimerRef.current = setTimeout(() => {
-              if (pendingTranscriptRef.current && !isSpeakingRef.current && !isLoading) {
-                const queryToSend = pendingTranscriptRef.current;
-                pendingTranscriptRef.current = '';
-                handleVoiceUserMessage(queryToSend);
-              }
-            }, delay);
-          }
-        };
-
-        recog.onerror = (err: any) => {
-          console.warn('SpeechRecognition notice:', err);
-        };
-
-        recog.onend = () => {
-          // Auto restart safely if still in voice mode and not unmounted
-          setTimeout(() => {
-            if (activeMode === 'voice' && isOpen && !isSpeakingRef.current) {
-              try { recog.start(); } catch {}
-            }
-          }, 250);
-        };
-
-        recog.start();
-        recognitionRef.current = recog;
-        setIsListening(true);
-      }
-    } catch (err) {
-      console.warn('Microphone access unavailable or denied:', err);
-    }
+  // Voice exchange complete — save transcript lines to chat history
+  const handleVoiceExchange = (userText: string, aiText: string) => {
+    if (!userText || !aiText) return;
+    setMessages(prev => [
+      ...prev,
+      { role: 'user', content: userText },
+      { role: 'assistant', content: aiText },
+    ]);
   };
 
-  const stopVoiceCapture = () => {
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
-    pendingTranscriptRef.current = '';
-    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch {}
-      recognitionRef.current = null;
-    }
-    if (micStreamRef.current) {
-      micStreamRef.current.getTracks().forEach(t => t.stop());
-      micStreamRef.current = null;
-    }
-    if (audioContextRef.current) {
-      try { audioContextRef.current.close(); } catch {}
-      audioContextRef.current = null;
-    }
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-    setIsListening(false);
-    setIsSpeaking(false);
-    isSpeakingRef.current = false;
-    setAudioLevel(0);
-  };
-
-  useEffect(() => {
-    if (activeMode === 'voice' && isOpen) {
-      startVoiceCapture();
-    } else {
-      stopVoiceCapture();
-    }
-    return () => {
-      stopVoiceCapture();
-    };
-  }, [activeMode, isOpen, selectedVoiceLang]);
-
-  // Send message from voice input
-  const handleVoiceUserMessage = async (transcript: string) => {
-    if (!transcript.trim() || isLoading) return;
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    pendingTranscriptRef.current = '';
-    await handleSendMessage(transcript, true);
-  };
-
-  // Main Send Message Handler
-  const handleSendMessage = async (textToSend?: string, isFromVoice = false) => {
+  // Main Send Message Handler (text chat only)
+  const handleSendMessage = async (textToSend?: string) => {
     const text = (textToSend || inputMessage).trim();
     if (!text || isLoading) return;
 
@@ -354,11 +183,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
     setMessages([...updated, placeholder]);
 
     try {
-      const config = await getSystemConfig();
-      const openAIKey = getEffectiveOpenAIApiKey(config);
-      const voiceTimber = config?.ai_config?.realtime_voice || 'alloy';
-
-      const fullResponse = await streamEnterpriseChat({
+      await streamEnterpriseChat({
         messages: updated,
         role,
         userId: user?.id,
@@ -374,37 +199,9 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
             }
             return copy;
           });
-          if (activeMode === 'chat') scrollToBottom();
+          scrollToBottom();
         },
       });
-
-      // If in Voice Mode or Triggered from Voice, speak response back naturally
-      if (activeMode === 'voice' || isFromVoice) {
-        if (!isMuted && fullResponse) {
-          setIsSpeaking(true);
-          isSpeakingRef.current = true;
-          await speakTextWithLanguage(
-            fullResponse,
-            openAIKey,
-            voiceTimber,
-            () => {
-              setIsSpeaking(true);
-              isSpeakingRef.current = true;
-            },
-            () => {
-              setIsSpeaking(false);
-              isSpeakingRef.current = false;
-              setVoiceTranscript('');
-              // Resume listening after speech output
-              setTimeout(() => {
-                if (activeMode === 'voice' && isOpen) {
-                  try { recognitionRef.current?.start(); } catch {}
-                }
-              }, 200);
-            }
-          );
-        }
-      }
     } catch (err) {
       console.error('Chat error:', err);
       setMessages((prev) => {
@@ -596,111 +393,17 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
               </div>
             </div>
 
-            {/* ── MODE 1: REALTIME VOICE VIEW WITH 10 WHITE SOUNDWAVE BARS & CAP ── */}
+            {/* ── MODE 1: OPENAI REALTIME WEBRTC VOICE (true bidirectional, barge-in, auto language) ── */}
             {activeMode === 'voice' ? (
-              <div className="flex-1 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-[#180108] via-[#2A020E] to-[#120005] text-white relative overflow-hidden">
-                {/* Spoken Language Selector Bar */}
-                <div className="w-full flex items-center justify-between gap-2 z-10 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/15 text-xs">
-                  <span className="text-[11px] font-bold text-white/80 shrink-0">Voice Language:</span>
-                  <select
-                    value={selectedVoiceLang}
-                    onChange={(e) => setSelectedVoiceLang(e.target.value)}
-                    className="bg-black/40 text-white border border-white/20 rounded-lg px-2 py-1 text-[11px] font-bold focus:outline-none focus:border-[#E6CA9E] cursor-pointer"
-                  >
-                    {VOICE_LANG_OPTIONS.map((lang) => (
-                      <option key={lang.code} value={lang.code} className="bg-slate-900 text-white">
-                        {lang.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Voice Visualizer with Centered White Graduation Cap & 10 White Sound Bars */}
-                <div className="w-full flex-1 flex items-center justify-center my-auto">
-                  <AIVoiceVisualizer
-                    isListening={isListening}
-                    isSpeaking={isSpeaking}
-                    audioLevel={audioLevel}
-                    className="w-full max-w-sm"
-                  />
-                </div>
-
-                {/* Live Speech Subtitles / Transcript */}
-                <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-3.5 text-center z-10 min-h-[64px] flex flex-col items-center justify-center mb-2 shadow-lg">
-                  {voiceTranscript ? (
-                    <div className="w-full flex items-center justify-between gap-2">
-                      <p className="text-xs text-white font-semibold line-clamp-2 text-left flex-1">
-                        "{voiceTranscript}"
-                      </p>
-                      <button
-                        onClick={() => {
-                          if (voiceTranscript.trim() && !isLoading) {
-                            handleVoiceUserMessage(voiceTranscript.trim());
-                          }
-                        }}
-                        disabled={isLoading}
-                        className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all shadow-md"
-                        title="Send Spoken Message"
-                      >
-                        <Send className="w-3 h-3" /> Send
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-white/70 italic flex items-center justify-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                      Listening to your voice... Speak anytime
-                    </p>
-                  )}
-
-                  {isSpeaking && (
-                    <span className="text-[11px] font-bold text-amber-300 mt-1 flex items-center gap-1.5 animate-pulse">
-                      <Volume2 className="w-3.5 h-3.5" /> Speaking response...
-                    </span>
-                  )}
-                  {isLoading && !isSpeaking && (
-                    <span className="text-[11px] font-bold text-emerald-300 mt-1 flex items-center gap-1.5">
-                      <RefreshCw className="w-3 h-3 animate-spin" /> Generating answer...
-                    </span>
-                  )}
-                </div>
-
-                {/* Voice Controls Bar */}
-                <div className="w-full flex items-center justify-center gap-4 mt-2 z-10">
-                  <button
-                    onClick={() => setIsMuted(!isMuted)}
-                    className={`p-3 rounded-full border backdrop-blur-md transition-all cursor-pointer ${
-                      isMuted
-                        ? 'bg-rose-500/20 border-rose-400 text-rose-300'
-                        : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
-                    }`}
-                    title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-                  >
-                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      if (isListening) stopVoiceCapture();
-                      else startVoiceCapture();
-                    }}
-                    className={`p-4 rounded-full shadow-2xl transition-all cursor-pointer border-2 ${
-                      isListening
-                        ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 border-white text-white scale-110'
-                        : 'bg-gradient-to-r from-[#58051E] to-[#800020] border-white/80 text-white hover:scale-105'
-                    }`}
-                    title={isListening ? 'Stop Listening' : 'Start Listening'}
-                  >
-                    <Mic className="w-6 h-6" />
-                  </button>
-
-                  <button
-                    onClick={() => setActiveMode('chat')}
-                    className="p-3 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20 backdrop-blur-md transition-all cursor-pointer"
-                    title="Switch to Text Chat"
-                  >
-                    <MessageSquare className="w-5 h-5" />
-                  </button>
-                </div>
+              <div className="flex-1 flex flex-col bg-gradient-to-b from-[#180108] via-[#2A020E] to-[#120005] text-white overflow-hidden">
+                <RealtimeVoiceWebRTC
+                  role={role}
+                  userId={user?.id}
+                  userEmail={profile?.email || user?.email}
+                  studentContext={studentContext}
+                  onExchangeComplete={handleVoiceExchange}
+                  onEndSession={() => setActiveMode('chat')}
+                />
               </div>
             ) : (
               /* ── MODE 2: RICH TEXT CHAT VIEW ── */
