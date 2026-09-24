@@ -572,12 +572,9 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
               transition={{ delay: 0.1, duration: 0.2 }}
               className="relative flex items-center gap-2 bg-white text-slate-800 text-xs font-bold px-3.5 py-2.5 rounded-2xl shadow-xl shadow-slate-900/15 border border-slate-200/90 hover:border-[#58051E]/40 transition-all cursor-pointer group-hover:scale-105"
             >
-              <div className="flex items-center gap-1.5 text-[#58051E]">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                <span className="font-extrabold text-slate-900 whitespace-nowrap">
-                  {role === 'student' ? 'AI Student Copilot' : 'Ask Ferex AI'}
-                </span>
-              </div>
+              <span className="font-extrabold text-slate-900 whitespace-nowrap">
+                {role === 'student' ? 'AI Student Copilot' : 'Ask Ferex AI'}
+              </span>
               <span className="text-[10.5px] font-semibold text-slate-500 hidden sm:inline whitespace-nowrap">
                 {role === 'student' ? '• 24/7 Live Answers' : '• Voice & Chat'}
               </span>
