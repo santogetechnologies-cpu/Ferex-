@@ -19,8 +19,8 @@ export const Logo: React.FC<LogoProps> = ({
   color,
   align = 'left',
 }) => {
-  const isWhite = variant === 'white' || color === 'white';
-  const effectiveColor = isWhite ? '#ffffff' : '#570229';
+  const isWhite = variant === 'white' || color === 'white' || color === '#ffffff' || color === '#fff' || color?.toLowerCase() === '#ffffff';
+  const effectiveColor = color ? color : (isWhite ? '#ffffff' : '#570229');
 
   // If variant is 'badge', render the signature burgundy rounded brand tile
   if (variant === 'badge') {

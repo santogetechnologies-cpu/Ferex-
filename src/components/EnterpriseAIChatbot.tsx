@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, X, RotateCcw, Maximize2, Minimize2,
   Copy, Check, User, ShieldCheck, RefreshCw,
-  Mic, MessageSquare, Sparkles, Bot,
+  Mic, MessageSquare, Sparkles, Bot, GraduationCap,
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { RealtimeVoiceWebRTC } from './ai/RealtimeVoiceWebRTC';
@@ -554,7 +554,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
         )}
       </AnimatePresence>
 
-      {/* ── FLOATING TRIGGER BUTTON (Round Ferex Icon + Chat Bubble Outside) ── */}
+      {/* ── FLOATING TRIGGER BUTTON (Round Ferex Education Icon + Chat Bubble Outside) ── */}
       <AnimatePresence>
         {!isOpen && (
           <motion.div
@@ -569,31 +569,31 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
             <motion.div
               initial={{ opacity: 0, x: 10, scale: 0.95 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
-              transition={{ delay: 0.15, duration: 0.2 }}
-              className="relative hidden xs:flex items-center gap-2 bg-white text-slate-800 text-xs font-bold px-3.5 py-2.5 rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-200/90 hover:border-[#58051E]/40 transition-all cursor-pointer group-hover:scale-105"
+              transition={{ delay: 0.1, duration: 0.2 }}
+              className="relative flex items-center gap-2 bg-white text-slate-800 text-xs font-bold px-3.5 py-2.5 rounded-2xl shadow-xl shadow-slate-900/15 border border-slate-200/90 hover:border-[#58051E]/40 transition-all cursor-pointer group-hover:scale-105"
             >
               <div className="flex items-center gap-1.5 text-[#58051E]">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                <span className="font-extrabold text-slate-900">
+                <span className="font-extrabold text-slate-900 whitespace-nowrap">
                   {role === 'student' ? 'AI Student Copilot' : 'Ask Ferex AI'}
                 </span>
               </div>
-              <span className="text-[10px] font-semibold text-slate-500 hidden sm:inline">
+              <span className="text-[10.5px] font-semibold text-slate-500 hidden sm:inline whitespace-nowrap">
                 {role === 'student' ? '• 24/7 Live Answers' : '• Voice & Chat'}
               </span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-0.5" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-0.5 shrink-0" />
 
               {/* Chat Bubble Tail Pointer */}
               <div className="absolute right-[-5px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white rotate-45 border-t border-r border-slate-200/90" />
             </motion.div>
 
-            {/* Round Simple Ferex Icon Button */}
+            {/* Round Simple Ferex Education Icon Button */}
             <button
               type="button"
               aria-label="Open Ferex AI Assistant"
-              className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#58051E] via-[#6f0335] to-[#800020] text-white shadow-2xl shadow-[#58051E]/40 hover:shadow-[#58051E]/60 border-2 border-white/30 flex items-center justify-center transition-transform duration-200 group-hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+              className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#58051E] via-[#6f0335] to-[#800020] text-white shadow-2xl shadow-[#58051E]/45 hover:shadow-[#58051E]/65 border-2 border-white/35 flex items-center justify-center transition-transform duration-200 group-hover:scale-110 active:scale-95 cursor-pointer shrink-0"
             >
-              <Logo variant="icon" size="sm" color="#ffffff" />
+              <GraduationCap className="w-7 h-7 text-white" />
               <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-emerald-400 border-2 border-white rounded-full animate-pulse shadow-xs" />
             </button>
           </motion.div>
