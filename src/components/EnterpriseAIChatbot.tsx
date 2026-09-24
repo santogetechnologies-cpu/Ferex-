@@ -307,16 +307,19 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
         )}
       </AnimatePresence>
 
-      {/* ── DOCKED SIDEBAR COPILOT DRAWER (Sliding in from Right / Docked beside dashboard) ── */}
+      {/* ── FLOATING COPILOT POPUP MODAL (Smooth, responsive floating dialog above trigger) ── */}
       <AnimatePresence>
         {isOpen && (
-          <motion.aside
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className={`fixed top-0 right-0 bottom-0 h-screen bg-white z-50 shadow-2xl border-l border-slate-200 flex flex-col justify-between overflow-hidden select-none transition-all duration-300 ${
-              isExpanded ? 'w-full sm:w-[680px] lg:w-[740px]' : 'w-full sm:w-[420px] lg:w-[460px]'
+          <motion.div
+            initial={{ scale: 0.88, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.88, opacity: 0, y: 20 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            style={{ transformOrigin: 'bottom right' }}
+            className={`fixed bottom-4 sm:bottom-6 right-3 sm:right-6 bg-white z-50 shadow-2xl rounded-3xl border border-slate-200/90 flex flex-col justify-between overflow-hidden select-none transition-all duration-200 ${
+              isExpanded
+                ? 'w-[calc(100vw-24px)] sm:w-[680px] lg:w-[740px] h-[88vh] max-h-[750px]'
+                : 'w-[calc(100vw-24px)] sm:w-[410px] h-[84vh] sm:h-[600px] max-h-[640px]'
             }`}
           >
             {/* ── Header ── */}
@@ -547,40 +550,51 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                 </div>
               </div>
             )}
-          </motion.aside>
+          </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── FLOATING TRIGGER BUTTON (Always visible across Landing & Portals when copilot closed) ── */}
+      {/* ── FLOATING TRIGGER BUTTON (Round Ferex Icon + Chat Bubble Outside) ── */}
       <AnimatePresence>
         {!isOpen && (
           <motion.div
             initial={{ scale: 0, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0, opacity: 0, y: 20 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-            className="fixed bottom-5 right-5 z-40"
+            transition={{ type: 'spring', stiffness: 360, damping: 24 }}
+            className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40 flex items-center gap-3 cursor-pointer group select-none"
+            onClick={() => setIsOpen(true)}
           >
-            <button
-              onClick={() => setIsOpen(true)}
-              aria-label="Open Ferex AI Assistant"
-              className="group flex items-center gap-3 px-4 py-3 rounded-full bg-gradient-to-r from-[#58051E] via-[#6f0335] to-[#800020] hover:from-[#6f0335] hover:to-[#58051E] text-white shadow-xl shadow-[#58051E]/35 hover:shadow-2xl hover:shadow-[#58051E]/55 border border-white/25 transition-all duration-200 cursor-pointer active:scale-95"
+            {/* Chat Bubble Outside / To the Left */}
+            <motion.div
+              initial={{ opacity: 0, x: 10, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ delay: 0.15, duration: 0.2 }}
+              className="relative hidden xs:flex items-center gap-2 bg-white text-slate-800 text-xs font-bold px-3.5 py-2.5 rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-200/90 hover:border-[#58051E]/40 transition-all cursor-pointer group-hover:scale-105"
             >
-              <div className="relative">
-                <div className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-white">
-                  <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-                </div>
-                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#58051E] animate-pulse" />
+              <div className="flex items-center gap-1.5 text-[#58051E]">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                <span className="font-extrabold text-slate-900">
+                  {role === 'student' ? 'AI Student Copilot' : 'Ask Ferex AI'}
+                </span>
               </div>
-              <div className="text-left">
-                <p className="text-xs font-black tracking-wide leading-none flex items-center gap-1.5">
-                  <span>AI Copilot</span>
-                  <span className="text-[8.5px] font-bold px-1.5 py-0.2 rounded-full bg-white/20 uppercase">Live</span>
-                </p>
-                <p className="text-[10px] text-white/75 font-medium leading-none mt-1 hidden sm:block">
-                  {role === 'student' ? 'Voice & Chat Assistant' : 'Ask anything or speak'}
-                </p>
-              </div>
+              <span className="text-[10px] font-semibold text-slate-500 hidden sm:inline">
+                {role === 'student' ? '• 24/7 Live Answers' : '• Voice & Chat'}
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-0.5" />
+
+              {/* Chat Bubble Tail Pointer */}
+              <div className="absolute right-[-5px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white rotate-45 border-t border-r border-slate-200/90" />
+            </motion.div>
+
+            {/* Round Simple Ferex Icon Button */}
+            <button
+              type="button"
+              aria-label="Open Ferex AI Assistant"
+              className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#58051E] via-[#6f0335] to-[#800020] text-white shadow-2xl shadow-[#58051E]/40 hover:shadow-[#58051E]/60 border-2 border-white/30 flex items-center justify-center transition-transform duration-200 group-hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+            >
+              <Logo variant="icon" size="sm" color="#ffffff" />
+              <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-emerald-400 border-2 border-white rounded-full animate-pulse shadow-xs" />
             </button>
           </motion.div>
         )}
