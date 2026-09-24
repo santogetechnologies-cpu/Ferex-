@@ -371,7 +371,7 @@ export async function getDigitalProjects(filters?: {
 }
 
 export async function createDigitalProject(project: {
-  client_id: string; // REQUIRED — always starts from a client
+  client_id?: string;
   client_name?: string;
   client_type?: string;
   title: string;
@@ -391,40 +391,44 @@ export async function createDigitalProject(project: {
   deliverables?: DigitalDeliverable[];
   created_by?: string;
 }): Promise<DigitalProjectRecord> {
+  const isValidUUID = (id?: string) => !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const clients = await getDigitalClients();
   const clientObj = clients.find((c: any) => c.id === project.client_id);
+  const validClientId = (isValidUUID(project.client_id) && clientObj) ? project.client_id : (clientObj?.id || null);
 
   const totalBudget = Number(project.budget) || 0;
   const paymentTerms = project.payment_terms || 'Advance Payment';
   const advanceAmount = paymentTerms === 'Full Payment' ? totalBudget : Math.round(totalBudget * 0.3);
   const balanceAmount = totalBudget - advanceAmount;
   const currentStage: DigitalProjectStage = project.status || 'Briefing';
-  const assignedStaff = project.assigned_staff_name || '';
+  const assignedStaff = project.assigned_staff_name || 'Digital Project Manager';
 
-  const payload: DigitalProjectRecord = {
+  const payload: any = {
     id: generateUUID(),
-    client_id: project.client_id,
+    client_id: validClientId,
     client: clientObj || null,
-    client_name: project.client_name || clientObj?.company_name || '',
-    client_type: (project.client_type || clientObj?.client_type || 'External') as any,
+    client_name: project.client_name || clientObj?.company_name || 'Enterprise Client',
+    client_type: (project.client_type || clientObj?.client_type || 'Internal') as any,
     title: project.title,
     scope: project.scope || '',
-    description: project.description || '',
-    service_category: project.service_category || '',
+    description: project.description || project.scope || '',
+    service_category: project.service_category || 'Web & App Development',
     status: currentStage,
     stage_history: [
       {
         stage: currentStage,
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        confirmed_by: assignedStaff || project.created_by || 'Admin',
+        confirmed_by: assignedStaff || project.created_by || 'Digital PM',
         notes: `Project created`,
       }
     ],
     start_date: project.start_date || new Date().toISOString().split('T')[0],
     deadline: project.deadline || '',
+    assigned_staff_id: project.assigned_staff_id || null,
     assigned_staff_name: assignedStaff,
     assigned_staff_email: project.assigned_staff_email || '',
     lead_developer: assignedStaff,
+    created_by: project.created_by || assignedStaff || 'Digital PM',
     budget: totalBudget,
     progress: Number(project.progress) || 0,
     payment_terms: paymentTerms as any,
@@ -441,10 +445,22 @@ export async function createDigitalProject(project: {
   const current = await getDigitalProjects();
   const updated = [payload, ...current.filter((p: any) => p.id !== payload.id)];
   try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
+
   try {
     const { client, deliverables, stage_history, ...dbPayload } = payload as any;
-    await supabase.from('digital_projects').insert(dbPayload);
-  } catch {}
+    const cleanDbPayload = {
+      ...dbPayload,
+      client_id: validClientId,
+      assigned_staff_id: isValidUUID(project.assigned_staff_id) ? project.assigned_staff_id : null
+    };
+    const { error: insErr } = await supabase.from('digital_projects').insert(cleanDbPayload);
+    if (insErr) {
+      console.warn('[DigitalAPI] Supabase digital project insert notice:', insErr.message);
+    }
+  } catch (err) {
+    console.warn('[DigitalAPI] Supabase digital project insert exception:', err);
+  }
+
   triggerLocalSync('ferex_digital_projects_change');
   return payload;
 }

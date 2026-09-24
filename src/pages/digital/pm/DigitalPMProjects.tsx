@@ -13,6 +13,7 @@ import {
   advanceDigitalProjectStage,
   getDigitalClients,
   createDigitalProject,
+  getDigitalProjects,
   type DigitalProjectStage
 } from '../../../lib/api/digital';
 import {
@@ -75,24 +76,19 @@ export const DigitalPMProjects: React.FC = () => {
     setLoading(true);
     setErrorMsg('');
     try {
-      const [projRes, cList] = await Promise.all([
-        supabase
-          .from('digital_projects')
-          .select('*')
-          .order('created_at', { ascending: false }),
+      const [allProjects, cList] = await Promise.all([
+        getDigitalProjects(),
         getDigitalClients()
       ]);
 
       setClientsList(cList || []);
-
-      if (projRes.error) throw projRes.error;
 
       // Filter for PM assigned projects
       const myEmail = (profile?.email || user?.email || '').toLowerCase().trim();
       const myName = (profile?.full_name || '').toLowerCase().trim();
       const myId = user?.id;
 
-      const filtered = (projRes.data || []).filter((p: any) => {
+      const filtered = (allProjects || []).filter((p: any) => {
         if (!myEmail && !myName && !myId) return true;
         const pEmail = (p.assigned_staff_email || '').toLowerCase().trim();
         const pName = (p.assigned_staff_name || '').toLowerCase().trim();
@@ -101,11 +97,13 @@ export const DigitalPMProjects: React.FC = () => {
 
         return (
           (myId && pId === myId) ||
-          (myEmail && pEmail.includes(myEmail)) ||
-          (myName && pName.includes(myName)) ||
-          (myEmail && pCreatedBy.includes(myEmail)) ||
-          (myName && pCreatedBy.includes(myName)) ||
-          (!p.assigned_staff_name && !p.assigned_staff_email)
+          (myEmail && pEmail && (pEmail.includes(myEmail) || myEmail.includes(pEmail))) ||
+          (myName && pName && (pName.includes(myName) || myName.includes(pName))) ||
+          (myEmail && pCreatedBy && (pCreatedBy.includes(myEmail) || myEmail.includes(pCreatedBy))) ||
+          (myName && pCreatedBy && (pCreatedBy.includes(myName) || myName.includes(pCreatedBy))) ||
+          (!p.assigned_staff_name && !p.assigned_staff_email) ||
+          p.assigned_staff_name === 'Digital Project Manager' ||
+          p.assigned_staff_email === 'pm@ferex.com'
         );
       });
 
@@ -116,7 +114,6 @@ export const DigitalPMProjects: React.FC = () => {
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     loadProjects();
@@ -196,10 +193,12 @@ export const DigitalPMProjects: React.FC = () => {
     try {
       const selectedClient = clientsList.find(c => c.id === newProj.client_id);
       const clientName = selectedClient?.company_name || newProj.client_name || 'FEREX Enterprise Client';
+      const staffName = profile?.full_name || 'Digital Project Manager';
+      const staffEmail = profile?.email || user?.email || 'pm@ferex.com';
 
       const created = await createDigitalProject({
         title: newProj.title.trim(),
-        client_id: selectedClient?.id || newProj.client_id || '00000000-0000-0000-0000-000000000001',
+        client_id: selectedClient?.id || (newProj.client_id ? newProj.client_id : undefined),
         client_name: clientName,
         client_type: newProj.client_type,
         service_category: newProj.service_category,
@@ -211,9 +210,9 @@ export const DigitalPMProjects: React.FC = () => {
         deadline: newProj.deadline,
         status: newProj.status as any,
         assigned_staff_id: user?.id,
-        assigned_staff_name: profile?.full_name || 'Digital Project Manager',
-        assigned_staff_email: profile?.email || user?.email || 'pm@ferex.com',
-        created_by: profile?.full_name || user?.email || 'Project Manager'
+        assigned_staff_name: staffName,
+        assigned_staff_email: staffEmail,
+        created_by: profile?.full_name || user?.email || 'Digital Project Manager'
       });
 
       setProjects(prev => [created, ...prev.filter(p => p.id !== created.id)]);

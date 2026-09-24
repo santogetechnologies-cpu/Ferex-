@@ -637,6 +637,211 @@ export const RimiCustomers: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* Edit Enterprise Customer Modal */}
+      <AnimatePresence>
+        {editingCustomer && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setEditingCustomer(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Edit Customer Account</h3>
+                  <p className="text-xs font-semibold text-slate-400 mt-0.5">Modify CRM details, classification, credit terms, and contact profile.</p>
+                </div>
+                <button onClick={() => setEditingCustomer(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
+              </div>
+
+              <form onSubmit={handleUpdate} className="space-y-4">
+                {/* Type, Pipeline Stage & Account Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Customer Classification *</label>
+                    <select
+                      value={editingCustomer.customer_type}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, customer_type: e.target.value as any })}
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                    >
+                      {CUSTOMER_TYPES.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Pipeline Stage *</label>
+                    <select
+                      value={editingCustomer.pipeline_stage}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, pipeline_stage: e.target.value as any })}
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                    >
+                      {PIPELINE_STAGES.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Account Status *</label>
+                    <select
+                      value={editingCustomer.status || 'Active'}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, status: e.target.value as any })}
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="On Hold">On Hold</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Business Name & Contact Person */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Business / Firm Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingCustomer.business_name}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, business_name: e.target.value })}
+                      placeholder="e.g. Reliance Fresh Retail Hub"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Primary Contact Person *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingCustomer.contact_person}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, contact_person: e.target.value })}
+                      placeholder="e.g. Ramesh Patel (Store Manager)"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Phone, WhatsApp & Email */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Phone Number *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingCustomer.phone}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">WhatsApp Number</label>
+                    <input
+                      type="text"
+                      value={editingCustomer.whatsapp || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, whatsapp: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Official Email</label>
+                    <input
+                      type="email"
+                      value={editingCustomer.email || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Address, City, Territory & GST */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">City / District</label>
+                    <input
+                      type="text"
+                      value={editingCustomer.city || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, city: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Territory / Region</label>
+                    <select
+                      value={editingCustomer.territory || 'West Zone'}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, territory: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    >
+                      {TERRITORIES.filter(t => t !== 'All').map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">GSTIN</label>
+                    <input
+                      type="text"
+                      value={editingCustomer.gst_no || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, gst_no: e.target.value })}
+                      placeholder="27AABCR1234F1Z0"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Commercials: Credit Limit, Period & Payment Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Credit Limit (₹ INR)</label>
+                    <input
+                      type="number"
+                      value={editingCustomer.credit_limit || 0}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, credit_limit: Number(e.target.value) })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Credit Period (Days)</label>
+                    <input
+                      type="number"
+                      value={editingCustomer.credit_period_days || 0}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, credit_period_days: Number(e.target.value) })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Assigned Sales Lead</label>
+                    <select
+                      value={editingCustomer.assigned_staff_name || ''}
+                      onChange={(e) => {
+                        const name = e.target.value;
+                        const match = staffList.find(s => s.name === name);
+                        setEditingCustomer({
+                          ...editingCustomer,
+                          assigned_staff_name: name,
+                          assigned_staff_email: match?.email || `${name.toLowerCase().replace(/[^a-z]/g, '')}@ferex.com`
+                        });
+                      }}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    >
+                      <option value="">-- Select Sales Lead --</option>
+                      {staffList.map((s: any) => (
+                        <option key={s.id || s.email} value={s.name}>
+                          {s.name} ({s.roleLabel || s.role || 'Sales Lead'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-3 flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingCustomer(null)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Changes</Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Customer Dossier Drawer (Activity Timeline & Sales History) */}
       <AnimatePresence>
         {dossierCustomer && (
