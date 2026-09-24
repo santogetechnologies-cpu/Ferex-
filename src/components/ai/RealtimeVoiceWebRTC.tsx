@@ -309,9 +309,7 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
           },
           body: JSON.stringify({
             session: {
-              type: 'realtime',
               model,
-              voice,
             },
           }),
         }),
@@ -374,11 +372,12 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
       dc.onopen = () => {
         if (!isMountedRef.current) return;
 
-        // Send full session update with enterprise system prompt
+        // Send full session update with enterprise system prompt + voice
         dc.send(JSON.stringify({
           type: 'session.update',
           session: {
             instructions: systemPrompt,
+            voice,
             modalities: ['audio', 'text'],
             input_audio_transcription: { model: 'whisper-1' },
             turn_detection: {
