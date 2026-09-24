@@ -8,6 +8,7 @@ import { useTasks } from '../../hooks/useTasks';
 import { useAuth } from '../../contexts/AuthContext';
 import { getStaffMembers, getStudents } from '../../lib/api/students';
 import { deleteTask } from '../../lib/api/tasks';
+import { ToastNotification } from '../../components/ToastNotification';
 
 type Priority = 'High' | 'Medium' | 'Low';
 type TaskStatus = 'To Do' | 'In Progress' | 'Review' | 'Done';
@@ -30,6 +31,8 @@ interface Task {
   commentsCount: number;
   isDueToday?: boolean;
   isOverdue?: boolean;
+  isCentralAdmin?: boolean;
+  createdBy?: string;
 }
 
 const STAFF = ['Riya Shah', 'Arjun Pillai', 'Education Team', 'Meena Iyer', 'Kabir Nair'];
@@ -70,6 +73,12 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
   const [tasks, setTasks] = useState<Task[]>([]);
   const [staffUsers, setStaffUsers] = useState<any[]>([]);
   const [studentUsers, setStudentUsers] = useState<any[]>([]);
+  const [toast, setToast] = useState('');
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
 
   const loadUsers = React.useCallback(() => {
     Promise.all([
@@ -102,7 +111,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
   }, [loadUsers]);
 
   useEffect(() => {
-    const mapped = dbTasks.map(t => {
+    const mapped: Task[] = dbTasks.map(t => {
       const assignedUser = staffUsers.find(s => s.id === t.assigned_to || s.email === t.assigned_to || s.full_name === t.assigned_to);
       const studentUser = studentUsers.find(st => st.id === (t as any).student_id || st.email === (t as any).student_id);
       
@@ -113,6 +122,12 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
         (rawStatus === 'In Progress' || rawStatus === 'InProgress') ? 'In Progress' :
         'To Do';
 
+      const isCentral = Boolean(
+        (t.created_by || '').toLowerCase().includes('central') ||
+        t.created_by === 'Central Admin' ||
+        (t.category && t.category !== 'General' && t.category !== 'Documents' && t.category !== 'Applications')
+      );
+
       return {
         id: t.id,
         title: t.title,
@@ -121,7 +136,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
         priority: (t.priority === 'Critical' ? 'High' : t.priority) as Priority,
         status: mappedStatus,
         due: t.due_date || 'Ongoing',
-        category: 'General',
+        category: t.category || 'General',
         studentName: (t as any).student_name || studentUser?.full_name || (t as any).student?.full_name || 'General Task',
         university: 'Education Operations',
         progress: mappedStatus === 'Done' ? 100 : mappedStatus === 'Review' ? 75 : mappedStatus === 'In Progress' ? 50 : 0,
@@ -129,6 +144,8 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
         subtasksTotal: 1,
         attachmentsCount: 0,
         commentsCount: 0,
+        isCentralAdmin: isCentral,
+        createdBy: t.created_by || 'admin',
       };
     });
     setTasks(mapped);
@@ -150,13 +167,6 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
     due: '',
     category: 'Documents',
   });
-
-  const [toast, setToast] = useState('');
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
-  };
 
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     try {
@@ -283,12 +293,16 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
             </div>
           </div>
           
-          <div className="flex items-center gap-1.5 shrink-0">
-            {isStaff && (
+          <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+            {(task.isCentralAdmin || task.createdBy === 'Central Admin') ? (
+              <span className="text-[8.5px] font-black bg-[#58051E] text-white px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
+                🏛️ By Central Admin
+              </span>
+            ) : isStaff ? (
               <span className="text-[8.5px] font-black text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                 Assigned by Admin
               </span>
-            )}
+            ) : null}
             <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black border uppercase tracking-wider shrink-0 ${PRIORITY_BADGES[task.priority].style}`}>
               {task.priority}
             </span>
@@ -366,12 +380,8 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
 
   return (
     <div className="space-y-6 text-left antialiased font-sans select-none relative max-w-full">
-      {/* Success Toast */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-extrabold flex items-center gap-3 animate-bounce">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> {toast}
-        </div>
-      )}
+      {/* Toast */}
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-3">
@@ -540,8 +550,13 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
                 {filtered.map(task => (
                   <tr key={task.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{task.id}</span>
+                        {(task.isCentralAdmin || task.createdBy === 'Central Admin') && (
+                          <span className="text-[8.5px] font-black bg-[#58051E] text-white px-1.5 py-0.5 rounded shadow-2xs">
+                            🏛️ Central Admin
+                          </span>
+                        )}
                         <span className="font-extrabold text-slate-900">{task.title}</span>
                       </div>
                     </td>

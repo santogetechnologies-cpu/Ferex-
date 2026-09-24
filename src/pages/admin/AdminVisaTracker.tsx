@@ -8,6 +8,7 @@ import { getApplications, updateApplicationStatus } from '../../lib/api/applicat
 import { useVisa } from '../../hooks/useVisa';
 import { useApplications } from '../../hooks/useApplications';
 import { generateUUID } from '../../utils/uuid';
+import { ToastNotification } from '../../components/ToastNotification';
 
 export const AdminVisaTracker: React.FC = () => {
   const { students } = useStudents();
@@ -423,18 +424,7 @@ export const AdminVisaTracker: React.FC = () => {
   return (
     <div className="space-y-6 text-left relative min-h-[600px]">
       {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2"
-          >
-            <Sparkles className="w-4 h-4 text-emerald-400" /> {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

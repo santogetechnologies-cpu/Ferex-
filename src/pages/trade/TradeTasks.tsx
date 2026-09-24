@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { ToastNotification } from '../../components/ToastNotification';
 import {
   getTradeTasks,
   createTradeTask,
@@ -255,19 +256,7 @@ export const TradeTasks: React.FC = () => {
   return (
     <div className="space-y-6 text-left antialiased">
       {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 border border-slate-700 text-xs font-bold"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -384,7 +373,12 @@ export const TradeTasks: React.FC = () => {
             <Card key={task.id} className="p-4 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
               <div>
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {(task.is_central_directive || task.created_by === 'Central Admin' || (task.notes && task.notes.toLowerCase().includes('central admin'))) && (
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
+                        🏛️ By Central Admin
+                      </span>
+                    )}
                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${getPriorityBadge(task.priority)}`}>
                       {task.priority}
                     </span>
@@ -394,7 +388,7 @@ export const TradeTasks: React.FC = () => {
                   </div>
                   <button
                     onClick={() => handleStatusToggle(task)}
-                    className={`px-2.5 py-1 rounded-full text-[10.5px] font-black cursor-pointer transition-all ${
+                    className={`px-2.5 py-1 rounded-full text-[10.5px] font-black cursor-pointer transition-all shrink-0 ${
                       task.status === 'Completed'
                         ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                         : task.status === 'In Progress'

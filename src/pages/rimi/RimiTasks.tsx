@@ -267,14 +267,19 @@ export const RimiTasks: React.FC = () => {
           <Card key={t.id} className="p-4 bg-white border-slate-200 shadow-xs space-y-3 relative group">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {(t.is_central_directive || t.created_by === 'Central Admin' || (t.created_by && t.created_by.toLowerCase().includes('central')) || (t.description && t.description.toLowerCase().includes('central admin'))) && (
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
+                      🏛️ By Central Admin
+                    </span>
+                  )}
                   <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
                     t.priority === 'Critical' ? 'bg-rose-100 text-rose-800' :
                     t.priority === 'High' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
                   }`}>
                     {t.priority} Priority
                   </span>
-                  <span className="text-[10px] font-bold text-slate-400">{t.category}</span>
+                  <span className="text-[10px] font-bold text-slate-400">{t.category || 'Operations'}</span>
                 </div>
 
                 {/* Editable Task Title */}

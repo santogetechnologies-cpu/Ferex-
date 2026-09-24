@@ -6,6 +6,7 @@ import { useApplications } from '../../hooks/useApplications';
 import { createNawaRecord } from '../../lib/api/nawa';
 import { getStudents } from '../../lib/api/students';
 import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../../lib/api/documentRequirements';
+import { ToastNotification } from '../../components/ToastNotification';
 
 type DocStatus = 'Submitted' | 'Under Review' | 'Approved' | 'Rejected';
 
@@ -249,18 +250,7 @@ export const AdminDocumentReview: React.FC = () => {
   return (
     <div className="space-y-5 relative text-left">
       {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2"
-          >
-            <Sparkles className="w-4 h-4 text-emerald-400" /> {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>

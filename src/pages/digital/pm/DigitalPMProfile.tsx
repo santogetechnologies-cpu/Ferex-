@@ -51,7 +51,7 @@ export const DigitalPMProfile: React.FC = () => {
 
       showToastMsg('Profile details updated successfully!');
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToastMsg(`Database Error: ${err.message}`);
     } finally {
       setSaving(false);
     }

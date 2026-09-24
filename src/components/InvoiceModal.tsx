@@ -1,8 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Printer, Phone, Mail, MapPin, Check } from 'lucide-react';
 import ferexLogoImg from '../assets/ferex-logo.png';
 import { useFeeConfig } from '../hooks/useFeeConfig';
+import { ToastNotification } from './ToastNotification';
 
 export interface InvoiceData {
   invoice_no: string;
@@ -67,6 +68,12 @@ export function numberToWordsINR(num: number): string {
 export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, invoice }) => {
   const printRef = useRef<HTMLDivElement>(null);
   const { config } = useFeeConfig();
+  const [toast, setToast] = useState('');
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3500);
+  };
 
   if (!isOpen || !invoice) return null;
 
@@ -100,7 +107,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      alert('Please allow popups to print / save invoice');
+      showToast('Please allow popups to print or save the invoice PDF');
       return;
     }
 
@@ -630,6 +637,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
           </div>
         </motion.div>
       </div>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
     </AnimatePresence>
   );
 };

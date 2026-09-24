@@ -6,6 +6,7 @@ import {
 import { useAuth } from '../../../contexts/AuthContext';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
+import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
 
 export const DigitalPMNotifications: React.FC = () => {
@@ -14,7 +15,13 @@ export const DigitalPMNotifications: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [toast, setToast] = useState('');
   const [filter, setFilter] = useState<'All' | 'Unread'>('All');
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
 
   const loadNotifications = async () => {
     setLoading(true);
@@ -55,8 +62,9 @@ export const DigitalPMNotifications: React.FC = () => {
         .eq('id', id);
 
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      showToast('Notification marked as read');
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -68,8 +76,9 @@ export const DigitalPMNotifications: React.FC = () => {
         .eq('is_read', false);
 
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      showToast('All notifications marked as read');
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -82,6 +91,8 @@ export const DigitalPMNotifications: React.FC = () => {
 
   return (
     <div className="space-y-6 relative text-left pb-8">
+      <ToastNotification message={toast} onClose={() => setToast('')} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

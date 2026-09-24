@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../../../contexts/AuthContext';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
+import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
 import {
   getAssignedDigitalMilestones,
@@ -23,8 +24,14 @@ export const DigitalPMMilestones: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [toast, setToast] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newMilestone, setNewMilestone] = useState({
@@ -86,8 +93,9 @@ export const DigitalPMMilestones: React.FC = () => {
         completion_percentage: nextPct
       });
       setMilestones(prev => prev.map(m => m.id === milestone.id ? { ...m, status: newStatus, completion_percentage: nextPct } : m));
+      showToast(`Milestone status updated to ${newStatus}`);
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -111,6 +119,7 @@ export const DigitalPMMilestones: React.FC = () => {
 
       setMilestones(prev => [created, ...prev]);
       setShowAddModal(false);
+      showToast(`Created milestone "${newMilestone.title}" successfully`);
       setNewMilestone({
         title: '',
         project_id: '',
@@ -121,7 +130,7 @@ export const DigitalPMMilestones: React.FC = () => {
         deliverables_summary: ''
       });
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -136,6 +145,8 @@ export const DigitalPMMilestones: React.FC = () => {
 
   return (
     <div className="space-y-6 relative text-left pb-8">
+      <ToastNotification message={toast} onClose={() => setToast('')} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

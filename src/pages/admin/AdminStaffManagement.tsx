@@ -5,6 +5,7 @@ import { Search, Edit3, Trash2, X, Save, CheckCircle2, Mail, Phone, ShieldCheck 
 import { getStaffMembers, updateStudent, deleteStudent } from '../../lib/api/students';
 import { useAuth } from '../../contexts/AuthContext';
 import { isSuperAdmin } from '../../lib/roleRouter';
+import { ToastNotification } from '../../components/ToastNotification';
 
 interface StaffMember {
   id: string; name: string; email: string; phone: string; department: string;
@@ -154,11 +155,7 @@ export const AdminStaffManagement: React.FC = () => {
 
   return (
     <div className="space-y-5 relative text-left">
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl text-sm font-bold flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" /> {toast}
-        </div>
-      )}
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Central Super Admin User Governance Banner (VISIBLE ONLY TO CENTRAL SUPER ADMINS) */}
       {isSuper && (

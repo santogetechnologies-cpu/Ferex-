@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../../../contexts/AuthContext';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
+import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
 import {
   getAssignedDigitalDeliverables,
@@ -21,8 +22,14 @@ export const DigitalPMDocuments: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [toast, setToast] = useState('');
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
 
   const [newDoc, setNewDoc] = useState({
     title: '',
@@ -87,9 +94,10 @@ export const DigitalPMDocuments: React.FC = () => {
 
       setDeliverables(prev => [created, ...prev]);
       setShowAddModal(false);
+      showToast(`Added deliverable "${newDoc.title}" successfully`);
       setNewDoc({ title: '', project_id: '', file_url: '', version: 'v1.0' });
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -102,6 +110,8 @@ export const DigitalPMDocuments: React.FC = () => {
 
   return (
     <div className="space-y-6 relative text-left pb-8">
+      <ToastNotification message={toast} onClose={() => setToast('')} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

@@ -10,6 +10,7 @@ import {
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Logo } from '../../components/Logo';
+import { ToastNotification } from '../../components/ToastNotification';
 import {
   getTradeOrders,
   getTradeDocuments,
@@ -161,20 +162,7 @@ export const TradeClientPortal: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 text-left antialiased">
-      {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-white text-slate-900 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-black border border-slate-200"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Top Navbar */}
       <header className="sticky top-0 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-30 h-16 flex items-center justify-between px-4 sm:px-8">

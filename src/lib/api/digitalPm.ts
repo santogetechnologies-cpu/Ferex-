@@ -68,7 +68,9 @@ export interface DigitalPMTask {
   assigned_to_email?: string;
   assigned_staff_id?: string;
   notes?: string;
-  task_type?: 'Task' | 'Sprint' | 'Milestone' | 'Ticket';
+  task_type?: 'Task' | 'Sprint' | 'Milestone' | 'Ticket' | 'Central Directive';
+  created_by?: string;
+  is_central_directive?: boolean;
   sprint_id?: string;
   sprint_name?: string;
   story_points?: number;
@@ -197,23 +199,42 @@ export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<D
   // Format general tasks into standard DigitalPMTask
   const mappedGeneralTasks: DigitalPMTask[] = (gTasks || []).map((t: any) => ({
     id: t.id,
-    project_title: t.category ? `[${t.category}] General Task` : 'General Administrative Task',
+    project_title: t.category ? `[${t.category}] Central Directive` : 'Central Operations Directive',
     title: t.title,
     priority: (t.priority || 'Medium') as any,
-    status: (t.status === 'Completed' ? 'Done' : t.status === 'In Progress' ? 'In Progress' : 'To Do') as any,
+    status: (t.status === 'Completed' || t.status === 'Done' ? 'Done' : t.status === 'In Progress' ? 'In Progress' : 'To Do') as any,
     due_date: t.due_date,
     assigned_to_name: t.assigned_to,
-    notes: t.description || '',
-    task_type: (t.category || 'Task') as any,
+    notes: t.description || 'Directive from Central Admin',
+    task_type: 'Central Directive',
+    created_by: 'Central Admin',
+    is_central_directive: true,
     created_at: t.created_at,
     updated_at: t.updated_at
   }));
 
   // Combine and de-duplicate by ID
-  const allTasks = [...(dTasks || []), ...mappedGeneralTasks];
+  const directTasks = (dTasks || []).map((t: any) => {
+    const isCentral = t.created_by === 'Central Admin' ||
+      (t.notes && t.notes.toLowerCase().includes('central admin')) ||
+      (t.title && t.title.toLowerCase().includes('central admin')) ||
+      t.task_type === 'Central Directive';
+    return {
+      ...t,
+      created_by: isCentral ? 'Central Admin' : (t.created_by || 'Digital PM'),
+      is_central_directive: isCentral,
+    };
+  });
+
+  const allTasks = [...directTasks, ...mappedGeneralTasks];
   const uniqueMap = new Map<string, DigitalPMTask>();
   for (const t of allTasks) {
-    uniqueMap.set(t.id, t);
+    if (!uniqueMap.has(t.id)) {
+      uniqueMap.set(t.id, t);
+    } else {
+      const existing = uniqueMap.get(t.id)!;
+      uniqueMap.set(t.id, { ...existing, ...(t.is_central_directive ? { is_central_directive: true, created_by: 'Central Admin' } : {}) });
+    }
   }
 
   return Array.from(uniqueMap.values());

@@ -4,6 +4,7 @@ import {
   Save, CheckCircle2, Shield, Building2, HelpCircle, Receipt, Percent, FileText, Check
 } from 'lucide-react';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
+import { ToastNotification } from '../../components/ToastNotification';
 
 export const AdminFeeConfig: React.FC = () => {
   const { config, updateConfig } = useFeeConfig();
@@ -107,19 +108,7 @@ export const AdminFeeConfig: React.FC = () => {
   return (
     <div className="space-y-6 text-left antialiased select-none max-w-4xl mx-auto pb-16">
       {/* Toast Notification */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#58051E] text-white px-5 py-3 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2 border border-white/20"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">

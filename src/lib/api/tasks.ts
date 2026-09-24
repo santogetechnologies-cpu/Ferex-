@@ -85,13 +85,14 @@ export async function getTasks(): Promise<Task[]> {
 }
 
 /**
- * Admin creates and assigns a task to an Admissions Counselor or Staff member.
- * Persists directly to Supabase.
+ * Admin / Central Admin creates and assigns a task to any subsidiary staff member.
+ * Persists to Supabase `tasks` table and cross-syncs with subsidiary tables.
  */
 export async function createTask(payload: {
   created_by?: string;
   assigned_to?: string;
   assigned_staff_id?: string;
+  assigned_staff_email?: string;
   student_id?: string;
   student_name?: string;
   title: string;
@@ -104,7 +105,7 @@ export async function createTask(payload: {
   const now = new Date().toISOString();
 
   let assignedStaffId = payload.assigned_staff_id || null;
-  let assignedToText = payload.assigned_to || 'Admissions Counselor';
+  let assignedToText = payload.assigned_to || 'Staff Member';
 
   // If assigned_to is a UUID, set assignedStaffId
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(assignedToText);
@@ -112,18 +113,26 @@ export async function createTask(payload: {
     assignedStaffId = assignedToText;
   }
 
+  const dueDateFormatted = (payload.due_date && payload.due_date.includes('-'))
+    ? payload.due_date
+    : new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0];
+
+  const category = payload.category || 'General';
+  const createdBy = payload.created_by || 'Central Admin';
+
   const taskObj: Task = {
     id: newId,
-    created_by: payload.created_by || 'admin',
+    created_by: createdBy,
     assigned_to: assignedToText,
+    assigned_staff_id: assignedStaffId,
     student_id: payload.student_id || '',
     student_name: payload.student_name || '',
     title: payload.title.trim(),
     description: payload.description?.trim() || '',
     priority: payload.priority || 'Medium',
     status: 'Pending',
-    due_date: payload.due_date || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    category: payload.category || 'General',
+    due_date: dueDateFormatted,
+    category,
     created_at: now,
     updated_at: now,
   } as unknown as Task;
@@ -131,18 +140,19 @@ export async function createTask(payload: {
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
 
+  // 1. Insert into core tasks table
   const { error } = await client.from('tasks').insert({
     id: newId,
     student_id: payload.student_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.student_id) ? payload.student_id : null,
     student_name: payload.student_name || '',
     assigned_to: assignedToText,
     assigned_staff_id: assignedStaffId,
-    created_by: payload.created_by || 'admin',
+    created_by: createdBy,
     title: payload.title.trim(),
     description: payload.description?.trim() || '',
     priority: payload.priority || 'Medium',
-    due_date: taskObj.due_date,
-    category: payload.category || 'General',
+    due_date: dueDateFormatted,
+    category,
     status: 'Pending',
     created_at: now,
     updated_at: now,
@@ -152,19 +162,85 @@ export async function createTask(payload: {
     throw new Error(`Failed to create task in database: ${error.message}`);
   }
 
-  window.dispatchEvent(new Event('ferex_tasks_change'));
+  // 2. Cross-replicate to Subsidiary Specific Tables for immediate availability in subsidiary apps
+  const staffEmail = payload.assigned_staff_email || (assignedToText.includes('@') ? assignedToText : '');
+  const catLower = category.toLowerCase();
+
+  try {
+    if (catLower.includes('trade')) {
+      await client.from('trade_tasks').insert({
+        id: newId,
+        title: payload.title.trim(),
+        category: 'Order Handling',
+        order_no: '',
+        client_name: '',
+        assigned_staff_name: assignedToText,
+        assigned_staff_email: staffEmail || `${assignedToText.toLowerCase().replace(/\s+/g, '')}@ferex.com`,
+        assigned_staff_id: assignedStaffId,
+        priority: payload.priority === 'Critical' ? 'Urgent' : (payload.priority || 'Medium'),
+        status: 'Pending',
+        due_date: dueDateFormatted,
+        notes: payload.description?.trim() || 'Directive from Central Admin',
+        created_at: now,
+        updated_at: now,
+      });
+    } else if (catLower.includes('rimi')) {
+      await client.from('rimi_tasks').insert({
+        id: newId,
+        title: payload.title.trim(),
+        description: payload.description?.trim() || 'Directive from Central Admin',
+        task_type: 'Delivery',
+        priority: payload.priority === 'Critical' ? 'Urgent' : (payload.priority || 'Medium'),
+        status: 'Pending',
+        assigned_staff_name: assignedToText,
+        assigned_staff_email: staffEmail || `${assignedToText.toLowerCase().replace(/\s+/g, '')}@ferex.com`,
+        assigned_staff_id: assignedStaffId,
+        due_date: dueDateFormatted,
+        created_by: 'Central Admin',
+        created_at: now,
+        updated_at: now,
+      });
+    } else if (catLower.includes('digital')) {
+      await client.from('digital_tasks').insert({
+        id: newId,
+        title: payload.title.trim(),
+        status: 'To Do',
+        priority: payload.priority || 'Medium',
+        due_date: dueDateFormatted,
+        assigned_to_name: assignedToText,
+        assigned_to_email: staffEmail || `${assignedToText.toLowerCase().replace(/\s+/g, '')}@ferex.com`,
+        assigned_staff_id: assignedStaffId,
+        notes: payload.description?.trim() || 'Directive from Central Admin',
+        task_type: 'Task',
+        created_at: now,
+        updated_at: now,
+      });
+    }
+  } catch (crossErr) {
+    console.warn('[createTask] Cross-table sync notice:', crossErr);
+  }
+
+  // Dispatch all relevant events across browser window
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_tasks_change'));
+    window.dispatchEvent(new Event('ferex_trade_tasks_change'));
+    window.dispatchEvent(new Event('ferex_rimi_tasks_change'));
+    window.dispatchEvent(new Event('ferex_digital_tasks_change'));
+  }
+
   return taskObj;
 }
 
 /**
- * Updates task status directly in Supabase.
+ * Updates task status across Supabase tasks and subsidiary tables.
  */
 export async function updateTaskStatus(id: string, status: Task['status']): Promise<Partial<Task>> {
   const now = new Date().toISOString();
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
 
-  const { error } = await client
+  // 1. Update tasks table
+  await client
     .from('tasks')
     .update({
       status,
@@ -172,27 +248,48 @@ export async function updateTaskStatus(id: string, status: Task['status']): Prom
     })
     .eq('id', id);
 
-  if (error) {
-    throw new Error(`Failed to update task in database: ${error.message}`);
+  // 2. Cross-update subsidiary tables if record exists with that ID
+  const subStatus = status === 'Completed' || status === 'Done' ? 'Completed' : status === 'In Progress' ? 'In Progress' : 'Pending';
+  const digitalStatus = status === 'Completed' || status === 'Done' ? 'Done' : status === 'In Progress' ? 'In Progress' : 'To Do';
+
+  try {
+    await Promise.allSettled([
+      client.from('trade_tasks').update({ status: subStatus as any, updated_at: now }).eq('id', id),
+      client.from('rimi_tasks').update({ status: subStatus as any, updated_at: now }).eq('id', id),
+      client.from('digital_tasks').update({ status: digitalStatus, updated_at: now }).eq('id', id),
+    ]);
+  } catch {}
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_tasks_change'));
+    window.dispatchEvent(new Event('ferex_trade_tasks_change'));
+    window.dispatchEvent(new Event('ferex_rimi_tasks_change'));
+    window.dispatchEvent(new Event('ferex_digital_tasks_change'));
   }
 
-  window.dispatchEvent(new Event('ferex_tasks_change'));
   return { id, status };
 }
 
 /**
- * Admin deletes a task directly from Supabase.
+ * Admin deletes a task directly from Supabase across all tables.
  */
 export async function deleteTask(id: string): Promise<boolean> {
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
 
-  const { error } = await client.from('tasks').delete().eq('id', id);
-  if (error) {
-    throw new Error(`Failed to delete task from database: ${error.message}`);
-  }
+  await Promise.allSettled([
+    client.from('tasks').delete().eq('id', id),
+    client.from('trade_tasks').delete().eq('id', id),
+    client.from('rimi_tasks').delete().eq('id', id),
+    client.from('digital_tasks').delete().eq('id', id),
+  ]);
 
-  window.dispatchEvent(new Event('ferex_tasks_change'));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_tasks_change'));
+    window.dispatchEvent(new Event('ferex_trade_tasks_change'));
+    window.dispatchEvent(new Event('ferex_rimi_tasks_change'));
+    window.dispatchEvent(new Event('ferex_digital_tasks_change'));
+  }
   return true;
 }
 
@@ -203,6 +300,7 @@ export async function reassignTask(payload: {
   taskId: string;
   assignedTo: string;
   assignedStaffId?: string;
+  assignedStaffEmail?: string;
   division?: string;
 }): Promise<boolean> {
   const admin = await getAdminSupabaseClient();
@@ -226,15 +324,27 @@ export async function reassignTask(payload: {
     updatePayload.category = payload.division;
   }
 
-  const { error } = await client
+  await client
     .from('tasks')
     .update(updatePayload)
     .eq('id', payload.taskId);
 
-  if (error) {
-    throw new Error(`Failed to reassign task in database: ${error.message}`);
+  // Sync to subsidiary tables
+  const email = payload.assignedStaffEmail || `${payload.assignedTo.toLowerCase().replace(/\s+/g, '')}@ferex.com`;
+  try {
+    await Promise.allSettled([
+      client.from('trade_tasks').update({ assigned_staff_name: payload.assignedTo, assigned_staff_email: email, assigned_staff_id: assignedStaffId, updated_at: now }).eq('id', payload.taskId),
+      client.from('rimi_tasks').update({ assigned_staff_name: payload.assignedTo, assigned_staff_email: email, assigned_staff_id: assignedStaffId, updated_at: now }).eq('id', payload.taskId),
+      client.from('digital_tasks').update({ assigned_to_name: payload.assignedTo, assigned_to_email: email, assigned_staff_id: assignedStaffId, updated_at: now }).eq('id', payload.taskId),
+    ]);
+  } catch {}
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_tasks_change'));
+    window.dispatchEvent(new Event('ferex_trade_tasks_change'));
+    window.dispatchEvent(new Event('ferex_rimi_tasks_change'));
+    window.dispatchEvent(new Event('ferex_digital_tasks_change'));
   }
 
-  window.dispatchEvent(new Event('ferex_tasks_change'));
   return true;
 }

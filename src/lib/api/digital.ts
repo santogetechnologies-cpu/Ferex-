@@ -674,18 +674,72 @@ export async function getDigitalTasks(projectId?: string) {
     if (projectId) {
       query = query.eq('project_id', projectId);
     }
-    const { data, error } = await query;
-    if (!error && Array.isArray(data) && data.length > 0) {
-      const merged = [...data];
-      for (const item of localTasks) {
-        if (!merged.some((m: any) => m.id === item.id || m.title === item.title)) {
-          merged.push(item);
-        }
+    const { data } = await query;
+    const directTasks = (data || []).map((t: any) => {
+      const isCentral = t.created_by === 'Central Admin' ||
+        (t.notes && t.notes.toLowerCase().includes('central admin')) ||
+        (t.title && t.title.toLowerCase().includes('central admin')) ||
+        t.task_type === 'Central Directive';
+      return {
+        ...t,
+        created_by: isCentral ? 'Central Admin' : (t.created_by || 'Digital Admin'),
+        is_central_directive: isCentral,
+      };
+    });
+
+    // Also fetch any tasks from central tasks table with category Digital
+    let centralTasks: any[] = [];
+    try {
+      const { data: cData } = await supabase
+        .from('tasks')
+        .select('*')
+        .or('category.ilike.%digital%,category.eq.Digital')
+        .order('created_at', { ascending: false });
+
+      if (Array.isArray(cData)) {
+        centralTasks = cData.map((c: any) => ({
+          id: c.id,
+          project_id: null,
+          project: { title: 'Central Operations Directive' },
+          project_title: 'Central Operations Directive',
+          title: c.title,
+          priority: c.priority || 'Medium',
+          status: c.status === 'Completed' || c.status === 'Done' ? 'Done' : c.status === 'In Progress' ? 'In Progress' : 'To Do',
+          due_date: c.due_date || new Date().toISOString().split('T')[0],
+          assigned_to_name: c.assigned_to || 'Digital Staff',
+          assigned_to_email: c.assigned_to && c.assigned_to.includes('@') ? c.assigned_to : `${(c.assigned_to || 'staff').toLowerCase().replace(/\s+/g, '')}@ferex.com`,
+          notes: c.description || 'Directive from Central Admin',
+          task_type: 'Central Directive',
+          created_by: 'Central Admin',
+          is_central_directive: true,
+          created_at: c.created_at || new Date().toISOString(),
+          updated_at: c.updated_at || new Date().toISOString(),
+        }));
       }
-      try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(merged)); } catch {}
-      if (projectId) return merged.filter((t: any) => t.project_id === projectId);
-      return merged;
+    } catch (cErr) {
+      console.warn('[DigitalAPI] Central tasks fetch notice:', cErr);
     }
+
+    const mergedMap = new Map<string, any>();
+    for (const t of directTasks) {
+      mergedMap.set(t.id, t);
+    }
+    for (const ct of centralTasks) {
+      if (!mergedMap.has(ct.id)) {
+        mergedMap.set(ct.id, ct);
+      } else {
+        const existing = mergedMap.get(ct.id);
+        mergedMap.set(ct.id, { ...existing, is_central_directive: true, created_by: 'Central Admin' });
+      }
+    }
+
+    const allTasks = Array.from(mergedMap.values());
+    if (allTasks.length > 0) {
+      try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(allTasks)); } catch {}
+      if (projectId) return allTasks.filter((t: any) => t.project_id === projectId);
+      return allTasks;
+    }
+
     if (localTasks.length > 0) {
       if (projectId) return localTasks.filter((t: any) => t.project_id === projectId);
       return localTasks;
@@ -791,9 +845,16 @@ export async function updateDigitalTask(id: string, updates: any) {
   try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(updated)); } catch {}
   try {
     const { project, ...dbUpdates } = updates;
-    await supabase.from('digital_tasks').update({ ...dbUpdates, updated_at: new Date().toISOString() }).eq('id', id);
+    await Promise.allSettled([
+      supabase.from('digital_tasks').update({ ...dbUpdates, updated_at: new Date().toISOString() }).eq('id', id),
+      supabase.from('tasks').update({
+        ...(updates.status ? { status: updates.status === 'Done' ? 'Completed' : updates.status } : {}),
+        updated_at: new Date().toISOString()
+      }).eq('id', id)
+    ]);
   } catch {}
   triggerLocalSync('ferex_digital_tasks_change');
+  triggerLocalSync('ferex_tasks_change');
   return updated.find((t: any) => t.id === id) || { id, ...updates };
 }
 
@@ -805,8 +866,14 @@ export async function deleteDigitalTask(id: string) {
   const current = await getDigitalTasks();
   const updated = current.filter((t: any) => t.id !== id);
   try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_tasks').delete().eq('id', id); } catch {}
+  try {
+    await Promise.allSettled([
+      supabase.from('digital_tasks').delete().eq('id', id),
+      supabase.from('tasks').delete().eq('id', id)
+    ]);
+  } catch {}
   triggerLocalSync('ferex_digital_tasks_change');
+  triggerLocalSync('ferex_tasks_change');
   return true;
 }
 

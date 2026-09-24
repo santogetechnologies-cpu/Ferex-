@@ -175,6 +175,8 @@ export interface TradeTask {
   status: TaskStatus;
   due_date: string;
   notes?: string;
+  created_by?: string;
+  is_central_directive?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -1085,12 +1087,73 @@ export async function getTradeTasks(staffEmail?: string): Promise<TradeTask[]> {
     }
 
     const { data, error } = await query;
-    if (error) {
-      console.error('[TradeAPI] Error fetching trade tasks:', error);
-      return [];
+    const directTasks: TradeTask[] = (data || []).map((t: any) => {
+      const isCentral = t.created_by === 'Central Admin' ||
+        (t.notes && t.notes.toLowerCase().includes('central admin')) ||
+        (t.title && t.title.toLowerCase().includes('central admin'));
+      return {
+        ...t,
+        created_by: isCentral ? 'Central Admin' : (t.created_by || 'Trade Admin'),
+        is_central_directive: isCentral,
+      };
+    });
+
+    // Also fetch any tasks from central tasks table with category Trade
+    let centralTasks: TradeTask[] = [];
+    try {
+      let cQuery = supabase
+        .from('tasks')
+        .select('*')
+        .or('category.ilike.%trade%,category.eq.Trade')
+        .order('created_at', { ascending: false });
+
+      if (staffEmail) {
+        cQuery = cQuery.or(`assigned_to.ilike.%${staffEmail}%,assigned_staff_id.eq.${staffEmail}`);
+      }
+
+      const { data: cData } = await cQuery;
+      if (Array.isArray(cData)) {
+        centralTasks = cData.map((c: any) => {
+          const isCentral = (c.created_by || '').toLowerCase().includes('central') || (c.created_by || '').toLowerCase().includes('admin');
+          return {
+            id: c.id,
+            title: c.title,
+            category: 'Order Handling' as const,
+            order_no: '',
+            client_name: '',
+            assigned_staff_name: c.assigned_to || 'Trade Officer',
+            assigned_staff_email: c.assigned_to && c.assigned_to.includes('@') ? c.assigned_to : `${(c.assigned_to || 'officer').toLowerCase().replace(/\s+/g, '')}@ferex.com`,
+            assigned_staff_id: c.assigned_staff_id,
+            priority: (c.priority === 'Critical' ? 'Urgent' : (c.priority || 'Medium')) as TaskPriority,
+            status: (c.status === 'Completed' ? 'Completed' : c.status === 'In Progress' ? 'In Progress' : 'Pending') as TaskStatus,
+            due_date: c.due_date || new Date().toISOString().split('T')[0],
+            notes: c.description || 'Directive from Central Admin',
+            created_by: 'Central Admin',
+            is_central_directive: true,
+            created_at: c.created_at || new Date().toISOString(),
+            updated_at: c.updated_at || new Date().toISOString(),
+          };
+        });
+      }
+    } catch (cErr) {
+      console.warn('[TradeAPI] Central tasks fetch notice:', cErr);
     }
 
-    return data || [];
+    // Merge and deduplicate by ID
+    const mergedMap = new Map<string, TradeTask>();
+    for (const t of directTasks) {
+      mergedMap.set(t.id, t);
+    }
+    for (const ct of centralTasks) {
+      if (!mergedMap.has(ct.id)) {
+        mergedMap.set(ct.id, ct);
+      } else {
+        const existing = mergedMap.get(ct.id)!;
+        mergedMap.set(ct.id, { ...existing, is_central_directive: true, created_by: 'Central Admin' });
+      }
+    }
+
+    return Array.from(mergedMap.values());
   } catch (err) {
     console.error('[TradeAPI] Error in getTradeTasks:', err);
     return [];
@@ -1130,15 +1193,24 @@ export async function createTradeTask(task: Partial<TradeTask>): Promise<TradeTa
 
 export async function updateTradeTask(taskId: string, updates: Partial<TradeTask>): Promise<TradeTask | null> {
   try {
+    const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('trade_tasks')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({ ...updates, updated_at: now })
       .eq('id', taskId)
       .select()
       .single();
 
-    if (error) throw error;
+    // Also sync to general tasks table if present
+    const genStatus = updates.status === 'Completed' ? 'Completed' : updates.status === 'In Progress' ? 'In Progress' : 'Pending';
+    const genUpdates: Record<string, any> = { updated_at: now };
+    if (updates.status) genUpdates.status = genStatus;
+    if (updates.assigned_staff_name) genUpdates.assigned_to = updates.assigned_staff_name;
+
+    await supabase.from('tasks').update(genUpdates).eq('id', taskId);
+
     triggerSync('ferex_trade_tasks_change');
+    triggerSync('ferex_tasks_change');
     return data;
   } catch (err) {
     console.error('[TradeAPI] Error updating trade task:', err);
@@ -1148,13 +1220,13 @@ export async function updateTradeTask(taskId: string, updates: Partial<TradeTask
 
 export async function deleteTradeTask(taskId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('trade_tasks')
-      .delete()
-      .eq('id', taskId);
+    await Promise.allSettled([
+      supabase.from('trade_tasks').delete().eq('id', taskId),
+      supabase.from('tasks').delete().eq('id', taskId),
+    ]);
 
-    if (error) throw error;
     triggerSync('ferex_trade_tasks_change');
+    triggerSync('ferex_tasks_change');
     return true;
   } catch (err) {
     console.error('[TradeAPI] Error deleting trade task:', err);

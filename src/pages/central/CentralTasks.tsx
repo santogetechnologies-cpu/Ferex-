@@ -105,16 +105,23 @@ export const CentralTasks: React.FC = () => {
     if (!newTask.title.trim()) return;
 
     try {
+      const selectedStaff = staffList.find(s => s.name === newTask.assignee || s.email === newTask.assignee || s.id === newTask.assignee);
+      const staffName = selectedStaff?.name || newTask.assignee;
+      const staffEmail = selectedStaff?.email || (staffName.includes('@') ? staffName : '');
+
       const created = await createTask({
         title: newTask.title.trim(),
         description: newTask.description.trim(),
-        assigned_to: newTask.assignee,
+        assigned_to: staffName,
+        assigned_staff_id: selectedStaff?.id,
+        assigned_staff_email: staffEmail,
         priority: newTask.priority,
         due_date: newTask.dueDate,
         category: newTask.division,
+        created_by: 'Central Admin',
       });
 
-      setTasks(prev => [created, ...prev]);
+      setTasks(prev => [created, ...prev.filter(t => t.id !== created.id)]);
       setShowAddModal(false);
       setNewTask({
         title: '',
@@ -124,7 +131,7 @@ export const CentralTasks: React.FC = () => {
         priority: 'High',
         dueDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
       });
-      showToastMsg('Operational Task Created & Dispatched');
+      showToastMsg('Operational Task Created & Dispatched Across Apps');
     } catch (err: any) {
       showToastMsg(`Error creating task: ${err.message}`);
     }
@@ -133,15 +140,19 @@ export const CentralTasks: React.FC = () => {
   const handleConfirmReassignment = async () => {
     if (!reassigningTask || !reassignStaffName) return;
     try {
-      const staffMember = staffList.find(s => s.name === reassignStaffName || s.email === reassignStaffName);
+      const staffMember = staffList.find(s => s.name === reassignStaffName || s.email === reassignStaffName || s.id === reassignStaffName);
+      const staffName = staffMember?.name || reassignStaffName;
+      const staffEmail = staffMember?.email || '';
+
       await reassignTask({
         taskId: reassigningTask.id,
-        assignedTo: reassignStaffName,
+        assignedTo: staffName,
         assignedStaffId: staffMember?.id,
+        assignedStaffEmail: staffEmail,
         division: reassigningTask.category,
       });
-      setTasks(prev => prev.map(t => t.id === reassigningTask.id ? { ...t, assigned_to: reassignStaffName } : t));
-      showToastMsg(`Task reassigned to ${reassignStaffName}!`);
+      setTasks(prev => prev.map(t => t.id === reassigningTask.id ? { ...t, assigned_to: staffName } : t));
+      showToastMsg(`Task reassigned to ${staffName}!`);
       setReassigningTask(null);
     } catch (err: any) {
       showToastMsg(`Failed to reassign task: ${err.message}`);
@@ -300,6 +311,9 @@ export const CentralTasks: React.FC = () => {
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="px-2 py-0.5 rounded-full text-[9.5px] font-black bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
+                        🏛️ By Central Admin
+                      </span>
                       <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold border ${badge}`}>
                         {div}
                       </span>

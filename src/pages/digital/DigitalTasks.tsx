@@ -346,9 +346,16 @@ export const DigitalTasks: React.FC = () => {
                   <div className="space-y-3">
                     {/* Priority & Status Controls */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${getPriorityStyle(t.priority)}`}>
-                        {t.priority || 'Medium'} Priority
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {(t.is_central_directive || t.created_by === 'Central Admin' || t.task_type === 'Central Directive' || (t.notes && t.notes.toLowerCase().includes('central admin'))) && (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
+                            🏛️ By Central Admin
+                          </span>
+                        )}
+                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${getPriorityStyle(t.priority)}`}>
+                          {t.priority || 'Medium'} Priority
+                        </span>
+                      </div>
                       <button
                         onClick={() => handleToggleStatus(t)}
                         className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border cursor-pointer transition-colors ${

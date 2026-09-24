@@ -10,6 +10,7 @@ import { getTicketReplies } from '../../lib/api/tickets';
 import { getStaffMembers } from '../../lib/api/students';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { ToastNotification } from '../../components/ToastNotification';
 
 type TicketStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
 type TicketPriority = 'High' | 'Medium' | 'Low';
@@ -260,19 +261,7 @@ export const AdminSupportTickets: React.FC = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] antialiased select-none font-sans text-left relative">
       {/* Toast Alert */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-6 right-6 z-50 bg-slate-900 border border-slate-800 text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-3"
-          >
-            <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400" />
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header bar */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4 shrink-0">

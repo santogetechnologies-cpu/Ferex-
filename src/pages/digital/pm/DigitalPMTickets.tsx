@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../../../contexts/AuthContext';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
+import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
 import {
   getAssignedDigitalTickets,
@@ -23,8 +24,14 @@ export const DigitalPMTickets: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [toast, setToast] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
 
   const [selectedTicket, setSelectedTicket] = useState<DigitalTicket | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState('');
@@ -87,8 +94,9 @@ export const DigitalPMTickets: React.FC = () => {
       if (selectedTicket?.id === ticket.id) {
         setSelectedTicket(prev => prev ? { ...prev, status: newStatus, resolution_notes: resolutionNotes || prev.resolution_notes } : null);
       }
+      showToast(`Ticket status updated to ${newStatus}`);
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -113,9 +121,10 @@ export const DigitalPMTickets: React.FC = () => {
 
       setTickets(prev => [created, ...prev]);
       setShowAddModal(false);
+      showToast(`Created ticket "${newTicket.title}" successfully`);
       setNewTicket({ title: '', project_id: '', description: '', priority: 'Medium' });
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -131,6 +140,8 @@ export const DigitalPMTickets: React.FC = () => {
 
   return (
     <div className="space-y-6 relative text-left pb-8">
+      <ToastNotification message={toast} onClose={() => setToast('')} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

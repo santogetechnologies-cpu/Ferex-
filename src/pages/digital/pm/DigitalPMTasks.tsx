@@ -94,8 +94,9 @@ export const DigitalPMTasks: React.FC = () => {
     try {
       await updateDigitalTaskStatusDirect(task.id, nextStatus);
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: nextStatus } : t));
+      showToast(`Task status updated to "${nextStatus}"`);
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -254,11 +255,16 @@ export const DigitalPMTasks: React.FC = () => {
                   </button>
 
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(t.is_central_directive || t.created_by === 'Central Admin' || t.task_type === 'Central Directive' || (t.notes && t.notes.toLowerCase().includes('central admin'))) && (
+                        <span className="text-[9.5px] font-black px-2 py-0.5 rounded-md bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
+                          🏛️ By Central Admin
+                        </span>
+                      )}
                       <span className={`text-xs font-bold text-slate-900 ${t.status === 'Done' ? 'line-through text-slate-400' : ''}`}>
                         {t.title}
                       </span>
-                      {t.task_type && t.task_type !== 'Task' && (
+                      {t.task_type && t.task_type !== 'Task' && t.task_type !== 'Central Directive' && (
                         <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-violet-50 text-violet-700 border border-violet-200">
                           {t.task_type}
                         </span>

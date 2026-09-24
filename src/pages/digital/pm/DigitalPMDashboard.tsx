@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../../../contexts/AuthContext';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
+import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
 import {
   getAssignedDigitalProjects,
@@ -26,11 +27,17 @@ export const DigitalPMDashboard: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [toast, setToast] = useState('');
   const [projects, setProjects] = useState<any[]>([]);
   const [tasks, setTasks] = useState<DigitalPMTask[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
   const [milestones, setMilestones] = useState<any[]>([]);
   const [sprints, setSprints] = useState<any[]>([]);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
 
   const pmIdentity = {
     id: user?.id,
@@ -100,8 +107,9 @@ export const DigitalPMDashboard: React.FC = () => {
     try {
       await updateDigitalTaskStatusDirect(task.id, nextStatus);
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: nextStatus } : t));
+      showToast(`Task marked as ${nextStatus}`);
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -163,6 +171,8 @@ export const DigitalPMDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 relative text-left pb-8">
+      <ToastNotification message={toast} onClose={() => setToast('')} />
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

@@ -11,6 +11,7 @@ import { useFeeConfig } from '../../hooks/useFeeConfig';
 import { uploadFileToBucket } from '../../lib/storage';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../../lib/types';
 import type { DestinationItem } from '../../lib/api/destinations';
+import { ToastNotification } from '../../components/ToastNotification';
 
 export function formatFeeEURandINR(feeStr?: string): string {
   if (!feeStr || feeStr === 'N/A' || feeStr === '—') return '—';
@@ -674,11 +675,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
   return (
     <div className="space-y-6 relative text-left">
       {/* Toast */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-[#58051E] text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" /> {toast}
-        </div>
-      )}
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

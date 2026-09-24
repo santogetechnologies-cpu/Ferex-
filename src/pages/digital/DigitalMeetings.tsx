@@ -8,6 +8,7 @@ import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { ToastNotification } from '../../components/ToastNotification';
 import {
   getDigitalMeetings,
   createDigitalMeeting,
@@ -33,9 +34,15 @@ export const DigitalMeetings: React.FC = () => {
   const [clients, setClients] = useState<DigitalClientRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [toast, setToast] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newMtg, setNewMtg] = useState({
@@ -116,6 +123,7 @@ export const DigitalMeetings: React.FC = () => {
 
       setMeetings(prev => [created, ...prev]);
       setShowAddModal(false);
+      showToast(`Scheduled meeting "${newMtg.title}" successfully`);
       setNewMtg({
         title: '',
         client_id: '',
@@ -131,7 +139,7 @@ export const DigitalMeetings: React.FC = () => {
         notes: ''
       });
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -139,8 +147,9 @@ export const DigitalMeetings: React.FC = () => {
     try {
       await updateDigitalMeetingStatus(id, status);
       setMeetings(prev => prev.map(m => m.id === id ? { ...m, status } : m));
+      showToast(`Meeting status updated to ${status}`);
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -149,8 +158,9 @@ export const DigitalMeetings: React.FC = () => {
     try {
       await deleteDigitalMeeting(id);
       setMeetings(prev => prev.filter(m => m.id !== id));
+      showToast('Scheduled meeting cancelled and removed');
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 
@@ -167,6 +177,8 @@ export const DigitalMeetings: React.FC = () => {
 
   return (
     <div className="space-y-6 relative text-left pb-8">
+      <ToastNotification message={toast} onClose={() => setToast('')} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

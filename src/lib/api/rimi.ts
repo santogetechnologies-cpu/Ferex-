@@ -260,6 +260,7 @@ export interface RimiTaskRecord {
   due_date?: string;
   completed_at?: string;
   created_by?: string;
+  is_central_directive?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -1415,15 +1416,84 @@ export async function getRimiTasks(filters?: {
       .order('due_date', { ascending: true });
 
     if (filters?.staffEmail) {
-      query = query.eq('assigned_staff_email', filters.staffEmail);
+      query = query.or(`assigned_staff_email.ilike.%${filters.staffEmail}%,assigned_staff_name.ilike.%${filters.staffEmail}%,assigned_to_name.ilike.%${filters.staffEmail}%`);
     }
     if (filters?.status && filters.status !== 'All') {
       query = query.eq('status', filters.status);
     }
 
     const { data, error } = await query;
-    if (error) throw error;
-    return (data || []) as RimiTaskRecord[];
+    const directTasks: RimiTaskRecord[] = (data || []).map((t: any) => {
+      const isCentral = t.created_by === 'Central Admin' ||
+        (t.created_by && t.created_by.toLowerCase().includes('central')) ||
+        (t.description && t.description.toLowerCase().includes('central admin')) ||
+        (t.title && t.title.toLowerCase().includes('central admin'));
+      return {
+        ...t,
+        created_by: isCentral ? 'Central Admin' : (t.created_by || 'Rimi Admin'),
+        is_central_directive: isCentral,
+      };
+    });
+
+    // Also fetch any tasks from central tasks table with category Rimi
+    let centralTasks: RimiTaskRecord[] = [];
+    try {
+      let cQuery = supabase
+        .from('tasks')
+        .select('*')
+        .or('category.ilike.%rimi%,category.eq.Rimi')
+        .order('created_at', { ascending: false });
+
+      if (filters?.staffEmail) {
+        cQuery = cQuery.or(`assigned_to.ilike.%${filters.staffEmail}%,assigned_staff_id.eq.${filters.staffEmail}`);
+      }
+      if (filters?.status && filters.status !== 'All') {
+        const cStatus = filters.status === 'Completed' ? 'Completed' : filters.status === 'In Progress' ? 'In Progress' : 'Pending';
+        cQuery = cQuery.eq('status', cStatus);
+      }
+
+      const { data: cData } = await cQuery;
+      if (Array.isArray(cData)) {
+        centralTasks = cData.map((c: any) => {
+          return {
+            id: c.id,
+            title: c.title,
+            description: c.description || 'Directive from Central Admin',
+            task_type: 'Delivery',
+            category: 'Dispatch & Logistics',
+            priority: (c.priority === 'Critical' ? 'Urgent' : (c.priority || 'Medium')) as any,
+            status: (c.status === 'Completed' ? 'Completed' : c.status === 'In Progress' ? 'In Progress' : 'Pending') as any,
+            assigned_staff_name: c.assigned_to || 'Rimi Staff',
+            assigned_staff_email: c.assigned_to && c.assigned_to.includes('@') ? c.assigned_to : `${(c.assigned_to || 'staff').toLowerCase().replace(/\s+/g, '')}@ferex.com`,
+            assigned_to_name: c.assigned_to || 'Rimi Staff',
+            assigned_staff_id: c.assigned_staff_id,
+            due_date: c.due_date || new Date().toISOString().split('T')[0],
+            created_by: 'Central Admin',
+            is_central_directive: true,
+            created_at: c.created_at || new Date().toISOString(),
+            updated_at: c.updated_at || new Date().toISOString(),
+          };
+        });
+      }
+    } catch (cErr) {
+      console.warn('[RimiAPI] Central tasks fetch notice:', cErr);
+    }
+
+    // Merge and deduplicate by ID
+    const mergedMap = new Map<string, RimiTaskRecord>();
+    for (const t of directTasks) {
+      mergedMap.set(t.id, t);
+    }
+    for (const ct of centralTasks) {
+      if (!mergedMap.has(ct.id)) {
+        mergedMap.set(ct.id, ct);
+      } else {
+        const existing = mergedMap.get(ct.id)!;
+        mergedMap.set(ct.id, { ...existing, is_central_directive: true, created_by: 'Central Admin' });
+      }
+    }
+
+    return Array.from(mergedMap.values());
   } catch {
     return [];
   }
@@ -1457,18 +1527,26 @@ export async function createRimiTask(task: Partial<RimiTaskRecord>): Promise<Rim
 }
 
 export async function updateRimiTaskStatus(taskId: string, status: RimiTaskRecord['status']): Promise<void> {
-  const updates: any = { status, updated_at: new Date().toISOString() };
+  const now = new Date().toISOString();
+  const updates: any = { status, updated_at: now };
   if (status === 'Completed') {
-    updates.completed_at = new Date().toISOString();
+    updates.completed_at = now;
   }
-  await supabase.from('rimi_tasks').update(updates).eq('id', taskId);
+  await Promise.allSettled([
+    supabase.from('rimi_tasks').update(updates).eq('id', taskId),
+    supabase.from('tasks').update({ status: status === 'Completed' ? 'Completed' : status === 'In Progress' ? 'In Progress' : 'Pending', updated_at: now }).eq('id', taskId)
+  ]);
   triggerLocalSync('ferex_rimi_tasks_change');
+  triggerLocalSync('ferex_tasks_change');
 }
 
 export async function deleteRimiTask(taskId: string): Promise<boolean> {
-  const { error } = await supabase.from('rimi_tasks').delete().eq('id', taskId);
-  if (error) throw error;
+  await Promise.allSettled([
+    supabase.from('rimi_tasks').delete().eq('id', taskId),
+    supabase.from('tasks').delete().eq('id', taskId)
+  ]);
   triggerLocalSync('ferex_rimi_tasks_change');
+  triggerLocalSync('ferex_tasks_change');
   return true;
 }
 

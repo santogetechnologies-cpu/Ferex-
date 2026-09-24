@@ -7,6 +7,7 @@ import { useDocuments } from '../../hooks/useDocuments';
 import { getStaffMembers, createStaffMember, DEFAULT_COUNSELOR_ROSTER, assignCounselorToStudent, getDefaultCounselorForCountry } from '../../lib/api/students';
 import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../../lib/api/documentRequirements';
 import type { UserProfile } from '../../lib/types';
+import { ToastNotification } from '../../components/ToastNotification';
 
 interface StudentItem {
   id: string;
@@ -411,11 +412,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
   return (
     <div className="space-y-5 relative text-left">
       {/* Toast */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl text-sm font-bold flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" /> {toast}
-        </div>
-      )}
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">

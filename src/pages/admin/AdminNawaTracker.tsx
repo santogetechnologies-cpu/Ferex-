@@ -13,6 +13,7 @@ import { useCountryWorkflows } from '../../hooks/useCountryWorkflows';
 import { useDestinations } from '../../hooks/useDestinations';
 import type { NawaRecord } from '../../lib/api/nawa';
 import type { UserProfile, CountryWorkflowConfig, WorkflowStageConfig, WorkflowDocumentRequirement } from '../../lib/types';
+import { ToastNotification } from '../../components/ToastNotification';
 
 export const AdminNawaTracker: React.FC = () => {
   const { workflows, saveWorkflow, removeWorkflow, getWorkflowForCountry } = useCountryWorkflows();
@@ -350,11 +351,7 @@ export const AdminNawaTracker: React.FC = () => {
   return (
     <div className="space-y-6 text-left relative">
       {/* Toast */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-[#58051E] text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" /> {toast}
-        </div>
-      )}
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header with Switcher Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

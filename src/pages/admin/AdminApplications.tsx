@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useApplications } from '../../hooks/useApplications';
 import { uploadOfferPdfToSupabase } from '../../lib/api/applications';
 import { updateNawaStep } from '../../lib/api/nawa';
+import { ToastNotification } from '../../components/ToastNotification';
 
 export const COUNTRY_AUTHORITIES: Record<string, { acronym: string; name: string; flag: string }> = {
   'Poland': { acronym: 'Legalization', name: 'Polish Ministry of Science & Legalization', flag: 'PL' },
@@ -501,18 +502,7 @@ startxref
   return (
     <div className="space-y-5 relative text-left">
       {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2"
-          >
-            <Sparkles className="w-4 h-4 text-emerald-400" /> {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

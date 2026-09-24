@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
 import { updateStudent } from '../lib/api/students';
 import { supabase } from '../lib/supabase';
@@ -452,19 +453,7 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
       <input ref={docInputRef} type="file" className="hidden" onChange={handleDocReplace} />
 
       {/* ── Toast ─────────────────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-6 right-6 z-[100] bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl text-sm font-bold flex items-center gap-3 border border-slate-800"
-          >
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* ── Profile Hero Header ───────────────────────────────────────────── */}
       <motion.div

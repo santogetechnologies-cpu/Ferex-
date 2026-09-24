@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Save, CheckCircle2, Building2, Shield, Lock } from 'lucide-react';
 import { ChangePasswordForm } from '../../components/ChangePasswordForm';
+import { ToastNotification } from '../../components/ToastNotification';
 
 const TABS = ['Organization', 'Security & Password'];
 
@@ -90,12 +91,7 @@ export const AdminSettings: React.FC = () => {
   return (
     <div className="space-y-5 text-left w-full max-w-full overflow-x-hidden">
       {/* Floating Toast Notification */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-3 border border-slate-700 animate-in fade-in duration-200">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" /> 
-          <span>{toast}</span>
-        </div>
-      )}
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">

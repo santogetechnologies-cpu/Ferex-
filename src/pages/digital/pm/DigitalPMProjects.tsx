@@ -158,9 +158,10 @@ export const DigitalPMProjects: React.FC = () => {
       if (updated) {
         setSelectedProject(updated);
         setProjects(prev => prev.map(p => p.id === updated.id ? updated : p));
+        showToast(`Project stage updated to ${newStage}`);
       }
     } catch (err: any) {
-      alert(`Database Error: ${err.message}`);
+      showToast(`Database Error: ${err.message}`);
     }
   };
 

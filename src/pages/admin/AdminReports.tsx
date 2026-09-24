@@ -6,6 +6,7 @@ import { useApplications } from '../../hooks/useApplications';
 import { useDocuments } from '../../hooks/useDocuments';
 import { usePayments } from '../../hooks/usePayments';
 import { useUniversities } from '../../hooks/useUniversities';
+import { ToastNotification } from '../../components/ToastNotification';
 
 const BarChart: React.FC<{ data: number[]; labels: string[]; color: string; unit?: string }> = ({ data, labels, color, unit = '' }) => {
   const max = Math.max(...data, 1);
@@ -73,11 +74,7 @@ export const AdminReports: React.FC = () => {
 
   return (
     <div className="space-y-6 relative">
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl text-sm font-bold flex items-center gap-3">
-          <Download className="w-5 h-5 text-emerald-400" /> {toast}
-        </div>
-      )}
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>

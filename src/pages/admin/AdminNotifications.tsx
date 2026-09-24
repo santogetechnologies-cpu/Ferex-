@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
 import { getStudents } from '../../lib/api/students';
+import { ToastNotification } from '../../components/ToastNotification';
 
 interface NotificationItem {
   id: string;
@@ -197,11 +198,7 @@ export const AdminNotifications: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left antialiased font-sans select-none relative pb-12">
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-3 border border-slate-800">
-          <Sparkles className="w-4 h-4 text-emerald-400" /> {toast}
-        </div>
-      )}
+      <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header Banner */}
       <div className="p-6 bg-gradient-to-r from-slate-900 via-wine-950 to-[#58051E] text-white rounded-3xl shadow-xl border border-slate-800 relative overflow-hidden">
