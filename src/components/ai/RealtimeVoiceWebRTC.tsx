@@ -535,18 +535,44 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
   }
 
   if (sessionState === 'error') {
+    const isMicError = error.toLowerCase().includes('microphone') || error.toLowerCase().includes('device');
+    const isKeyError = error.toLowerCase().includes('openai') || error.toLowerCase().includes('access denied') || error.toLowerCase().includes('api key');
+
     return (
-      <div className="flex flex-col items-center justify-center gap-5 py-8 px-5 text-center">
-        <div className="w-14 h-14 rounded-full bg-red-500/20 border border-red-400/30 flex items-center justify-center">
-          <AlertCircle className="w-7 h-7 text-red-400" />
+      <div className="flex flex-col items-center justify-center gap-4 py-6 px-4 text-center">
+        <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-400/30 flex items-center justify-center">
+          <AlertCircle className="w-6 h-6 text-red-400" />
         </div>
         <div>
           <p className="text-white font-bold text-sm mb-1">Connection Failed</p>
-          <p className="text-red-300/90 text-xs leading-relaxed max-w-[240px]">{error}</p>
+          <p className="text-red-300/90 text-xs leading-relaxed max-w-[260px]">{error}</p>
         </div>
+
+        {isMicError && (
+          <div className="w-full max-w-[270px] p-3 rounded-xl bg-amber-500/10 border border-amber-400/20 text-[11px] text-amber-200/90 text-left">
+            <p className="font-semibold text-amber-300 mb-1">How to fix in Opera / Chrome:</p>
+            <ol className="list-decimal pl-4 space-y-1 text-amber-200/80">
+              <li>Click the <strong>Lock / Settings icon 🔒</strong> in your browser address bar (top left).</li>
+              <li>Toggle <strong>Microphone</strong> to <strong>Allow</strong>.</li>
+              <li>Click <strong>Retry Connection</strong> below.</li>
+            </ol>
+          </div>
+        )}
+
+        {isKeyError && (
+          <div className="w-full max-w-[270px] p-3 rounded-xl bg-amber-500/10 border border-amber-400/20 text-[11px] text-amber-200/90 text-left">
+            <p className="font-semibold text-amber-300 mb-1">OpenAI API Key Checklist:</p>
+            <ul className="list-disc pl-4 space-y-1 text-amber-200/80">
+              <li>Ensure your account has a paid credit balance.</li>
+              <li>Ensure the key has <strong>Realtime API</strong> model permissions.</li>
+              <li>Check key in <strong>Central Settings → AI Studio</strong>.</li>
+            </ul>
+          </div>
+        )}
+
         <button
           onClick={connect}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all cursor-pointer"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all cursor-pointer mt-1"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Retry Connection
