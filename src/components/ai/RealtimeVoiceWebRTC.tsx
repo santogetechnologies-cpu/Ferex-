@@ -50,13 +50,8 @@ export interface RealtimeVoiceWebRTCProps {
 // ─── Normalise model name ─────────────────────────────────────────────────────
 
 function resolveRealtimeModel(raw?: string): string {
-  if (!raw) return 'gpt-4o-mini-realtime-preview-2024-12-17';
-  const clean = raw.toLowerCase().trim();
-  if (clean.includes('mini')) return 'gpt-4o-mini-realtime-preview-2024-12-17';
-  if (clean.includes('gpt-4o') && clean.includes('realtime')) {
-    return clean.includes('2024') ? clean : 'gpt-4o-realtime-preview-2024-12-17';
-  }
-  return 'gpt-4o-mini-realtime-preview-2024-12-17';
+  if (!raw || !raw.trim()) return 'gpt-realtime-2.1-mini';
+  return raw.trim();
 }
 
 // ─── Phone icon (inline to avoid import issues) ───────────────────────────────
@@ -558,8 +553,8 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           Live
         </div>
-        <span className="text-white/45 font-medium truncate max-w-[160px]">
-          {connectedModel.replace('gpt-4o-', '').replace('-preview', '').replace('-2024-12-17', '').replace('-2025-06-03', '') || 'OpenAI Realtime'}
+        <span className="text-white/80 font-mono text-[10.5px] truncate max-w-[200px]" title={connectedModel || 'gpt-realtime-2.1-mini'}>
+          {connectedModel || 'gpt-realtime-2.1-mini'}
         </span>
         <div className="flex items-center gap-1 text-emerald-300/80">
           <Wifi className="w-3 h-3" />
