@@ -431,7 +431,7 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
         setTimeout(resolve, 2000); // safety
       });
 
-      const sdpRes = await fetch(`https://api.openai.com/v1/realtime?model=${model}`, {
+      const sdpRes = await fetch('https://api.openai.com/v1/realtime/calls', {
         method: 'POST',
         body: pc.localDescription!.sdp,
         headers: {
