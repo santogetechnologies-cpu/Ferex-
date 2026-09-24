@@ -51,8 +51,11 @@ export interface RealtimeVoiceWebRTCProps {
 
 function resolveRealtimeModel(raw?: string): string {
   if (!raw) return 'gpt-4o-mini-realtime-preview-2024-12-17';
-  if (raw.includes('mini')) return 'gpt-4o-mini-realtime-preview-2024-12-17';
-  if (raw.includes('realtime')) return 'gpt-4o-realtime-preview-2025-06-03';
+  const clean = raw.toLowerCase().trim();
+  if (clean.includes('mini')) return 'gpt-4o-mini-realtime-preview-2024-12-17';
+  if (clean.includes('gpt-4o') && clean.includes('realtime')) {
+    return clean.includes('2024') ? clean : 'gpt-4o-realtime-preview-2024-12-17';
+  }
   return 'gpt-4o-mini-realtime-preview-2024-12-17';
 }
 
@@ -303,13 +306,19 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
       // Parallel: get ephemeral token + build enterprise system prompt
       setStatusMsg('Authenticating with OpenAI & loading enterprise data…');
       const [tokenRes, systemPrompt] = await Promise.all([
-        fetch('https://api.openai.com/v1/realtime/sessions', {
+        fetch('https://api.openai.com/v1/realtime/client_secrets', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ model, voice }),
+          body: JSON.stringify({
+            session: {
+              type: 'realtime',
+              model,
+              voice,
+            },
+          }),
         }),
         getRealtimeSystemPrompt(role, userId, userEmail),
       ]);
@@ -324,7 +333,7 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
       }
 
       const tokenData = await tokenRes.json();
-      const ephemeralKey: string = tokenData?.client_secret?.value;
+      const ephemeralKey: string = tokenData?.value || tokenData?.client_secret?.value || tokenData?.key;
       if (!ephemeralKey) {
         throw new Error('OpenAI did not return a valid client secret token.');
       }

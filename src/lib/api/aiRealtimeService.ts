@@ -832,7 +832,10 @@ export async function createRealtimeClientSecret(apiKey: string, customPayload?:
 
     if (res.ok) {
       const data = await res.json();
-      return data;
+      return {
+        ...data,
+        client_secret: { value: data.value || data.client_secret?.value || data.key || '' },
+      };
     } else {
       const err = await res.json().catch(() => ({}));
       return { error: err?.error?.message || `Failed to create client secret (status ${res.status})` };
