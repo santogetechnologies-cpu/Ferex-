@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, X, RotateCcw, Maximize2, Minimize2,
   Copy, Check, User, ShieldCheck, RefreshCw,
-  Mic, MessageSquare,
+  Mic, MessageSquare, Sparkles, Bot,
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { RealtimeVoiceWebRTC } from './ai/RealtimeVoiceWebRTC';
@@ -548,6 +548,41 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
               </div>
             )}
           </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* ── FLOATING TRIGGER BUTTON (Always visible across Landing & Portals when copilot closed) ── */}
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0, opacity: 0, y: 20 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            className="fixed bottom-5 right-5 z-40"
+          >
+            <button
+              onClick={() => setIsOpen(true)}
+              aria-label="Open Ferex AI Assistant"
+              className="group flex items-center gap-3 px-4 py-3 rounded-full bg-gradient-to-r from-[#58051E] via-[#6f0335] to-[#800020] hover:from-[#6f0335] hover:to-[#58051E] text-white shadow-xl shadow-[#58051E]/35 hover:shadow-2xl hover:shadow-[#58051E]/55 border border-white/25 transition-all duration-200 cursor-pointer active:scale-95"
+            >
+              <div className="relative">
+                <div className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-white">
+                  <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                </div>
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#58051E] animate-pulse" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-black tracking-wide leading-none flex items-center gap-1.5">
+                  <span>AI Copilot</span>
+                  <span className="text-[8.5px] font-bold px-1.5 py-0.2 rounded-full bg-white/20 uppercase">Live</span>
+                </p>
+                <p className="text-[10px] text-white/75 font-medium leading-none mt-1 hidden sm:block">
+                  {role === 'student' ? 'Voice & Chat Assistant' : 'Ask anything or speak'}
+                </p>
+              </div>
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </>

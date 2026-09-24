@@ -256,37 +256,6 @@ export const StudentDashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* ── 24/7 AI STUDENT COPILOT BANNER ── */}
-      <motion.div variants={itemVariants}>
-        <div className="p-4 bg-gradient-to-r from-[#58051E]/10 via-[#58051E]/5 to-transparent border border-[#58051E]/20 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs text-left">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#58051E] text-white flex items-center justify-center shrink-0 shadow-xs">
-              <Bot className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-black text-slate-900">24/7 AI Student & Visa Copilot</h3>
-                <span className="text-[9px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.2 rounded-md flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5" /> Gemma 4 26B
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                Have instant questions on Apostille, Polish NAWA recognition, visa interviews, or SOP writing? Click the floating AI Copilot button anytime!
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              // Trigger floating chatbot if present or navigate
-              const botBtn = document.querySelector('button[aria-label="Open Ferex AI Assistant"]') as HTMLButtonElement;
-              if (botBtn) botBtn.click();
-            }}
-            className="px-3.5 py-2 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
-          >
-            <Bot className="w-3.5 h-3.5" /> Ask AI Copilot ➔
-          </button>
-        </div>
-      </motion.div>
 
       {/* Missing Target Country Prompt */}
       {!targetCountry && (
