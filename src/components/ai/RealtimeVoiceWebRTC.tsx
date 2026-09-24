@@ -309,6 +309,7 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
           },
           body: JSON.stringify({
             session: {
+              type: 'realtime',
               model,
             },
           }),
