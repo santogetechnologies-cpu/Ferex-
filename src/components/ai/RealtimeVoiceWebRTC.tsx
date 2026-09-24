@@ -354,13 +354,24 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
 
       // Microphone
       setStatusMsg('Requesting microphone access…');
-      const ms = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 24000,
-        },
-      });
+      let ms: MediaStream;
+      try {
+        ms = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            sampleRate: 24000,
+          },
+        });
+      } catch (micErr: any) {
+        if (micErr?.name === 'NotAllowedError' || micErr?.name === 'PermissionDeniedError' || micErr?.message?.includes('Permission denied')) {
+          throw new Error('Microphone permission denied. Please allow microphone access in your browser address bar / site settings.');
+        }
+        if (micErr?.name === 'NotFoundError' || micErr?.name === 'DevicesNotFoundError') {
+          throw new Error('No microphone device found on your computer. Please connect a microphone.');
+        }
+        throw new Error(`Microphone access error: ${micErr?.message || 'Unable to access microphone'}`);
+      }
 
       const micTrack = ms.getTracks()[0];
       micTrackRef.current = micTrack;
@@ -430,7 +441,8 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
       });
 
       if (!sdpRes.ok) {
-        throw new Error(`SDP exchange failed (HTTP ${sdpRes.status}). Please retry.`);
+        const errDetail = await sdpRes.text().catch(() => '');
+        throw new Error(`SDP exchange failed (HTTP ${sdpRes.status}): ${errDetail || 'Please retry.'}`);
       }
 
       const answerSdp = await sdpRes.text();
