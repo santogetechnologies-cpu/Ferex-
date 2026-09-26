@@ -209,7 +209,7 @@ export const CentralEmailLogs: React.FC = () => {
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Complete delivery audit showing exact timestamps, recipient addresses, subject lines, and dispatch telemetry across all subsidiaries.
+            Complete delivery audit showing exact timestamps, recipient addresses, subject lines, and dispatch history across all subsidiaries.
           </p>
         </div>
 

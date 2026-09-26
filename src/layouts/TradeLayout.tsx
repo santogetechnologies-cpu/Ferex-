@@ -109,30 +109,30 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
     {
       title: 'EXECUTIVE DESK',
       items: [
-        { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard, badge: 'Live' }
+        { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard }
       ]
     },
     {
       title: 'TRADE OPERATIONS',
       items: [
-        { name: 'Orders & Tracking', path: '/trade/shipments', icon: PackageCheck, badge: '7 Stages' },
-        { name: 'Documents Vault', path: '/trade/documents', icon: FolderArchive, badge: '7 Core' },
-        { name: 'Task Assignment', path: '/trade/tasks', icon: ListTodo, badge: 'Staff' },
-        { name: 'Support & Tickets', path: '/trade/tickets', icon: LifeBuoy, badge: 'Manual' },
-        { name: 'Payment Ledger & LC', path: '/trade/payments', icon: CreditCard, badge: 'Adv/Bal' },
+        { name: 'Orders & Tracking', path: '/trade/shipments', icon: PackageCheck },
+        { name: 'Documents Vault', path: '/trade/documents', icon: FolderArchive },
+        { name: 'Task Assignment', path: '/trade/tasks', icon: ListTodo },
+        { name: 'Support & Tickets', path: '/trade/tickets', icon: LifeBuoy },
+        { name: 'Payment Ledger & LC', path: '/trade/payments', icon: CreditCard },
       ]
     },
     {
       title: 'COMMUNICATION & CRM',
       items: [
-        { name: 'Automated Emails', path: '/trade/notifications', icon: Mail, badge: '8 Triggers' },
-        { name: 'Trade CRM & Partners', path: '/trade/crm', icon: Users, badge: null },
+        { name: 'Automated Emails', path: '/trade/notifications', icon: Mail },
+        { name: 'Trade CRM & Partners', path: '/trade/crm', icon: Users },
       ]
     },
     {
       title: 'SYSTEM',
       items: [
-        { name: 'Profile & Settings', path: '/trade/profile', icon: User, badge: null },
+        { name: 'Profile & Settings', path: '/trade/profile', icon: User },
       ]
     }
   ];
@@ -142,23 +142,23 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
     {
       title: 'STAFF OPERATIONS PORTAL',
       items: [
-        { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard, badge: 'Staff' },
-        { name: 'Active Orders', path: '/trade/shipments', icon: PackageCheck, badge: '7 Stages' },
-        { name: 'My Assigned Tasks', path: '/trade/tasks', icon: ListTodo, badge: 'Queue' },
-        { name: 'Document Verification', path: '/trade/documents', icon: FolderArchive, badge: 'Compliance' },
-        { name: 'Manual Ticket Logging', path: '/trade/tickets', icon: LifeBuoy, badge: 'Issues' },
+        { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard },
+        { name: 'Active Orders', path: '/trade/shipments', icon: PackageCheck },
+        { name: 'My Assigned Tasks', path: '/trade/tasks', icon: ListTodo },
+        { name: 'Document Verification', path: '/trade/documents', icon: FolderArchive },
+        { name: 'Manual Ticket Logging', path: '/trade/tickets', icon: LifeBuoy },
       ]
     },
     {
       title: 'COMMUNICATION',
       items: [
-        { name: 'Automated Email Log', path: '/trade/notifications', icon: Mail, badge: null },
+        { name: 'Automated Email Log', path: '/trade/notifications', icon: Mail },
       ]
     },
     {
       title: 'SYSTEM',
       items: [
-        { name: 'Staff Profile', path: '/trade/profile', icon: User, badge: null },
+        { name: 'Staff Profile', path: '/trade/profile', icon: User },
       ]
     }
   ];
@@ -244,37 +244,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                           {item.name}
                         </span>
                       )}
-
-                      {!isCollapsed && item.badge && (
-                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 transition-colors
-                          ${isActive
-                            ? 'bg-[#58051E]/15 text-[#58051E]'
-                            : 'bg-slate-100 text-slate-500'}`}>
-                          {item.badge}
-                        </span>
-                      )}
                     </Link>
-
-                    {/* AI Copilot Sidebar Launcher directly below Dashboard */}
-                    {item.path === '/trade/dashboard' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsMobileOpen(false);
-                          window.dispatchEvent(new CustomEvent('ferex_open_ai_sidebar'));
-                        }}
-                        className="w-full relative flex items-center rounded-xl h-8.5 px-2.5 transition-all duration-150 text-xs font-bold bg-gradient-to-r from-[#58051E]/12 via-[#58051E]/6 to-transparent text-[#58051E] hover:bg-[#58051E]/18 border border-[#58051E]/20 text-left cursor-pointer group my-1"
-                        title={isCollapsed ? "Ferex AI Copilot" : undefined}
-                      >
-                        <Sparkles className={`w-4 h-4 shrink-0 transition-transform duration-150 text-[#58051E] group-hover:scale-110 ${isCollapsed ? 'mx-auto' : 'mr-2.5'}`} />
-                        {!isCollapsed && <span className="truncate flex-1 font-bold">AI Copilot</span>}
-                        {!isCollapsed && (
-                          <span className="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-[#58051E] text-white shrink-0 tracking-wider">
-                            LIVE AI
-                          </span>
-                        )}
-                      </button>
-                    )}
                   </React.Fragment>
                 );
               })}

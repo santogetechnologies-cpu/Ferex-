@@ -889,11 +889,11 @@ export const RimiCustomers: React.FC = () => {
                         onChange={(e) => setNewActivityType(e.target.value as any)}
                         className="h-9 px-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
                       >
-                        <option value="Call Log">📞 Phone Call</option>
-                        <option value="Visit Log">📍 Field Visit</option>
-                        <option value="Sample Sent">📦 Sample Sent</option>
-                        <option value="Note">📝 Note</option>
-                        <option value="Complaint">⚠️ Complaint</option>
+                        <option value="Call Log">Phone Call</option>
+                        <option value="Visit Log">Field Visit</option>
+                        <option value="Sample Sent">Sample Sent</option>
+                        <option value="Note">Note</option>
+                        <option value="Complaint">Complaint</option>
                       </select>
                       <input
                         type="text"

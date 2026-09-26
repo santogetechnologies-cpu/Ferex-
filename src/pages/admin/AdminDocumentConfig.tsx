@@ -272,13 +272,14 @@ export const AdminDocumentConfig: React.FC = () => {
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
           <button
             onClick={() => setSelectedCountry('All')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
               selectedCountry === 'All'
                 ? 'bg-[#58051E] text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            🌍 All Countries
+            <Globe className="w-3.5 h-3.5" />
+            <span>All Countries</span>
           </button>
           {availableCountries.map(country => {
             const count = requirements.filter(r => r.country.toLowerCase() === country.toLowerCase()).length;

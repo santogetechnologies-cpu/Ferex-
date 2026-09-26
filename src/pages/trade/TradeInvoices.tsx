@@ -498,7 +498,7 @@ export const TradeInvoices: React.FC = () => {
                             {p.company_name || p.name} ({p.category || p.partner_type || 'Partner'})
                           </option>
                         ))}
-                        <option value="__CUSTOM__">➕ + Type Custom Buyer Name...</option>
+                        <option value="__CUSTOM__">+ Enter Custom Buyer Name...</option>
                       </select>
                     ) : (
                       <div className="flex gap-2">

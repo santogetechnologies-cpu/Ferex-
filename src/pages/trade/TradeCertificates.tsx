@@ -438,7 +438,7 @@ export const TradeCertificates: React.FC = () => {
                             {p.company_name || p.name} ({p.category || p.partner_type || 'Partner'})
                           </option>
                         ))}
-                        <option value="__CUSTOM__">➕ + Type Custom Importer Name...</option>
+                        <option value="__CUSTOM__">+ Enter Custom Importer Name...</option>
                       </select>
                     ) : (
                       <div className="flex gap-2">

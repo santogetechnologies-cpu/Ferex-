@@ -41,39 +41,39 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
     {
       title: 'HQ COMMAND',
       items: [
-        { name: 'Dashboard', path: '/central/dashboard', icon: LayoutDashboard, badge: 'Live HQ' },
+        { name: 'Dashboard', path: '/central/dashboard', icon: LayoutDashboard },
       ]
     },
     {
       title: 'ENTERPRISE FINANCE',
       items: [
-        { name: 'Finance & Analytics', path: '/central/reports', icon: BarChart3, badge: 'Detailed' },
-        { name: 'Enterprise Ledger', path: '/central/finance', icon: CreditCard, badge: 'Treasury' },
+        { name: 'Finance & Analytics', path: '/central/reports', icon: BarChart3 },
+        { name: 'Enterprise Ledger', path: '/central/finance', icon: CreditCard },
       ]
     },
     {
       title: 'SUBSIDIARIES',
       items: [
-        { name: 'Ferex Education', path: '/central/education', icon: GraduationCap, badge: 'Core' },
-        { name: 'Global Trade ERP', path: '/central/trade', icon: Globe, badge: 'Trade' },
-        { name: 'Rimi Frozen FMCG', path: '/central/rimi', icon: Snowflake, badge: 'Cold Chain' },
-        { name: 'Ferex Digital Agency', path: '/central/digital', icon: Monitor, badge: 'Digital' },
+        { name: 'Ferex Education', path: '/central/education', icon: GraduationCap },
+        { name: 'Global Trade ERP', path: '/central/trade', icon: Globe },
+        { name: 'Rimi Frozen FMCG', path: '/central/rimi', icon: Snowflake },
+        { name: 'Ferex Digital Agency', path: '/central/digital', icon: Monitor },
       ]
     },
     {
       title: 'OPERATIONS & AUDIT',
       items: [
-        { name: 'Cross-App Tasks', path: '/central/tasks', icon: CheckSquare, badge: 'Tasks' },
-        { name: 'Support Tickets', path: '/central/support', icon: ShieldCheck, badge: 'Tickets' },
-        { name: 'Enterprise Audit Trail', path: '/central/activity', icon: Activity, badge: 'Realtime' },
-        { name: 'Email Delivery Logs', path: '/central/emails', icon: Mail, badge: 'Live Logs' },
+        { name: 'Cross-App Tasks', path: '/central/tasks', icon: CheckSquare },
+        { name: 'Support Tickets', path: '/central/support', icon: ShieldCheck },
+        { name: 'Enterprise Audit Trail', path: '/central/activity', icon: Activity },
+        { name: 'Email Delivery Logs', path: '/central/emails', icon: Mail },
       ]
     },
     {
       title: 'GOVERNANCE & SYSTEM',
       items: [
-        { name: 'Roles & Users', path: '/central/roles-users', icon: UserCheck, badge: 'RBAC' },
-        { name: 'System Settings', path: '/central/settings', icon: Settings, badge: 'DB Sync' },
+        { name: 'Roles & Users', path: '/central/roles-users', icon: UserCheck },
+        { name: 'System Settings', path: '/central/settings', icon: Settings },
       ]
     }
   ];
@@ -160,43 +160,9 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
                         {item.name}
                       </span>
                     )}
-
-                    {!isCollapsed && item.badge && (
-                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 transition-colors
-                        ${isActive
-                          ? 'bg-[#58051E]/15 text-[#58051E]'
-                          : item.badge === 'HQ Live' || item.badge === 'Create'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : item.badge === 'Core' || item.badge === 'ERP' || item.badge === 'FMCG' || item.badge === 'Agency'
-                              ? 'bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20'
-                              : 'bg-slate-100 text-slate-500'}`}>
-                        {item.badge}
-                      </span>
-                    )}
                   </Link>
                 );
               })}
-
-              {/* AI Copilot Sidebar Launcher directly below Dashboard */}
-              {sIdx === 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMobileOpen(false);
-                    window.dispatchEvent(new CustomEvent('ferex_open_ai_sidebar'));
-                  }}
-                  className="w-full relative flex items-center rounded-xl h-8.5 px-2.5 transition-all duration-150 text-xs font-bold bg-gradient-to-r from-[#58051E]/12 via-[#58051E]/6 to-transparent text-[#58051E] hover:bg-[#58051E]/18 border border-[#58051E]/20 text-left cursor-pointer group mt-1 mb-1"
-                  title={isCollapsed ? "Ferex AI Copilot" : undefined}
-                >
-                  <Sparkles className={`w-4 h-4 shrink-0 transition-transform duration-150 text-[#58051E] group-hover:scale-110 ${isCollapsed ? 'mx-auto' : 'mr-2.5'}`} />
-                  {!isCollapsed && <span className="truncate flex-1 font-bold">AI Copilot</span>}
-                  {!isCollapsed && (
-                    <span className="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-[#58051E] text-white shrink-0 tracking-wider">
-                      LIVE AI
-                    </span>
-                  )}
-                </button>
-              )}
             </div>
           ))}
         </nav>

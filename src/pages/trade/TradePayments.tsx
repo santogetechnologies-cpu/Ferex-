@@ -345,7 +345,7 @@ export const TradePayments: React.FC = () => {
                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
                       isAdvPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                     }`}>
-                      {o.currency} {Number(o.advance_amount).toLocaleString()} ({isAdvPaid ? '✓ Paid' : '⏳ Due'})
+                      {o.currency} {Number(o.advance_amount).toLocaleString()} ({isAdvPaid ? 'Paid' : 'Due'})
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -353,12 +353,12 @@ export const TradePayments: React.FC = () => {
                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
                       isBalPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                     }`}>
-                      {o.currency} {Number(balDue).toLocaleString()} ({isBalPaid ? '✓ Settled' : '⏳ Pending'})
+                      {o.currency} {Number(balDue).toLocaleString()} ({isBalPaid ? 'Settled' : 'Pending'})
                     </span>
                   </div>
                   {o.lc_reference && (
                     <div className="text-[10px] text-blue-600 font-mono truncate">
-                      🏦 LC Ref: {o.lc_reference}
+                      LC Ref: {o.lc_reference}
                     </div>
                   )}
                 </div>
@@ -578,30 +578,30 @@ export const TradePayments: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => applyPreset('advance')}
-                        className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer"
+                        className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer"
                       >
-                        ⚡ Advance Paid
+                        Advance Paid
                       </button>
                       <button
                         type="button"
                         onClick={() => applyPreset('settlement')}
-                        className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer"
+                        className="px-2.5 py-1 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer"
                       >
-                        💼 Settlement
+                        Settlement
                       </button>
                       <button
                         type="button"
                         onClick={() => applyPreset('completed')}
-                        className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer"
+                        className="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer"
                       >
-                        ✓ Completed
+                        Completed
                       </button>
                       <button
                         type="button"
                         onClick={() => applyPreset('lc')}
-                        className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-900 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer"
+                        className="px-2.5 py-1 bg-purple-100 hover:bg-purple-200 text-purple-900 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer"
                       >
-                        🏦 LC Drawdown
+                        LC Drawdown
                       </button>
                     </div>
                   </div>

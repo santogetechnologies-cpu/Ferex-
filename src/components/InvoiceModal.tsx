@@ -293,9 +293,9 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
         <div class="brand-sub">European Admissions & Global Operations</div>
       </div>
       <div class="company-info">
-        <p>☎ +91 95448 85077, +44 78678 67779</p>
-        <p>✉ ferexventuresoffice@gmail.com</p>
-        <p>■ ${companyAddress}</p>
+        <p><strong>Tel:</strong> +91 95448 85077, +44 78678 67779</p>
+        <p><strong>Email:</strong> ferexventuresoffice@gmail.com</p>
+        <p>${companyAddress}</p>
         <p><strong>GSTIN:</strong> ${companyGstin} | <strong>PAN:</strong> ${companyPan}</p>
       </div>
     </div>
@@ -455,15 +455,15 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
               {/* Company Contact Details */}
               <div className="text-right space-y-1 text-xs font-medium text-slate-700">
                 <div className="flex items-center justify-end gap-1.5 text-slate-800 font-semibold">
-                  <span className="text-[#58051E]">☎</span>
+                  <Phone className="w-3 h-3 text-[#58051E]" />
                   <span>+91 95448 85077, +44 78678 67779</span>
                 </div>
                 <div className="flex items-center justify-end gap-1.5 text-slate-800 font-semibold">
-                  <span className="text-[#58051E]">✉</span>
+                  <Mail className="w-3 h-3 text-[#58051E]" />
                   <span>ferexventuresoffice@gmail.com</span>
                 </div>
                 <div className="flex items-start justify-end gap-1.5 text-slate-600 text-[11px] max-w-xs ml-auto leading-tight">
-                  <span className="text-[#58051E] shrink-0 mt-0.5">■</span>
+                  <MapPin className="w-3 h-3 text-[#58051E] shrink-0 mt-0.5" />
                   <span>{companyAddress}</span>
                 </div>
                 <div className="text-[11px] text-slate-700 font-bold flex items-center justify-end gap-2 pt-0.5">

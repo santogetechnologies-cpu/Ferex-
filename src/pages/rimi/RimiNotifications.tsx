@@ -14,7 +14,7 @@ export const RimiNotifications: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newAlertForm, setNewAlertForm] = useState({ title: '', description: '', category: 'Telemetry' });
+  const [newAlertForm, setNewAlertForm] = useState({ title: '', description: '', category: 'Operations' });
 
   const loadNotifs = useCallback(async () => {
     setLoading(true);
@@ -80,8 +80,8 @@ export const RimiNotifications: React.FC = () => {
     });
 
     setShowAddModal(false);
-    showToastMsg(`Dispatched telemetry alert: ${newAlertForm.title}`);
-    setNewAlertForm({ title: '', description: '', category: 'Telemetry' });
+    showToastMsg(`Dispatched notification alert: ${newAlertForm.title}`);
+    setNewAlertForm({ title: '', description: '', category: 'Operations' });
     await loadNotifs();
   };
 
@@ -99,7 +99,7 @@ export const RimiNotifications: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Bell className="w-6 h-6 text-[#58051E]" /> FMCG Telemetry Notification Center
+            <Bell className="w-6 h-6 text-[#58051E]" /> FMCG Alert & Notification Center
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Real-time cold room temperature alerts, expiring batch notices, and reefer delivery confirmations.
@@ -149,7 +149,7 @@ export const RimiNotifications: React.FC = () => {
         <Card className="p-12 text-center border border-dashed border-slate-200">
           <Bell className="w-10 h-10 text-slate-300 mx-auto mb-3" />
           <h3 className="text-sm font-black text-slate-800">No alerts found</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">There are no telemetry alerts in this view.</p>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">There are no operational alerts in this view.</p>
         </Card>
       ) : (
         <div className="space-y-3">
@@ -187,19 +187,19 @@ export const RimiNotifications: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-[#58051E]" /> Broadcast Telemetry Alert
+                  <Bell className="w-4 h-4 text-[#58051E]" /> Broadcast Notification Alert
                 </h3>
                 <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
               <form onSubmit={handleCreateAlert} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Alert Headline</label>
-                  <input type="text" required value={newAlertForm.title} onChange={(e) => setNewAlertForm({ ...newAlertForm, title: e.target.value })} placeholder="e.g. Cold Room #3 Temp Sensor Warning" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <input type="text" required value={newAlertForm.title} onChange={(e) => setNewAlertForm({ ...newAlertForm, title: e.target.value })} placeholder="e.g. Cold Room Temperature Warning" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Category</label>
                   <select value={newAlertForm.category} onChange={(e) => setNewAlertForm({ ...newAlertForm, category: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                    <option value="Telemetry">Telemetry Sensor</option>
+                    <option value="Operations">Operations</option>
                     <option value="Logistics">Reefer Transit</option>
                     <option value="Storage">Warehouse Deep Freeze</option>
                     <option value="Batch Quality">Batch Quality Inspection</option>

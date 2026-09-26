@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   GraduationCap, Calendar, Clock, ArrowRight,
   Compass, FileCheck, CreditCard, CheckCircle2, Circle, XCircle,
-  ScrollText, Lock, MessageSquare, Bot, Sparkles
+  ScrollText, Lock, MessageSquare, Bot, Sparkles, AlertCircle
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -260,14 +260,17 @@ export const StudentDashboard: React.FC = () => {
       {/* Missing Target Country Prompt */}
       {!targetCountry && (
         <motion.div variants={itemVariants}>
-          <div className="p-5 bg-amber-50 border-2 border-amber-300 rounded-2xl text-left flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-subtle">
-            <div>
-              <p className="font-bold text-amber-900 text-sm">
-                ⚠️ Please select your target country to see specific compliance protocols & requirements
-              </p>
-              <p className="text-xs text-amber-700 mt-1">
-                Your admission roadmap, country-specific legalization rules, and embassy documentation checklist will configure automatically.
-              </p>
+          <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl text-left flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-subtle">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-amber-900 text-sm">
+                  Please select your target country to see specific compliance protocols & requirements
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  Your admission roadmap, country-specific legalization rules, and embassy documentation checklist will configure automatically.
+                </p>
+              </div>
             </div>
             <button 
               onClick={() => navigate('/student/profile')}

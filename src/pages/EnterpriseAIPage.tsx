@@ -321,7 +321,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
             </div>
             <p className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Live Enterprise Intelligence • Direct Database Telemetry</span>
+              <span>Enterprise Operations & Records Query</span>
             </p>
           </div>
         </div>
@@ -414,11 +414,10 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
                           {msg.content ? (
                             renderFormattedContent(msg.content)
                           ) : (
-                            <div className="flex items-center gap-2 py-1 text-slate-400 font-medium text-xs">
+                            <div className="flex items-center gap-1.5 py-1 px-1">
                               <span className="w-2 h-2 rounded-full bg-[#58051E] animate-bounce" style={{ animationDelay: '0ms' }} />
                               <span className="w-2 h-2 rounded-full bg-[#58051E] animate-bounce" style={{ animationDelay: '150ms' }} />
                               <span className="w-2 h-2 rounded-full bg-[#58051E] animate-bounce" style={{ animationDelay: '300ms' }} />
-                              <span className="ml-1 text-xs text-[#58051E] font-semibold">Formulating response...</span>
                             </div>
                           )}
 
@@ -459,7 +458,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
             {/* Quick Action Prompt Badges */}
             <div className="px-4 sm:px-6 py-2.5 bg-white border-t border-slate-100 flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0">
               <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
-                <Zap className="w-3.5 h-3.5 text-[#58051E]" /> Quick Prompts:
+                <Sparkles className="w-3.5 h-3.5 text-[#58051E]" /> Suggested:
               </div>
               {(quickPrompts[role] || quickPrompts.central_admin).map((prompt, pIdx) => (
                 <button
@@ -487,7 +486,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder="Ask anything about enterprise metrics, applications, orders, tasks..."
+                  placeholder="Ask anything about enterprise records, applications, shipments, tasks..."
                   disabled={isLoading}
                   className="flex-1 h-12 px-4.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#58051E] disabled:opacity-50 transition-all shadow-inner"
                 />
@@ -509,10 +508,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
                   aria-label="Send message"
                 >
                   {isLoading ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span className="hidden sm:inline">Thinking...</span>
-                    </>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
                       <Send className="w-4 h-4" />
@@ -524,9 +520,9 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
 
               <div className="max-w-4xl mx-auto flex items-center justify-between text-[11px] text-slate-400 font-medium px-2 mt-2">
                 <span className="flex items-center gap-1 text-[#58051E] font-bold">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Ferex Enterprise AI & Database Integration
+                  <ShieldCheck className="w-3.5 h-3.5" /> FEREX Enterprise Intelligence
                 </span>
-                <span>Powered by Ferex Multi-Agent Engine</span>
+                <span>Confidential Internal Operations</span>
               </div>
             </div>
           </div>

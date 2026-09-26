@@ -767,7 +767,7 @@ export const TradeShipments: React.FC = () => {
                   <span className="text-slate-400 text-[10px] uppercase font-bold block">Shipping & Carrier</span>
                   <span className="text-slate-900 font-bold">{selectedOrder.carrier || 'Pending carrier'}</span>
                   <div className="text-[11px] text-slate-500 mt-1">
-                    {selectedOrder.origin_port} ➔ {selectedOrder.destination_port}
+                    {selectedOrder.origin_port} → {selectedOrder.destination_port}
                   </div>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-2xl">

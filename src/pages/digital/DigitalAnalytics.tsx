@@ -132,10 +132,10 @@ export const DigitalAnalytics: React.FC = () => {
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
               Executive Analytics & Performance Hub
             </h1>
-            <Badge variant="brand">Live Database Telemetry</Badge>
+            <Badge variant="brand">Real-Time Metrics</Badge>
           </div>
           <p className="text-xs text-slate-500">
-            Realtime financial revenue, stage delivery velocity, client distribution, and task metrics directly from Supabase.
+            Realtime financial revenue, stage delivery velocity, client distribution, and task metrics across all active agency accounts.
           </p>
         </div>
 

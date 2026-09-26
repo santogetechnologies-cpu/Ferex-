@@ -230,8 +230,8 @@ export const SelectUniversity: React.FC = () => {
 
       setApplyUni(null);
       const successMsg = hasCounselorAssigned 
-        ? `🎉 Application submitted successfully to ${applyUni.name}! Routed to ${assignedCounselorName}`
-        : `🎉 Application submitted successfully to ${applyUni.name}! Pending counselor assignment.`;
+        ? `Application submitted successfully to ${applyUni.name}! Routed to ${assignedCounselorName}.`
+        : `Application submitted successfully to ${applyUni.name}! Pending counselor assignment.`;
       setSuccessToast(successMsg);
       setTimeout(() => navigate('/student/applications'), 1200);
     } catch (err: any) {
@@ -401,7 +401,7 @@ export const SelectUniversity: React.FC = () => {
                 : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/80'
             }`}
           >
-            <span className="text-lg block mb-0.5">🌍</span>
+            <Globe className={`w-5 h-5 mb-1 ${selectedCountry === 'All' ? 'text-amber-300' : 'text-slate-500'}`} />
             <span className="text-xs font-extrabold block">All Countries</span>
             <span className={`text-[9.5px] block ${selectedCountry === 'All' ? 'text-white/80' : 'text-slate-400'}`}>
               Browse Entire Catalog

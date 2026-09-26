@@ -421,8 +421,8 @@ export const TradeLettersOfCredit: React.FC = () => {
                   </div>
                   {(l.shipment_no || l.invoice_no) && (
                     <div className="text-[10px] font-bold text-blue-600 flex items-center gap-2 pt-0.5">
-                      {l.shipment_no && <span>🚢 {l.shipment_no}</span>}
-                      {l.invoice_no && <span>📄 {l.invoice_no}</span>}
+                      {l.shipment_no && <span className="flex items-center gap-1"><Ship className="w-3 h-3 text-blue-500" /> {l.shipment_no}</span>}
+                      {l.invoice_no && <span className="flex items-center gap-1"><FileText className="w-3 h-3 text-blue-500" /> {l.invoice_no}</span>}
                     </div>
                   )}
                 </div>

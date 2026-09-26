@@ -114,10 +114,10 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     {
       title: 'OPERATIONS',
       items: [
-        { label: 'Clients', path: '/digital/clients', icon: Users, badge: 'Internal/Ext' },
-        { label: 'Projects', path: '/digital/projects', icon: FolderKanban, badge: '6 Stages' },
-        { label: 'Deliverables Vault', path: '/digital/deliverables', icon: Layers, badge: 'Assets' },
-        { label: 'Task Assignment', path: '/digital/tasks', icon: CheckSquare, badge: 'Staff' },
+        { label: 'Clients', path: '/digital/clients', icon: Users },
+        { label: 'Projects', path: '/digital/projects', icon: FolderKanban },
+        { label: 'Deliverables Vault', path: '/digital/deliverables', icon: Layers },
+        { label: 'Task Assignment', path: '/digital/tasks', icon: CheckSquare },
         { label: 'Leads & Pipeline', path: '/digital/leads', icon: UserPlus },
         { label: 'Meetings', path: '/digital/meetings', icon: Calendar }
       ]
@@ -126,7 +126,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       title: 'FINANCE & PAYMENTS',
       items: [
         { label: 'Invoices', path: '/digital/invoices', icon: FileText },
-        { label: 'Payments Ledger', path: '/digital/payments', icon: CreditCard, badge: 'Adv/Milestone' },
+        { label: 'Payments Ledger', path: '/digital/payments', icon: CreditCard },
         { label: 'Expenses', path: '/digital/expenses', icon: DollarSign }
       ]
     },
@@ -158,7 +158,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     {
       title: 'MY WORKSPACE',
       items: [
-        { label: 'My Projects', path: '/digital/projects', icon: FolderKanban, badge: 'Assigned' },
+        { label: 'My Projects', path: '/digital/projects', icon: FolderKanban },
         { label: 'My Deliverables', path: '/digital/deliverables', icon: Layers },
         { label: 'My Tasks Queue', path: '/digital/tasks', icon: CheckSquare },
         { label: 'Meetings', path: '/digital/meetings', icon: Calendar }

@@ -442,11 +442,10 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                               {msg.content ? (
                                 renderFormattedContent(msg.content)
                               ) : (
-                                <div className="flex items-center gap-2 py-1 text-slate-400 font-medium text-xs">
+                                <div className="flex items-center gap-1.5 py-1 px-1">
                                   <span className="w-2 h-2 rounded-full bg-[#58051E] animate-bounce" style={{ animationDelay: '0ms' }} />
                                   <span className="w-2 h-2 rounded-full bg-[#58051E] animate-bounce" style={{ animationDelay: '150ms' }} />
                                   <span className="w-2 h-2 rounded-full bg-[#58051E] animate-bounce" style={{ animationDelay: '300ms' }} />
-                                  <span className="ml-1 text-[11px] text-[#58051E]">Formulating answer...</span>
                                 </div>
                               )}
 
@@ -543,9 +542,9 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
 
                   <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium px-1 mt-2">
                     <span className="flex items-center gap-1 text-[#58051E] font-semibold">
-                      <ShieldCheck className="w-3 h-3" /> Ferex Enterprise AI
+                      <ShieldCheck className="w-3 h-3" /> Ferex Support
                     </span>
-                    <span>All Subsidiaries Connected</span>
+                    <span>Student Admissions Desk</span>
                   </div>
                 </div>
               </div>

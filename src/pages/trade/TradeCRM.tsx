@@ -688,7 +688,7 @@ export const TradeCRM: React.FC = () => {
                               <div>
                                 <span className="font-black text-slate-900">{o.order_no}</span>
                                 <span className="text-slate-500 font-semibold ml-2">({o.commodity})</span>
-                                <div className="text-[11px] text-slate-400">{o.origin_port} ➔ {o.destination_port}</div>
+                                <div className="text-[11px] text-slate-400">{o.origin_port} → {o.destination_port}</div>
                               </div>
                               <div className="text-right">
                                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">{o.stage}</span>

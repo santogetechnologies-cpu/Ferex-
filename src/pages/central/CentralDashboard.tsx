@@ -181,21 +181,20 @@ export const CentralDashboard: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                Super Admin Central Command
+                Executive Command Center
               </h1>
               <p className="text-xs font-medium text-slate-400">
-                Unified cross-subsidiary governance across Ferex Education, Global Trade ERP, Rimi Frozen, and Ferex Digital.
+                Unified cross-subsidiary governance, operations, and treasury.
               </p>
             </div>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          {/* Live Sync Badge */}
+          {/* Status Badge */}
           <div className="flex items-center gap-2 bg-white border border-slate-200/80 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>4 Portals Synced</span>
-            <span className="text-slate-400 font-normal">({lastSyncTime})</span>
+            <span>All Portals Active</span>
           </div>
 
           {/* Currency Toggle */}

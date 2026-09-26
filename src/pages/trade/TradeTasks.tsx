@@ -296,19 +296,19 @@ export const TradeTasks: React.FC = () => {
       {/* Quick Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="p-3.5 border border-slate-200/80 bg-white">
-          <div className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">Total Tasks</div>
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">All Tasks</div>
           <div className="text-xl font-black text-slate-900 mt-1">{counts.all}</div>
         </Card>
         <Card className="p-3.5 border border-amber-200/80 bg-amber-50/40">
-          <div className="text-[10.5px] font-black uppercase tracking-wider text-amber-700">⏳ Pending</div>
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-amber-700">Pending</div>
           <div className="text-xl font-black text-amber-900 mt-1">{counts.pending}</div>
         </Card>
         <Card className="p-3.5 border border-blue-200/80 bg-blue-50/40">
-          <div className="text-[10.5px] font-black uppercase tracking-wider text-blue-700">⚡ In Progress</div>
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-blue-700">In Progress</div>
           <div className="text-xl font-black text-blue-900 mt-1">{counts.inProgress}</div>
         </Card>
         <Card className="p-3.5 border border-emerald-200/80 bg-emerald-50/40">
-          <div className="text-[10.5px] font-black uppercase tracking-wider text-emerald-700">✓ Completed</div>
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-emerald-700">Completed</div>
           <div className="text-xl font-black text-emerald-900 mt-1">{counts.completed}</div>
         </Card>
       </div>
@@ -376,7 +376,7 @@ export const TradeTasks: React.FC = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     {(task.is_central_directive || task.created_by === 'Central Admin' || (task.notes && task.notes.toLowerCase().includes('central admin'))) && (
                       <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
-                        🏛️ By Central Admin
+                        Central HQ
                       </span>
                     )}
                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${getPriorityBadge(task.priority)}`}>
@@ -397,15 +397,15 @@ export const TradeTasks: React.FC = () => {
                     }`}
                     title="Click to advance status"
                   >
-                    {task.status === 'Completed' ? '✓ Completed' : task.status === 'In Progress' ? '⚡ In Progress' : '⏳ Pending'}
+                    {task.status}
                   </button>
                 </div>
 
                 <h3 className="text-sm font-black text-slate-900 leading-snug mb-1">{task.title}</h3>
 
                 {task.order_no && (
-                  <div className="text-[11px] text-[#58051E] font-extrabold mb-2">
-                    📦 Linked: {task.order_no} {task.client_name ? `(${task.client_name})` : ''}
+                  <div className="text-[11px] text-[#58051E] font-extrabold mb-2 flex items-center gap-1">
+                    <span>Linked Order:</span> <span>{task.order_no} {task.client_name ? `(${task.client_name})` : ''}</span>
                   </div>
                 )}
 

@@ -350,10 +350,10 @@ export const TradeTickets: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, channel: e.target.value as TicketChannel })}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
                     >
-                      <option value="Phone Call">📞 Phone Call</option>
-                      <option value="Email">✉️ Email</option>
-                      <option value="WhatsApp">💬 WhatsApp</option>
-                      <option value="In-Person">🤝 In-Person</option>
+                      <option value="Phone Call">Phone Call</option>
+                      <option value="Email">Email</option>
+                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="In-Person">In-Person</option>
                     </select>
                   </div>
                 </div>

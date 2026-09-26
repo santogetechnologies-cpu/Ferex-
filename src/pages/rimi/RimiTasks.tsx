@@ -270,7 +270,7 @@ export const RimiTasks: React.FC = () => {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {(t.is_central_directive || t.created_by === 'Central Admin' || (t.created_by && t.created_by.toLowerCase().includes('central')) || (t.description && t.description.toLowerCase().includes('central admin'))) && (
                     <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
-                      🏛️ By Central Admin
+                      Central HQ
                     </span>
                   )}
                   <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${

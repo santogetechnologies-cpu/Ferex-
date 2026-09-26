@@ -453,8 +453,8 @@ export const TradeDocuments: React.FC = () => {
                         {doc.status}
                       </span>
                       {doc.rejection_reason && (
-                        <div className="text-[10px] text-rose-600 mt-0.5 truncate max-w-[150px]" title={doc.rejection_reason}>
-                          ⚠️ {doc.rejection_reason}
+                        <div className="text-[10px] text-rose-600 mt-0.5 truncate max-w-[150px] flex items-center gap-1" title={doc.rejection_reason}>
+                          <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" /> {doc.rejection_reason}
                         </div>
                       )}
                     </td>
@@ -463,7 +463,7 @@ export const TradeDocuments: React.FC = () => {
                     <td className="py-3 px-4">
                       <div className="text-slate-800">By: {doc.uploaded_by}</div>
                       <div className="text-[10px] text-emerald-600 font-bold">
-                        {doc.sent_to_client ? '✓ Dispatched Notice' : 'Internal Only'}
+                        {doc.sent_to_client ? 'Dispatched Notice' : 'Internal Only'}
                       </div>
                     </td>
 
@@ -492,19 +492,19 @@ export const TradeDocuments: React.FC = () => {
                         {doc.status !== 'Verified' && (
                           <button
                             onClick={() => handleStatusChange(doc.id, 'Verified')}
-                            className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10.5px] font-black shadow-2xs transition-all cursor-pointer"
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10.5px] font-black shadow-2xs transition-all cursor-pointer"
                             title="Verify and Approve Document"
                           >
-                            ✓ Verify
+                            Verify
                           </button>
                         )}
                         {doc.status !== 'Rejected' && (
                           <button
                             onClick={() => setRejectingDocId(doc.id)}
-                            className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10.5px] font-black transition-all cursor-pointer"
+                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10.5px] font-black transition-all cursor-pointer"
                             title="Reject Document with Discrepancy Reason"
                           >
-                            ✕ Reject
+                            Reject
                           </button>
                         )}
                         <button

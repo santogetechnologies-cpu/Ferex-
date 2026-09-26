@@ -369,10 +369,10 @@ export function generateIntelligentLocalResponse(
     }
 
     if (lang.code === 'ml-IN') {
-      return `### 🎓 ഫെറെക്സ് എജ്യുക്കേഷൻ — വിദ്യാർത്ഥി വിവരങ്ങൾ\n\nആപ്പിൽ രജിസ്റ്റർ ചെയ്തിട്ടുള്ള ആകെ വിദ്യാർത്ഥികൾ: **${count}** പേർ.\n\n${studentLines}\n\nവിശദമായ വിവരങ്ങൾക്കായി **Ferex Education** കൺസോൾ പരിശോധിക്കുക.`;
+      return `### ഫെറെക്സ് എജ്യുക്കേഷൻ — വിദ്യാർത്ഥി വിവരങ്ങൾ\n\nആപ്പിൽ രജിസ്റ്റർ ചെയ്തിട്ടുള്ള ആകെ വിദ്യാർത്ഥികൾ: **${count}** പേർ.\n\n${studentLines}\n\nവിശദമായ വിവരങ്ങൾക്കായി **Ferex Education** കൺസോൾ പരിശോധിക്കുക.`;
     }
 
-    return `### 🎓 Ferex Education — Registered Students Telemetry\n\n**Total Registered Students in App**: **${count}**\n\nHere is the live consolidated student roster:\n\n${studentLines}\n\nAll student files are synchronized with live document audit, NAWA legalization, and Schengen D-Visa milestones.`;
+    return `### Ferex Education — Registered Students\n\n**Total Registered Students in App**: **${count}**\n\nHere is the live consolidated student roster:\n\n${studentLines}\n\nAll student files are synchronized with live document audit, NAWA legalization, and Schengen D-Visa milestones.`;
   }
 
   // 2. Orders & Shipments / Global Trade Queries
@@ -415,10 +415,10 @@ export function generateIntelligentLocalResponse(
     }
 
     if (lang.code === 'ml-IN') {
-      return `### 🚢 ഗ്ലോബൽ ട്രേഡ് ERP — ഓർഡറുകളും ഷിപ്പ്‌മെന്റുകളും\n\nസിസ്റ്റത്തിൽ നിലവിലുള്ള ആകെ ഓർഡറുകൾ: **${count}**.\n\n#### 📊 7-ഘട്ട വർക്ക്ഫ്ലോ:\n- **Inquiry**: ${stageBreakdown['Inquiry'] || 0}\n- **Quote Sent**: ${stageBreakdown['Quote Sent'] || 0}\n- **Order Confirmed**: ${stageBreakdown['Order Confirmed'] || 0}\n- **Production/Sourcing**: ${stageBreakdown['Production/Sourcing'] || 0}\n- **Shipped**: ${stageBreakdown['Shipped'] || 0}\n- **Customs Clearance**: ${stageBreakdown['Customs Clearance'] || 0}\n- **Delivered**: ${stageBreakdown['Delivered'] || 0}\n\n#### 📋 ഓർഡർ വിവരങ്ങൾ:\n${orderLines}`;
+      return `### ഗ്ലോബൽ ട്രേഡ് ERP — ഓർഡറുകളും ഷിപ്പ്‌മെന്റുകളും\n\nസിസ്റ്റത്തിൽ നിലവിലുള്ള ആകെ ഓർഡറുകൾ: **${count}**.\n\n#### 7-ഘട്ട വർക്ക്ഫ്ലോ:\n- **Inquiry**: ${stageBreakdown['Inquiry'] || 0}\n- **Quote Sent**: ${stageBreakdown['Quote Sent'] || 0}\n- **Order Confirmed**: ${stageBreakdown['Order Confirmed'] || 0}\n- **Production/Sourcing**: ${stageBreakdown['Production/Sourcing'] || 0}\n- **Shipped**: ${stageBreakdown['Shipped'] || 0}\n- **Customs Clearance**: ${stageBreakdown['Customs Clearance'] || 0}\n- **Delivered**: ${stageBreakdown['Delivered'] || 0}\n\n#### ഓർഡർ വിവരങ്ങൾ:\n${orderLines}`;
     }
 
-    return `### 🚢 Global Trade ERP — Order & Shipment Telemetry\n\n**Total Orders in System**: **${count}**\n\n#### 📊 7-Stage Workflow Pipeline:\n- **Inquiry**: **${stageBreakdown['Inquiry'] || 0}** Orders\n- **Quote Sent**: **${stageBreakdown['Quote Sent'] || 0}** Orders\n- **Order Confirmed**: **${stageBreakdown['Order Confirmed'] || 0}** Orders\n- **Production/Sourcing**: **${stageBreakdown['Production/Sourcing'] || 0}** Orders\n- **Shipped**: **${stageBreakdown['Shipped'] || 0}** Orders\n- **Customs Clearance**: **${stageBreakdown['Customs Clearance'] || 0}** Orders\n- **Delivered**: **${stageBreakdown['Delivered'] || 0}** Orders\n\n#### 📋 Active Orders in Tracker:\n\n${orderLines}`;
+    return `### Global Trade ERP — Orders & Shipments\n\n**Total Orders in System**: **${count}**\n\n#### 7-Stage Workflow Pipeline:\n- **Inquiry**: **${stageBreakdown['Inquiry'] || 0}** Orders\n- **Quote Sent**: **${stageBreakdown['Quote Sent'] || 0}** Orders\n- **Order Confirmed**: **${stageBreakdown['Order Confirmed'] || 0}** Orders\n- **Production/Sourcing**: **${stageBreakdown['Production/Sourcing'] || 0}** Orders\n- **Shipped**: **${stageBreakdown['Shipped'] || 0}** Orders\n- **Customs Clearance**: **${stageBreakdown['Customs Clearance'] || 0}** Orders\n- **Delivered**: **${stageBreakdown['Delivered'] || 0}** Orders\n\n#### Active Orders in Tracker:\n\n${orderLines}`;
   }
 
   // 3. Rimi Frozen FMCG Queries
@@ -440,7 +440,7 @@ export function generateIntelligentLocalResponse(
     const pText = pList.slice(0, 5).map(p => `- **${p.name}** (SKU: \`${p.sku}\`, Cat: ${p.category || 'FMCG'})`).join('\n') || 'Catalog active';
     const vText = vList.slice(0, 5).map(v => `- **${v.vehicle_no}** (Driver: ${v.driver_name || 'Assigned'}, Status: **${v.status || 'Active'}**, Temp: **${v.temp ?? -18}°C**)`).join('\n') || 'Reefers active';
 
-    return `### ❄️ Rimi Frozen FMCG — Cold Chain Status\n\n- **Master Catalog SKUs**: **${pList.length}** Products\n- **Reefer Fleet**: **${vList.length}** Temperature-Controlled Vehicles\n- **Cold Storage Warehouses**: Active with multi-zone temperature tracking (-18°C to -25°C)\n\n#### 📦 Products Sample:\n${pText}\n\n#### 🚚 Reefer Fleet Sample:\n${vText}`;
+    return `### Rimi Frozen FMCG — Cold Chain Status\n\n- **Master Catalog SKUs**: **${pList.length}** Products\n- **Reefer Fleet**: **${vList.length}** Temperature-Controlled Vehicles\n- **Cold Storage Warehouses**: Active with multi-zone temperature tracking (-18°C to -25°C)\n\n#### Products Overview:\n${pText}\n\n#### Reefer Fleet Overview:\n${vText}`;
   }
 
   // 4. Digital Agency Queries
@@ -456,7 +456,7 @@ export function generateIntelligentLocalResponse(
     const projList = stats?.digitalProjectsList || [];
     const projText = projList.slice(0, 5).map(p => `- **${p.title}** (Client: ${p.client_name}, Status: **${p.status}**)`).join('\n') || 'Projects active';
 
-    return `### 💻 Ferex Digital Agency — Project & Sprint Status\n\n- **Active Engineering Projects**: **${stats?.digitalProjectsCount ?? projList.length}**\n- **Sprint Tasks**: **${stats?.digitalTasksCount ?? 0}** Active Tasks\n\n#### 🚀 Active Projects:\n${projText}`;
+    return `### Ferex Digital Agency — Project & Sprint Status\n\n- **Active Engineering Projects**: **${stats?.digitalProjectsCount ?? projList.length}**\n- **Sprint Tasks**: **${stats?.digitalTasksCount ?? 0}** Active Tasks\n\n#### Active Projects:\n${projText}`;
   }
 
   // 5. General Summary of All 4 Subsidiaries / Status
@@ -470,7 +470,7 @@ export function generateIntelligentLocalResponse(
     q.includes('health') ||
     q.includes('dashboard')
   ) {
-    return `### 🏢 FEREX Group — Enterprise Operations Matrix\n\nUnified status across all 4 operational subsidiaries:\n\n1. **🎓 Ferex Education**:\n   - **${stats?.studentsCount ?? 3}** Registered Students\n   - Active stages: NAWA Legalization, Schengen D-Visa Processing\n2. **🚢 Global Trade ERP**:\n   - **${stats?.tradeOrdersCount ?? 2}** Active Orders across 7-stage maritime workflow\n   - Customs clearance, Bills of Lading, and Letters of Credit tracking\n3. **❄️ Rimi Frozen FMCG**:\n   - **${stats?.rimiProductsCount ?? 0}** Master SKUs, **${stats?.rimiVehiclesCount ?? 0}** Reefer Vehicles\n   - Cold chain logistics active across GCC & India\n4. **💻 Ferex Digital Agency**:\n   - **${stats?.digitalProjectsCount ?? 0}** Active Tech Projects, **${stats?.digitalTasksCount ?? 0}** Tasks in sprint\n\n*All subsidiary databases are connected with live Supabase telemetry.*`;
+    return `### FEREX Group — Enterprise Operations Matrix\n\nUnified status across all 4 operational subsidiaries:\n\n1. **Ferex Education**:\n   - **${stats?.studentsCount ?? 3}** Registered Students\n   - Active stages: NAWA Legalization, Schengen D-Visa Processing\n2. **Global Trade ERP**:\n   - **${stats?.tradeOrdersCount ?? 2}** Active Orders across 7-stage maritime workflow\n   - Customs clearance, Bills of Lading, and Letters of Credit tracking\n3. **Rimi Frozen FMCG**:\n   - **${stats?.rimiProductsCount ?? 0}** Master SKUs, **${stats?.rimiVehiclesCount ?? 0}** Reefer Vehicles\n   - Cold chain logistics active across GCC & India\n4. **Ferex Digital Agency**:\n   - **${stats?.digitalProjectsCount ?? 0}** Active Tech Projects, **${stats?.digitalTasksCount ?? 0}** Tasks in sprint\n\n*All subsidiary systems are fully connected and synchronized.*`;
   }
 
   // 6. Default Welcome / Role Response (Only for greetings like hello, hi, help)

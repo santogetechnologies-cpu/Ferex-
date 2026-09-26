@@ -233,9 +233,9 @@ export const CentralSettings: React.FC = () => {
       {/* Navigation Tabs */}
       <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-slate-200/80 overflow-x-auto scrollbar-none shadow-xs">
         {[
-          { id: 'ai', label: 'AI Realtime Voice & Session Studio', icon: Bot },
+          { id: 'ai', label: 'AI Voice & Session Studio', icon: Bot },
           { id: 'branding', label: 'Enterprise Identity & Branding', icon: Building },
-          { id: 'database', label: 'Database Health & Telemetry', icon: Database },
+          { id: 'database', label: 'Database & System Health', icon: Database },
           { id: 'password', label: 'Super Admin Password', icon: Key },
         ].map(tab => {
           const Icon = tab.icon;
@@ -767,13 +767,13 @@ export const CentralSettings: React.FC = () => {
         </Card>
       )}
 
-      {/* Tab 3: Database Health & Telemetry */}
+      {/* Tab 3: Database & System Health */}
       {activeTab === 'database' && (
         <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Supabase Live Database Connectivity</h2>
-              <p className="text-xs font-medium text-slate-400 mt-0.5">Real-time health ping and schema synchronization diagnostics.</p>
+              <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Enterprise Database Connectivity</h2>
+              <p className="text-xs font-medium text-slate-400 mt-0.5">Real-time health status and schema synchronization diagnostics.</p>
             </div>
             <Button
               size="sm"
@@ -783,7 +783,7 @@ export const CentralSettings: React.FC = () => {
               className="text-xs font-bold text-slate-700 bg-slate-50 cursor-pointer"
             >
               <Zap className={`w-3.5 h-3.5 mr-1.5 ${testingDb ? 'animate-spin text-[#58051E]' : ''}`} />
-              {testingDb ? 'Testing Connection...' : 'Ping Supabase DB'}
+              {testingDb ? 'Testing Connection...' : 'Ping Database'}
             </Button>
           </div>
 

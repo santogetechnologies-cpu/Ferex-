@@ -317,7 +317,7 @@ export const TradeBillsOfLading: React.FC = () => {
                 <tr className="border-b border-slate-100 bg-slate-50/75 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                   <th className="py-3 px-4">B/L Number</th>
                   <th className="py-3 px-4">Vessel & Carrier</th>
-                  <th className="py-3 px-4">Loading ➔ Discharge Port</th>
+                  <th className="py-3 px-4">Port of Loading / Discharge</th>
                   <th className="py-3 px-4">Consignee</th>
                   <th className="py-3 px-4">Freight Terms</th>
                   <th className="py-3 px-4">Issue Date</th>
@@ -337,7 +337,7 @@ export const TradeBillsOfLading: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-slate-600 max-w-[200px] truncate">
                       <div className="truncate font-medium">{b.pol}</div>
-                      <div className="text-[10px] text-slate-400">➔ {b.pod}</div>
+                      <div className="text-[10px] text-slate-400">to {b.pod}</div>
                     </td>
                     <td className="py-3.5 px-4 font-extrabold text-slate-900 max-w-[160px] truncate" title={b.consignee}>
                       {b.consignee}
@@ -507,7 +507,7 @@ export const TradeBillsOfLading: React.FC = () => {
                             {p.company_name || p.name} ({p.category || p.partner_type || 'Partner'})
                           </option>
                         ))}
-                        <option value="__CUSTOM__">➕ + Type Custom Consignee Name...</option>
+                        <option value="__CUSTOM__">+ Enter Custom Consignee Name...</option>
                       </select>
                     ) : (
                       <div className="flex gap-2">
