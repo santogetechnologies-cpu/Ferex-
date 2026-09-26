@@ -108,8 +108,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     {
       title: 'EXECUTIVE DESK',
       items: [
-        { label: 'Dashboard', path: '/digital/dashboard', icon: LayoutDashboard },
-        { label: 'AI Copilot', path: '/digital/ai-copilot', icon: Sparkles, badge: 'AI' }
+        { label: 'Dashboard', path: '/digital/dashboard', icon: LayoutDashboard }
       ]
     },
     {

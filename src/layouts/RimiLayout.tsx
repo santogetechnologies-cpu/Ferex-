@@ -77,8 +77,7 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
     {
       title: 'DASHBOARD',
       items: [
-        { label: 'Dashboard', path: '/rimi/dashboard', icon: LayoutDashboard },
-        ...(isAdmin ? [{ label: 'AI Copilot', path: '/rimi/ai-copilot', icon: Sparkles, badge: 'AI' }] : [])
+        { label: 'Dashboard', path: '/rimi/dashboard', icon: LayoutDashboard }
       ]
     },
     {
