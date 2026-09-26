@@ -109,7 +109,8 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
     {
       title: 'EXECUTIVE DESK',
       items: [
-        { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard }
+        { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard },
+        { name: 'AI Copilot', path: '/trade/ai-copilot', icon: Sparkles },
       ]
     },
     {

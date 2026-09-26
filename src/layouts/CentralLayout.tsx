@@ -42,6 +42,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
       title: 'HQ COMMAND',
       items: [
         { name: 'Dashboard', path: '/central/dashboard', icon: LayoutDashboard },
+        { name: 'AI Copilot', path: '/central/ai-copilot', icon: Sparkles },
       ]
     },
     {
