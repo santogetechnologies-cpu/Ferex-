@@ -12,7 +12,6 @@ import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
 import { useAuth } from '../contexts/AuthContext';
 import { getTradeNotifications, globalSearchTrade } from '../lib/api/trade';
-import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
 
 interface TradeLayoutProps {
   children: React.ReactNode;
@@ -110,7 +109,8 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
     {
       title: 'EXECUTIVE DESK',
       items: [
-        { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard, badge: 'Live' }
+        { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard, badge: 'Live' },
+        { name: 'AI Copilot', path: '/trade/ai-copilot', icon: Sparkles, badge: 'AI' }
       ]
     },
     {
@@ -430,9 +430,6 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
           </>
         )}
       </AnimatePresence>
-
-      {/* ── GLOBAL TRADE ERP ADMIN AI COPILOT & REALTIME VOICE ── */}
-      <EnterpriseAIChatbot role="trade_admin" />
     </div>
   );
 };

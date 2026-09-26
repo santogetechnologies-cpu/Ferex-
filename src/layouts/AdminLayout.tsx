@@ -14,12 +14,12 @@ import { useSystemConfig } from '../hooks/useSystemConfig';
 import { isSuperAdmin } from '../lib/roleRouter';
 import { getAllPaymentsAdmin } from '../lib/api/payments';
 import { AppSwitcher } from '../components/AppSwitcher';
-import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
 const baseMenuItems = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, badge: null, hasUpdate: false },
+  { name: 'AI Copilot', path: '/admin/ai-copilot', icon: Sparkles, badge: 'AI', hasUpdate: false },
   { name: 'Students', path: '/admin/students', icon: Users, badge: null, hasUpdate: false },
   { name: 'Universities', path: '/admin/universities', icon: Building2, badge: null, hasUpdate: false },
   { name: 'Status Tracker', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
@@ -425,9 +425,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </motion.div>
         </main>
       </div>
-
-      {/* ── FEREX EDUCATION ADMIN AI COPILOT & REALTIME VOICE ── */}
-      <EnterpriseAIChatbot role="education_admin" />
     </div>
   );
 };

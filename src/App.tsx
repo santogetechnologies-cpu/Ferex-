@@ -21,6 +21,7 @@ import { Notifications } from './pages/Notifications';
 import { MyProfile } from './pages/MyProfile';
 import { VisaTracker } from './pages/VisaTracker';
 import { PreDeparture } from './pages/PreDeparture';
+import { EnterpriseAIPage } from './pages/EnterpriseAIPage';
 
 // Admin imports
 import { AdminLayout } from './layouts/AdminLayout';
@@ -350,9 +351,13 @@ function App() {
           <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminNotifications /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/fee-config" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminFeeConfig /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSettings /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/ai-copilot" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><EnterpriseAIPage role="education_admin" portalName="Ferex Education" /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/ai-assistant" element={<Navigate to="/admin/ai-copilot" replace />} />
 
           {/* ── Central Super Admin Routes (Strictly Super Admin Only) ── */}
           <Route path="/central/dashboard" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralDashboard /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/ai-copilot" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><EnterpriseAIPage role="central_admin" portalName="Central Super Admin HQ" /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/ai-assistant" element={<Navigate to="/central/ai-copilot" replace />} />
           <Route path="/central/finance" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/payments" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/reports" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralReports /></CentralLayout></ProtectedRoute>} />
@@ -379,6 +384,8 @@ function App() {
 
           {/* ── Global Trade Routes ── */}
           <Route path="/trade/dashboard" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeDashboard /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/ai-copilot" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><EnterpriseAIPage role="trade_admin" portalName="Global Trade ERP" /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/ai-assistant" element={<Navigate to="/trade/ai-copilot" replace />} />
           <Route path="/trade/crm" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeCRM /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/shipments" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeShipments /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/invoices" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeInvoices /></TradeLayout></ProtectedRoute>} />
@@ -401,6 +408,8 @@ function App() {
 
           {/* ── Rimi Frozen Distribution Routes ── */}
           <Route path="/rimi/dashboard" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDashboard /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/ai-copilot" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><EnterpriseAIPage role="rimi_admin" portalName="Rimi Frozen FMCG" /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/ai-assistant" element={<Navigate to="/rimi/ai-copilot" replace />} />
           <Route path="/rimi/customers" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiCustomers /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/distributors" element={<Navigate to="/rimi/customers" replace />} />
           <Route path="/rimi/retailers" element={<Navigate to="/rimi/customers" replace />} />
@@ -429,6 +438,8 @@ function App() {
 
           {/* ── Ferex Digital Routes ── */}
           <Route path="/digital/dashboard" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalDashboard /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/ai-copilot" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><EnterpriseAIPage role="digital_admin" portalName="Ferex Digital Agency" /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/ai-assistant" element={<Navigate to="/digital/ai-copilot" replace />} />
           <Route path="/digital/clients" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalClients /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/leads" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalLeads /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/projects" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProjects /></DigitalLayout></ProtectedRoute>} />

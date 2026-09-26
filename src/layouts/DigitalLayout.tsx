@@ -14,7 +14,6 @@ import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
 import { getDigitalNotifications } from '../lib/api/digital';
 import { supabase } from '../lib/supabase';
-import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
 
 interface DigitalLayoutProps {
   children: React.ReactNode;
@@ -109,7 +108,8 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     {
       title: 'EXECUTIVE DESK',
       items: [
-        { label: 'Dashboard', path: '/digital/dashboard', icon: LayoutDashboard }
+        { label: 'Dashboard', path: '/digital/dashboard', icon: LayoutDashboard },
+        { label: 'AI Copilot', path: '/digital/ai-copilot', icon: Sparkles, badge: 'AI' }
       ]
     },
     {
@@ -246,24 +246,6 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                   </button>
                 );
               })}
-
-              {/* AI Copilot Sidebar Launcher directly below Dashboard section */}
-              {sIdx === 0 && (
-                <button
-                  type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent('ferex_open_ai_sidebar'))}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-[#58051E]/12 via-[#58051E]/6 to-transparent text-[#58051E] hover:bg-[#58051E]/18 border border-[#58051E]/20 text-left cursor-pointer group my-1"
-                  title={!sidebarOpen ? "AI Copilot" : undefined}
-                >
-                  <Sparkles className="w-4 h-4 shrink-0 text-[#58051E] group-hover:scale-110 transition-transform" />
-                  {sidebarOpen && <span className="truncate flex-1 text-left font-bold">AI Copilot</span>}
-                  {sidebarOpen && (
-                    <span className="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-[#58051E] text-white shrink-0 tracking-wider">
-                      LIVE AI
-                    </span>
-                  )}
-                </button>
-              )}
             </div>
           ))}
         </div>
@@ -560,9 +542,6 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
           </>
         )}
       </AnimatePresence>
-
-      {/* ── FEREX DIGITAL AGENCY ADMIN AI COPILOT & REALTIME VOICE ── */}
-      <EnterpriseAIChatbot role="digital_admin" />
     </div>
   );
 };

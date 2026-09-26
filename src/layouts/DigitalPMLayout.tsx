@@ -11,7 +11,6 @@ import { AppSwitcher } from '../components/AppSwitcher';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { getAssignedDigitalTasks, getAssignedDigitalTickets } from '../lib/api/digitalPm';
-import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
 
 interface DigitalPMLayoutProps {
   children: React.ReactNode;
@@ -311,9 +310,6 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
           {children}
         </main>
       </div>
-
-      {/* ── FEREX DIGITAL PM AI COPILOT & REALTIME VOICE ── */}
-      <EnterpriseAIChatbot role="digital_pm" />
     </div>
   );
 };

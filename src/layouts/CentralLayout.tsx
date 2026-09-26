@@ -10,7 +10,6 @@ import {
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { AppSwitcher } from '../components/AppSwitcher';
-import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
 
 interface CentralLayoutProps {
   children: React.ReactNode;
@@ -43,6 +42,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
       title: 'HQ COMMAND',
       items: [
         { name: 'Dashboard', path: '/central/dashboard', icon: LayoutDashboard, badge: 'Live HQ' },
+        { name: 'Enterprise AI', path: '/central/ai-copilot', icon: Sparkles, badge: 'Copilot' },
       ]
     },
     {
@@ -386,9 +386,6 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
           {children}
         </main>
       </div>
-
-      {/* ── CENTRAL SUPER ADMIN HQ AI COPILOT & REALTIME VOICE ── */}
-      <EnterpriseAIChatbot role="central_admin" />
     </div>
   );
 };
