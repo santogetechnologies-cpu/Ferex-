@@ -382,8 +382,9 @@ export async function createRimiCustomer(customer: Partial<RimiCustomerRecord>):
 }
 
 export async function updateRimiCustomer(id: string, updates: Partial<RimiCustomerRecord>): Promise<RimiCustomerRecord> {
+  const { id: _id, created_at: _created_at, ...cleanUpdates } = updates as any;
   const payload = {
-    ...updates,
+    ...cleanUpdates,
     updated_at: new Date().toISOString()
   };
 
@@ -392,11 +393,19 @@ export async function updateRimiCustomer(id: string, updates: Partial<RimiCustom
     .update(payload)
     .eq('id', id)
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error in updateRimiCustomer:', error);
+    const { error: fallbackError } = await supabase
+      .from('rimi_customers')
+      .update(payload)
+      .eq('id', id);
+    if (fallbackError) throw fallbackError;
+  }
+
   triggerLocalSync('ferex_rimi_customers_change');
-  return data;
+  return (data || { id, ...payload }) as RimiCustomerRecord;
 }
 
 export async function updateRimiCustomerStage(

@@ -417,11 +417,27 @@ export const RimiCustomers: React.FC = () => {
                     Lead: {c.assigned_staff_name || 'General Sales'}
                   </span>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => setEditingCustomer(c)} className="p-1.5 text-slate-400 hover:text-slate-700 rounded cursor-pointer" title="Edit Customer">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingCustomer({ ...c });
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-[#58051E]/10 rounded-lg transition-colors cursor-pointer"
+                      title="Edit Customer"
+                    >
                       <Edit3 className="w-4 h-4" />
                     </button>
                     {isAdmin && (
-                      <button onClick={() => handleDelete(c.id, c.business_name)} className="p-1.5 text-slate-400 hover:text-rose-600 rounded cursor-pointer" title="Delete Customer">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(c.id, c.business_name);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        title="Delete Customer"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
@@ -445,9 +461,20 @@ export const RimiCustomers: React.FC = () => {
       {/* Add Enterprise Customer Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
+              onClick={() => setShowAddModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-10 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto"
+            >
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-base font-black text-slate-900">Add Enterprise FMCG Customer</h3>
@@ -633,19 +660,32 @@ export const RimiCustomers: React.FC = () => {
                 </div>
               </form>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
 
       {/* Edit Enterprise Customer Modal */}
       <AnimatePresence>
         {editingCustomer && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setEditingCustomer(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
+              onClick={() => setEditingCustomer(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-10 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto"
+            >
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <div>
-                  <h3 className="text-base font-black text-slate-900">Edit Customer Account</h3>
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <Edit3 className="w-4 h-4 text-[#58051E]" /> Edit Customer Account
+                  </h3>
                   <p className="text-xs font-semibold text-slate-400 mt-0.5">Modify CRM details, classification, credit terms, and contact profile.</p>
                 </div>
                 <button onClick={() => setEditingCustomer(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
@@ -657,7 +697,7 @@ export const RimiCustomers: React.FC = () => {
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Customer Classification *</label>
                     <select
-                      value={editingCustomer.customer_type}
+                      value={editingCustomer.customer_type || 'Shop / Retailer'}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, customer_type: e.target.value as any })}
                       className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                     >
@@ -670,7 +710,7 @@ export const RimiCustomers: React.FC = () => {
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Pipeline Stage *</label>
                     <select
-                      value={editingCustomer.pipeline_stage}
+                      value={editingCustomer.pipeline_stage || 'Lead'}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, pipeline_stage: e.target.value as any })}
                       className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                     >
@@ -701,7 +741,7 @@ export const RimiCustomers: React.FC = () => {
                     <input
                       type="text"
                       required
-                      value={editingCustomer.business_name}
+                      value={editingCustomer.business_name || ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, business_name: e.target.value })}
                       placeholder="e.g. Reliance Fresh Retail Hub"
                       className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
@@ -712,7 +752,7 @@ export const RimiCustomers: React.FC = () => {
                     <input
                       type="text"
                       required
-                      value={editingCustomer.contact_person}
+                      value={editingCustomer.contact_person || ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, contact_person: e.target.value })}
                       placeholder="e.g. Ramesh Patel (Store Manager)"
                       className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
@@ -727,7 +767,7 @@ export const RimiCustomers: React.FC = () => {
                     <input
                       type="text"
                       required
-                      value={editingCustomer.phone}
+                      value={editingCustomer.phone || ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
                     />
@@ -838,7 +878,7 @@ export const RimiCustomers: React.FC = () => {
                 </div>
               </form>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
 
@@ -855,7 +895,21 @@ export const RimiCustomers: React.FC = () => {
                     {dossierCustomer.customer_type} • Stage: {dossierCustomer.pipeline_stage}
                   </span>
                 </div>
-                <button onClick={() => setDossierCustomer(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-5 h-5" /></button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingCustomer({ ...dossierCustomer });
+                      setDossierCustomer(null);
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-[#58051E]/10 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold"
+                    title="Edit Customer Details"
+                  >
+                    <Edit3 className="w-4 h-4 text-[#58051E]" />
+                    <span className="text-slate-700">Edit</span>
+                  </button>
+                  <button onClick={() => setDossierCustomer(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-5 h-5" /></button>
+                </div>
               </div>
 
               <div className="space-y-6 text-left text-xs">
