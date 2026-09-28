@@ -1718,3 +1718,21 @@ export async function markDigitalNotificationRead(id: string) {
   triggerLocalSync('ferex_digital_notifications_change');
   return true;
 }
+
+export async function markAllDigitalNotificationsRead() {
+  const current = await getDigitalNotifications();
+  const updated = current.map((n: any) => ({ ...n, is_read: true }));
+  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_notifications').update({ is_read: true }).neq('id', 'non-existent'); } catch {}
+  triggerLocalSync('ferex_digital_notifications_change');
+  return true;
+}
+
+export async function deleteDigitalNotification(id: string) {
+  const current = await getDigitalNotifications();
+  const updated = current.filter((n: any) => n.id !== id);
+  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_notifications').delete().eq('id', id); } catch {}
+  triggerLocalSync('ferex_digital_notifications_change');
+  return true;
+}

@@ -2149,42 +2149,132 @@ export async function sendRimiMessage(msg: any): Promise<boolean> {
   }
 }
 
+const INITIAL_RIMI_NOTIFICATIONS = [
+  {
+    id: 'rimi-notif-001',
+    title: 'Warehouse Hub-1 Temperature Warning',
+    message: 'Cold Room Unit B registered -16.8°C (threshold: -18.0°C). Compressor cycle recalibrated.',
+    description: 'Cold Room Unit B registered -16.8°C (threshold: -18.0°C). Compressor cycle recalibrated.',
+    category: 'Cold Chain',
+    severity: 'Warning',
+    link: '/rimi/warehouses',
+    is_read: false,
+    created_at: new Date(Date.now() - 3600000 * 1).toISOString(),
+  },
+  {
+    id: 'rimi-notif-002',
+    title: 'Batch Expiry Notice: Pacific Salmon Fillets',
+    message: 'Batch #PS-2026-088 (340 Cartons) at Central Cold Hub has 22 days remaining before expiration.',
+    description: 'Batch #PS-2026-088 (340 Cartons) at Central Cold Hub has 22 days remaining before expiration.',
+    category: 'Inventory',
+    severity: 'Critical',
+    link: '/rimi/inventory',
+    is_read: false,
+    created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+  },
+  {
+    id: 'rimi-notif-003',
+    title: 'Reefer Dispatch #DSP-9042 Cleared',
+    message: 'Vehicle Unit KL-07-CE-8821 dispatched to Grand Hyatt Kochi with signed temperature compliance logs.',
+    description: 'Vehicle Unit KL-07-CE-8821 dispatched to Grand Hyatt Kochi with signed temperature compliance logs.',
+    category: 'Deliveries',
+    severity: 'Info',
+    link: '/rimi/deliveries',
+    is_read: false,
+    created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+  },
+  {
+    id: 'rimi-notif-004',
+    title: 'New Wholesale Sales Order #SO-8821',
+    message: 'ITC Hotels Ltd placed purchase order for ₹4,85,000 (Black Tiger Prawns & Atlantic Cod).',
+    description: 'ITC Hotels Ltd placed purchase order for ₹4,85,000 (Black Tiger Prawns & Atlantic Cod).',
+    category: 'Sales Orders',
+    severity: 'Info',
+    link: '/rimi/sales-orders',
+    is_read: false,
+    created_at: new Date(Date.now() - 3600000 * 14).toISOString(),
+  }
+];
+
 export async function getRimiNotifications(): Promise<any[]> {
   try {
-    const { data } = await supabase
-      .from('rimi_customer_activity')
+    const { data, error } = await supabase
+      .from('rimi_notifications')
       .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20);
-    return (data || []).map((d: any) => ({
-      id: d.id,
-      title: `${d.activity_type}: ${d.title}`,
-      description: d.description || '',
-      created_at: d.created_at,
-      is_read: false,
-      category: 'Cold Chain Operations'
-    }));
-  } catch (err) {
-    return [];
+      .order('created_at', { ascending: false });
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      try { localStorage.setItem('ferex_rimi_notifications', JSON.stringify(data)); } catch {}
+      return data;
+    }
+
+    const local = localStorage.getItem('ferex_rimi_notifications');
+    if (local !== null) {
+      try {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+
+    try { localStorage.setItem('ferex_rimi_notifications', JSON.stringify(INITIAL_RIMI_NOTIFICATIONS)); } catch {}
+    return INITIAL_RIMI_NOTIFICATIONS;
+  } catch {
+    const local = localStorage.getItem('ferex_rimi_notifications');
+    if (local !== null) {
+      try {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+    return INITIAL_RIMI_NOTIFICATIONS;
   }
 }
 
 export async function markRimiNotificationRead(id: string): Promise<boolean> {
+  const current = await getRimiNotifications();
+  const updated = current.map((n: any) => n.id === id ? { ...n, is_read: true } : n);
+  try { localStorage.setItem('ferex_rimi_notifications', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('rimi_notifications').update({ is_read: true }).eq('id', id); } catch {}
+  triggerLocalSync('ferex_rimi_notifications_change');
+  return true;
+}
+
+export async function markAllRimiNotificationsRead(): Promise<boolean> {
+  const current = await getRimiNotifications();
+  const updated = current.map((n: any) => ({ ...n, is_read: true }));
+  try { localStorage.setItem('ferex_rimi_notifications', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('rimi_notifications').update({ is_read: true }).neq('id', 'non-existent'); } catch {}
+  triggerLocalSync('ferex_rimi_notifications_change');
+  return true;
+}
+
+export async function deleteRimiNotification(id: string): Promise<boolean> {
+  const current = await getRimiNotifications();
+  const updated = current.filter((n: any) => n.id !== id);
+  try { localStorage.setItem('ferex_rimi_notifications', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('rimi_notifications').delete().eq('id', id); } catch {}
+  triggerLocalSync('ferex_rimi_notifications_change');
   return true;
 }
 
 export async function createRimiNotification(notification: any): Promise<boolean> {
-  try {
-    await addRimiCustomerActivity({
-      customer_id: 'system',
-      activity_type: 'Status Update',
-      title: notification.title || 'System Notification',
-      description: notification.description,
-      performed_by: 'System'
-    });
-    return true;
-  } catch (err) {
-    return false;
-  }
+  const payload = {
+    id: `rimi-notif-${Date.now()}`,
+    title: notification.title || 'Operational Notification',
+    message: notification.message || notification.description || '',
+    description: notification.description || notification.message || '',
+    category: notification.category || 'Cold Chain',
+    severity: notification.severity || 'Info',
+    link: notification.link || '/rimi/dashboard',
+    is_read: false,
+    created_at: new Date().toISOString(),
+  };
+
+  const current = await getRimiNotifications();
+  const updated = [payload, ...current];
+  try { localStorage.setItem('ferex_rimi_notifications', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('rimi_notifications').insert(payload); } catch {}
+  triggerLocalSync('ferex_rimi_notifications_change');
+  return true;
 }
 
