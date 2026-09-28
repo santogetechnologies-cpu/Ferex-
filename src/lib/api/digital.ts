@@ -1,6 +1,13 @@
 import { supabase } from '../supabase';
 import { generateUUID } from '../../utils/uuid';
 import { getDivisionStaff, getDivisionStaffSync, type DivisionStaffMember } from './staff';
+import {
+  sendDigitalClientWelcomeEmail,
+  sendDigitalProjectMilestoneEmail,
+  sendDigitalDeliverableEmail,
+  sendDigitalInvoiceEmail,
+  sendDigitalMeetingEmail
+} from './email';
 
 export const getDigitalStaffMembers = () => getDivisionStaff('digital');
 export const getDigitalStaffMembersSync = () => getDivisionStaffSync('digital');
@@ -263,6 +270,16 @@ export async function createDigitalClient(client: {
   } catch {}
 
   triggerLocalSync('ferex_digital_clients_change');
+
+  if (payload.email) {
+    sendDigitalClientWelcomeEmail({
+      clientEmail: payload.email,
+      clientName: payload.contact_person || payload.company_name,
+      companyName: payload.company_name,
+      serviceRetainer: payload.industry || 'Software & Cloud Engineering'
+    }).catch(() => {});
+  }
+
   return payload;
 }
 
@@ -462,6 +479,17 @@ export async function createDigitalProject(project: {
   }
 
   triggerLocalSync('ferex_digital_projects_change');
+
+  if (clientObj?.email) {
+    sendDigitalProjectMilestoneEmail({
+      clientEmail: clientObj.email,
+      clientName: clientObj.contact_person || payload.client_name,
+      projectTitle: payload.title,
+      stage: currentStage,
+      amount: payload.budget
+    }).catch(() => {});
+  }
+
   return payload;
 }
 
@@ -579,6 +607,22 @@ export async function advanceDigitalProjectStage(
       progress: (updatedProj as any).progress,
       updated_at: new Date().toISOString()
     }).eq('id', projectId);
+  } catch {}
+
+  // Trigger automated email notification to client
+  try {
+    const clients = await getDigitalClients();
+    const projRecord = updatedProj as DigitalProjectRecord;
+    const client = clients.find(c => c.id === projRecord.client_id);
+    if (client?.email) {
+      sendDigitalProjectMilestoneEmail({
+        clientEmail: client.email,
+        clientName: client.contact_person || projRecord.client_name,
+        projectTitle: projRecord.title,
+        stage: newStage,
+        amount: projRecord.budget
+      }).catch(() => {});
+    }
   } catch {}
 
   triggerLocalSync('ferex_digital_projects_change');

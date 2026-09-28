@@ -1,6 +1,12 @@
 import { supabase } from '../supabase';
 import { generateUUID } from '../../utils/uuid';
 import { getDivisionStaff, getDivisionStaffSync, type DivisionStaffMember } from './staff';
+import {
+  sendRimiCustomerWelcomeEmail,
+  sendRimiSalesOrderEmail,
+  sendRimiDeliveryDispatchedEmail,
+  sendRimiPaymentCollectionEmail
+} from './email';
 
 export const getRimiStaffMembers = () => getDivisionStaff('rimi');
 export const getRimiStaffMembersSync = () => getDivisionStaffSync('rimi');
@@ -378,6 +384,16 @@ export async function createRimiCustomer(customer: Partial<RimiCustomerRecord>):
   });
 
   triggerLocalSync('ferex_rimi_customers_change');
+
+  if (payload.email) {
+    sendRimiCustomerWelcomeEmail({
+      customerEmail: payload.email,
+      customerName: payload.contact_person || payload.business_name,
+      businessName: payload.business_name,
+      accountType: payload.customer_type,
+    }).catch(() => {});
+  }
+
   return payload;
 }
 
@@ -1183,6 +1199,19 @@ export async function createRimiSalesOrder(order: {
     departure_temp: '-18.5°C'
   });
 
+  // Automated Email Notification to Customer
+  if (customer?.email) {
+    sendRimiSalesOrderEmail({
+      customerEmail: customer.email,
+      customerName: payload.customer_name,
+      orderNumber: payload.order_no,
+      status: 'Confirmed',
+      totalAmount: payload.total_amount,
+      deliveryDate: payload.delivery_date,
+      itemsSummary: order.items.map(i => `${i.product_name || 'Product'} (${i.quantity} ${i.unit || 'KG'})`).join(', ')
+    }).catch(() => {});
+  }
+
   triggerLocalSync('ferex_rimi_orders_change');
   return payload;
 }
@@ -1192,6 +1221,25 @@ export async function updateRimiSalesOrderStatus(orderId: string, status: RimiSa
     .from('rimi_sales_orders')
     .update({ order_status: status, updated_at: new Date().toISOString() })
     .eq('id', orderId);
+
+  try {
+    const orders = await getRimiSalesOrders();
+    const order = orders.find(o => o.id === orderId);
+    if (order?.customer_id) {
+      const customer = await getRimiCustomerById(order.customer_id);
+      if (customer?.email) {
+        sendRimiSalesOrderEmail({
+          customerEmail: customer.email,
+          customerName: order.customer_name,
+          orderNumber: order.order_no,
+          status: status as any,
+          totalAmount: order.total_amount,
+          deliveryDate: order.delivery_date
+        }).catch(() => {});
+      }
+    }
+  } catch {}
+
   triggerLocalSync('ferex_rimi_orders_change');
 }
 
@@ -1305,6 +1353,18 @@ export async function createRimiPayment(payment: {
     performed_by: payload.collected_by_name || 'Finance Team'
   });
 
+  // Automated Email Notification to Customer
+  if (customer?.email) {
+    sendRimiPaymentCollectionEmail({
+      customerEmail: customer.email,
+      customerName: payload.customer_name,
+      collectionNumber: payload.payment_no,
+      amount: payload.amount,
+      paymentMethod: payload.payment_method,
+      invoiceNumber: payload.order_no
+    }).catch(() => {});
+  }
+
   triggerLocalSync('ferex_rimi_payments_change');
   return payload;
 }
@@ -1353,6 +1413,7 @@ export async function createRimiDelivery(delivery: Partial<RimiDeliveryRecord>):
 
   const { error } = await supabase.from('rimi_deliveries').insert(payload);
   if (error) throw error;
+
   triggerLocalSync('ferex_rimi_deliveries_change');
   return payload;
 }
@@ -1366,6 +1427,34 @@ export async function updateRimiDeliveryStatus(deliveryId: string, status: RimiD
     updates.delivered_at = new Date().toISOString();
   }
   await supabase.from('rimi_deliveries').update(updates).eq('id', deliveryId);
+
+  // If dispatched, find delivery details and send dispatch email
+  if (status === 'In Transit' || status === 'Delivered') {
+    try {
+      const deliveries = await getRimiDeliveries();
+      const del = deliveries.find(d => d.id === deliveryId);
+      if (del?.order_id) {
+        const orders = await getRimiSalesOrders();
+        const order = orders.find(o => o.id === del.order_id);
+        if (order?.customer_id) {
+          const customer = await getRimiCustomerById(order.customer_id);
+          if (customer?.email) {
+            sendRimiDeliveryDispatchedEmail({
+              customerEmail: customer.email,
+              customerName: customer.business_name || del.customer_name,
+              deliveryNumber: del.delivery_no,
+              vehicleNumber: del.vehicle_no,
+              driverName: del.driver_name,
+              driverPhone: del.driver_phone,
+              coldRoomTemp: del.departure_temp || '-18°C',
+              destination: del.destination_city || del.destination_address || 'Customer Hub'
+            }).catch(() => {});
+          }
+        }
+      }
+    } catch {}
+  }
+
   triggerLocalSync('ferex_rimi_deliveries_change');
 }
 

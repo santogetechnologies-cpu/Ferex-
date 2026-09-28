@@ -1,5 +1,25 @@
 import { supabase } from '../supabase';
 import { getGlobalEmailConfig } from './emailSettings';
+import {
+  sendStudentEmail,
+  sendStudentWelcomeEmail,
+  sendStudentPaymentEmail,
+  sendStudentApplicationEmail,
+  sendStudentDocumentUploadedEmail,
+  sendStudentMeetingScheduledEmail,
+  sendStudentTicketCreatedEmail,
+  sendRimiCustomerWelcomeEmail,
+  sendRimiSalesOrderEmail,
+  sendRimiDeliveryDispatchedEmail,
+  sendRimiPaymentCollectionEmail,
+  sendTradeShipmentStageEmail,
+  sendTradeInvoiceEmail,
+  sendDigitalClientWelcomeEmail,
+  sendDigitalProjectMilestoneEmail,
+  sendDigitalDeliverableEmail,
+  sendDigitalInvoiceEmail,
+  sendDigitalMeetingEmail,
+} from './email';
 
 export interface EmailLogEntry {
   id: string;
@@ -38,17 +58,17 @@ export async function logAutomatedEmail(entry: Omit<EmailLogEntry, 'id' | 'sent_
     const config = await getGlobalEmailConfig();
     activeProvider = config.activeProvider;
     if (entry.division === 'education') {
-      senderEmail = config.divisionRouting.educationSenderEmail;
-      senderName = config.divisionRouting.educationSenderName;
+      senderEmail = config.divisionRouting.educationSenderEmail || senderEmail;
+      senderName = config.divisionRouting.educationSenderName || senderName;
     } else if (entry.division === 'trade') {
-      senderEmail = config.divisionRouting.tradeSenderEmail;
-      senderName = config.divisionRouting.tradeSenderName;
+      senderEmail = config.divisionRouting.tradeSenderEmail || 'trade@ferexventures.com';
+      senderName = config.divisionRouting.tradeSenderName || 'Ferex Global Trade Desk';
     } else if (entry.division === 'rimi') {
-      senderEmail = config.divisionRouting.rimiSenderEmail;
-      senderName = config.divisionRouting.rimiSenderName;
+      senderEmail = config.divisionRouting.rimiSenderEmail || 'logistics@ferexventures.com';
+      senderName = config.divisionRouting.rimiSenderName || 'Rimi Cold Chain Logistics';
     } else if (entry.division === 'digital') {
-      senderEmail = config.divisionRouting.digitalSenderEmail;
-      senderName = config.divisionRouting.digitalSenderName;
+      senderEmail = config.divisionRouting.digitalSenderEmail || 'digital@ferexventures.com';
+      senderName = config.divisionRouting.digitalSenderName || 'Ferex Digital Client Hub';
     }
   } catch {
     // fallback defaults
@@ -79,9 +99,9 @@ export async function logAutomatedEmail(entry: Omit<EmailLogEntry, 'id' | 'sent_
   // 1. Save to local storage
   const existing = getLocalEmailLogs();
   existing.unshift(newLog);
-  localStorage.setItem(LOCAL_STORAGE_EMAIL_LOGS, JSON.stringify(existing.slice(0, 200)));
+  localStorage.setItem(LOCAL_STORAGE_EMAIL_LOGS, JSON.stringify(existing.slice(0, 300)));
 
-  // 2. Save to Supabase email_logs & notifications table if available
+  // 2. Save to Supabase email_logs table if available
   try {
     await supabase.from('email_logs').insert([
       {
@@ -102,23 +122,10 @@ export async function logAutomatedEmail(entry: Omit<EmailLogEntry, 'id' | 'sent_
       }
     ]);
   } catch {
-    // Non-blocking if table or policy is constrained
-  }
-
-  try {
-    await supabase.from('notifications').insert({
-      user_id: null,
-      title: `Automated Email: ${newLog.subject}`,
-      message: `Sent to ${newLog.recipient_email} (${newLog.template_type})`,
-      type: 'email_dispatch',
-      is_read: true,
-      created_at: newLog.sent_at,
-    });
-  } catch {
     // Non-blocking
   }
 
-  // 3. Dispatch system event
+  // 3. Dispatch system event for real-time admin view updates
   window.dispatchEvent(new CustomEvent('ferex_automated_email_sent', { detail: newLog }));
 
   return newLog;
@@ -133,13 +140,11 @@ export async function sendEducationProcessEmail(params: {
   stepStatus: 'Completed' | 'In Progress' | 'Approved';
   notes?: string;
 }) {
-  return logAutomatedEmail({
-    division: 'education',
-    recipient_email: params.studentEmail,
-    recipient_name: params.studentName,
-    template_type: 'education_process_step',
+  return sendStudentEmail({
+    studentEmail: params.studentEmail,
+    studentName: params.studentName,
     subject: `Journey Update: Step "${params.stepName}" ${params.stepStatus} — Ferex Education`,
-    body_html: `
+    htmlContent: `
       <h2>Dear ${params.studentName},</h2>
       <p>Your university & visa journey milestone has advanced:</p>
       <div style="background:#f8fafc;padding:16px;border-left:4px solid #58051E;margin:16px 0;">
@@ -149,6 +154,9 @@ export async function sendEducationProcessEmail(params: {
       </div>
       <p>Log in to your Student Portal anytime to view real-time updates and download invoices.</p>
     `,
+    division: 'education',
+    templateType: 'education_process_step',
+    referenceId: params.stepName,
   });
 }
 
@@ -156,7 +164,7 @@ export async function sendTradeStageEmail(params: {
   clientEmail: string;
   clientName: string;
   shipmentNo: string;
-  stage: 'Order Confirmed' | 'Document Ready' | 'Invoice Generated' | 'Payment Received' | 'Payment Reminder' | 'Shipped' | 'Customs Cleared' | 'Delivered';
+  stage: 'Order Confirmed' | 'Document Ready' | 'Invoice Generated' | 'Payment Received' | 'Payment Reminder' | 'Shipped' | 'Customs Cleared' | 'Delivered' | string;
   trackingNo?: string;
   carrier?: string;
   origin?: string;
@@ -164,26 +172,15 @@ export async function sendTradeStageEmail(params: {
   amount?: number;
   documentTitle?: string;
 }) {
-  return logAutomatedEmail({
-    division: 'trade',
-    recipient_email: params.clientEmail,
-    recipient_name: params.clientName,
-    template_type: `trade_${params.stage.toLowerCase().replace(/\s+/g, '_')}`,
-    subject: `Trade Shipment Update [${params.shipmentNo}]: ${params.stage} — Ferex Global Trade`,
-    body_html: `
-      <h2>Dear ${params.clientName},</h2>
-      <p>This is an automated dispatch notice for commercial consignment <strong>${params.shipmentNo}</strong>.</p>
-      <div style="background:#0f172a;color:#f8fafc;padding:18px;border-radius:8px;margin:16px 0;font-family:sans-serif;">
-        <p><strong>Stage Status:</strong> <span style="color:#38bdf8;">${params.stage}</span></p>
-        ${params.trackingNo ? `<p><strong>Container / BL Tracking:</strong> ${params.trackingNo}</p>` : ''}
-        ${params.carrier ? `<p><strong>Vessel / Carrier:</strong> ${params.carrier}</p>` : ''}
-        ${params.origin && params.destination ? `<p><strong>Route:</strong> ${params.origin} ➔ ${params.destination}</p>` : ''}
-        ${params.amount ? `<p><strong>Amount:</strong> ₹${Number(params.amount).toLocaleString('en-IN')}</p>` : ''}
-        ${params.documentTitle ? `<p><strong>Document Attached:</strong> ${params.documentTitle}</p>` : ''}
-      </div>
-      <p>All shipping documents, commercial invoices, and inspection certificates are SWIFT-compliant.</p>
-    `,
-    reference_id: params.shipmentNo,
+  return sendTradeShipmentStageEmail({
+    clientEmail: params.clientEmail,
+    clientName: params.clientName,
+    shipmentNumber: params.shipmentNo,
+    stage: params.stage,
+    origin: params.origin,
+    destination: params.destination,
+    vesselName: params.carrier,
+    containerNumber: params.trackingNo,
   });
 }
 
@@ -191,53 +188,38 @@ export async function sendRimiColdChainEmail(params: {
   customerEmail: string;
   customerName: string;
   orderNo: string;
-  event: 'Order Confirmed' | 'Dispatched' | 'Delivered' | 'Invoice Ready';
+  event: 'Order Confirmed' | 'Dispatched' | 'Delivered' | 'Invoice Ready' | 'Batch Received' | string;
   reeferTemp?: string;
   vehicleNo?: string;
   amount?: number;
 }) {
-  return logAutomatedEmail({
-    division: 'rimi',
-    recipient_email: params.customerEmail,
-    recipient_name: params.customerName,
-    template_type: `rimi_${params.event.toLowerCase().replace(/\s+/g, '_')}`,
-    subject: `Rimi Cold Chain Notice [${params.orderNo}]: ${params.event}`,
-    body_html: `
-      <h2>Dear ${params.customerName},</h2>
-      <p>Consignment notification for frozen foods batch <strong>${params.orderNo}</strong>.</p>
-      <div style="background:#0f172a;color:#fff;padding:16px;border-radius:8px;">
-        <p><strong>Event:</strong> ${params.event}</p>
-        ${params.reeferTemp ? `<p><strong>Reefer Compartment Telemetry:</strong> ${params.reeferTemp}</p>` : ''}
-        ${params.vehicleNo ? `<p><strong>Dispatched Vehicle:</strong> ${params.vehicleNo}</p>` : ''}
-        ${params.amount ? `<p><strong>Invoice Total:</strong> ₹${Number(params.amount).toLocaleString('en-IN')}</p>` : ''}
-      </div>
-    `,
-    reference_id: params.orderNo,
+  return sendRimiSalesOrderEmail({
+    customerEmail: params.customerEmail,
+    customerName: params.customerName,
+    orderNumber: params.orderNo,
+    status: (params.event === 'Delivered' ? 'Delivered' : params.event === 'Dispatched' ? 'Dispatched' : 'Confirmed') as any,
+    totalAmount: params.amount || 0,
+    itemsSummary: params.reeferTemp ? `Compartment Temp: ${params.reeferTemp}` : undefined,
   });
 }
 
-export async function sendDigitalProjectMilestoneEmail(params: {
-  clientEmail: string;
-  clientName: string;
-  projectTitle: string;
-  stage: 'Briefing' | 'In Progress' | 'Review' | 'Revisions' | 'Delivered' | 'Closed';
-  invoiceNo?: string;
-  amount?: number;
-}) {
-  return logAutomatedEmail({
-    division: 'digital',
-    recipient_email: params.clientEmail,
-    recipient_name: params.clientName,
-    template_type: `digital_milestone_${params.stage.toLowerCase()}`,
-    subject: `Project Deliverable Update: "${params.projectTitle}" is ${params.stage} — Ferex Digital`,
-    body_html: `
-      <h2>Dear ${params.clientName},</h2>
-      <p>Deliverable update for your active engineering & design project <strong>${params.projectTitle}</strong>.</p>
-      <div style="background:#f1f5f9;padding:16px;border-left:4px solid #58051E;margin:16px 0;">
-        <p><strong>Current Lifecycle Stage:</strong> ${params.stage}</p>
-        ${params.invoiceNo ? `<p><strong>Linked Tax Invoice:</strong> ${params.invoiceNo}</p>` : ''}
-        ${params.amount ? `<p><strong>Milestone Fee:</strong> ₹${Number(params.amount).toLocaleString('en-IN')}</p>` : ''}
-      </div>
-    `,
-  });
-}
+// Re-export all email functions for convenient imports
+export {
+  sendStudentWelcomeEmail,
+  sendStudentPaymentEmail,
+  sendStudentApplicationEmail,
+  sendStudentDocumentUploadedEmail,
+  sendStudentMeetingScheduledEmail,
+  sendStudentTicketCreatedEmail,
+  sendRimiCustomerWelcomeEmail,
+  sendRimiSalesOrderEmail,
+  sendRimiDeliveryDispatchedEmail,
+  sendRimiPaymentCollectionEmail,
+  sendTradeShipmentStageEmail,
+  sendTradeInvoiceEmail,
+  sendDigitalClientWelcomeEmail,
+  sendDigitalProjectMilestoneEmail,
+  sendDigitalDeliverableEmail,
+  sendDigitalInvoiceEmail,
+  sendDigitalMeetingEmail,
+};

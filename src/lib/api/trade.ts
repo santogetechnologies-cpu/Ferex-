@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import { generateUUID } from '../../utils/uuid';
 import { getDivisionStaff, getDivisionStaffSync, type DivisionStaffMember } from './staff';
+import { sendTradeShipmentStageEmail, sendTradeInvoiceEmail } from './email';
 
 // ─── TYPES & MASTER ENUMS ───────────────────────────────────────────────────
 
@@ -654,16 +655,17 @@ export async function createTradeOrder(order: Partial<TradeOrder>): Promise<Trad
   }
 
   // Trigger automated notification
-  if (currentStage === 'Order Confirmed') {
-    try {
-      await triggerTradeAutomatedEmail({
-        trigger_type: 'order_confirmed',
-        order_no: newRecord.order_no,
-        recipient_name: newRecord.client_name,
-        recipient_email: newRecord.client_email,
-        custom_data: { commodity: newRecord.commodity, total_amount: newRecord.total_amount, currency: newRecord.currency }
-      });
-    } catch {}
+  if (newRecord.client_email) {
+    sendTradeShipmentStageEmail({
+      clientEmail: newRecord.client_email,
+      clientName: newRecord.client_name,
+      shipmentNumber: newRecord.order_no,
+      stage: currentStage,
+      origin: newRecord.origin_port,
+      destination: newRecord.destination_port,
+      vesselName: newRecord.carrier || newRecord.vessel_flight,
+      containerNumber: newRecord.tracking_number
+    }).catch(() => {});
   }
 
   triggerSync('ferex_trade_orders_change');
@@ -711,6 +713,20 @@ export async function advanceTradeOrderStage(
 
   const updatedList = current.map(o => (o.id === orderId || o.order_no === orderId) ? updatedOrder : o);
   saveLocalTradeOrders(updatedList);
+
+  // Trigger automated email notification to client
+  if (updatedOrder.client_email) {
+    sendTradeShipmentStageEmail({
+      clientEmail: updatedOrder.client_email,
+      clientName: updatedOrder.client_name,
+      shipmentNumber: updatedOrder.order_no,
+      stage: newStage,
+      origin: updatedOrder.origin_port,
+      destination: updatedOrder.destination_port,
+      vesselName: updatedOrder.carrier || updatedOrder.vessel_flight,
+      containerNumber: updatedOrder.tracking_number
+    }).catch(() => {});
+  }
 
   triggerSync('ferex_trade_orders_change');
   return updatedOrder;

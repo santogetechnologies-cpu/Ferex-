@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, LayoutDashboard, Users, UserPlus, FolderKanban, CheckSquare, Calendar,
-  FileText, CreditCard, DollarSign, BarChart3,
+  FileText, CreditCard, DollarSign, BarChart3, Mail,
   Bell, User, Settings, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus,
   Layers, Shield
 } from 'lucide-react';
@@ -135,7 +135,8 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       title: 'Analytics & Alerts',
       items: [
         { label: 'Performance BI', path: '/digital/analytics', icon: BarChart3 },
-        { label: 'Notifications', path: '/digital/notifications', icon: Bell, badge: unreadNotifCount > 0 ? String(unreadNotifCount) : undefined }
+        { label: 'Notifications', path: '/digital/notifications', icon: Bell, badge: unreadNotifCount > 0 ? String(unreadNotifCount) : undefined },
+        { label: 'Email Delivery Logs', path: '/digital/emails', icon: Mail }
       ]
     },
     {
@@ -168,6 +169,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       title: 'Alerts & System',
       items: [
         { label: 'Notifications', path: '/digital/notifications', icon: Bell, badge: unreadNotifCount > 0 ? String(unreadNotifCount) : undefined },
+        { label: 'Email Delivery Logs', path: '/digital/emails', icon: Mail },
         { label: 'Account Profile', path: '/digital/profile', icon: User },
         { label: 'Sign Out', path: '/', icon: LogOut, isLogout: true }
       ]

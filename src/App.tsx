@@ -351,6 +351,7 @@ function App() {
           <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminNotifications /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/fee-config" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminFeeConfig /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSettings /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/emails" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><CentralEmailLogs /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/ai-copilot" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><EnterpriseAIPage role="education_admin" portalName="Ferex Education" /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/ai-assistant" element={<Navigate to="/admin/ai-copilot" replace />} />
 
@@ -400,6 +401,7 @@ function App() {
           <Route path="/trade/financial-analytics" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeFinancialAnalytics /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/messages" element={<Navigate to="/trade/dashboard" replace />} />
           <Route path="/trade/notifications" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeNotifications /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/emails" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><CentralEmailLogs /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/tasks" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeTasks /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/tickets" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeTickets /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/profile" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeProfile /></TradeLayout></ProtectedRoute>} />
@@ -431,6 +433,7 @@ function App() {
           <Route path="/rimi/revenue-analytics" element={<Navigate to="/rimi/analytics" replace />} />
           <Route path="/rimi/messages" element={<Navigate to="/rimi/dashboard" replace />} />
           <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/emails" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><CentralEmailLogs /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/tasks" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiTasks /></RimiLayout></ProtectedRoute>} />
@@ -447,6 +450,7 @@ function App() {
           <Route path="/digital/deliverables" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalDeliverables /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/staff" element={<Navigate to="/central/staff" replace />} />
           <Route path="/digital/meetings" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMeetings /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/emails" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><CentralEmailLogs /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Services - Redirect to Projects */}
           <Route path="/digital/services" element={<Navigate to="/digital/projects" replace />} />

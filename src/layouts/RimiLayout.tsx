@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Snowflake, LayoutDashboard, Users, ShoppingCart,
   Package, Boxes, Warehouse, Truck, DollarSign,
-  Navigation, BarChart3,
+  Navigation, BarChart3, Mail,
   Bell, User, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus, CheckCircle2, Shield, Sparkles
 } from 'lucide-react';
 
@@ -141,7 +141,8 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       items: [
         { label: 'Finance & BI', path: '/rimi/analytics', icon: BarChart3 },
         { label: 'Tasks & Dispatch', path: '/rimi/tasks', icon: CheckCircle2 },
-        { label: 'Notifications', path: '/rimi/notifications', icon: Bell, badge: unreadNotifCount > 0 ? String(unreadNotifCount) : undefined }
+        { label: 'Notifications', path: '/rimi/notifications', icon: Bell, badge: unreadNotifCount > 0 ? String(unreadNotifCount) : undefined },
+        { label: 'Email Delivery Logs', path: '/rimi/emails', icon: Mail }
       ]
     },
     {

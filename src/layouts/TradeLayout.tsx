@@ -126,6 +126,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
     {
       title: 'COMMUNICATION & CRM',
       items: [
+        { name: 'Email Delivery Logs', path: '/trade/emails', icon: Mail },
         { name: 'Automated Emails', path: '/trade/notifications', icon: Mail },
         { name: 'Trade CRM & Partners', path: '/trade/crm', icon: Users },
       ]
@@ -153,6 +154,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
     {
       title: 'COMMUNICATION',
       items: [
+        { name: 'Email Delivery Logs', path: '/trade/emails', icon: Mail },
         { name: 'Automated Email Log', path: '/trade/notifications', icon: Mail },
       ]
     },
