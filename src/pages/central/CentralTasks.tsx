@@ -192,14 +192,9 @@ export const CentralTasks: React.FC = () => {
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <CheckSquare className="w-6 h-6 text-[#58051E]" /> Cross-Divisional Operations & Task Center
-            </h1>
-            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
-              Live Supabase Sync
-            </span>
-          </div>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <CheckSquare className="w-6 h-6 text-[#58051E]" /> Cross-Divisional Operations & Task Center
+          </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Centrally delegate, track, and reassign high-priority operational workflows across all 4 enterprise subsidiaries.
           </p>
@@ -311,8 +306,8 @@ export const CentralTasks: React.FC = () => {
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="px-2 py-0.5 rounded-full text-[9.5px] font-black bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
-                        🏛️ By Central Admin
+                      <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-[#58051E] text-white flex items-center gap-1">
+                        Central Directive
                       </span>
                       <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold border ${badge}`}>
                         {div}

@@ -197,7 +197,7 @@ export const TradeCertificates: React.FC = () => {
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <Award className="w-5 h-5 text-[#58051E]" />
-            Trade Certificates & Compliance Vault
+            Trade Certificates & Compliance
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Certificates of Origin, Phytosanitary health checks, SGS Quality Analysis, and EUR.1 movement compliance.

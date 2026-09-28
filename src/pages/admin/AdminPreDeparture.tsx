@@ -339,7 +339,7 @@ export const AdminPreDeparture: React.FC = () => {
                   >
                     {eligibleStudents.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name} ({s.email}) — {s.isStage11 ? '✓ Visa Granted / Ready' : 'Enrolled'} — {s.university}
+                        {s.name} ({s.email}) — {s.isStage11 ? 'Visa Granted / Ready' : 'Enrolled'} — {s.university}
                       </option>
                     ))}
                   </select>

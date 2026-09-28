@@ -204,8 +204,8 @@ export const CentralEmailLogs: React.FC = () => {
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               <Mail className="w-6 h-6 text-[#58051E]" /> Automated Email Delivery & Dispatch Logs
             </h1>
-            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
-              4-Portal Vault
+            <span className="text-[10px] font-bold bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
+              All Portals
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">

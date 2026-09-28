@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckSquare, Plus, Search, Filter, Calendar, CheckCircle2,
-  AlertCircle, X, Clock, Trash2
+  AlertCircle, X, Clock, Trash2, ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Button } from '../../../components/Button';
@@ -257,8 +257,8 @@ export const DigitalPMTasks: React.FC = () => {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       {(t.is_central_directive || t.created_by === 'Central Admin' || t.task_type === 'Central Directive' || (t.notes && t.notes.toLowerCase().includes('central admin'))) && (
-                        <span className="text-[9.5px] font-black px-2 py-0.5 rounded-md bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
-                          🏛️ By Central Admin
+                        <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-md bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
+                          <ShieldCheck className="w-3 h-3" /> Central Directive
                         </span>
                       )}
                       <span className={`text-xs font-bold text-slate-900 ${t.status === 'Done' ? 'line-through text-slate-400' : ''}`}>

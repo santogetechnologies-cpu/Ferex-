@@ -193,7 +193,7 @@ export const DigitalDashboard: React.FC = () => {
                   onClick={() => navigate('/digital/deliverables')}
                   className="h-10 px-5 rounded-xl text-xs font-black text-white bg-white/15 hover:bg-white/25 border border-white/30 transition-all shadow-xs cursor-pointer"
                 >
-                  Deliverables Vault
+                  Deliverables
                 </button>
               </>
             ) : (
@@ -366,7 +366,7 @@ export const DigitalDashboard: React.FC = () => {
                     <Layers className="w-5 h-5" />
                   </div>
                   <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
-                    Vault
+                    Files
                   </span>
                 </div>
                 <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Artifacts</span>

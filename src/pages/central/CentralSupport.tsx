@@ -134,16 +134,11 @@ export const CentralSupport: React.FC = () => {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <LifeBuoy className="w-6 h-6 text-[#58051E]" /> Cross-Divisional Support & Ticket Escalations
-            </h1>
-            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
-              Live Supabase Sync
-            </span>
-          </div>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <LifeBuoy className="w-6 h-6 text-[#58051E]" /> Support & Ticket Escalations
+          </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Centrally inspect, reply, resolve, and reassign support tickets across Education, Global Trade, Rimi Frozen, and Digital platforms.
+            Centrally inspect, reply, resolve, and reassign support tickets across all enterprise divisions.
           </p>
         </div>
         <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadData}>

@@ -391,8 +391,17 @@ export const TradeShipments: React.FC = () => {
                         <div className="font-extrabold text-slate-900">
                           {ord.currency} {ord.total_amount.toLocaleString()}
                         </div>
-                        <div className="text-[10px] text-slate-500">
-                          Adv: {ord.advance_percentage}% ({ord.advance_status === 'Paid' ? <span className="text-emerald-600 font-bold">✓ Paid</span> : <span className="text-amber-600 font-bold">⏳ Pending</span>})
+                        <div className="text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                          <span>Adv: {ord.advance_percentage}%</span>
+                          {ord.advance_status === 'Paid' ? (
+                            <span className="inline-flex items-center gap-0.5 text-emerald-600 font-semibold">
+                              <CheckCircle2 className="w-3 h-3" /> Paid
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-0.5 text-amber-600 font-semibold">
+                              <Clock className="w-3 h-3" /> Pending
+                            </span>
+                          )}
                         </div>
                       </td>
 

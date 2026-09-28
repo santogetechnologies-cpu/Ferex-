@@ -902,14 +902,14 @@ export const DigitalProjects: React.FC = () => {
                       <optgroup label="Internal Ferex Subsidiaries">
                         {clients.filter(c => c.client_type === 'Internal' || (c.company_name || '').toLowerCase().includes('ferex') || (c.company_name || '').toLowerCase().includes('rimi')).map(c => (
                           <option key={c.id} value={c.id}>
-                            🏢 {c.company_name || c.name}
+                            {c.company_name || c.name}
                           </option>
                         ))}
                       </optgroup>
                       <optgroup label="External Enterprise Clients">
                         {clients.filter(c => c.client_type !== 'Internal' && !(c.company_name || '').toLowerCase().includes('ferex') && !(c.company_name || '').toLowerCase().includes('rimi')).map(c => (
                           <option key={c.id} value={c.id}>
-                            🌐 {c.company_name || c.name} ({c.industry || 'External Account'})
+                            {c.company_name || c.name} ({c.industry || 'External Account'})
                           </option>
                         ))}
                       </optgroup>

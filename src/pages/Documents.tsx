@@ -367,15 +367,15 @@ export const Documents: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
               <Folder className="w-4 h-4" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Document Vault
+            <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+              Documents
             </h1>
           </div>
-          <p className="text-xs text-slate-500">
-            Upload, verify, and track your required academic, identity, and consular documents.
+          <p className="text-xs text-slate-500 font-semibold">
+            Upload, verify, and track your required academic, identity, and visa documents.
           </p>
         </div>
 
@@ -388,73 +388,73 @@ export const Documents: React.FC = () => {
           }}
           size="sm"
           leftIcon={<Upload className="w-4 h-4" />}
-          className="self-start sm:self-auto"
+          className="self-start sm:self-auto bg-[#58051E] hover:bg-[#430316] text-white"
         >
           Upload Document
         </Button>
       </div>
 
-      {/* Legalization & Country Checklist Card */}
+      {/* Country Compliance & Verification Card */}
       {targetWf ? (
-        <div className="bg-slate-900 rounded-xl p-5 text-white border border-slate-800 shadow-card relative overflow-hidden">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-slate-200 text-[11px] font-semibold tracking-wide border border-white/10">
-                  <Globe className="w-3 h-3 text-slate-400" />
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-bold">
+                  <Globe className="w-3 h-3 text-slate-500" />
                   {targetCountry} Compliance Protocol
                 </span>
-                <span className="inline-flex items-center gap-1 text-xs text-slate-300">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                   Authority: {targetWf.authority_acronym || targetWf.authority_name}
                 </span>
               </div>
-              <h2 className="text-sm font-semibold text-white">{targetWf.authority_badge}</h2>
-              <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+              <h2 className="text-sm font-bold text-slate-900">{targetWf.authority_badge}</h2>
+              <p className="text-xs text-slate-500 mt-0.5 max-w-2xl leading-relaxed">
                 {targetWf.authority_description}
               </p>
             </div>
-            <div className="flex items-center gap-3 bg-white/5 p-3 rounded-lg border border-white/10 self-start md:self-auto shrink-0">
+            <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 self-start md:self-auto shrink-0">
               <div className="text-left md:text-right">
-                <p className="text-[10px] uppercase font-semibold text-slate-400">Processing Time</p>
-                <p className="text-xs font-bold text-white">{targetWf.estimated_processing_days}</p>
+                <p className="text-[10px] uppercase font-bold text-slate-400">Processing Time</p>
+                <p className="text-xs font-bold text-slate-900">{targetWf.estimated_processing_days}</p>
               </div>
-              <div className="w-px h-6 bg-white/10" />
+              <div className="w-px h-6 bg-slate-200" />
               <div className="text-left md:text-right">
-                <p className="text-[10px] uppercase font-semibold text-slate-400">Authority Fee</p>
-                <p className="text-xs font-bold text-white">{targetWf.authority_fee}</p>
+                <p className="text-[10px] uppercase font-bold text-slate-400">Authority Fee</p>
+                <p className="text-xs font-bold text-slate-900">{targetWf.authority_fee}</p>
               </div>
             </div>
           </div>
 
-          {/* Dossier Completeness Alert Pill */}
+          {/* Compliance Status Alert Pill */}
           {configuredReqs.length > 0 && (
-            <div className={`mt-4 p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
+            <div className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
               dossierStatus.isComplete
-                ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200'
-                : 'bg-amber-950/40 border-amber-500/30 text-amber-200'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : 'bg-amber-50 border-amber-200 text-amber-800'
             }`}>
               <div className="flex items-center gap-2.5">
                 {dossierStatus.isComplete ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 ) : (
-                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                 )}
                 <div>
                   <span className="font-extrabold uppercase tracking-wide text-[10px] block">
-                    {dossierStatus.isComplete ? 'Dossier Status: Complete' : 'Dossier Status: Incomplete'}
+                    {dossierStatus.isComplete ? 'Document Verification: Complete' : 'Document Verification: Pending Files'}
                   </span>
-                  <span className="text-[11px] text-slate-300">
+                  <span className="text-[11px] text-slate-600 font-medium">
                     {dossierStatus.isComplete
-                      ? `All ${dossierStatus.mandatoryCount} mandatory compliance files have been uploaded for ${targetCountry} audit.`
-                      : `${dossierStatus.uploadedMandatoryCount} of ${dossierStatus.mandatoryCount} mandatory documents uploaded. All mandatory files are required.`}
+                      ? `All ${dossierStatus.mandatoryCount} mandatory compliance files have been uploaded for ${targetCountry} verification.`
+                      : `${dossierStatus.uploadedMandatoryCount} of ${dossierStatus.mandatoryCount} mandatory documents uploaded.`}
                   </span>
                 </div>
               </div>
-              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shrink-0 self-start sm:self-auto border ${
+              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shrink-0 self-start sm:self-auto border ${
                 dossierStatus.isComplete
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                  : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                  : 'bg-amber-100 text-amber-800 border-amber-200'
               }`}>
                 {dossierStatus.isComplete ? 'Ready for Review' : `${dossierStatus.missingMandatoryCount} Missing Mandatory`}
               </span>
@@ -463,13 +463,13 @@ export const Documents: React.FC = () => {
 
           {/* Configured Document Requirements Checklist */}
           {configuredReqs.length > 0 ? (
-            <div className="mt-4 pt-4 border-t border-white/10">
+            <div className="pt-3 border-t border-slate-100">
               <div className="flex items-center justify-between mb-2.5">
-                <p className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  Required Dossier Checklist ({dossierStatus.results.length} Items)
+                <p className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  Required Documents Checklist ({dossierStatus.results.length} Items)
                 </p>
-                <span className="text-[10px] font-bold text-slate-400">
+                <span className="text-[10px] font-bold text-slate-500">
                   {dossierStatus.uploadedCount} / {dossierStatus.totalCount} Uploaded
                 </span>
               </div>
@@ -484,39 +484,39 @@ export const Documents: React.FC = () => {
                     item.status === 'Rejected' ? 'Rejected' : 'Missing';
 
                   const badgeColor =
-                    item.status === 'Approved' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
-                    item.status === 'Under Review' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
-                    item.status === 'Submitted' ? 'bg-teal-500/20 text-teal-300 border-teal-500/30' :
-                    item.status === 'Rejected' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' :
-                    'bg-amber-500/20 text-amber-300 border-amber-500/30';
+                    item.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    item.status === 'Under Review' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                    item.status === 'Submitted' ? 'bg-slate-100 text-slate-700 border-slate-200' :
+                    item.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                    'bg-amber-50 text-amber-700 border-amber-200';
 
                   return (
                     <div 
                       key={reqDoc.id}
                       className={`p-3 rounded-xl border text-xs flex flex-col justify-between transition-all ${
                         isUploaded 
-                          ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200' 
-                          : 'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10'
+                          ? 'bg-emerald-50/40 border-emerald-200 text-slate-800' 
+                          : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100/60'
                       }`}
                     >
                       <div>
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-white/10 text-slate-300 font-bold uppercase">
+                              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-bold uppercase">
                                 {reqDoc.document_type || 'General'}
                               </span>
                               {reqDoc.is_required ? (
-                                <span className="text-[9.5px] font-extrabold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                                <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
                                   MANDATORY
                                 </span>
                               ) : (
-                                <span className="text-[9.5px] font-medium px-1.5 py-0.2 rounded bg-slate-500/20 text-slate-400 border border-slate-500/30 shrink-0">
+                                <span className="text-[9.5px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 border border-slate-200 shrink-0">
                                   OPTIONAL
                                 </span>
                               )}
                             </div>
-                            <span className="font-bold text-xs leading-tight text-white block">
+                            <span className="font-bold text-xs leading-tight text-slate-900 block">
                               {reqDoc.document_name}
                             </span>
                           </div>
@@ -526,24 +526,13 @@ export const Documents: React.FC = () => {
                         </div>
 
                         {reqDoc.description && (
-                          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2 mt-1">
+                          <p className="text-[10px] text-slate-500 leading-snug line-clamp-2 mt-1">
                             {reqDoc.description}
                           </p>
                         )}
-
-                        {reqDoc.checklist_items && reqDoc.checklist_items.length > 0 && (
-                          <div className="mt-2 text-[9.5px] text-slate-400 space-y-0.5">
-                            {reqDoc.checklist_items.map((criterion, cIdx) => (
-                              <div key={cIdx} className="flex items-center gap-1 truncate">
-                                <span className="text-amber-400">•</span>
-                                <span className="truncate">{criterion}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
 
-                      <div className="pt-2.5 mt-2 border-t border-white/10 flex items-center justify-between gap-2">
+                      <div className="pt-2.5 mt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
                         <div className="text-[9.5px] text-slate-400">
                           <span>{reqDoc.processing_time || '3-7 Days'}</span> • <span>{reqDoc.authority_fee || 'Free'}</span>
                         </div>
@@ -552,7 +541,7 @@ export const Documents: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleOpenUploadForReq(reqDoc)}
-                            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                            className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
                           >
                             <Upload className="w-3 h-3" /> Upload
                           </button>
@@ -561,7 +550,7 @@ export const Documents: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleOpenPreview(item.doc)}
-                              className="text-[10px] font-bold text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                              className="text-[10px] font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
                             >
                               <Eye className="w-3 h-3" /> Preview
                             </button>
@@ -575,10 +564,10 @@ export const Documents: React.FC = () => {
             </div>
           ) : (
             targetWf.checklist_documents && targetWf.checklist_documents.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <p className="text-[11px] font-semibold text-slate-300 mb-2.5 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  Required Dossier Checklist ({targetWf.checklist_documents.length} Items)
+              <div className="pt-3 border-t border-slate-100">
+                <p className="text-[11px] font-bold text-slate-700 mb-2.5 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  Required Documents Checklist ({targetWf.checklist_documents.length} Items)
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {targetWf.checklist_documents.map((reqDoc: any) => {
@@ -591,19 +580,19 @@ export const Documents: React.FC = () => {
                         key={reqDoc.id}
                         className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between transition-all ${
                           isUploaded 
-                            ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200' 
-                            : 'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10'
+                            ? 'bg-emerald-50/50 border-emerald-200 text-slate-800' 
+                            : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100/60'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <span className="font-semibold text-[11px] leading-tight">{reqDoc.name}</span>
+                          <span className="font-semibold text-[11px] leading-tight text-slate-900">{reqDoc.name}</span>
                           {reqDoc.is_mandatory && (
-                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
                               Required
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
+                        <p className="text-[10px] text-slate-500 leading-snug line-clamp-2">
                           {reqDoc.instructions}
                         </p>
                       </div>
@@ -615,21 +604,21 @@ export const Documents: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-[#58051E]/90 rounded-xl p-5 text-white border border-slate-700/60 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1.5">
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-semibold border border-amber-500/30">
-                <Globe className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[11px] font-bold border border-amber-200">
+                <Globe className="w-3 h-3 text-amber-600" />
                 Select Destination University
               </span>
             </div>
-            <h2 className="text-sm font-semibold text-white">Destination Compliance & Legalization Protocol</h2>
-            <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
-              Your required document checklist, apostille/legalization dossier, and embassy protocols will dynamically calibrate once you choose your destination institution.
+            <h2 className="text-sm font-bold text-slate-900">Destination Compliance & Legalization Protocol</h2>
+            <p className="text-xs text-slate-500 max-w-xl leading-relaxed">
+              Your required document checklist and embassy protocols will dynamically calibrate once you choose your destination institution.
             </p>
           </div>
           <Link to="/student/select-university">
-            <Button size="sm" className="bg-[#E5A73B] hover:bg-[#d4962b] text-slate-950 font-semibold shrink-0">
+            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white font-bold shrink-0">
               Browse Universities
             </Button>
           </Link>
@@ -759,7 +748,7 @@ export const Documents: React.FC = () => {
 
       {/* Documents Grid */}
       {loading && dbDocs.length === 0 ? (
-        <div className="py-16 text-center text-xs font-semibold text-slate-400">Loading document vault...</div>
+        <div className="py-16 text-center text-xs font-semibold text-slate-400">Loading documents...</div>
       ) : filteredDocs.length === 0 ? (
         <div className="bg-white border border-slate-200/80 rounded-xl p-12 text-center shadow-subtle">
           <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />

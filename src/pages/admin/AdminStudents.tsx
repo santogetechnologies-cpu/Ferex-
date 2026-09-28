@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck } from 'lucide-react';
+import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
 import { useDocuments } from '../../hooks/useDocuments';
@@ -559,12 +559,20 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border inline-block ${s.statusColor}`}>
                             {s.status}
                           </span>
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-black border block w-fit ${
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold border inline-flex items-center gap-1 w-fit ${
                             dossier.isComplete
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                               : 'bg-amber-50 text-amber-700 border-amber-200'
                           }`}>
-                            {dossier.isComplete ? '✅ Docs Complete' : `⚠️ Incomplete (${dossier.uploadedMandatoryCount}/${dossier.mandatoryCount || 2})`}
+                            {dossier.isComplete ? (
+                              <>
+                                <CheckCircle2 className="w-2.5 h-2.5" /> Docs Complete
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle className="w-2.5 h-2.5" /> Incomplete ({dossier.uploadedMandatoryCount}/{dossier.mandatoryCount || 2})
+                              </>
+                            )}
                           </span>
                         </div>
                       );

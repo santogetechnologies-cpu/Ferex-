@@ -144,14 +144,9 @@ export const CentralStudents: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <GraduationCap className="w-6 h-6 text-[#58051E]" /> Ferex Education Central Student Oversight
-            </h1>
-            <span className="text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-0.5 rounded-full">
-              Live Supabase Sync
-            </span>
-          </div>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <GraduationCap className="w-6 h-6 text-[#58051E]" /> Student Directory & Academic Overview
+          </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Consolidated oversight of student journeys, process stages, tuition fee settlements, document compliance, and counselor assignments.
           </p>

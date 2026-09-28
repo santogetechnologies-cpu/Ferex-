@@ -291,179 +291,93 @@ export const SelectUniversity: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center border border-[#6A1B2E]/20">
-              <Target className="w-5 h-5" />
+          <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center">
+              <GraduationCap className="w-5 h-5" />
             </span>
-            University Selection & Course Application Catalog
+            University Directory
           </h1>
-          <p className="text-sm font-semibold text-slate-500 mt-1">
-            Browse accredited European partner universities and select your target program for upcoming intakes.
+          <p className="text-xs font-semibold text-slate-500 mt-1">
+            Browse accredited partner universities, compare degree programs, and submit your direct application.
           </p>
         </div>
-      </div>
 
-      {/* Multi-Country Linear Workflow Stepper */}
-      <div className="bg-gradient-to-r from-slate-900 via-[#3B0713] to-slate-900 text-white p-5 md:p-6 rounded-3xl border border-rose-950/40 shadow-xl space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#C5A059] to-[#8C6D2B] text-slate-950 flex items-center justify-center font-black shadow-lg shrink-0">
-              <Globe className="w-5 h-5" />
+        {/* Assigned Counselor Status Pill (Clean SaaS style) */}
+        {hasCounselorAssigned ? (
+          <div className="flex items-center gap-2.5 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200/80 shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-[#58051E] text-white flex items-center justify-center font-black text-xs shrink-0">
+              {assignedCounselorName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
             </div>
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-300/90 block">Multi-Country Admissions Engine</span>
-              <h2 className="text-base font-black text-white tracking-tight">Structured 6-Stage Student Admission Flow</h2>
+            <div className="text-left min-w-0">
+              <span className="text-[9.5px] font-bold text-slate-400 block uppercase tracking-wider">Assigned Counselor</span>
+              <span className="text-xs font-bold text-slate-900 truncate block">{assignedCounselorName}</span>
             </div>
           </div>
-
-          {/* Assigned Counselor Desk Pill - Only show if actually assigned */}
-          {hasCounselorAssigned && (
-            <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/15">
-              <div className="w-8 h-8 rounded-full bg-[#C5A059] text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
-                {assignedCounselorName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
-              </div>
-              <div className="text-left min-w-0">
-                <span className="text-[9.5px] font-extrabold text-amber-200 block uppercase tracking-wider">Dedicated Counselor</span>
-                <span className="text-xs font-black text-white truncate block">{assignedCounselorName}</span>
-              </div>
-            </div>
-          )}
-          
-          {!hasCounselorAssigned && (
-            <div className="flex items-center gap-2.5 bg-amber-500/20 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-amber-300/30">
-              <div className="w-8 h-8 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
-                ⏳
-              </div>
-              <div className="text-left min-w-0">
-                <span className="text-[9.5px] font-extrabold text-amber-200 block uppercase tracking-wider">Counselor Assignment</span>
-                <span className="text-xs font-black text-amber-100 truncate block">Pending Admin Assignment</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 6 Step Linear Pipeline */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
-          {[
-            { step: '01', title: 'Target Country', status: selectedCountry !== 'All' ? `${selectedCountry}` : 'Global Catalog', isDone: true, badge: 'Step 1' },
-            { step: '02', title: 'Counselor Assignment', status: hasCounselorAssigned ? assignedCounselorName.split('(')[0].trim() : 'Pending Admin', isDone: hasCounselorAssigned, badge: hasCounselorAssigned ? 'Assigned' : 'Pending' },
-            { step: '03', title: 'Document Vault', status: hasMandatoryDocs ? 'Passport & Transcripts Ready' : 'Upload Needed', isDone: hasMandatoryDocs, badge: hasMandatoryDocs ? 'Verified' : 'Action Req', path: '/student/documents' },
-            { step: '04', title: 'Registration Fee', status: inst1Paid ? 'Cleared & Verified' : `₹${requiredAdvanceInr.toLocaleString('en-IN')}`, isDone: inst1Paid, badge: inst1Paid ? 'Paid' : 'Due' },
-            { step: '05', title: 'Course Application', status: 'Select Program', isDone: false, badge: 'Current' },
-            { step: '06', title: 'Offer & Legalization', status: `${getWorkflowForCountry(effectiveCountryKey)?.authority_acronym || 'Legalization'} / Visa`, isDone: false, badge: 'Next Stage' },
-          ].map((s, idx) => (
-            <div
-              key={idx}
-              onClick={() => s.path && navigate(s.path)}
-              className={`p-2.5 rounded-2xl border transition-all text-left ${
-                s.isDone
-                  ? 'bg-white/10 border-white/20 text-white'
-                  : s.badge === 'Current'
-                    ? 'bg-gradient-to-br from-[#6A1B2E] to-[#4A101E] border-amber-400/40 text-white shadow-md'
-                    : 'bg-white/5 border-white/10 text-white/60'
-              } ${s.path ? 'cursor-pointer hover:border-amber-400/60' : ''}`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-black text-amber-300 font-mono">{s.step}</span>
-                <span className={`text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-md ${
-                  s.isDone ? 'bg-emerald-500/20 text-emerald-300' : s.badge === 'Current' ? 'bg-amber-400/20 text-amber-200' : 'bg-white/10 text-white/50'
-                }`}>
-                  {s.badge}
-                </span>
-              </div>
-              <h4 className="text-[11px] font-black truncate">{s.title}</h4>
-              <p className="text-[9.5px] font-medium text-white/70 truncate mt-0.5">{s.status}</p>
-            </div>
-          ))}
-        </div>
+        ) : (
+          <div className="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 shrink-0 text-amber-800 text-xs font-semibold">
+            <UserCheck className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>Counselor Assignment Pending</span>
+          </div>
+        )}
       </div>
 
-      {/* Destination Country Selection Hub */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-[#6A1B2E]" />
-            <h2 className="text-xs font-black uppercase text-slate-900 tracking-wider">
-              Step 1: Choose Target Destination Country & Admission Desk
-            </h2>
+      {/* Destination Country Filter Bar (Sleek Horizontal Pills) */}
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search university name, city, or program (e.g. Computer Science, Warsaw)..."
+              className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            />
           </div>
-          <span className="text-[11px] font-bold text-slate-500">
-            Selected: <strong className="text-[#6A1B2E] font-black">{selectedCountry === 'All' ? 'All Global Destinations' : selectedCountry}</strong>
+
+          <span className="text-xs font-bold text-slate-500 shrink-0 hidden sm:block">
+            Showing <strong className="text-slate-900 font-extrabold">{filteredUnis.length}</strong> Universities
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+        {/* Modern Country Pill Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
           <button
             onClick={() => handleCountrySelect('All')}
-            className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
               selectedCountry === 'All'
-                ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-md'
-                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/80'
+                ? 'bg-[#58051E] text-white shadow-xs'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80'
             }`}
           >
-            <Globe className={`w-5 h-5 mb-1 ${selectedCountry === 'All' ? 'text-amber-300' : 'text-slate-500'}`} />
-            <span className="text-xs font-extrabold block">All Countries</span>
-            <span className={`text-[9.5px] block ${selectedCountry === 'All' ? 'text-white/80' : 'text-slate-400'}`}>
-              Browse Entire Catalog
-            </span>
+            All Countries ({universities.length})
           </button>
 
           {availableDestinations.map(d => {
             const isSelected = selectedCountry.toLowerCase() === d.country.toLowerCase();
+            const count = universities.filter(u => u.country?.toLowerCase() === d.country.toLowerCase()).length;
             return (
               <button
                 key={d.country}
                 onClick={() => handleCountrySelect(d.country)}
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-[#6A1B2E] text-white border-[#6A1B2E] shadow-md scale-[1.02]'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/80'
+                    ? 'bg-[#58051E] text-white shadow-xs'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80'
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-lg">{d.flag}</span>
-                  {isSelected && <Check className="w-3.5 h-3.5 text-amber-300" />}
-                </div>
-                <span className="text-xs font-black block truncate">{d.country}</span>
-                <span className={`text-[9.5px] font-bold block truncate ${isSelected ? 'text-amber-200' : 'text-slate-500'}`}>
-                  {d.authority}
-                </span>
-                <span className={`text-[8.5px] font-semibold block truncate mt-0.5 ${isSelected ? 'text-white/70' : 'text-slate-400'}`}>
-                  {d.desk || `${d.country} Desk`}
-                </span>
+                <span>{d.flag}</span>
+                <span>{d.country}</span>
+                {count > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-600'
+                  }`}>
+                    {count}
+                  </span>
+                )}
               </button>
             );
           })}
-        </div>
-      </div>
-
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search university name, city, or course (e.g. Computer Science, Warsaw)..."
-            className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#6A1B2E]/40"
-          />
-        </div>
-
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-          {allCountryNames.map(c => (
-            <button
-              key={c}
-              onClick={() => handleCountrySelect(c)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                selectedCountry === c
-                  ? 'bg-[#6A1B2E] text-white shadow-xs'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
-              }`}
-            >
-              {c}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -492,7 +406,7 @@ export const SelectUniversity: React.FC = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
                   {/* Floating Badges */}
-                  <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#6A1B2E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/30 shadow-xs">
+                  <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#58051E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/30 shadow-xs">
                     {uni.badge || wf?.authority_acronym || 'Accredited'}
                   </span>
 
@@ -515,7 +429,7 @@ export const SelectUniversity: React.FC = () => {
                 </div>
 
                 <div className="p-4 space-y-3">
-                  <h3 className="text-base font-black text-slate-900 leading-snug group-hover:text-[#6A1B2E] transition-colors line-clamp-1">
+                  <h3 className="text-base font-black text-slate-900 leading-snug group-hover:text-[#58051E] transition-colors line-clamp-1">
                     {uni.name}
                   </h3>
 
@@ -530,7 +444,7 @@ export const SelectUniversity: React.FC = () => {
                   <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1 text-xs font-semibold">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Tuition Fee:</span>
-                      <span className="font-bold text-[#6A1B2E]">{uni.tuition_range || uni.university_fee}</span>
+                      <span className="font-bold text-[#58051E]">{uni.tuition_range || uni.university_fee}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Procedure:</span>
@@ -551,7 +465,7 @@ export const SelectUniversity: React.FC = () => {
 
                   <button
                     onClick={() => handleOpenApply(uni)}
-                    className="flex-1 h-9 bg-[#6A1B2E] hover:bg-[#521221] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 shadow-xs transition-all cursor-pointer"
+                    className="flex-1 h-9 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 shadow-xs transition-all cursor-pointer"
                   >
                     Apply Now <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
                   </button>
@@ -574,7 +488,7 @@ export const SelectUniversity: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-black text-sm border border-[#6A1B2E]/20">
+                      <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black text-sm border border-[#58051E]/20">
                         {drawerUni.name?.[0] || 'U'}
                       </div>
                       <div>

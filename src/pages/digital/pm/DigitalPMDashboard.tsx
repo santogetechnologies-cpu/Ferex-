@@ -160,7 +160,7 @@ export const DigitalPMDashboard: React.FC = () => {
       path: '/digital/pm/milestones'
     },
     {
-      label: 'Deliverables Vault',
+      label: 'Project Deliverables',
       value: String(projects.reduce((acc, p) => acc + (p.deliverables?.length || 0), 0)),
       subtext: 'Figma, GitHub, Docs',
       icon: FileText,

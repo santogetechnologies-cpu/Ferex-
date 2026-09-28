@@ -103,10 +103,10 @@ export const JourneyTracker: React.FC = () => {
     {
       id: 'u4',
       num: 4,
-      title: 'Dossier Preparation',
+      title: 'Document Preparation',
       status: hasApprovedDocs ? 'completed' : (hasUploadedDocs ? 'in_progress' : (activeApp ? 'current' : 'upcoming')),
-      desc: 'Transcripts, SOP, and passport verified in Document Vault.',
-      actionLabel: 'Document Vault',
+      desc: 'Transcripts, statement of purpose, and passport verified.',
+      actionLabel: 'View Documents',
       actionRoute: '/student/documents',
     },
     {
@@ -155,7 +155,7 @@ export const JourneyTracker: React.FC = () => {
       title: 'Prerequisite Verification',
       status: isOfferAccepted ? 'completed' : (hasApprovedDocs ? 'in_progress' : 'upcoming'),
       desc: 'Final Acceptance, financial declarations, and apostilles gathered.',
-      actionLabel: 'Check Vault',
+      actionLabel: 'View Documents',
       actionRoute: '/student/documents',
     },
     {

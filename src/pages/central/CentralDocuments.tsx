@@ -72,7 +72,7 @@ export const CentralDocuments: React.FC = () => {
         statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         verifiedBy: 'Super Admin'
       } : d));
-      showToastMsg('Document verified & approved in Supabase vault!');
+      showToastMsg('Document verified & approved successfully.');
       setSelectedDoc(null);
     } catch (err: any) {
       showToastMsg(`Verification failed: ${err.message}`);
@@ -91,20 +91,15 @@ export const CentralDocuments: React.FC = () => {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Folder className="w-6 h-6 text-[#58051E]" /> Central Document Inspection Vault
-            </h1>
-            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
-              Live Supabase Sync
-            </span>
-          </div>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Folder className="w-6 h-6 text-[#58051E]" /> Central Document Repository
+          </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Executive oversight of international applicant passports, IELTS scorecards, academic certificates, and NAWA legalization dossiers.
+            Executive oversight of applicant identity records, academic certificates, and consular compliance files.
           </p>
         </div>
         <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadData}>
-          <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh Vault
+          <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh Documents
         </Button>
       </div>
 
@@ -119,15 +114,15 @@ export const CentralDocuments: React.FC = () => {
             className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
           />
         </div>
-        <span className="text-xs font-bold text-slate-400">{filteredDocs.length} Vault Documents</span>
+        <span className="text-xs font-bold text-slate-400">{filteredDocs.length} Documents</span>
       </Card>
 
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading student documents from Supabase...</div>
+        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading student documents...</div>
       ) : filteredDocs.length === 0 ? (
         <Card className="p-12 text-center border border-slate-200/70 shadow-xs">
           <Folder className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-sm font-black text-slate-800">No Documents in Vault</h3>
+          <h3 className="text-sm font-black text-slate-800">No Documents Found</h3>
           <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto">
             No uploaded student documents match the search criteria.
           </p>

@@ -187,16 +187,11 @@ export const CentralTrade: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Globe className="w-6 h-6 text-indigo-600" /> Ferex Global Trade & Logistics Central Oversight
-            </h1>
-            <span className="text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-full">
-              Live Supabase Sync
-            </span>
-          </div>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Globe className="w-6 h-6 text-indigo-600" /> Global Trade & Logistics Overview
+          </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Central executive oversight of international maritime freight, 7 trade document types, Letter of Credit financing, and live logistics reassignment.
+            Central executive oversight of international freight, trade documentation, and logistics tracking.
           </p>
         </div>
         <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadData}>

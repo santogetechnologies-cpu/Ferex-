@@ -1025,7 +1025,7 @@ export const AdminPaymentControl: React.FC = () => {
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-bold text-slate-900">{m.amountFormatted}</span>
                                   {m.isPaid ? (
-                                    <span className="text-emerald-600 font-black">✓</span>
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                                   ) : (
                                     <button
                                       onClick={() => {

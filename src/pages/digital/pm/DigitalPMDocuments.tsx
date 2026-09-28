@@ -120,7 +120,7 @@ export const DigitalPMDocuments: React.FC = () => {
               <FileText className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Project Deliverables & Documents Vault
+              Project Deliverables & Documents
             </h1>
             <Badge variant="brand">{filteredDocs.length} Assets</Badge>
           </div>

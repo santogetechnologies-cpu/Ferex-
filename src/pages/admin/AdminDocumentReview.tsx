@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, CheckCircle2, XCircle, X, RefreshCw, Sparkles, FileText, MessageSquare, AlertCircle, Clock } from 'lucide-react';
+import {
+  Search, Eye, CheckCircle2, XCircle, X, RefreshCw, Sparkles,
+  FileText, MessageSquare, AlertCircle, Clock, Folder, FolderOpen,
+  FileCheck2, UserCheck, GraduationCap, Scroll, Languages, Landmark,
+  ShieldCheck, Table
+} from 'lucide-react';
 import { useDocuments } from '../../hooks/useDocuments';
 import { useApplications } from '../../hooks/useApplications';
 import { createNawaRecord } from '../../lib/api/nawa';
@@ -264,20 +269,22 @@ export const AdminDocumentReview: React.FC = () => {
           <button
             type="button"
             onClick={() => setViewMode('folders')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               viewMode === 'folders' ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            📁 Student Folders ({studentFolders.length})
+            <Folder className="w-3.5 h-3.5" />
+            <span>Student Folders ({studentFolders.length})</span>
           </button>
           <button
             type="button"
             onClick={() => setViewMode('table')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               viewMode === 'table' ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            📋 All Documents Table ({docs.length})
+            <Table className="w-3.5 h-3.5" />
+            <span>All Documents Table ({docs.length})</span>
           </button>
         </div>
       </div>
@@ -317,13 +324,13 @@ export const AdminDocumentReview: React.FC = () => {
 
               // Categorize documents
               const categories = [
-                { name: 'Identification', label: 'Passport & Identity Proof', icon: '🛂' },
-                { name: 'Academic', label: 'Degrees & Graduation Certificates', icon: '🎓' },
-                { name: 'Transcripts', label: 'Academic Marksheets & Transcripts', icon: '📜' },
-                { name: 'Language', label: 'Medium of Instruction (MOI) / English', icon: '🗣️' },
-                { name: 'Financial', label: 'Bank Statement & Solvency Proof', icon: '💰' },
-                { name: 'Insurance', label: 'Health Insurance & Medical', icon: '🏥' },
-                { name: 'Other', label: 'Other Supporting Documents', icon: '📁' },
+                { name: 'Identification', label: 'Passport & Identity Proof', icon: UserCheck },
+                { name: 'Academic', label: 'Degrees & Graduation Certificates', icon: GraduationCap },
+                { name: 'Transcripts', label: 'Academic Marksheets & Transcripts', icon: Scroll },
+                { name: 'Language', label: 'Medium of Instruction (MOI) / English', icon: Languages },
+                { name: 'Financial', label: 'Bank Statement & Solvency Proof', icon: Landmark },
+                { name: 'Insurance', label: 'Health Insurance & Medical', icon: ShieldCheck },
+                { name: 'Other', label: 'Other Supporting Documents', icon: Folder },
               ];
 
               const { country: currentFolderCountry, dossier: studentDossier } = getDossierForStudent(currentFolder.studentId, currentFolder.docs);
@@ -336,14 +343,14 @@ export const AdminDocumentReview: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setSelectedStudentFolder(null)}
-                        className="text-[#58051E] hover:underline flex items-center gap-1"
+                        className="text-[#58051E] hover:underline flex items-center gap-1.5"
                       >
-                        📁 All Students
+                        <Folder className="w-3.5 h-3.5" /> All Students
                       </button>
                       <span className="text-slate-300">/</span>
                       <span className="text-slate-900 font-black">{currentFolder.studentName}</span>
                       <span className="text-slate-300">/</span>
-                      <span className="text-slate-500 font-semibold">Document Vault ({currentFolder.docs.length})</span>
+                      <span className="text-slate-500 font-semibold">Documents ({currentFolder.docs.length})</span>
                     </div>
 
                     <button
@@ -392,7 +399,7 @@ export const AdminDocumentReview: React.FC = () => {
                     <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
                       <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-base">📋</span>
+                          <FileCheck2 className="w-4 h-4 text-[#58051E]" />
                           <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
                             {currentFolderCountry} Configured Requirements Checklist ({studentDossier.results.length})
                           </h3>
@@ -420,8 +427,16 @@ export const AdminDocumentReview: React.FC = () => {
                             </div>
 
                             <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
-                              <span className={`text-[10px] font-black ${item.isSatisfied ? 'text-emerald-700' : 'text-amber-700'}`}>
-                                {item.isSatisfied ? `✅ ${item.status}` : '❌ Missing'}
+                              <span className={`text-[10px] font-bold inline-flex items-center gap-1 ${item.isSatisfied ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                {item.isSatisfied ? (
+                                  <>
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" /> {item.status}
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertCircle className="w-3 h-3 text-amber-600" /> Missing
+                                  </>
+                                )}
                               </span>
                               {item.doc && (
                                 <button
@@ -453,6 +468,7 @@ export const AdminDocumentReview: React.FC = () => {
                   {/* Folder Categories Grid */}
                   <div className="space-y-4">
                     {categories.map(cat => {
+                      const IconComponent = cat.icon;
                       const catDocs = currentFolder.docs.filter(d =>
                         d.category.toLowerCase().includes(cat.name.toLowerCase()) ||
                         (cat.name === 'Other' && !categories.slice(0, 6).some(c => d.category.toLowerCase().includes(c.name.toLowerCase())))
@@ -464,7 +480,9 @@ export const AdminDocumentReview: React.FC = () => {
                         <div key={cat.name} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
                           <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                             <div className="flex items-center gap-2">
-                              <span className="text-lg">{cat.icon}</span>
+                              <div className="w-7 h-7 rounded-lg bg-[#58051E]/10 flex items-center justify-center text-[#58051E]">
+                                <IconComponent className="w-4 h-4" />
+                              </div>
                               <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">{cat.label}</h3>
                             </div>
                             <span className="text-[10.5px] font-extrabold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
@@ -577,14 +595,20 @@ export const AdminDocumentReview: React.FC = () => {
                                 </span>
                               </div>
                               <div className="mt-1">
-                                <span className={`px-2 py-0.5 rounded text-[9.5px] font-extrabold border inline-block ${
+                                <span className={`px-2 py-0.5 rounded text-[9.5px] font-bold border inline-flex items-center gap-1 ${
                                   folderDossier.isComplete
                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                     : 'bg-amber-50 text-amber-700 border-amber-200'
                                 }`}>
-                                  {folderDossier.isComplete
-                                    ? '✅ Dossier Complete'
-                                    : `⚠️ Incomplete (${folderDossier.uploadedMandatoryCount}/${folderDossier.mandatoryCount || 2} Req Docs)`}
+                                  {folderDossier.isComplete ? (
+                                    <>
+                                      <CheckCircle2 className="w-2.5 h-2.5" /> Dossier Complete
+                                    </>
+                                  ) : (
+                                    <>
+                                      <AlertCircle className="w-2.5 h-2.5" /> Incomplete ({folderDossier.uploadedMandatoryCount}/${folderDossier.mandatoryCount || 2} Req Docs)
+                                    </>
+                                  )}
                                 </span>
                               </div>
                             </div>

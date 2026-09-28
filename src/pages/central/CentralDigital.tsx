@@ -152,16 +152,11 @@ export const CentralDigital: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Monitor className="w-6 h-6 text-emerald-600" /> Ferex Digital & Engineering Central Oversight
-            </h1>
-            <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-              Live Supabase Sync
-            </span>
-          </div>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Monitor className="w-6 h-6 text-emerald-600" /> Digital & Engineering Projects Overview
+          </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Central executive oversight of internal subsidiaries and external B2B clients, project delivery stages, and billing.
+            Central executive oversight of client deliverables, engineering project stages, and milestones.
           </p>
         </div>
         <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadData}>

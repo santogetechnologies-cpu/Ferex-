@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckSquare, Search, Plus, X, CheckCircle2, Trash2, Calendar, User, Clock,
-  AlertCircle, Filter, FolderKanban, ChevronLeft, ChevronRight, Check
+  AlertCircle, Filter, FolderKanban, ChevronLeft, ChevronRight, Check, ShieldCheck
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -280,7 +280,7 @@ export const DigitalTasks: React.FC = () => {
                 className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
               >
                 <option value="All">All Assigned Staff</option>
-                <option value="ME">⚡ Assigned To Me</option>
+                <option value="ME">Assigned to Me</option>
                 {staffList.map((s: any) => (
                   <option key={s.id || s.email} value={s.name}>{s.name}</option>
                 ))}
@@ -348,8 +348,8 @@ export const DigitalTasks: React.FC = () => {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {(t.is_central_directive || t.created_by === 'Central Admin' || t.task_type === 'Central Directive' || (t.notes && t.notes.toLowerCase().includes('central admin'))) && (
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
-                            🏛️ By Central Admin
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
+                            <ShieldCheck className="w-3 h-3" /> Central Directive
                           </span>
                         )}
                         <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${getPriorityStyle(t.priority)}`}>
@@ -417,7 +417,7 @@ export const DigitalTasks: React.FC = () => {
                       className="flex-1 text-xs font-bold"
                       onClick={() => handleToggleStatus(t)}
                     >
-                      {isDone ? 'Reopen Task' : t.status === 'In Progress' ? 'Mark Done ✓' : 'Start Task →'}
+                      {isDone ? 'Reopen Task' : t.status === 'In Progress' ? 'Mark Done' : 'Start Task'}
                     </Button>
                     {canDelete && (
                       <button

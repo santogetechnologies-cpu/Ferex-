@@ -170,7 +170,7 @@ export const VisaTracker: React.FC = () => {
             Visa Processing Status
           </h1>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Live consular and VFS dossier pipeline tracking from document compilation to biometric submission and passport dispatch.
+            Track your visa application progress from document preparation to biometric appointment and passport dispatch.
           </p>
         </div>
         <Button 
@@ -235,7 +235,7 @@ export const VisaTracker: React.FC = () => {
             <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
               {currentStageNum === 7
                 ? 'Your passport has been dispatched by the consular desk. The decision envelope will be verified upon physical delivery at Stage 8.'
-                : 'Your dossier is currently undergoing consular review. Updates will reflect automatically as the embassy concludes evaluation.'}
+                : 'Your visa application is currently undergoing consular review. Updates will reflect automatically as the embassy concludes evaluation.'}
             </p>
           </div>
         </Card>

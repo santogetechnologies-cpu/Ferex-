@@ -568,18 +568,15 @@ export const Payments: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20">
-              Student Finance Portal
-            </span>
-            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-              ● 100% Transparent Financials
+            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-[#58051E]/10 text-[#58051E]">
+              Finance & Invoices
             </span>
           </div>
           <h1 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
-            Fee & Payment Schedule
+            Payment Schedule
           </h1>
           <p className="text-xs text-slate-500 font-semibold mt-0.5">
-            Manage your Advanced Registration Fee, Agency Processing, VFS Visa Fee, and University Tuition Schedule.
+            Review and track registration fee, university tuition, and consular payment milestones.
           </p>
         </div>
 

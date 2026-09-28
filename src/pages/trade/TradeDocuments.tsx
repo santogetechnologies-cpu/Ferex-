@@ -248,7 +248,7 @@ export const TradeDocuments: React.FC = () => {
 
     // Generate formatted export
     const csvContent = [
-      ['FEREX GLOBAL TRADE COMPLIANCE VAULT — OFFICIAL DOCUMENT RECORD'],
+      ['FEREX GLOBAL TRADE COMPLIANCE REPOSITORY — OFFICIAL DOCUMENT RECORD'],
       ['Document Type', doc.doc_type],
       ['Document Number', doc.doc_number || doc.id],
       ['Order Reference', doc.order_no],
@@ -307,7 +307,7 @@ export const TradeDocuments: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <FolderArchive className="w-6 h-6 text-[#58051E]" /> Global Trade Documents & Compliance Vault
+            <FolderArchive className="w-6 h-6 text-[#58051E]" /> Global Trade Documents & Compliance
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Manage the 7 core international trade documents with upload facility, internal verification (Pending / Submitted / Verified / Rejected), and automated client dispatches.

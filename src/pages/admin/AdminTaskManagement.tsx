@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Search, X, CheckCircle2, Edit3, Trash2, LayoutGrid, List,
-  Clock, Paperclip, MessageSquare, AlertCircle, CheckSquare
+  Clock, Paperclip, MessageSquare, AlertCircle, CheckSquare, ShieldCheck
 } from 'lucide-react';
 import { useTasks } from '../../hooks/useTasks';
 import { useAuth } from '../../contexts/AuthContext';
@@ -295,8 +295,8 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
           
           <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
             {(task.isCentralAdmin || task.createdBy === 'Central Admin') ? (
-              <span className="text-[8.5px] font-black bg-[#58051E] text-white px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
-                🏛️ By Central Admin
+              <span className="text-[8.5px] font-bold bg-[#58051E] text-white px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
+                <ShieldCheck className="w-2.5 h-2.5" /> Central Directive
               </span>
             ) : isStaff ? (
               <span className="text-[8.5px] font-black text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
@@ -553,8 +553,8 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{task.id}</span>
                         {(task.isCentralAdmin || task.createdBy === 'Central Admin') && (
-                          <span className="text-[8.5px] font-black bg-[#58051E] text-white px-1.5 py-0.5 rounded shadow-2xs">
-                            🏛️ Central Admin
+                          <span className="text-[8.5px] font-bold bg-[#58051E] text-white px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
+                            <ShieldCheck className="w-2.5 h-2.5" /> Central Directive
                           </span>
                         )}
                         <span className="font-extrabold text-slate-900">{task.title}</span>

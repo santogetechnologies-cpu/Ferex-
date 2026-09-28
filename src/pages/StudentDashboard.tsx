@@ -165,7 +165,7 @@ export const StudentDashboard: React.FC = () => {
   const checklistItems = [
     { title: '1. Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },
     {
-      title: '2. Mandatory Document Vault',
+      title: '2. Required Documents',
       isDone: dossierStatus.isComplete,
       path: '/student/documents',
       tag: dossierStatus.isComplete
@@ -193,34 +193,39 @@ export const StudentDashboard: React.FC = () => {
       animate="visible"
       className="space-y-5 text-left"
     >
-      {/* Welcome Hero Bento Banner */}
+      {/* Clean Modern Welcome Header */}
       <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#2E020E] text-white p-6 md:p-7 shadow-card border border-[#58051E]/40">
-          <div className="relative z-10 max-w-xl">
-            <span className="text-[9.5px] font-bold uppercase tracking-wider text-amber-300/90 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/15 inline-block mb-2.5">
-              FEREX Global Education Portal
-            </span>
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight mb-1.5 text-white">
+        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#58051E] bg-[#58051E]/10 px-2.5 py-0.5 rounded-md">
+                Student Portal
+              </span>
+              <span className="text-[11px] font-semibold text-slate-400">
+                Admission & Visa Roadmap
+              </span>
+            </div>
+            <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900">
               Welcome back, {studentName}
             </h1>
-            <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-normal">
-              Track your admission milestone roadmap, document compliance, and embassy visa readiness.
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Track your university applications, document verification, and embassy visa readiness.
             </p>
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => handleQuickAction('/student/journey-tracker')}
-              >
-                12-Stage Journey <ArrowRight className="w-3.5 h-3.5 ml-1" />
-              </Button>
-              <button
-                onClick={() => handleQuickAction('/student/select-university')}
-                className="h-8.5 px-3.5 rounded-xl text-xs font-semibold text-white bg-white/10 hover:bg-white/15 active:bg-white/10 border border-white/25 transition-all cursor-pointer"
-              >
-                Browse Universities
-              </button>
-            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => handleQuickAction('/student/select-university')}
+              className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#58051E] hover:bg-[#430316] shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              Browse Universities <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => handleQuickAction('/student/journey-tracker')}
+              className="h-9 px-3.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer"
+            >
+              12-Stage Journey
+            </button>
           </div>
         </div>
       </motion.div>
@@ -449,7 +454,7 @@ export const StudentDashboard: React.FC = () => {
                           : `Complete Advanced Registration Fee payment to unlock ${targetWf?.authority_acronym || 'Legalization'} process.`}
               </p>
               <Button size="xs" variant="outline" className="w-full mt-2 font-semibold" onClick={() => navigate('/student/documents')}>
-                Open Document Vault
+                View Documents
               </Button>
             </div>
           </Card>

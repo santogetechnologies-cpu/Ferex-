@@ -177,31 +177,27 @@ export const DigitalDeliverables: React.FC = () => {
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-950 via-slate-900 to-indigo-950 text-white p-6 md:p-8 shadow-xl border border-cyan-800/30">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-black tracking-widest bg-white/15 px-3 py-1 rounded-full border border-white/20">
-                Asset Vault & Production Handover
-              </span>
-              <span className="text-[10px] font-extrabold text-cyan-300 bg-cyan-500/20 px-2.5 py-1 rounded-full border border-cyan-400/30 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" /> Live Repository
-              </span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight">Project Deliverables & Artifacts</h1>
-            <p className="text-xs md:text-sm text-white/85 max-w-2xl font-semibold">
-              Centralized repository for Figma UI designs, production code repositories, media reels, and client approval deliverables.
-            </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Project Deliverables & Artifacts</h1>
+            <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-md border border-[#58051E]/20">
+              Files & Assets
+            </span>
           </div>
+          <p className="text-xs text-slate-500 font-semibold mt-1">
+            Centralized repository for Figma UI designs, production code repositories, media reels, and client approval deliverables.
+          </p>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="h-10 px-5 rounded-xl text-xs font-black text-slate-900 bg-cyan-400 hover:bg-cyan-300 transition-all shadow-md flex items-center gap-2 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" /> Upload Deliverable
-            </button>
-          </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <Button
+            size="sm"
+            onClick={() => setShowAddModal(true)}
+            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" /> Upload Deliverable
+          </Button>
         </div>
       </div>
 
