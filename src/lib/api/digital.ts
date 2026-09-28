@@ -1645,85 +1645,131 @@ export async function getDigitalAssetCostSummary() {
 }
 
 // ─── Digital Notifications ───────────────────────────────────────────────────
-export async function getDigitalNotifications() {
-  const initialNotifs = [
-    {
-      id: 'notif-001',
-      title: 'Campaign Sprint Kickoff Confirmed',
-      message: 'Fall Admissions 2027 digital campaign creative storyboards ready for client review.',
-      description: 'Fall Admissions 2027 digital campaign creative storyboards ready for client review.',
-      category: 'Projects',
-      type: 'Projects',
-      link: '/digital/projects',
-      is_read: false,
-      created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    },
-    {
-      id: 'notif-002',
-      title: 'Packaging Die-Lines Deliverable Uploaded',
-      message: 'Rimi Cold Chain export seafood packaging template files submitted to deliverables hub.',
-      description: 'Rimi Cold Chain export seafood packaging template files submitted to deliverables hub.',
-      category: 'Deliverables',
-      type: 'Deliverables',
-      link: '/digital/projects',
-      is_read: false,
-      created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-    },
-    {
-      id: 'notif-003',
-      title: 'Retainer Milestone Invoice Generated',
-      message: '₹6,500,000 billing milestone generated for Nexus Retail & FinTech omnichannel portal.',
-      description: '₹6,500,000 billing milestone generated for Nexus Retail & FinTech omnichannel portal.',
-      category: 'Finance',
-      type: 'Finance',
-      link: '/digital/invoices',
-      is_read: false,
-      created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
-    },
-    {
-      id: 'notif-004',
-      title: 'Client Architecture Review Scheduled',
-      message: 'Omnichannel Merchant Acquiring review session scheduled for next Monday 04:30 PM.',
-      description: 'Omnichannel Merchant Acquiring review session scheduled for next Monday 04:30 PM.',
-      category: 'Meetings',
-      type: 'Meetings',
-      link: '/digital/meetings',
-      is_read: false,
-      created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-    }
-  ];
+export async function getDigitalNotifications(): Promise<any[]> {
+  const notifMap = new Map<string, any>();
 
+  // 1. Fetch user-created / database notifications
   try {
     const { data, error } = await supabase
       .from('digital_notifications')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && Array.isArray(data) && data.length > 0) {
-      try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(data)); } catch {}
-      return data;
+    if (!error && Array.isArray(data)) {
+      data.forEach((n: any) => notifMap.set(n.id, n));
     }
+  } catch {}
 
+  // 2. Fetch local storage cached notifications
+  try {
     const local = localStorage.getItem('ferex_digital_notifications');
-    if (local !== null) {
-      try { 
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch {}
+    if (local) {
+      const parsed = JSON.parse(local);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((n: any) => {
+          if (!n.id?.startsWith('notif-00')) {
+            notifMap.set(n.id, { ...notifMap.get(n.id), ...n });
+          }
+        });
+      }
     }
-    
-    try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(initialNotifs)); } catch {}
-    return initialNotifs;
-  } catch {
-    const local = localStorage.getItem('ferex_digital_notifications');
-    if (local !== null) {
-      try { 
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch {}
+  } catch {}
+
+  // 3. Dynamically generate live alerts from real Projects
+  try {
+    const projects = await getDigitalProjects();
+    for (const proj of projects) {
+      if (proj.status === 'Review' || proj.status === 'Revisions') {
+        const alertId = `dyn-proj-rev-${proj.id}`;
+        if (!notifMap.has(alertId)) {
+          notifMap.set(alertId, {
+            id: alertId,
+            title: `Project Review: "${proj.title}"`,
+            message: `Project for ${proj.client_name} is in ${proj.status} stage awaiting stakeholder review.`,
+            description: `Project for ${proj.client_name} is in ${proj.status} stage awaiting stakeholder review.`,
+            category: 'Projects',
+            type: 'Projects',
+            severity: 'Action Required',
+            link: '/digital/projects',
+            is_read: false,
+            created_at: proj.updated_at || proj.created_at || new Date().toISOString(),
+          });
+        }
+      }
+
+      if (proj.balance_amount && proj.balance_amount > 0 && proj.payment_status !== 'Paid') {
+        const alertId = `dyn-proj-pay-${proj.id}`;
+        if (!notifMap.has(alertId)) {
+          notifMap.set(alertId, {
+            id: alertId,
+            title: `Billing Balance Pending: "${proj.title}"`,
+            message: `Unpaid milestone balance of ₹${Number(proj.balance_amount).toLocaleString('en-IN')} for ${proj.client_name}.`,
+            description: `Unpaid milestone balance of ₹${Number(proj.balance_amount).toLocaleString('en-IN')} for ${proj.client_name}.`,
+            category: 'Invoices',
+            type: 'Invoices',
+            severity: 'Urgent',
+            link: '/digital/invoices',
+            is_read: false,
+            created_at: proj.updated_at || proj.created_at || new Date().toISOString(),
+          });
+        }
+      }
+
+      // Check deliverables
+      if (Array.isArray(proj.deliverables)) {
+        for (const deliv of proj.deliverables) {
+          if (deliv.status === 'Submitted') {
+            const alertId = `dyn-deliv-${deliv.id}`;
+            if (!notifMap.has(alertId)) {
+              notifMap.set(alertId, {
+                id: alertId,
+                title: `Deliverable Submitted: "${deliv.title}"`,
+                message: `Deliverable (${deliv.type}) for project "${proj.title}" submitted for QA inspection.`,
+                description: `Deliverable (${deliv.type}) for project "${proj.title}" submitted for QA inspection.`,
+                category: 'Deliverables',
+                type: 'Deliverables',
+                severity: 'Info',
+                link: '/digital/deliverables',
+                is_read: false,
+                created_at: deliv.added_at ? new Date(deliv.added_at).toISOString() : new Date().toISOString(),
+              });
+            }
+          }
+        }
+      }
     }
-    return initialNotifs;
-  }
+  } catch {}
+
+  // 4. Dynamically generate alerts from real Tasks
+  try {
+    const tasks = await getDigitalTasks();
+    for (const t of tasks) {
+      if ((t.priority === 'Urgent' || t.priority === 'High') && t.status !== 'Completed') {
+        const alertId = `dyn-task-${t.id}`;
+        if (!notifMap.has(alertId)) {
+          notifMap.set(alertId, {
+            id: alertId,
+            title: `High-Priority Task: "${t.title}"`,
+            message: `Assigned to ${t.assigned_to_name || 'Team'} • Status: ${t.status || 'Pending'}.`,
+            description: `Assigned to ${t.assigned_to_name || 'Team'} • Status: ${t.status || 'Pending'}.`,
+            category: 'Tasks',
+            type: 'Tasks',
+            severity: 'Urgent',
+            link: '/digital/tasks',
+            is_read: false,
+            created_at: t.created_at || new Date().toISOString(),
+          });
+        }
+      }
+    }
+  } catch {}
+
+  const result = Array.from(notifMap.values()).sort(
+    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+  );
+
+  try { localStorage.setItem('ferex_digital_notifications', JSON.stringify(result)); } catch {}
+  return result;
 }
 
 export async function createDigitalNotification(notif: {

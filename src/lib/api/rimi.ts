@@ -2238,85 +2238,116 @@ export async function sendRimiMessage(msg: any): Promise<boolean> {
   }
 }
 
-const INITIAL_RIMI_NOTIFICATIONS = [
-  {
-    id: 'rimi-notif-001',
-    title: 'Warehouse Hub-1 Temperature Warning',
-    message: 'Cold Room Unit B registered -16.8°C (threshold: -18.0°C). Compressor cycle recalibrated.',
-    description: 'Cold Room Unit B registered -16.8°C (threshold: -18.0°C). Compressor cycle recalibrated.',
-    category: 'Cold Chain',
-    severity: 'Warning',
-    link: '/rimi/warehouses',
-    is_read: false,
-    created_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-  },
-  {
-    id: 'rimi-notif-002',
-    title: 'Batch Expiry Notice: Pacific Salmon Fillets',
-    message: 'Batch #PS-2026-088 (340 Cartons) at Central Cold Hub has 22 days remaining before expiration.',
-    description: 'Batch #PS-2026-088 (340 Cartons) at Central Cold Hub has 22 days remaining before expiration.',
-    category: 'Inventory',
-    severity: 'Critical',
-    link: '/rimi/inventory',
-    is_read: false,
-    created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
-  },
-  {
-    id: 'rimi-notif-003',
-    title: 'Reefer Dispatch #DSP-9042 Cleared',
-    message: 'Vehicle Unit KL-07-CE-8821 dispatched to Grand Hyatt Kochi with signed temperature compliance logs.',
-    description: 'Vehicle Unit KL-07-CE-8821 dispatched to Grand Hyatt Kochi with signed temperature compliance logs.',
-    category: 'Deliveries',
-    severity: 'Info',
-    link: '/rimi/deliveries',
-    is_read: false,
-    created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-  },
-  {
-    id: 'rimi-notif-004',
-    title: 'New Wholesale Sales Order #SO-8821',
-    message: 'ITC Hotels Ltd placed purchase order for ₹4,85,000 (Black Tiger Prawns & Atlantic Cod).',
-    description: 'ITC Hotels Ltd placed purchase order for ₹4,85,000 (Black Tiger Prawns & Atlantic Cod).',
-    category: 'Sales Orders',
-    severity: 'Info',
-    link: '/rimi/sales-orders',
-    is_read: false,
-    created_at: new Date(Date.now() - 3600000 * 14).toISOString(),
-  }
-];
-
 export async function getRimiNotifications(): Promise<any[]> {
+  const notifMap = new Map<string, any>();
+
+  // 1. Fetch user-created / database notifications
   try {
     const { data, error } = await supabase
       .from('rimi_notifications')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && Array.isArray(data) && data.length > 0) {
-      try { localStorage.setItem('ferex_rimi_notifications', JSON.stringify(data)); } catch {}
-      return data;
+    if (!error && Array.isArray(data)) {
+      data.forEach((n: any) => notifMap.set(n.id, n));
     }
+  } catch {}
 
+  // 2. Fetch local storage cached notifications (filtering out old mock keys)
+  try {
     const local = localStorage.getItem('ferex_rimi_notifications');
-    if (local !== null) {
-      try {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch {}
+    if (local) {
+      const parsed = JSON.parse(local);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((n: any) => {
+          if (!n.id?.startsWith('rimi-notif-00')) {
+            notifMap.set(n.id, { ...notifMap.get(n.id), ...n });
+          }
+        });
+      }
     }
+  } catch {}
 
-    try { localStorage.setItem('ferex_rimi_notifications', JSON.stringify(INITIAL_RIMI_NOTIFICATIONS)); } catch {}
-    return INITIAL_RIMI_NOTIFICATIONS;
-  } catch {
-    const local = localStorage.getItem('ferex_rimi_notifications');
-    if (local !== null) {
-      try {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch {}
+  // 3. Dynamically generate live alerts from real Warehouses
+  try {
+    const warehouses = await getRimiWarehouses();
+    for (const wh of warehouses) {
+      if (Number(wh.cold_room_temp_celsius) > -16) {
+        const alertId = `dyn-wh-temp-${wh.id}`;
+        if (!notifMap.has(alertId)) {
+          notifMap.set(alertId, {
+            id: alertId,
+            title: `Cold Storage Temp Alert: ${wh.name}`,
+            message: `Current temp at ${wh.cold_room_temp_celsius}°C (standard threshold is -18.0°C).`,
+            description: `Current temp at ${wh.cold_room_temp_celsius}°C (standard threshold is -18.0°C).`,
+            category: 'Cold Chain',
+            severity: 'Warning',
+            link: '/rimi/warehouses',
+            is_read: false,
+            created_at: wh.updated_at || wh.created_at || new Date().toISOString(),
+          });
+        }
+      }
     }
-    return INITIAL_RIMI_NOTIFICATIONS;
-  }
+  } catch {}
+
+  // 4. Dynamically generate alerts from real Batches (near expiry or low stock)
+  try {
+    const batches = await getRimiBatches();
+    const now = Date.now();
+    for (const b of batches) {
+      if (b.expiry_date) {
+        const expTime = new Date(b.expiry_date).getTime();
+        const daysLeft = Math.ceil((expTime - now) / 86400000);
+        if (daysLeft <= 45 && daysLeft > 0 && b.quantity > 0) {
+          const alertId = `dyn-batch-exp-${b.id}`;
+          if (!notifMap.has(alertId)) {
+            notifMap.set(alertId, {
+              id: alertId,
+              title: `Expiring Batch: ${b.product_name || 'Product'} (${b.batch_no})`,
+              message: `${b.quantity} ${b.unit || 'KG'} at ${b.warehouse_name || 'Cold Hub'} expires in ${daysLeft} days.`,
+              description: `${b.quantity} ${b.unit || 'KG'} at ${b.warehouse_name || 'Cold Hub'} expires in ${daysLeft} days.`,
+              category: 'Inventory',
+              severity: daysLeft <= 15 ? 'Critical' : 'Warning',
+              link: '/rimi/inventory',
+              is_read: false,
+              created_at: b.updated_at || b.created_at || new Date().toISOString(),
+            });
+          }
+        }
+      }
+    }
+  } catch {}
+
+  // 5. Dynamically generate alerts from real Sales Orders
+  try {
+    const orders = await getRimiSalesOrders();
+    for (const ord of orders) {
+      if (ord.order_status === 'Received' || ord.order_status === 'Confirmed') {
+        const alertId = `dyn-order-${ord.id}`;
+        if (!notifMap.has(alertId)) {
+          notifMap.set(alertId, {
+            id: alertId,
+            title: `Order Pending Dispatch: #${ord.order_no}`,
+            message: `Wholesale order of ₹${Number(ord.total_amount || 0).toLocaleString('en-IN')} for ${ord.customer_name}.`,
+            description: `Wholesale order of ₹${Number(ord.total_amount || 0).toLocaleString('en-IN')} for ${ord.customer_name}.`,
+            category: 'Sales Orders',
+            severity: 'Info',
+            link: '/rimi/sales-orders',
+            is_read: false,
+            created_at: ord.created_at || new Date().toISOString(),
+          });
+        }
+      }
+    }
+  } catch {}
+
+  const result = Array.from(notifMap.values()).sort(
+    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+  );
+
+  try { localStorage.setItem('ferex_rimi_notifications', JSON.stringify(result)); } catch {}
+  return result;
 }
 
 export async function markRimiNotificationRead(id: string): Promise<boolean> {

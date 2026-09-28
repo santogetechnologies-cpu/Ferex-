@@ -319,8 +319,9 @@ export async function sendStudentApplicationEmail(params: {
   intake?: string;
   tuitionFee?: string;
   country?: string;
+  counselorName?: string;
 }): Promise<SendEmailResult> {
-  const { studentEmail, studentName = 'Student', universityName, programName, intake = 'Upcoming Intake', tuitionFee = 'Standard Rate', country = 'Europe' } = params;
+  const { studentEmail, studentName = 'Student', universityName, programName, intake = 'Upcoming Intake', tuitionFee = 'Standard Rate', country = 'Europe', counselorName } = params;
   const subject = `Application Submitted: ${universityName} — ${programName}`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
@@ -332,7 +333,8 @@ export async function sendStudentApplicationEmail(params: {
           <p style="margin: 0 0 8px 0;"><strong>University:</strong> ${universityName}</p>
           <p style="margin: 0 0 8px 0;"><strong>Program:</strong> ${programName}</p>
           <p style="margin: 0 0 8px 0;"><strong>Country:</strong> ${country}</p>
-          <p style="margin: 0;"><strong>Intake:</strong> ${intake}</p>
+          <p style="margin: 0 0 8px 0;"><strong>Intake:</strong> ${intake}</p>
+          ${counselorName ? `<p style="margin: 0;"><strong>Reviewing Counselor:</strong> ${counselorName}</p>` : ''}
         </div>
       </div>
       ${EMAIL_FOOTER_HTML}
@@ -346,15 +348,16 @@ export async function sendStudentDocumentUploadedEmail(params: {
   studentName?: string;
   documentName: string;
   documentType: string;
+  fileSize?: string;
 }): Promise<SendEmailResult> {
-  const { studentEmail, studentName = 'Student', documentName, documentType } = params;
+  const { studentEmail, studentName = 'Student', documentName, documentType, fileSize } = params;
   const subject = `Document Received: ${documentName} (${documentType})`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${getBrandedHeader('FEREX HIGHER EDUCATION', 'Document Legalization & Verification Desk', '#58051E')}
       <div style="padding: 32px;">
         <h2 style="color: #0f172a; font-size: 19px; margin-top: 0;">Document Upload Received</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${studentName}</strong>, we have received your document <strong>${documentName}</strong> (${documentType}). Our legalization officers will verify its compliance.</p>
+        <p style="color: #334155; font-size: 14px;">Dear <strong>${studentName}</strong>, we have received your document <strong>${documentName}</strong> (${documentType})${fileSize ? ` [${fileSize}]` : ''}. Our legalization officers will verify its compliance.</p>
       </div>
       ${EMAIL_FOOTER_HTML}
     </div>
@@ -390,15 +393,17 @@ export async function sendStudentTicketCreatedEmail(params: {
   studentName?: string;
   ticketNo: string;
   subject: string;
+  category?: string;
+  priority?: string;
 }): Promise<SendEmailResult> {
-  const { studentEmail, studentName = 'Student', ticketNo, subject: ticketSubject } = params;
+  const { studentEmail, studentName = 'Student', ticketNo, subject: ticketSubject, category, priority } = params;
   const subject = `Support Ticket Created: [${ticketNo}] ${ticketSubject}`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${getBrandedHeader('FEREX HIGHER EDUCATION', 'Student Support Helpdesk', '#58051E')}
       <div style="padding: 32px;">
         <h2 style="color: #0f172a; font-size: 19px; margin-top: 0;">Support Ticket Received</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${studentName}</strong>, ticket <strong>${ticketNo}</strong> has been logged. Our admissions support team will respond promptly.</p>
+        <p style="color: #334155; font-size: 14px;">Dear <strong>${studentName}</strong>, ticket <strong>${ticketNo}</strong> (${category || 'General'}${priority ? ` - Priority: ${priority}` : ''}) has been logged. Our admissions support team will respond promptly.</p>
       </div>
       ${EMAIL_FOOTER_HTML}
     </div>
