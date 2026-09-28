@@ -286,7 +286,7 @@ export const AdminNawaTracker: React.FC = () => {
         await addDestination({
           name: targetCountry,
           code: targetCountry.substring(0, 2).toUpperCase(),
-          flag: '🌍',
+          flag: 'EU',
           currency: 'EUR',
           authority: wfAuthorityName.trim(),
           acronym: wfAuthorityAcronym.trim() || targetCountry.substring(0, 4).toUpperCase(),
@@ -591,22 +591,22 @@ export const AdminNawaTracker: React.FC = () => {
       {/* ──────────────── TAB 2: COUNTRY WORKFLOWS & PROCEDURES CONFIGURATOR ── */}
       {activeTab === 'workflows' && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-[#58051E] via-[#430316] to-[#2E030F] text-white p-6 rounded-3xl shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200/80 p-6 rounded-2xl shadow-xs">
             <div className="space-y-1">
-              <h2 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
-                <Globe className="w-5 h-5 text-amber-300" />
-                Custom European Country Workflows & Legalization Procedures
+              <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-[#58051E]" />
+                Country Workflows & Legalization Procedures
               </h2>
-              <p className="text-xs text-rose-100/80 max-w-2xl">
-                SuperAdmin can customize country-specific verification bodies (NAWA, APS, CIMEA, Nostrification, Campus France, etc.), custom stage steps, mandatory document checklists, and visa procedures.
+              <p className="text-xs text-slate-500 max-w-2xl font-medium">
+                Configure country-specific verification bodies (NAWA, APS, CIMEA, Nostrification, Campus France), stage steps, mandatory document checklists, and visa procedures.
               </p>
             </div>
 
             <button
               onClick={handleOpenNewWorkflowModal}
-              className="h-10 px-5 bg-white hover:bg-rose-50 text-[#58051E] rounded-xl text-xs font-black flex items-center gap-2 shadow-lg transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
+              className="h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
             >
-              <Plus className="w-4 h-4 text-[#58051E]" />
+              <Plus className="w-4 h-4 text-white" />
               <span>Add Country Workflow</span>
             </button>
           </div>

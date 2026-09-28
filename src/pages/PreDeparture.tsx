@@ -126,29 +126,29 @@ export const PreDeparture: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left relative min-h-[600px] pb-10">
-      {/* Executive Header Banner */}
-      <div className="p-6 md:p-8 bg-slate-900 text-white rounded-xl shadow-card border border-slate-800 relative overflow-hidden">
+      {/* Header */}
+      <div className="p-6 md:p-8 bg-white text-slate-900 rounded-2xl shadow-xs border border-slate-200/80 relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-slate-200 border border-white/10 mb-3">
-            <Plane className="w-3.5 h-3.5 text-slate-300" /> Phase 03 • Pre-Departure & Arrival Protocol
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#58051E]/10 rounded-md text-[10px] font-black uppercase text-[#58051E] mb-3">
+            <Plane className="w-3.5 h-3.5" /> Phase 03 • Pre-Departure & Campus Arrival
           </div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900">
             Travel, Campus Arrival & Welfare Support
           </h1>
-          <p className="text-xs md:text-sm text-slate-300 mt-1.5 leading-relaxed">
+          <p className="text-xs md:text-sm text-slate-500 mt-1.5 leading-relaxed font-medium">
             Manage your confirmed flight itinerary, university dormitory housing, airport concierge pickup, and complete the campus arrival checklist.
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-2.5">
             <span className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border ${
               activeDepRecord.clearance_status === 'Clearance Granted' || activeDepRecord.clearance_status === 'Departed'
-                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
-                : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-amber-50 text-amber-700 border-amber-200'
             }`}>
               <CheckCircle2 className="w-3.5 h-3.5" /> {activeDepRecord.clearance_status}
             </span>
-            <span className="text-xs font-medium text-slate-300 bg-white/10 px-3 py-1 rounded-lg border border-white/10 flex items-center gap-1.5">
-              <Building className="w-3.5 h-3.5 text-slate-300" /> Target: {activeDepRecord.university_name || targetUniversity}
+            <span className="text-xs font-medium text-slate-600 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 flex items-center gap-1.5">
+              <Building className="w-3.5 h-3.5 text-slate-500" /> Target: {activeDepRecord.university_name || targetUniversity}
             </span>
           </div>
         </div>
@@ -426,7 +426,7 @@ export const PreDeparture: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-extrabold text-slate-900">Embassy & Consular Assistance Desk</h4>
-                      <p className="text-slate-500 mt-1">Emergency Student Protocol Desk Europe</p>
+                      <p className="text-slate-500 mt-1">Emergency Student Support Desk Europe</p>
                       <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 mt-2">
                         <CheckCircle2 className="w-3.5 h-3.5" /> 24/7 Consular Support Available
                       </span>

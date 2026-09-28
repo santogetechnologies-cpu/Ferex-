@@ -31,7 +31,7 @@ export const CentralRoles: React.FC = () => {
       accessLevel: 'Education Full Control',
       desc: 'Controls international students, university alliances, application workflows, academic document legalization, tuition fees, and VFS visa tracking.',
       badge: 'bg-rose-50 text-rose-700 border-rose-200',
-      modules: ['Students Directory', 'University Applications', 'Document Vault', 'Tuition Payments', 'VFS Tracker', 'Post Travel']
+      modules: ['Students Directory', 'University Applications', 'Documents', 'Tuition Payments', 'VFS Tracker', 'Post Travel']
     },
     {
       id: 3,

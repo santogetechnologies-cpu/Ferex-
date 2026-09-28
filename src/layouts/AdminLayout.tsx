@@ -89,7 +89,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     );
   };
 
-  const hasUnreadDocs = hasUnreadCategory('Document') || hasUnreadCategory('Doc') || hasUnreadCategory('Vault');
+  const hasUnreadDocs = hasUnreadCategory('Document') || hasUnreadCategory('Doc') || hasUnreadCategory('File');
   const hasUnreadApps = hasUnreadCategory('Application') || hasUnreadCategory('App') || hasUnreadCategory('Admission');
   const hasUnreadPayments = hasUnreadCategory('Payment') || hasUnreadCategory('Pay') || hasUnreadCategory('Installment') || hasUnreadCategory('Receipt') || pendingPaymentsCount > 0;
   const hasUnreadVisa = hasUnreadCategory('Visa') || hasUnreadCategory('VFS') || hasUnreadCategory('Embassy');

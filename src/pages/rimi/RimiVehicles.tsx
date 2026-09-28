@@ -158,7 +158,7 @@ export const RimiVehicles: React.FC = () => {
       </Card>
 
       {loading ? (
-        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading fleet telemetry...</div>
+        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading fleet vehicles...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredVehicles.map((v) => (

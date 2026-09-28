@@ -230,7 +230,7 @@ export const JourneyTracker: React.FC = () => {
       num: 1,
       title: 'Visa Authorization',
       status: isVisaApproved ? 'completed' : 'upcoming',
-      desc: 'National visa granted and pre-departure protocol initiated.',
+      desc: 'National visa granted and pre-departure preparations initiated.',
       actionLabel: 'View Visa Grant',
       actionRoute: '/student/visa-tracker',
     },

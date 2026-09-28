@@ -764,7 +764,7 @@ export const CentralAdmins: React.FC = () => {
                     </div>
 
                     {/* Central Super Admin Section */}
-                    <div className="p-3 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent rounded-2xl border border-amber-200/90 space-y-2">
+                    <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-2">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-amber-300 bg-amber-100 text-amber-900 inline-flex items-center gap-1.5">
                           <Crown className="w-3 h-3 text-amber-700" />

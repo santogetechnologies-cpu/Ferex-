@@ -327,7 +327,7 @@ export const DigitalPMDashboard: React.FC = () => {
 
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
             <span>Showing {Math.min(5, tasks.length)} of {tasks.length} assigned tasks</span>
-            <span className="font-semibold text-slate-600">Realtime Supabase Sync</span>
+            <span className="font-semibold text-slate-500">Live Sync</span>
           </div>
         </div>
 

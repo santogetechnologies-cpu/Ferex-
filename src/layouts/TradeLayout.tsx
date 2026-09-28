@@ -117,7 +117,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
       title: 'TRADE OPERATIONS',
       items: [
         { name: 'Orders & Tracking', path: '/trade/shipments', icon: PackageCheck },
-        { name: 'Documents Vault', path: '/trade/documents', icon: FolderArchive },
+        { name: 'Trade Documents', path: '/trade/documents', icon: FolderArchive },
         { name: 'Task Assignment', path: '/trade/tasks', icon: ListTodo },
         { name: 'Support & Tickets', path: '/trade/tickets', icon: LifeBuoy },
         { name: 'Payment Ledger & LC', path: '/trade/payments', icon: CreditCard },

@@ -700,8 +700,8 @@ export const SelectUniversity: React.FC = () => {
                     </div>
                     <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
                       {hasCounselorAssigned 
-                        ? `Your dossier will be reviewed by ${assignedCounselorName} and submitted to ${applyUni.name} admissions board.`
-                        : `Your dossier will be reviewed by our admissions team and submitted to ${applyUni.name} admissions board. A counselor will be assigned by admin.`
+                        ? `Your application documents will be reviewed by ${assignedCounselorName} and submitted to ${applyUni.name} admissions board.`
+                        : `Your application documents will be reviewed by our admissions team and submitted to ${applyUni.name} admissions board. A counselor will be assigned by admin.`
                       }
                     </p>
                   </div>

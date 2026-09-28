@@ -47,12 +47,12 @@ export const DigitalProfile: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
-      {/* Hero Banner Section */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#3B0B16] p-8 md:p-10 text-white shadow-xl overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end gap-6">
+      {/* Profile Header Section */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-xs text-slate-900">
+        <div className="flex flex-col md:flex-row items-center md:items-end gap-6">
           {/* Avatar with smooth hover & upload */}
           <div className="relative group shrink-0">
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl border-4 border-white/20 bg-slate-800 text-white overflow-hidden flex items-center justify-center text-3xl font-black shadow-2xl transition-transform group-hover:scale-105">
+            <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl border-4 border-slate-100 bg-[#58051E] text-white overflow-hidden flex items-center justify-center text-3xl font-black shadow-xs transition-transform group-hover:scale-105">
               {avatar ? (
                 <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
               ) : (
@@ -67,12 +67,12 @@ export const DigitalProfile: React.FC = () => {
           </div>
 
           {/* Header Details */}
-          <div className="space-y-2 text-center md:text-left flex-1">
+          <div className="space-y-1.5 text-center md:text-left flex-1">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-              <span className="text-[10px] font-black uppercase tracking-widest bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white">{profile.role}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-md">{profile.role}</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-sm">{profile.name}</h1>
-            <p className="text-xs md:text-sm font-semibold text-white/85">{profile.email}</p>
+            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{profile.name}</h1>
+            <p className="text-xs md:text-sm font-medium text-slate-500">{profile.email}</p>
           </div>
         </div>
       </div>

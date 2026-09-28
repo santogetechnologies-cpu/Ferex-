@@ -304,7 +304,7 @@ export const TradePackingLists: React.FC = () => {
                         <button
                           onClick={() => setSelectedList(l)}
                           className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-slate-100 rounded-lg cursor-pointer"
-                          title="View Manifest Dossier"
+                          title="View Packing Manifest"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -525,7 +525,7 @@ export const TradePackingLists: React.FC = () => {
                   <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
                     {selectedList.id}
                   </span>
-                  <h2 className="text-lg font-black text-slate-900 mt-1">Packing Manifest Dossier</h2>
+                  <h2 className="text-lg font-black text-slate-900 mt-1">Packing Manifest Details</h2>
                   <p className="text-xs text-slate-500">Shipment Link: {selectedList.shipment_no}</p>
                 </div>
                 <button onClick={() => setSelectedList(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>

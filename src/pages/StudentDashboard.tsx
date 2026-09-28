@@ -270,7 +270,7 @@ export const StudentDashboard: React.FC = () => {
               <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-amber-900 text-sm">
-                  Please select your target country to see specific compliance protocols & requirements
+                  Please select your target country to view specific admission requirements & guidelines
                 </p>
                 <p className="text-xs text-amber-700 mt-1">
                   Your admission roadmap, country-specific legalization rules, and embassy documentation checklist will configure automatically.

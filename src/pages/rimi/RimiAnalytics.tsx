@@ -98,9 +98,6 @@ export const RimiAnalytics: React.FC = () => {
             <span className="px-2.5 py-0.5 rounded-md bg-[#58051E]/10 text-[#58051E] text-[10px] font-black uppercase tracking-wider">
               Financial Intelligence Hub
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Supabase Engine
-            </span>
           </div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight mt-1 flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-[#58051E]" /> Finance, Revenue & Inventory Analytics

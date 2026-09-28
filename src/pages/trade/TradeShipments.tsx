@@ -251,31 +251,32 @@ export const TradeShipments: React.FC = () => {
       </div>
 
       {/* 7-Stage Visual Lifecycle Stepper Bar */}
-      <Card className="p-4 border border-slate-200/80 bg-gradient-to-r from-slate-900 via-[#3b0413] to-slate-900 text-white shadow-md overflow-x-auto">
-        <div className="text-[10px] font-black uppercase tracking-widest text-[#f3cbd4] mb-3 flex items-center justify-between">
+      <Card className="p-4 border border-slate-200/80 bg-white text-slate-900 shadow-xs overflow-x-auto">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
           <span>7-Stage Global Trade Workflow</span>
-          <span className="text-emerald-400 font-bold">1-Click Stage Transition Sync</span>
+          <span className="text-slate-500 font-semibold text-[11px]">Click stage to filter orders</span>
         </div>
         <div className="flex items-center gap-2 min-w-[760px]">
           {TRADE_ORDER_STAGES.map((st, i) => {
             const count = orders.filter(o => o.stage === st).length;
+            const isActive = filterStage === st;
             return (
               <React.Fragment key={st}>
                 <div
                   onClick={() => setFilterStage(filterStage === st ? 'All' : st)}
                   className={`flex-1 p-2.5 rounded-xl border text-center cursor-pointer transition-all ${
-                    filterStage === st
-                      ? 'bg-white text-slate-900 border-white shadow-lg scale-105'
-                      : 'bg-white/10 border-white/15 hover:bg-white/20 text-white'
+                    isActive
+                      ? 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                   }`}
                 >
-                  <div className="text-[10px] font-black uppercase tracking-wide truncate">{st}</div>
-                  <div className={`text-xs font-extrabold mt-0.5 ${filterStage === st ? 'text-[#58051E]' : 'text-emerald-300'}`}>
+                  <div className="text-[10px] font-bold uppercase tracking-wide truncate">{st}</div>
+                  <div className={`text-xs font-black mt-0.5 ${isActive ? 'text-amber-300' : 'text-[#58051E]'}`}>
                     {count} {count === 1 ? 'Order' : 'Orders'}
                   </div>
                 </div>
                 {i < TRADE_ORDER_STAGES.length - 1 && (
-                  <ArrowRight className="w-3.5 h-3.5 text-white/40 shrink-0" />
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
                 )}
               </React.Fragment>
             );
@@ -443,7 +444,7 @@ export const TradeShipments: React.FC = () => {
                           <button
                             onClick={() => setSelectedOrder(ord)}
                             className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
-                            title="View Full Order Dossier"
+                            title="View Order Details"
                           >
                             <Eye className="w-4 h-4" />
                           </button>

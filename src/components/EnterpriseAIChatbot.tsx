@@ -60,7 +60,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
 
     switch (role) {
       case 'central_admin':
-        return `Welcome **${name}** (Central Super Admin HQ).\n\nI am your **Ferex Enterprise Copilot**. I have live access to the entire Ferex ecosystem:\n- **Ferex Education**: Universities, applications, visa telemetry\n- **Global Trade ERP**: Shipments, manifests, customs invoices\n- **Rimi Frozen FMCG**: Cold chain warehouses, stock & logistics\n- **Ferex Digital Agency**: Software projects, client accounts\n\nHow may I assist your enterprise operations today?`;
+        return `Welcome **${name}** (Central Super Admin HQ).\n\nI am your **Ferex Enterprise Copilot**. I have live access to the entire Ferex ecosystem:\n- **Ferex Education**: Universities, applications, visa milestones\n- **Global Trade ERP**: Shipments, manifests, customs invoices\n- **Rimi Frozen FMCG**: Cold chain warehouses, stock & logistics\n- **Ferex Digital Agency**: Software projects, client accounts\n\nHow may I assist your enterprise operations today?`;
       case 'education_admin':
         return `Welcome **${name}** (Ferex Education Lead).\n\nI can assist with university applications, NAWA legalizations, Schengen D-Visa readiness, student documents, and admissions queries.`;
       case 'digital_admin':

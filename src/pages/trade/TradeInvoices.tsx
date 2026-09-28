@@ -433,7 +433,7 @@ export const TradeInvoices: React.FC = () => {
                         <button
                           onClick={() => setSelectedInv(inv)}
                           className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-slate-100 rounded-lg cursor-pointer"
-                          title="View Invoice Dossier"
+                          title="View Invoice Details"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -733,7 +733,7 @@ export const TradeInvoices: React.FC = () => {
                   <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
                     {selectedInv.id}
                   </span>
-                  <h2 className="text-lg font-black text-slate-900 mt-1">Commercial Invoice Dossier</h2>
+                  <h2 className="text-lg font-black text-slate-900 mt-1">Commercial Invoice Details</h2>
                   <p className="text-xs text-slate-500">Issued: {selectedInv.issueDate} • Due: {selectedInv.dueDate}</p>
                 </div>
                 <button onClick={() => setSelectedInv(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>

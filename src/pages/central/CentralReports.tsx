@@ -677,7 +677,7 @@ export const CentralReports: React.FC = () => {
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-                <p className="text-xs font-bold text-slate-800">Automated Audit Protocol</p>
+                <p className="text-xs font-bold text-slate-800">Audit Verification Policy</p>
                 <p className="text-[11px] font-medium text-slate-500 mt-0.5">
                   Every settlement over ₹50,000 logs an immutable event in the Central Audit Trail.
                 </p>

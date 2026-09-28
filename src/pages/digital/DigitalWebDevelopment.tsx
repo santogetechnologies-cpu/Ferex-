@@ -89,7 +89,7 @@ export const DigitalWebDevelopment: React.FC = () => {
             </span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 mt-1">
-            <Code className="w-6 h-6 text-[#58051E]" /> Web Engineering & DevOps Workspace
+            <Code className="w-6 h-6 text-[#58051E]" /> Web Development & Production Workspace
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
             Live browser viewport, Vercel build pipeline, Git commits, API latency monitor, and DevTools console.
@@ -194,7 +194,7 @@ export const DigitalWebDevelopment: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-gradient-to-r from-slate-900 to-[#58051E] text-white p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="rounded-2xl bg-slate-900 text-white p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-800">
                 <div className="space-y-1">
                   <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-400/20 px-2 py-0.5 rounded">High-Throughput Production Stack</span>
                   <h2 className="text-lg font-black text-white">{activeProject.title}</h2>

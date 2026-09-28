@@ -203,7 +203,7 @@ export const RimiLoginPage: React.FC = () => {
             ← Main Portal Selection
           </button>
           <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Cold Chain Telemetry
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Cold Chain Management
           </span>
         </div>
       </motion.div>

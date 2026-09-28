@@ -433,7 +433,7 @@ export const TradeLettersOfCredit: React.FC = () => {
                   onClick={() => handleInspectLC(l)}
                   className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <Eye className="w-3.5 h-3.5" /> Inspect LC Dossier
+                  <Eye className="w-3.5 h-3.5" /> Inspect LC Details
                 </button>
                 <button
                   onClick={() => handleDeleteLC(l.id, l.rawId)}

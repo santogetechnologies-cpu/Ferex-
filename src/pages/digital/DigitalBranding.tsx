@@ -137,27 +137,27 @@ export const DigitalBranding: React.FC = () => {
         {/* Dynamic Mockup Preview Frame */}
         <div className="p-8 rounded-3xl bg-slate-900 text-white min-h-[320px] flex items-center justify-center text-center relative overflow-hidden">
           {selectedMockup === 'business-card' && (
-            <div className="w-96 h-56 rounded-2xl bg-gradient-to-br from-[#58051E] via-[#430316] to-[#0F172A] p-6 text-white shadow-2xl border border-white/20 flex flex-col justify-between text-left space-y-4">
+            <div className="w-96 h-56 rounded-2xl bg-[#58051E] p-6 text-white shadow-xl border border-white/20 flex flex-col justify-between text-left space-y-4">
               <div className="flex justify-between items-start">
                 <span className="text-2xl font-black text-white uppercase">{clientName}</span>
-                <span className="text-[9px] font-black uppercase bg-white/20 px-2 py-0.5 rounded text-emerald-300">Embossed Gold Foil</span>
+                <span className="text-[9px] font-bold uppercase bg-white/20 px-2 py-0.5 rounded text-amber-200">Embossed Foil</span>
               </div>
               <div className="space-y-1">
                 <h4 className="text-base font-black text-white">{clientContact}</h4>
-                <p className="text-xs text-white/80 font-bold">Director & Executive Lead</p>
+                <p className="text-xs text-white/80 font-semibold">Executive Lead</p>
                 <p className="text-[10px] text-white/60 font-mono">{clientEmail} • {clientPhone}</p>
               </div>
             </div>
           )}
 
           {selectedMockup === 'packaging' && (
-            <div className="w-80 h-64 rounded-3xl bg-gradient-to-br from-amber-700 via-amber-900 to-slate-900 p-6 text-white shadow-2xl border-4 border-amber-600/30 flex flex-col justify-between text-left">
-              <span className="text-xs font-black uppercase text-amber-300">Custom Rigid Gift Box</span>
+            <div className="w-80 h-64 rounded-2xl bg-slate-800 p-6 text-white shadow-xl border border-slate-700 flex flex-col justify-between text-left">
+              <span className="text-xs font-bold uppercase text-slate-300">Rigid Packaging Box</span>
               <div className="space-y-1">
                 <h4 className="text-xl font-black text-white uppercase">{clientName}</h4>
-                <p className="text-xs font-semibold text-amber-200">Premium Export Packaging • Matte Laminated Finish</p>
+                <p className="text-xs font-medium text-slate-300">Export Packaging • Matte Laminated</p>
               </div>
-              <span className="text-[10px] font-mono text-amber-400">SKU #FRX-BOX-{Math.floor(100 + Math.random() * 800)}</span>
+              <span className="text-[10px] font-mono text-slate-400">SKU #FRX-BOX-{Math.floor(100 + Math.random() * 800)}</span>
             </div>
           )}
 
@@ -170,13 +170,13 @@ export const DigitalBranding: React.FC = () => {
           )}
 
           {selectedMockup === 'billboard' && (
-            <div className="w-full max-w-xl h-56 rounded-2xl bg-gradient-to-r from-blue-900 via-[#58051E] to-purple-900 p-6 text-white shadow-2xl flex flex-col justify-between text-left border-4 border-slate-800">
-              <span className="text-[10px] font-black uppercase text-amber-400">12x24ft LED Highway Billboard</span>
+            <div className="w-full max-w-xl h-56 rounded-2xl bg-slate-950 p-6 text-white shadow-xl flex flex-col justify-between text-left border border-slate-800">
+              <span className="text-[10px] font-bold uppercase text-slate-400">Digital LED Billboard Display</span>
               <div>
                 <h4 className="text-2xl font-black text-white uppercase">{clientName}</h4>
-                <p className="text-xs font-bold text-slate-200">Next-Gen Web, Mobile & Enterprise Cloud Software Solutions</p>
+                <p className="text-xs font-medium text-slate-300">Enterprise Web, Mobile & Cloud Software Solutions</p>
               </div>
-              <span className="text-[10px] font-mono text-slate-300">www.{clientName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com</span>
+              <span className="text-[10px] font-mono text-slate-400">www.{clientName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com</span>
             </div>
           )}
         </div>

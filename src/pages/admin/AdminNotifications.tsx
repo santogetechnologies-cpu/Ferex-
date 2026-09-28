@@ -200,41 +200,38 @@ export const AdminNotifications: React.FC = () => {
     <div className="space-y-6 text-left antialiased font-sans select-none relative pb-12">
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
-      {/* Header Banner */}
-      <div className="p-6 bg-gradient-to-r from-slate-900 via-wine-950 to-[#58051E] text-white rounded-3xl shadow-xl border border-slate-800 relative overflow-hidden">
-        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 opacity-10 pointer-events-none">
-          <Bell className="w-80 h-80 text-white" />
-        </div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="p-6 bg-white text-slate-900 rounded-2xl shadow-xs border border-slate-200/80">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-black text-amber-300 border border-white/15 mb-2">
-              <Bell className="w-3.5 h-3.5" /> Education Admin Alert Command
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#58051E]/10 rounded-md text-[10px] font-black uppercase text-[#58051E] mb-2">
+              <Bell className="w-3.5 h-3.5" /> Communications & Announcements
             </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
-              Education Notifications & Communications Hub
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              Education Notifications & Announcements
             </h1>
-            <p className="text-xs md:text-sm font-medium text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Monitor real-time alerts across university applications, student tuition payments, VFS Visa filings, document legalization, and publish broadcast announcements.
+            <p className="text-xs md:text-sm font-medium text-slate-500 mt-1 max-w-2xl leading-relaxed">
+              Monitor real-time alerts across university applications, student tuition payments, visa filings, document legalization, and publish broadcast announcements.
             </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <button
               onClick={() => setShowComposeModal(true)}
-              className="flex items-center gap-1.5 h-9 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-sm"
+              className="flex items-center gap-1.5 h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Compose Alert
             </button>
             <button
               onClick={() => { refresh(); showToast('Notifications synced from server'); }}
-              className="h-9 px-3.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold border border-white/20 transition-all flex items-center gap-1.5"
+              className="h-9 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-200 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" /> Sync
             </button>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
-                className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                className="h-9 px-3.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <CheckCheck className="w-3.5 h-3.5" /> Mark All Read
               </button>
@@ -242,9 +239,9 @@ export const AdminNotifications: React.FC = () => {
             {notifications.length > 0 && (
               <button
                 onClick={handleClearAll}
-                className="h-9 px-3 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                className="h-9 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                <Trash2 className="w-3.5 h-3.5" /> Clear All
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" /> Clear All
               </button>
             )}
           </div>

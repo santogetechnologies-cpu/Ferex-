@@ -107,7 +107,7 @@ export const DigitalMobileApps: React.FC = () => {
             <Smartphone className="w-5 h-5 text-[#58051E]" /> App Development Studio & Device Farm
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Native iOS & Android build automation, TestFlight beta distribution, and live app telemetry for enterprise projects.
+            Native iOS & Android build automation, TestFlight beta distribution, and app performance monitoring for enterprise projects.
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -181,7 +181,7 @@ export const CentralDashboard: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                Executive Command Center
+                Executive Overview & Governance
               </h1>
               <p className="text-xs font-medium text-slate-400">
                 Unified cross-subsidiary governance, operations, and treasury.

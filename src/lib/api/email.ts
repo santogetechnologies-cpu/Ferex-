@@ -253,7 +253,7 @@ export async function sendStudentWelcomeEmail(studentEmail: string, studentName:
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${EMAIL_HEADER_HTML}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0; margin-bottom: 16px;">Welcome to FEREX, ${studentName}! 🎉</h2>
+        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0; margin-bottom: 16px;">Welcome to FEREX, ${studentName}!</h2>
         <p style="color: #334155; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
           Your student admissions account with <strong>FEREX Global Higher Education</strong> is now active. You now have full access to select European universities, track offer letters, upload visa dossiers, and monitor fee settlements in real time.
         </p>
@@ -442,7 +442,7 @@ export async function sendStudentApplicationEmail(params: {
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${EMAIL_HEADER_HTML}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0; margin-bottom: 12px;">Application Submitted Successfully! 🎓</h2>
+        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0; margin-bottom: 12px;">Application Submitted Successfully</h2>
         <p style="color: #334155; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
           Dear <strong>${studentName}</strong>, your formal university application dossier has been submitted and queued for admissions review.
         </p>
@@ -536,7 +536,7 @@ export async function sendStudentDocumentUploadedEmail(params: {
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${EMAIL_HEADER_HTML}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 19px; margin-top: 0; margin-bottom: 12px;">Document Upload Received 📄</h2>
+        <h2 style="color: #0f172a; font-size: 19px; margin-top: 0; margin-bottom: 12px;">Document Upload Received</h2>
         <p style="color: #334155; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
           Dear <strong>${studentName}</strong>, your academic document has been securely uploaded to your dossier repository and submitted for verification.
         </p>
@@ -554,7 +554,7 @@ export async function sendStudentDocumentUploadedEmail(params: {
 
         <div style="text-align: center; margin-top: 24px;">
           <a href="https://portal.ferexventures.com/student/documents" style="display: inline-block; background: #58051E; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 13px;">
-            View Document Vault ➔
+            View Documents ➔
           </a>
         </div>
       </div>
@@ -604,7 +604,7 @@ export async function sendStudentMeetingScheduledEmail(params: {
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${EMAIL_HEADER_HTML}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 19px; margin-top: 0; margin-bottom: 12px;">Counseling Session Confirmed 📅</h2>
+        <h2 style="color: #0f172a; font-size: 19px; margin-top: 0; margin-bottom: 12px;">Counseling Session Confirmed</h2>
         <p style="color: #334155; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
           Dear <strong>${studentName}</strong>, your 1-on-1 higher education and visa advisory session has been booked with <strong>${advisorName}</strong>.
         </p>
@@ -673,7 +673,7 @@ export async function sendStudentTicketCreatedEmail(params: {
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${EMAIL_HEADER_HTML}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 19px; margin-top: 0; margin-bottom: 12px;">Support Ticket Logged 🎫</h2>
+        <h2 style="color: #0f172a; font-size: 19px; margin-top: 0; margin-bottom: 12px;">Support Ticket Logged</h2>
         <p style="color: #334155; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
           Dear <strong>${studentName}</strong>, your query has been received by our student support desk. An admissions officer will respond shortly.
         </p>

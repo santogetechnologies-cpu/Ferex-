@@ -50,7 +50,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
     { label: 'Total Students', value: '0', change: 'Live from DB', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: isStaff ? '/staff/students' : '/admin/students' },
     { label: 'Active Applications', value: '0', change: 'Live from DB', icon: FileCheck, color: 'text-violet-600 bg-violet-50/80', trend: 'up', path: isStaff ? '/staff/applications' : '/admin/applications' },
     { label: 'Pending Applications', value: '0', change: 'Review Needed', icon: Clock3, color: 'text-amber-700 bg-amber-50/80', trend: 'down', path: isStaff ? '/staff/applications' : '/admin/applications' },
-    { label: 'Pending Documents', value: '0', change: 'Vault Verification', icon: FolderOpen, color: 'text-orange-600 bg-orange-50/80', trend: 'down', path: isStaff ? '/staff/documents' : '/admin/documents' },
+    { label: 'Pending Documents', value: '0', change: 'Verification Queue', icon: FolderOpen, color: 'text-orange-600 bg-orange-50/80', trend: 'down', path: isStaff ? '/staff/documents' : '/admin/documents' },
     ...(isStaff ? [{
       label: 'Assigned Tasks',
       value: String(assignedTasks?.length || 0),
@@ -81,7 +81,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
           { label: 'Total Students', value: String(stats.totalStudents ?? 0), change: 'Live from DB', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: isStaff ? '/staff/students' : '/admin/students' },
           { label: 'Active Applications', value: String(stats.activeApplications ?? 0), change: 'Live from DB', icon: FileCheck, color: 'text-violet-600 bg-violet-50/80', trend: 'up', path: isStaff ? '/staff/applications' : '/admin/applications' },
           { label: 'Pending Applications', value: String(stats.pendingApplications ?? 0), change: 'Review Needed', icon: Clock3, color: 'text-amber-700 bg-amber-50/80', trend: 'down', path: isStaff ? '/staff/applications' : '/admin/applications' },
-          { label: 'Pending Documents', value: String(stats.pendingDocuments ?? 0), change: 'Vault Verification', icon: FolderOpen, color: 'text-orange-600 bg-orange-50/80', trend: 'down', path: isStaff ? '/staff/documents' : '/admin/documents' },
+          { label: 'Pending Documents', value: String(stats.pendingDocuments ?? 0), change: 'Verification Queue', icon: FolderOpen, color: 'text-orange-600 bg-orange-50/80', trend: 'down', path: isStaff ? '/staff/documents' : '/admin/documents' },
           ...(isStaff ? [{
             label: 'Assigned Tasks',
             value: String(assignedTasks?.length || 0),

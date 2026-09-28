@@ -260,21 +260,21 @@ export function downloadGenericVaultDocument(doc: {
 </head>
 <body>
   <div class="header">
-    <div class="title">FEREX GLOBAL TRADE DOCUMENT VAULT</div>
-    <div style="font-size: 13px; color: #64748b;">Official Archive Record</div>
+    <div class="title">FEREX GLOBAL TRADE COMPLIANCE ARCHIVE</div>
+    <div style="font-size: 13px; color: #64748b;">Official Document Record</div>
   </div>
 
   <div class="box">
     <p><strong>Document ID:</strong> ${doc.id}</p>
     <p><strong>Document File Name:</strong> ${doc.name}</p>
-    <p><strong>Vault Category:</strong> ${doc.folder}</p>
+    <p><strong>Document Category:</strong> ${doc.folder}</p>
     <p><strong>File Size:</strong> ${doc.size || '1.8 MB'}</p>
     <p><strong>Archived Date:</strong> ${doc.updated || new Date().toISOString().split('T')[0]}</p>
-    <p><strong>Verification Status:</strong> Cryptographically Verified & Immutable</p>
+    <p><strong>Verification Status:</strong> Verified & Certified</p>
   </div>
 
   <div>
-    <span class="stamp">AUTHENTIC TRADE VAULT DOCUMENT</span>
+    <span class="stamp">OFFICIAL TRADE DOCUMENT</span>
   </div>
 </body>
 </html>`;

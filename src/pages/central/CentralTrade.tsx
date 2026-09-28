@@ -205,7 +205,7 @@ export const CentralTrade: React.FC = () => {
           { label: 'Total Business Order Value', val: `€${(totalOrderValueEur / 1000).toFixed(1)}K`, sub: `${shipments.length} Active Cargo Orders`, color: 'text-indigo-700 bg-indigo-50 border-indigo-100' },
           { label: 'Pending Invoice Settlements', val: `€${(pendingPaymentsEur / 1000).toFixed(1)}K`, sub: `${invoices.filter((i: any) => i.status !== 'Paid').length} Invoices Pending`, color: 'text-amber-700 bg-amber-50 border-amber-100' },
           { label: 'Shipments in Transit', val: `${inTransitCount} Maritime Units`, sub: 'Active Sea & Air Routes', color: 'text-blue-700 bg-blue-50 border-blue-100' },
-          { label: 'Pending / Audit Documents', val: `${overdueDocsCount} Required Files`, sub: `${documents.length} Verified in Vault`, color: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
+          { label: 'Pending / Audit Documents', val: `${overdueDocsCount} Required Files`, sub: `${documents.length} Verified Files`, color: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
         ].map((kpi, idx) => (
           <Card key={idx} className="p-4 border border-slate-200/70 shadow-xs space-y-1">
             <span className="text-[10px] font-black uppercase text-slate-400">{kpi.label}</span>
@@ -448,7 +448,7 @@ export const CentralTrade: React.FC = () => {
                   <p className="text-[11px] text-slate-500">SWIFT & Customs Audit Compliant</p>
                   <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-[11px] font-bold text-indigo-600">
                     <span>Status: Verified ({matched.length > 0 ? '100%' : 'Ready'})</span>
-                    <span>Active In Vault</span>
+                    <span>Active Records</span>
                   </div>
                 </div>
               );

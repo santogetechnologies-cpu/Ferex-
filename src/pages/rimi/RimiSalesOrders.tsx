@@ -576,7 +576,7 @@ export const RimiSalesOrders: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowPaymentModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white">Record & Sync Ledger</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white">Save & Post to Ledger</Button>
                 </div>
               </form>
             </motion.div>
@@ -658,7 +658,7 @@ export const RimiSalesOrders: React.FC = () => {
                 </div>
 
                 <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setSelectedOrder(null)}>
-                  Close Order Dossier
+                  Close Order Details
                 </Button>
               </div>
             </motion.div>

@@ -92,14 +92,14 @@ export const RimiDashboard: React.FC = () => {
               {isAdmin ? 'Cold Chain Operations Central' : 'Operations Staff Dashboard'}
             </span>
             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Telemetry
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Live Monitoring
             </span>
           </div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight mt-1 flex items-center gap-2">
             <Snowflake className="w-5 h-5 text-cyan-600" /> RIMI Frozen Foods Distribution Console
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Real-time cold storage inventory telemetry, unified customer CRM, and fleet logistics.
+            Real-time cold storage inventory tracking, customer orders, and fleet logistics.
           </p>
         </div>
 
@@ -380,10 +380,10 @@ export const RimiDashboard: React.FC = () => {
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
             <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <Warehouse className="w-4 h-4 text-[#58051E]" /> Cold Storage Facilities Live Telemetry
+              <Warehouse className="w-4 h-4 text-[#58051E]" /> Cold Storage Facilities Status
             </h3>
             <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
-              Live temperature calibration & pallet occupancy across primary hubs.
+              Temperature monitoring & pallet occupancy across primary hubs.
             </p>
           </div>
           <Button size="sm" variant="outline" onClick={() => navigate('/rimi/warehouses')} className="text-xs font-bold">

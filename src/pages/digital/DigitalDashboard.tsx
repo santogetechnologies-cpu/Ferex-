@@ -139,44 +139,41 @@ export const DigitalDashboard: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       {/* Migration Notice Banner */}
       {showMigrationBanner && (
-        <div className="p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent border border-cyan-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
           <div className="flex items-center gap-2.5">
-            <RefreshCw className="w-5 h-5 text-cyan-600 shrink-0" />
+            <RefreshCw className="w-4 h-4 text-slate-600 shrink-0" />
             <div>
-              <span className="font-black text-cyan-950">Database-Driven Agency Engine Active: </span>
-              <span className="text-cyan-800 font-semibold">
-                Clear browser demo cache to synchronize live database projects, deliverables, and invoices.
+              <span className="font-bold text-slate-900">Database Sync: </span>
+              <span className="text-slate-600 font-medium">
+                Clear browser cache to refresh projects, deliverables, and invoices.
               </span>
             </div>
           </div>
           <button
             onClick={handleClearCache}
-            className="px-3.5 py-1.5 rounded-lg bg-cyan-600 text-white font-bold hover:bg-cyan-700 transition-colors shrink-0 cursor-pointer text-xs"
+            className="px-3 py-1.5 rounded-lg bg-slate-800 text-white font-bold hover:bg-slate-900 transition-colors shrink-0 cursor-pointer text-xs"
           >
-            Clear Demo Cache
+            Clear Cache
           </button>
         </div>
       )}
 
-      {/* Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950 text-white p-6 md:p-8 shadow-xl border border-cyan-800/30">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
+      {/* Modern Clean Header */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-1.5 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] uppercase font-black tracking-widest bg-white/15 px-3 py-1 rounded-full border border-white/20 text-white">
-                {isAdmin ? 'Executive Agency Dashboard' : 'My Engineering Workspace'}
-              </span>
-              <span className="text-[10px] font-extrabold text-cyan-300 bg-cyan-500/20 px-2.5 py-1 rounded-full border border-cyan-400/30 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" /> Live Realtime Active
+              <span className="text-[10px] uppercase font-black tracking-widest bg-[#58051E]/10 text-[#58051E] px-2.5 py-1 rounded-md">
+                {isAdmin ? 'Agency Operations Dashboard' : 'My Project Workspace'}
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">
               {displayName}
             </h1>
-            <p className="text-xs md:text-sm text-white/85 leading-relaxed font-semibold">
+            <p className="text-xs md:text-sm text-slate-500 leading-relaxed font-medium">
               {isAdmin
-                ? 'High-performance digital agency operations, pipeline forecasting, client engagements, sprint velocity, and production deliverables.'
-                : 'Your personal production queue. Review assigned project deliverables, sprint tasks, and upcoming milestones.'}
+                ? 'Digital agency client engagements, project pipelines, sprint tracking, and deliverables.'
+                : 'Your active tasks and project deliverables queue. Review assigned milestones and updates.'}
             </p>
           </div>
 
@@ -185,13 +182,13 @@ export const DigitalDashboard: React.FC = () => {
               <>
                 <button
                   onClick={() => navigate('/digital/projects')}
-                  className="h-10 px-5 rounded-xl text-xs font-black text-slate-900 bg-cyan-400 hover:bg-cyan-300 transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                  className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#58051E] hover:bg-[#430316] transition-all shadow-xs flex items-center gap-2 cursor-pointer"
                 >
-                  Create Client Project <ArrowUpRight className="w-4 h-4" />
+                  Create Project <ArrowUpRight className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => navigate('/digital/deliverables')}
-                  className="h-10 px-5 rounded-xl text-xs font-black text-white bg-white/15 hover:bg-white/25 border border-white/30 transition-all shadow-xs cursor-pointer"
+                  className="h-9 px-4 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 transition-all shadow-xs cursor-pointer"
                 >
                   Deliverables
                 </button>
@@ -200,13 +197,13 @@ export const DigitalDashboard: React.FC = () => {
               <>
                 <button
                   onClick={() => navigate('/digital/projects')}
-                  className="h-10 px-5 rounded-xl text-xs font-black text-slate-900 bg-cyan-400 hover:bg-cyan-300 transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                  className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#58051E] hover:bg-[#430316] transition-all shadow-xs flex items-center gap-2 cursor-pointer"
                 >
                   My Projects <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => navigate('/digital/deliverables')}
-                  className="h-10 px-5 rounded-xl text-xs font-black text-white bg-white/15 hover:bg-white/25 border border-white/30 transition-all shadow-xs cursor-pointer"
+                  className="h-9 px-4 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 transition-all shadow-xs cursor-pointer"
                 >
                   Submit Deliverable
                 </button>

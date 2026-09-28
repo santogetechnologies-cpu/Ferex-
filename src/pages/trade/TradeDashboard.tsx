@@ -56,28 +56,30 @@ export const TradeDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left antialiased">
-      {/* Welcome Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-gradient-to-r from-slate-900 via-[#450518] to-slate-900 rounded-3xl text-white shadow-xl">
+      {/* Welcome Header */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-block mb-2">
-            {isAdmin ? 'Trade Director Executive Cockpit' : 'Logistics Officer Operations Desk'}
-          </span>
-          <h1 className="text-xl font-black">Welcome back, {userName}</h1>
-          <p className="text-xs text-slate-300 font-semibold mt-0.5">
-            Real-time control over international 7-stage order lifecycles, compliance dossiers, payments, and client communications.
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20">
+              {isAdmin ? 'Trade Director Desk' : 'Logistics Operations Desk'}
+            </span>
+          </div>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight">Welcome back, {userName}</h1>
+          <p className="text-xs text-slate-500 font-semibold mt-0.5">
+            Operational overview of order lifecycles, compliance documentation, payments, and client dispatches.
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
           <Link to="/trade/shipments">
-            <Button size="sm" className="bg-white text-slate-900 hover:bg-slate-100 font-black text-xs">
-              <PackageCheck className="w-4 h-4 mr-1.5 text-[#58051E]" />
+            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white font-bold text-xs shadow-xs">
+              <PackageCheck className="w-4 h-4 mr-1.5" />
               Manage Orders
             </Button>
           </Link>
           <Link to="/trade/client-portal">
-            <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 font-bold text-xs">
-              Preview Client Portal <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            <Button size="sm" variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs">
+              Client Portal <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Button>
           </Link>
         </div>

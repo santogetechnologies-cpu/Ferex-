@@ -56,9 +56,9 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Ferex Education Admin Portal',
   education_admin: 'Ferex Education Admin Portal',
   education: 'Ferex Education Admin Portal',
-  super_admin: 'Central Super Admin Command Center',
-  superadmin: 'Central Super Admin Command Center',
-  central: 'Central Super Admin Command Center',
+  super_admin: 'Central Super Admin HQ',
+  superadmin: 'Central Super Admin HQ',
+  central: 'Central Super Admin HQ',
   staff: 'Staff & Counselor Portal',
   counselor: 'Admissions Counselor Portal',
   digital: 'Ferex Digital Admin Portal',
@@ -229,7 +229,7 @@ export function getDashboardRoute(role?: string | null, email?: string | null): 
 }
 
 export function getPortalLabel(role?: string | null, email?: string | null): string {
-  if (isSuperAdmin(role, email)) return 'Central Super Admin Command Center';
+  if (isSuperAdmin(role, email)) return 'Central Super Admin HQ';
   const normalized = normalizeRole(role, email);
   return ROLE_LABELS[normalized] || 'Ferex Portal';
 }

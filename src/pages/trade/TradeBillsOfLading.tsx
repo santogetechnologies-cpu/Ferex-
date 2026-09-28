@@ -364,7 +364,7 @@ export const TradeBillsOfLading: React.FC = () => {
                         <button
                           onClick={() => setSelectedBL(b)}
                           className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-slate-100 rounded-lg cursor-pointer"
-                          title="View B/L Dossier"
+                          title="View Bill of Lading"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -589,7 +589,7 @@ export const TradeBillsOfLading: React.FC = () => {
                   <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
                     {selectedBL.id}
                   </span>
-                  <h2 className="text-lg font-black text-slate-900 mt-1">Ocean Bill of Lading Dossier</h2>
+                  <h2 className="text-lg font-black text-slate-900 mt-1">Ocean Bill of Lading Details</h2>
                   <p className="text-xs text-slate-500">Carrier: {selectedBL.carrier} • Vessel: {selectedBL.vessel}</p>
                 </div>
                 <button onClick={() => setSelectedBL(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>

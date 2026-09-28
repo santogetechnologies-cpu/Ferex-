@@ -82,20 +82,20 @@ export const DigitalServicesHub: React.FC = () => {
       {/* Toast Notification */}
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
-      {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#3B0B16] text-white p-8 md:p-10 shadow-xl">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
+      {/* Header */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1.5 max-w-2xl">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-black tracking-widest bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white">
-                Ferex Digital Service Selection Hub
+              <span className="text-[10px] uppercase font-black tracking-widest bg-[#58051E]/10 text-[#58051E] px-2.5 py-1 rounded-md">
+                Service Catalog
               </span>
             </div>
-            <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white">
-              Enterprise Service Workspaces
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">
+              Service Workspaces
             </h1>
-            <p className="text-xs md:text-sm text-white/85 leading-relaxed font-semibold">
-              Select a service offering below to launch its dedicated enterprise workspace, sprint boards, performance analytics, and delivery tools.
+            <p className="text-xs md:text-sm text-slate-500 leading-relaxed font-medium">
+              Select a service offering below to launch its workspace, sprint boards, performance analytics, and delivery tools.
             </p>
           </div>
         </div>

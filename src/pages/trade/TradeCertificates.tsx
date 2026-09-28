@@ -316,7 +316,7 @@ export const TradeCertificates: React.FC = () => {
                         <button
                           onClick={() => setSelectedCert(c)}
                           className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-slate-100 rounded-lg cursor-pointer"
-                          title="View Certificate Dossier"
+                          title="View Certificate Details"
                         >
                           <Eye className="w-4 h-4" />
                         </button>

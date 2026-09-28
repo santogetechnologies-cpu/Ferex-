@@ -789,7 +789,7 @@ export const CentralSettings: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100">
-              <span className="text-[10px] font-bold text-emerald-700 uppercase block">Database Engine</span>
+              <span className="text-[10px] font-bold text-emerald-700 uppercase block">Database System</span>
               <span className="text-sm font-black text-emerald-900 mt-1 block">Supabase PostgreSQL 15</span>
               <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">Active & Synchronized</span>
             </div>

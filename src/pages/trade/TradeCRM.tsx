@@ -360,7 +360,7 @@ export const TradeCRM: React.FC = () => {
                     onClick={() => setSelectedCompany(c)}
                     className="font-extrabold text-slate-700 hover:text-[#58051E] flex items-center gap-1 cursor-pointer text-[11px]"
                   >
-                    <Eye className="w-3 h-3" /> Dossier
+                    <Eye className="w-3 h-3" /> Details
                   </button>
                 </div>
                 <div className="flex items-center gap-1">
@@ -741,7 +741,7 @@ export const TradeCRM: React.FC = () => {
                 >
                   <PlusCircle className="w-3.5 h-3.5 mr-1" /> Log Order for {selectedCompany.name}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => setSelectedCompany(null)}>Close Dossier</Button>
+                <Button size="sm" variant="outline" onClick={() => setSelectedCompany(null)}>Close</Button>
               </div>
             </motion.div>
           </>

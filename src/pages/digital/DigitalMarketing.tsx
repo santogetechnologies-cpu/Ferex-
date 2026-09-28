@@ -110,7 +110,7 @@ export const DigitalMarketing: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <Megaphone className="w-5 h-5 text-[#58051E]" /> Marketing Command Center & Social Creative Studio
+            <Megaphone className="w-5 h-5 text-[#58051E]" /> Marketing & Campaigns Studio
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Multi-channel Instagram Reels, Google PPC, LinkedIn Sponsored Campaigns, and dynamic ROAS analytics linked to live clients.
@@ -167,13 +167,13 @@ export const DigitalMarketing: React.FC = () => {
         <h3 className="text-sm font-black text-slate-900 border-b border-slate-200 pb-2">Live Social Ad Creative Mockups</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {campaigns.map((cmp, idx) => (
-            <Card key={cmp.id || idx} className="p-0 border border-slate-200 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all bg-white flex flex-col justify-between">
-              <div className={`p-4 text-white flex items-center justify-between text-xs font-bold ${idx % 3 === 0 ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500' : idx % 3 === 1 ? 'bg-blue-600' : 'bg-[#0A66C2]'}`}>
-                <span className="flex items-center gap-1.5 font-black">{cmp.channel}</span>
-                <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px] border border-white/30">{cmp.roas}</span>
+            <Card key={cmp.id || idx} className="p-0 border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all bg-white flex flex-col justify-between">
+              <div className="p-3.5 bg-slate-900 text-white flex items-center justify-between text-xs font-bold">
+                <span className="flex items-center gap-1.5 font-bold">{cmp.channel}</span>
+                <span className="bg-white/10 px-2 py-0.5 rounded-md text-[10px] border border-white/15">{cmp.roas}</span>
               </div>
               <div className="p-5 space-y-4 text-left">
-                <div className={`h-44 rounded-2xl p-4 text-white flex flex-col justify-between relative overflow-hidden ${idx % 3 === 0 ? 'bg-gradient-to-br from-pink-500 via-purple-700 to-slate-900' : idx % 3 === 1 ? 'bg-slate-900 border border-slate-800' : 'bg-slate-950 border border-slate-800'}`}>
+                <div className="h-44 rounded-xl p-4 text-white flex flex-col justify-between relative overflow-hidden bg-slate-900 border border-slate-800">
                   <span className="text-[9px] font-black uppercase tracking-widest bg-black/40 px-2.5 py-1 rounded-full w-fit">
                     {activeClientName}
                   </span>

@@ -117,7 +117,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       items: [
         { label: 'Clients', path: '/digital/clients', icon: Users },
         { label: 'Projects', path: '/digital/projects', icon: FolderKanban },
-        { label: 'Deliverables Vault', path: '/digital/deliverables', icon: Layers },
+        { label: 'Project Deliverables', path: '/digital/deliverables', icon: Layers },
         { label: 'Task Assignment', path: '/digital/tasks', icon: CheckSquare },
         { label: 'Leads & Pipeline', path: '/digital/leads', icon: UserPlus },
         { label: 'Meetings', path: '/digital/meetings', icon: Calendar }

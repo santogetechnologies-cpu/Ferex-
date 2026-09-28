@@ -73,7 +73,7 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   'Document': {
     icon: FolderOpen,
     route: '/student/documents',
-    actionText: 'Open Document Vault',
+    actionText: 'View Documents',
     color: 'text-teal-700',
     bg: 'bg-teal-50/90',
     border: 'border-teal-200',
@@ -234,7 +234,7 @@ export const Notifications: React.FC = () => {
     { label: 'Payments & Receipts', cat: 'Payment', icon: CreditCard, count: countByCategory['Payment'] || 0, color: 'text-purple-700' },
     { label: 'VFS Visa Tracker', cat: 'VFS Visa', icon: ShieldCheck, count: countByCategory['VFS Visa'] || 0, color: 'text-amber-700' },
     { label: 'Counselor Meetings', cat: 'Counselor Session', icon: Calendar, count: countByCategory['Counselor Session'] || 0, color: 'text-indigo-700' },
-    { label: 'Document Vault', cat: 'Document', icon: FolderOpen, count: countByCategory['Document'] || 0, color: 'text-teal-700' },
+    { label: 'Documents', cat: 'Document', icon: FolderOpen, count: countByCategory['Document'] || 0, color: 'text-teal-700' },
     { label: 'Pre-Departure (Stage 12)', cat: 'Pre-Departure', icon: Plane, count: countByCategory['Pre-Departure'] || 0, color: 'text-sky-700' },
     { label: 'Support Tickets', cat: 'Support', icon: LifeBuoy, count: countByCategory['Support'] || 0, color: 'text-rose-700' },
   ];
@@ -266,28 +266,25 @@ export const Notifications: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Header Banner */}
-      <div className="p-6 bg-gradient-to-r from-slate-900 via-wine-950 to-[#58051E] text-white rounded-3xl shadow-xl border border-slate-800 relative overflow-hidden">
-        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 opacity-10 pointer-events-none">
-          <Bell className="w-80 h-80 text-white" />
-        </div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="p-6 bg-white text-slate-900 rounded-2xl shadow-xs border border-slate-200/80">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-black text-amber-300 border border-white/15 mb-2">
-              <Bell className="w-3.5 h-3.5" /> Notifications & Communications Hub
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#58051E]/10 rounded-md text-[10px] font-black uppercase text-[#58051E] mb-2">
+              <Bell className="w-3.5 h-3.5" /> Communications & Updates
             </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
-              Official Portal Updates & Action Center
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              Notifications & Activity Center
             </h1>
-            <p className="text-xs md:text-sm font-medium text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Real-time updates for university admissions, offer letters, registration fee invoices, counselor calls, academic legalization verification, and VFS visa steps.
+            <p className="text-xs md:text-sm font-medium text-slate-500 mt-1 max-w-2xl leading-relaxed">
+              Updates for university admissions, offer letters, fee receipts, counselor notes, document verifications, and visa status.
             </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <button
               onClick={() => { refresh(); showToast('Notifications synced from server'); }}
-              className="h-9 px-3.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold border border-white/20 shadow-xs transition-all flex items-center gap-1.5"
+              className="h-9 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-200 shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
               title="Refresh Notifications"
             >
               <RefreshCw className="w-3.5 h-3.5" /> Refresh
@@ -295,7 +292,7 @@ export const Notifications: React.FC = () => {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
+                className="h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <CheckCheck className="w-4 h-4" /> Mark All Read
               </button>
@@ -303,10 +300,10 @@ export const Notifications: React.FC = () => {
             {activeNotifs.length > 0 && (
               <button
                 onClick={handleClearAll}
-                className="h-9 px-3.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 rounded-xl text-xs font-bold border border-rose-500/30 shadow-xs transition-all flex items-center gap-1.5"
+                className="h-9 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold border border-rose-200 shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                 title="Clear All Notifications"
               >
-                <Trash2 className="w-3.5 h-3.5 text-rose-300" /> Clear
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" /> Clear
               </button>
             )}
           </div>

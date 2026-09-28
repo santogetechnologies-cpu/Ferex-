@@ -197,34 +197,31 @@ export const DigitalStaff: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-950 via-slate-900 to-indigo-950 text-white p-6 md:p-8 shadow-xl border border-cyan-800/30">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2">
+      {/* Header Section */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-black tracking-widest bg-white/15 px-3 py-1 rounded-full border border-white/20">
-                Agency Workforce & Project Leads
-              </span>
-              <span className="text-[10px] font-extrabold text-cyan-300 bg-cyan-500/20 px-2.5 py-1 rounded-full border border-cyan-400/30 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" /> Live Team
+              <span className="text-[10px] uppercase font-black tracking-widest bg-[#58051E]/10 text-[#58051E] px-2.5 py-1 rounded-md">
+                Agency Workforce & Leads
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight">Ferex Digital Staff & Engineers</h1>
-            <p className="text-xs md:text-sm text-white/85 max-w-2xl font-semibold">
-              Manage project managers, UI/UX designers, developers, and agency specialists. Allocate client engagements and deliverables.
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">Digital Staff & Engineers</h1>
+            <p className="text-xs md:text-sm text-slate-500 max-w-2xl font-medium">
+              Manage project managers, UI/UX designers, developers, and specialists. Allocate client engagements and deliverables.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <button
               onClick={() => setShowReassignModal(true)}
-              className="h-10 px-4 rounded-xl text-xs font-black text-white bg-white/15 hover:bg-white/25 border border-white/30 transition-all flex items-center gap-2 cursor-pointer"
+              className="h-9 px-4 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 transition-all flex items-center gap-2 cursor-pointer"
             >
               <ArrowRightLeft className="w-4 h-4" /> Bulk Reassign
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="h-10 px-5 rounded-xl text-xs font-black text-slate-900 bg-cyan-400 hover:bg-cyan-300 transition-all shadow-md flex items-center gap-2 cursor-pointer"
+              className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#58051E] hover:bg-[#430316] transition-all shadow-xs flex items-center gap-2 cursor-pointer"
             >
               <UserPlus className="w-4 h-4" /> Add Team Member
             </button>

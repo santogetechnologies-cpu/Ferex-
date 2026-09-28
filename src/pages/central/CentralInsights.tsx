@@ -69,22 +69,22 @@ export const CentralInsights: React.FC = () => {
 
       {/* Health Score & High Level Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="p-6 border border-slate-200/70 shadow-xs bg-gradient-to-br from-slate-900 to-slate-800 text-white flex flex-col justify-between">
+        <Card className="p-6 border border-slate-200/80 shadow-xs bg-white text-slate-900 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Business Health Score</span>
-              <span className="text-xs font-bold text-emerald-400 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-400/30">Optimal</span>
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">Optimal</span>
             </div>
-            <div className="text-4xl font-black text-white flex items-baseline gap-1">
+            <div className="text-4xl font-black text-slate-900 flex items-baseline gap-1">
               96 <span className="text-sm text-slate-400 font-bold">/ 100</span>
             </div>
-            <p className="text-xs text-slate-300 font-semibold mt-2">
-              All 12 operational vectors operating above target efficiency thresholds.
+            <p className="text-xs text-slate-500 font-medium mt-2">
+              All subsidiaries and operational channels operating within efficiency thresholds.
             </p>
           </div>
-          <div className="mt-6 pt-4 border-t border-slate-700/80 flex items-center justify-between text-[11px] font-bold text-slate-400">
-            <span>SLA Rate: <strong className="text-white">99.4%</strong></span>
-            <span>Ledger Clearance: <strong className="text-white">88%</strong></span>
+          <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-500">
+            <span>SLA Rate: <strong className="text-slate-900">99.4%</strong></span>
+            <span>Ledger Clearance: <strong className="text-slate-900">88%</strong></span>
           </div>
         </Card>
 

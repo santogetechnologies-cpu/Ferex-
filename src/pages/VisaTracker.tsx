@@ -83,7 +83,7 @@ export const VisaTracker: React.FC = () => {
     embassy_name: 'Consular Department & Embassy',
     vfs_center: 'VFS Global Application Center',
     appointment_date: 'Scheduling in Progress',
-    passport_no: 'Pending Vault Verification',
+    passport_no: 'Pending Verification',
     courier_tracking_no: 'Not Assigned',
     current_stage: 1,
     status_label: 'Documents Preparation in Progress',
@@ -104,7 +104,7 @@ export const VisaTracker: React.FC = () => {
 
   const stages = [
     { num: 1, name: 'Documents Ready', desc: 'Financial proofs, transcripts, apostilles verified' },
-    { num: 2, name: 'Visa File Prepared', desc: 'Motivation statement, application forms & dossier compiled' },
+    { num: 2, name: 'Visa File Prepared', desc: 'Motivation statement, application forms & package compiled' },
     { num: 3, name: 'VFS Appointment Booked', desc: 'Official biometric appointment slot confirmed' },
     { num: 4, name: 'VFS Submission', desc: 'Biometric capture & physical file lodged' },
     { num: 5, name: 'Consular Processing', desc: 'Application undergoing embassy evaluation' },

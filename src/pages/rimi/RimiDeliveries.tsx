@@ -148,7 +148,7 @@ export const RimiDeliveries: React.FC = () => {
             <Truck className="w-5 h-5 text-[#58051E]" /> Reefer Truck Deliveries & Temperature Log
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Real-time cold transit dispatch monitoring, driver telemetry, and delivery challan tracking.
+            Real-time cold transit dispatch monitoring, driver assignments, and delivery tracking.
           </p>
         </div>
 

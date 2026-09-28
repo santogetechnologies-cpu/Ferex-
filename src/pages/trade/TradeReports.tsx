@@ -200,7 +200,7 @@ export const TradeReports: React.FC = () => {
             </div>
             <div className="pt-2 flex gap-2">
               <Button size="sm" variant="outline" className="flex-1 text-xs font-bold" onClick={() => setSelectedReport(r)}>
-                <FileText className="w-3.5 h-3.5 mr-1" /> View Dossier
+                <FileText className="w-3.5 h-3.5 mr-1" /> View Report
               </Button>
               <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold px-3" onClick={() => showToastMsg(`Downloaded verified PDF: ${r.code}.pdf`)}>
                 <Download className="w-3.5 h-3.5" />
@@ -241,7 +241,7 @@ export const TradeReports: React.FC = () => {
 
                 <div className="pt-2 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => window.print()}>
-                    <Printer className="w-3.5 h-3.5 mr-1" /> Print Dossier
+                    <Printer className="w-3.5 h-3.5 mr-1" /> Print Report
                   </Button>
                   <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => {
                     showToastMsg(`Downloaded ${selectedReport.code}.pdf`);

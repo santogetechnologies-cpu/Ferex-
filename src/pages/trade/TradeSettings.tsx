@@ -126,23 +126,20 @@ export const TradeSettings: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0A1128] rounded-2xl p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-blue-500/30 shadow-md">
+      {/* Header */}
+      <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-black uppercase tracking-wider border border-blue-500/30">
-              Cross-Border Maritime Terminal
-            </span>
-            <span className="text-[11px] font-bold text-slate-300">
-              Real-time Sync to Trade Client Portal & Port Desks
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#58051E]/10 text-[#58051E] text-[10px] font-bold uppercase tracking-wider border border-[#58051E]/20">
+              System Configuration
             </span>
           </div>
-          <h1 className="text-xl font-black text-white flex items-center gap-2">
-            <Settings className="w-5 h-5 text-blue-400" />
-            Global Trade System Settings & Customs Engine
+          <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
+            <Settings className="w-5 h-5 text-[#58051E]" />
+            Trade & Customs Settings
           </h1>
-          <p className="text-xs font-medium text-slate-300 mt-1 max-w-2xl">
-            Configure Incoterms defaults (CIF/FOB), Letter of Credit (LC) advising banking standards, port corridors, and real-time trade partner notices.
+          <p className="text-xs font-semibold text-slate-500 mt-1 max-w-2xl">
+            Configure Incoterms defaults (CIF/FOB), Letter of Credit (LC) banking rules, port corridors, and trade partner notifications.
           </p>
         </div>
 
@@ -151,7 +148,7 @@ export const TradeSettings: React.FC = () => {
             type="button"
             onClick={handleReset}
             disabled={isSaving || loading}
-            className="h-9 px-3.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all flex items-center gap-1.5"
+            className="h-9 px-3.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" /> Defaults
           </button>
@@ -159,9 +156,9 @@ export const TradeSettings: React.FC = () => {
             type="button"
             onClick={() => handleSave()}
             disabled={isSaving || loading}
-            className="h-9 px-4 rounded-xl text-xs font-black text-slate-900 bg-blue-400 hover:bg-blue-300 transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+            className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#58051E] hover:bg-[#430316] transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
-            <Save className="w-3.5 h-3.5" /> {isSaving ? 'Publishing...' : 'Save & Publish'}
+            <Save className="w-3.5 h-3.5" /> {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -455,7 +452,7 @@ export const TradeSettings: React.FC = () => {
                   },
                   {
                     key: 'allow_client_shipping_instructions' as const,
-                    title: 'Allow In-Portal Shipping Instruction (SI) Dossier Submission',
+                    title: 'Allow In-Portal Shipping Instruction (SI) Submission',
                     desc: 'Buyers can upload notify party details, container packing preferences, and consignee data directly.'
                   },
                   {

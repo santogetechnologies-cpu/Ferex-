@@ -283,7 +283,7 @@ export const StaffDestinations: React.FC = () => {
 
                 <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 text-[11px] text-amber-900 font-semibold leading-relaxed">
                   <strong className="block mb-1 font-black">Admissions Counselor Guidance:</strong>
-                  Ensure student candidates prepare bank solvency statements, academic transcripts, and official language test results aligned with {selectedDest.authority} compliance before submitting university dossiers.
+                  Ensure student candidates prepare bank solvency statements, academic transcripts, and official language test results aligned with {selectedDest.authority} compliance before submitting university applications.
                 </div>
               </div>
 

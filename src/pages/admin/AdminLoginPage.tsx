@@ -68,7 +68,7 @@ export const AdminLoginPage: React.FC = () => {
           }));
         } catch {}
 
-        setSuccess('Super Admin authorization verified. Opening Central Command Center...');
+        setSuccess('Super Admin authorization verified. Opening Central Super Admin HQ...');
         setTimeout(() => navigate('/central/dashboard', { replace: true }), 500);
         return;
       }
@@ -83,7 +83,7 @@ export const AdminLoginPage: React.FC = () => {
         (cleanEmail === 'admin@ferex.com' && password === 'admin123')
       ) {
         localStorage.setItem('ferex_user', JSON.stringify({ id: 'super-1', email: cleanEmail, role: 'superadmin', full_name: 'Central Super Admin' }));
-        setSuccess('Access granted. Loading Central Command Center...');
+        setSuccess('Access granted. Loading Central Super Admin HQ...');
         setTimeout(() => navigate('/central/dashboard', { replace: true }), 500);
       } else {
         setError('Invalid credentials. Please check your email/password or create a new Super Admin account below.');
@@ -189,7 +189,7 @@ export const AdminLoginPage: React.FC = () => {
             <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/5" />
             <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/5" />
             <div className="relative z-10 flex flex-col items-center">
-              <Logo variant="full" color="white" size="md" subtitle="CENTRAL COMMAND CONSOLE" align="center" />
+              <Logo variant="full" color="white" size="md" subtitle="SUPER ADMIN HQ" align="center" />
               <p className="text-[11px] font-semibold text-rose-200/90 mt-2">
                 FEREX Multi-Enterprise Super Administration Portal
               </p>
