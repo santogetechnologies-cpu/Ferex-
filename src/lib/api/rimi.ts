@@ -1186,17 +1186,30 @@ export async function createRimiSalesOrder(order: {
     performed_by: order.assigned_staff_name || 'Sales Staff'
   });
 
-  // Auto-create Delivery Record
+  // Query available vehicle and route from fleet dynamically
+  let assignedVehicle: RimiVehicleRecord | undefined;
+  let assignedRoute: string | undefined;
+  try {
+    const [vehicles, routes] = await Promise.all([getRimiVehicles(), getRimiDeliveryRoutes()]);
+    assignedVehicle = vehicles.find(v => v.status === 'Stationed' || v.status === 'Available') || vehicles[0];
+    const city = customer?.city || 'Mumbai';
+    const matchedRoute = routes.find(r => r.destinations?.some((d: string) => d.toLowerCase().includes(city.toLowerCase())) || r.route_name.toLowerCase().includes(city.toLowerCase()));
+    assignedRoute = matchedRoute?.route_name || (routes.length > 0 ? routes[0].route_name : `${city} Cold Line`);
+  } catch {}
+
+  // Auto-create Delivery Record with dynamic fleet vehicle
   await createRimiDelivery({
     order_id: orderId,
     order_no: orderNo,
     customer_name: custName,
     destination_city: customer?.city || 'Mumbai',
     destination_address: payload.delivery_address,
-    vehicle_no: 'MH-04-RF-9021',
-    driver_name: 'Rajesh Sharma',
-    driver_phone: '+91 98200 44551',
-    departure_temp: '-18.5°C'
+    vehicle_id: assignedVehicle?.id,
+    vehicle_no: assignedVehicle?.vehicle_number || assignedVehicle?.vehicle_no,
+    driver_name: assignedVehicle?.driver_name,
+    driver_phone: assignedVehicle?.driver_phone,
+    route_name: assignedRoute,
+    departure_temp: assignedVehicle?.current_temp_celsius ? `${assignedVehicle.current_temp_celsius}°C` : '-18.5°C'
   });
 
   // Automated Email Notification to Customer
@@ -1389,6 +1402,37 @@ export async function getRimiDeliveries(): Promise<RimiDeliveryRecord[]> {
 export async function createRimiDelivery(delivery: Partial<RimiDeliveryRecord>): Promise<RimiDeliveryRecord> {
   const newId = generateUUID();
   const deliveryNo = `DEL-${Date.now().toString().slice(-6)}`;
+
+  let vNo = delivery.vehicle_no;
+  let dName = delivery.driver_name;
+  let dPhone = delivery.driver_phone;
+  let rName = delivery.route_name;
+
+  if (!vNo || !dName) {
+    try {
+      const vehicles = await getRimiVehicles();
+      const pick = (delivery.vehicle_id ? vehicles.find(v => v.id === delivery.vehicle_id) : undefined) ||
+                   vehicles.find(v => v.status === 'Stationed' || v.status === 'Available') ||
+                   vehicles[0];
+      if (pick) {
+        vNo = vNo || pick.vehicle_number || pick.vehicle_no;
+        dName = dName || pick.driver_name;
+        dPhone = dPhone || pick.driver_phone;
+      }
+    } catch {}
+  }
+
+  if (!rName) {
+    try {
+      const routes = await getRimiDeliveryRoutes();
+      const city = delivery.destination_city || '';
+      const matched = routes.find(r => r.destinations?.some((d: string) => d.toLowerCase().includes(city.toLowerCase())) || r.route_name.toLowerCase().includes(city.toLowerCase()));
+      rName = matched?.route_name || (routes.length > 0 ? routes[0].route_name : `${city || 'Intercity'} Cold Line`);
+    } catch {
+      rName = `${delivery.destination_city || 'Regional'} Cold Line`;
+    }
+  }
+
   const payload: RimiDeliveryRecord = {
     id: newId,
     delivery_no: deliveryNo,
@@ -1398,14 +1442,14 @@ export async function createRimiDelivery(delivery: Partial<RimiDeliveryRecord>):
     destination_city: delivery.destination_city || 'Mumbai',
     destination_address: delivery.destination_address || '',
     vehicle_id: delivery.vehicle_id || undefined,
-    vehicle_no: delivery.vehicle_no || 'MH-04-RF-9021',
-    driver_name: delivery.driver_name || 'Rajesh Sharma',
-    driver_phone: delivery.driver_phone || '+91 98200 44551',
+    vehicle_no: vNo || 'Reefer Pending Assignment',
+    driver_name: dName || 'Assigned Fleet Driver',
+    driver_phone: dPhone || '+91 98200 00000',
     departure_temp: delivery.departure_temp || '-18.5°C',
     arrival_temp: delivery.arrival_temp || '-18.0°C',
     delivery_status: 'Assigned',
     dispatch_time: new Date().toISOString(),
-    route_name: delivery.route_name || 'Mumbai Express Cold Corridor',
+    route_name: rName || 'Cold Corridor Route',
     notes: delivery.notes || '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()

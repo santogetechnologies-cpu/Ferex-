@@ -448,7 +448,7 @@ function App() {
           <Route path="/digital/projects" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProjects /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/tasks" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalTasks /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/deliverables" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalDeliverables /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/staff" element={<Navigate to="/central/roles-users" replace />} />
+          <Route path="/digital/staff" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalStaff /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/meetings" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMeetings /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/emails" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><CentralEmailLogs defaultDivision="digital" /></DigitalLayout></ProtectedRoute>} />
 

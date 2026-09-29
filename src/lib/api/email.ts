@@ -609,6 +609,36 @@ export async function sendTradeInvoiceEmail(params: {
   return sendStudentEmail({ studentEmail: clientEmail, studentName: clientName, subject, htmlContent, templateType: 'trade_invoice_issued', division: 'trade', referenceId: invoiceNumber, metadata: params });
 }
 
+export async function sendTradeDocumentReadyEmail(params: {
+  clientEmail: string;
+  clientName: string;
+  documentName: string;
+  documentType: string;
+  orderNumber?: string;
+  downloadUrl?: string;
+}): Promise<SendEmailResult> {
+  const { clientEmail, clientName, documentName, documentType, orderNumber, downloadUrl } = params;
+  const subject = `Trade Document Verified: ${documentType} [${documentName}] — Ferex Global Trade`;
+  const htmlContent = `
+    <div style="${EMAIL_WRAPPER_STYLE}">
+      ${getBrandedHeader('FEREX GLOBAL TRADE', 'Customs Clearance & Trade Document Desk', '#0f766e')}
+      <div style="padding: 32px;">
+        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Trade Document Ready</h2>
+        <p style="color: #334155; font-size: 14px;">Dear <strong>${clientName}</strong>, verified shipping compliance document <strong>${documentName}</strong> (${documentType}) is ready.</p>
+        <div style="background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <p style="margin: 0 0 8px 0;"><strong>Document:</strong> ${documentName}</p>
+          <p style="margin: 0 0 8px 0;"><strong>Type:</strong> ${documentType}</p>
+          ${orderNumber ? `<p style="margin: 0 0 8px 0;"><strong>Consignment No:</strong> ${orderNumber}</p>` : ''}
+          ${downloadUrl ? `<p style="margin: 0;"><strong>Access Document:</strong> <a href="${downloadUrl}" style="color: #0f766e; font-weight: bold;">Download Dossier</a></p>` : ''}
+        </div>
+      </div>
+      ${EMAIL_FOOTER_HTML}
+    </div>
+  `;
+  return sendStudentEmail({ studentEmail: clientEmail, studentName: clientName, subject, htmlContent, templateType: 'trade_document_ready', division: 'trade', referenceId: documentName, metadata: params });
+}
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. FEREX DIGITAL AGENCY EMAIL TEMPLATES
 // ─────────────────────────────────────────────────────────────────────────────

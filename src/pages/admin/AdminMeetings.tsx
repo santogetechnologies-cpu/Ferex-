@@ -102,12 +102,12 @@ export const AdminMeetings: React.FC = () => {
         setCounselorsList(uniqueNames);
         if (uniqueNames.length > 0 && !bookAdvisor) setBookAdvisor(uniqueNames[0]);
       } else {
-        const defaults = ['Sarah Jenkins', 'David Wilson', 'Elena Rostova', 'Academic Advisor'];
+        const defaults = ['Sarah Jenkins', 'David Wilson', 'Senior Admissions Counselor', 'Academic Advisor'];
         setCounselorsList(defaults);
         if (!bookAdvisor) setBookAdvisor(defaults[0]);
       }
     }).catch(() => {
-      const defaults = ['Sarah Jenkins', 'David Wilson', 'Elena Rostova', 'Academic Advisor'];
+      const defaults = ['Sarah Jenkins', 'David Wilson', 'Senior Admissions Counselor', 'Academic Advisor'];
       setCounselorsList(defaults);
       if (!bookAdvisor) setBookAdvisor(defaults[0]);
     });

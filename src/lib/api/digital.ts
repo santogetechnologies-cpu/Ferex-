@@ -605,6 +605,7 @@ export async function advanceDigitalProjectStage(
     await supabase.from('digital_projects').update({
       status: newStage,
       progress: (updatedProj as any).progress,
+      stage_history: (updatedProj as any).stage_history,
       updated_at: new Date().toISOString()
     }).eq('id', projectId);
   } catch {}
@@ -805,54 +806,7 @@ export async function getDigitalTasks(projectId?: string) {
       return localTasks;
     }
 
-    const initialTasks = [
-      {
-        id: 'tsk-001',
-        project_id: 'prj-001',
-        project: { title: 'Fall 2027 Global Admissions Digital Campaign & Lead Gen Funnel' },
-        title: 'Produce 15 European Admissions Meta Reel Ad Creatives',
-        priority: 'High',
-        status: 'In Progress',
-        due_date: '2026-09-25',
-        assigned_to_name: 'Digital Project Manager',
-        assigned_to_email: 'pm@ferex.com',
-        notes: 'High CTR motion graphic reels targeting undergraduate study visa applicants.',
-        created_at: '2026-08-20T10:00:00.000Z',
-        updated_at: '2026-08-20T10:00:00.000Z',
-      },
-      {
-        id: 'tsk-002',
-        project_id: 'prj-002',
-        project: { title: 'B2B Distributor Brand Refresh & Packaging Identity' },
-        title: 'Export Compliant Die-Cut Packaging Templates for Cold Chain',
-        priority: 'Medium',
-        status: 'To Do',
-        due_date: '2026-09-30',
-        assigned_to_name: 'Digital Agency Lead',
-        assigned_to_email: 'digital@ferex.com',
-        notes: 'CMYK export vector files for Rimi seafood packaging run.',
-        created_at: '2026-08-22T11:00:00.000Z',
-        updated_at: '2026-08-22T11:00:00.000Z',
-      },
-      {
-        id: 'tsk-003',
-        project_id: 'prj-003',
-        project: { title: 'Omnichannel Merchant Acquiring Portal & Brand Identity' },
-        title: 'Merchant Onboarding Flow Wireframes & Design Tokens',
-        priority: 'Critical',
-        status: 'In Progress',
-        due_date: '2026-10-05',
-        assigned_to_name: 'Digital Project Manager',
-        assigned_to_email: 'pm@ferex.com',
-        notes: 'Multi-currency payment checkout UI components in Figma.',
-        created_at: '2026-08-25T14:00:00.000Z',
-        updated_at: '2026-08-25T14:00:00.000Z',
-      }
-    ];
-
-    try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(initialTasks)); } catch {}
-    if (projectId) return initialTasks.filter((t: any) => t.project_id === projectId);
-    return initialTasks;
+    return [];
   } catch {
     if (projectId) return localTasks.filter((t: any) => t.project_id === projectId);
     return localTasks;
@@ -939,6 +893,17 @@ export async function deleteDigitalTask(id: string) {
 
 // ─── Digital Sprints ────────────────────────────────────────────────────────
 export async function getDigitalSprints() {
+  try {
+    const { data, error } = await supabase
+      .from('digital_sprints')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && Array.isArray(data) && data.length > 0) {
+      try { localStorage.setItem('ferex_digital_sprints', JSON.stringify(data)); } catch {}
+      return data;
+    }
+  } catch {}
+
   const saved = localStorage.getItem('ferex_digital_sprints');
   if (saved) {
     try { return JSON.parse(saved); } catch {}
@@ -963,7 +928,8 @@ export async function createDigitalSprint(sprint: {
     created_at: new Date().toISOString(),
   };
   const updated = [created, ...current];
-  localStorage.setItem('ferex_digital_sprints', JSON.stringify(updated));
+  try { localStorage.setItem('ferex_digital_sprints', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_sprints').insert([created]); } catch {}
   triggerLocalSync('ferex_digital_sprints_change');
   return created;
 }
@@ -971,7 +937,8 @@ export async function createDigitalSprint(sprint: {
 export async function updateDigitalSprint(id: string, updates: any) {
   const current = await getDigitalSprints();
   const updated = current.map((s: any) => s.id === id ? { ...s, ...updates } : s);
-  localStorage.setItem('ferex_digital_sprints', JSON.stringify(updated));
+  try { localStorage.setItem('ferex_digital_sprints', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_sprints').update(updates).eq('id', id); } catch {}
   triggerLocalSync('ferex_digital_sprints_change');
   return updated.find((s: any) => s.id === id) || { id, ...updates };
 }
@@ -1054,6 +1021,22 @@ export async function createDigitalInvoice(invoice: {
     const { client, project, ...dbPayload } = payload as any;
     await supabase.from('digital_invoices').insert(dbPayload);
   } catch {}
+
+  // Trigger automated email notification to client
+  try {
+    if (clientObj?.email) {
+      sendDigitalInvoiceEmail({
+        clientEmail: clientObj.email,
+        clientName: clientObj.contact_person || clientObj.company_name,
+        invoiceNumber: invNo,
+        amount: amt + taxAmt,
+        currency: 'INR',
+        dueDate: payload.due_date,
+        projectName: (payload as any).project?.title || 'Digital Services'
+      }).catch(() => {});
+    }
+  } catch {}
+
   triggerLocalSync('ferex_digital_invoices_change');
   return payload;
 }
@@ -1085,6 +1068,17 @@ export async function deleteDigitalInvoice(id: string) {
 
 // ─── Digital Expenses ───────────────────────────────────────────────────────
 export async function getDigitalExpenses() {
+  try {
+    const { data, error } = await supabase
+      .from('digital_expenses')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && Array.isArray(data) && data.length > 0) {
+      try { localStorage.setItem('ferex_digital_expenses', JSON.stringify(data)); } catch {}
+      return data;
+    }
+  } catch {}
+
   const saved = localStorage.getItem('ferex_digital_expenses');
   if (saved) {
     try { return JSON.parse(saved); } catch {}
@@ -1110,7 +1104,8 @@ export async function createDigitalExpense(expense: {
     created_at: new Date().toISOString(),
   };
   const updated = [created, ...current];
-  localStorage.setItem('ferex_digital_expenses', JSON.stringify(updated));
+  try { localStorage.setItem('ferex_digital_expenses', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_expenses').insert([created]); } catch {}
   triggerLocalSync('ferex_digital_expenses_change');
   return created;
 }
@@ -1118,7 +1113,8 @@ export async function createDigitalExpense(expense: {
 export async function deleteDigitalExpense(id: string) {
   const current = await getDigitalExpenses();
   const updated = current.filter((e: any) => e.id !== id);
-  localStorage.setItem('ferex_digital_expenses', JSON.stringify(updated));
+  try { localStorage.setItem('ferex_digital_expenses', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_expenses').delete().eq('id', id); } catch {}
   triggerLocalSync('ferex_digital_expenses_change');
   return true;
 }
@@ -1132,19 +1128,36 @@ export async function getDigitalEmployees() {
     try { customEmployees = JSON.parse(saved); } catch {}
   }
 
-  const staffEmployees = staff.map((s, i) => ({
-    id: s.id || `EMP-${100 + i}`,
-    name: s.name,
-    role: s.roleLabel || s.role || 'Senior Full-Stack Engineer',
-    department: s.department || 'Digital Delivery & UX',
-    email: s.email,
-    rating: 4.9,
-    kpiScore: 96,
-    tasksCount: 6,
-    feedback: 'Top-tier sprint velocity and delivery excellence.',
-    status: 'Active',
-    projectsCount: 3,
-  }));
+  let tasks: any[] = [];
+  let projects: any[] = [];
+  try {
+    [tasks, projects] = await Promise.all([getDigitalTasks(), getDigitalProjects()]);
+  } catch {}
+
+  const staffEmployees = staff.map((s, i) => {
+    const assignedTasks = tasks.filter(t => t.assigned_to_email === s.email || t.assigned_to_name === s.name);
+    const completedTasks = assignedTasks.filter(t => t.status === 'Done');
+    const assignedProjects = projects.filter(p => p.assigned_pm_name === s.name || p.assigned_pm_email === s.email);
+
+    // Compute dynamic KPI score based on actual tasks & projects
+    const completionRate = assignedTasks.length > 0 ? (completedTasks.length / assignedTasks.length) * 100 : 92;
+    const dynamicScore = Math.min(100, Math.max(82, Math.round(completionRate)));
+    const dynamicRating = Number((4.0 + (dynamicScore / 100)).toFixed(1));
+
+    return {
+      id: s.id || `EMP-${100 + i}`,
+      name: s.name,
+      role: s.roleLabel || s.role || 'Senior Digital Engineer',
+      department: s.department || 'Digital Delivery & UX',
+      email: s.email,
+      rating: dynamicRating,
+      kpiScore: dynamicScore,
+      tasksCount: assignedTasks.length || 4,
+      feedback: dynamicScore >= 95 ? 'Top-tier sprint velocity and delivery excellence.' : 'Consistent delivery and code quality.',
+      status: 'Active',
+      projectsCount: assignedProjects.length || 2,
+    };
+  });
 
   const merged = [...staffEmployees];
   for (const ce of customEmployees) {
@@ -1198,6 +1211,17 @@ export async function deleteDigitalEmployee(id: string) {
 
 // ─── Digital Attendance & HR ────────────────────────────────────────────────
 export async function getDigitalAttendance() {
+  try {
+    const { data, error } = await supabase
+      .from('digital_attendance')
+      .select('*')
+      .order('date', { ascending: false });
+    if (!error && Array.isArray(data) && data.length > 0) {
+      try { localStorage.setItem('ferex_digital_attendance', JSON.stringify(data)); } catch {}
+      return data;
+    }
+  } catch {}
+
   const saved = localStorage.getItem('ferex_digital_attendance');
   if (saved) {
     try { return JSON.parse(saved); } catch {}
@@ -1213,7 +1237,8 @@ export async function recordDigitalAttendance(record: any) {
     date: record.date || new Date().toISOString().split('T')[0]
   };
   const updated = [created, ...current];
-  localStorage.setItem('ferex_digital_attendance', JSON.stringify(updated));
+  try { localStorage.setItem('ferex_digital_attendance', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_attendance').insert([created]); } catch {}
   triggerLocalSync('ferex_digital_attendance_change');
   return created;
 }
@@ -1237,64 +1262,26 @@ export interface DigitalMeetingRecord {
 }
 
 export async function getDigitalMeetings(): Promise<DigitalMeetingRecord[]> {
+  try {
+    const { data, error } = await supabase
+      .from('digital_meetings')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && Array.isArray(data) && data.length > 0) {
+      try { localStorage.setItem('ferex_digital_meetings', JSON.stringify(data)); } catch {}
+      return data;
+    }
+  } catch {}
+
   const saved = localStorage.getItem('ferex_digital_meetings');
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     } catch {}
   }
 
-  const initialMeetings: DigitalMeetingRecord[] = [
-    {
-      id: 'MTG-101',
-      title: 'Fall Admissions Campaign Sprint Kickoff',
-      client: 'Ferex Education Consultancy',
-      host_staff_name: 'Digital Project Manager',
-      host_staff_email: 'pm@ferex.com',
-      time: 'Tomorrow, 11:30 AM',
-      date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-      platform: 'Google Meet',
-      meeting_type: 'Sprint Kickoff',
-      link: 'https://meet.google.com/fer-dig-arch',
-      notes: 'Review ad funnel conversion targets and creative storyboard assets.',
-      status: 'Scheduled',
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'MTG-102',
-      title: 'Packaging Identity & Die-Cut Review Session',
-      client: 'Rimi Frozen Foods Cold Chain',
-      host_staff_name: 'Digital Agency Lead',
-      host_staff_email: 'digital@ferex.com',
-      time: 'Friday, 03:00 PM',
-      date: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
-      platform: 'Zoom',
-      meeting_type: 'Design Review',
-      link: 'https://zoom.us/j/9842103321',
-      notes: 'Finalize blast frozen export packaging die-lines with supply chain team.',
-      status: 'Scheduled',
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'MTG-103',
-      title: 'Merchant Checkout UX & Payment Gateways Demo',
-      client: 'Nexus Retail & FinTech Group',
-      host_staff_name: 'Digital Project Manager',
-      host_staff_email: 'pm@ferex.com',
-      time: 'Next Monday, 04:30 PM',
-      date: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
-      platform: 'Google Meet',
-      meeting_type: 'Client Demo',
-      link: 'https://meet.google.com/nex-fin-demo',
-      notes: 'Demonstrate responsive checkout design system tokens.',
-      status: 'Scheduled',
-      created_at: new Date().toISOString(),
-    }
-  ];
-
-  try { localStorage.setItem('ferex_digital_meetings', JSON.stringify(initialMeetings)); } catch {}
-  return initialMeetings;
+  return [];
 }
 
 export async function createDigitalMeeting(mtg: {
@@ -1328,7 +1315,25 @@ export async function createDigitalMeeting(mtg: {
     created_at: new Date().toISOString(),
   };
   const updated = [created, ...current];
-  localStorage.setItem('ferex_digital_meetings', JSON.stringify(updated));
+  try { localStorage.setItem('ferex_digital_meetings', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_meetings').insert([created]); } catch {}
+
+  // Trigger meeting email to client if client exists
+  try {
+    const clients = await getDigitalClients();
+    const client = clients.find(c => c.id === mtg.client_id || c.company_name === mtg.client);
+    if (client?.email) {
+      sendDigitalMeetingEmail({
+        clientEmail: client.email,
+        clientName: client.contact_person || client.company_name,
+        title: mtg.title,
+        meetingDate: created.date || new Date().toISOString().split('T')[0],
+        startTime: mtg.time,
+        meetLink: created.link
+      }).catch(() => {});
+    }
+  } catch {}
+
   triggerLocalSync('ferex_digital_meetings_change');
   return created;
 }
@@ -1336,13 +1341,24 @@ export async function createDigitalMeeting(mtg: {
 export async function deleteDigitalMeeting(id: string) {
   const current = await getDigitalMeetings();
   const updated = current.filter((m: any) => m.id !== id);
-  localStorage.setItem('ferex_digital_meetings', JSON.stringify(updated));
+  try { localStorage.setItem('ferex_digital_meetings', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_meetings').delete().eq('id', id); } catch {}
   triggerLocalSync('ferex_digital_meetings_change');
   return true;
 }
 
 // ─── Digital Messages ───────────────────────────────────────────────────────
 export async function getDigitalMessages(conversationId: string = '1') {
+  try {
+    const { data, error } = await supabase
+      .from('digital_messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+    if (!error && data) return data;
+  } catch {}
+
+  // Fallback to trade_messages table with digital prefix
   try {
     const { data, error } = await supabase
       .from('trade_messages')
@@ -1366,7 +1382,7 @@ export async function sendDigitalMessage(msg: {
 }) {
   const payload = {
     id: generateUUID(),
-    conversation_id: `digital_${msg.conversation_id}`,
+    conversation_id: msg.conversation_id,
     contact_name: msg.contact_name,
     contact_role: msg.contact_role,
     sender_name: msg.sender_name,
@@ -1376,9 +1392,17 @@ export async function sendDigitalMessage(msg: {
   };
 
   try {
-    const { data } = await supabase.from('trade_messages').insert(payload).select();
+    const { data, error } = await supabase.from('digital_messages').insert(payload).select();
+    if (!error && data && data.length > 0) return data[0];
+  } catch {}
+
+  // Fallback to trade_messages table with digital_ prefix
+  try {
+    const fallbackPayload = { ...payload, conversation_id: `digital_${msg.conversation_id}` };
+    const { data } = await supabase.from('trade_messages').insert(fallbackPayload).select();
     if (data && data.length > 0) return data[0];
   } catch {}
+
   return payload;
 }
 
@@ -1588,6 +1612,17 @@ export interface DigitalAsset {
 }
 
 export async function getDigitalAssets(): Promise<DigitalAsset[]> {
+  try {
+    const { data, error } = await supabase
+      .from('digital_assets')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && Array.isArray(data) && data.length > 0) {
+      try { localStorage.setItem('ferex_digital_assets', JSON.stringify(data)); } catch {}
+      return data;
+    }
+  } catch {}
+
   const saved = localStorage.getItem('ferex_digital_assets');
   if (saved) {
     try { return JSON.parse(saved); } catch {}
@@ -1610,7 +1645,8 @@ export async function createDigitalAsset(asset: Partial<DigitalAsset>): Promise<
     license_seats: asset.license_seats ? Number(asset.license_seats) : 1
   };
   const updated = [created, ...current];
-  localStorage.setItem('ferex_digital_assets', JSON.stringify(updated));
+  try { localStorage.setItem('ferex_digital_assets', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_assets').insert([created]); } catch {}
   triggerLocalSync('ferex_digital_assets_change');
   return created;
 }
@@ -1618,7 +1654,8 @@ export async function createDigitalAsset(asset: Partial<DigitalAsset>): Promise<
 export async function updateDigitalAsset(id: string, updates: Partial<DigitalAsset>) {
   const current = await getDigitalAssets();
   const updated = current.map(a => a.id === id ? { ...a, ...updates } : a);
-  localStorage.setItem('ferex_digital_assets', JSON.stringify(updated));
+  try { localStorage.setItem('ferex_digital_assets', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_assets').update(updates).eq('id', id); } catch {}
   triggerLocalSync('ferex_digital_assets_change');
   return true;
 }
@@ -1626,7 +1663,8 @@ export async function updateDigitalAsset(id: string, updates: Partial<DigitalAss
 export async function deleteDigitalAsset(id: string) {
   const current = await getDigitalAssets();
   const updated = current.filter(a => a.id !== id);
-  localStorage.setItem('ferex_digital_assets', JSON.stringify(updated));
+  try { localStorage.setItem('ferex_digital_assets', JSON.stringify(updated)); } catch {}
+  try { await supabase.from('digital_assets').delete().eq('id', id); } catch {}
   triggerLocalSync('ferex_digital_assets_change');
   return true;
 }

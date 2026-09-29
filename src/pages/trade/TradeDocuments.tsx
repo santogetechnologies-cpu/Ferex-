@@ -14,6 +14,7 @@ import {
   uploadTradeDocument,
   updateTradeDocumentStatus,
   deleteTradeDocument,
+  sendTradeDocToClient,
   triggerTradeAutomatedEmail,
   getTradeOrders,
   TRADE_STANDARD_DOC_TYPES,
@@ -23,6 +24,7 @@ import {
   type TradeDocInternalStatus,
   type TradeOrder
 } from '../../lib/api/trade';
+import { sendTradeDocumentReadyEmail } from '../../lib/api/email';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -198,14 +200,27 @@ export const TradeDocuments: React.FC = () => {
   const handleSendToClient = async (doc: TradeDocument) => {
     try {
       const targetOrder = orders.find(o => o.order_no === doc.order_no);
-      await triggerTradeAutomatedEmail({
-        trigger_type: 'document_ready',
-        order_no: doc.order_no,
-        recipient_name: doc.client_name,
-        recipient_email: targetOrder?.client_email || 'client@trade.com',
-        custom_data: { doc_type: doc.doc_type, file_name: doc.file_name }
-      });
-      showToastMsg(`Dispatched document notice for "${doc.file_name}" to ${doc.client_name}!`);
+      await sendTradeDocToClient(doc.id);
+      if (targetOrder?.client_email) {
+        await sendTradeDocumentReadyEmail({
+          clientEmail: targetOrder.client_email,
+          clientName: doc.client_name,
+          documentName: doc.file_name,
+          documentType: doc.doc_type,
+          orderNumber: doc.order_no,
+          downloadUrl: doc.file_url || 'https://ferex.trade/vault/doc'
+        }).catch(() => {});
+      } else {
+        await triggerTradeAutomatedEmail({
+          trigger_type: 'document_ready',
+          order_no: doc.order_no,
+          recipient_name: doc.client_name,
+          recipient_email: `${doc.client_name.toLowerCase().replace(/[^a-z0-9]/g, '')}@trade.com`,
+          custom_data: { doc_type: doc.doc_type, file_name: doc.file_name }
+        });
+      }
+      showToastMsg(`Dispatched document dossier for "${doc.file_name}" to ${doc.client_name}!`);
+      await loadData();
     } catch (err: any) {
       showToastMsg(`Failed to send notice: ${err.message || 'Error'}`);
     }

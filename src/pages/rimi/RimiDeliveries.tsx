@@ -34,9 +34,9 @@ export const RimiDeliveries: React.FC = () => {
   const [newDel, setNewDel] = useState({
     order_id: '',
     vehicle_id: '',
-    vehicle_no: 'MH-04-RF-9021',
-    driver_name: 'Rajesh Sharma',
-    driver_phone: '+91 98200 44551',
+    vehicle_no: '',
+    driver_name: '',
+    driver_phone: '',
     departure_temp: '-18.5°C',
     destination_city: 'Mumbai',
     destination_address: '',
@@ -325,7 +325,7 @@ export const RimiDeliveries: React.FC = () => {
                       required
                       value={newDel.driver_name}
                       onChange={(e) => setNewDel({ ...newDel, driver_name: e.target.value })}
-                      placeholder="Rajesh Sharma"
+                      placeholder="e.g. Anand Kumar"
                       className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
                     />
                   </div>
@@ -335,7 +335,7 @@ export const RimiDeliveries: React.FC = () => {
                       type="text"
                       value={newDel.driver_phone}
                       onChange={(e) => setNewDel({ ...newDel, driver_phone: e.target.value })}
-                      placeholder="+91 98200 44551"
+                      placeholder="+91 98XXX XXXXX"
                       className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
                     />
                   </div>

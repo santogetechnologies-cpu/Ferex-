@@ -347,7 +347,7 @@ export const CentralTrade: React.FC = () => {
                   ) : (
                     filteredShipments.map(s => {
                       const currentStage = s.stage || s.status || s.shipment_status || 'In Transit';
-                      const staffName = s.assigned_staff_name || s.assigned_staff || 'Elena Rostova';
+                      const staffName = s.assigned_staff_name || s.assigned_staff || 'Trade Operations Desk';
                       const totalVal = Number(s.total_amount || s.cargo_value || 0);
 
                       return (

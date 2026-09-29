@@ -1,7 +1,7 @@
 import { supabase } from '../supabase';
 import { generateUUID } from '../../utils/uuid';
 import { getDivisionStaff, getDivisionStaffSync, type DivisionStaffMember } from './staff';
-import { sendTradeShipmentStageEmail, sendTradeInvoiceEmail } from './email';
+import { sendTradeShipmentStageEmail, sendTradeInvoiceEmail, sendTradeDocumentReadyEmail, sendStudentEmail } from './email';
 
 // ─── TYPES & MASTER ENUMS ───────────────────────────────────────────────────
 
@@ -609,13 +609,13 @@ export async function createTradeOrder(order: Partial<TradeOrder>): Promise<Trad
       {
         stage: currentStage,
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        confirmed_by: order.assigned_staff_name || 'Trade Desk',
+        confirmed_by: order.assigned_staff_name || 'Trade Operations Desk',
         notes: 'Order initiated in system',
         auto_email_triggered: true
       }
     ],
-    assigned_staff_name: order.assigned_staff_name || 'Elena Rostova',
-    assigned_staff_email: order.assigned_staff_email || 'elena.rostova@ferex.com',
+    assigned_staff_name: order.assigned_staff_name || 'Trade Operations Desk',
+    assigned_staff_email: order.assigned_staff_email || 'trade@ferexventures.com',
     assigned_staff_id: order.assigned_staff_id || undefined,
     carrier: order.carrier || '',
     vessel_flight: order.vessel_flight || '',
@@ -643,13 +643,14 @@ export async function createTradeOrder(order: Partial<TradeOrder>): Promise<Trad
 
   // Auto-sync client into CRM directory if not exists
   if (newRecord.client_name && newRecord.client_name !== 'Global Trade Partner') {
+    const portCity = newRecord.destination_port?.split(',')[0]?.replace('Port of ', '').trim() || 'Hamburg / Rotterdam';
     createTradeClient({
       company_name: newRecord.client_name,
       contact_person: newRecord.client_name,
       email: newRecord.client_email,
       phone: newRecord.client_phone || '',
       country: newRecord.client_country,
-      city: 'Trade Port Desk',
+      city: portCity,
       category: 'Buyer / Importer'
     });
   }
@@ -679,7 +680,22 @@ export async function advanceTradeOrderStage(
   notes?: string
 ): Promise<TradeOrder | null> {
   const current = getLocalTradeOrders();
-  const existing = current.find(o => o.id === orderId || o.order_no === orderId);
+  let existing = current.find(o => o.id === orderId || o.order_no === orderId);
+
+  // If not found in localStorage cache, query Supabase
+  if (!existing) {
+    try {
+      const { data } = await supabase
+        .from('trade_orders')
+        .select('*')
+        .or(`id.eq.${orderId},order_no.eq.${orderId}`)
+        .single();
+      if (data) {
+        existing = data as TradeOrder;
+      }
+    } catch {}
+  }
+
   if (!existing) return null;
 
   const newHistoryEntry: StageHistoryEntry = {
@@ -712,6 +728,9 @@ export async function advanceTradeOrderStage(
   }
 
   const updatedList = current.map(o => (o.id === orderId || o.order_no === orderId) ? updatedOrder : o);
+  if (!current.some(o => o.id === orderId || o.order_no === orderId)) {
+    updatedList.unshift(updatedOrder);
+  }
   saveLocalTradeOrders(updatedList);
 
   // Trigger automated email notification to client
@@ -1183,8 +1202,8 @@ export async function createTradeTask(task: Partial<TradeTask>): Promise<TradeTa
       category: task.category || 'Order Handling',
       order_no: task.order_no || '',
       client_name: task.client_name || '',
-      assigned_staff_name: task.assigned_staff_name || 'Elena Rostova',
-      assigned_staff_email: task.assigned_staff_email || 'elena.rostova@ferex.com',
+      assigned_staff_name: task.assigned_staff_name || 'Trade Operations Desk',
+      assigned_staff_email: task.assigned_staff_email || 'trade@ferexventures.com',
       assigned_staff_id: task.assigned_staff_id || null,
       priority: task.priority || 'Medium',
       status: task.status || 'Pending',
@@ -1290,8 +1309,8 @@ export async function createTradeTicket(ticket: Partial<TradeTicket>): Promise<T
       description: ticket.description || '',
       priority: ticket.priority || 'Medium',
       status: ticket.status || 'Open',
-      assigned_staff_name: ticket.assigned_staff_name || 'Elena Rostova',
-      assigned_staff_email: ticket.assigned_staff_email || 'elena.rostova@ferex.com',
+      assigned_staff_name: ticket.assigned_staff_name || 'Trade Operations Desk',
+      assigned_staff_email: ticket.assigned_staff_email || 'trade@ferexventures.com',
       assigned_staff_id: ticket.assigned_staff_id || null,
       resolution_notes: ticket.resolution_notes || '',
       logged_by: ticket.logged_by || 'Staff Desk'
@@ -1682,28 +1701,63 @@ export async function deleteTradeClient(clientId: string): Promise<boolean> {
 
 export async function getTradeNotifications(): Promise<TradeAutomatedEmail[]> {
   try {
-    const { data, error } = await supabase
-      .from('trade_notifications')
-      .select('*')
-      .order('sent_at', { ascending: false });
+    let dbNotifs: TradeAutomatedEmail[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('trade_notifications')
+        .select('*')
+        .order('sent_at', { ascending: false });
 
-    if (error) {
-      console.error('[TradeAPI] Error fetching trade notifications:', error);
-      return [];
-    }
+      if (!error && Array.isArray(data)) {
+        dbNotifs = data.map((n: any) => ({
+          id: n.id,
+          trigger_type: n.trigger_type || 'order_confirmed',
+          trigger_label: n.trigger_label || 'Trade Notification',
+          order_no: n.order_no || 'TRD-CONSIGNMENT',
+          recipient_name: n.recipient_name || 'Trade Partner',
+          recipient_email: n.recipient_email || 'partner@trade.com',
+          subject: n.subject || 'Consignment Status Update',
+          content_preview: n.content_preview || '',
+          sent_at: n.sent_at || n.created_at || new Date().toISOString(),
+          status: n.status || 'Sent'
+        }));
+      }
+    } catch {}
 
-    return (data || []).map((n: any) => ({
-      id: n.id,
-      trigger_type: n.trigger_type,
-      trigger_label: n.trigger_label,
-      order_no: n.order_no,
-      recipient_name: n.recipient_name,
-      recipient_email: n.recipient_email,
-      subject: n.subject,
-      content_preview: n.content_preview || '',
-      sent_at: n.sent_at || n.created_at,
-      status: n.status || 'Sent'
-    }));
+    // Also load from central email_logs with division='trade'
+    let emailLogsList: TradeAutomatedEmail[] = [];
+    try {
+      const { data: logsData } = await supabase
+        .from('email_logs')
+        .select('*')
+        .eq('division', 'trade')
+        .order('sent_at', { ascending: false });
+
+      if (Array.isArray(logsData)) {
+        emailLogsList = logsData.map((l: any) => ({
+          id: l.id,
+          trigger_type: (l.template_type?.replace('trade_', '') as any) || 'order_confirmed',
+          trigger_label: l.template_type ? l.template_type.replace(/_/g, ' ').toUpperCase() : 'Automated Dispatch',
+          order_no: l.reference_id || 'TRD-LIVE',
+          recipient_name: l.recipient_name || l.recipient_email?.split('@')[0] || 'Trade Client',
+          recipient_email: l.recipient_email,
+          subject: l.subject || 'Trade Status Notification',
+          content_preview: l.error_message ? `Dispatch note: ${l.error_message}` : `Automated email delivered via ${l.dispatch_mode || 'system'}`,
+          sent_at: l.sent_at || l.created_at || new Date().toISOString(),
+          status: (l.status === 'delivered' ? 'Delivered' : l.status === 'failed' ? 'Failed' : 'Sent') as any
+        }));
+      }
+    } catch {}
+
+    const map = new Map<string, TradeAutomatedEmail>();
+    dbNotifs.forEach(n => map.set(n.id, n));
+    emailLogsList.forEach(l => {
+      if (!map.has(l.id)) map.set(l.id, l);
+    });
+
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.sent_at || 0).getTime() - new Date(a.sent_at || 0).getTime()
+    );
   } catch (err) {
     console.error('[TradeAPI] Error in getTradeNotifications:', err);
     return [];
@@ -1781,15 +1835,53 @@ export async function triggerTradeAutomatedEmail(payload: {
       status: 'Sent'
     };
 
-    const { data, error } = await supabase
-      .from('trade_notifications')
-      .insert([newRecord])
-      .select()
-      .single();
+    // Dispatch real email through enterprise email pipeline
+    if (payload.recipient_email) {
+      try {
+        await sendStudentEmail({
+          studentEmail: payload.recipient_email,
+          studentName: payload.recipient_name,
+          subject: triggerInfo.subject,
+          htmlContent: `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+              <div style="background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%); padding: 24px; color: #ffffff;">
+                <h1 style="margin: 0; font-size: 18px; font-weight: 700;">FEREX GLOBAL TRADE</h1>
+                <p style="margin: 4px 0 0; font-size: 12px; color: #99f6e4;">International Trade Logistics & Compliance Desk</p>
+              </div>
+              <div style="padding: 24px; color: #1e293b;">
+                <h2 style="margin-top: 0; font-size: 16px; color: #0f766e;">${triggerInfo.label}</h2>
+                <p style="font-size: 14px; line-height: 1.5;">Dear <strong>${payload.recipient_name}</strong>,</p>
+                <p style="font-size: 14px; line-height: 1.5;">${triggerInfo.preview}</p>
+                <div style="background: #f0fdfa; border-left: 4px solid #0f766e; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+                  <p style="margin: 0; font-size: 13px;"><strong>Consignment No:</strong> ${payload.order_no}</p>
+                </div>
+              </div>
+              <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; font-size: 11px; color: #64748b;">
+                FEREX VENTURES • Global Trade & Maritime Freight Desk
+              </div>
+            </div>
+          `,
+          templateType: `trade_${payload.trigger_type}`,
+          division: 'trade',
+          referenceId: payload.order_no
+        });
+      } catch (emailErr) {
+        console.warn('[TradeAPI] Automated email dispatch notice:', emailErr);
+      }
+    }
 
-    if (error) throw error;
+    try {
+      const { data } = await supabase
+        .from('trade_notifications')
+        .insert([newRecord])
+        .select()
+        .single();
+      triggerSync('ferex_trade_emails_change');
+      if (data) return data;
+    } catch {}
+
     triggerSync('ferex_trade_emails_change');
-    return data;
+    return newRecord as any;
   } catch (err) {
     console.error('[TradeAPI] Error triggering automated email:', err);
     return null;
@@ -2312,7 +2404,7 @@ export async function getTradeMessages(conversationId?: string): Promise<TradeCh
         id: 'msg-1',
         conversation_id: 'client_portal',
         contact_name: 'Baltic Grain Sp. z o.o.',
-        sender_name: 'Elena Rostova (FEREX Operations Desk)',
+        sender_name: 'FEREX Trade Operations Desk',
         message: 'Welcome to FEREX Global Trade terminal. Ocean freight booking confirmed under CIF Gdansk.',
         is_self: false,
         created_at: new Date(Date.now() - 3600000 * 4).toISOString()
@@ -2322,7 +2414,7 @@ export async function getTradeMessages(conversationId?: string): Promise<TradeCh
         conversation_id: 'client_portal',
         contact_name: 'Baltic Grain Sp. z o.o.',
         sender_name: 'Baltic Grain Procurement Officer',
-        message: 'Thank you Elena. Commercial Invoice & Phytosanitary Certificate downloaded for customs pre-declaration.',
+        message: 'Commercial Invoice & Phytosanitary Certificate downloaded for customs pre-declaration.',
         is_self: true,
         created_at: new Date(Date.now() - 3600000 * 2).toISOString()
       }

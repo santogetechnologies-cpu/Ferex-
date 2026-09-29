@@ -328,33 +328,58 @@ export async function updateDigitalTaskStatusDirect(id: string, status: DigitalP
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. SPRINTS & KANBAN (Pure Supabase)
+// 3. SPRINTS & KANBAN (Pure Supabase + Resilient Cache)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getAssignedDigitalSprints(projectIds?: string[]): Promise<DigitalSprint[]> {
-  let query = supabase
-    .from('digital_sprints')
-    .select('*')
-    .order('created_at', { ascending: false });
+  let dbSprints: DigitalSprint[] = [];
+  try {
+    let query = supabase
+      .from('digital_sprints')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (projectIds && projectIds.length > 0) {
+      query = query.in('project_id', projectIds);
+    }
+
+    const { data, error } = await query;
+    if (!error && Array.isArray(data)) {
+      dbSprints = data as DigitalSprint[];
+      try { localStorage.setItem('ferex_digital_sprints', JSON.stringify(data)); } catch {}
+    }
+  } catch {}
+
+  let localSprints: DigitalSprint[] = [];
+  try {
+    const raw = localStorage.getItem('ferex_digital_sprints');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) localSprints = parsed;
+    }
+  } catch {}
+
+  const map = new Map<string, DigitalSprint>();
+  localSprints.forEach(s => map.set(s.id, s));
+  dbSprints.forEach(s => map.set(s.id, s));
+
+  let results = Array.from(map.values()).sort(
+    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+  );
 
   if (projectIds && projectIds.length > 0) {
-    query = query.in('project_id', projectIds);
+    results = results.filter(s => projectIds.includes(s.project_id));
   }
 
-  const { data, error } = await query;
-  if (error) {
-    throw new Error(`Failed to load sprints from database: ${error.message}`);
-  }
-
-  return data || [];
+  return results;
 }
 
 export async function createDigitalSprintDirect(sprint: Partial<DigitalSprint>): Promise<DigitalSprint> {
   const newId = generateUUID();
-  const payload = {
+  const payload: DigitalSprint = {
     id: newId,
-    project_id: sprint.project_id,
+    project_id: sprint.project_id || '',
     project_title: sprint.project_title || '',
-    name: sprint.name?.trim() || '',
+    name: sprint.name?.trim() || 'Sprint Backlog',
     goal: sprint.goal?.trim() || '',
     status: sprint.status || 'Active',
     start_date: sprint.start_date || new Date().toISOString().split('T')[0],
@@ -363,48 +388,83 @@ export async function createDigitalSprintDirect(sprint: Partial<DigitalSprint>):
     updated_at: new Date().toISOString()
   };
 
-  const { error } = await supabase.from('digital_sprints').insert(payload);
-  if (error) {
-    throw new Error(`Failed to create sprint in database: ${error.message}`);
+  try {
+    const raw = localStorage.getItem('ferex_digital_sprints');
+    const existing = raw ? JSON.parse(raw) : [];
+    const updated = [payload, ...existing.filter((s: any) => s.id !== payload.id)];
+    localStorage.setItem('ferex_digital_sprints', JSON.stringify(updated));
+  } catch {}
+
+  try {
+    await supabase.from('digital_sprints').insert([payload]);
+  } catch (err) {
+    console.warn('[DigitalPM] Supabase sprint insert notice:', err);
   }
 
   window.dispatchEvent(new Event('ferex_digital_sprints_change'));
-  return payload as DigitalSprint;
+  return payload;
 }
 
 export async function updateDigitalSprintStatus(id: string, status: DigitalSprint['status']) {
-  const { error } = await supabase
-    .from('digital_sprints')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', id);
+  try {
+    const raw = localStorage.getItem('ferex_digital_sprints');
+    if (raw) {
+      const existing = JSON.parse(raw);
+      const updated = existing.map((s: any) => s.id === id ? { ...s, status, updated_at: new Date().toISOString() } : s);
+      localStorage.setItem('ferex_digital_sprints', JSON.stringify(updated));
+    }
+  } catch {}
 
-  if (error) {
-    throw new Error(`Failed to update sprint status: ${error.message}`);
-  }
+  try {
+    await supabase
+      .from('digital_sprints')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id);
+  } catch {}
 
   window.dispatchEvent(new Event('ferex_digital_sprints_change'));
   return { id, status };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. MILESTONES (Pure Supabase)
+// 4. MILESTONES (Pure Supabase + Resilient Cache)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getAssignedDigitalMilestones(projectIds?: string[]): Promise<DigitalMilestone[]> {
-  let query = supabase
-    .from('digital_milestones')
-    .select('*')
-    .order('due_date', { ascending: true });
+  let dbMilestones: DigitalMilestone[] = [];
+  try {
+    let query = supabase
+      .from('digital_milestones')
+      .select('*')
+      .order('due_date', { ascending: true });
 
+    if (projectIds && projectIds.length > 0) {
+      query = query.in('project_id', projectIds);
+    }
+
+    const { data, error } = await query;
+    if (!error && Array.isArray(data)) {
+      dbMilestones = data as DigitalMilestone[];
+    }
+  } catch {}
+
+  let localMilestones: DigitalMilestone[] = [];
+  try {
+    const raw = localStorage.getItem('ferex_digital_milestones');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) localMilestones = parsed;
+    }
+  } catch {}
+
+  const map = new Map<string, DigitalMilestone>();
+  localMilestones.forEach(m => map.set(m.id, m));
+  dbMilestones.forEach(m => map.set(m.id, m));
+
+  let results = Array.from(map.values());
   if (projectIds && projectIds.length > 0) {
-    query = query.in('project_id', projectIds);
+    results = results.filter(m => projectIds.includes(m.project_id));
   }
-
-  const { data, error } = await query;
-  if (error) {
-    throw new Error(`Failed to load milestones from database: ${error.message}`);
-  }
-
-  return data || [];
+  return results;
 }
 
 export async function createDigitalMilestoneDirect(milestone: Partial<DigitalMilestone>): Promise<DigitalMilestone> {

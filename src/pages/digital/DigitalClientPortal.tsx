@@ -85,12 +85,18 @@ const DigitalClientPortal: React.FC = () => {
       } else if (clientId) {
         const found = allClients.find((c: ClientData) => c.id === clientId);
         if (found) setClient(found);
-      } else if (allClients.length > 0) {
-        setClient(allClients[0]);
+      } else {
+        setClient(null);
       }
 
-      const effectiveId = clientId || myClient?.id || (allClients.length > 0 ? allClients[0].id : null);
-      if (!effectiveId) { setLoading(false); return; }
+      const effectiveId = myClient?.id || clientId;
+      if (!effectiveId) {
+        setProjects([]);
+        setInvoices([]);
+        setMeetings([]);
+        setLoading(false);
+        return;
+      }
 
       // 3. Load client-specific data
       const [allProjects, allInvoices, allMeetings] = await Promise.all([
