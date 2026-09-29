@@ -12,9 +12,21 @@ import { supabase } from '../../lib/supabase';
 import { getLocalEmailLogs, type EmailLogEntry, logAutomatedEmail } from '../../lib/api/automatedEmails';
 import { sendStudentEmail } from '../../lib/api/email';
 
-export const CentralEmailLogs: React.FC = () => {
+interface CentralEmailLogsProps {
+  defaultDivision?: 'all' | 'education' | 'trade' | 'rimi' | 'digital';
+}
+
+const DIVISION_LABELS: Record<string, string> = {
+  all: 'All Portals',
+  education: 'Ferex Education',
+  digital: 'Ferex Digital',
+  trade: 'Global Trade ERP',
+  rimi: 'Rimi Frozen FMCG',
+};
+
+export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivision = 'all' }) => {
   const [logs, setLogs] = useState<EmailLogEntry[]>([]);
-  const [filterDivision, setFilterDivision] = useState<'all' | 'education' | 'trade' | 'rimi' | 'digital'>('all');
+  const [filterDivision, setFilterDivision] = useState<'all' | 'education' | 'trade' | 'rimi' | 'digital'>(defaultDivision);
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLog, setSelectedLog] = useState<EmailLogEntry | null>(null);
@@ -202,14 +214,18 @@ export const CentralEmailLogs: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Mail className="w-6 h-6 text-[#58051E]" /> Automated Email Delivery & Dispatch Logs
+              <Mail className="w-6 h-6 text-[#58051E]" />
+              {defaultDivision === 'all' ? 'Automated Email Delivery & Dispatch Logs' : `${DIVISION_LABELS[defaultDivision]} — Email Delivery Logs`}
             </h1>
             <span className="text-[10px] font-bold bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
-              All Portals
+              {DIVISION_LABELS[defaultDivision]}
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Complete delivery audit showing exact timestamps, recipient addresses, subject lines, and dispatch history across all subsidiaries.
+            {defaultDivision === 'all'
+              ? 'Complete delivery audit showing exact timestamps, recipient addresses, subject lines, and dispatch history across all subsidiaries.'
+              : `Email delivery audit for ${DIVISION_LABELS[defaultDivision]} — showing automated dispatch records, recipient details, and re-send controls.`
+            }
           </p>
         </div>
 
@@ -281,28 +297,37 @@ export const CentralEmailLogs: React.FC = () => {
             />
           </div>
 
-          {/* Division Selector */}
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
-            {[
-              { id: 'all', label: 'All Portals' },
-              { id: 'education', label: 'Education' },
-              { id: 'trade', label: 'Global Trade' },
-              { id: 'rimi', label: 'Rimi Frozen' },
-              { id: 'digital', label: 'Ferex Digital' },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setFilterDivision(tab.id as any)}
-                className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
-                  filterDivision === tab.id
-                    ? 'bg-[#58051E] text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          {/* Division Selector — only shown in Central (all portals) view */}
+          {defaultDivision === 'all' ? (
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
+              {[
+                { id: 'all', label: 'All Portals' },
+                { id: 'education', label: 'Education' },
+                { id: 'trade', label: 'Global Trade' },
+                { id: 'rimi', label: 'Rimi Frozen' },
+                { id: 'digital', label: 'Ferex Digital' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setFilterDivision(tab.id as any)}
+                  className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
+                    filterDivision === tab.id
+                      ? 'bg-[#58051E] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-500">Showing emails for:</span>
+              <span className="px-3 py-1 rounded-lg text-xs font-black bg-[#58051E] text-white">
+                {DIVISION_LABELS[defaultDivision]}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 pt-2 border-t border-slate-100 text-xs">
