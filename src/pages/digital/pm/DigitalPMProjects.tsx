@@ -76,50 +76,13 @@ export const DigitalPMProjects: React.FC = () => {
     setLoading(true);
     setErrorMsg('');
     try {
-      const [allProjects, cList] = await Promise.all([
-        getDigitalProjects(),
+      const [assignedList, cList] = await Promise.all([
+        getAssignedDigitalProjects(pmIdentity),
         getDigitalClients()
       ]);
 
       setClientsList(cList || []);
-
-      // Filter for PM assigned projects
-      const myEmail = (profile?.email || user?.email || '').toLowerCase().trim();
-      const myName = (profile?.full_name || '').toLowerCase().trim();
-      const myId = user?.id;
-
-      const filtered = (allProjects || []).filter((p: any) => {
-        if (!myEmail && !myName && !myId) return true;
-        const pEmail = (p.assigned_staff_email || '').toLowerCase().trim();
-        const pName = (p.assigned_staff_name || '').toLowerCase().trim();
-        const pId = p.assigned_staff_id;
-        const pCreatedBy = (p.created_by || '').toLowerCase().trim();
-
-        const isDirectMatch = Boolean(
-          (myId && pId === myId) ||
-          (myEmail && pEmail && (pEmail.includes(myEmail) || myEmail.includes(pEmail))) ||
-          (myName && pName && (pName.includes(myName) || myName.includes(pName))) ||
-          (myEmail && pCreatedBy && (pCreatedBy.includes(myEmail) || myEmail.includes(pCreatedBy))) ||
-          (myName && pCreatedBy && (pCreatedBy.includes(myName) || myName.includes(pCreatedBy)))
-        );
-
-        const isPMMatch = Boolean(
-          (!p.assigned_staff_name && !p.assigned_staff_email) ||
-          pName.includes('manager') ||
-          pName.includes('lead') ||
-          pName === 'digital project manager' ||
-          pName === 'digital manager' ||
-          pName === 'project manager' ||
-          pEmail === 'pm@ferex.com' ||
-          pEmail.includes('pm@') ||
-          pEmail.includes('digimanager') ||
-          pEmail.includes('manager')
-        );
-
-        return isDirectMatch || isPMMatch;
-      });
-
-      setProjects(filtered.length > 0 ? filtered : (allProjects || []));
+      setProjects(assignedList || []);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to load projects from database.');
     } finally {

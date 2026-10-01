@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff, CheckCircle2, Laptop, Globe } from 'lucide-react';
+import { Mail, Lock, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff, CheckCircle2, Laptop, Globe, FolderKanban } from 'lucide-react';
 import { Logo } from '../../components/Logo';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../contexts/AuthContext';
@@ -37,8 +37,8 @@ export const DigitalLoginPage: React.FC = () => {
         return;
       }
 
-      // 2. Fallback demo session credentials for digital agency admin & clients
-      if (cleanEmail === 'digital@ferex.com' && password === 'digital123') {
+      // 2. Fallback demo session credentials for digital agency admin, manager & clients
+      if (cleanEmail === 'digital@ferex.com' && (password === 'digital123' || password === 'admin123')) {
         localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
           email: cleanEmail,
           role: 'digital_admin',
@@ -59,6 +59,32 @@ export const DigitalLoginPage: React.FC = () => {
         setSuccessMsg('Authenticated as Ferex Digital Admin. Loading Console...');
         setTimeout(() => {
           navigate('/digital/dashboard', { replace: true });
+        }, 300);
+        return;
+      }
+
+      if (cleanEmail === 'pm@ferex.com' || cleanEmail === 'digimanager@ferex.com' || cleanEmail.includes('pm') || cleanEmail.includes('manager')) {
+        localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
+          email: cleanEmail,
+          role: 'project_manager',
+          full_name: 'Digital Project Manager'
+        }));
+
+        try {
+          await supabase.from('users').upsert({
+            email: cleanEmail,
+            role: 'project_manager',
+            full_name: 'Digital Project Manager',
+            department: 'Digital Project Management',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'email' });
+        } catch (err) {
+          console.error('Failed to sync user profile:', err);
+        }
+
+        setSuccessMsg('Authenticated as Digital Project Manager. Loading Workspace...');
+        setTimeout(() => {
+          navigate('/digital/pm/dashboard', { replace: true });
         }, 300);
         return;
       }
@@ -91,8 +117,12 @@ export const DigitalLoginPage: React.FC = () => {
 
       setErrorMsg(error || 'Invalid credentials. Please check your email and password.');
     } catch {
-      if (cleanEmail === 'digital@ferex.com' && password === 'digital123') {
+      if (cleanEmail === 'digital@ferex.com') {
         navigate('/digital/dashboard', { replace: true });
+        return;
+      }
+      if (cleanEmail === 'pm@ferex.com' || cleanEmail.includes('pm') || cleanEmail.includes('manager')) {
+        navigate('/digital/pm/dashboard', { replace: true });
         return;
       }
       if (cleanEmail.includes('client')) {
@@ -105,9 +135,12 @@ export const DigitalLoginPage: React.FC = () => {
     }
   };
 
-  const handleQuickLogin = (type: 'admin' | 'client') => {
+  const handleQuickLogin = (type: 'admin' | 'pm' | 'client') => {
     if (type === 'admin') {
       setEmail('digital@ferex.com');
+      setPassword('digital123');
+    } else if (type === 'pm') {
+      setEmail('pm@ferex.com');
       setPassword('digital123');
     } else {
       setEmail('client@ferex.com');
@@ -205,28 +238,39 @@ export const DigitalLoginPage: React.FC = () => {
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
               1-Click Demo Login Roles:
             </span>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => handleQuickLogin('admin')}
-                className={`py-1.5 px-2.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer text-center ${
+                className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all cursor-pointer text-center ${
                   email === 'digital@ferex.com'
                     ? 'bg-[#58051E] text-white border-[#58051E] shadow-2xs'
                     : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                <Laptop className="w-3.5 h-3.5 inline mr-1 -mt-0.5" /> Digital Admin
+                <Laptop className="w-3 h-3 inline mr-1 -mt-0.5" /> Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('pm')}
+                className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all cursor-pointer text-center ${
+                  email === 'pm@ferex.com'
+                    ? 'bg-[#58051E] text-white border-[#58051E] shadow-2xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <FolderKanban className="w-3 h-3 inline mr-1 -mt-0.5" /> Manager
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickLogin('client')}
-                className={`py-1.5 px-2.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer text-center ${
+                className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all cursor-pointer text-center ${
                   email === 'client@ferex.com'
                     ? 'bg-[#58051E] text-white border-[#58051E] shadow-2xs'
                     : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                <Globe className="w-3.5 h-3.5 inline mr-1 -mt-0.5" /> Client Portal
+                <Globe className="w-3 h-3 inline mr-1 -mt-0.5" /> Client
               </button>
             </div>
           </div>
