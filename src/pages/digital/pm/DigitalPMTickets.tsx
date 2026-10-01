@@ -77,10 +77,12 @@ export const DigitalPMTickets: React.FC = () => {
 
     const handleLocalChange = () => loadTicketsData();
     window.addEventListener('ferex_digital_tickets_change', handleLocalChange);
+    window.addEventListener('ferex_digital_projects_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_digital_tickets_change', handleLocalChange);
+      window.removeEventListener('ferex_digital_projects_change', handleLocalChange);
     };
   }, [user?.id, profile?.email]);
 

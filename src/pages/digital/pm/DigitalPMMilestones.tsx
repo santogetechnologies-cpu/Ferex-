@@ -78,10 +78,12 @@ export const DigitalPMMilestones: React.FC = () => {
 
     const handleLocalChange = () => loadMilestoneData();
     window.addEventListener('ferex_digital_milestones_change', handleLocalChange);
+    window.addEventListener('ferex_digital_projects_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_digital_milestones_change', handleLocalChange);
+      window.removeEventListener('ferex_digital_projects_change', handleLocalChange);
     };
   }, [user?.id, profile?.email]);
 

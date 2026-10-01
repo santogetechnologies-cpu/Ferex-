@@ -37,6 +37,87 @@ export const ROLE_DISPLAY_NAMES: Record<string, string> = {
   central: 'Central Super Admin',
 };
 
+const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
+  digital: [
+    {
+      id: 'd-staff-001',
+      name: 'Digital Project Manager',
+      email: 'pm@ferex.com',
+      role: 'project_manager',
+      roleLabel: 'Digital Project Manager',
+      division: 'digital',
+      department: 'Digital Project Management',
+      phone: '+91 98190 20001'
+    },
+    {
+      id: 'd-staff-002',
+      name: 'Ferex Digital Director',
+      email: 'digital@ferex.com',
+      role: 'digital_admin',
+      roleLabel: 'Digital Agency Director',
+      division: 'digital',
+      department: 'Digital Agency HQ',
+      phone: '+91 98190 20002'
+    },
+    {
+      id: 'd-staff-003',
+      name: 'Digital Manager',
+      email: 'digimanager@ferex.com',
+      role: 'project_manager',
+      roleLabel: 'Digital Project Manager',
+      division: 'digital',
+      department: 'Digital Operations',
+      phone: '+91 98190 20003'
+    },
+    {
+      id: 'd-staff-004',
+      name: 'Lead Creative Designer',
+      email: 'creative@ferex.com',
+      role: 'digital_staff',
+      roleLabel: 'Creative & UI/UX Lead',
+      division: 'digital',
+      department: 'Creative & Design',
+      phone: '+91 98190 20004'
+    }
+  ],
+  trade: [
+    {
+      id: 't-staff-001',
+      name: 'Global Trade Director',
+      email: 'trade@ferex.com',
+      role: 'trade_admin',
+      roleLabel: 'Trade Director',
+      division: 'trade',
+      department: 'Trade Logistics',
+      phone: '+91 98190 30001'
+    }
+  ],
+  rimi: [
+    {
+      id: 'r-staff-001',
+      name: 'Rimi Operations Lead',
+      email: 'rimi@ferex.com',
+      role: 'rimi_admin',
+      roleLabel: 'Rimi Distribution Director',
+      division: 'rimi',
+      department: 'Cold Chain Logistics',
+      phone: '+91 98190 40001'
+    }
+  ],
+  education: [
+    {
+      id: 'e-staff-001',
+      name: 'Admissions Lead Counselor',
+      email: 'education@ferex.com',
+      role: 'education_admin',
+      roleLabel: 'Education Admissions Lead',
+      division: 'education',
+      department: 'Student Admissions',
+      phone: '+91 98190 10001'
+    }
+  ]
+};
+
 const LOCAL_STORAGE_KEY = 'ferex_staff_registry_cache';
 
 export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 'education' | 'all' = 'all'): Promise<DivisionStaffMember[]> {
@@ -51,7 +132,7 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
       .order('created_at', { ascending: false });
 
     const { data, error } = await query;
-    if (!error && Array.isArray(data)) {
+    if (!error && Array.isArray(data) && data.length > 0) {
       const mapped: DivisionStaffMember[] = data
         .filter(u => u && u.email)
         .map(u => {
@@ -75,11 +156,21 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
         result = mapped.filter(s => matchDivision(s, division));
       }
 
+      // Merge with default staff so standard roles like Digital Manager are always selectable
+      const defaults = division === 'all'
+        ? Object.values(DEFAULT_DIVISION_STAFF).flat()
+        : (DEFAULT_DIVISION_STAFF[division] || []);
+
+      const map = new Map<string, DivisionStaffMember>();
+      defaults.forEach(d => map.set(d.email.toLowerCase(), d));
+      result.forEach(r => map.set(r.email.toLowerCase(), r));
+      const combined = Array.from(map.values());
+
       try {
-        localStorage.setItem(`${LOCAL_STORAGE_KEY}_${division}`, JSON.stringify(result));
+        localStorage.setItem(`${LOCAL_STORAGE_KEY}_${division}`, JSON.stringify(combined));
       } catch {}
 
-      return result;
+      return combined;
     }
   } catch (err) {
     console.warn('[getDivisionStaff] DB notice:', err);
@@ -90,11 +181,15 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
     const cached = localStorage.getItem(`${LOCAL_STORAGE_KEY}_${division}`);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch {}
 
-  return [];
+  const defaults = division === 'all'
+    ? Object.values(DEFAULT_DIVISION_STAFF).flat()
+    : (DEFAULT_DIVISION_STAFF[division] || []);
+
+  return defaults;
 }
 
 export function getDivisionStaffSync(division: 'trade' | 'rimi' | 'digital' | 'education' | 'all' = 'all'): DivisionStaffMember[] {
@@ -102,10 +197,15 @@ export function getDivisionStaffSync(division: 'trade' | 'rimi' | 'digital' | 'e
     const cached = localStorage.getItem(`${LOCAL_STORAGE_KEY}_${division}`);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch {}
-  return [];
+
+  const defaults = division === 'all'
+    ? Object.values(DEFAULT_DIVISION_STAFF).flat()
+    : (DEFAULT_DIVISION_STAFF[division] || []);
+
+  return defaults;
 }
 
 export function getDivisionFromRole(role: string, department?: string): string {

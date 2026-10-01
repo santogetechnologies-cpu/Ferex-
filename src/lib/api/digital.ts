@@ -73,9 +73,11 @@ export interface DigitalProjectRecord {
   }>;
   start_date: string;
   deadline: string;
+  assigned_staff_id?: string | null;
   assigned_staff_name: string;
   assigned_staff_email?: string;
   lead_developer?: string;
+  created_by?: string;
   budget: number;
   progress: number;
   payment_terms: 'Advance Payment' | 'Milestone-Based' | 'Full Payment';
@@ -336,7 +338,7 @@ export async function getDigitalProjects(filters?: {
   clientId?: string;
   search?: string;
 }): Promise<DigitalProjectRecord[]> {
-  let projects: DigitalProjectRecord[] = [];
+  let dbProjects: DigitalProjectRecord[] = [];
 
   // Try Supabase first
   try {
@@ -345,16 +347,33 @@ export async function getDigitalProjects(filters?: {
       .select('*, client:digital_clients(*)')
       .order('created_at', { ascending: false });
     if (!error && Array.isArray(data) && data.length > 0) {
-      projects = data.filter((p: any) => !p.is_deleted);
-      try { localStorage.setItem('ferex_digital_projects', JSON.stringify(projects)); } catch {}
+      dbProjects = data.filter((p: any) => !p.is_deleted);
     }
   } catch {}
 
-  if (projects.length === 0) {
+  let localProjects: DigitalProjectRecord[] = [];
+  try {
     const local = localStorage.getItem('ferex_digital_projects');
-    if (local) { try { projects = JSON.parse(local); } catch {} }
-    projects = projects.filter((p: any) => !p.is_deleted);
-  }
+    if (local) {
+      const parsed = JSON.parse(local);
+      if (Array.isArray(parsed)) {
+        localProjects = parsed.filter((p: any) => !p.is_deleted);
+      }
+    }
+  } catch {}
+
+  // Merge both sources by ID
+  const map = new Map<string, DigitalProjectRecord>();
+  localProjects.forEach(p => map.set(p.id, p));
+  dbProjects.forEach(p => map.set(p.id, p));
+
+  let projects = Array.from(map.values()).sort(
+    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+  );
+
+  try {
+    localStorage.setItem('ferex_digital_projects', JSON.stringify(projects));
+  } catch {}
 
   // Apply filters
   if (filters?.category && filters.category !== 'All') {

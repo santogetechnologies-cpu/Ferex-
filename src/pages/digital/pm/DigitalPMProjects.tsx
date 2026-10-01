@@ -95,19 +95,31 @@ export const DigitalPMProjects: React.FC = () => {
         const pId = p.assigned_staff_id;
         const pCreatedBy = (p.created_by || '').toLowerCase().trim();
 
-        return (
+        const isDirectMatch = Boolean(
           (myId && pId === myId) ||
           (myEmail && pEmail && (pEmail.includes(myEmail) || myEmail.includes(pEmail))) ||
           (myName && pName && (pName.includes(myName) || myName.includes(pName))) ||
           (myEmail && pCreatedBy && (pCreatedBy.includes(myEmail) || myEmail.includes(pCreatedBy))) ||
-          (myName && pCreatedBy && (pCreatedBy.includes(myName) || myName.includes(pCreatedBy))) ||
-          (!p.assigned_staff_name && !p.assigned_staff_email) ||
-          p.assigned_staff_name === 'Digital Project Manager' ||
-          p.assigned_staff_email === 'pm@ferex.com'
+          (myName && pCreatedBy && (pCreatedBy.includes(myName) || myName.includes(pCreatedBy)))
         );
+
+        const isPMMatch = Boolean(
+          (!p.assigned_staff_name && !p.assigned_staff_email) ||
+          pName.includes('manager') ||
+          pName.includes('lead') ||
+          pName === 'digital project manager' ||
+          pName === 'digital manager' ||
+          pName === 'project manager' ||
+          pEmail === 'pm@ferex.com' ||
+          pEmail.includes('pm@') ||
+          pEmail.includes('digimanager') ||
+          pEmail.includes('manager')
+        );
+
+        return isDirectMatch || isPMMatch;
       });
 
-      setProjects(filtered);
+      setProjects(filtered.length > 0 ? filtered : (allProjects || []));
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to load projects from database.');
     } finally {

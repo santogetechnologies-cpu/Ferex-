@@ -81,11 +81,13 @@ export const DigitalPMTasks: React.FC = () => {
     const handleLocalChange = () => loadTasksData();
     window.addEventListener('ferex_digital_tasks_change', handleLocalChange);
     window.addEventListener('ferex_tasks_change', handleLocalChange);
+    window.addEventListener('ferex_digital_projects_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_digital_tasks_change', handleLocalChange);
       window.removeEventListener('ferex_tasks_change', handleLocalChange);
+      window.removeEventListener('ferex_digital_projects_change', handleLocalChange);
     };
   }, [user?.id, profile?.email]);
 

@@ -54,9 +54,9 @@ export const DigitalPMDocuments: React.FC = () => {
         getAssignedDigitalProjects(pmIdentity)
       ]);
       setDeliverables(dList || []);
-      setProjects(pList || []);
+      setProjects(pList && pList.length > 0 ? pList : []);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to load deliverables from database.');
+      console.warn('Notice loading documents data:', err);
     } finally {
       setLoading(false);
     }
@@ -68,14 +68,17 @@ export const DigitalPMDocuments: React.FC = () => {
     const channel = supabase
       .channel('realtime_pm_docs')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_deliverables' }, () => loadDocumentsData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_projects' }, () => loadDocumentsData())
       .subscribe();
 
     const handleLocalChange = () => loadDocumentsData();
     window.addEventListener('ferex_digital_deliverables_change', handleLocalChange);
+    window.addEventListener('ferex_digital_projects_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_digital_deliverables_change', handleLocalChange);
+      window.removeEventListener('ferex_digital_projects_change', handleLocalChange);
     };
   }, [user?.id, profile?.email]);
 

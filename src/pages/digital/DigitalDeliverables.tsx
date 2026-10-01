@@ -98,16 +98,25 @@ export const DigitalDeliverables: React.FC = () => {
 
   // Filtered deliverables
   const filteredDeliverables = allDeliverables.filter(d => {
-    if (selectedType !== 'All' && !d.type.toLowerCase().includes(selectedType.toLowerCase())) return false;
-    if (selectedStatus !== 'All' && d.status !== selectedStatus) return false;
-    if (selectedProject !== 'All' && d.project_id !== selectedProject) return false;
+    const dType = (d?.type || '').toLowerCase();
+    const dTitle = (d?.title || '').toLowerCase();
+    const dProjectTitle = (d?.project_title || '').toLowerCase();
+    const dClientName = (d?.client_name || '').toLowerCase();
+    const dStaffName = (d?.assigned_staff_name || '').toLowerCase();
+    const dNotes = (d?.notes || '').toLowerCase();
+
+    if (selectedType !== 'All' && !dType.includes(selectedType.toLowerCase())) return false;
+    if (selectedStatus !== 'All' && d?.status !== selectedStatus) return false;
+    if (selectedProject !== 'All' && d?.project_id !== selectedProject) return false;
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
       return (
-        d.title.toLowerCase().includes(q) ||
-        d.project_title.toLowerCase().includes(q) ||
-        d.client_name.toLowerCase().includes(q) ||
-        (d.notes || '').toLowerCase().includes(q)
+        dTitle.includes(q) ||
+        dProjectTitle.includes(q) ||
+        dClientName.includes(q) ||
+        dStaffName.includes(q) ||
+        dType.includes(q) ||
+        dNotes.includes(q)
       );
     }
     return true;

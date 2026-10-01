@@ -89,11 +89,13 @@ export const DigitalPMSprints: React.FC = () => {
     const handleLocalChange = () => loadSprintData();
     window.addEventListener('ferex_digital_tasks_change', handleLocalChange);
     window.addEventListener('ferex_digital_sprints_change', handleLocalChange);
+    window.addEventListener('ferex_digital_projects_change', handleLocalChange);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_digital_tasks_change', handleLocalChange);
       window.removeEventListener('ferex_digital_sprints_change', handleLocalChange);
+      window.removeEventListener('ferex_digital_projects_change', handleLocalChange);
     };
   }, [user?.id, profile?.email]);
 

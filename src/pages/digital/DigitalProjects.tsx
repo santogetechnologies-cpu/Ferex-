@@ -156,6 +156,7 @@ export const DigitalProjects: React.FC = () => {
     const assignedName = newProj.assigned_staff_name || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Project Manager'));
     const matchedStaff = staffList.find(s => s.name === assignedName);
     const assignedEmail = matchedStaff?.email || newProj.assigned_staff_email || 'pm@ferex.com';
+    const assignedStaffId = matchedStaff?.id || (matchedStaff as any)?.user_id || undefined;
 
     try {
       const created = await createDigitalProject({
@@ -172,6 +173,7 @@ export const DigitalProjects: React.FC = () => {
         deadline: newProj.deadline,
         assigned_staff_name: assignedName,
         assigned_staff_email: assignedEmail,
+        assigned_staff_id: assignedStaffId,
         status: newProj.status,
       });
 
@@ -259,15 +261,18 @@ export const DigitalProjects: React.FC = () => {
       (p.assigned_staff_name || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.service_category || '').toLowerCase().includes(search.toLowerCase());
 
-    const staffName = (profile?.full_name || '').toLowerCase();
-    const staffEmail = (profile?.email || '').toLowerCase();
-    const assignedName = (p.assigned_staff_name || '').toLowerCase();
-    const assignedEmail = (p.assigned_staff_email || '').toLowerCase();
+    const staffName = (profile?.full_name || '').toLowerCase().trim();
+    const staffEmail = (profile?.email || '').toLowerCase().trim();
+    const userRole = (profile?.role || '').toLowerCase().trim();
+    const assignedName = (p.assigned_staff_name || '').toLowerCase().trim();
+    const assignedEmail = (p.assigned_staff_email || '').toLowerCase().trim();
 
     const isMine = Boolean(
-      (staffName && assignedName.includes(staffName)) ||
-      (staffEmail && (assignedEmail === staffEmail || assignedName.includes(staffEmail.split('@')[0]))) ||
-      (staffEmail.includes('digimanager') && (assignedName.includes('manager') || assignedName.includes('digital') || assignedEmail.includes('pm@') || assignedEmail.includes('digimanager')))
+      (profile?.id && p.assigned_staff_id === profile.id) ||
+      (staffName && (assignedName.includes(staffName) || staffName.includes(assignedName))) ||
+      (staffEmail && (assignedEmail === staffEmail || assignedName.includes(staffEmail.split('@')[0]) || (staffEmail.split('@')[0] && assignedEmail.includes(staffEmail.split('@')[0])))) ||
+      ((userRole.includes('pm') || userRole.includes('manager') || userRole.includes('project_manager') || userRole.includes('digital_pm') || staffEmail.includes('digimanager') || staffEmail.includes('pm@')) &&
+        (!p.assigned_staff_name || assignedName.includes('manager') || assignedName.includes('lead') || assignedName.includes('digital') || assignedEmail.includes('pm@') || assignedEmail.includes('manager')))
     );
 
     // Strict staff isolation: Staff only sees their assigned projects
