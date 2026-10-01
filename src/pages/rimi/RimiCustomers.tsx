@@ -420,13 +420,14 @@ export const RimiCustomers: React.FC = () => {
                     <button
                       type="button"
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         setEditingCustomer({ ...c });
                       }}
-                      className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-[#58051E]/10 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 text-slate-500 hover:text-[#58051E] hover:bg-[#58051E]/10 rounded-lg transition-colors cursor-pointer relative z-10"
                       title="Edit Customer"
                     >
-                      <Edit3 className="w-4 h-4" />
+                      <Edit3 className="w-4 h-4 pointer-events-none text-[#58051E]" />
                     </button>
                     {isAdmin && (
                       <button
@@ -461,19 +462,22 @@ export const RimiCustomers: React.FC = () => {
       {/* Add Enterprise Customer Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
+          <motion.div
+            key="add-customer-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          >
+            <div
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
               onClick={() => setShowAddModal(false)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-10 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-10 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto my-auto text-left"
             >
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <div>
@@ -660,26 +664,30 @@ export const RimiCustomers: React.FC = () => {
                 </div>
               </form>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
       {/* Edit Enterprise Customer Modal */}
       <AnimatePresence>
         {editingCustomer && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
+          <motion.div
+            key={`edit-customer-modal-${editingCustomer.id}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          >
+            <div
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
               onClick={() => setEditingCustomer(null)}
             />
             <motion.div
+              key={`edit-customer-content-${editingCustomer.id}`}
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-10 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-10 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto my-auto text-left"
             >
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <div>
@@ -878,7 +886,7 @@ export const RimiCustomers: React.FC = () => {
                 </div>
               </form>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
