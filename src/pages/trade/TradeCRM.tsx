@@ -69,7 +69,7 @@ export const TradeCRM: React.FC = () => {
             contact: d.contact_person || d.contact || 'Operations Desk',
             email: d.email || 'partner@trade.ferex.com',
             phone: d.phone || '+48 22 890 1234',
-            vat_number: d.vat_number || 'PL0000000000',
+            vat_number: d.vat_number || '',
             category: d.category || 'Buyer / Importer',
             paymentTerms: d.payment_terms || 'Letter of Credit at Sight',
             creditLimit: d.credit_limit || 10000000,

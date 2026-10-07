@@ -104,14 +104,18 @@ export async function createTask(payload: {
   const newId = generateUUID();
   const now = new Date().toISOString();
 
-  let assignedStaffId = payload.assigned_staff_id || null;
+  const isValidUUID = (id?: string | null) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  let assignedStaffId: string | null = null;
   let assignedToText = payload.assigned_to || 'Staff Member';
 
-  // If assigned_to is a UUID, set assignedStaffId
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(assignedToText);
-  if (isUuid && !assignedStaffId) {
-    assignedStaffId = assignedToText;
+  if (isValidUUID(payload.assigned_staff_id)) {
+    assignedStaffId = payload.assigned_staff_id!;
+  } else if (isValidUUID(payload.assigned_to)) {
+    assignedStaffId = payload.assigned_to!;
   }
+
+  const validStudentId = isValidUUID(payload.student_id) ? payload.student_id! : null;
 
   const dueDateFormatted = (payload.due_date && payload.due_date.includes('-'))
     ? payload.due_date
@@ -125,7 +129,7 @@ export async function createTask(payload: {
     created_by: createdBy,
     assigned_to: assignedToText,
     assigned_staff_id: assignedStaffId,
-    student_id: payload.student_id || '',
+    student_id: validStudentId || '',
     student_name: payload.student_name || '',
     title: payload.title.trim(),
     description: payload.description?.trim() || '',
@@ -143,7 +147,7 @@ export async function createTask(payload: {
   // 1. Insert into core tasks table
   const { error } = await client.from('tasks').insert({
     id: newId,
-    student_id: payload.student_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.student_id) ? payload.student_id : null,
+    student_id: validStudentId,
     student_name: payload.student_name || '',
     assigned_to: assignedToText,
     assigned_staff_id: assignedStaffId,
@@ -307,14 +311,17 @@ export async function reassignTask(payload: {
   const client = admin || supabase;
   const now = new Date().toISOString();
 
-  let assignedStaffId = payload.assignedStaffId || null;
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.assignedTo);
-  if (isUuid && !assignedStaffId) {
+  const isValidUUID = (id?: string | null) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  let assignedStaffId: string | null = null;
+  if (isValidUUID(payload.assignedStaffId)) {
+    assignedStaffId = payload.assignedStaffId!;
+  } else if (isValidUUID(payload.assignedTo)) {
     assignedStaffId = payload.assignedTo;
   }
 
   const updatePayload: Record<string, any> = {
     assigned_to: payload.assignedTo,
+    assigned_staff_id: assignedStaffId,
     updated_at: now,
   };
   if (assignedStaffId) {

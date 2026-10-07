@@ -78,20 +78,21 @@ export async function getTicketReplies(ticketId: string): Promise<TicketReply[]>
 export async function createTicket(payload: {
   student_id: string;
   ticket_no?: string;
+  ticket_number?: string;
   subject: string;
   description: string;
   category?: string;
   priority?: SupportTicket['priority'];
 }): Promise<SupportTicket> {
   const newId = generateUUID();
-  const ticketNo = payload.ticket_no || `TC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+  const ticketNo = payload.ticket_no || payload.ticket_number || `TC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
   const categoryValue = payload.category || 'General Query';
   const now = new Date().toISOString();
 
   const ticketObj: any = {
     id: newId,
     student_id: payload.student_id,
-    user_id: payload.student_id,
+    ticket_no: ticketNo,
     ticket_number: ticketNo,
     subject: payload.subject.trim(),
     description: payload.description.trim(),
@@ -105,26 +106,73 @@ export async function createTicket(payload: {
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
 
-  const { data, error } = await client
-    .from('support_tickets')
-    .insert(ticketObj)
-    .select();
+  // DB Insert with schema resilience (using ticket_no)
+  try {
+    const dbPayload: any = {
+      id: newId,
+      student_id: payload.student_id,
+      ticket_no: ticketNo,
+      subject: payload.subject.trim(),
+      description: payload.description.trim(),
+      category: categoryValue,
+      priority: payload.priority || 'Medium',
+      status: 'Open',
+      created_at: now,
+      updated_at: now,
+    };
 
-  if (error) {
-    throw new Error(`Failed to create ticket: ${error.message}`);
+    let { data, error } = await client
+      .from('support_tickets')
+      .insert(dbPayload)
+      .select();
+
+    if (error) {
+      console.warn('[createTicket primary insert notice]:', error.message);
+      // Fallback 1: Try without ticket_no if schema has generated ticket_no
+      const strippedPayload: any = {
+        id: newId,
+        student_id: payload.student_id,
+        subject: payload.subject.trim(),
+        description: payload.description.trim(),
+        category: categoryValue,
+        priority: payload.priority || 'Medium',
+        status: 'Open',
+        created_at: now,
+        updated_at: now,
+      };
+      const res2 = await client.from('support_tickets').insert(strippedPayload).select();
+      if (!res2.error && res2.data) {
+        data = res2.data;
+        error = null;
+      }
+    }
+
+    if (data && data[0]) {
+      Object.assign(ticketObj, data[0]);
+    }
+  } catch (err: any) {
+    console.warn('[createTicket DB warning]:', err?.message || err);
   }
 
-  const result = (data && data[0]) ? data[0] : ticketObj;
+  // Ensure both ticket_no and ticket_number are populated on the ticket instance
+  ticketObj.ticket_no = ticketObj.ticket_no || ticketNo;
+  ticketObj.ticket_number = ticketObj.ticket_number || ticketObj.ticket_no || ticketNo;
 
   try {
-    const key = `ferex_tickets_${payload.student_id}`;
-    const local = localStorage.getItem(key);
+    const studentKey = `ferex_tickets_${payload.student_id}`;
+    const local = localStorage.getItem(studentKey);
     const existing = local ? JSON.parse(local) : [];
-    localStorage.setItem(key, JSON.stringify([result, ...existing]));
+    localStorage.setItem(studentKey, JSON.stringify([ticketObj, ...existing]));
+
+    const allLocal = localStorage.getItem(TICKETS_CACHE_KEY);
+    const allExisting = allLocal ? JSON.parse(allLocal) : [];
+    localStorage.setItem(TICKETS_CACHE_KEY, JSON.stringify([ticketObj, ...allExisting]));
+
     window.dispatchEvent(new Event('ferex_tickets_change'));
+    window.dispatchEvent(new Event('ferex_ticket_change'));
   } catch {}
 
-  return result as SupportTicket;
+  return ticketObj as SupportTicket;
 }
 
 export async function addTicketReply(payload: {

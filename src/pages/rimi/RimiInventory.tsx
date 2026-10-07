@@ -18,6 +18,7 @@ import {
   getRimiProducts,
   getRimiWarehouses,
   getRimiStockMovements,
+  getRimiProductCategories,
   type RimiInventoryBatchRecord,
   type RimiStockMovementRecord,
   type RimiProductRecord,
@@ -35,6 +36,7 @@ export const RimiInventory: React.FC = () => {
   const [products, setProducts] = useState<RimiProductRecord[]>([]);
   const [warehouses, setWarehouses] = useState<RimiWarehouseRecord[]>([]);
   const [movements, setMovements] = useState<RimiStockMovementRecord[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -69,16 +71,23 @@ export const RimiInventory: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [batchData, prodData, whData, moveData] = await Promise.all([
+      const [batchData, prodData, whData, moveData, catData] = await Promise.all([
         getRimiBatches(),
         getRimiProducts(),
         getRimiWarehouses(),
-        getRimiStockMovements()
+        getRimiStockMovements(),
+        getRimiProductCategories()
       ]);
       setBatches(batchData);
       setProducts(prodData);
       setWarehouses(whData);
       setMovements(moveData);
+
+      // Merge product categories with any unique batch categories
+      const batchCats = batchData.map(b => b.product_category).filter(Boolean);
+      const prodCats = prodData.map(p => p.category).filter(Boolean);
+      const allUniqueCats = Array.from(new Set([...(catData || []), ...prodCats, ...batchCats]));
+      setCategories(allUniqueCats);
 
       if (prodData.length > 0 && !formData.product_id) {
         setFormData(prev => ({
@@ -177,12 +186,15 @@ export const RimiInventory: React.FC = () => {
     if (expiryTab === 'Expired') matchExpiry = (b.days_to_expiry || 0) <= 0;
 
     const matchWarehouse = warehouseFilter === 'All' || b.warehouse_id === warehouseFilter;
-    const matchCategory = categoryFilter === 'All' || b.product_category === categoryFilter;
+    const matchCategory =
+      categoryFilter === 'All' ||
+      (b.product_category && b.product_category.toLowerCase() === categoryFilter.toLowerCase());
 
     const s = search.toLowerCase();
     const matchSearch =
       b.batch_no.toLowerCase().includes(s) ||
       b.product_name.toLowerCase().includes(s) ||
+      (b.product_category && b.product_category.toLowerCase().includes(s)) ||
       b.warehouse_name.toLowerCase().includes(s);
 
     return matchExpiry && matchWarehouse && matchCategory && matchSearch;
@@ -261,11 +273,9 @@ export const RimiInventory: React.FC = () => {
           className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
         >
           <option value="All">All Categories</option>
-          <option value="Frozen Seafood">Frozen Seafood</option>
-          <option value="Frozen Meat & Poultry">Frozen Meat & Poultry</option>
-          <option value="Frozen Vegetables">Frozen Vegetables</option>
-          <option value="Ice Cream & Dairy">Ice Cream & Dairy</option>
-          <option value="Processed Food">Processed Food</option>
+          {categories.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
         </select>
       </Card>
 

@@ -129,6 +129,16 @@ export const TradeTickets: React.FC = () => {
     }
   };
 
+  const handleCloseTicket = async (ticketId: string, ticketNo: string) => {
+    try {
+      await updateTradeTicketStatus(ticketId, 'Closed');
+      showToastMsg(`Ticket ${ticketNo} closed successfully!`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Failed to close ticket: ${err.message}`);
+    }
+  };
+
   const handleDelete = async (id: string, no: string) => {
     if (!window.confirm(`Delete ticket ${no}?`)) return;
     await deleteTradeTicket(id);
@@ -293,9 +303,20 @@ export const TradeTickets: React.FC = () => {
                         setResolvingTicket(t);
                         setResolutionText(t.resolution_notes || '');
                       }}
-                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10.5px] font-black cursor-pointer shadow-2xs"
+                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10.5px] font-black cursor-pointer shadow-2xs flex items-center gap-1"
                     >
+                      <CheckCircle2 className="w-3 h-3" />
                       Resolve Ticket
+                    </button>
+                  )}
+                  {t.status === 'Resolved' && (
+                    <button
+                      onClick={() => handleCloseTicket(t.id, t.ticket_no)}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-[10.5px] font-black cursor-pointer shadow-2xs flex items-center gap-1"
+                      title="Close Resolved Ticket"
+                    >
+                      <CheckCircle2 className="w-3 h-3" />
+                      Close Ticket
                     </button>
                   )}
                   <button

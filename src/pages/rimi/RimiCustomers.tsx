@@ -246,6 +246,21 @@ export const RimiCustomers: React.FC = () => {
     }
   };
 
+  const handleInlineStageChange = async (customer: RimiCustomerRecord, newStage: RimiCustomerRecord['pipeline_stage']) => {
+    try {
+      await updateRimiCustomerStage(
+        customer.id,
+        newStage,
+        profile?.full_name || 'Rimi Admin',
+        `Pipeline stage updated to ${newStage}`
+      );
+      setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, pipeline_stage: newStage } : c));
+      showToast(`Updated "${customer.business_name}" pipeline stage to "${newStage}"`);
+    } catch (err: any) {
+      showToast(`Error updating stage: ${err.message || 'Database error'}`);
+    }
+  };
+
   const filteredCustomers = customers.filter(c => {
     const matchType = typeFilter === 'All' || c.customer_type === typeFilter;
     const matchTerritory = territoryFilter === 'All' || c.territory === territoryFilter;
@@ -369,13 +384,25 @@ export const RimiCustomers: React.FC = () => {
                     {c.customer_type}
                   </span>
 
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
-                    c.pipeline_stage === 'Active Account'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-amber-50 text-amber-700 border-amber-200'
-                  }`}>
-                    {c.pipeline_stage}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400">Stage:</span>
+                    <select
+                      value={c.pipeline_stage || 'Lead'}
+                      onChange={(e) => handleInlineStageChange(c, e.target.value as any)}
+                      className={`text-[10.5px] font-extrabold px-2 py-0.5 rounded-full border cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#58051E] ${
+                        c.pipeline_stage === 'Active Account'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                          : c.pipeline_stage === 'Suspended'
+                          ? 'bg-rose-50 text-rose-800 border-rose-300'
+                          : 'bg-amber-50 text-amber-800 border-amber-300'
+                      }`}
+                      title="Update Customer Pipeline Stage"
+                    >
+                      {PIPELINE_STAGES.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* Business Details */}

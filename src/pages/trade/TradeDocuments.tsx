@@ -301,14 +301,23 @@ export const TradeDocuments: React.FC = () => {
   };
 
   const filteredDocs = docs.filter(d => {
+    const q = searchQuery.trim().toLowerCase();
     const matchSearch =
-      d.order_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.file_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (d.doc_number && d.doc_number.toLowerCase().includes(searchQuery.toLowerCase()));
+      !q ||
+      Boolean(
+        (d.order_no && d.order_no.toLowerCase().includes(q)) ||
+        (d.client_name && d.client_name.toLowerCase().includes(q)) ||
+        (d.file_name && d.file_name.toLowerCase().includes(q)) ||
+        (d.doc_number && d.doc_number.toLowerCase().includes(q)) ||
+        (d.doc_type && d.doc_type.toLowerCase().includes(q)) ||
+        (d.uploaded_by && d.uploaded_by.toLowerCase().includes(q)) ||
+        (d.verified_by && d.verified_by.toLowerCase().includes(q)) ||
+        (d.notes && d.notes.toLowerCase().includes(q)) ||
+        (d.status && d.status.toLowerCase().includes(q))
+      );
 
-    const matchType = filterType === 'All' || d.doc_type === filterType;
-    const matchStatus = filterStatus === 'All' || d.status === filterStatus;
+    const matchType = filterType === 'All' || d.doc_type?.toLowerCase() === filterType.toLowerCase();
+    const matchStatus = filterStatus === 'All' || (d.status && d.status.toLowerCase() === filterStatus.toLowerCase());
 
     return matchSearch && matchType && matchStatus;
   });

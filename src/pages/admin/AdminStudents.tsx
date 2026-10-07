@@ -130,8 +130,42 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
   useEffect(() => {
     const mapped = dbStudents.map((s) => {
       const studentApp = dbApps.find(a => a.student_id === s.id);
-      const rawCountry = studentApp?.universities?.country || (studentApp as any)?.country || (studentApp?.university_name?.includes('Warsaw') || studentApp?.university_name?.includes('Poland') ? 'Poland' : studentApp?.university_name?.includes('Munich') || studentApp?.university_name?.includes('Berlin') ? 'Germany' : 'Poland');
-      const countryMeta = COUNTRY_FLAGS[rawCountry] || { flag: 'EU', authority: 'Academic Legalization' };
+      
+      const savedCountry = typeof localStorage !== 'undefined'
+        ? (localStorage.getItem(`ferex_student_target_country_${s.id}`) || localStorage.getItem(`ferex_student_country_${s.id}`))
+        : null;
+      
+      const appUniv = (studentApp?.university_name || studentApp?.universities?.name || '').toLowerCase();
+
+      const inferredCountry = 
+        appUniv.includes('munich') || appUniv.includes('berlin') || appUniv.includes('tum') || appUniv.includes('heidelberg') || appUniv.includes('germany') ? 'Germany' :
+        appUniv.includes('oxford') || appUniv.includes('cambridge') || appUniv.includes('london') || appUniv.includes('uk') || appUniv.includes('manchester') ? 'United Kingdom' :
+        appUniv.includes('sorbonne') || appUniv.includes('paris') || appUniv.includes('france') || appUniv.includes('lyon') ? 'France' :
+        appUniv.includes('bologna') || appUniv.includes('milan') || appUniv.includes('rome') || appUniv.includes('italy') || appUniv.includes('politecnico') ? 'Italy' :
+        appUniv.includes('harvard') || appUniv.includes('mit') || appUniv.includes('stanford') || appUniv.includes('usa') || appUniv.includes('states') ? 'United States' :
+        appUniv.includes('toronto') || appUniv.includes('mcgill') || appUniv.includes('ubc') || appUniv.includes('canada') ? 'Canada' :
+        appUniv.includes('budapest') || appUniv.includes('debrecen') || appUniv.includes('hungary') ? 'Hungary' :
+        appUniv.includes('warsaw') || appUniv.includes('krakow') || appUniv.includes('wroclaw') || appUniv.includes('poland') || appUniv.includes('poznan') ? 'Poland' :
+        null;
+
+      const rawCountry = savedCountry || 
+        (s as any).target_country || 
+        (s as any).destination_country || 
+        (s as any).country || 
+        studentApp?.universities?.country || 
+        (studentApp as any)?.country || 
+        (studentApp as any)?.target_country || 
+        inferredCountry || 
+        (s.assigned_counselor?.includes('Germany') ? 'Germany' :
+         s.assigned_counselor?.includes('UK') || s.assigned_counselor?.includes('United Kingdom') ? 'United Kingdom' :
+         s.assigned_counselor?.includes('France') ? 'France' :
+         s.assigned_counselor?.includes('Italy') ? 'Italy' :
+         s.assigned_counselor?.includes('USA') || s.assigned_counselor?.includes('United States') ? 'United States' :
+         s.assigned_counselor?.includes('Canada') ? 'Canada' :
+         s.assigned_counselor?.includes('Hungary') ? 'Hungary' :
+         'Poland');
+
+      const countryMeta = COUNTRY_FLAGS[rawCountry] || { flag: rawCountry ? rawCountry.substring(0, 2).toUpperCase() : 'EU', authority: 'Academic Legalization' };
       
       const assignedCounselor = (s.assigned_counselor && s.assigned_counselor !== 'Admin' && s.assigned_counselor !== '--')
         ? s.assigned_counselor
@@ -146,7 +180,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         targetCountry: rawCountry,
         targetFlag: countryMeta.flag,
         workflowAuthority: countryMeta.authority,
-        university: (studentApp?.university_name && studentApp.university_name !== 'Pending University Selection') ? studentApp.university_name : (studentApp?.universities?.name || 'Not Selected'),
+        university: (studentApp?.university_name && studentApp.university_name !== 'Pending University Selection') ? studentApp.university_name : (studentApp?.universities?.name || `${rawCountry} Partner University`),
         course: studentApp?.program_name || studentApp?.course || 'Program Pending Selection',
         intake: studentApp?.intake || 'Upcoming Intake',
         status: studentApp?.status || 'Active',
@@ -305,28 +339,36 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         full_name: addName.trim(),
         email: addEmail.trim(),
         phone: addPhone.trim() || '',
-        assigned_counselor: chosenCounselor
-      });
+        assigned_counselor: chosenCounselor,
+        target_country: addTargetCountry,
+        destination_country: addTargetCountry,
+      } as any);
 
-      // If admin selected a specific target university and course, create a real application record
-      if (addUniversity && addUniversity.trim()) {
-        try {
-          const { createApplication } = await import('../../lib/api/applications');
-          await createApplication({
-            student_id: created.id,
-            student_name: addName.trim(),
-            university_name: addUniversity.trim(),
-            program_name: addCourse.trim() || 'Higher Degree Studies',
-            intake: addIntake.trim() || 'October 2026'
-          });
-        } catch (e) {}
+      // Persist chosen country locally
+      if (typeof localStorage !== 'undefined' && created?.id) {
+        localStorage.setItem(`ferex_student_target_country_${created.id}`, addTargetCountry);
+        localStorage.setItem(`ferex_student_country_${created.id}`, addTargetCountry);
       }
+
+      // Create a valid application record with the selected country and university
+      try {
+        const { createApplication } = await import('../../lib/api/applications');
+        const univName = addUniversity?.trim() || `${addTargetCountry} Partner University`;
+        await createApplication({
+          student_id: created.id,
+          student_name: addName.trim(),
+          university_name: univName,
+          program_name: addCourse.trim() || 'Higher Degree Studies',
+          intake: addIntake.trim() || 'October 2026',
+          country: addTargetCountry,
+        } as any);
+      } catch (e) {}
 
       setShowAddModal(false);
       setAddName('');
       setAddEmail('');
       setAddPhone('');
-      showToast(`Student ${addName} added successfully. Assigned to ${chosenCounselor}.`);
+      showToast(`Student ${addName} added successfully for ${addTargetCountry}. Assigned to ${chosenCounselor}.`);
     } catch (err: any) {
       showToast(`Error adding student: ${err.message || 'Failed'}`);
     } finally {
@@ -399,7 +441,16 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
       s.university.toLowerCase().includes(search.toLowerCase()) ||
       s.targetCountry.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'All' || s.status === statusFilter;
-    const matchCountry = countryFilter === 'All' || s.targetCountry.toLowerCase() === countryFilter.toLowerCase();
+    
+    const targetNorm = (s.targetCountry || '').toLowerCase().trim();
+    const filterNorm = (countryFilter || '').toLowerCase().trim();
+    const matchCountry = countryFilter === 'All' ||
+      targetNorm === filterNorm ||
+      (filterNorm === 'united kingdom' && (targetNorm === 'uk' || targetNorm === 'united kingdom')) ||
+      (filterNorm === 'uk' && (targetNorm === 'uk' || targetNorm === 'united kingdom')) ||
+      (filterNorm === 'united states' && (targetNorm === 'usa' || targetNorm === 'united states' || targetNorm === 'us')) ||
+      (filterNorm === 'usa' && (targetNorm === 'usa' || targetNorm === 'united states' || targetNorm === 'us'));
+      
     const matchCounselor = counselorFilter === 'All' || s.counselor.toLowerCase().includes(counselorFilter.toLowerCase());
     return matchSearch && matchStatus && matchCountry && matchCounselor;
   });

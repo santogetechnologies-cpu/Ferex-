@@ -855,26 +855,42 @@ export async function getTradeDocuments(orderNo?: string): Promise<TradeDocument
 
       const { data, error } = await query;
       if (!error && Array.isArray(data)) {
-        dbDocs = data.map((d: any) => ({
-          id: d.id,
-          order_id: d.shipment_id || d.order_id || null,
-          order_no: d.order_no || 'GENERAL-TRD',
-          client_name: d.client_name || 'Global Trade Partner',
-          doc_type: d.doc_type || 'Commercial Invoice',
-          doc_number: d.doc_number || `DOC-${d.id?.slice(0, 4) || '1001'}`,
-          file_name: d.document_name || d.file_name || 'Document.pdf',
-          file_url: d.document_url || d.file_url || '',
-          file_size: d.file_size || '245 KB',
-          status: (d.is_verified ? 'Verified' : d.status) || 'Submitted',
-          rejection_reason: d.rejection_reason || '',
-          notes: d.notes || '',
-          uploaded_by: d.uploaded_by || 'Operations Desk',
-          verified_by: d.verified_by || '',
-          verified_at: d.verified_at || null,
-          sent_to_client: Boolean(d.sent_to_client),
-          sent_to_client_at: d.sent_to_client_at || null,
-          created_at: d.uploaded_at || d.created_at || new Date().toISOString()
-        })) as TradeDocument[];
+        dbDocs = data.map((d: any) => {
+          let resolvedStatus: TradeDocInternalStatus = 'Submitted';
+          if (d.status) {
+            const s = String(d.status).trim();
+            if (/^verif/i.test(s)) resolvedStatus = 'Verified';
+            else if (/^reject/i.test(s)) resolvedStatus = 'Rejected';
+            else if (/^pend/i.test(s)) resolvedStatus = 'Pending';
+            else if (/^subm/i.test(s)) resolvedStatus = 'Submitted';
+            else resolvedStatus = d.status as TradeDocInternalStatus;
+          } else if (d.is_verified === true) {
+            resolvedStatus = 'Verified';
+          } else if (d.rejection_reason) {
+            resolvedStatus = 'Rejected';
+          }
+
+          return {
+            id: d.id,
+            order_id: d.shipment_id || d.order_id || null,
+            order_no: d.order_no || 'GENERAL-TRD',
+            client_name: d.client_name || 'Global Trade Partner',
+            doc_type: d.doc_type || 'Commercial Invoice',
+            doc_number: d.doc_number || `DOC-${d.id?.slice(0, 4) || '1001'}`,
+            file_name: d.document_name || d.file_name || 'Document.pdf',
+            file_url: d.document_url || d.file_url || '',
+            file_size: d.file_size || '245 KB',
+            status: resolvedStatus,
+            rejection_reason: d.rejection_reason || '',
+            notes: d.notes || '',
+            uploaded_by: d.uploaded_by || 'Operations Desk',
+            verified_by: d.verified_by || '',
+            verified_at: d.verified_at || null,
+            sent_to_client: Boolean(d.sent_to_client),
+            sent_to_client_at: d.sent_to_client_at || null,
+            created_at: d.uploaded_at || d.created_at || new Date().toISOString()
+          };
+        }) as TradeDocument[];
       }
     } catch (err) {
       console.warn('[TradeAPI] Supabase getTradeDocuments fallback notice:', err);
@@ -883,7 +899,14 @@ export async function getTradeDocuments(orderNo?: string): Promise<TradeDocument
     const local = getLocalTradeDocs();
     const map = new Map<string, TradeDocument>();
     local.forEach(d => map.set(d.id, d));
-    dbDocs.forEach(d => map.set(d.id, d));
+    dbDocs.forEach(d => {
+      const loc = map.get(d.id);
+      if (loc && loc.status === 'Rejected' && d.status !== 'Rejected' && !d.status) {
+        map.set(d.id, { ...d, status: 'Rejected', rejection_reason: loc.rejection_reason });
+      } else {
+        map.set(d.id, d);
+      }
+    });
 
     let allDocs = Array.from(map.values()).sort(
       (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
@@ -934,9 +957,24 @@ export async function uploadTradeDocument(doc: Partial<TradeDocument>, autoSend?
       document_name: newDoc.file_name,
       document_url: newDoc.file_url || 'https://ferex.trade/vault/doc',
       is_verified: newDoc.status === 'Verified',
+      status: newDoc.status,
+      order_no: newDoc.order_no,
+      client_name: newDoc.client_name,
+      rejection_reason: newDoc.rejection_reason || null,
       uploaded_at: newDoc.created_at
     };
-    await supabase.from('trade_documents').insert([dbPayload]);
+    const { error: insertErr } = await supabase.from('trade_documents').insert([dbPayload]);
+    if (insertErr) {
+      // Fallback without extended columns if schema differs
+      await supabase.from('trade_documents').insert([{
+        id: newDoc.id,
+        doc_type: newDoc.doc_type,
+        document_name: newDoc.file_name,
+        document_url: newDoc.file_url || 'https://ferex.trade/vault/doc',
+        is_verified: newDoc.status === 'Verified',
+        uploaded_at: newDoc.created_at
+      }]);
+    }
   } catch (err) {
     console.warn('[TradeAPI] Supabase doc insert notice:', err);
   }
@@ -972,16 +1010,23 @@ export async function verifyTradeDocument(
   const updatedDoc: TradeDocument = {
     ...(existing || { id: docId, order_no: 'TRD-2026', client_name: 'Trade Partner', doc_type: 'Commercial Invoice', doc_number: 'DOC-1001', file_name: 'Doc.pdf', file_size: '200 KB', uploaded_by: 'Trade Officer' } as TradeDocument),
     status: 'Verified' as TradeDocInternalStatus,
+    rejection_reason: '',
     verified_by: verifiedBy,
     verified_at: new Date().toISOString(),
     notes: notes || existing?.notes || 'Verified and approved for customs & banking clearance'
   };
 
   try {
-    await supabase
+    const { error } = await supabase
       .from('trade_documents')
-      .update({ is_verified: true })
+      .update({ is_verified: true, status: 'Verified', rejection_reason: null, verified_by: verifiedBy, verified_at: new Date().toISOString() })
       .eq('id', docId);
+    if (error) {
+      await supabase
+        .from('trade_documents')
+        .update({ is_verified: true })
+        .eq('id', docId);
+    }
   } catch (err) {
     console.warn('[TradeAPI] Supabase verify notice:', err);
   }
@@ -1010,10 +1055,16 @@ export async function rejectTradeDocument(
   };
 
   try {
-    await supabase
+    const { error } = await supabase
       .from('trade_documents')
-      .update({ is_verified: false })
+      .update({ is_verified: false, status: 'Rejected', rejection_reason: reason })
       .eq('id', docId);
+    if (error) {
+      await supabase
+        .from('trade_documents')
+        .update({ is_verified: false })
+        .eq('id', docId);
+    }
   } catch (err) {
     console.warn('[TradeAPI] Supabase reject notice:', err);
   }
@@ -1360,6 +1411,18 @@ export async function resolveTradeTicket(
   });
 }
 
+export async function updateTradeTicketStatus(
+  ticketId: string,
+  status: TicketStatus,
+  resolutionNotes?: string
+): Promise<TradeTicket | null> {
+  const updates: Partial<TradeTicket> = { status };
+  if (resolutionNotes) {
+    updates.resolution_notes = resolutionNotes;
+  }
+  return updateTradeTicket(ticketId, updates);
+}
+
 export async function deleteTradeTicket(ticketId: string): Promise<boolean> {
   try {
     const { error } = await supabase
@@ -1560,7 +1623,19 @@ export async function getTradeClients(search?: string): Promise<TradeClientPartn
     const local = getLocalTradeClients();
     const map = new Map<string, TradeClientPartner>();
     local.forEach(c => map.set(c.id, c));
-    dbClients.forEach(c => map.set(c.id, c));
+    dbClients.forEach(c => {
+      const loc = map.get(c.id);
+      if (loc) {
+        map.set(c.id, {
+          ...c,
+          vat_number: c.vat_number || loc.vat_number || '',
+          category: c.category || loc.category || 'Buyer / Importer',
+          credit_limit: c.credit_limit || loc.credit_limit || 500000
+        });
+      } else {
+        map.set(c.id, c);
+      }
+    });
 
     let allClients = Array.from(map.values()).sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
 
@@ -1570,7 +1645,8 @@ export async function getTradeClients(search?: string): Promise<TradeClientPartn
         c.company_name.toLowerCase().includes(q) ||
         c.contact_person.toLowerCase().includes(q) ||
         c.country.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q)
+        c.email.toLowerCase().includes(q) ||
+        (c.vat_number && c.vat_number.toLowerCase().includes(q))
       );
     }
 
@@ -1619,12 +1695,30 @@ export async function createTradeClient(client: Partial<TradeClientPartner>): Pr
       phone: newClient.phone,
       country: newClient.country,
       city: newClient.city,
+      vat_number: newClient.vat_number,
+      category: newClient.category,
       payment_terms: newClient.payment_terms,
       status: 'Active',
       created_at: newClient.created_at,
       updated_at: newClient.updated_at
     };
-    await supabase.from('trade_clients').insert([dbPayload]);
+    const { error: insertErr } = await supabase.from('trade_clients').insert([dbPayload]);
+    if (insertErr) {
+      // Retry without extended fields if columns do not exist in DB
+      await supabase.from('trade_clients').insert([{
+        id: newClient.id,
+        company_name: newClient.company_name,
+        contact_person: newClient.contact_person,
+        email: newClient.email,
+        phone: newClient.phone,
+        country: newClient.country,
+        city: newClient.city,
+        payment_terms: newClient.payment_terms,
+        status: 'Active',
+        created_at: newClient.created_at,
+        updated_at: newClient.updated_at
+      }]);
+    }
   } catch (err) {
     console.warn('[TradeAPI] Supabase client insert notice:', err);
   }
@@ -1659,10 +1753,24 @@ export async function updateTradeClient(
       phone: updatedRecord.phone,
       country: updatedRecord.country,
       city: updatedRecord.city,
+      vat_number: updatedRecord.vat_number,
+      category: updatedRecord.category,
       payment_terms: updatedRecord.payment_terms,
       updated_at: updatedRecord.updated_at
     };
-    await supabase.from('trade_clients').update(dbUpdates).eq('id', clientId);
+    const { error } = await supabase.from('trade_clients').update(dbUpdates).eq('id', clientId);
+    if (error) {
+      await supabase.from('trade_clients').update({
+        company_name: updatedRecord.company_name,
+        contact_person: updatedRecord.contact_person,
+        email: updatedRecord.email,
+        phone: updatedRecord.phone,
+        country: updatedRecord.country,
+        city: updatedRecord.city,
+        payment_terms: updatedRecord.payment_terms,
+        updated_at: updatedRecord.updated_at
+      }).eq('id', clientId);
+    }
   } catch (err) {
     console.warn('[TradeAPI] Supabase client update notice:', err);
   }
