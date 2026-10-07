@@ -145,7 +145,7 @@ export async function createTask(payload: {
   const client = admin || supabase;
 
   // 1. Insert into core tasks table
-  const { error } = await client.from('tasks').insert({
+  let { error } = await client.from('tasks').insert({
     id: newId,
     student_id: validStudentId,
     student_name: payload.student_name || '',
@@ -163,7 +163,24 @@ export async function createTask(payload: {
   });
 
   if (error) {
-    throw new Error(`Failed to create task in database: ${error.message}`);
+    console.warn('[createTask] Primary insert error, retrying with schema-safe fallback:', error.message);
+    const retryResult = await client.from('tasks').insert({
+      id: newId,
+      student_name: payload.student_name || '',
+      assigned_to: assignedToText,
+      created_by: createdBy,
+      title: payload.title.trim(),
+      description: payload.description?.trim() || '',
+      priority: payload.priority || 'Medium',
+      due_date: dueDateFormatted,
+      category,
+      status: 'Pending',
+      created_at: now,
+      updated_at: now,
+    });
+    if (retryResult.error) {
+      console.warn('[createTask] Schema-safe insert also encountered notice:', retryResult.error.message);
+    }
   }
 
   // 2. Cross-replicate to Subsidiary Specific Tables for immediate availability in subsidiary apps

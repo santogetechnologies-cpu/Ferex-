@@ -35,6 +35,7 @@ export const TradeTickets: React.FC = () => {
   const [filterChannel, setFilterChannel] = useState<string>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [resolvingTicket, setResolvingTicket] = useState<TradeTicket | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<TradeTicket | null>(null);
   const [resolutionText, setResolutionText] = useState('');
   const [toast, setToast] = useState('');
 
@@ -246,92 +247,193 @@ export const TradeTickets: React.FC = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredTickets.map((t) => (
-            <Card key={t.id} className="p-4 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
-              <div>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
-                      {t.ticket_no}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${getPriorityBadge(t.priority)}`}>
-                      {t.priority}
-                    </span>
-                    <span className="flex items-center gap-1 text-[11px] font-bold text-slate-600">
-                      {getChannelIcon(t.channel)} {t.channel}
+          {filteredTickets.map((t) => {
+            const isResolved = t.status?.toLowerCase() === 'resolved';
+            const isClosed = t.status?.toLowerCase() === 'closed';
+
+            return (
+              <Card
+                key={t.id}
+                onClick={() => setSelectedTicket(t)}
+                className="p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-[#58051E]/30 transition-all flex flex-col justify-between cursor-pointer group"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
+                        {t.ticket_no}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${getPriorityBadge(t.priority)}`}>
+                        {t.priority}
+                      </span>
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-slate-600">
+                        {getChannelIcon(t.channel)} {t.channel}
+                      </span>
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-black ${
+                      isResolved || isClosed
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : t.status === 'In Progress'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {t.status}
                     </span>
                   </div>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-black ${
-                    t.status === 'Resolved' || t.status === 'Closed'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : t.status === 'In Progress'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {t.status}
-                  </span>
-                </div>
 
-                <h3 className="text-sm font-black text-slate-900 leading-snug mb-1">{t.subject}</h3>
-                <div className="text-[11px] text-slate-500 font-bold mb-2">
-                  Client: <strong className="text-slate-900">{t.client_name}</strong> {t.client_contact ? `(${t.client_contact})` : ''}
-                  {t.order_no ? ` • Linked Order: ${t.order_no}` : ''}
-                </div>
-
-                <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl mb-3 border border-slate-100">
-                  {t.description}
-                </p>
-
-                {t.resolution_notes && (
-                  <div className="p-2.5 bg-emerald-50 rounded-xl mb-3 border border-emerald-200 text-xs text-emerald-900 font-medium">
-                    <strong className="block text-[10px] font-black uppercase text-emerald-700 mb-0.5">Resolution Notes:</strong>
-                    {t.resolution_notes}
+                  <h3 className="text-sm font-black text-slate-900 leading-snug mb-1 group-hover:text-[#58051E] transition-colors">{t.subject}</h3>
+                  <div className="text-[11px] text-slate-500 font-bold mb-2">
+                    Client: <strong className="text-slate-900">{t.client_name}</strong> {t.client_contact ? `(${t.client_contact})` : ''}
+                    {t.order_no ? ` • Linked Order: ${t.order_no}` : ''}
                   </div>
-                )}
-              </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold">
-                <div className="text-slate-600">
-                  Assigned: <strong className="text-slate-900">{t.assigned_staff_name}</strong>
-                  <span className="text-[10px] text-slate-400 block">Logged by {t.logged_by}</span>
+                  <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl mb-3 border border-slate-100 line-clamp-3">
+                    {t.description}
+                  </p>
+
+                  {t.resolution_notes && (
+                    <div className="p-2.5 bg-emerald-50 rounded-xl mb-3 border border-emerald-200 text-xs text-emerald-900 font-medium">
+                      <strong className="block text-[10px] font-black uppercase text-emerald-700 mb-0.5">Resolution Notes:</strong>
+                      {t.resolution_notes}
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {t.status !== 'Resolved' && t.status !== 'Closed' && (
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold">
+                  <div className="text-slate-600">
+                    Assigned: <strong className="text-slate-900">{t.assigned_staff_name}</strong>
+                    <span className="text-[10px] text-slate-400 block">Logged by {t.logged_by}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    {!isResolved && !isClosed && (
+                      <button
+                        onClick={() => {
+                          setResolvingTicket(t);
+                          setResolutionText(t.resolution_notes || '');
+                        }}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-black cursor-pointer shadow-2xs flex items-center gap-1.5"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Resolve Ticket
+                      </button>
+                    )}
+                    {isResolved && (
+                      <button
+                        onClick={() => handleCloseTicket(t.id, t.ticket_no)}
+                        className="px-3 py-1.5 bg-slate-900 hover:bg-black text-white rounded-lg text-[11px] font-black cursor-pointer shadow-2xs flex items-center gap-1.5"
+                        title="Close Resolved Ticket"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        Close Ticket
+                      </button>
+                    )}
                     <button
-                      onClick={() => {
-                        setResolvingTicket(t);
-                        setResolutionText(t.resolution_notes || '');
-                      }}
-                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10.5px] font-black cursor-pointer shadow-2xs flex items-center gap-1"
+                      onClick={() => handleDelete(t.id, t.ticket_no)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
+                      title="Delete Ticket"
                     >
-                      <CheckCircle2 className="w-3 h-3" />
-                      Resolve Ticket
+                      <Trash2 className="w-4 h-4" />
                     </button>
-                  )}
-                  {t.status === 'Resolved' && (
-                    <button
-                      onClick={() => handleCloseTicket(t.id, t.ticket_no)}
-                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-[10.5px] font-black cursor-pointer shadow-2xs flex items-center gap-1"
-                      title="Close Resolved Ticket"
-                    >
-                      <CheckCircle2 className="w-3 h-3" />
-                      Close Ticket
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleDelete(t.id, t.ticket_no)}
-                    className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
-                    title="Delete Ticket"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
+
+      {/* ── SELECTED TICKET DETAIL MODAL ── */}
+      <AnimatePresence>
+        {selectedTicket && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50" onClick={() => setSelectedTicket(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 text-left max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
+                    {selectedTicket.ticket_no}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${getPriorityBadge(selectedTicket.priority)}`}>
+                    {selectedTicket.priority} Priority
+                  </span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-black ${
+                    selectedTicket.status === 'Resolved' || selectedTicket.status === 'Closed'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {selectedTicket.status}
+                  </span>
+                </div>
+                <button onClick={() => setSelectedTicket(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <h2 className="text-base font-black text-slate-900 mb-2">{selectedTicket.subject}</h2>
+
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-1.5 text-xs text-slate-600 mb-4">
+                <div><span className="text-slate-400 font-bold">Client Entity:</span> <strong className="text-slate-900">{selectedTicket.client_name}</strong></div>
+                {selectedTicket.client_contact && <div><span className="text-slate-400 font-bold">Caller / Contact:</span> {selectedTicket.client_contact}</div>}
+                {selectedTicket.order_no && <div><span className="text-slate-400 font-bold">Linked Order:</span> <span className="font-mono font-bold text-slate-900">{selectedTicket.order_no}</span></div>}
+                <div><span className="text-slate-400 font-bold">Channel:</span> {selectedTicket.channel}</div>
+                <div><span className="text-slate-400 font-bold">Assigned Staff:</span> <strong className="text-slate-900">{selectedTicket.assigned_staff_name}</strong> ({selectedTicket.assigned_staff_email})</div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Issue Statement / Description</label>
+                <div className="text-xs text-slate-700 bg-white p-3 rounded-xl border border-slate-200">
+                  {selectedTicket.description}
+                </div>
+              </div>
+
+              {selectedTicket.resolution_notes && (
+                <div className="mb-4">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-emerald-700 mb-1">Resolution Summary</label>
+                  <div className="text-xs text-emerald-950 bg-emerald-50 p-3 rounded-xl border border-emerald-200 font-medium">
+                    {selectedTicket.resolution_notes}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <Button type="button" variant="outline" size="sm" onClick={() => setSelectedTicket(null)}>
+                  Close Window
+                </Button>
+                <div className="flex items-center gap-2">
+                  {selectedTicket.status !== 'Resolved' && selectedTicket.status !== 'Closed' && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setResolvingTicket(selectedTicket);
+                        setResolutionText(selectedTicket.resolution_notes || '');
+                        setSelectedTicket(null);
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-1" />
+                      Resolve Ticket
+                    </Button>
+                  )}
+                  {selectedTicket.status === 'Resolved' && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        handleCloseTicket(selectedTicket.id, selectedTicket.ticket_no);
+                        setSelectedTicket(null);
+                      }}
+                      className="bg-slate-900 hover:bg-black text-white cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-1 text-emerald-400" />
+                      Close Ticket
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* ── LOG MANUAL TICKET MODAL ── */}
       <AnimatePresence>

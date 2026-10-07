@@ -337,7 +337,7 @@ export const TradeCRM: React.FC = () => {
                   <div className="truncate"><span className="text-slate-400">Contact:</span> {c.contact}</div>
                   <div className="truncate"><span className="text-slate-400">Email:</span> {c.email}</div>
                   <div className="truncate"><span className="text-slate-400">Phone:</span> {c.phone}</div>
-                  <div className="truncate"><span className="text-slate-400">VAT/Tax:</span> {c.vat_number}</div>
+                  <div className="truncate"><span className="text-slate-400">VAT/Tax:</span> <strong className="text-slate-900 font-mono">{c.vat_number || 'N/A'}</strong></div>
                   <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[11px]">
                     <span className="text-slate-500 font-bold">Active Orders:</span>
                     <span className="font-black text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">

@@ -1461,15 +1461,19 @@ export async function createRimiDelivery(delivery: Partial<RimiDeliveryRecord>):
     }
   }
 
+  const isValidUUID = (id?: string | null) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const validOrderId = isValidUUID(delivery.order_id) ? delivery.order_id! : null;
+  const validVehicleId = isValidUUID(delivery.vehicle_id) ? delivery.vehicle_id! : null;
+
   const payload: RimiDeliveryRecord = {
     id: newId,
     delivery_no: deliveryNo,
-    order_id: delivery.order_id || '',
+    order_id: validOrderId || '',
     order_no: delivery.order_no || '',
     customer_name: delivery.customer_name || 'Customer',
     destination_city: delivery.destination_city || 'Mumbai',
     destination_address: delivery.destination_address || '',
-    vehicle_id: delivery.vehicle_id || undefined,
+    vehicle_id: validVehicleId || undefined,
     vehicle_no: vNo || 'Reefer Pending Assignment',
     driver_name: dName || 'Assigned Fleet Driver',
     driver_phone: dPhone || '+91 98200 00000',
@@ -1484,13 +1488,17 @@ export async function createRimiDelivery(delivery: Partial<RimiDeliveryRecord>):
   };
 
   try {
-    const { error } = await supabase.from('rimi_deliveries').insert(payload);
+    const { error } = await supabase.from('rimi_deliveries').insert({
+      ...payload,
+      order_id: validOrderId,
+      vehicle_id: validVehicleId
+    });
     if (error) {
       console.warn('[RimiAPI] Full delivery insert notice, attempting schema-safe insert:', error.message);
       const safePayload: any = {
         id: payload.id,
         delivery_no: payload.delivery_no,
-        order_id: payload.order_id,
+        order_id: validOrderId,
         order_no: payload.order_no,
         customer_name: payload.customer_name,
         destination_city: payload.destination_city,
