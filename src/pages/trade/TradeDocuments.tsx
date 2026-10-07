@@ -313,14 +313,20 @@ export const TradeDocuments: React.FC = () => {
         (d.uploaded_by && d.uploaded_by.toLowerCase().includes(q)) ||
         (d.verified_by && d.verified_by.toLowerCase().includes(q)) ||
         (d.notes && d.notes.toLowerCase().includes(q)) ||
+        (d.rejection_reason && d.rejection_reason.toLowerCase().includes(q)) ||
         (d.status && d.status.toLowerCase().includes(q))
       );
 
-    const matchType = filterType === 'All' || d.doc_type?.toLowerCase() === filterType.toLowerCase();
+    const matchType = filterType === 'All' || (d.doc_type && d.doc_type.toLowerCase() === filterType.toLowerCase());
     const matchStatus = filterStatus === 'All' || (d.status && d.status.toLowerCase() === filterStatus.toLowerCase());
 
     return matchSearch && matchType && matchStatus;
   });
+
+  const verifiedCount = docs.filter(d => d.status === 'Verified').length;
+  const rejectedCount = docs.filter(d => d.status === 'Rejected').length;
+  const submittedCount = docs.filter(d => d.status === 'Submitted').length;
+  const pendingCount = docs.filter(d => d.status === 'Pending').length;
 
   return (
     <div className="space-y-6 text-left antialiased max-w-7xl mx-auto">
@@ -351,59 +357,76 @@ export const TradeDocuments: React.FC = () => {
         </Button>
       </div>
 
-      {/* 7 Standard Documents Categorical Tabs */}
-      <Card className="p-3 border border-slate-200/80 shadow-xs overflow-x-auto">
-        <div className="flex items-center gap-1.5 min-w-[700px]">
-          {['All', ...TRADE_STANDARD_DOC_TYPES].map(type => {
-            const count = type === 'All' ? docs.length : docs.filter(d => d.doc_type === type).length;
-            return (
-              <button
-                key={type}
-                onClick={() => setFilterType(type)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                  filterType === type
-                    ? 'bg-[#58051E] text-white shadow-xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                }`}
-              >
-                <span>{type}</span>
-                <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${filterType === type ? 'bg-white/20 text-white' : 'bg-white text-slate-600'}`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </Card>
+      {/* Primary Status Tabs Bar */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 overflow-x-auto">
+        {[
+          { id: 'All', label: 'All Documents', count: docs.length, color: 'text-slate-700' },
+          { id: 'Verified', label: 'Verified', count: verifiedCount, color: 'text-emerald-700' },
+          { id: 'Rejected', label: 'Rejected', count: rejectedCount, color: 'text-rose-700' },
+          { id: 'Submitted', label: 'Submitted', count: submittedCount, color: 'text-blue-700' },
+          { id: 'Pending', label: 'Pending', count: pendingCount, color: 'text-amber-700' }
+        ].map(tab => {
+          const isActive = filterStatus === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setFilterStatus(tab.id)}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                isActive
+                  ? tab.id === 'Verified'
+                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
+                    : tab.id === 'Rejected'
+                    ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/20'
+                    : 'bg-[#58051E] text-white shadow-sm shadow-[#58051E]/20'
+                  : 'bg-white border border-slate-200/90 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black ${
+                isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-      {/* Search and Internal Status Filter Bar */}
+      {/* Search and Document Type Filter Bar */}
       <Card className="p-3 border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="relative w-full sm:w-80">
+        <div className="relative flex-1 min-w-[280px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by Order #, Client, Document name..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            placeholder="Search by Order #, Client, Document name, status, notes..."
+            className="w-full h-9.5 pl-9 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-bold text-slate-400 mr-1">Internal Status:</span>
-          {['All', ...TRADE_DOC_STATUSES].map(st => (
-            <button
-              key={st}
-              onClick={() => setFilterStatus(st)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterStatus === st
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-              }`}
-            >
-              {st}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold text-slate-400">Document Type:</span>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
+          >
+            <option value="All">All Types ({docs.length})</option>
+            {TRADE_STANDARD_DOC_TYPES.map(type => (
+              <option key={type} value={type}>
+                {type} ({docs.filter(d => d.doc_type === type).length})
+              </option>
+            ))}
+          </select>
         </div>
       </Card>
 
