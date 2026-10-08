@@ -271,8 +271,8 @@ export const DigitalProjects: React.FC = () => {
       (profile?.id && p.assigned_staff_id === profile.id) ||
       (staffName && (assignedName.includes(staffName) || staffName.includes(assignedName))) ||
       (staffEmail && (assignedEmail === staffEmail || assignedName.includes(staffEmail.split('@')[0]) || (staffEmail.split('@')[0] && assignedEmail.includes(staffEmail.split('@')[0])))) ||
-      ((userRole.includes('pm') || userRole.includes('manager') || userRole.includes('project_manager') || userRole.includes('digital_pm') || staffEmail.includes('digimanager') || staffEmail.includes('pm@')) &&
-        (!p.assigned_staff_name || assignedName.includes('manager') || assignedName.includes('lead') || assignedName.includes('digital') || assignedEmail.includes('pm@') || assignedEmail.includes('manager')))
+      ((userRole.includes('pm') || userRole.includes('manager') || userRole.includes('project_manager') || userRole.includes('digital') || staffEmail.includes('digimanager') || staffEmail.includes('pm@') || staffName.includes('manager')) &&
+        (!p.assigned_staff_name || assignedName.includes('manager') || assignedName.includes('lead') || assignedName.includes('digital') || assignedName.includes('pm') || assignedEmail.includes('pm@') || assignedEmail.includes('digimanager') || assignedEmail.includes('manager')))
     );
 
     // Strict staff isolation: Staff only sees their assigned projects

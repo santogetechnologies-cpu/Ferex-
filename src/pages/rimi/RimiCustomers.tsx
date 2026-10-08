@@ -473,7 +473,16 @@ export const RimiCustomers: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingCustomer({ ...c })}
+                    className="text-xs font-bold h-8.5 border-slate-200 hover:border-[#58051E] hover:text-[#58051E] flex items-center justify-center gap-1 cursor-pointer"
+                    title="Edit Customer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-[#58051E]" /> Edit
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -481,13 +490,14 @@ export const RimiCustomers: React.FC = () => {
                     className="text-xs font-bold h-8.5 border-[#58051E]/30 bg-[#58051E]/5 hover:bg-[#58051E]/15 text-[#58051E] flex items-center justify-center gap-1 cursor-pointer"
                     title="Update Pipeline Stage"
                   >
-                    <TrendingUp className="w-3.5 h-3.5 text-[#58051E]" /> Update Stage
+                    <TrendingUp className="w-3.5 h-3.5 text-[#58051E]" /> Stage
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleOpenDossier(c)}
                     className="text-xs font-bold h-8.5 border-slate-200 hover:border-slate-300 flex items-center justify-center gap-1 cursor-pointer"
+                    title="View Customer Dossier"
                   >
                     <Eye className="w-3.5 h-3.5 text-slate-600" /> Dossier
                   </Button>

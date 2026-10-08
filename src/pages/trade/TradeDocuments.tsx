@@ -313,8 +313,7 @@ export const TradeDocuments: React.FC = () => {
         (d.uploaded_by && d.uploaded_by.toLowerCase().includes(q)) ||
         (d.verified_by && d.verified_by.toLowerCase().includes(q)) ||
         (d.notes && d.notes.toLowerCase().includes(q)) ||
-        (d.rejection_reason && d.rejection_reason.toLowerCase().includes(q)) ||
-        (d.status && d.status.toLowerCase().includes(q))
+        (d.rejection_reason && d.rejection_reason.toLowerCase().includes(q))
       );
 
     const matchType = filterType === 'All' || (d.doc_type && d.doc_type.toLowerCase() === filterType.toLowerCase());

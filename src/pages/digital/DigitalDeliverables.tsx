@@ -166,8 +166,8 @@ export const DigitalDeliverables: React.FC = () => {
   };
 
   // Icon helper
-  const getDeliverableIcon = (type: string) => {
-    const t = type.toLowerCase();
+  const getDeliverableIcon = (type?: string) => {
+    const t = (type || '').toLowerCase();
     if (t.includes('figma') || t.includes('design') || t.includes('asset')) return Palette;
     if (t.includes('video') || t.includes('reel')) return Video;
     if (t.includes('code') || t.includes('git')) return FileCode;

@@ -14,6 +14,7 @@ import {
   createDigitalDeliverableDirect,
   getAssignedDigitalProjects
 } from '../../../lib/api/digitalPm';
+import { getDigitalProjects } from '../../../lib/api/digital';
 
 export const DigitalPMDocuments: React.FC = () => {
   const { user, profile } = useAuth();
@@ -49,12 +50,14 @@ export const DigitalPMDocuments: React.FC = () => {
     setLoading(true);
     setErrorMsg('');
     try {
-      const [dList, pList] = await Promise.all([
+      const [dList, assignedProjects, allProjects] = await Promise.all([
         getAssignedDigitalDeliverables(),
-        getAssignedDigitalProjects(pmIdentity)
+        getAssignedDigitalProjects(pmIdentity),
+        getDigitalProjects()
       ]);
       setDeliverables(dList || []);
-      setProjects(pList && pList.length > 0 ? pList : []);
+      const mergedProjects = (assignedProjects && assignedProjects.length > 0) ? assignedProjects : (allProjects || []);
+      setProjects(mergedProjects);
     } catch (err: any) {
       console.warn('Notice loading documents data:', err);
     } finally {

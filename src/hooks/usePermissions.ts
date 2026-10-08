@@ -12,8 +12,8 @@ const RIMI_STAFF_ROLES = ['rimi_staff', 'warehouse_manager', 'ops'];
 const CENTRAL_ROLES = ['central', 'super_admin', 'superadmin'];
 
 // ─── Digital role strings ─────────────────────────────────────────────────────
-const DIGITAL_ADMIN_ROLES = ['digital_admin', 'ferex_digital', 'digital', 'admin', 'central', 'super_admin', 'superadmin'];
-const DIGITAL_STAFF_ROLES = ['digital_staff', 'project_manager', 'pm', 'digimanager'];
+const DIGITAL_ADMIN_ROLES = ['digital_admin', 'digital_manager', 'project_manager', 'digimanager', 'pm', 'ferex_digital', 'digital', 'admin', 'central', 'super_admin', 'superadmin'];
+const DIGITAL_STAFF_ROLES = ['digital_staff', 'project_manager', 'pm', 'digimanager', 'designer', 'developer'];
 
 // ─── Rimi Permissions ─────────────────────────────────────────────────────────
 

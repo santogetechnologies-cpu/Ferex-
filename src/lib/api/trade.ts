@@ -900,14 +900,10 @@ export async function getTradeDocuments(orderNo?: string): Promise<TradeDocument
     const map = new Map<string, TradeDocument>();
     local.forEach(d => map.set(d.id, d));
     dbDocs.forEach(d => {
-      const loc = map.get(d.id);
-      if (loc && loc.status === 'Rejected') {
-        map.set(d.id, { ...d, status: 'Rejected', rejection_reason: loc.rejection_reason || d.rejection_reason });
-      } else if (loc && loc.status === 'Verified' && d.status !== 'Rejected') {
-        map.set(d.id, { ...d, status: 'Verified' });
-      } else {
-        map.set(d.id, d);
-      }
+      map.set(d.id, {
+        ...(map.get(d.id) || {}),
+        ...d
+      });
     });
 
     let allDocs = Array.from(map.values()).sort(
