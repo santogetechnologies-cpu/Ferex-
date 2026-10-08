@@ -151,7 +151,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
       const rawCountry = savedCountry || 
         (s as any).target_country || 
         (s as any).destination_country || 
-        (s as any).country || 
+        ((s as any).country && (s as any).country !== 'India' && (s as any).country !== 'Global' ? (s as any).country : null) ||
         studentApp?.universities?.country || 
         (studentApp as any)?.country || 
         (studentApp as any)?.target_country || 
@@ -163,7 +163,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
          s.assigned_counselor?.includes('USA') || s.assigned_counselor?.includes('United States') ? 'United States' :
          s.assigned_counselor?.includes('Canada') ? 'Canada' :
          s.assigned_counselor?.includes('Hungary') ? 'Hungary' :
-         'Poland');
+         (s as any).country || 'Poland');
 
       const countryMeta = COUNTRY_FLAGS[rawCountry] || { flag: rawCountry ? rawCountry.substring(0, 2).toUpperCase() : 'EU', authority: 'Academic Legalization' };
       

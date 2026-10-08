@@ -4,7 +4,7 @@ import {
   Users, Search, Plus, Edit3, Trash2, X, CheckCircle2,
   Mail, Phone, MapPin, Building2, Store, Boxes,
   DollarSign, Clock, ChevronRight, Eye, Send, FileText,
-  AlertTriangle, Shield, CheckSquare, MessageSquare, ArrowUpRight
+  AlertTriangle, Shield, CheckSquare, MessageSquare, ArrowUpRight, TrendingUp
 } from 'lucide-react';
 
 import { Card } from '../../components/Card';
@@ -48,6 +48,7 @@ export const RimiCustomers: React.FC = () => {
   // Modals & Dossier State
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<RimiCustomerRecord | null>(null);
+  const [updatingStageCustomer, setUpdatingStageCustomer] = useState<RimiCustomerRecord | null>(null);
   const [dossierCustomer, setDossierCustomer] = useState<RimiCustomerRecord | null>(null);
   const [dossierActivities, setDossierActivities] = useState<RimiCustomerActivityRecord[]>([]);
   const [dossierOrders, setDossierOrders] = useState<RimiSalesOrderRecord[]>([]);
@@ -385,7 +386,7 @@ export const RimiCustomers: React.FC = () => {
                   </span>
 
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-slate-400">Stage:</span>
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase">Stage:</span>
                     <select
                       value={c.pipeline_stage || 'Lead'}
                       onChange={(e) => handleInlineStageChange(c, e.target.value as any)}
@@ -472,14 +473,25 @@ export const RimiCustomers: React.FC = () => {
                   </div>
                 </div>
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleOpenDossier(c)}
-                  className="w-full text-xs font-bold h-8.5 border-slate-200 hover:border-slate-300 flex items-center justify-center gap-1"
-                >
-                  <Eye className="w-3.5 h-3.5 text-[#58051E]" /> View Activity Timeline & Dossier
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setUpdatingStageCustomer(c)}
+                    className="text-xs font-bold h-8.5 border-[#58051E]/30 bg-[#58051E]/5 hover:bg-[#58051E]/15 text-[#58051E] flex items-center justify-center gap-1 cursor-pointer"
+                    title="Update Pipeline Stage"
+                  >
+                    <TrendingUp className="w-3.5 h-3.5 text-[#58051E]" /> Update Stage
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenDossier(c)}
+                    className="text-xs font-bold h-8.5 border-slate-200 hover:border-slate-300 flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-slate-600" /> Dossier
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}
@@ -912,6 +924,110 @@ export const RimiCustomers: React.FC = () => {
                   <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Changes</Button>
                 </div>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Dedicated Pipeline Stage Update Modal */}
+      <AnimatePresence>
+        {updatingStageCustomer && (
+          <motion.div
+            key={`stage-modal-${updatingStageCustomer.id}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          >
+            <div
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+              onClick={() => setUpdatingStageCustomer(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl z-10 border border-slate-100 p-6 my-auto text-left"
+            >
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-[#58051E]" /> Update Pipeline Stage
+                  </h3>
+                  <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                    {updatingStageCustomer.business_name}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setUpdatingStageCustomer(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+                  <span className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">
+                    Current Stage
+                  </span>
+                  <span className="text-xs font-black text-[#58051E] bg-[#58051E]/10 px-2.5 py-1 rounded-md border border-[#58051E]/20 inline-block">
+                    {updatingStageCustomer.pipeline_stage || 'Lead'}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400">
+                    Select New Pipeline Stage:
+                  </label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {PIPELINE_STAGES.map((stage) => {
+                      const isCurrent = (updatingStageCustomer.pipeline_stage || 'Lead') === stage;
+                      return (
+                        <button
+                          key={stage}
+                          type="button"
+                          onClick={async () => {
+                            await handleInlineStageChange(updatingStageCustomer, stage);
+                            setUpdatingStageCustomer(null);
+                          }}
+                          className={`w-full p-3 rounded-xl text-left font-bold text-xs flex items-center justify-between border transition-all cursor-pointer ${
+                            isCurrent
+                              ? 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
+                              : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full ${
+                              stage === 'Active Account' ? 'bg-emerald-500' :
+                              stage === 'Suspended' ? 'bg-rose-500' :
+                              'bg-amber-500'
+                            }`} />
+                            <span>{stage}</span>
+                          </div>
+                          {isCurrent && (
+                            <span className="text-[10px] font-black uppercase bg-white/20 px-2 py-0.5 rounded">
+                              Current
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs font-bold"
+                    onClick={() => setUpdatingStageCustomer(null)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}

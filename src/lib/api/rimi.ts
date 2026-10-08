@@ -1324,6 +1324,10 @@ export async function createRimiPayment(payment: {
     created_at: new Date().toISOString()
   };
 
+  // 1. Cache locally immediately so it appears across UI instantly
+  const localPayments = getLocalRimiPayments();
+  saveLocalRimiPayments([payload, ...localPayments.filter(p => p.id !== payload.id)]);
+
   try {
     const { error } = await supabase.from('rimi_payments').insert(payload);
     if (error) {
@@ -1344,7 +1348,18 @@ export async function createRimiPayment(payment: {
       };
       const { error: retryErr } = await supabase.from('rimi_payments').insert(safePayload);
       if (retryErr) {
-        console.warn('[RimiAPI] Safe payment insert warning:', retryErr.message);
+        console.warn('[RimiAPI] Safe payment insert warning, attempting base insert:', retryErr.message);
+        const basePayload: any = {
+          id: payload.id,
+          order_id: payload.order_id || null,
+          amount: payload.amount,
+          payment_method: payload.payment_method,
+          reference_no: payload.reference_no,
+          payment_date: payload.payment_date,
+          created_at: payload.created_at
+        };
+        if (payload.customer_id) basePayload.distributor_id = payload.customer_id;
+        await supabase.from('rimi_payments').insert(basePayload);
       }
     }
   } catch (dbErr) {
@@ -1487,6 +1502,9 @@ export async function createRimiDelivery(delivery: Partial<RimiDeliveryRecord>):
     updated_at: new Date().toISOString()
   };
 
+  // Cache locally immediately so it appears across UI instantly
+  saveLocalRimiDeliveries([payload, ...localDeliveries.filter(d => d.id !== payload.id)]);
+
   try {
     const { error } = await supabase.from('rimi_deliveries').insert({
       ...payload,
@@ -1506,6 +1524,7 @@ export async function createRimiDelivery(delivery: Partial<RimiDeliveryRecord>):
         vehicle_no: payload.vehicle_no,
         driver_name: payload.driver_name,
         driver_phone: payload.driver_phone,
+        departure_temp: payload.departure_temp,
         delivery_status: payload.delivery_status,
         dispatch_time: payload.dispatch_time,
         route_name: payload.route_name,
@@ -1515,7 +1534,18 @@ export async function createRimiDelivery(delivery: Partial<RimiDeliveryRecord>):
       };
       const { error: retryErr } = await supabase.from('rimi_deliveries').insert(safePayload);
       if (retryErr) {
-        console.warn('[RimiAPI] Safe delivery insert notice:', retryErr.message);
+        console.warn('[RimiAPI] Safe delivery insert notice, attempting base insert:', retryErr.message);
+        const basePayload = {
+          id: payload.id,
+          order_id: validOrderId,
+          vehicle_no: payload.vehicle_no,
+          driver_name: payload.driver_name,
+          driver_phone: payload.driver_phone,
+          departure_temp: payload.departure_temp,
+          delivery_status: 'Assigned',
+          created_at: payload.created_at
+        };
+        await supabase.from('rimi_deliveries').insert(basePayload);
       }
     }
   } catch (dbErr) {
@@ -2219,14 +2249,23 @@ export async function renameRimiTaskTitle(taskId: string, newTitle: string): Pro
 
 // Categories helper
 export async function getRimiProductCategories(): Promise<string[]> {
+  const canonicalCats = [
+    'Frozen Seafood',
+    'Frozen Meat & Poultry',
+    'Frozen Vegetables',
+    'Processed Food',
+    'Ice Cream & Dairy',
+    'Bakery & Pastries',
+    'Ready-to-Eat Meals',
+    'IQF Fruits & Berries'
+  ];
   try {
     const { data } = await supabase.from('rimi_products').select('category');
     const dbCats = Array.from(new Set((data || []).map((d: any) => d.category).filter(Boolean)));
-    const defaultCats = ['Frozen Seafood', 'Poultry & Meat', 'Frozen Veg & Snacks', 'Dairy & Ice Cream'];
-    const merged = Array.from(new Set([...defaultCats, ...dbCats]));
+    const merged = Array.from(new Set([...canonicalCats, ...dbCats]));
     return merged;
   } catch (err) {
-    return ['Frozen Seafood', 'Poultry & Meat', 'Frozen Veg & Snacks', 'Dairy & Ice Cream'];
+    return canonicalCats;
   }
 }
 

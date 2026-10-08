@@ -401,7 +401,7 @@ export const TradeTickets: React.FC = () => {
                   Close Window
                 </Button>
                 <div className="flex items-center gap-2">
-                  {selectedTicket.status !== 'Resolved' && selectedTicket.status !== 'Closed' && (
+                  {selectedTicket.status?.toLowerCase() !== 'resolved' && selectedTicket.status?.toLowerCase() !== 'closed' && (
                     <Button
                       size="sm"
                       onClick={() => {
@@ -415,16 +415,16 @@ export const TradeTickets: React.FC = () => {
                       Resolve Ticket
                     </Button>
                   )}
-                  {selectedTicket.status === 'Resolved' && (
+                  {selectedTicket.status?.toLowerCase() === 'resolved' && (
                     <Button
                       size="sm"
                       onClick={() => {
                         handleCloseTicket(selectedTicket.id, selectedTicket.ticket_no);
                         setSelectedTicket(null);
                       }}
-                      className="bg-slate-900 hover:bg-black text-white cursor-pointer"
+                      className="bg-slate-900 hover:bg-black text-white cursor-pointer flex items-center gap-1.5"
                     >
-                      <CheckCircle2 className="w-4 h-4 mr-1 text-emerald-400" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                       Close Ticket
                     </Button>
                   )}

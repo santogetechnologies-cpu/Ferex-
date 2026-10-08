@@ -24,7 +24,7 @@ export async function getStudents(): Promise<UserProfile[]> {
     const client = admin || supabase;
     const { data, error } = await client
       .from('users')
-      .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, created_at')
+      .select('id, email, full_name, role, avatar_url, phone, country, department, permissions, assigned_counselor, must_change_password, created_at')
       .eq('role', 'student')
       .order('created_at', { ascending: false });
 
@@ -37,7 +37,7 @@ export async function getStudents(): Promise<UserProfile[]> {
 
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, created_at')
+    .select('id, email, full_name, role, avatar_url, phone, country, department, permissions, assigned_counselor, must_change_password, created_at')
     .eq('role', 'student')
     .order('created_at', { ascending: false });
 
@@ -143,21 +143,33 @@ export async function createStudent(payload: {
   full_name: string;
   phone?: string;
   assigned_counselor?: string;
+  target_country?: string;
+  destination_country?: string;
+  country?: string;
 }): Promise<UserProfile> {
   const newId = generateUUID();
+  const destCountry = payload.target_country || payload.destination_country || payload.country || 'Poland';
   const insertData = {
     id: newId,
     email: payload.email.toLowerCase().trim(),
     full_name: payload.full_name.trim(),
     phone: payload.phone?.trim() || '',
+    country: destCountry,
     role: 'student',
     assigned_counselor: payload.assigned_counselor && payload.assigned_counselor !== 'Admin'
       ? payload.assigned_counselor
-      : getDefaultCounselorForCountry(),
+      : getDefaultCounselorForCountry(destCountry),
     must_change_password: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
+
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(`ferex_student_target_country_${newId}`, destCountry);
+      localStorage.setItem(`ferex_student_country_${newId}`, destCountry);
+    } catch {}
+  }
 
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
@@ -260,13 +272,27 @@ export async function createStaffMember(payload: {
 }
 
 // ─── Update student profile fields ────────────────────────────────────────────
-export async function updateStudent(id: string, updates: Partial<UserProfile>): Promise<UserProfile> {
+export async function updateStudent(id: string, updates: Partial<UserProfile> & { target_country?: string; destination_country?: string }): Promise<UserProfile> {
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
+  const destCountry = updates.target_country || updates.destination_country || updates.country;
+  if (destCountry && typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(`ferex_student_target_country_${id}`, destCountry);
+      localStorage.setItem(`ferex_student_country_${id}`, destCountry);
+    } catch {}
+  }
+
+  const dbUpdates: any = { ...updates, updated_at: new Date().toISOString() };
+  delete dbUpdates.target_country;
+  delete dbUpdates.destination_country;
+  if (destCountry) {
+    dbUpdates.country = destCountry;
+  }
 
   const { data, error } = await client
     .from('users')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update(dbUpdates)
     .eq('id', id)
     .select();
 

@@ -40,7 +40,7 @@ export const ROLE_DISPLAY_NAMES: Record<string, string> = {
 const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
   digital: [
     {
-      id: 'd-staff-001',
+      id: '11111111-1111-4111-a111-111111111001',
       name: 'Digital Project Manager',
       email: 'pm@ferex.com',
       role: 'project_manager',
@@ -50,7 +50,7 @@ const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
       phone: '+91 98190 20001'
     },
     {
-      id: 'd-staff-002',
+      id: '11111111-1111-4111-a111-111111111002',
       name: 'Ferex Digital Director',
       email: 'digital@ferex.com',
       role: 'digital_admin',
@@ -60,7 +60,7 @@ const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
       phone: '+91 98190 20002'
     },
     {
-      id: 'd-staff-003',
+      id: '11111111-1111-4111-a111-111111111003',
       name: 'Digital Manager',
       email: 'digimanager@ferex.com',
       role: 'project_manager',
@@ -70,7 +70,7 @@ const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
       phone: '+91 98190 20003'
     },
     {
-      id: 'd-staff-004',
+      id: '11111111-1111-4111-a111-111111111004',
       name: 'Lead Creative Designer',
       email: 'creative@ferex.com',
       role: 'digital_staff',
@@ -82,7 +82,7 @@ const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
   ],
   trade: [
     {
-      id: 't-staff-001',
+      id: '22222222-2222-4222-a222-222222222001',
       name: 'Global Trade Director',
       email: 'trade@ferex.com',
       role: 'trade_admin',
@@ -94,7 +94,7 @@ const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
   ],
   rimi: [
     {
-      id: 'r-staff-001',
+      id: '33333333-3333-4333-a333-333333333001',
       name: 'Rimi Operations Lead',
       email: 'rimi@ferex.com',
       role: 'rimi_admin',
@@ -106,7 +106,7 @@ const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
   ],
   education: [
     {
-      id: 'e-staff-001',
+      id: '44444444-4444-4444-a444-444444444001',
       name: 'Admissions Lead Counselor',
       email: 'education@ferex.com',
       role: 'education_admin',

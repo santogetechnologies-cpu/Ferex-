@@ -106,7 +106,7 @@ export async function createTicket(payload: {
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
 
-  // DB Insert with schema resilience (using ticket_no)
+  // DB Insert with schema resilience (trying ticket_no, ticket_number, and stripped payloads)
   try {
     const dbPayload: any = {
       id: newId,
@@ -128,10 +128,11 @@ export async function createTicket(payload: {
 
     if (error) {
       console.warn('[createTicket primary insert notice]:', error.message);
-      // Fallback 1: Try without ticket_no if schema has generated ticket_no
-      const strippedPayload: any = {
+      // Fallback 1: Try with ticket_number if schema uses ticket_number instead
+      const withTicketNumberPayload: any = {
         id: newId,
         student_id: payload.student_id,
+        ticket_number: ticketNo,
         subject: payload.subject.trim(),
         description: payload.description.trim(),
         category: categoryValue,
@@ -140,10 +141,28 @@ export async function createTicket(payload: {
         created_at: now,
         updated_at: now,
       };
-      const res2 = await client.from('support_tickets').insert(strippedPayload).select();
-      if (!res2.error && res2.data) {
-        data = res2.data;
+      const resNum = await client.from('support_tickets').insert(withTicketNumberPayload).select();
+      if (!resNum.error && resNum.data) {
+        data = resNum.data;
         error = null;
+      } else {
+        // Fallback 2: Try without ticket identifier column if schema auto-generates it
+        const strippedPayload: any = {
+          id: newId,
+          student_id: payload.student_id,
+          subject: payload.subject.trim(),
+          description: payload.description.trim(),
+          category: categoryValue,
+          priority: payload.priority || 'Medium',
+          status: 'Open',
+          created_at: now,
+          updated_at: now,
+        };
+        const res2 = await client.from('support_tickets').insert(strippedPayload).select();
+        if (!res2.error && res2.data) {
+          data = res2.data;
+          error = null;
+        }
       }
     }
 
@@ -162,11 +181,11 @@ export async function createTicket(payload: {
     const studentKey = `ferex_tickets_${payload.student_id}`;
     const local = localStorage.getItem(studentKey);
     const existing = local ? JSON.parse(local) : [];
-    localStorage.setItem(studentKey, JSON.stringify([ticketObj, ...existing]));
+    localStorage.setItem(studentKey, JSON.stringify([ticketObj, ...existing.filter((t: any) => t.id !== ticketObj.id)]));
 
     const allLocal = localStorage.getItem(TICKETS_CACHE_KEY);
     const allExisting = allLocal ? JSON.parse(allLocal) : [];
-    localStorage.setItem(TICKETS_CACHE_KEY, JSON.stringify([ticketObj, ...allExisting]));
+    localStorage.setItem(TICKETS_CACHE_KEY, JSON.stringify([ticketObj, ...allExisting.filter((t: any) => t.id !== ticketObj.id)]));
 
     window.dispatchEvent(new Event('ferex_tickets_change'));
     window.dispatchEvent(new Event('ferex_ticket_change'));

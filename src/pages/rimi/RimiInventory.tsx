@@ -178,7 +178,10 @@ export const RimiInventory: React.FC = () => {
     }
   };
 
-  const filteredBatches = batches.filter(b => {
+  const filteredBatches = batches.map(b => {
+    const resolvedCategory = b.product_category || products.find(p => p.id === b.product_id || p.name === b.product_name)?.category || 'Frozen Seafood';
+    return { ...b, product_category: resolvedCategory };
+  }).filter(b => {
     let matchExpiry = true;
     if (expiryTab === 'Active') matchExpiry = (b.days_to_expiry || 0) > 30 && b.quantity > 0;
     if (expiryTab === 'Expiring Soon') matchExpiry = (b.days_to_expiry || 0) > 0 && (b.days_to_expiry || 0) <= 30;
