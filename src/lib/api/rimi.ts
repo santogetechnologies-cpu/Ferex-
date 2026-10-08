@@ -1271,6 +1271,25 @@ export async function deleteRimiSalesOrder(orderId: string): Promise<boolean> {
 // 7. PAYMENTS & COLLECTIONS API
 // ─────────────────────────────────────────────────────────────────────────────
 
+const RIMI_PAYMENTS_STORAGE_KEY = 'ferex_rimi_payments_cache';
+
+export function getLocalRimiPayments(): RimiPaymentRecord[] {
+  try {
+    const raw = localStorage.getItem(RIMI_PAYMENTS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+export function saveLocalRimiPayments(payments: RimiPaymentRecord[]) {
+  try {
+    localStorage.setItem(RIMI_PAYMENTS_STORAGE_KEY, JSON.stringify(payments));
+  } catch {}
+}
+
 export async function getRimiPayments(filters?: { customerId?: string; orderId?: string }): Promise<RimiPaymentRecord[]> {
   try {
     let query = supabase
@@ -1281,11 +1300,29 @@ export async function getRimiPayments(filters?: { customerId?: string; orderId?:
     if (filters?.customerId) query = query.eq('customer_id', filters.customerId);
     if (filters?.orderId) query = query.eq('order_id', filters.orderId);
 
-    const { data, error } = await query;
-    if (error) throw error;
-    return (data || []) as RimiPaymentRecord[];
+    let payments: RimiPaymentRecord[] = [];
+    try {
+      const { data, error } = await query;
+      if (!error && Array.isArray(data)) {
+        payments = data as RimiPaymentRecord[];
+      }
+    } catch {}
+
+    const local = getLocalRimiPayments();
+    const map = new Map<string, RimiPaymentRecord>();
+    local.forEach((p: RimiPaymentRecord) => map.set(p.id, p));
+    payments.forEach((p: RimiPaymentRecord) => map.set(p.id, { ...map.get(p.id), ...p }));
+
+    let merged = Array.from(map.values()).sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
+    if (filters?.customerId) {
+      merged = merged.filter((p: RimiPaymentRecord) => p.customer_id === filters.customerId);
+    }
+    if (filters?.orderId) {
+      merged = merged.filter((p: RimiPaymentRecord) => p.order_id === filters.orderId);
+    }
+    return merged;
   } catch {
-    return [];
+    return getLocalRimiPayments();
   }
 }
 
@@ -1326,7 +1363,7 @@ export async function createRimiPayment(payment: {
 
   // 1. Cache locally immediately so it appears across UI instantly
   const localPayments = getLocalRimiPayments();
-  saveLocalRimiPayments([payload, ...localPayments.filter(p => p.id !== payload.id)]);
+  saveLocalRimiPayments([payload, ...localPayments.filter((p: RimiPaymentRecord) => p.id !== payload.id)]);
 
   try {
     const { error } = await supabase.from('rimi_payments').insert(payload);
@@ -1429,16 +1466,46 @@ export async function createRimiPayment(payment: {
 // 8. DELIVERIES & FLEET API
 // ─────────────────────────────────────────────────────────────────────────────
 
+const RIMI_DELIVERIES_STORAGE_KEY = 'ferex_rimi_deliveries_cache';
+
+export function getLocalRimiDeliveries(): RimiDeliveryRecord[] {
+  try {
+    const raw = localStorage.getItem(RIMI_DELIVERIES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+export function saveLocalRimiDeliveries(deliveries: RimiDeliveryRecord[]) {
+  try {
+    localStorage.setItem(RIMI_DELIVERIES_STORAGE_KEY, JSON.stringify(deliveries));
+  } catch {}
+}
+
 export async function getRimiDeliveries(): Promise<RimiDeliveryRecord[]> {
   try {
-    const { data, error } = await supabase
-      .from('rimi_deliveries')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return (data || []) as RimiDeliveryRecord[];
+    let deliveries: RimiDeliveryRecord[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('rimi_deliveries')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && Array.isArray(data)) {
+        deliveries = data as RimiDeliveryRecord[];
+      }
+    } catch {}
+
+    const local = getLocalRimiDeliveries();
+    const map = new Map<string, RimiDeliveryRecord>();
+    local.forEach((d: RimiDeliveryRecord) => map.set(d.id, d));
+    deliveries.forEach((d: RimiDeliveryRecord) => map.set(d.id, { ...map.get(d.id), ...d }));
+
+    return Array.from(map.values()).sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
   } catch {
-    return [];
+    return getLocalRimiDeliveries();
   }
 }
 
@@ -1503,7 +1570,8 @@ export async function createRimiDelivery(delivery: Partial<RimiDeliveryRecord>):
   };
 
   // Cache locally immediately so it appears across UI instantly
-  saveLocalRimiDeliveries([payload, ...localDeliveries.filter(d => d.id !== payload.id)]);
+  const localDeliveries = getLocalRimiDeliveries();
+  saveLocalRimiDeliveries([payload, ...localDeliveries.filter((d: RimiDeliveryRecord) => d.id !== payload.id)]);
 
   try {
     const { error } = await supabase.from('rimi_deliveries').insert({
@@ -1564,6 +1632,10 @@ export async function updateRimiDeliveryStatus(deliveryId: string, status: RimiD
   if (status === 'Delivered') {
     updates.delivered_at = new Date().toISOString();
   }
+
+  const localDeliveries = getLocalRimiDeliveries();
+  saveLocalRimiDeliveries(localDeliveries.map((d: RimiDeliveryRecord) => d.id === deliveryId ? { ...d, ...updates } : d));
+
   await supabase.from('rimi_deliveries').update(updates).eq('id', deliveryId);
 
   // If dispatched, find delivery details and send dispatch email
