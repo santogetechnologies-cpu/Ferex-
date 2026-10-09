@@ -12,7 +12,10 @@ export type FerexRole =
   | 'digital_admin'
   | 'ferex_digital'
   | 'digital_client'
+  | 'digital_manager'
   | 'project_manager'
+  | 'digimanager'
+  | 'pm'
   | 'trade'
   | 'trade_admin'
   | 'global_trade'
@@ -38,7 +41,10 @@ const ROLE_ROUTES: Record<string, string> = {
   digital_admin: '/digital/dashboard',
   ferex_digital: '/digital/dashboard',
   digital_client: '/digital/client-portal',
+  digital_manager: '/digital/pm/dashboard',
   project_manager: '/digital/pm/dashboard',
+  digimanager: '/digital/pm/dashboard',
+  pm: '/digital/pm/dashboard',
   trade: '/trade/dashboard',
   trade_admin: '/trade/dashboard',
   global_trade: '/trade/dashboard',
@@ -65,7 +71,10 @@ const ROLE_LABELS: Record<string, string> = {
   digital_admin: 'Ferex Digital Admin Portal',
   ferex_digital: 'Ferex Digital Admin Portal',
   digital_client: 'Ferex Digital Client Portal',
+  digital_manager: 'Ferex Digital Project Manager',
   project_manager: 'Ferex Digital Project Manager',
+  digimanager: 'Ferex Digital Project Manager',
+  pm: 'Ferex Digital Project Manager',
   trade: 'Global Trade Admin Portal',
   trade_admin: 'Global Trade Admin Portal',
   global_trade: 'Global Trade Admin Portal',
@@ -98,7 +107,10 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
       cleanRole === 'digital_admin' ||
       cleanRole === 'digital' ||
       cleanRole === 'ferex_digital' ||
+      cleanRole === 'digital_manager' ||
       cleanRole === 'project_manager' ||
+      cleanRole === 'digimanager' ||
+      cleanRole === 'pm' ||
       cleanRole === 'staff' ||
       cleanRole === 'counselor' ||
       cleanRole === 'student' ||
@@ -141,6 +153,7 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
       cleanEmail.includes('digitaladmin') ||
       cleanEmail.includes('digital_admin') ||
       cleanEmail.includes('digital@') ||
+      cleanEmail.includes('digimanager') ||
       cleanEmail.includes('counselor')
     ) {
       return false;
@@ -182,7 +195,8 @@ export function normalizeRole(role?: string | null, email?: string | null): stri
     if (
       cleanEmail.includes('project_manager') ||
       cleanEmail.includes('digitalpm') ||
-      cleanEmail.includes('pm@ferex.com')
+      cleanEmail.includes('pm@ferex.com') ||
+      cleanEmail.includes('digimanager')
     ) {
       return 'project_manager';
     }
@@ -216,7 +230,7 @@ export function normalizeRole(role?: string | null, email?: string | null): stri
   }
   if (!role) return 'student';
   const clean = role.toLowerCase().trim().replace(/[\s-]+/g, '_');
-  if (clean === 'pm' || clean === 'digital_pm' || clean === 'digital_project_manager') {
+  if (clean === 'pm' || clean === 'digital_pm' || clean === 'digital_project_manager' || clean === 'digital_manager' || clean === 'digimanager') {
     return 'project_manager';
   }
   return clean;

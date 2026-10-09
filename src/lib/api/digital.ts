@@ -340,17 +340,21 @@ export async function getDigitalProjects(filters?: {
 }): Promise<DigitalProjectRecord[]> {
   let dbProjects: DigitalProjectRecord[] = [];
 
-  // Try Supabase first
+  // 1. Try Supabase first - direct select without relational fail-points
   try {
     const { data, error } = await supabase
       .from('digital_projects')
-      .select('*, client:digital_clients(*)')
+      .select('*')
       .order('created_at', { ascending: false });
+
     if (!error && Array.isArray(data) && data.length > 0) {
       dbProjects = data.filter((p: any) => !p.is_deleted);
     }
-  } catch {}
+  } catch (err) {
+    console.warn('[DigitalAPI] Error fetching digital projects from database:', err);
+  }
 
+  // 2. Read local cache
   let localProjects: DigitalProjectRecord[] = [];
   try {
     const local = localStorage.getItem('ferex_digital_projects');
@@ -362,10 +366,10 @@ export async function getDigitalProjects(filters?: {
     }
   } catch {}
 
-  // Merge both sources by ID
+  // 3. Merge both sources by ID, preferring fresh database state with cached metadata
   const map = new Map<string, DigitalProjectRecord>();
   localProjects.forEach(p => map.set(p.id, p));
-  dbProjects.forEach(p => map.set(p.id, p));
+  dbProjects.forEach(p => map.set(p.id, { ...map.get(p.id), ...p }));
 
   let projects = Array.from(map.values()).sort(
     (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
@@ -427,17 +431,18 @@ export async function createDigitalProject(project: {
   deliverables?: DigitalDeliverable[];
   created_by?: string;
 }): Promise<DigitalProjectRecord> {
-  const isValidUUID = (id?: string) => !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const isValidUUID = (id?: string | null) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const clients = await getDigitalClients();
   const clientObj = clients.find((c: any) => c.id === project.client_id);
-  const validClientId = (isValidUUID(project.client_id) && clientObj) ? project.client_id : (clientObj?.id || null);
+  const validClientId = (isValidUUID(project.client_id) && clientObj) ? project.client_id : (isValidUUID(clientObj?.id) ? clientObj?.id : null);
 
   const totalBudget = Number(project.budget) || 0;
   const paymentTerms = project.payment_terms || 'Advance Payment';
   const advanceAmount = paymentTerms === 'Full Payment' ? totalBudget : Math.round(totalBudget * 0.3);
   const balanceAmount = totalBudget - advanceAmount;
   const currentStage: DigitalProjectStage = project.status || 'Briefing';
-  const assignedStaff = project.assigned_staff_name || 'Digital Project Manager';
+  const assignedStaff = project.assigned_staff_name || 'Digital Manager';
+  const assignedEmail = project.assigned_staff_email || (assignedStaff.toLowerCase().includes('director') ? 'digital@ferex.com' : 'digimanager@ferex.com');
 
   const payload: any = {
     id: generateUUID(),
@@ -460,11 +465,11 @@ export async function createDigitalProject(project: {
     ],
     start_date: project.start_date || new Date().toISOString().split('T')[0],
     deadline: project.deadline || '',
-    assigned_staff_id: project.assigned_staff_id || null,
+    assigned_staff_id: isValidUUID(project.assigned_staff_id) ? project.assigned_staff_id : null,
     assigned_staff_name: assignedStaff,
-    assigned_staff_email: project.assigned_staff_email || '',
+    assigned_staff_email: assignedEmail,
     lead_developer: assignedStaff,
-    created_by: project.created_by || assignedStaff || 'Digital PM',
+    created_by: project.created_by || assignedStaff || 'Digital Admin',
     budget: totalBudget,
     progress: Number(project.progress) || 0,
     payment_terms: paymentTerms as any,
@@ -482,6 +487,7 @@ export async function createDigitalProject(project: {
   const updated = [payload, ...current.filter((p: any) => p.id !== payload.id)];
   try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
 
+  // 1. Primary Supabase insert
   try {
     const { client, deliverables, stage_history, ...dbPayload } = payload as any;
     const cleanDbPayload = {
@@ -489,12 +495,34 @@ export async function createDigitalProject(project: {
       client_id: validClientId,
       assigned_staff_id: isValidUUID(project.assigned_staff_id) ? project.assigned_staff_id : null
     };
+
     const { error: insErr } = await supabase.from('digital_projects').insert(cleanDbPayload);
     if (insErr) {
-      console.warn('[DigitalAPI] Supabase digital project insert notice:', insErr.message);
+      console.warn('[DigitalAPI] Primary insert notice, attempting relaxed insert:', insErr.message);
+      // 2. Secondary safe insert: nullify Foreign Keys in case of missing relations
+      const safePayload = {
+        ...cleanDbPayload,
+        client_id: null,
+        assigned_staff_id: null
+      };
+      const { error: safeErr } = await supabase.from('digital_projects').insert(safePayload);
+      if (safeErr) {
+        console.warn('[DigitalAPI] Safe insert notice, attempting base insert:', safeErr.message);
+        // 3. Minimal base insert
+        await supabase.from('digital_projects').insert({
+          id: payload.id,
+          title: payload.title,
+          service_category: payload.service_category,
+          status: payload.status,
+          budget: payload.budget,
+          assigned_staff_name: payload.assigned_staff_name,
+          assigned_staff_email: payload.assigned_staff_email,
+          created_at: payload.created_at
+        });
+      }
     }
   } catch (err) {
-    console.warn('[DigitalAPI] Supabase digital project insert exception:', err);
+    console.warn('[DigitalAPI] Supabase digital project insert caught exception:', err);
   }
 
   triggerLocalSync('ferex_digital_projects_change');

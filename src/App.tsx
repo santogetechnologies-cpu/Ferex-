@@ -189,8 +189,8 @@ const ADMIN_ROLES = ['admin', 'education_admin', 'education'];
 const CENTRAL_ROLES = ['central', 'super_admin', 'superadmin'];
 const TRADE_ROLES = ['trade', 'trade_admin', 'global_trade', 'logistics_officer'];
 const RIMI_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen', 'operations_manager', 'rimi_staff'];
-const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'project_manager', 'digital_staff'];
-const PM_ROLES = ['project_manager', 'digital_pm', 'digital_admin', 'digital'];
+const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'digital_manager', 'project_manager', 'digimanager', 'pm', 'digital_staff'];
+const PM_ROLES = ['project_manager', 'digital_manager', 'digimanager', 'pm', 'digital_pm', 'digital_admin', 'digital'];
 const STAFF_ROLES = ['staff', 'counselor', 'admin', 'education_admin'];
 
 // Guards portal routes — redirects to login if not authenticated, or to proper portal if role mismatched

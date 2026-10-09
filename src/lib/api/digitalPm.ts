@@ -112,6 +112,18 @@ export async function getAssignedDigitalProjects(pm?: DigitalPMIdentity): Promis
   const myName = (name || '').toLowerCase().trim();
   const myId = id;
 
+  const isCurrentUserPMOrManager = Boolean(
+    !myEmail ||
+    myEmail.includes('pm') ||
+    myEmail.includes('manager') ||
+    myEmail.includes('digimanager') ||
+    myEmail.includes('digital') ||
+    myName.includes('manager') ||
+    myName.includes('pm') ||
+    myName.includes('director') ||
+    myName.includes('lead')
+  );
+
   const isMatch = (p: any) => {
     if (!myEmail && !myName && !myId) return true;
     const pEmail = (p.assigned_staff_email || '').toLowerCase().trim();
@@ -119,28 +131,44 @@ export async function getAssignedDigitalProjects(pm?: DigitalPMIdentity): Promis
     const pId = p.assigned_staff_id;
     const pCreatedBy = (p.created_by || '').toLowerCase().trim();
 
-    const isExplicitlyAssigned = Boolean(
-      (myId && pId === myId) ||
-      (myEmail && pEmail && (pEmail.includes(myEmail) || myEmail.includes(pEmail))) ||
-      (myName && pName && (pName.includes(myName) || myName.includes(pName))) ||
-      (myEmail && pCreatedBy && (pCreatedBy.includes(myEmail) || myEmail.includes(pCreatedBy))) ||
-      (myName && pCreatedBy && (pCreatedBy.includes(myName) || myName.includes(pCreatedBy)))
-    );
+    // 1. Explicit UUID match
+    if (myId && pId && myId === pId) return true;
 
-    const isGenericPMAssignment = Boolean(
-      (!p.assigned_staff_name && !p.assigned_staff_email) ||
+    // 2. Direct email or username match
+    if (myEmail && pEmail) {
+      if (pEmail === myEmail || pEmail.includes(myEmail) || myEmail.includes(pEmail)) return true;
+      const myUser = myEmail.split('@')[0];
+      const pUser = pEmail.split('@')[0];
+      if (myUser && pUser && (myUser.includes(pUser) || pUser.includes(myUser))) return true;
+    }
+
+    // 3. Direct name match
+    if (myName && pName) {
+      if (pName.includes(myName) || myName.includes(pName)) return true;
+    }
+
+    // 4. Digital Manager / Project Manager equivalence
+    const isProjectAssignedToManager = Boolean(
+      !p.assigned_staff_name ||
       pName.includes('manager') ||
       pName.includes('lead') ||
-      pName === 'digital project manager' ||
       pName === 'digital manager' ||
+      pName === 'digital project manager' ||
       pName === 'project manager' ||
-      pEmail === 'pm@ferex.com' ||
       pEmail.includes('digimanager') ||
       pEmail.includes('pm@') ||
       pEmail.includes('manager')
     );
 
-    return isExplicitlyAssigned || isGenericPMAssignment;
+    if (isCurrentUserPMOrManager && isProjectAssignedToManager) {
+      return true;
+    }
+
+    // 5. Created by creator / manager match
+    if (myEmail && pCreatedBy && (pCreatedBy.includes(myEmail) || myEmail.includes(pCreatedBy))) return true;
+    if (myName && pCreatedBy && (pCreatedBy.includes(myName) || myName.includes(pCreatedBy))) return true;
+
+    return false;
   };
 
   const filtered = allProjects.filter(isMatch);
@@ -148,7 +176,7 @@ export async function getAssignedDigitalProjects(pm?: DigitalPMIdentity): Promis
     return filtered;
   }
 
-  // Resilient fallback: If no project strictly matched, return all available projects so PM is never blocked from selecting projects
+  // Resilient fallback: Return all available projects so PM is never blocked
   return allProjects;
 }
 
