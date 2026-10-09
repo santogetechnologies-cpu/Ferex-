@@ -83,11 +83,24 @@ export const RimiInventory: React.FC = () => {
       setWarehouses(whData);
       setMovements(moveData);
 
-      // Merge product categories with any unique batch categories
-      const batchCats = batchData.map(b => b.product_category).filter(Boolean);
-      const prodCats = prodData.map(p => p.category).filter(Boolean);
-      const allUniqueCats = Array.from(new Set([...(catData || []), ...prodCats, ...batchCats]));
-      setCategories(allUniqueCats);
+      // 1. Resolve each batch's authoritative category from the linked product
+      const resolvedBatches = batchData.map(b => {
+        const matched = prodData.find(p => p.id === b.product_id || (p.name && b.product_name && p.name.toLowerCase().trim() === b.product_name.toLowerCase().trim()));
+        const cat = matched?.category || b.product_category || 'Frozen Seafood';
+        return { ...b, product_category: cat };
+      });
+
+      setBatches(resolvedBatches);
+      setProducts(prodData);
+      setWarehouses(whData);
+      setMovements(moveData);
+
+      // 2. Derive dynamic category list directly from products and batches
+      const activeProdCategories = prodData.map(p => (p.category || '').trim()).filter(Boolean);
+      const activeBatchCategories = resolvedBatches.map(b => (b.product_category || '').trim()).filter(Boolean);
+      const allUniqueCats = Array.from(new Set([...activeProdCategories, ...activeBatchCategories])).sort((a, b) => a.localeCompare(b));
+
+      setCategories(allUniqueCats.length > 0 ? allUniqueCats : (catData || ['Frozen Seafood']));
 
       if (prodData.length > 0 && !formData.product_id) {
         setFormData(prev => ({
@@ -179,7 +192,8 @@ export const RimiInventory: React.FC = () => {
   };
 
   const filteredBatches = batches.map(b => {
-    const resolvedCategory = b.product_category || products.find(p => p.id === b.product_id || p.name === b.product_name)?.category || 'Frozen Seafood';
+    const matchedProd = products.find(p => p.id === b.product_id || (p.name && b.product_name && p.name.toLowerCase().trim() === b.product_name.toLowerCase().trim()));
+    const resolvedCategory = matchedProd?.category || b.product_category || 'Frozen Seafood';
     return { ...b, product_category: resolvedCategory };
   }).filter(b => {
     let matchExpiry = true;
@@ -189,9 +203,14 @@ export const RimiInventory: React.FC = () => {
     if (expiryTab === 'Expired') matchExpiry = (b.days_to_expiry || 0) <= 0;
 
     const matchWarehouse = warehouseFilter === 'All' || b.warehouse_id === warehouseFilter;
+    const cat = (b.product_category || '').toLowerCase().trim();
+    const targetCat = categoryFilter.toLowerCase().trim();
     const matchCategory =
       categoryFilter === 'All' ||
-      (b.product_category && b.product_category.toLowerCase() === categoryFilter.toLowerCase());
+      cat === targetCat ||
+      cat.replace(/[^a-z0-9]/g, '') === targetCat.replace(/[^a-z0-9]/g, '') ||
+      cat.includes(targetCat) ||
+      targetCat.includes(cat);
 
     const s = search.toLowerCase();
     const matchSearch =

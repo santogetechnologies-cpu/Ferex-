@@ -42,6 +42,7 @@ export interface RimiCustomerRecord {
   credit_period_days: number;
   credit_limit: number;
   outstanding_amount: number;
+  outstanding_balance?: number;
   payment_status: 'Current' | 'Overdue' | 'Advance' | 'Blocked';
   preferred_products: string[];
   pipeline_stage: 'Lead' | 'Contacted' | 'Sample Sent' | 'Negotiation' | 'Active Account' | 'Suspended';
@@ -1344,18 +1345,22 @@ export async function createRimiPayment(payment: {
   const customer = await getRimiCustomerById(payment.customer_id);
   const custName = payment.customer_name || customer?.business_name || 'Customer';
 
+  const isValidUUID = (id?: string | null) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const validCustomerId = isValidUUID(payment.customer_id) ? payment.customer_id : null;
+  const validOrderId = isValidUUID(payment.order_id) ? payment.order_id : null;
+
   const payload: RimiPaymentRecord = {
     id: newId,
     payment_no: paymentNo,
-    customer_id: payment.customer_id,
+    customer_id: validCustomerId || payment.customer_id,
     customer_name: custName,
-    order_id: payment.order_id || undefined,
+    order_id: validOrderId || undefined,
     order_no: payment.order_no || '',
     amount: Number(payment.amount),
     payment_method: payment.payment_method || 'Bank Transfer',
     reference_no: payment.reference_no || `REF-${Math.floor(100000 + Math.random() * 900000)}`,
     payment_date: payment.payment_date || new Date().toISOString().split('T')[0],
-    collected_by_name: payment.collected_by_name || 'Finance Lead',
+    collected_by_name: payment.collected_by_name || 'Finance Team',
     receipt_url: payment.receipt_url || '',
     notes: payment.notes || '',
     created_at: new Date().toISOString()
@@ -1366,20 +1371,27 @@ export async function createRimiPayment(payment: {
   saveLocalRimiPayments([payload, ...localPayments.filter((p: RimiPaymentRecord) => p.id !== payload.id)]);
 
   try {
-    const { error } = await supabase.from('rimi_payments').insert(payload);
+    const dbPayload = {
+      ...payload,
+      customer_id: validCustomerId,
+      order_id: validOrderId
+    };
+    const { error } = await supabase.from('rimi_payments').insert(dbPayload);
     if (error) {
       console.warn('[RimiAPI] Full payment insert notice, attempting schema-safe insert:', error.message);
       const safePayload: any = {
         id: payload.id,
         payment_no: payload.payment_no,
-        customer_id: payload.customer_id,
+        customer_id: validCustomerId,
         customer_name: payload.customer_name,
-        order_id: payload.order_id || null,
+        order_id: validOrderId,
         order_no: payload.order_no || '',
         amount: payload.amount,
         payment_method: payload.payment_method,
         reference_no: payload.reference_no,
         payment_date: payload.payment_date,
+        collected_by_name: payload.collected_by_name || 'Finance Team',
+        receipt_url: payload.receipt_url || '',
         notes: payload.notes,
         created_at: payload.created_at
       };
@@ -1388,14 +1400,13 @@ export async function createRimiPayment(payment: {
         console.warn('[RimiAPI] Safe payment insert warning, attempting base insert:', retryErr.message);
         const basePayload: any = {
           id: payload.id,
-          order_id: payload.order_id || null,
           amount: payload.amount,
           payment_method: payload.payment_method,
           reference_no: payload.reference_no,
           payment_date: payload.payment_date,
+          collected_by_name: payload.collected_by_name || 'Finance Team',
           created_at: payload.created_at
         };
-        if (payload.customer_id) basePayload.distributor_id = payload.customer_id;
         await supabase.from('rimi_payments').insert(basePayload);
       }
     }
@@ -1405,37 +1416,42 @@ export async function createRimiPayment(payment: {
 
   // Update order if attached
   if (payment.order_id) {
-    const { data: order } = await supabase
-      .from('rimi_sales_orders')
-      .select('total_amount, paid_amount')
-      .eq('id', payment.order_id)
-      .single();
-
-    if (order) {
-      const newPaid = Number(order.paid_amount || 0) + Number(payment.amount);
-      const newBalance = Math.max(0, Number(order.total_amount) - newPaid);
-      const paymentStatus = newBalance === 0 ? 'Paid' : (newPaid > 0 ? 'Partially Paid' : 'Unpaid');
-
-      await supabase
+    try {
+      const { data: order } = await supabase
         .from('rimi_sales_orders')
-        .update({
-          paid_amount: newPaid,
-          balance_amount: newBalance,
-          payment_status: paymentStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', payment.order_id);
-    }
+        .select('total_amount, paid_amount')
+        .eq('id', payment.order_id)
+        .single();
+
+      if (order) {
+        const newPaid = Number(order.paid_amount || 0) + Number(payment.amount);
+        const newBalance = Math.max(0, Number(order.total_amount) - newPaid);
+        const paymentStatus = newBalance === 0 ? 'Paid' : (newPaid > 0 ? 'Partially Paid' : 'Unpaid');
+
+        await supabase
+          .from('rimi_sales_orders')
+          .update({
+            paid_amount: newPaid,
+            balance_amount: newBalance,
+            payment_status: paymentStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', payment.order_id);
+      }
+    } catch {}
   }
 
-  // Update customer outstanding amount
-  if (customer) {
-    const updatedOutstanding = Math.max(0, Number(customer.outstanding_amount || 0) - Number(payment.amount));
+  // Update customer outstanding amount & balance
+  try {
+    const currentCust = customer || await getRimiCustomerById(payment.customer_id);
+    const prevOutstanding = Number(currentCust?.outstanding_amount ?? currentCust?.outstanding_balance ?? 0);
+    const updatedOutstanding = Math.max(0, prevOutstanding - Number(payment.amount));
     await updateRimiCustomer(payment.customer_id, {
       outstanding_amount: updatedOutstanding,
-      payment_status: updatedOutstanding === 0 ? 'Current' : customer.payment_status
+      outstanding_balance: updatedOutstanding,
+      payment_status: updatedOutstanding === 0 ? 'Current' : 'Overdue'
     });
-  }
+  } catch {}
 
   // Log in customer activity timeline
   await addRimiCustomerActivity({
