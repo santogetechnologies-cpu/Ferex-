@@ -5,11 +5,12 @@ import {
   Snowflake, LayoutDashboard, Users, ShoppingCart,
   Package, Boxes, Warehouse, Truck, DollarSign,
   Navigation, BarChart3, Mail,
-  Bell, User, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus, CheckCircle2, Shield, Sparkles
+  Bell, User, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus, CheckCircle2, Shield, Sparkles, Clock
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
+import { ClockInOutWidget } from '../components/ClockInOutWidget';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
 import { getRimiNotifications } from '../lib/api/rimi';
@@ -139,6 +140,7 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
     {
       title: 'Operations & Alerts',
       items: [
+        { label: 'Staff Hours & Shifts', path: '/rimi/attendance', icon: Clock },
         { label: 'Finance & BI', path: '/rimi/analytics', icon: BarChart3 },
         { label: 'Tasks & Dispatch', path: '/rimi/tasks', icon: CheckCircle2 },
         { label: 'Notifications', path: '/rimi/notifications', icon: Bell, badge: unreadNotifCount > 0 ? String(unreadNotifCount) : undefined },
@@ -277,6 +279,9 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
               <span className="truncate">Search products & orders...</span>
               <kbd className="hidden sm:inline-block ml-auto text-[9px] font-semibold bg-white text-slate-400 px-1.5 py-0.5 rounded border border-slate-200">⌘K</kbd>
             </button>
+
+            {/* Global Shift Attendance Widget */}
+            <ClockInOutWidget compact divisionOverride="rimi" />
 
             {/* 4-App Switcher */}
             <AppSwitcher />

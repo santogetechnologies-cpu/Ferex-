@@ -5,11 +5,12 @@ import {
   Sparkles, LayoutDashboard, Users, UserPlus, FolderKanban, CheckSquare, Calendar,
   FileText, CreditCard, DollarSign, BarChart3, Mail,
   Bell, User, Settings, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus,
-  Layers, Shield
+  Layers, Shield, Clock
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
+import { ClockInOutWidget } from '../components/ClockInOutWidget';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
 import { getDigitalNotifications } from '../lib/api/digital';
@@ -117,6 +118,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       items: [
         { label: 'Clients', path: '/digital/clients', icon: Users },
         { label: 'Staff Team', path: '/digital/staff', icon: Users },
+        { label: 'Attendance & Timesheets', path: '/digital/attendance', icon: Clock },
         { label: 'Projects', path: '/digital/projects', icon: FolderKanban },
         { label: 'Deliverables', path: '/digital/deliverables', icon: Layers },
         { label: 'Task Assignment', path: '/digital/tasks', icon: CheckSquare },
@@ -161,6 +163,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       title: 'Projects & Tasks',
       items: [
         { label: 'My Projects', path: '/digital/projects', icon: FolderKanban },
+        { label: 'My Attendance & Hours', path: '/digital/attendance', icon: Clock },
         { label: 'Deliverables', path: '/digital/deliverables', icon: Layers },
         { label: 'Tasks Queue', path: '/digital/tasks', icon: CheckSquare },
         { label: 'Meetings', path: '/digital/meetings', icon: Calendar }
@@ -297,6 +300,9 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
               <span className="truncate">Search clients, projects...</span>
               <kbd className="hidden sm:inline-block ml-auto text-[9px] font-semibold bg-white text-slate-400 px-1.5 py-0.5 rounded border border-slate-200">⌘K</kbd>
             </button>
+
+            {/* Global Shift Attendance Widget */}
+            <ClockInOutWidget compact divisionOverride="digital" />
 
             {/* 4-App Switcher */}
             <AppSwitcher />

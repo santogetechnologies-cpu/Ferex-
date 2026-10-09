@@ -5,11 +5,12 @@ import {
   LayoutDashboard, CreditCard, BarChart3, ShieldCheck, UserCheck,
   CheckSquare, Activity, Bell, Settings, Mail, BookOpen,
   Search, Menu, ChevronDown, ChevronRight, LogOut, X, Crown,
-  Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight, Sparkles
+  Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight, Sparkles, Clock
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { AppSwitcher } from '../components/AppSwitcher';
+import { ClockInOutWidget } from '../components/ClockInOutWidget';
 
 interface CentralLayoutProps {
   children: React.ReactNode;
@@ -46,8 +47,9 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
       ]
     },
     {
-      title: 'ENTERPRISE FINANCE',
+      title: 'ENTERPRISE FINANCE & HR',
       items: [
+        { name: 'Attendance & Payroll', path: '/central/attendance', icon: Clock },
         { name: 'Finance & Analytics', path: '/central/reports', icon: BarChart3 },
         { name: 'Enterprise Ledger', path: '/central/finance', icon: CreditCard },
       ]
@@ -242,6 +244,9 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
                 className="w-full h-8.5 pl-8.5 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40 focus:ring-2 focus:ring-[#58051E]/5 transition-all"
               />
             </div>
+
+            {/* Global Shift Attendance Widget */}
+            <ClockInOutWidget compact divisionOverride="central" />
 
             {/* Google-Style 9-Dots 4-App Switcher */}
             <AppSwitcher />

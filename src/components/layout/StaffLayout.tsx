@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
   Headphones, GraduationCap, Bell, LogOut, Menu, X, ChevronRight,
-  Search, Building2, ShieldCheck, Calendar, Plane, FileText
+  Search, Building2, ShieldCheck, Calendar, Plane, FileText, Clock
 } from 'lucide-react';
 import { Logo } from '../Logo';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../hooks/useNotifications';
+import { ClockInOutWidget } from '../ClockInOutWidget';
 
 interface StaffLayoutProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ interface StaffLayoutProps {
 
 const baseStaffMenuItems = [
   { name: 'Dashboard', path: '/staff/dashboard', icon: LayoutDashboard },
+  { name: 'My Attendance & Hours', path: '/staff/attendance', icon: Clock },
   { name: 'Students', path: '/staff/students', icon: Users },
   { name: 'Universities', path: '/staff/universities', icon: Building2 },
   { name: 'Status Tracker', path: '/staff/tasks', icon: ClipboardList },
@@ -194,6 +196,9 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
                 className="h-9 w-60 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40 focus:ring-4 focus:ring-[#58051E]/5 transition-all"
               />
             </div>
+
+            {/* Shift Attendance Widget */}
+            <ClockInOutWidget compact divisionOverride="education" />
 
             {/* Quick Notification Bell */}
             <div className="relative" onClick={(e) => e.stopPropagation()}>

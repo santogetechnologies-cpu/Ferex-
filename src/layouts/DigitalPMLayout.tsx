@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, FolderKanban, CheckSquare, Headphones,
   Layers, Target, FileText, Bell, User, LogOut, Menu, X,
-  ChevronRight, Search, Sparkles
+  ChevronRight, Search, Sparkles, Clock
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
+import { ClockInOutWidget } from '../components/ClockInOutWidget';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { getAssignedDigitalTasks, getAssignedDigitalTickets } from '../lib/api/digitalPm';
@@ -18,6 +19,7 @@ interface DigitalPMLayoutProps {
 
 const pmNavItems = [
   { name: 'Dashboard', path: '/digital/pm/dashboard', icon: LayoutDashboard },
+  { name: 'My Attendance', path: '/digital/pm/attendance', icon: Clock },
   { name: 'My Projects', path: '/digital/pm/projects', icon: FolderKanban },
   { name: 'My Tasks', path: '/digital/pm/tasks', icon: CheckSquare },
   { name: 'Client Tickets', path: '/digital/pm/tickets', icon: Headphones },
@@ -267,6 +269,9 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
                 className="h-9 w-60 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40 focus:ring-4 focus:ring-[#58051E]/5 transition-all"
               />
             </div>
+
+            {/* Shift Attendance Widget */}
+            <ClockInOutWidget compact divisionOverride="digital" />
 
             {/* Google-Style 9-Dots App Switcher */}
             <AppSwitcher />

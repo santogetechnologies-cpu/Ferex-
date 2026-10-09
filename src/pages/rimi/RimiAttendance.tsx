@@ -3,7 +3,7 @@ import {
   Clock,
   ShieldCheck,
   CheckCircle,
-  Code2,
+  Truck,
   Search,
   RefreshCw,
   Calendar,
@@ -23,7 +23,7 @@ import {
   type LeavePermissionRequest,
 } from '../../lib/api/attendance';
 
-export const DigitalAttendance: React.FC = () => {
+export const RimiAttendance: React.FC = () => {
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<'timesheets' | 'leaves'>('timesheets');
   const [timesheets, setTimesheets] = useState<AttendanceTimesheet[]>([]);
@@ -33,17 +33,17 @@ export const DigitalAttendance: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
-  const adminId = user?.id || profile?.id || 'digital-admin';
-  const adminName = profile?.full_name || 'Digital Agency Admin';
+  const adminId = user?.id || profile?.id || 'rimi-admin';
+  const adminName = profile?.full_name || 'Rimi Logistics Admin';
 
   const loadData = async () => {
     setLoading(true);
     try {
       if (activeTab === 'timesheets') {
-        const data = await getTimesheets({ division: 'digital' });
+        const data = await getTimesheets({ division: 'rimi' });
         setTimesheets(data);
       } else {
-        const leaves = await getLeaveRequests({ division: 'digital' });
+        const leaves = await getLeaveRequests({ division: 'rimi' });
         setLeaveRequests(leaves);
       }
     } catch (err) {
@@ -72,7 +72,7 @@ export const DigitalAttendance: React.FC = () => {
   const handleVerify = async (id: string, staffName: string) => {
     setLoading(true);
     try {
-      await verifyTimesheetByAdmin(id, adminId, adminName, 'Verified by Digital Admin');
+      await verifyTimesheetByAdmin(id, adminId, adminName, 'Verified by Rimi Logistics Admin');
       showToast(`✅ Timesheet for ${staffName} verified successfully.`);
       loadData();
     } catch (err) {
@@ -88,7 +88,7 @@ export const DigitalAttendance: React.FC = () => {
     employeeName: string
   ) => {
     try {
-      await updateLeaveRequestStatus(reqId, status, adminId, adminName, 'Reviewed by Digital Admin');
+      await updateLeaveRequestStatus(reqId, status, adminId, adminName, 'Reviewed by Rimi Admin');
       showToast(`Leave request for ${employeeName} has been ${status}.`);
       loadData();
     } catch (err) {
@@ -111,18 +111,18 @@ export const DigitalAttendance: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 border border-purple-500/20 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 border border-rose-500/20 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <span className="p-2 bg-purple-500/20 text-purple-400 rounded-xl border border-purple-500/30">
-              <Code2 className="w-6 h-6" />
+            <span className="p-2 bg-rose-500/20 text-rose-400 rounded-xl border border-rose-500/30">
+              <Truck className="w-6 h-6" />
             </span>
             <h1 className="text-2xl font-black tracking-tight text-white">
-              Ferex Digital Tech Attendance, Timesheets & Leaves
+              Rimi Cold Chain Logistics Staff Hours & Leaves
             </h1>
           </div>
-          <p className="text-xs text-purple-200/70 max-w-xl">
-            Clock in for engineering sprints, PM coordination, and client deliverables. Review sprint work items and hourly permission requests.
+          <p className="text-xs text-rose-200/70 max-w-xl">
+            Clock in for warehouse, cold chain deliveries, and inventory shifts. Review daily achievements and hourly permission requests.
           </p>
         </div>
 
@@ -131,11 +131,11 @@ export const DigitalAttendance: React.FC = () => {
             onClick={() => setShowApplyModal(true)}
             className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-3.5 py-2 rounded-full transition-all cursor-pointer"
           >
-            <Calendar className="w-4 h-4 text-purple-400" />
+            <Calendar className="w-4 h-4 text-rose-400" />
             <span>Apply Leave / Perm</span>
           </button>
-          <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-purple-500/30 backdrop-blur-md">
-            <ClockInOutWidget divisionOverride="digital" />
+          <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-rose-500/30 backdrop-blur-md">
+            <ClockInOutWidget divisionOverride="rimi" />
           </div>
         </div>
       </div>
@@ -145,24 +145,24 @@ export const DigitalAttendance: React.FC = () => {
           onClick={() => setActiveTab('timesheets')}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'timesheets'
-              ? 'bg-purple-600 text-white shadow-lg'
+              ? 'bg-rose-600 text-white shadow-lg'
               : 'text-slate-400 hover:text-white'
           }`}
         >
           <Clock className="w-4 h-4" />
-          <span>Sprint Timesheets</span>
+          <span>Warehouse Timesheets</span>
         </button>
 
         <button
           onClick={() => setActiveTab('leaves')}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'leaves'
-              ? 'bg-purple-600 text-white shadow-lg'
+              ? 'bg-rose-600 text-white shadow-lg'
               : 'text-slate-400 hover:text-white'
           }`}
         >
           <Calendar className="w-4 h-4" />
-          <span>Leave & Permission Review</span>
+          <span>Logistics Leave Approvals</span>
         </button>
       </div>
 
@@ -175,8 +175,8 @@ export const DigitalAttendance: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search software engineer, PM, or sprint tasks..."
-                className="bg-slate-800 border border-slate-700 text-white text-xs rounded-xl pl-9 pr-3 py-2 w-72 focus:outline-none focus:border-purple-500"
+                placeholder="Search warehouse worker, driver, or activity..."
+                className="bg-slate-800 border border-slate-700 text-white text-xs rounded-xl pl-9 pr-3 py-2 w-72 focus:outline-none focus:border-rose-500"
               />
             </div>
 
@@ -194,11 +194,11 @@ export const DigitalAttendance: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-800/80 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-700">
                   <tr>
-                    <th className="p-3.5">Developer / PM</th>
-                    <th className="p-3.5">Date</th>
+                    <th className="p-3.5">Logistics Staff</th>
+                    <th className="p-3.5">Shift Date</th>
                     <th className="p-3.5">Clock In / Out</th>
                     <th className="p-3.5">Hours</th>
-                    <th className="p-3.5">Engineering Tasks & Sprint Deliverables</th>
+                    <th className="p-3.5">Warehouse / Delivery Activity</th>
                     <th className="p-3.5">Status</th>
                     <th className="p-3.5 text-right">Action</th>
                   </tr>
@@ -207,7 +207,7 @@ export const DigitalAttendance: React.FC = () => {
                   {filteredTimesheets.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-8 text-center text-slate-500">
-                        No digital team attendance records found.
+                        No logistics attendance records found.
                       </td>
                     </tr>
                   ) : (
@@ -215,9 +215,7 @@ export const DigitalAttendance: React.FC = () => {
                       <tr key={sheet.id} className="hover:bg-slate-800/40 transition-colors">
                         <td className="p-3.5 font-bold text-white">
                           <div>{sheet.user_name}</div>
-                          <div className="text-[11px] text-slate-400 font-normal">
-                            {sheet.user_email} • <span className="text-purple-400 capitalize">{sheet.user_role}</span>
-                          </div>
+                          <div className="text-[11px] text-slate-400 font-normal">{sheet.user_email}</div>
                         </td>
                         <td className="p-3.5 font-medium text-slate-200">{sheet.date}</td>
                         <td className="p-3.5 font-mono text-slate-300">
@@ -228,7 +226,7 @@ export const DigitalAttendance: React.FC = () => {
                             </div>
                           )}
                         </td>
-                        <td className="p-3.5 font-mono font-bold text-purple-400">
+                        <td className="p-3.5 font-mono font-bold text-rose-400">
                           {sheet.total_hours?.toFixed(1) || '0.0'}h
                         </td>
                         <td className="p-3.5 max-w-sm">
@@ -277,7 +275,7 @@ export const DigitalAttendance: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-800/80 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-700">
                 <tr>
-                  <th className="p-3.5">Engineer / PM</th>
+                  <th className="p-3.5">Logistics Staff</th>
                   <th className="p-3.5">Type & Policy</th>
                   <th className="p-3.5">Schedule</th>
                   <th className="p-3.5">Duration</th>
@@ -291,7 +289,7 @@ export const DigitalAttendance: React.FC = () => {
                 {leaveRequests.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="p-8 text-center text-slate-500">
-                      No digital leave requests submitted.
+                      No logistics leave requests submitted.
                     </td>
                   </tr>
                 ) : (
@@ -308,7 +306,7 @@ export const DigitalAttendance: React.FC = () => {
                       <td className="p-3.5 text-slate-300 font-medium">
                         <div>{req.start_date} {req.end_date !== req.start_date ? `to ${req.end_date}` : ''}</div>
                         {req.permission_start_time && (
-                          <div className="text-[11px] text-purple-400 font-mono">
+                          <div className="text-[11px] text-rose-400 font-mono">
                             {req.permission_start_time} - {req.permission_end_time}
                           </div>
                         )}
@@ -371,7 +369,7 @@ export const DigitalAttendance: React.FC = () => {
       <LeavePermissionModal
         isOpen={showApplyModal}
         onClose={() => setShowApplyModal(false)}
-        divisionOverride="digital"
+        divisionOverride="rimi"
         onSuccess={loadData}
       />
     </div>

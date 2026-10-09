@@ -5,11 +5,12 @@ import {
   LayoutDashboard, Users, PackageCheck, FolderArchive,
   CreditCard, MessageSquare, Bell, User, Settings, LogOut,
   Search, Menu, X, ArrowUpRight, ListTodo, LifeBuoy, Mail,
-  Ship, ShieldCheck, DollarSign, Sparkles
+  Ship, ShieldCheck, DollarSign, Sparkles, Clock
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
+import { ClockInOutWidget } from '../components/ClockInOutWidget';
 import { useAuth } from '../contexts/AuthContext';
 import { getTradeNotifications, globalSearchTrade } from '../lib/api/trade';
 
@@ -117,6 +118,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
       title: 'TRADE OPERATIONS',
       items: [
         { name: 'Orders & Tracking', path: '/trade/shipments', icon: PackageCheck },
+        { name: 'Floor Hours & Shifts', path: '/trade/attendance', icon: Clock },
         { name: 'Trade Documents', path: '/trade/documents', icon: FolderArchive },
         { name: 'Task Assignment', path: '/trade/tasks', icon: ListTodo },
         { name: 'Support & Tickets', path: '/trade/tickets', icon: LifeBuoy },
@@ -145,6 +147,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
       title: 'STAFF OPERATIONS PORTAL',
       items: [
         { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard },
+        { name: 'My Shift & Hours', path: '/trade/attendance', icon: Clock },
         { name: 'Active Orders', path: '/trade/shipments', icon: PackageCheck },
         { name: 'My Assigned Tasks', path: '/trade/tasks', icon: ListTodo },
         { name: 'Document Verification', path: '/trade/documents', icon: FolderArchive },
@@ -294,6 +297,9 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
               <span>Search orders, docs...</span>
               <kbd className="px-1.5 py-0.2 bg-white rounded border border-slate-200 text-[10px] font-mono text-slate-400">⌘K</kbd>
             </button>
+
+            {/* Global Shift Attendance Widget */}
+            <ClockInOutWidget compact divisionOverride="trade" />
 
             <AppSwitcher />
 

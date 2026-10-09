@@ -14,12 +14,15 @@ import { useSystemConfig } from '../hooks/useSystemConfig';
 import { isSuperAdmin } from '../lib/roleRouter';
 import { getAllPaymentsAdmin } from '../lib/api/payments';
 import { AppSwitcher } from '../components/AppSwitcher';
+import { ClockInOutWidget } from '../components/ClockInOutWidget';
+import { Clock } from 'lucide-react';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
 const baseMenuItems = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, badge: null, hasUpdate: false },
   { name: 'AI Copilot', path: '/admin/ai-copilot', icon: Sparkles, badge: null, hasUpdate: false },
+  { name: 'Staff Attendance & Hours', path: '/admin/attendance', icon: Clock, badge: null, hasUpdate: false },
   { name: 'Students', path: '/admin/students', icon: Users, badge: null, hasUpdate: false },
   { name: 'Universities', path: '/admin/universities', icon: Building2, badge: null, hasUpdate: false },
   { name: 'Status Tracker', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
@@ -294,6 +297,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 className="h-9 w-60 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40 focus:ring-4 focus:ring-[#58051E]/5 transition-all"
               />
             </div>
+
+            {/* Shift Clock-In Widget */}
+            <ClockInOutWidget compact divisionOverride="education" />
 
             {/* Google-Style 9-Dots 4-App Switcher */}
             <AppSwitcher />
