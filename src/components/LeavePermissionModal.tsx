@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Calendar,
   Clock,
@@ -82,7 +83,7 @@ export const LeavePermissionModal: React.FC<LeavePermissionModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason.trim()) {
-      setErrorMsg('Please specify a detailed reason for your leave/permission request.');
+      setErrorMsg('Please specify a reason for your leave/permission request.');
       return;
     }
 
@@ -127,12 +128,12 @@ export const LeavePermissionModal: React.FC<LeavePermissionModalProps> = ({
         reason: reason.trim(),
       });
 
-      setSuccessMsg('🎉 Leave / Permission application submitted for admin review!');
+      setSuccessMsg('Leave and permission application submitted.');
       setTimeout(() => {
         setSuccessMsg('');
         if (onSuccess) onSuccess();
         onClose();
-      }, 1500);
+      }, 1200);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to submit leave request');
     } finally {
@@ -140,155 +141,207 @@ export const LeavePermissionModal: React.FC<LeavePermissionModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in text-slate-100">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in text-slate-900 text-left">
+      <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header */}
+        {/* Modal Header */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+          <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center border border-[#58051E]/20">
             <Calendar className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">Apply Leave / Hourly Permission</h3>
-            <p className="text-xs text-slate-400">
-              Submit planned, emergency, half-day leaves or hourly permissions
+            <h2 className="text-lg font-bold text-slate-900">Apply Leave / Permission</h2>
+            <p className="text-xs text-slate-500">
+              Submit daily permissions, half-day leaves, or planned leaves for verification
             </p>
           </div>
         </div>
 
         {errorMsg && (
-          <div className="mb-4 flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-xl">
+          <div className="mb-4 flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700 text-xs p-3 rounded-lg">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-4 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs p-3 rounded-xl font-semibold">
+          <div className="mb-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs p-3 rounded-lg">
             <CheckCircle className="w-4 h-4 flex-shrink-0" />
             <span>{successMsg}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Request Type Selector */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {[
-              { id: 'full_day_leave', label: 'Full Day' },
-              { id: 'half_day_leave', label: 'Half Day' },
-              { id: 'hourly_permission', label: 'Hourly Perm' },
-              { id: 'unplanned_emergency', label: 'Emergency' },
-            ].map((t) => (
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              Request Type
+            </label>
+            <div className="grid grid-cols-2 gap-2">
               <button
-                key={t.id}
                 type="button"
-                onClick={() => {
-                  setRequestType(t.id as any);
-                  if (t.id === 'half_day_leave') setSelectedPolicyCode('HALF_DAY');
-                  else if (t.id === 'hourly_permission') setSelectedPolicyCode('HOURLY_PERM');
-                  else if (t.id === 'unplanned_emergency') setSelectedPolicyCode('UNPLANNED');
-                  else setSelectedPolicyCode('CL');
-                }}
-                className={`py-2 px-2.5 rounded-xl font-bold transition-all text-center ${
-                  requestType === t.id
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                    : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700/60'
+                onClick={() => setRequestType('full_day_leave')}
+                className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${
+                  requestType === 'full_day_leave'
+                    ? 'bg-[#58051E]/10 border-[#58051E] text-[#58051E] font-bold'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                {t.label}
+                <Calendar className="w-4 h-4" />
+                <span>Full-Day Leave</span>
               </button>
-            ))}
+
+              <button
+                type="button"
+                onClick={() => setRequestType('half_day_leave')}
+                className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${
+                  requestType === 'half_day_leave'
+                    ? 'bg-[#58051E]/10 border-[#58051E] text-[#58051E] font-bold'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Clock className="w-4 h-4" />
+                <span>Half-Day Leave</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRequestType('hourly_permission')}
+                className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${
+                  requestType === 'hourly_permission'
+                    ? 'bg-[#58051E]/10 border-[#58051E] text-[#58051E] font-bold'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Hourly Permission (1-3 hrs)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRequestType('unplanned_emergency')}
+                className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${
+                  requestType === 'unplanned_emergency'
+                    ? 'bg-rose-50 border-rose-500 text-rose-700 font-bold'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <AlertCircle className="w-4 h-4" />
+                <span>Emergency / Unplanned</span>
+              </button>
+            </div>
           </div>
 
-          {/* Policy Type Selection & Monetizable Indicator */}
-          <div>
-            <label className="block text-slate-400 font-semibold mb-1.5">
-              Select Leave Policy / Quota
-            </label>
-            <select
-              value={selectedPolicyCode}
-              onChange={(e) => setSelectedPolicyCode(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-indigo-500"
-            >
-              {policies.map((p) => (
-                <option key={p.id} value={p.code}>
-                  {p.name} {p.is_monetizable ? '(Paid)' : '(Loss of Pay)'}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Monetizable Status Pill */}
-          {currentPolicy && (
-            <div className="flex items-center justify-between bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
-              <span className="text-slate-400">Payroll Treatment:</span>
-              {currentPolicy.is_monetizable ? (
-                <span className="inline-flex items-center gap-1 font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-800/40 px-2 py-0.5 rounded-md">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Monetizable (Full Salary Paid)
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 font-bold text-amber-400 bg-amber-950/50 border border-amber-800/40 px-2 py-0.5 rounded-md">
-                  <AlertCircle className="w-3.5 h-3.5" /> Unpaid / Loss of Pay (Deducted)
+          {/* Leave Category Policy Selection */}
+          <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-700">
+                Leave Policy Category
+              </label>
+              {currentPolicy && (
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
+                  <DollarSign className="w-3 h-3" />
+                  {currentPolicy.is_monetizable ? 'Paid / Monetizable' : 'Loss of Pay (LOP)'}
                 </span>
               )}
             </div>
-          )}
 
-          {/* DATE & TIME CONTROLS */}
+            <select
+              value={selectedPolicyCode}
+              onChange={(e) => setSelectedPolicyCode(e.target.value)}
+              className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E]"
+            >
+              {policies.map((p) => (
+                <option key={p.code} value={p.code}>
+                  {p.name} ({p.code}) — {p.annual_quota_days} days/yr — {p.is_monetizable ? 'Paid' : 'Unpaid'}
+                </option>
+              ))}
+            </select>
+            {currentPolicy?.description && (
+              <p className="text-[11px] text-slate-500">{currentPolicy.description}</p>
+            )}
+          </div>
+
+          {/* Conditional Fields based on Request Type */}
           {requestType === 'full_day_leave' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-slate-400 mb-1">From Date</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Start Date
+                </label>
                 <input
                   type="date"
                   required
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white"
+                  className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
                 />
               </div>
               <div>
-                <label className="block text-slate-400 mb-1">To Date</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  End Date
+                </label>
                 <input
                   type="date"
                   required
                   value={endDate}
+                  min={startDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white"
+                  className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
                 />
               </div>
             </div>
           )}
 
           {requestType === 'half_day_leave' && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
               <div>
-                <label className="block text-slate-400 mb-1">Date</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Leave Date
+                </label>
                 <input
                   type="date"
                   required
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white"
+                  className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
                 />
               </div>
               <div>
-                <label className="block text-slate-400 mb-1">Session</label>
-                <select
-                  value={halfDaySession}
-                  onChange={(e) => setHalfDaySession(e.target.value as any)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white"
-                >
-                  <option value="first_half">First Half (Morning Shift)</option>
-                  <option value="second_half">Second Half (Afternoon Shift)</option>
-                </select>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Half-Day Session
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setHalfDaySession('first_half')}
+                    className={`py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
+                      halfDaySession === 'first_half'
+                        ? 'bg-[#58051E]/10 border-[#58051E] text-[#58051E] font-bold'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    Morning (First Half)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHalfDaySession('second_half')}
+                    className={`py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
+                      halfDaySession === 'second_half'
+                        ? 'bg-[#58051E]/10 border-[#58051E] text-[#58051E] font-bold'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    Afternoon (Second Half)
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -296,34 +349,40 @@ export const LeavePermissionModal: React.FC<LeavePermissionModalProps> = ({
           {requestType === 'hourly_permission' && (
             <div className="space-y-3">
               <div>
-                <label className="block text-slate-400 mb-1">Permission Date</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Permission Date
+                </label>
                 <input
                   type="date"
                   required
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white"
+                  className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1">From Time</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    From Time
+                  </label>
                   <input
                     type="time"
                     required
                     value={permissionStartTime}
                     onChange={(e) => setPermissionStartTime(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white"
+                    className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">To Time</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    To Time
+                  </label>
                   <input
                     type="time"
                     required
                     value={permissionEndTime}
                     onChange={(e) => setPermissionEndTime(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white"
+                    className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
                   />
                 </div>
               </div>
@@ -331,52 +390,57 @@ export const LeavePermissionModal: React.FC<LeavePermissionModalProps> = ({
           )}
 
           {requestType === 'unplanned_emergency' && (
-            <div>
-              <label className="block text-slate-400 mb-1">Emergency Date</label>
-              <input
-                type="date"
-                required
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white"
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Emergency Start Date
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                />
+              </div>
             </div>
           )}
 
-          {/* Reason */}
+          {/* Detailed Reason */}
           <div>
-            <label className="block text-slate-400 font-semibold mb-1">
-              Reason & Handover Details*
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Reason / Explanation (Required)*
             </label>
             <textarea
               rows={3}
               required
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="e.g. Urgent family medical appointment / pending client tickets handed over to counselor..."
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-indigo-500 resize-none"
+              placeholder="Provide reason for admin review..."
+              className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E] resize-none leading-relaxed placeholder-slate-400"
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          {/* Action Buttons */}
+          <div className="flex gap-2.5 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl transition-all"
+              className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 rounded-lg text-xs transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-bold py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-1.5"
+              className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold py-2.5 rounded-lg text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
             >
               {loading ? 'Submitting...' : 'Submit Application'}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

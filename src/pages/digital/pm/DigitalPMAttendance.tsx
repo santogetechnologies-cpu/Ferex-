@@ -4,7 +4,8 @@ import {
   ShieldCheck,
   FileText,
   Calendar,
-  Plus
+  Plus,
+  Check
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { ClockInOutWidget } from '../../../components/ClockInOutWidget';
@@ -58,237 +59,132 @@ export const DigitalPMAttendance: React.FC = () => {
   const verifiedCount = myTimesheets.filter((t) => t.is_admin_verified || t.is_superadmin_locked).length;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6 animate-fade-in text-slate-100">
-      <div className="bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 border border-purple-500/20 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div className="space-y-6 relative text-left pb-8 text-slate-900">
+      {/* Header Banner */}
+      <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <span className="p-2 bg-purple-500/20 text-purple-400 rounded-xl border border-purple-500/30">
-              <Clock className="w-6 h-6" />
-            </span>
-            <h1 className="text-2xl font-black tracking-tight text-white">
-              Digital PM Daily Timesheets, Shifts & Leaves
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
+              <Clock className="w-4 h-4" />
+            </div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              My Project Manager Shift & Timesheets
             </h1>
+            <span className="bg-indigo-50 text-indigo-700 text-[11px] font-bold px-2.5 py-0.5 rounded border border-indigo-200">
+              Digital PM
+            </span>
           </div>
-          <p className="text-xs text-purple-200/70 max-w-xl">
-            Clock in daily, log your sprint milestones, request permissions or leaves, and track verified payroll hours.
+          <p className="text-xs text-slate-500 max-w-xl">
+            Clock in daily, log engineering sprint management and delivery hours, and file leaves & permissions.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={() => setShowApplyModal(true)}
-            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-3.5 py-2 rounded-full transition-all cursor-pointer"
+            className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold px-3 py-2 rounded-lg shadow-xs transition-all cursor-pointer"
           >
-            <Calendar className="w-4 h-4 text-purple-400" />
+            <Calendar className="w-3.5 h-3.5 text-slate-500" />
             <span>Apply Leave / Perm</span>
           </button>
-          <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-purple-500/30 backdrop-blur-md">
-            <ClockInOutWidget divisionOverride="digital" />
-          </div>
+          <ClockInOutWidget divisionOverride="digital" />
         </div>
       </div>
 
-      <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800 w-fit">
+      {/* Tabs */}
+      <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl w-fit">
         <button
           onClick={() => setActiveTab('timesheets')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
             activeTab === 'timesheets'
-              ? 'bg-purple-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-[#58051E] text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
           }`}
         >
-          <Clock className="w-4 h-4" />
-          <span>My Timesheets</span>
+          <Clock className="w-3.5 h-3.5" />
+          <span>My Timesheets ({myTimesheets.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('leaves')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
             activeTab === 'leaves'
-              ? 'bg-purple-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-[#58051E] text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
           }`}
         >
-          <Calendar className="w-4 h-4" />
-          <span>My Leave & Permissions</span>
+          <Calendar className="w-3.5 h-3.5" />
+          <span>My Leave Applications ({myLeaves.length})</span>
         </button>
       </div>
 
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div className="bg-white border border-slate-200/80 p-4 rounded-xl shadow-xs">
+          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Total Logged PM Hours</span>
+          <div className="text-xl font-bold font-mono text-slate-900 mt-1">
+            {totalLoggedHours.toFixed(1)} hrs
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200/80 p-4 rounded-xl shadow-xs">
+          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Verified Shifts</span>
+          <div className="text-xl font-bold font-mono text-emerald-700 mt-1">
+            {verifiedCount} shifts
+          </div>
+        </div>
+      </div>
+
       {activeTab === 'timesheets' && (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center border border-purple-500/30">
-                <Calendar className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-xs text-slate-400">Total Shifts Logged</span>
-                <div className="text-xl font-bold font-mono text-white">
-                  {myTimesheets.length} Days
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
-                <Clock className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-xs text-slate-400">Total Hours Tracked</span>
-                <div className="text-xl font-bold font-mono text-emerald-400">
-                  {totalLoggedHours.toFixed(1)} hrs
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-xs text-slate-400">Verified Shifts</span>
-                <div className="text-xl font-bold font-mono text-indigo-400">
-                  {verifiedCount} Shifts
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-purple-400" />
-                <span>My PM Shift History</span>
-              </h2>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-800/80 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-700">
-                  <tr>
-                    <th className="p-3.5">Date</th>
-                    <th className="p-3.5">Shift Name</th>
-                    <th className="p-3.5">Clock In</th>
-                    <th className="p-3.5">Clock Out</th>
-                    <th className="p-3.5">Total Hours</th>
-                    <th className="p-3.5">Sprint Achievements Summary</th>
-                    <th className="p-3.5">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {myTimesheets.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-500">
-                        No timesheet records found. Click Clock In to log today's PM shift!
-                      </td>
-                    </tr>
-                  ) : (
-                    myTimesheets.map((t) => (
-                      <tr key={t.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3.5 font-bold text-white">{t.date}</td>
-                        <td className="p-3.5 text-slate-300">{t.shift_name || 'Standard Shift'}</td>
-                        <td className="p-3.5 font-mono text-slate-300">
-                          {new Date(t.clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td className="p-3.5 font-mono text-slate-300">
-                          {t.clock_out
-                            ? new Date(t.clock_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            : '--'}
-                        </td>
-                        <td className="p-3.5 font-mono font-bold text-purple-400">
-                          {t.total_hours?.toFixed(1) || '0.0'} hrs
-                        </td>
-                        <td className="p-3.5 max-w-md">
-                          <p className="text-slate-300 text-[11px] leading-relaxed">
-                            {t.work_summary || <span className="italic text-slate-500">In Progress</span>}
-                          </p>
-                        </td>
-                        <td className="p-3.5">
-                          {t.is_superadmin_locked ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">
-                              🔒 Locked
-                            </span>
-                          ) : t.is_admin_verified ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-semibold">
-                              <ShieldCheck className="w-3 h-3" /> Verified
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-semibold">
-                              {t.status}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
-
-      {activeTab === 'leaves' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-800/80 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-700">
+              <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
                 <tr>
-                  <th className="p-3.5">Policy & Type</th>
-                  <th className="p-3.5">Schedule</th>
-                  <th className="p-3.5">Duration</th>
-                  <th className="p-3.5">Payroll Type</th>
-                  <th className="p-3.5">Reason</th>
-                  <th className="p-3.5">Review Status</th>
+                  <th className="p-3">Shift Date</th>
+                  <th className="p-3">Clock In / Out</th>
+                  <th className="p-3">Hours</th>
+                  <th className="p-3">Sprint Management Summary</th>
+                  <th className="p-3">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
-                {myLeaves.length === 0 ? (
+              <tbody className="divide-y divide-slate-100">
+                {myTimesheets.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-slate-500">
-                      No leave or permission requests submitted yet.
+                    <td colSpan={5} className="p-8 text-center text-slate-400">
+                      No timesheet records logged yet.
                     </td>
                   </tr>
                 ) : (
-                  myLeaves.map((l) => (
-                    <tr key={l.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="p-3.5 font-bold text-white">
-                        <div>{l.policy_name}</div>
-                        <div className="text-[10px] text-slate-400 uppercase font-normal">{l.request_type.replace(/_/g, ' ')}</div>
-                      </td>
-                      <td className="p-3.5 text-slate-300">
-                        <div>{l.start_date} {l.end_date !== l.start_date ? `to ${l.end_date}` : ''}</div>
-                        {l.permission_start_time && (
-                          <div className="text-[11px] text-purple-400 font-mono">
-                            {l.permission_start_time} - {l.permission_end_time}
-                          </div>
+                  myTimesheets.map((t) => (
+                    <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="p-3 font-semibold text-slate-900">{t.date}</td>
+                      <td className="p-3 text-slate-600">
+                        <div>In: <span className="font-semibold">{new Date(t.clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
+                        {t.clock_out && (
+                          <div>Out: <span className="font-semibold">{new Date(t.clock_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
                         )}
                       </td>
-                      <td className="p-3.5 font-mono font-bold text-purple-400">
-                        {l.permission_hours ? `${l.permission_hours} hrs` : `${l.total_days} days`}
+                      <td className="p-3 font-mono font-bold text-slate-900 text-sm">
+                        {t.total_hours?.toFixed(1) || '0.0'} hrs
                       </td>
-                      <td className="p-3.5">
-                        {l.is_monetizable ? (
-                          <span className="text-[10px] bg-emerald-950/50 text-emerald-400 border border-emerald-800/40 px-2 py-0.5 rounded-full font-bold">
-                            Paid
+                      <td className="p-3 max-w-sm text-slate-600 italic">
+                        {t.work_summary ? `"${t.work_summary}"` : '--'}
+                      </td>
+                      <td className="p-3">
+                        {t.is_admin_verified ? (
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                            <Check className="w-3 h-3" /> Verified
+                          </span>
+                        ) : t.status === 'active' ? (
+                          <span className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                            Active Shift
                           </span>
                         ) : (
-                          <span className="text-[10px] bg-amber-950/50 text-amber-400 border border-amber-800/40 px-2 py-0.5 rounded-full font-bold">
-                            Loss of Pay
+                          <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                            Pending Review
                           </span>
                         )}
-                      </td>
-                      <td className="p-3.5 max-w-xs text-slate-300 text-[11px]">{l.reason}</td>
-                      <td className="p-3.5">
-                        <span className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-bold capitalize ${
-                          l.status === 'approved'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                            : l.status === 'rejected'
-                            ? 'bg-red-500/10 text-red-400 border border-red-500/30'
-                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                        }`}>
-                          {l.status}
-                        </span>
                       </td>
                     </tr>
                   ))
@@ -299,11 +195,51 @@ export const DigitalPMAttendance: React.FC = () => {
         </div>
       )}
 
+      {activeTab === 'leaves' && (
+        <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
+                <tr>
+                  <th className="p-3">Application Date</th>
+                  <th className="p-3">Type</th>
+                  <th className="p-3">Duration</th>
+                  <th className="p-3">Reason</th>
+                  <th className="p-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {myLeaves.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-slate-400">
+                      No leave applications submitted.
+                    </td>
+                  </tr>
+                ) : (
+                  myLeaves.map((l) => (
+                    <tr key={l.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="p-3 font-medium text-slate-800">{l.start_date}</td>
+                      <td className="p-3 capitalize">{l.request_type.replace(/_/g, ' ')}</td>
+                      <td className="p-3">{l.total_days} Day(s)</td>
+                      <td className="p-3 max-w-xs text-slate-600 line-clamp-2">{l.reason}</td>
+                      <td className="p-3">
+                        <span className="text-[11px] font-bold uppercase">{l.status}</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* APPLY MODAL */}
       <LeavePermissionModal
         isOpen={showApplyModal}
         onClose={() => setShowApplyModal(false)}
         divisionOverride="digital"
-        onSuccess={loadData}
+        onSuccess={() => loadData()}
       />
     </div>
   );

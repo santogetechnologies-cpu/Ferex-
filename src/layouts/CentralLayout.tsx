@@ -245,9 +245,6 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
               />
             </div>
 
-            {/* Global Shift Attendance Widget */}
-            <ClockInOutWidget compact divisionOverride="central" />
-
             {/* Google-Style 9-Dots 4-App Switcher */}
             <AppSwitcher />
 

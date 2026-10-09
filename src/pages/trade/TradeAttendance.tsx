@@ -70,15 +70,12 @@ export const TradeAttendance: React.FC = () => {
   };
 
   const handleVerify = async (id: string, staffName: string) => {
-    setLoading(true);
     try {
-      await verifyTimesheetByAdmin(id, adminId, adminName, 'Verified by Trade Admin');
-      showToast(`✅ Timesheet for ${staffName} verified successfully.`);
+      await verifyTimesheetByAdmin(id, adminId, adminName, 'Verified by Trade Operations Admin');
+      showToast(`Timesheet for ${staffName} verified.`);
       loadData();
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -88,7 +85,13 @@ export const TradeAttendance: React.FC = () => {
     employeeName: string
   ) => {
     try {
-      await updateLeaveRequestStatus(reqId, status, adminId, adminName, 'Reviewed by Trade Admin');
+      await updateLeaveRequestStatus(
+        reqId,
+        status,
+        adminId,
+        adminName,
+        `Reviewed by Trade Admin`
+      );
       showToast(`Leave request for ${employeeName} has been ${status}.`);
       loadData();
     } catch (err) {
@@ -96,166 +99,165 @@ export const TradeAttendance: React.FC = () => {
     }
   };
 
-  const filteredTimesheets = timesheets.filter((t) =>
-    t.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.user_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (t.work_summary && t.work_summary.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filtered = timesheets.filter(
+    (t) =>
+      t.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.user_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.work_summary && t.work_summary.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in text-slate-100">
+    <div className="space-y-6 relative text-left pb-8 text-slate-900">
       {toastMsg && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-2xl animate-bounce text-sm font-medium">
-          <CheckCircle className="w-5 h-5" />
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl animate-fade-in text-xs font-semibold">
+          <CheckCircle className="w-4 h-4" />
           <span>{toastMsg}</span>
         </div>
       )}
 
-      <div className="bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 border border-amber-500/20 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      {/* Header Banner */}
+      <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <span className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
-              <Globe className="w-6 h-6" />
-            </span>
-            <h1 className="text-2xl font-black tracking-tight text-white">
-              Global Trade Floor Hours, Shifts & Permissions
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+              <Globe className="w-4 h-4" />
+            </div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Global Trade Desk Attendance & Shifts
             </h1>
+            <span className="bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-0.5 rounded border border-emerald-200">
+              Global Trade Floor
+            </span>
           </div>
-          <p className="text-xs text-amber-200/70 max-w-xl">
-            Monitor trading floor officer hours, customs operations shifts, and review hourly trade floor permissions.
+          <p className="text-xs text-slate-500 max-w-xl">
+            Monitor trading floor counselor & officer working hours, trade desk executions, verify daily summaries, and manage permissions.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={() => setShowApplyModal(true)}
-            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-3.5 py-2 rounded-full transition-all cursor-pointer"
+            className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold px-3 py-2 rounded-lg shadow-xs transition-all cursor-pointer"
           >
-            <Calendar className="w-4 h-4 text-amber-400" />
+            <Calendar className="w-3.5 h-3.5 text-slate-500" />
             <span>Apply Leave / Perm</span>
           </button>
-          <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-amber-500/30 backdrop-blur-md">
-            <ClockInOutWidget divisionOverride="trade" />
-          </div>
+          <ClockInOutWidget divisionOverride="trade" />
         </div>
       </div>
 
-      <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800 w-fit">
+      {/* Tabs */}
+      <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl w-fit">
         <button
           onClick={() => setActiveTab('timesheets')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
             activeTab === 'timesheets'
-              ? 'bg-amber-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-[#58051E] text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
           }`}
         >
-          <Clock className="w-4 h-4" />
-          <span>Floor Timesheets</span>
+          <Clock className="w-3.5 h-3.5" />
+          <span>Trading Floor Timesheets</span>
         </button>
 
         <button
           onClick={() => setActiveTab('leaves')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
             activeTab === 'leaves'
-              ? 'bg-amber-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-[#58051E] text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
           }`}
         >
-          <Calendar className="w-4 h-4" />
-          <span>Floor Leave Approvals</span>
+          <Calendar className="w-3.5 h-3.5" />
+          <span>Leave & Permission Requests</span>
         </button>
       </div>
 
       {activeTab === 'timesheets' && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
             <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search trade officer or floor deals..."
-                className="bg-slate-800 border border-slate-700 text-white text-xs rounded-xl pl-9 pr-3 py-2 w-72 focus:outline-none focus:border-amber-500"
+                placeholder="Search trade staff or deal log..."
+                className="bg-white border border-slate-200 text-slate-800 text-xs rounded-lg pl-8 pr-3 py-1.5 w-60 focus:outline-none focus:border-[#58051E]"
               />
             </div>
-
             <button
               onClick={loadData}
-              className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition-all cursor-pointer shadow-xs"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </button>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-800/80 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-700">
+                <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
                   <tr>
-                    <th className="p-3.5">Trade Officer</th>
-                    <th className="p-3.5">Date</th>
-                    <th className="p-3.5">Clock In / Out</th>
-                    <th className="p-3.5">Hours</th>
-                    <th className="p-3.5">Trading Activities & Shipments Managed</th>
-                    <th className="p-3.5">Status</th>
-                    <th className="p-3.5 text-right">Action</th>
+                    <th className="p-3">Trade Staff Member</th>
+                    <th className="p-3">Shift Date</th>
+                    <th className="p-3">Clock In / Out</th>
+                    <th className="p-3">Hours</th>
+                    <th className="p-3">Trading Floor Achievements</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {filteredTimesheets.length === 0 ? (
+                <tbody className="divide-y divide-slate-100">
+                  {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-500">
-                        No trade attendance records found.
+                      <td colSpan={7} className="p-8 text-center text-slate-400">
+                        No trade floor timesheet records found.
                       </td>
                     </tr>
                   ) : (
-                    filteredTimesheets.map((sheet) => (
-                      <tr key={sheet.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3.5 font-bold text-white">
-                          <div>{sheet.user_name}</div>
-                          <div className="text-[11px] text-slate-400 font-normal">{sheet.user_email}</div>
+                    filtered.map((t) => (
+                      <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="p-3">
+                          <div className="font-semibold text-slate-900">{t.user_name}</div>
+                          <div className="text-[11px] text-slate-400">{t.user_email}</div>
                         </td>
-                        <td className="p-3.5 font-medium text-slate-200">{sheet.date}</td>
-                        <td className="p-3.5 font-mono text-slate-300">
-                          In: {new Date(sheet.clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {sheet.clock_out && (
-                            <div className="text-slate-400">
-                              Out: {new Date(sheet.clock_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </div>
+                        <td className="p-3 font-medium text-slate-800">{t.date}</td>
+                        <td className="p-3 text-slate-600">
+                          <div>In: <span className="font-semibold">{new Date(t.clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
+                          {t.clock_out && (
+                            <div>Out: <span className="font-semibold">{new Date(t.clock_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
                           )}
                         </td>
-                        <td className="p-3.5 font-mono font-bold text-amber-400">
-                          {sheet.total_hours?.toFixed(1) || '0.0'}h
+                        <td className="p-3 font-mono font-bold text-slate-900 text-sm">
+                          {t.total_hours?.toFixed(1) || '0.0'} hrs
                         </td>
-                        <td className="p-3.5 max-w-sm">
-                          <p className="text-slate-300 text-[11px] leading-relaxed">
-                            {sheet.work_summary || <span className="italic text-slate-500">In Progress</span>}
-                          </p>
+                        <td className="p-3 max-w-sm text-slate-600 italic">
+                          {t.work_summary ? `"${t.work_summary}"` : '--'}
                         </td>
-                        <td className="p-3.5">
-                          {sheet.is_superadmin_locked ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">
-                              🔒 Locked
+                        <td className="p-3">
+                          {t.is_admin_verified ? (
+                            <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              <Check className="w-3 h-3" /> Verified
                             </span>
-                          ) : sheet.is_admin_verified ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-semibold">
-                              <ShieldCheck className="w-3 h-3" /> Verified
+                          ) : t.status === 'active' ? (
+                            <span className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              In Progress
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-semibold">
-                              {sheet.status}
+                            <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              Pending Review
                             </span>
                           )}
                         </td>
-                        <td className="p-3.5 text-right">
-                          {!sheet.is_admin_verified && sheet.status === 'completed' && (
+                        <td className="p-3 text-right">
+                          {!t.is_admin_verified && t.status === 'completed' && (
                             <button
-                              onClick={() => handleVerify(sheet.id, sheet.user_name)}
-                              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
+                              onClick={() => handleVerify(t.id, t.user_name)}
+                              className="bg-[#58051E] hover:bg-[#430316] text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer"
                             >
-                              Verify Day
+                              Verify Shift
                             </button>
                           )}
                         </td>
@@ -270,89 +272,50 @@ export const TradeAttendance: React.FC = () => {
       )}
 
       {activeTab === 'leaves' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-800/80 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-700">
+              <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
                 <tr>
-                  <th className="p-3.5">Trade Officer</th>
-                  <th className="p-3.5">Type & Policy</th>
-                  <th className="p-3.5">Schedule</th>
-                  <th className="p-3.5">Duration</th>
-                  <th className="p-3.5">Payroll Type</th>
-                  <th className="p-3.5">Reason</th>
-                  <th className="p-3.5">Status</th>
-                  <th className="p-3.5 text-right">Action</th>
+                  <th className="p-3">Staff</th>
+                  <th className="p-3">Type & Policy</th>
+                  <th className="p-3">Duration / Time</th>
+                  <th className="p-3">Reason</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-100">
                 {leaveRequests.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-slate-500">
-                      No trade leave requests submitted.
+                    <td colSpan={6} className="p-8 text-center text-slate-400">
+                      No pending leave requests for trade staff.
                     </td>
                   </tr>
                 ) : (
                   leaveRequests.map((req) => (
-                    <tr key={req.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="p-3.5 font-bold text-white">
-                        <div>{req.user_name}</div>
-                        <div className="text-[11px] text-slate-400 font-normal">{req.user_email}</div>
+                    <tr key={req.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="p-3 font-semibold text-slate-900">{req.user_name}</td>
+                      <td className="p-3 capitalize">{req.request_type.replace(/_/g, ' ')}</td>
+                      <td className="p-3">{req.start_date} ({req.total_days} days)</td>
+                      <td className="p-3 max-w-xs text-slate-600 line-clamp-2">{req.reason}</td>
+                      <td className="p-3">
+                        <span className="text-[11px] font-bold uppercase">{req.status}</span>
                       </td>
-                      <td className="p-3.5">
-                        <span className="font-semibold text-slate-200 block">{req.policy_name}</span>
-                        <span className="text-[10px] text-slate-400 uppercase">{req.request_type.replace(/_/g, ' ')}</span>
-                      </td>
-                      <td className="p-3.5 text-slate-300 font-medium">
-                        <div>{req.start_date} {req.end_date !== req.start_date ? `to ${req.end_date}` : ''}</div>
-                        {req.permission_start_time && (
-                          <div className="text-[11px] text-amber-400 font-mono">
-                            {req.permission_start_time} - {req.permission_end_time}
-                          </div>
-                        )}
-                      </td>
-                      <td className="p-3.5 font-mono font-bold text-emerald-400">
-                        {req.permission_hours ? `${req.permission_hours} hrs` : `${req.total_days} days`}
-                      </td>
-                      <td className="p-3.5">
-                        {req.is_monetizable ? (
-                          <span className="text-[10px] bg-emerald-950/50 text-emerald-400 border border-emerald-800/40 px-2 py-0.5 rounded-full font-bold">
-                            Paid
-                          </span>
-                        ) : (
-                          <span className="text-[10px] bg-amber-950/50 text-amber-400 border border-amber-800/40 px-2 py-0.5 rounded-full font-bold">
-                            Loss of Pay
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3.5 max-w-xs text-slate-300 text-[11px]">{req.reason}</td>
-                      <td className="p-3.5">
-                        <span className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-bold capitalize ${
-                          req.status === 'approved'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                            : req.status === 'rejected'
-                            ? 'bg-red-500/10 text-red-400 border border-red-500/30'
-                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                        }`}>
-                          {req.status}
-                        </span>
-                      </td>
-                      <td className="p-3.5 text-right">
+                      <td className="p-3 text-right">
                         {req.status === 'pending' && (
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => handleReviewLeave(req.id, 'approved', req.user_name)}
-                              className="p-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-md transition-all cursor-pointer"
-                              title="Approve"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs"
                             >
-                              <Check className="w-3.5 h-3.5" />
+                              Approve
                             </button>
                             <button
                               onClick={() => handleReviewLeave(req.id, 'rejected', req.user_name)}
-                              className="p-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg shadow-md transition-all cursor-pointer"
-                              title="Reject"
+                              className="bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs"
                             >
-                              <X className="w-3.5 h-3.5" />
+                              Reject
                             </button>
                           </div>
                         )}
@@ -366,11 +329,12 @@ export const TradeAttendance: React.FC = () => {
         </div>
       )}
 
+      {/* APPLY MODAL */}
       <LeavePermissionModal
         isOpen={showApplyModal}
         onClose={() => setShowApplyModal(false)}
         divisionOverride="trade"
-        onSuccess={loadData}
+        onSuccess={() => loadData()}
       />
     </div>
   );

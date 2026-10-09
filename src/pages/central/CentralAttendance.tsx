@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Clock,
   ShieldCheck,
@@ -15,16 +16,21 @@ import {
   FileText,
   Search,
   Check,
-  X
+  X,
+  Edit2,
+  Trash2,
+  Users,
+  UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { ClockInOutWidget } from '../../components/ClockInOutWidget';
 import { LeavePermissionModal } from '../../components/LeavePermissionModal';
 import {
   getTimesheets,
   lockTimesheetsBySuperAdmin,
   getShifts,
   createShift,
+  updateShift,
+  deleteShift,
   getEmployeeSalaries,
   upsertEmployeeSalary,
   getMonthlyPayrolls,
@@ -40,6 +46,28 @@ import {
   type LeavePolicyConfig,
   type LeavePermissionRequest,
 } from '../../lib/api/attendance';
+
+const KNOWN_STAFF = [
+  { email: 'counselor@ferex.com', name: 'Education Counselor', role: 'counselor', division: 'education' },
+  { email: 'education@ferex.com', name: 'Education Admin', role: 'admin', division: 'education' },
+  { email: 'rimi@ferex.com', name: 'Rimi Logistics Officer', role: 'logistics_officer', division: 'rimi' },
+  { email: 'trade@ferex.com', name: 'Trade Ops Manager', role: 'operations_manager', division: 'trade' },
+  { email: 'digital@ferex.com', name: 'Digital Staff', role: 'digital_staff', division: 'digital' },
+  { email: 'digimanager@ferex.com', name: 'Digital Manager', role: 'digital_manager', division: 'digital' },
+  { email: 'pm@ferex.com', name: 'Project Manager', role: 'pm', division: 'digital' },
+  { email: 'centraladmin@ferexventures.com', name: 'Central Admin', role: 'superadmin', division: 'central' },
+];
+
+const ALL_ROLES = [
+  { id: 'counselor', label: 'Education Counselor' },
+  { id: 'logistics_officer', label: 'Logistics Officer (Rimi)' },
+  { id: 'operations_manager', label: 'Trade Ops Manager' },
+  { id: 'digital_manager', label: 'Digital Manager' },
+  { id: 'pm', label: 'Project Manager' },
+  { id: 'digital_staff', label: 'Digital Staff' },
+  { id: 'admin', label: 'Division Admin' },
+  { id: 'superadmin', label: 'Central Super Admin' },
+];
 
 export const CentralAttendance: React.FC = () => {
   const { user, profile } = useAuth();
@@ -58,7 +86,20 @@ export const CentralAttendance: React.FC = () => {
   // Shifts state
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [showShiftModal, setShowShiftModal] = useState(false);
-  const [shiftForm, setShiftForm] = useState({
+  const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
+  const [shiftForm, setShiftForm] = useState<{
+    name: string;
+    division: string;
+    start_time: string;
+    end_time: string;
+    grace_period_mins: number;
+    half_day_threshold_hours: number;
+    full_day_threshold_hours: number;
+    target_type: 'all' | 'division' | 'roles' | 'specific_staff';
+    assigned_staff_emails: string[];
+    assigned_roles: string[];
+    is_active: boolean;
+  }>({
     name: '',
     division: 'all',
     start_time: '09:00:00',
@@ -66,13 +107,17 @@ export const CentralAttendance: React.FC = () => {
     grace_period_mins: 15,
     half_day_threshold_hours: 4.0,
     full_day_threshold_hours: 8.0,
+    target_type: 'division',
+    assigned_staff_emails: [],
+    assigned_roles: [],
+    is_active: true,
   });
+  const [customEmailInput, setCustomEmailInput] = useState('');
 
   // Leave Policies & Requests state
   const [leavePolicies, setLeavePolicies] = useState<LeavePolicyConfig[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeavePermissionRequest[]>([]);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
-  const [showApplyLeaveModal, setShowApplyLeaveModal] = useState(false);
   const [policyForm, setPolicyForm] = useState<Partial<LeavePolicyConfig>>({
     name: '',
     code: '',
@@ -145,9 +190,11 @@ export const CentralAttendance: React.FC = () => {
     const handleUpdate = () => loadData();
     window.addEventListener('ferex-attendance-updated', handleUpdate);
     window.addEventListener('ferex-leave-updated', handleUpdate);
+    window.addEventListener('ferex-shifts-updated', handleUpdate);
     return () => {
       window.removeEventListener('ferex-attendance-updated', handleUpdate);
       window.removeEventListener('ferex-leave-updated', handleUpdate);
+      window.removeEventListener('ferex-shifts-updated', handleUpdate);
     };
   }, [activeTab, divisionFilter, statusFilter, selectedMonth]);
 
@@ -161,7 +208,7 @@ export const CentralAttendance: React.FC = () => {
     setLoading(true);
     try {
       await lockTimesheetsBySuperAdmin(selectedIds, superAdminId, superAdminName);
-      showToast(`🔒 Successfully locked ${selectedIds.length} timesheets for payroll.`);
+      showToast(`Locked ${selectedIds.length} timesheets for payroll.`);
       setSelectedIds([]);
       loadData();
     } catch (err) {
@@ -171,15 +218,104 @@ export const CentralAttendance: React.FC = () => {
     }
   };
 
+  const handleOpenAddShift = () => {
+    setEditingShiftId(null);
+    setShiftForm({
+      name: '',
+      division: 'all',
+      start_time: '09:00:00',
+      end_time: '18:00:00',
+      grace_period_mins: 15,
+      half_day_threshold_hours: 4.0,
+      full_day_threshold_hours: 8.0,
+      target_type: 'division',
+      assigned_staff_emails: [],
+      assigned_roles: [],
+      is_active: true,
+    });
+    setShowShiftModal(true);
+  };
+
+  const handleOpenEditShift = (shift: Shift) => {
+    setEditingShiftId(shift.id);
+    setShiftForm({
+      name: shift.name,
+      division: shift.division || 'all',
+      start_time: shift.start_time || '09:00:00',
+      end_time: shift.end_time || '18:00:00',
+      grace_period_mins: shift.grace_period_mins ?? 15,
+      half_day_threshold_hours: shift.half_day_threshold_hours ?? 4.0,
+      full_day_threshold_hours: shift.full_day_threshold_hours ?? 8.0,
+      target_type: (shift.target_type as any) || 'division',
+      assigned_staff_emails: shift.assigned_staff_emails || [],
+      assigned_roles: shift.assigned_roles || [],
+      is_active: shift.is_active ?? true,
+    });
+    setShowShiftModal(true);
+  };
+
   const handleSaveShift = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createShift(shiftForm);
+      if (editingShiftId) {
+        await updateShift(editingShiftId, shiftForm);
+        showToast('Shift timing updated successfully.');
+      } else {
+        await createShift(shiftForm);
+        showToast('New shift timing created and activated.');
+      }
       setShowShiftModal(false);
-      showToast('✅ New shift timing successfully created and activated.');
       loadData();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleDeleteShift = async (id: string, name: string) => {
+    if (!window.confirm(`Delete shift "${name}"?`)) return;
+    try {
+      await deleteShift(id);
+      showToast(`Shift "${name}" deleted.`);
+      loadData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const toggleStaffEmail = (email: string) => {
+    setShiftForm((prev) => {
+      const exists = prev.assigned_staff_emails.includes(email);
+      return {
+        ...prev,
+        assigned_staff_emails: exists
+          ? prev.assigned_staff_emails.filter((e) => e !== email)
+          : [...prev.assigned_staff_emails, email],
+      };
+    });
+  };
+
+  const toggleRole = (roleId: string) => {
+    setShiftForm((prev) => {
+      const exists = prev.assigned_roles.includes(roleId);
+      return {
+        ...prev,
+        assigned_roles: exists
+          ? prev.assigned_roles.filter((r) => r !== roleId)
+          : [...prev.assigned_roles, roleId],
+      };
+    });
+  };
+
+  const handleAddCustomEmail = (e: React.KeyboardEvent | React.MouseEvent) => {
+    if (customEmailInput.trim()) {
+      const em = customEmailInput.trim().toLowerCase();
+      if (!shiftForm.assigned_staff_emails.includes(em)) {
+        setShiftForm((prev) => ({
+          ...prev,
+          assigned_staff_emails: [...prev.assigned_staff_emails, em],
+        }));
+      }
+      setCustomEmailInput('');
     }
   };
 
@@ -188,7 +324,7 @@ export const CentralAttendance: React.FC = () => {
     try {
       await upsertLeavePolicy(policyForm);
       setShowPolicyModal(false);
-      showToast('✅ Leave Policy & Monetization configuration updated.');
+      showToast('Leave Policy configuration updated.');
       loadData();
     } catch (err) {
       console.error(err);
@@ -206,7 +342,7 @@ export const CentralAttendance: React.FC = () => {
         status,
         superAdminId,
         superAdminName,
-        `Approved by Central Super Admin`
+        `Reviewed and approved by Central Super Admin`
       );
       showToast(`Leave request for ${employeeName} has been ${status}.`);
       loadData();
@@ -220,7 +356,7 @@ export const CentralAttendance: React.FC = () => {
     try {
       await upsertEmployeeSalary(salaryForm);
       setShowSalaryModal(false);
-      showToast('💰 Employee salary scale updated successfully.');
+      showToast('Employee salary scale updated successfully.');
       loadData();
     } catch (err) {
       console.error(err);
@@ -236,7 +372,7 @@ export const CentralAttendance: React.FC = () => {
         superAdminName
       );
       setPayrolls(generated);
-      showToast(`📊 Processed payroll for ${generated.length} employees (${selectedMonth}).`);
+      showToast(`Processed payroll for ${generated.length} employees for ${selectedMonth}.`);
     } catch (err) {
       console.error(err);
     } finally {
@@ -245,143 +381,138 @@ export const CentralAttendance: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in text-slate-100">
-      {actionSuccess && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-2xl animate-bounce text-sm font-medium">
-          <CheckCircle className="w-5 h-5" />
-          <span>{actionSuccess}</span>
-        </div>
-      )}
+    <div className="space-y-6 relative text-left pb-8 text-slate-900">
+      {/* Toast Notification Portal */}
+      {actionSuccess &&
+        createPortal(
+          <div className="fixed top-5 right-5 z-[99999] flex items-center gap-2 bg-emerald-700 text-white px-4 py-3 rounded-xl shadow-2xl animate-fade-in text-xs font-semibold">
+            <CheckCircle className="w-4 h-4 text-white shrink-0" />
+            <span>{actionSuccess}</span>
+          </div>,
+          document.body
+        )}
 
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/20 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      {/* Page Header Banner */}
+      <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <span className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
-              <Clock className="w-6 h-6" />
-            </span>
-            <h1 className="text-2xl font-black tracking-tight text-white">
-              Enterprise Attendance, Leave & Payroll Hub
+            <div className="w-8 h-8 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center">
+              <Clock className="w-4 h-4" />
+            </div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Enterprise Attendance, Shift & Payroll HQ
             </h1>
+            <span className="bg-[#58051E]/10 text-[#58051E] text-[11px] font-bold px-2.5 py-0.5 rounded border border-[#58051E]/20">
+              Super Admin Console
+            </span>
           </div>
-          <p className="text-xs text-indigo-200/70 max-w-xl">
-            Configure shift timings, hourly permissions, monetizable leave policies, multi-tier locking, and automated monthly payroll.
+          <p className="text-xs text-slate-500 max-w-2xl">
+            Configure shift timings with staff and role targeting, review daily work activity logs, approve leave requests, lock timesheets, and execute monthly payroll calculation.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
-            onClick={() => setShowApplyLeaveModal(true)}
-            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-3.5 py-2 rounded-full transition-all"
+            onClick={loadData}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition-all cursor-pointer shadow-xs"
           >
-            <Calendar className="w-4 h-4 text-indigo-400" />
-            <span>Apply Leave / Perm</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refresh Data</span>
           </button>
-          <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-indigo-500/30 backdrop-blur-md">
-            <ClockInOutWidget divisionOverride="central" />
-          </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
-        <div className="flex flex-wrap items-center gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
           <button
             onClick={() => setActiveTab('timesheets')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'timesheets'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-[#58051E] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
-            <Clock className="w-4 h-4" />
-            <span>Timesheets & Lock</span>
+            <Clock className="w-3.5 h-3.5" />
+            <span>Timesheets & Locking</span>
           </button>
 
           <button
             onClick={() => setActiveTab('shifts')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'shifts'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-[#58051E] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
-            <Layers className="w-4 h-4" />
-            <span>Shift Timings</span>
+            <Layers className="w-3.5 h-3.5" />
+            <span>Shift Timings & Staff Assignment</span>
           </button>
 
           <button
             onClick={() => setActiveTab('leave_policies')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'leave_policies'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-[#58051E] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
-            <Calendar className="w-4 h-4" />
-            <span>Leave & Perm Policies</span>
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Leave & Permission Policies</span>
           </button>
 
           <button
             onClick={() => setActiveTab('leave_approvals')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'leave_approvals'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-[#58051E] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
+            <ShieldCheck className="w-3.5 h-3.5" />
             <span>Leave Approvals</span>
           </button>
 
           <button
             onClick={() => setActiveTab('salaries')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'salaries'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-[#58051E] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
-            <DollarSign className="w-4 h-4" />
+            <DollarSign className="w-3.5 h-3.5" />
             <span>Salary Config</span>
           </button>
 
           <button
             onClick={() => setActiveTab('payroll')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'payroll'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-[#58051E] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
-            <Award className="w-4 h-4" />
+            <Award className="w-3.5 h-3.5" />
             <span>Monthly Payroll</span>
           </button>
         </div>
-
-        <button
-          onClick={loadData}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700 transition-all"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </button>
       </div>
 
       {/* TAB 1: TIMESHEETS & SUPERADMIN LOCK */}
       {activeTab === 'timesheets' && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
                 <Filter className="w-3.5 h-3.5" />
                 <span>Division:</span>
               </div>
               <select
                 value={divisionFilter}
                 onChange={(e) => setDivisionFilter(e.target.value)}
-                className="bg-slate-800 border border-slate-700 text-white text-xs rounded-xl px-3 py-1.5 focus:outline-none"
+                className="bg-white border border-slate-200 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#58051E]"
               >
                 <option value="all">All Divisions</option>
                 <option value="education">Education Counselors</option>
@@ -394,11 +525,11 @@ export const CentralAttendance: React.FC = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-slate-800 border border-slate-700 text-white text-xs rounded-xl px-3 py-1.5 focus:outline-none"
+                className="bg-white border border-slate-200 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#58051E]"
               >
                 <option value="all">All Statuses</option>
                 <option value="active">Active (Clocked In)</option>
-                <option value="completed">Completed (Pending Verification)</option>
+                <option value="completed">Completed (Pending Review)</option>
                 <option value="verified">Admin Verified</option>
                 <option value="locked">SuperAdmin Locked</option>
               </select>
@@ -407,20 +538,20 @@ export const CentralAttendance: React.FC = () => {
             {selectedIds.length > 0 && (
               <button
                 onClick={handleBulkLock}
-                className="flex items-center gap-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg shadow-amber-600/30 transition-all transform hover:scale-105"
+                className="flex items-center gap-1.5 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-xs transition-all"
               >
-                <Lock className="w-4 h-4" />
+                <Lock className="w-3.5 h-3.5" />
                 <span>SuperAdmin Lock Selected ({selectedIds.length})</span>
               </button>
             )}
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-800/80 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-700">
+                <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
                   <tr>
-                    <th className="p-3.5 w-10 text-center">
+                    <th className="p-3 w-10 text-center">
                       <input
                         type="checkbox"
                         checked={timesheets.length > 0 && selectedIds.length === timesheets.length}
@@ -428,101 +559,105 @@ export const CentralAttendance: React.FC = () => {
                           if (e.target.checked) setSelectedIds(timesheets.map((t) => t.id));
                           else setSelectedIds([]);
                         }}
-                        className="rounded bg-slate-700 border-slate-600 text-indigo-600"
+                        className="rounded border-slate-300 text-[#58051E] focus:ring-[#58051E]"
                       />
                     </th>
-                    <th className="p-3.5">Employee & Role</th>
-                    <th className="p-3.5">Division</th>
-                    <th className="p-3.5">Date & Timestamps</th>
-                    <th className="p-3.5">Hours</th>
-                    <th className="p-3.5">Shift Activity Summary</th>
-                    <th className="p-3.5">Status & Verification</th>
-                    <th className="p-3.5 text-right">Action</th>
+                    <th className="p-3">Employee & Role</th>
+                    <th className="p-3">Division</th>
+                    <th className="p-3">Date & Timestamps</th>
+                    <th className="p-3">Hours</th>
+                    <th className="p-3">Shift Activity Summary</th>
+                    <th className="p-3">Status & Verification</th>
+                    <th className="p-3 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {timesheets.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-8 text-center text-slate-500">
+                      <td colSpan={8} className="p-8 text-center text-slate-400">
                         No timesheet records found for the selected filters.
                       </td>
                     </tr>
                   ) : (
-                    timesheets.map((sheet) => {
-                      const isSelected = selectedIds.includes(sheet.id);
-                      return (
-                        <tr key={sheet.id} className={`hover:bg-slate-800/40 transition-colors ${isSelected ? 'bg-indigo-950/30' : ''}`}>
-                          <td className="p-3.5 text-center">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => {
-                                if (e.target.checked) setSelectedIds((prev) => [...prev, sheet.id]);
-                                else setSelectedIds((prev) => prev.filter((id) => id !== sheet.id));
-                              }}
-                              className="rounded bg-slate-700 border-slate-600 text-indigo-600"
-                            />
-                          </td>
-                          <td className="p-3.5">
-                            <div className="font-bold text-white">{sheet.user_name}</div>
-                            <div className="text-[11px] text-slate-400">
-                              {sheet.user_email} • <span className="text-indigo-400 capitalize">{sheet.user_role}</span>
-                            </div>
-                          </td>
-                          <td className="p-3.5">
-                            <span className="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg font-medium text-slate-300 uppercase text-[10px]">
-                              {sheet.division}
+                    timesheets.map((t) => (
+                      <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="p-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(t.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedIds([...selectedIds, t.id]);
+                              else setSelectedIds(selectedIds.filter((id) => id !== t.id));
+                            }}
+                            className="rounded border-slate-300 text-[#58051E]"
+                          />
+                        </td>
+                        <td className="p-3">
+                          <div className="font-semibold text-slate-900">{t.user_name}</div>
+                          <div className="text-[11px] text-slate-400">{t.user_email}</div>
+                          <span className="inline-block mt-0.5 text-[10px] font-medium bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded">
+                            {t.user_role}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <span className="uppercase font-bold text-[11px] text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                            {t.division}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="font-medium text-slate-800">{t.date}</div>
+                          <div className="text-[11px] text-slate-400">
+                            In: {new Date(t.clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {t.clock_out &&
+                              ` | Out: ${new Date(t.clock_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                          </div>
+                        </td>
+                        <td className="p-3 font-mono font-bold text-slate-900">
+                          {t.total_hours?.toFixed(1) || '0.0'} hrs
+                        </td>
+                        <td className="p-3 max-w-xs">
+                          {t.work_summary ? (
+                            <p className="line-clamp-2 text-slate-600 italic">"{t.work_summary}"</p>
+                          ) : (
+                            <span className="text-slate-400 italic">No summary logged yet</span>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          {t.is_superadmin_locked ? (
+                            <span className="inline-flex items-center gap-1 bg-purple-50 border border-purple-200 text-purple-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              <Lock className="w-3 h-3" /> Locked for Payroll
                             </span>
-                          </td>
-                          <td className="p-3.5">
-                            <div className="font-medium text-slate-200">{sheet.date}</div>
-                            <div className="text-[11px] text-slate-400 font-mono">
-                              In: {new Date(sheet.clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              {sheet.clock_out && <> • Out: {new Date(sheet.clock_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>}
-                            </div>
-                          </td>
-                          <td className="p-3.5">
-                            <span className="font-mono font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/50 px-2 py-0.5 rounded">
-                              {sheet.total_hours?.toFixed(1) || '0.0'}h
+                          ) : t.is_admin_verified ? (
+                            <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              <Check className="w-3 h-3" /> Admin Verified
                             </span>
-                          </td>
-                          <td className="p-3.5 max-w-xs">
-                            <p className="line-clamp-2 text-slate-300 text-[11px]">
-                              {sheet.work_summary || <span className="italic text-slate-500">In Progress</span>}
-                            </p>
-                          </td>
-                          <td className="p-3.5">
-                            {sheet.is_superadmin_locked ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">
-                                <Lock className="w-3 h-3" /> Locked
-                              </span>
-                            ) : sheet.is_admin_verified ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-semibold">
-                                <ShieldCheck className="w-3 h-3" /> Verified
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full">
-                                {sheet.status}
-                              </span>
-                            )}
-                          </td>
-                          <td className="p-3.5 text-right">
-                            {!sheet.is_superadmin_locked && (
-                              <button
-                                onClick={async () => {
-                                  await lockTimesheetsBySuperAdmin([sheet.id], superAdminId, superAdminName);
-                                  showToast(`🔒 Timesheet locked for ${sheet.user_name}`);
+                          ) : t.status === 'active' ? (
+                            <span className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              <Clock className="w-3 h-3 animate-spin" /> In Progress
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              Pending Review
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 text-right">
+                          {!t.is_superadmin_locked && t.status === 'completed' && (
+                            <button
+                              onClick={() => {
+                                lockTimesheetsBySuperAdmin([t.id], superAdminId, superAdminName).then(() => {
+                                  showToast(`Timesheet locked for ${t.user_name}.`);
                                   loadData();
-                                }}
-                                className="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white border border-amber-500/40 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all"
-                              >
-                                Lock
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })
+                                });
+                              }}
+                              className="bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-semibold px-2.5 py-1 rounded shadow-xs transition-all"
+                            >
+                              Lock
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
@@ -531,53 +666,117 @@ export const CentralAttendance: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: SHIFTS CONFIGURATION */}
+      {/* TAB 2: SHIFT TIMINGS & TARGET STAFF */}
       {activeTab === 'shifts' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Layers className="w-5 h-5 text-indigo-400" />
-              <span>Configured Shift Timings</span>
-            </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Shift Timings & Targeted Assignments</h2>
+              <p className="text-xs text-slate-500">
+                Create shifts, assign specific staff members or roles, configure working hours and grace thresholds.
+              </p>
+            </div>
             <button
-              onClick={() => setShowShiftModal(true)}
-              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg transition-all"
+              onClick={handleOpenAddShift}
+              className="flex items-center gap-1.5 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold px-3.5 py-2 rounded-lg shadow-xs transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Create Shift Timing</span>
+              <span>Create New Shift</span>
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {shifts.map((s) => (
-              <div key={s.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg text-[11px] font-bold uppercase">
-                    {s.division}
-                  </span>
-                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${s.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-400'}`}>
-                    {s.is_active ? 'Active' : 'Disabled'}
-                  </span>
-                </div>
+            {shifts.map((shift) => (
+              <div
+                key={shift.id}
+                className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all group"
+              >
                 <div>
-                  <h3 className="text-base font-bold text-white">{s.name}</h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Daily Schedule: <span className="text-slate-200 font-mono font-semibold">{s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}</span>
-                  </p>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <h3 className="font-bold text-sm text-slate-900">{shift.name}</h3>
+                      <span className="inline-block uppercase font-bold text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded mt-0.5">
+                        {shift.division === 'all' ? 'All Enterprise' : `${shift.division} division`}
+                      </span>
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        shift.is_active
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
+                      }`}
+                    >
+                      {shift.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200/80 my-3 space-y-1.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Timing:</span>
+                      <span className="font-mono font-bold text-slate-800">
+                        {shift.start_time.slice(0, 5)} — {shift.end_time.slice(0, 5)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Grace Period:</span>
+                      <span className="font-medium text-slate-700">{shift.grace_period_mins} mins</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Full-Day Req:</span>
+                      <span className="font-medium text-slate-700">{shift.full_day_threshold_hours} hrs</span>
+                    </div>
+                  </div>
+
+                  {/* Targeted Staff or Roles Display */}
+                  <div className="space-y-1 mb-3 text-xs">
+                    <span className="text-[11px] font-semibold text-slate-500 block">
+                      Target Audience ({shift.target_type || 'division'}):
+                    </span>
+                    {shift.assigned_staff_emails && shift.assigned_staff_emails.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {shift.assigned_staff_emails.map((email) => (
+                          <span
+                            key={email}
+                            className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-medium px-1.5 py-0.5 rounded"
+                          >
+                            {email}
+                          </span>
+                        ))}
+                      </div>
+                    ) : shift.assigned_roles && shift.assigned_roles.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {shift.assigned_roles.map((r) => (
+                          <span
+                            key={r}
+                            className="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-medium px-1.5 py-0.5 rounded"
+                          >
+                            {r}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-slate-400 text-[11px] italic">
+                        {shift.division === 'all' ? 'All employees across enterprise' : `All ${shift.division} staff`}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 bg-slate-800/60 p-2.5 rounded-xl text-center text-xs">
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Grace</span>
-                    <span className="font-bold text-amber-400">{s.grace_period_mins}m</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Half-Day</span>
-                    <span className="font-bold text-slate-200">{s.half_day_threshold_hours}h</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Full-Day</span>
-                    <span className="font-bold text-emerald-400">{s.full_day_threshold_hours}h</span>
-                  </div>
+
+                <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                  <button
+                    onClick={() => handleOpenEditShift(shift)}
+                    className="flex-1 flex items-center justify-center gap-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs py-1.5 rounded-lg transition-all cursor-pointer"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Edit Shift</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteShift(shift.id, shift.name)}
+                    className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-all border border-transparent hover:border-rose-200 cursor-pointer"
+                    title="Delete Shift"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}
@@ -585,17 +784,14 @@ export const CentralAttendance: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: LEAVE POLICIES & MONETIZATION RULES */}
+      {/* TAB 3: LEAVE & PERMISSION POLICIES */}
       {activeTab === 'leave_policies' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
             <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-400" />
-                <span>Central Leave Policies & Monetization Rules</span>
-              </h2>
-              <p className="text-xs text-slate-400">
-                Only Central Super Admin can configure leave quotas, hourly permission allowances, and paid vs unpaid monetization.
+              <h2 className="text-sm font-bold text-slate-900">Leave Policies & Monetization Rules</h2>
+              <p className="text-xs text-slate-500">
+                Configure annual quotas, hourly permission allowances (1-3 hrs), half-days, and whether each leave type is paid or Loss of Pay (LOP).
               </p>
             </div>
             <button
@@ -613,172 +809,154 @@ export const CentralAttendance: React.FC = () => {
                 });
                 setShowPolicyModal(true);
               }}
-              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg transition-all"
+              className="flex items-center gap-1.5 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold px-3.5 py-2 rounded-lg shadow-xs transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Add Leave Policy</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {leavePolicies.map((pol) => (
-              <div key={pol.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg space-y-3.5">
-                <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 bg-slate-800 border border-slate-700 text-indigo-400 rounded-lg text-[11px] font-bold uppercase">
-                    Code: {pol.code}
-                  </span>
-                  {pol.is_monetizable ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-2 py-0.5 rounded-full">
-                      <ShieldCheck className="w-3 h-3" /> Monetizable (Paid)
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-950/40 border border-amber-800/40 px-2 py-0.5 rounded-full">
-                      <AlertCircle className="w-3 h-3" /> Loss of Pay
-                    </span>
-                  )}
-                </div>
-
-                <div>
-                  <h3 className="text-base font-bold text-white">{pol.name}</h3>
-                  <p className="text-xs text-slate-400 mt-1">{pol.description || 'Enterprise policy rule'}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 bg-slate-800/60 p-2.5 rounded-xl text-center text-xs">
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Annual Quota</span>
-                    <span className="font-bold text-slate-200">{pol.annual_quota_days} Days</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Max Perm Hours</span>
-                    <span className="font-bold text-indigo-400">{pol.monthly_max_permission_hours} hrs/mo</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-1">
-                  <button
-                    onClick={() => {
-                      setPolicyForm(pol);
-                      setShowPolicyModal(true);
-                    }}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold"
-                  >
-                    Edit Policy Rule →
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="p-3">Policy Name & Code</th>
+                    <th className="p-3">Category</th>
+                    <th className="p-3">Division</th>
+                    <th className="p-3">Annual Quota</th>
+                    <th className="p-3">Monthly Perm Hours</th>
+                    <th className="p-3">Monetization Status</th>
+                    <th className="p-3">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {leavePolicies.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="p-3">
+                        <div className="font-bold text-slate-900">{p.name}</div>
+                        <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                          {p.code}
+                        </span>
+                      </td>
+                      <td className="p-3 capitalize font-medium text-slate-700">{p.category.replace('_', ' ')}</td>
+                      <td className="p-3 uppercase font-semibold text-slate-600">{p.division}</td>
+                      <td className="p-3 font-semibold text-slate-900">{p.annual_quota_days} days/year</td>
+                      <td className="p-3 font-semibold text-slate-900">{p.monthly_max_permission_hours} hrs/mo</td>
+                      <td className="p-3">
+                        {p.is_monetizable ? (
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                            <DollarSign className="w-3 h-3" /> Paid / Monetizable
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                            Loss of Pay (LOP)
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3 text-slate-500 max-w-xs">{p.description || '--'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
-      {/* TAB 4: LEAVE & PERMISSION REQUEST APPROVALS */}
+      {/* TAB 4: LEAVE APPROVALS */}
       {activeTab === 'leave_approvals' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
-              <span>Leave & Permission Review Desk</span>
-            </h2>
-            <select
-              value={divisionFilter}
-              onChange={(e) => setDivisionFilter(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-white text-xs rounded-xl px-3 py-1.5 focus:outline-none"
-            >
-              <option value="all">All Divisions</option>
-              <option value="education">Education</option>
-              <option value="rimi">Rimi Frozen</option>
-              <option value="trade">Global Trade</option>
-              <option value="digital">Digital Agency</option>
-            </select>
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Enterprise Leave & Permission Review Queue</h2>
+              <p className="text-xs text-slate-500">
+                Review and approve counselor, trade, logistics, and digital staff leave requests.
+              </p>
+            </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-800/80 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-700">
+                <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
                   <tr>
-                    <th className="p-3.5">Employee</th>
-                    <th className="p-3.5">Type & Policy</th>
-                    <th className="p-3.5">Schedule / Dates</th>
-                    <th className="p-3.5">Duration / Hours</th>
-                    <th className="p-3.5">Treatment</th>
-                    <th className="p-3.5">Reason</th>
-                    <th className="p-3.5">Status</th>
-                    <th className="p-3.5 text-right">Approval Actions</th>
+                    <th className="p-3">Employee</th>
+                    <th className="p-3">Division</th>
+                    <th className="p-3">Type & Policy</th>
+                    <th className="p-3">Duration / Time</th>
+                    <th className="p-3">Reason</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Review Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {leaveRequests.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-8 text-center text-slate-500">
-                        No pending or reviewed leave requests found.
+                      <td colSpan={7} className="p-8 text-center text-slate-400">
+                        No pending leave or permission requests.
                       </td>
                     </tr>
                   ) : (
                     leaveRequests.map((req) => (
-                      <tr key={req.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3.5 font-bold text-white">
-                          <div>{req.user_name}</div>
-                          <div className="text-[11px] text-slate-400 font-normal">
-                            {req.user_email} • <span className="text-indigo-400 capitalize">{req.division}</span>
-                          </div>
+                      <tr key={req.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="p-3">
+                          <div className="font-semibold text-slate-900">{req.user_name}</div>
+                          <div className="text-[11px] text-slate-400">{req.user_email}</div>
                         </td>
-                        <td className="p-3.5">
-                          <span className="font-semibold text-slate-200 block">{req.policy_name}</span>
-                          <span className="text-[10px] text-slate-400 uppercase">{req.request_type.replace(/_/g, ' ')}</span>
-                        </td>
-                        <td className="p-3.5 text-slate-300 font-medium">
-                          <div>{req.start_date} {req.end_date !== req.start_date ? `to ${req.end_date}` : ''}</div>
-                          {req.permission_start_time && (
-                            <div className="text-[11px] text-indigo-400 font-mono">
-                              {req.permission_start_time} - {req.permission_end_time}
-                            </div>
-                          )}
-                        </td>
-                        <td className="p-3.5 font-mono font-bold text-emerald-400">
-                          {req.permission_hours ? `${req.permission_hours} hrs` : `${req.total_days} days`}
-                        </td>
-                        <td className="p-3.5">
-                          {req.is_monetizable ? (
-                            <span className="text-[10px] bg-emerald-950/50 text-emerald-400 border border-emerald-800/40 px-2 py-0.5 rounded-full font-bold">
-                              Paid
-                            </span>
-                          ) : (
-                            <span className="text-[10px] bg-amber-950/50 text-amber-400 border border-amber-800/40 px-2 py-0.5 rounded-full font-bold">
-                              Unpaid / LOP
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-3.5 max-w-xs text-slate-300 text-[11px] line-clamp-2">
-                          {req.reason}
-                        </td>
-                        <td className="p-3.5">
-                          <span className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-bold capitalize ${
-                            req.status === 'approved'
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                              : req.status === 'rejected'
-                              ? 'bg-red-500/10 text-red-400 border border-red-500/30'
-                              : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                          }`}>
-                            {req.status}
+                        <td className="p-3 uppercase font-bold text-slate-700">{req.division}</td>
+                        <td className="p-3">
+                          <span className="font-semibold text-slate-800 block capitalize">
+                            {req.request_type.replace(/_/g, ' ')}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            {req.policy_name} ({req.is_monetizable ? 'Paid' : 'Unpaid'})
                           </span>
                         </td>
-                        <td className="p-3.5 text-right">
+                        <td className="p-3">
+                          <div className="font-medium text-slate-800">
+                            {req.start_date} {req.end_date !== req.start_date && `to ${req.end_date}`}
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            {req.request_type === 'hourly_permission'
+                              ? `${req.permission_start_time} - ${req.permission_end_time} (${req.permission_hours} hrs)`
+                              : req.request_type === 'half_day_leave'
+                              ? `Half-Day (${req.half_day_session?.replace('_', ' ')})`
+                              : `${req.total_days} Day(s)`}
+                          </div>
+                        </td>
+                        <td className="p-3 max-w-xs">
+                          <p className="text-slate-600 line-clamp-2">{req.reason}</p>
+                        </td>
+                        <td className="p-3">
+                          {req.status === 'approved' ? (
+                            <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              <Check className="w-3 h-3" /> Approved
+                            </span>
+                          ) : req.status === 'rejected' ? (
+                            <span className="inline-flex items-center gap-1 bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              <X className="w-3 h-3" /> Rejected
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 text-right">
                           {req.status === 'pending' && (
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={() => handleReviewLeave(req.id, 'approved', req.user_name)}
-                                className="p-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-md transition-all"
-                                title="Approve Request"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs"
                               >
-                                <Check className="w-3.5 h-3.5" />
+                                Approve
                               </button>
                               <button
                                 onClick={() => handleReviewLeave(req.id, 'rejected', req.user_name)}
-                                className="p-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg shadow-md transition-all"
-                                title="Reject Request"
+                                className="bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs"
                               >
-                                <X className="w-3.5 h-3.5" />
+                                Reject
                               </button>
                             </div>
                           )}
@@ -793,14 +971,16 @@ export const CentralAttendance: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 5: SALARY CONFIG */}
+      {/* TAB 5: SALARY SCALE CONFIG */}
       {activeTab === 'salaries' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-emerald-400" />
-              <span>Employee Salary Scales</span>
-            </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Employee Salary Scales & Base Rates</h2>
+              <p className="text-xs text-slate-500">
+                Define base monthly compensation, hourly rates, and currency scales used for automated payroll calculation.
+              </p>
+            </div>
             <button
               onClick={() => {
                 setSalaryForm({
@@ -814,54 +994,55 @@ export const CentralAttendance: React.FC = () => {
                 });
                 setShowSalaryModal(true);
               }}
-              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg transition-all"
+              className="flex items-center gap-1.5 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold px-3.5 py-2 rounded-lg shadow-xs transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Set Employee Salary</span>
+              <span>Configure Staff Salary</span>
             </button>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-800/80 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-700">
+                <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
                   <tr>
-                    <th className="p-3.5">Employee Name & Email</th>
-                    <th className="p-3.5">Division & Role</th>
-                    <th className="p-3.5">Monthly Base Salary</th>
-                    <th className="p-3.5">Hourly Verified Rate</th>
-                    <th className="p-3.5">Currency</th>
-                    <th className="p-3.5">Effective Date</th>
-                    <th className="p-3.5 text-right">Action</th>
+                    <th className="p-3">Staff Member</th>
+                    <th className="p-3">Division & Role</th>
+                    <th className="p-3">Monthly Base</th>
+                    <th className="p-3">Hourly Rate</th>
+                    <th className="p-3">Currency</th>
+                    <th className="p-3">Effective Date</th>
+                    <th className="p-3 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {salaries.map((sal) => (
-                    <tr key={sal.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="p-3.5 font-bold text-white">
-                        <div>{sal.user_name}</div>
-                        <div className="text-[11px] text-slate-400 font-normal">{sal.user_email}</div>
+                <tbody className="divide-y divide-slate-100">
+                  {salaries.map((s) => (
+                    <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="p-3">
+                        <div className="font-semibold text-slate-900">{s.user_name}</div>
+                        <div className="text-[11px] text-slate-400">{s.user_email}</div>
                       </td>
-                      <td className="p-3.5">
-                        <span className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 capitalize text-[11px]">
-                          {sal.division} • {sal.user_role}
+                      <td className="p-3">
+                        <span className="uppercase font-bold text-[11px] text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                          {s.division}
                         </span>
+                        <div className="text-[11px] text-slate-500 mt-0.5">{s.user_role}</div>
                       </td>
-                      <td className="p-3.5">
-                        <span className="font-mono font-bold text-emerald-400 text-sm">
-                          ${sal.monthly_base_salary.toLocaleString()}
-                        </span>
+                      <td className="p-3 font-mono font-bold text-slate-900">
+                        {s.currency} {s.monthly_base_salary.toLocaleString()}
                       </td>
-                      <td className="p-3.5 font-mono font-semibold text-slate-200">${sal.hourly_rate} / hr</td>
-                      <td className="p-3.5 text-slate-400">{sal.currency}</td>
-                      <td className="p-3.5 text-slate-400">{sal.effective_from}</td>
-                      <td className="p-3.5 text-right">
+                      <td className="p-3 font-mono text-slate-700">
+                        {s.currency} {s.hourly_rate} / hr
+                      </td>
+                      <td className="p-3 font-bold text-slate-600">{s.currency}</td>
+                      <td className="p-3 text-slate-500">{s.effective_from}</td>
+                      <td className="p-3 text-right">
                         <button
                           onClick={() => {
-                            setSalaryForm(sal);
+                            setSalaryForm(s);
                             setShowSalaryModal(true);
                           }}
-                          className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1 rounded-lg text-[11px] font-bold border border-slate-700"
+                          className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-semibold px-2.5 py-1 rounded transition-all"
                         >
                           Edit
                         </button>
@@ -878,80 +1059,73 @@ export const CentralAttendance: React.FC = () => {
       {/* TAB 6: MONTHLY PAYROLL GENERATOR */}
       {activeTab === 'payroll' && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-                <Calendar className="w-4 h-4 text-indigo-400" />
-                <span>Payroll Period:</span>
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-semibold">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Payroll Month:</span>
               </div>
               <input
                 type="month"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="bg-slate-800 border border-slate-700 text-white text-xs rounded-xl px-3 py-1.5 focus:outline-none"
+                className="bg-white border border-slate-200 text-slate-800 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#58051E]"
               />
             </div>
 
             <button
               onClick={handleGeneratePayroll}
               disabled={isGeneratingPayroll}
-              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-600/30 transition-all transform hover:scale-105"
+              className="flex items-center gap-1.5 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold px-4 py-2 rounded-lg shadow-xs transition-all cursor-pointer"
             >
-              <RefreshCw className={`w-4 h-4 ${isGeneratingPayroll ? 'animate-spin' : ''}`} />
-              <span>{isGeneratingPayroll ? 'Calculating Hours & Leaves...' : 'Calculate & Generate Payroll'}</span>
+              <Award className="w-4 h-4" />
+              <span>{isGeneratingPayroll ? 'Processing...' : 'Run Enterprise Payroll Calculation'}</span>
             </button>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-800/80 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-700">
+                <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
                   <tr>
-                    <th className="p-3.5">Employee</th>
-                    <th className="p-3.5">Division & Role</th>
-                    <th className="p-3.5 text-center">Attended Days</th>
-                    <th className="p-3.5 text-center">Verified Hours</th>
-                    <th className="p-3.5">Base Salary</th>
-                    <th className="p-3.5">Deductions (LOP)</th>
-                    <th className="p-3.5">Net Payable</th>
-                    <th className="p-3.5">Status</th>
+                    <th className="p-3">Employee</th>
+                    <th className="p-3">Division</th>
+                    <th className="p-3">Attended Days / Hrs</th>
+                    <th className="p-3">Base Scale</th>
+                    <th className="p-3">Gross Pay</th>
+                    <th className="p-3">Deductions</th>
+                    <th className="p-3">Net Payable</th>
+                    <th className="p-3">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {payrolls.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-8 text-center text-slate-500">
-                        No payroll records found for {selectedMonth}. Click "Calculate & Generate Payroll" to process.
+                      <td colSpan={8} className="p-8 text-center text-slate-400">
+                        No payroll processed yet for {selectedMonth}. Click "Run Enterprise Payroll Calculation" above.
                       </td>
                     </tr>
                   ) : (
                     payrolls.map((p) => (
-                      <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3.5 font-bold text-white">
-                          <div>{p.user_name}</div>
-                          <div className="text-[11px] text-slate-400 font-normal">{p.user_email}</div>
+                      <tr key={p.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="p-3">
+                          <div className="font-semibold text-slate-900">{p.user_name}</div>
+                          <div className="text-[11px] text-slate-400">{p.user_email}</div>
                         </td>
-                        <td className="p-3.5">
-                          <span className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 capitalize text-[11px]">
-                            {p.division} • {p.user_role}
-                          </span>
+                        <td className="p-3 uppercase font-bold text-slate-700">{p.division}</td>
+                        <td className="p-3">
+                          <div className="font-bold text-slate-800">{p.attended_days} / {p.total_working_days} days</div>
+                          <div className="text-[11px] text-emerald-700 font-mono">{p.verified_hours} verified hrs</div>
                         </td>
-                        <td className="p-3.5 text-center font-mono font-bold text-slate-200">
-                          {p.attended_days} / {p.total_working_days}
+                        <td className="p-3 font-mono text-slate-700">${p.base_salary?.toLocaleString()}</td>
+                        <td className="p-3 font-mono text-slate-700">${p.calculated_gross_pay?.toLocaleString()}</td>
+                        <td className="p-3 font-mono text-rose-600">-${p.deductions?.toLocaleString()}</td>
+                        <td className="p-3 font-mono font-black text-emerald-700 text-sm">
+                          ${p.net_payable?.toLocaleString()}
                         </td>
-                        <td className="p-3.5 text-center font-mono font-bold text-emerald-400">
-                          {p.verified_hours} hrs
-                        </td>
-                        <td className="p-3.5 font-mono text-slate-300">${p.base_salary?.toLocaleString()}</td>
-                        <td className="p-3.5 font-mono text-amber-400">-${p.deductions}</td>
-                        <td className="p-3.5">
-                          <span className="font-mono font-black text-emerald-400 text-sm bg-emerald-950/40 border border-emerald-800/50 px-2 py-1 rounded-lg">
-                            ${p.net_payable?.toLocaleString()}
-                          </span>
-                        </td>
-                        <td className="p-3.5">
-                          <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold uppercase">
-                            <CheckCircle className="w-3 h-3" /> {p.status}
+                        <td className="p-3">
+                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                            {p.status}
                           </span>
                         </td>
                       </tr>
@@ -964,225 +1138,578 @@ export const CentralAttendance: React.FC = () => {
         </div>
       )}
 
-      {/* CREATE SHIFT MODAL */}
-      {showShiftModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-          <form onSubmit={handleSaveShift} className="bg-slate-900 border border-slate-800 text-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-white">Create New Shift Timing</h3>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Shift Name</label>
-              <input
-                type="text"
-                required
-                value={shiftForm.name}
-                onChange={(e) => setShiftForm({ ...shiftForm, name: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Target Division</label>
-              <select
-                value={shiftForm.division}
-                onChange={(e) => setShiftForm({ ...shiftForm, division: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+      {/* CREATE / EDIT SHIFT MODAL WITH TARGET STAFF ASSIGNMENT (PORTAL) */}
+      {showShiftModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in text-left">
+            <div className="bg-white border border-slate-200 text-slate-900 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+              <button
+                onClick={() => setShowShiftModal(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
               >
-                <option value="all">All Divisions</option>
-                <option value="education">Education</option>
-                <option value="rimi">Rimi Frozen</option>
-                <option value="trade">Global Trade</option>
-                <option value="digital">Digital Agency</option>
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Start Time</label>
-                <input
-                  type="time"
-                  required
-                  value={shiftForm.start_time}
-                  onChange={(e) => setShiftForm({ ...shiftForm, start_time: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">End Time</label>
-                <input
-                  type="time"
-                  required
-                  value={shiftForm.end_time}
-                  onChange={(e) => setShiftForm({ ...shiftForm, end_time: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => setShowShiftModal(false)} className="flex-1 bg-slate-800 py-2.5 rounded-xl text-xs text-slate-300">
-                Cancel
+                <X className="w-4 h-4" />
               </button>
-              <button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg">
-                Save Shift
+
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center border border-[#58051E]/20">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">
+                    {editingShiftId ? 'Edit Shift Timing' : 'Create New Shift Timing'}
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Define working hours, thresholds, and assign targeted staff members or roles
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveShift} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Shift Name*
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={shiftForm.name}
+                      onChange={(e) => setShiftForm({ ...shiftForm, name: e.target.value })}
+                      placeholder="e.g. Education Counselor Regular Shift"
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Division
+                    </label>
+                    <select
+                      value={shiftForm.division}
+                      onChange={(e) => setShiftForm({ ...shiftForm, division: e.target.value })}
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    >
+                      <option value="all">All Divisions (Global)</option>
+                      <option value="education">Education Counselors</option>
+                      <option value="rimi">Rimi Frozen Logistics</option>
+                      <option value="trade">Global Trade Floor</option>
+                      <option value="digital">Ferex Digital Tech</option>
+                      <option value="central">Central Platform</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Start Time*
+                    </label>
+                    <input
+                      type="time"
+                      required
+                      step="1"
+                      value={shiftForm.start_time}
+                      onChange={(e) => setShiftForm({ ...shiftForm, start_time: e.target.value })}
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      End Time*
+                    </label>
+                    <input
+                      type="time"
+                      required
+                      step="1"
+                      value={shiftForm.end_time}
+                      onChange={(e) => setShiftForm({ ...shiftForm, end_time: e.target.value })}
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Grace Period (Mins)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="60"
+                      required
+                      value={shiftForm.grace_period_mins}
+                      onChange={(e) =>
+                        setShiftForm({ ...shiftForm, grace_period_mins: Number(e.target.value) })
+                      }
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Half-Day Min Hours
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="1"
+                      max="12"
+                      required
+                      value={shiftForm.half_day_threshold_hours}
+                      onChange={(e) =>
+                        setShiftForm({ ...shiftForm, half_day_threshold_hours: Number(e.target.value) })
+                      }
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Full-Day Min Hours
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="1"
+                      max="16"
+                      required
+                      value={shiftForm.full_day_threshold_hours}
+                      onChange={(e) =>
+                        setShiftForm({ ...shiftForm, full_day_threshold_hours: Number(e.target.value) })
+                      }
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+                </div>
+
+                {/* TARGET AUDIENCE & STAFF ASSIGNMENT */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Target Audience & Staff Assignment
+                  </label>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: 'all', label: 'All Staff' },
+                      { id: 'division', label: 'Entire Division' },
+                      { id: 'roles', label: 'Target Roles' },
+                      { id: 'specific_staff', label: 'Target Staff' },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setShiftForm({ ...shiftForm, target_type: t.id as any })}
+                        className={`p-2 rounded-lg border text-xs font-semibold transition-all ${
+                          shiftForm.target_type === t.id
+                            ? 'bg-[#58051E] text-white border-[#58051E]'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* If Roles selected */}
+                  {shiftForm.target_type === 'roles' && (
+                    <div className="space-y-1.5 pt-2">
+                      <span className="text-[11px] font-semibold text-slate-600 block">
+                        Select Roles who must use this shift:
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {ALL_ROLES.map((r) => {
+                          const checked = shiftForm.assigned_roles.includes(r.id);
+                          return (
+                            <button
+                              key={r.id}
+                              type="button"
+                              onClick={() => toggleRole(r.id)}
+                              className={`flex items-center gap-1.5 p-2 rounded-lg border text-xs text-left transition-all ${
+                                checked
+                                  ? 'bg-purple-50 border-purple-400 text-purple-800 font-bold'
+                                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                readOnly
+                                className="rounded text-purple-600"
+                              />
+                              <span>{r.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* If Specific Staff selected */}
+                  {shiftForm.target_type === 'specific_staff' && (
+                    <div className="space-y-2 pt-2">
+                      <span className="text-[11px] font-semibold text-slate-600 block">
+                        Assign Specific Staff Members (Quick Toggle or Add Email):
+                      </span>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {KNOWN_STAFF.map((st) => {
+                          const isAssigned = shiftForm.assigned_staff_emails.includes(st.email);
+                          return (
+                            <button
+                              key={st.email}
+                              type="button"
+                              onClick={() => toggleStaffEmail(st.email)}
+                              className={`flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full border transition-all ${
+                                isAssigned
+                                  ? 'bg-emerald-600 text-white border-emerald-700 font-bold'
+                                  : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              <UserCheck className="w-3 h-3" />
+                              <span>{st.name} ({st.email})</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <input
+                          type="email"
+                          placeholder="Add custom staff email..."
+                          value={customEmailInput}
+                          onChange={(e) => setCustomEmailInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddCustomEmail(e);
+                            }
+                          }}
+                          className="flex-1 bg-white border border-slate-200 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#58051E]"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomEmail}
+                          className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+                        >
+                          Add Email
+                        </button>
+                      </div>
+
+                      {shiftForm.assigned_staff_emails.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          <span className="text-[11px] text-slate-500 mr-1">Assigned:</span>
+                          {shiftForm.assigned_staff_emails.map((em) => (
+                            <span
+                              key={em}
+                              className="bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1"
+                            >
+                              {em}
+                              <button
+                                type="button"
+                                onClick={() => toggleStaffEmail(em)}
+                                className="text-blue-500 hover:text-rose-600 font-bold ml-1"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Active Toggle */}
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="shiftActive"
+                    checked={shiftForm.is_active}
+                    onChange={(e) => setShiftForm({ ...shiftForm, is_active: e.target.checked })}
+                    className="rounded border-slate-300 text-[#58051E] focus:ring-[#58051E]"
+                  />
+                  <label htmlFor="shiftActive" className="text-xs font-semibold text-slate-700">
+                    Shift is Active and Available for Clock-In
+                  </label>
+                </div>
+
+                <div className="flex gap-2.5 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowShiftModal(false)}
+                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 rounded-lg text-xs transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold py-2.5 rounded-lg text-xs shadow-xs transition-all"
+                  >
+                    {editingShiftId ? 'Save Changes' : 'Create Shift'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* LEAVE POLICY MODAL (PORTAL) */}
+      {showPolicyModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in text-left">
+            <div className="bg-white border border-slate-200 text-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+              <button
+                onClick={() => setShowPolicyModal(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
               </button>
-            </div>
-          </form>
-        </div>
-      )}
 
-      {/* CREATE LEAVE POLICY MODAL */}
-      {showPolicyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-          <form onSubmit={handleSavePolicy} className="bg-slate-900 border border-slate-800 text-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-white">Configure Leave / Permission Policy</h3>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Policy Name</label>
-              <input
-                type="text"
-                required
-                value={policyForm.name}
-                onChange={(e) => setPolicyForm({ ...policyForm, name: e.target.value })}
-                placeholder="e.g. Parental Leave / Hourly Permission"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Policy Code</label>
-                <input
-                  type="text"
-                  required
-                  value={policyForm.code}
-                  onChange={(e) => setPolicyForm({ ...policyForm, code: e.target.value.toUpperCase() })}
-                  placeholder="e.g. PL_CUSTOM"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white uppercase font-mono"
-                />
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center border border-[#58051E]/20">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Configure Leave Policy</h2>
+                  <p className="text-xs text-slate-500">
+                    Configure quotas, hourly permissions, and monetization (Paid vs Loss of Pay)
+                  </p>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Category</label>
-                <select
-                  value={policyForm.category}
-                  onChange={(e) => setPolicyForm({ ...policyForm, category: e.target.value as any })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                >
-                  <option value="full_day">Full Day</option>
-                  <option value="half_day">Half Day</option>
-                  <option value="hourly_permission">Hourly Permission</option>
-                  <option value="emergency">Emergency / Unplanned</option>
-                </select>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Annual Quota (Days)</label>
-                <input
-                  type="number"
-                  required
-                  value={policyForm.annual_quota_days}
-                  onChange={(e) => setPolicyForm({ ...policyForm, annual_quota_days: Number(e.target.value) })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Max Perm (Hrs/Mo)</label>
-                <input
-                  type="number"
-                  value={policyForm.monthly_max_permission_hours}
-                  onChange={(e) => setPolicyForm({ ...policyForm, monthly_max_permission_hours: Number(e.target.value) })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                />
-              </div>
-            </div>
+              <form onSubmit={handleSavePolicy} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Policy Name*</label>
+                    <input
+                      type="text"
+                      required
+                      value={policyForm.name}
+                      onChange={(e) => setPolicyForm({ ...policyForm, name: e.target.value })}
+                      placeholder="e.g. Casual Leave"
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Policy Code*</label>
+                    <input
+                      type="text"
+                      required
+                      value={policyForm.code}
+                      onChange={(e) => setPolicyForm({ ...policyForm, code: e.target.value.toUpperCase() })}
+                      placeholder="e.g. CL"
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+                </div>
 
-            <div className="flex items-center gap-3 bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
-              <input
-                type="checkbox"
-                id="is_monetizable"
-                checked={policyForm.is_monetizable}
-                onChange={(e) => setPolicyForm({ ...policyForm, is_monetizable: e.target.checked })}
-                className="rounded bg-slate-700 border-slate-600 text-indigo-600"
-              />
-              <label htmlFor="is_monetizable" className="text-xs text-slate-200 cursor-pointer">
-                <strong>Monetizable / Paid Leave:</strong> Leave days under this policy will not be deducted from monthly base salary.
-              </label>
-            </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Annual Quota (Days)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={policyForm.annual_quota_days}
+                      onChange={(e) =>
+                        setPolicyForm({ ...policyForm, annual_quota_days: Number(e.target.value) })
+                      }
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Max Perm Hours / Mo</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="20"
+                      value={policyForm.monthly_max_permission_hours}
+                      onChange={(e) =>
+                        setPolicyForm({ ...policyForm, monthly_max_permission_hours: Number(e.target.value) })
+                      }
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+                </div>
 
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => setShowPolicyModal(false)} className="flex-1 bg-slate-800 py-2.5 rounded-xl text-xs text-slate-300">
-                Cancel
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="policyMonetizable"
+                      checked={policyForm.is_monetizable}
+                      onChange={(e) => setPolicyForm({ ...policyForm, is_monetizable: e.target.checked })}
+                      className="rounded text-[#58051E]"
+                    />
+                    <label htmlFor="policyMonetizable" className="text-xs font-bold text-slate-800">
+                      Paid / Monetizable (No salary deduction during payroll)
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Policy Description</label>
+                  <textarea
+                    rows={2}
+                    value={policyForm.description}
+                    onChange={(e) => setPolicyForm({ ...policyForm, description: e.target.value })}
+                    placeholder="Terms and conditions for this leave category..."
+                    className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPolicyModal(false)}
+                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 rounded-lg text-xs transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold py-2.5 rounded-lg text-xs shadow-xs transition-all"
+                  >
+                    Save Policy
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* SALARY MODAL (PORTAL) */}
+      {showSalaryModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in text-left">
+            <div className="bg-white border border-slate-200 text-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+              <button
+                onClick={() => setShowSalaryModal(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
               </button>
-              <button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg">
-                Save Policy
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
-      {/* SALARY CONFIG MODAL */}
-      {showSalaryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-          <form onSubmit={handleSaveSalary} className="bg-slate-900 border border-slate-800 text-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-white">Set Employee Salary</h3>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Employee Email</label>
-              <input
-                type="email"
-                required
-                value={salaryForm.user_email}
-                onChange={(e) => setSalaryForm({ ...salaryForm, user_email: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Full Name</label>
-              <input
-                type="text"
-                required
-                value={salaryForm.user_name}
-                onChange={(e) => setSalaryForm({ ...salaryForm, user_name: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Monthly Base ($)</label>
-                <input
-                  type="number"
-                  required
-                  value={salaryForm.monthly_base_salary}
-                  onChange={(e) => setSalaryForm({ ...salaryForm, monthly_base_salary: Number(e.target.value) })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                />
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center border border-[#58051E]/20">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Set Staff Salary Scale</h2>
+                  <p className="text-xs text-slate-500">
+                    Configure monthly base salary and hourly billing rate for payroll calculation
+                  </p>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Hourly Rate ($)</label>
-                <input
-                  type="number"
-                  required
-                  value={salaryForm.hourly_rate}
-                  onChange={(e) => setSalaryForm({ ...salaryForm, hourly_rate: Number(e.target.value) })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => setShowSalaryModal(false)} className="flex-1 bg-slate-800 py-2.5 rounded-xl text-xs text-slate-300">
-                Cancel
-              </button>
-              <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg">
-                Save Salary Scale
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
-      {/* Universal Leave / Permission Application Modal */}
-      <LeavePermissionModal
-        isOpen={showApplyLeaveModal}
-        onClose={() => setShowApplyLeaveModal(false)}
-        divisionOverride="central"
-        onSuccess={loadData}
-      />
+              <form onSubmit={handleSaveSalary} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Staff Email*</label>
+                  <input
+                    type="email"
+                    required
+                    value={salaryForm.user_email}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, user_email: e.target.value })}
+                    placeholder="e.g. counselor@ferex.com"
+                    className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Staff Full Name*</label>
+                  <input
+                    type="text"
+                    required
+                    value={salaryForm.user_name}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, user_name: e.target.value })}
+                    placeholder="e.g. Admissions Counselor"
+                    className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Division</label>
+                    <select
+                      value={salaryForm.division}
+                      onChange={(e) => setSalaryForm({ ...salaryForm, division: e.target.value })}
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    >
+                      <option value="education">Education</option>
+                      <option value="rimi">Rimi Logistics</option>
+                      <option value="trade">Global Trade</option>
+                      <option value="digital">Digital Tech</option>
+                      <option value="central">Central Platform</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Currency</label>
+                    <select
+                      value={salaryForm.currency}
+                      onChange={(e) => setSalaryForm({ ...salaryForm, currency: e.target.value })}
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    >
+                      <option value="USD">USD ($)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="INR">INR (₹)</option>
+                      <option value="GBP">GBP (£)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Base Salary / Month</label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      value={salaryForm.monthly_base_salary}
+                      onChange={(e) =>
+                        setSalaryForm({ ...salaryForm, monthly_base_salary: Number(e.target.value) })
+                      }
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Hourly Rate</label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      value={salaryForm.hourly_rate}
+                      onChange={(e) =>
+                        setSalaryForm({ ...salaryForm, hourly_rate: Number(e.target.value) })
+                      }
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSalaryModal(false)}
+                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 rounded-lg text-xs transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold py-2.5 rounded-lg text-xs shadow-xs transition-all"
+                  >
+                    Save Salary Scale
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

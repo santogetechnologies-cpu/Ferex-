@@ -9,6 +9,9 @@ export interface Shift {
   grace_period_mins: number;
   half_day_threshold_hours: number;
   full_day_threshold_hours: number;
+  target_type?: 'all' | 'division' | 'specific_staff' | 'roles';
+  assigned_staff_emails?: string[];
+  assigned_roles?: string[];
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
@@ -47,7 +50,7 @@ export interface AttendanceTimesheet {
 export interface LeavePolicyConfig {
   id: string;
   name: string;
-  code: string; // 'CL', 'SL', 'PL', 'UNPLANNED', 'HOURLY_PERM', 'HALF_DAY', 'UNPAID'
+  code: string;
   category: 'full_day' | 'half_day' | 'hourly_permission' | 'emergency';
   division: string;
   annual_quota_days: number;
@@ -109,7 +112,7 @@ export interface EmployeeSalary {
 
 export interface MonthlyPayroll {
   id: string;
-  payroll_month: string; // 'YYYY-MM'
+  payroll_month: string;
   user_id: string;
   user_email: string;
   user_name: string;
@@ -158,39 +161,72 @@ const saveLocalData = <T>(key: string, data: T[]): void => {
 };
 
 // ================= SHIFTS API =================
-export const getShifts = async (division?: string): Promise<Shift[]> => {
+export const getShifts = async (
+  division?: string,
+  userEmail?: string,
+  userRole?: string
+): Promise<Shift[]> => {
   try {
-    let query = supabase.from('shifts').select('*').order('created_at', { ascending: false });
-    if (division && division !== 'all' && division !== 'central') {
-      query = query.or(`division.eq.${division},division.eq.all`);
-    }
-    const { data, error } = await query;
+    const { data, error } = await supabase
+      .from('shifts')
+      .select('*')
+      .order('created_at', { ascending: false });
     if (error || !data) throw error;
     saveLocalData(LOCAL_SHIFTS_KEY, data);
-    return data as Shift[];
+
+    let result = data as Shift[];
+    if (division && division !== 'all' && division !== 'central') {
+      result = result.filter(
+        (s) =>
+          s.division === division ||
+          s.division === 'all' ||
+          (userEmail && s.assigned_staff_emails && s.assigned_staff_emails.includes(userEmail)) ||
+          (userRole && s.assigned_roles && s.assigned_roles.includes(userRole))
+      );
+    }
+    if (userEmail || userRole) {
+      result.sort((a, b) => {
+        const aMatch =
+          (userEmail && a.assigned_staff_emails?.includes(userEmail)) ||
+          (userRole && a.assigned_roles?.includes(userRole));
+        const bMatch =
+          (userEmail && b.assigned_staff_emails?.includes(userEmail)) ||
+          (userRole && b.assigned_roles?.includes(userRole));
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        return 0;
+      });
+    }
+    return result;
   } catch (err) {
     const local = getLocalData<Shift>(LOCAL_SHIFTS_KEY, [
       {
         id: 'shift-std-01',
-        name: 'Standard Morning Shift',
+        name: 'Standard Core Shift',
         division: 'all',
         start_time: '09:00:00',
         end_time: '18:00:00',
         grace_period_mins: 15,
         half_day_threshold_hours: 4.5,
         full_day_threshold_hours: 8.0,
-        is_active: true
+        target_type: 'all',
+        assigned_staff_emails: [],
+        assigned_roles: [],
+        is_active: true,
       },
       {
         id: 'shift-edu-01',
-        name: 'Counselor Day Shift',
+        name: 'Education Counselor Shift',
         division: 'education',
         start_time: '09:30:00',
         end_time: '18:30:00',
         grace_period_mins: 15,
         half_day_threshold_hours: 4.0,
         full_day_threshold_hours: 8.0,
-        is_active: true
+        target_type: 'division',
+        assigned_staff_emails: ['counselor@ferex.com', 'education@ferex.com'],
+        assigned_roles: ['counselor', 'staff'],
+        is_active: true,
       },
       {
         id: 'shift-rimi-01',
@@ -201,7 +237,10 @@ export const getShifts = async (division?: string): Promise<Shift[]> => {
         grace_period_mins: 10,
         half_day_threshold_hours: 4.0,
         full_day_threshold_hours: 8.0,
-        is_active: true
+        target_type: 'division',
+        assigned_staff_emails: ['rimi@ferex.com', 'logistics@ferex.com'],
+        assigned_roles: ['logistics_officer', 'staff'],
+        is_active: true,
       },
       {
         id: 'shift-trade-01',
@@ -212,24 +251,50 @@ export const getShifts = async (division?: string): Promise<Shift[]> => {
         grace_period_mins: 15,
         half_day_threshold_hours: 4.0,
         full_day_threshold_hours: 8.0,
-        is_active: true
+        target_type: 'division',
+        assigned_staff_emails: ['trade@ferex.com'],
+        assigned_roles: ['operations_manager', 'staff'],
+        is_active: true,
       },
       {
         id: 'shift-digital-01',
-        name: 'Tech & PM Core Shift',
+        name: 'Digital Agency Tech Shift',
         division: 'digital',
         start_time: '10:00:00',
         end_time: '19:00:00',
         grace_period_mins: 20,
         half_day_threshold_hours: 4.0,
         full_day_threshold_hours: 8.0,
-        is_active: true
-      }
+        target_type: 'division',
+        assigned_staff_emails: ['digimanager@ferex.com', 'digital@ferex.com', 'pm@ferex.com'],
+        assigned_roles: ['digital_manager', 'pm', 'digital_staff'],
+        is_active: true,
+      },
     ]);
+    let result = local;
     if (division && division !== 'all' && division !== 'central') {
-      return local.filter(s => s.division === division || s.division === 'all');
+      result = local.filter(
+        (s) =>
+          s.division === division ||
+          s.division === 'all' ||
+          (userEmail && s.assigned_staff_emails && s.assigned_staff_emails.includes(userEmail)) ||
+          (userRole && s.assigned_roles && s.assigned_roles.includes(userRole))
+      );
     }
-    return local;
+    if (userEmail || userRole) {
+      result.sort((a, b) => {
+        const aMatch =
+          (userEmail && a.assigned_staff_emails?.includes(userEmail)) ||
+          (userRole && a.assigned_roles?.includes(userRole));
+        const bMatch =
+          (userEmail && b.assigned_staff_emails?.includes(userEmail)) ||
+          (userRole && b.assigned_roles?.includes(userRole));
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        return 0;
+      });
+    }
+    return result;
   }
 };
 
@@ -243,6 +308,9 @@ export const createShift = async (shift: Partial<Shift>): Promise<Shift> => {
     grace_period_mins: shift.grace_period_mins ?? 15,
     half_day_threshold_hours: shift.half_day_threshold_hours ?? 4.0,
     full_day_threshold_hours: shift.full_day_threshold_hours ?? 8.0,
+    target_type: shift.target_type || 'division',
+    assigned_staff_emails: shift.assigned_staff_emails || [],
+    assigned_roles: shift.assigned_roles || [],
     is_active: shift.is_active ?? true,
     created_at: new Date().toISOString()
   };
@@ -250,19 +318,27 @@ export const createShift = async (shift: Partial<Shift>): Promise<Shift> => {
   try {
     const { data, error } = await supabase.from('shifts').insert([newShift]).select().single();
     if (error || !data) throw error;
+    window.dispatchEvent(new CustomEvent('ferex-shifts-updated'));
     return data as Shift;
   } catch (err) {
     const local = getLocalData<Shift>(LOCAL_SHIFTS_KEY, []);
     local.unshift(newShift);
     saveLocalData(LOCAL_SHIFTS_KEY, local);
+    window.dispatchEvent(new CustomEvent('ferex-shifts-updated'));
     return newShift;
   }
 };
 
 export const updateShift = async (id: string, updates: Partial<Shift>): Promise<Shift | null> => {
   try {
-    const { data, error } = await supabase.from('shifts').update(updates).eq('id', id).select().single();
+    const { data, error } = await supabase
+      .from('shifts')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
     if (error || !data) throw error;
+    window.dispatchEvent(new CustomEvent('ferex-shifts-updated'));
     return data as Shift;
   } catch (err) {
     const local = getLocalData<Shift>(LOCAL_SHIFTS_KEY, []);
@@ -270,10 +346,25 @@ export const updateShift = async (id: string, updates: Partial<Shift>): Promise<
     if (idx !== -1) {
       local[idx] = { ...local[idx], ...updates, updated_at: new Date().toISOString() };
       saveLocalData(LOCAL_SHIFTS_KEY, local);
+      window.dispatchEvent(new CustomEvent('ferex-shifts-updated'));
       return local[idx];
     }
     return null;
   }
+};
+
+export const deleteShift = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from('shifts').delete().eq('id', id);
+    if (error) throw error;
+  } catch (err) {
+    console.warn('Fallback delete shift:', err);
+  }
+  const local = getLocalData<Shift>(LOCAL_SHIFTS_KEY, []);
+  const filtered = local.filter(s => s.id !== id);
+  saveLocalData(LOCAL_SHIFTS_KEY, filtered);
+  window.dispatchEvent(new CustomEvent('ferex-shifts-updated'));
+  return true;
 };
 
 // ================= ATTENDANCE & TIMESHEETS API =================
@@ -414,8 +505,6 @@ export const getTimesheets = async (filters?: {
   startDate?: string;
   endDate?: string;
   status?: string;
-  excludeAdmins?: boolean;
-  onlyAdmins?: boolean;
 }): Promise<AttendanceTimesheet[]> => {
   try {
     let query = supabase.from('attendance_timesheets').select('*').order('clock_in', { ascending: false });
@@ -1007,18 +1096,16 @@ export const generateMonthlyPayroll = async (
     const userTimesheets = allTimesheets.filter(t => t.user_email === salary.user_email);
     const verifiedTimesheets = userTimesheets.filter(t => t.is_admin_verified || t.is_superadmin_locked);
 
-    // Filter approved leaves for this user in this month
     const userLeaves = allLeaveRequests.filter(
       l => l.user_email === salary.user_email && l.status === 'approved' && l.start_date.startsWith(month)
     );
 
-    // Monetizable approved paid leaves count as attended days
     const paidLeaveDays = userLeaves.filter(l => l.is_monetizable).reduce((sum, l) => sum + (l.total_days || 0), 0);
     const unpaidLeaveDays = userLeaves.filter(l => !l.is_monetizable).reduce((sum, l) => sum + (l.total_days || 0), 0);
 
     const attendedDays = verifiedTimesheets.length + paidLeaveDays;
     const verifiedHours = verifiedTimesheets.reduce((acc, curr) => acc + (curr.total_hours || 0), 0);
-    const totalWorkingDays = 22; // standard 22 working days in a month
+    const totalWorkingDays = 22;
 
     let calculatedGross = salary.monthly_base_salary;
     if (attendedDays < totalWorkingDays && attendedDays > 0) {
@@ -1027,7 +1114,6 @@ export const generateMonthlyPayroll = async (
       calculatedGross = Number((verifiedHours * salary.hourly_rate).toFixed(2));
     }
 
-    // Unpaid leave deduction
     const unpaidDeductions = Number(((salary.monthly_base_salary / totalWorkingDays) * unpaidLeaveDays).toFixed(2));
     const allowances = 150;
     const deductions = unpaidDeductions;
