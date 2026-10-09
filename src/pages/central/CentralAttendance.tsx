@@ -161,22 +161,22 @@ export const CentralAttendance: React.FC = () => {
           division: divisionFilter,
           status: statusFilter,
         });
-        setTimesheets(data);
+        setTimesheets(data || []);
       } else if (activeTab === 'shifts') {
         const data = await getShifts();
-        setShifts(data);
+        setShifts(data || []);
       } else if (activeTab === 'leave_policies') {
         const data = await getLeavePolicies();
-        setLeavePolicies(data);
+        setLeavePolicies(data || []);
       } else if (activeTab === 'leave_approvals') {
         const data = await getLeaveRequests({ division: divisionFilter });
-        setLeaveRequests(data);
+        setLeaveRequests(data || []);
       } else if (activeTab === 'salaries') {
         const data = await getEmployeeSalaries();
-        setSalaries(data);
+        setSalaries(data || []);
       } else if (activeTab === 'payroll') {
         const data = await getMonthlyPayrolls(selectedMonth);
-        setPayrolls(data);
+        setPayrolls(data || []);
       }
     } catch (err) {
       console.error(err);
@@ -371,8 +371,8 @@ export const CentralAttendance: React.FC = () => {
         superAdminId,
         superAdminName
       );
-      setPayrolls(generated);
-      showToast(`Processed payroll for ${generated.length} employees for ${selectedMonth}.`);
+      setPayrolls(generated || []);
+      showToast(`Processed payroll for ${(generated || []).length} employees for ${selectedMonth}.`);
     } catch (err) {
       console.error(err);
     } finally {
@@ -613,7 +613,7 @@ export const CentralAttendance: React.FC = () => {
                           </div>
                         </td>
                         <td className="p-3 font-mono font-bold text-slate-900">
-                          {t.total_hours?.toFixed(1) || '0.0'} hrs
+                          {Number(t.total_hours || 0).toFixed(1)} hrs
                         </td>
                         <td className="p-3 max-w-xs">
                           {t.work_summary ? (
@@ -1029,10 +1029,10 @@ export const CentralAttendance: React.FC = () => {
                         <div className="text-[11px] text-slate-500 mt-0.5">{s.user_role}</div>
                       </td>
                       <td className="p-3 font-mono font-bold text-slate-900">
-                        {s.currency} {s.monthly_base_salary.toLocaleString()}
+                        {s.currency} {Number(s.monthly_base_salary || 0).toLocaleString()}
                       </td>
                       <td className="p-3 font-mono text-slate-700">
-                        {s.currency} {s.hourly_rate} / hr
+                        {s.currency} {Number(s.hourly_rate || 0)} / hr
                       </td>
                       <td className="p-3 font-bold text-slate-600">{s.currency}</td>
                       <td className="p-3 text-slate-500">{s.effective_from}</td>
@@ -1042,7 +1042,7 @@ export const CentralAttendance: React.FC = () => {
                             setSalaryForm(s);
                             setShowSalaryModal(true);
                           }}
-                          className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-semibold px-2.5 py-1 rounded transition-all"
+                          className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-semibold px-2.5 py-1 rounded transition-all cursor-pointer"
                         >
                           Edit
                         </button>
@@ -1115,13 +1115,13 @@ export const CentralAttendance: React.FC = () => {
                         <td className="p-3 uppercase font-bold text-slate-700">{p.division}</td>
                         <td className="p-3">
                           <div className="font-bold text-slate-800">{p.attended_days} / {p.total_working_days} days</div>
-                          <div className="text-[11px] text-emerald-700 font-mono">{p.verified_hours} verified hrs</div>
+                          <div className="text-[11px] text-emerald-700 font-mono">{Number(p.verified_hours || 0)} verified hrs</div>
                         </td>
-                        <td className="p-3 font-mono text-slate-700">${p.base_salary?.toLocaleString()}</td>
-                        <td className="p-3 font-mono text-slate-700">${p.calculated_gross_pay?.toLocaleString()}</td>
-                        <td className="p-3 font-mono text-rose-600">-${p.deductions?.toLocaleString()}</td>
+                        <td className="p-3 font-mono text-slate-700">${Number(p.base_salary || 0).toLocaleString()}</td>
+                        <td className="p-3 font-mono text-slate-700">${Number(p.calculated_gross_pay || 0).toLocaleString()}</td>
+                        <td className="p-3 font-mono text-rose-600">-${Number(p.deductions || 0).toLocaleString()}</td>
                         <td className="p-3 font-mono font-black text-emerald-700 text-sm">
-                          ${p.net_payable?.toLocaleString()}
+                          ${Number(p.net_payable || 0).toLocaleString()}
                         </td>
                         <td className="p-3">
                           <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
@@ -1145,7 +1145,7 @@ export const CentralAttendance: React.FC = () => {
             <div className="bg-white border border-slate-200 text-slate-900 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
               <button
                 onClick={() => setShowShiftModal(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1301,7 +1301,7 @@ export const CentralAttendance: React.FC = () => {
                         key={t.id}
                         type="button"
                         onClick={() => setShiftForm({ ...shiftForm, target_type: t.id as any })}
-                        className={`p-2 rounded-lg border text-xs font-semibold transition-all ${
+                        className={`p-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
                           shiftForm.target_type === t.id
                             ? 'bg-[#58051E] text-white border-[#58051E]'
                             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -1326,7 +1326,7 @@ export const CentralAttendance: React.FC = () => {
                               key={r.id}
                               type="button"
                               onClick={() => toggleRole(r.id)}
-                              className={`flex items-center gap-1.5 p-2 rounded-lg border text-xs text-left transition-all ${
+                              className={`flex items-center gap-1.5 p-2 rounded-lg border text-xs text-left transition-all cursor-pointer ${
                                 checked
                                   ? 'bg-purple-50 border-purple-400 text-purple-800 font-bold'
                                   : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -1361,7 +1361,7 @@ export const CentralAttendance: React.FC = () => {
                               key={st.email}
                               type="button"
                               onClick={() => toggleStaffEmail(st.email)}
-                              className={`flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full border transition-all ${
+                              className={`flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
                                 isAssigned
                                   ? 'bg-emerald-600 text-white border-emerald-700 font-bold'
                                   : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
@@ -1391,7 +1391,7 @@ export const CentralAttendance: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleAddCustomEmail}
-                          className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+                          className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
                         >
                           Add Email
                         </button>
@@ -1409,7 +1409,7 @@ export const CentralAttendance: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => toggleStaffEmail(em)}
-                                className="text-blue-500 hover:text-rose-600 font-bold ml-1"
+                                className="text-blue-500 hover:text-rose-600 font-bold ml-1 cursor-pointer"
                               >
                                 ×
                               </button>
@@ -1439,13 +1439,13 @@ export const CentralAttendance: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowShiftModal(false)}
-                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 rounded-lg text-xs transition-all"
+                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 rounded-lg text-xs transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold py-2.5 rounded-lg text-xs shadow-xs transition-all"
+                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold py-2.5 rounded-lg text-xs shadow-xs transition-all cursor-pointer"
                   >
                     {editingShiftId ? 'Save Changes' : 'Create Shift'}
                   </button>
@@ -1463,7 +1463,7 @@ export const CentralAttendance: React.FC = () => {
             <div className="bg-white border border-slate-200 text-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
               <button
                 onClick={() => setShowPolicyModal(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1565,13 +1565,13 @@ export const CentralAttendance: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowPolicyModal(false)}
-                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 rounded-lg text-xs transition-all"
+                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 rounded-lg text-xs transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold py-2.5 rounded-lg text-xs shadow-xs transition-all"
+                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold py-2.5 rounded-lg text-xs shadow-xs transition-all cursor-pointer"
                   >
                     Save Policy
                   </button>
@@ -1589,7 +1589,7 @@ export const CentralAttendance: React.FC = () => {
             <div className="bg-white border border-slate-200 text-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
               <button
                 onClick={() => setShowSalaryModal(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1694,13 +1694,13 @@ export const CentralAttendance: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowSalaryModal(false)}
-                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 rounded-lg text-xs transition-all"
+                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 rounded-lg text-xs transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold py-2.5 rounded-lg text-xs shadow-xs transition-all"
+                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold py-2.5 rounded-lg text-xs shadow-xs transition-all cursor-pointer"
                   >
                     Save Salary Scale
                   </button>
