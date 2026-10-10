@@ -39,12 +39,14 @@ import {
   upsertLeavePolicy,
   getLeaveRequests,
   updateLeaveRequestStatus,
+  getEnterpriseStaff,
   type AttendanceTimesheet,
   type Shift,
   type EmployeeSalary,
   type MonthlyPayroll,
   type LeavePolicyConfig,
   type LeavePermissionRequest,
+  type StaffMember,
 } from '../../lib/api/attendance';
 
 const KNOWN_STAFF = [
@@ -87,6 +89,12 @@ export const CentralAttendance: React.FC = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
+  const [shiftFilterDivision, setShiftFilterDivision] = useState<string>('all');
+  const [shiftSearchQuery, setShiftSearchQuery] = useState<string>('');
+  const [enterpriseStaff, setEnterpriseStaff] = useState<StaffMember[]>([]);
+  const [staffModalSearch, setStaffModalSearch] = useState<string>('');
+  const [shiftSaving, setShiftSaving] = useState(false);
+  const [shiftError, setShiftError] = useState<string>('');
   const [shiftForm, setShiftForm] = useState<{
     name: string;
     division: string;
@@ -163,8 +171,14 @@ export const CentralAttendance: React.FC = () => {
         });
         setTimesheets(data || []);
       } else if (activeTab === 'shifts') {
-        const data = await getShifts();
+        const [data, staffList] = await Promise.all([
+          getShifts(),
+          getEnterpriseStaff(),
+        ]);
         setShifts(data || []);
+        if (staffList && staffList.length > 0) {
+          setEnterpriseStaff(staffList);
+        }
       } else if (activeTab === 'leave_policies') {
         const data = await getLeavePolicies();
         setLeavePolicies(data || []);
@@ -220,6 +234,8 @@ export const CentralAttendance: React.FC = () => {
 
   const handleOpenAddShift = () => {
     setEditingShiftId(null);
+    setShiftError('');
+    setStaffModalSearch('');
     setShiftForm({
       name: '',
       division: 'all',
@@ -233,41 +249,60 @@ export const CentralAttendance: React.FC = () => {
       assigned_roles: [],
       is_active: true,
     });
+    if (enterpriseStaff.length === 0) {
+      getEnterpriseStaff().then((st) => setEnterpriseStaff(st));
+    }
     setShowShiftModal(true);
   };
 
   const handleOpenEditShift = (shift: Shift) => {
     setEditingShiftId(shift.id);
+    setShiftError('');
+    setStaffModalSearch('');
     setShiftForm({
       name: shift.name,
       division: shift.division || 'all',
       start_time: shift.start_time || '09:00:00',
       end_time: shift.end_time || '18:00:00',
       grace_period_mins: shift.grace_period_mins ?? 15,
-      half_day_threshold_hours: shift.half_day_threshold_hours ?? 4.0,
-      full_day_threshold_hours: shift.full_day_threshold_hours ?? 8.0,
+      half_day_threshold_hours: shift.half_day_threshold_hours ?? (shift.half_day_hours ?? 4.0),
+      full_day_threshold_hours: shift.full_day_threshold_hours ?? (shift.full_day_hours ?? 8.0),
       target_type: (shift.target_type as any) || 'division',
       assigned_staff_emails: shift.assigned_staff_emails || [],
       assigned_roles: shift.assigned_roles || [],
       is_active: shift.is_active ?? true,
     });
+    if (enterpriseStaff.length === 0) {
+      getEnterpriseStaff().then((st) => setEnterpriseStaff(st));
+    }
     setShowShiftModal(true);
   };
 
   const handleSaveShift = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!shiftForm.name.trim()) {
+      setShiftError('Shift name is required.');
+      return;
+    }
+    setShiftSaving(true);
+    setShiftError('');
     try {
       if (editingShiftId) {
-        await updateShift(editingShiftId, shiftForm);
+        const res = await updateShift(editingShiftId, shiftForm);
+        if (!res) throw new Error('Could not update shift');
         showToast('Shift timing updated successfully.');
       } else {
-        await createShift(shiftForm);
-        showToast('New shift timing created and activated.');
+        const res = await createShift(shiftForm);
+        if (!res) throw new Error('Could not create shift');
+        showToast(`New shift "${res.name}" created and activated.`);
       }
       setShowShiftModal(false);
-      loadData();
-    } catch (err) {
+      await loadData();
+    } catch (err: any) {
       console.error(err);
+      setShiftError(err.message || 'Error saving shift. Please try again.');
+    } finally {
+      setShiftSaving(false);
     }
   };
 
@@ -667,6 +702,7 @@ export const CentralAttendance: React.FC = () => {
       )}
 
       {/* TAB 2: SHIFT TIMINGS & TARGET STAFF */}
+      {/* TAB 2: SHIFT TIMINGS & TARGET STAFF */}
       {activeTab === 'shifts' && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
@@ -685,102 +721,190 @@ export const CentralAttendance: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {shifts.map((shift) => (
-              <div
-                key={shift.id}
-                className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all group"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
-                      <h3 className="font-bold text-sm text-slate-900">{shift.name}</h3>
-                      <span className="inline-block uppercase font-bold text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded mt-0.5">
-                        {shift.division === 'all' ? 'All Enterprise' : `${shift.division} division`}
-                      </span>
-                    </div>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                        shift.is_active
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-slate-100 text-slate-500 border-slate-200'
-                      }`}
-                    >
-                      {shift.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-
-                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200/80 my-3 space-y-1.5 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Timing:</span>
-                      <span className="font-mono font-bold text-slate-800">
-                        {shift.start_time.slice(0, 5)} — {shift.end_time.slice(0, 5)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Grace Period:</span>
-                      <span className="font-medium text-slate-700">{shift.grace_period_mins} mins</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Full-Day Req:</span>
-                      <span className="font-medium text-slate-700">{shift.full_day_threshold_hours} hrs</span>
-                    </div>
-                  </div>
-
-                  {/* Targeted Staff or Roles Display */}
-                  <div className="space-y-1 mb-3 text-xs">
-                    <span className="text-[11px] font-semibold text-slate-500 block">
-                      Target Audience ({shift.target_type || 'division'}):
-                    </span>
-                    {shift.assigned_staff_emails && shift.assigned_staff_emails.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {shift.assigned_staff_emails.map((email) => (
-                          <span
-                            key={email}
-                            className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-medium px-1.5 py-0.5 rounded"
-                          >
-                            {email}
-                          </span>
-                        ))}
-                      </div>
-                    ) : shift.assigned_roles && shift.assigned_roles.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {shift.assigned_roles.map((r) => (
-                          <span
-                            key={r}
-                            className="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-medium px-1.5 py-0.5 rounded"
-                          >
-                            {r}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 text-[11px] italic">
-                        {shift.division === 'all' ? 'All employees across enterprise' : `All ${shift.division} staff`}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-                  <button
-                    onClick={() => handleOpenEditShift(shift)}
-                    className="flex-1 flex items-center justify-center gap-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs py-1.5 rounded-lg transition-all cursor-pointer"
-                  >
-                    <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Edit Shift</span>
-                  </button>
-                  <button
-                    onClick={() => handleDeleteShift(shift.id, shift.name)}
-                    className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-all border border-transparent hover:border-rose-200 cursor-pointer"
-                    title="Delete Shift"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+          {/* Shift Filter & Search Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <div className="flex items-center gap-1 text-slate-500 font-medium">
+                <Filter className="w-3.5 h-3.5" />
+                <span>Division:</span>
               </div>
-            ))}
+              <select
+                value={shiftFilterDivision}
+                onChange={(e) => setShiftFilterDivision(e.target.value)}
+                className="bg-white border border-slate-200 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#58051E]"
+              >
+                <option value="all">All Divisions ({shifts.length})</option>
+                <option value="education">Education Counselors ({shifts.filter(s => s.division === 'education' || s.division === 'all').length})</option>
+                <option value="rimi">Rimi Frozen Logistics ({shifts.filter(s => s.division === 'rimi' || s.division === 'all').length})</option>
+                <option value="trade">Global Trade Floor ({shifts.filter(s => s.division === 'trade' || s.division === 'all').length})</option>
+                <option value="digital">Ferex Digital Tech ({shifts.filter(s => s.division === 'digital' || s.division === 'all').length})</option>
+                <option value="central">Central Platform ({shifts.filter(s => s.division === 'central' || s.division === 'all').length})</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search shifts or assigned staff..."
+                  value={shiftSearchQuery}
+                  onChange={(e) => setShiftSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg focus:outline-none focus:bg-white focus:border-[#58051E]"
+                />
+              </div>
+              {shiftSearchQuery && (
+                <button
+                  onClick={() => setShiftSearchQuery('')}
+                  className="text-slate-400 hover:text-slate-600 text-xs px-1"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Shifts Grid */}
+          {(() => {
+            const filteredShifts = shifts.filter((s) => {
+              const matchesDiv =
+                shiftFilterDivision === 'all' ||
+                s.division === shiftFilterDivision ||
+                s.division === 'all';
+              const query = shiftSearchQuery.trim().toLowerCase();
+              const matchesSearch =
+                !query ||
+                s.name.toLowerCase().includes(query) ||
+                (s.division && s.division.toLowerCase().includes(query)) ||
+                (s.assigned_staff_emails &&
+                  s.assigned_staff_emails.some((em) => em.toLowerCase().includes(query))) ||
+                (s.assigned_roles &&
+                  s.assigned_roles.some((r) => r.toLowerCase().includes(query)));
+              return matchesDiv && matchesSearch;
+            });
+
+            if (filteredShifts.length === 0) {
+              return (
+                <div className="bg-white border border-slate-200/80 rounded-xl p-12 text-center shadow-xs">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                    <Clock className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-800 mb-1">No Shifts Found</h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto mb-4">
+                    {shiftSearchQuery || shiftFilterDivision !== 'all'
+                      ? 'No shift timings match your current search or division filter.'
+                      : 'No shift timings configured yet. Click below to create your first shift.'}
+                  </p>
+                  <button
+                    onClick={handleOpenAddShift}
+                    className="inline-flex items-center gap-1.5 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold px-4 py-2 rounded-lg shadow-xs transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create New Shift Timing</span>
+                  </button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredShifts.map((shift) => (
+                  <div
+                    key={shift.id}
+                    className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all group"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <h3 className="font-bold text-sm text-slate-900">{shift.name}</h3>
+                          <span className="inline-block uppercase font-bold text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded mt-0.5">
+                            {shift.division === 'all' ? 'All Enterprise' : `${shift.division} division`}
+                          </span>
+                        </div>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            shift.is_active
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-slate-100 text-slate-500 border-slate-200'
+                          }`}
+                        >
+                          {shift.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-200/80 my-3 space-y-1.5 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Timing:</span>
+                          <span className="font-mono font-bold text-slate-800">
+                            {shift.start_time.slice(0, 5)} — {shift.end_time.slice(0, 5)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Grace Period:</span>
+                          <span className="font-medium text-slate-700">{shift.grace_period_mins} mins</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Full-Day Req:</span>
+                          <span className="font-medium text-slate-700">{shift.full_day_threshold_hours ?? shift.full_day_hours ?? 8.0} hrs</span>
+                        </div>
+                      </div>
+
+                      {/* Targeted Staff or Roles Display */}
+                      <div className="space-y-1 mb-3 text-xs">
+                        <span className="text-[11px] font-semibold text-slate-500 block">
+                          Target Audience ({shift.target_type || 'division'}):
+                        </span>
+                        {shift.assigned_staff_emails && shift.assigned_staff_emails.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                            {shift.assigned_staff_emails.map((email) => (
+                              <span
+                                key={email}
+                                className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-medium px-1.5 py-0.5 rounded"
+                              >
+                                {email}
+                              </span>
+                            ))}
+                          </div>
+                        ) : shift.assigned_roles && shift.assigned_roles.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {shift.assigned_roles.map((r) => (
+                              <span
+                                key={r}
+                                className="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-medium px-1.5 py-0.5 rounded"
+                              >
+                                {r}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-[11px] italic">
+                            {shift.division === 'all' ? 'All employees across enterprise' : `All ${shift.division} staff`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => handleOpenEditShift(shift)}
+                        className="flex-1 flex items-center justify-center gap-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs py-1.5 rounded-lg transition-all cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Edit Shift</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteShift(shift.id, shift.name)}
+                        className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-all border border-transparent hover:border-rose-200 cursor-pointer"
+                        title="Delete Shift"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -1348,36 +1472,89 @@ export const CentralAttendance: React.FC = () => {
 
                   {/* If Specific Staff selected */}
                   {shiftForm.target_type === 'specific_staff' && (
-                    <div className="space-y-2 pt-2">
-                      <span className="text-[11px] font-semibold text-slate-600 block">
-                        Assign Specific Staff Members (Quick Toggle or Add Email):
-                      </span>
-
-                      <div className="flex flex-wrap gap-1.5">
-                        {KNOWN_STAFF.map((st) => {
-                          const isAssigned = shiftForm.assigned_staff_emails.includes(st.email);
-                          return (
-                            <button
-                              key={st.email}
-                              type="button"
-                              onClick={() => toggleStaffEmail(st.email)}
-                              className={`flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
-                                isAssigned
-                                  ? 'bg-emerald-600 text-white border-emerald-700 font-bold'
-                                  : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
-                              }`}
-                            >
-                              <UserCheck className="w-3 h-3" />
-                              <span>{st.name} ({st.email})</span>
-                            </button>
-                          );
-                        })}
+                    <div className="space-y-2.5 pt-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-slate-700">
+                          Select Staff Members ({shiftForm.assigned_staff_emails.length} selected):
+                        </span>
+                        {shiftForm.assigned_staff_emails.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShiftForm((prev) => ({ ...prev, assigned_staff_emails: [] }))
+                            }
+                            className="text-[11px] text-rose-600 hover:underline font-medium cursor-pointer"
+                          >
+                            Clear All
+                          </button>
+                        )}
                       </div>
 
-                      <div className="flex gap-2 pt-2">
+                      {/* Filter/Search staff in modal */}
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Search staff by name, email, or division..."
+                          value={staffModalSearch}
+                          onChange={(e) => setStaffModalSearch(e.target.value)}
+                          className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 text-slate-800 text-xs rounded-lg focus:outline-none focus:border-[#58051E]"
+                        />
+                      </div>
+
+                      {/* Staff Chips list */}
+                      <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2 border border-slate-200/80 rounded-xl bg-white">
+                        {(() => {
+                          const staffList =
+                            enterpriseStaff.length > 0 ? enterpriseStaff : KNOWN_STAFF;
+                          const q = staffModalSearch.trim().toLowerCase();
+                          const filtered = staffList.filter(
+                            (st) =>
+                              !q ||
+                              st.name.toLowerCase().includes(q) ||
+                              st.email.toLowerCase().includes(q) ||
+                              (st.role && st.role.toLowerCase().includes(q)) ||
+                              (st.division && st.division.toLowerCase().includes(q))
+                          );
+
+                          if (filtered.length === 0) {
+                            return (
+                              <p className="text-xs text-slate-400 p-2 text-center w-full">
+                                No staff members match "{staffModalSearch}".
+                              </p>
+                            );
+                          }
+
+                          return filtered.map((st) => {
+                            const isAssigned = shiftForm.assigned_staff_emails.includes(
+                              st.email.toLowerCase()
+                            );
+                            return (
+                              <button
+                                key={st.email}
+                                type="button"
+                                onClick={() => toggleStaffEmail(st.email.toLowerCase())}
+                                className={`flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                                  isAssigned
+                                    ? 'bg-[#58051E] text-white border-[#58051E] font-bold shadow-xs'
+                                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                                }`}
+                              >
+                                <UserCheck className={`w-3 h-3 ${isAssigned ? 'text-white' : 'text-slate-400'}`} />
+                                <span>{st.name}</span>
+                                <span className={`text-[10px] ${isAssigned ? 'text-white/80' : 'text-slate-400'}`}>
+                                  ({st.division || 'staff'})
+                                </span>
+                              </button>
+                            );
+                          });
+                        })()}
+                      </div>
+
+                      <div className="flex gap-2 pt-1">
                         <input
                           type="email"
-                          placeholder="Add custom staff email..."
+                          placeholder="Or type custom staff email..."
                           value={customEmailInput}
                           onChange={(e) => setCustomEmailInput(e.target.value)}
                           onKeyDown={(e) => {
@@ -1398,12 +1575,12 @@ export const CentralAttendance: React.FC = () => {
                       </div>
 
                       {shiftForm.assigned_staff_emails.length > 0 && (
-                        <div className="flex flex-wrap gap-1 pt-1">
-                          <span className="text-[11px] text-slate-500 mr-1">Assigned:</span>
+                        <div className="flex flex-wrap gap-1 pt-1 max-h-24 overflow-y-auto">
+                          <span className="text-[11px] text-slate-500 mr-1 self-center">Assigned ({shiftForm.assigned_staff_emails.length}):</span>
                           {shiftForm.assigned_staff_emails.map((em) => (
                             <span
                               key={em}
-                              className="bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1"
+                              className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1"
                             >
                               {em}
                               <button
@@ -1430,24 +1607,34 @@ export const CentralAttendance: React.FC = () => {
                     onChange={(e) => setShiftForm({ ...shiftForm, is_active: e.target.checked })}
                     className="rounded border-slate-300 text-[#58051E] focus:ring-[#58051E]"
                   />
-                  <label htmlFor="shiftActive" className="text-xs font-semibold text-slate-700">
+                  <label htmlFor="shiftActive" className="text-xs font-semibold text-slate-700 cursor-pointer">
                     Shift is Active and Available for Clock-In
                   </label>
                 </div>
+
+                {shiftError && (
+                  <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{shiftError}</span>
+                  </div>
+                )}
 
                 <div className="flex gap-2.5 pt-3">
                   <button
                     type="button"
                     onClick={() => setShowShiftModal(false)}
-                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 rounded-lg text-xs transition-all cursor-pointer"
+                    disabled={shiftSaving}
+                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 rounded-lg text-xs transition-all cursor-pointer disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold py-2.5 rounded-lg text-xs shadow-xs transition-all cursor-pointer"
+                    disabled={shiftSaving}
+                    className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold py-2.5 rounded-lg text-xs shadow-xs transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {editingShiftId ? 'Save Changes' : 'Create Shift'}
+                    {shiftSaving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                    <span>{shiftSaving ? 'Saving...' : editingShiftId ? 'Save Changes' : 'Create Shift'}</span>
                   </button>
                 </div>
               </form>

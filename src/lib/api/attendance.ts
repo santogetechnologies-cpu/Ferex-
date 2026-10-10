@@ -7,6 +7,8 @@ export interface Shift {
   start_time: string; // '09:00:00'
   end_time: string;   // '18:00:00'
   grace_period_mins: number;
+  half_day_hours?: number;
+  full_day_hours?: number;
   half_day_threshold_hours: number;
   full_day_threshold_hours: number;
   target_type?: 'all' | 'division' | 'specific_staff' | 'roles';
@@ -161,6 +163,29 @@ const saveLocalData = <T>(key: string, data: T[]): void => {
 };
 
 // ================= SHIFTS API =================
+export const formatShiftFromDb = (row: any): Shift => {
+  const half = Number(row.half_day_hours ?? row.half_day_threshold_hours ?? 4.0);
+  const full = Number(row.full_day_hours ?? row.full_day_threshold_hours ?? 8.0);
+  return {
+    id: row.id,
+    name: row.name || 'Shift Timing',
+    division: row.division || 'all',
+    start_time: row.start_time || '09:00:00',
+    end_time: row.end_time || '18:00:00',
+    grace_period_mins: Number(row.grace_period_mins ?? 15),
+    half_day_hours: half,
+    full_day_hours: full,
+    half_day_threshold_hours: half,
+    full_day_threshold_hours: full,
+    target_type: row.target_type || 'division',
+    assigned_staff_emails: Array.isArray(row.assigned_staff_emails) ? row.assigned_staff_emails : [],
+    assigned_roles: Array.isArray(row.assigned_roles) ? row.assigned_roles : [],
+    is_active: row.is_active ?? true,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+};
+
 export const getShifts = async (
   division?: string,
   userEmail?: string,
@@ -172,9 +197,10 @@ export const getShifts = async (
       .select('*')
       .order('created_at', { ascending: false });
     if (error || !data) throw error;
-    saveLocalData(LOCAL_SHIFTS_KEY, data);
+    const formattedData = data.map(formatShiftFromDb);
+    saveLocalData(LOCAL_SHIFTS_KEY, formattedData);
 
-    let result = data as Shift[];
+    let result = formattedData;
     if (division && division !== 'all' && division !== 'central') {
       result = result.filter(
         (s) =>
@@ -199,15 +225,18 @@ export const getShifts = async (
     }
     return result;
   } catch (err) {
+    console.warn('Fallback getting shifts from local storage:', err);
     const local = getLocalData<Shift>(LOCAL_SHIFTS_KEY, [
       {
-        id: 'shift-std-01',
-        name: 'Standard Core Shift',
+        id: '55555555-5555-5555-5555-555555555001',
+        name: 'General Corporate Shift (HQ)',
         division: 'all',
         start_time: '09:00:00',
         end_time: '18:00:00',
         grace_period_mins: 15,
-        half_day_threshold_hours: 4.5,
+        half_day_hours: 4.0,
+        full_day_hours: 8.0,
+        half_day_threshold_hours: 4.0,
         full_day_threshold_hours: 8.0,
         target_type: 'all',
         assigned_staff_emails: [],
@@ -215,65 +244,74 @@ export const getShifts = async (
         is_active: true,
       },
       {
-        id: 'shift-edu-01',
-        name: 'Education Counselor Shift',
+        id: '55555555-5555-5555-5555-555555555002',
+        name: 'Education Admissions Morning Shift',
         division: 'education',
         start_time: '09:30:00',
         end_time: '18:30:00',
         grace_period_mins: 15,
+        half_day_hours: 4.0,
+        full_day_hours: 8.0,
         half_day_threshold_hours: 4.0,
         full_day_threshold_hours: 8.0,
         target_type: 'division',
         assigned_staff_emails: ['counselor@ferex.com', 'education@ferex.com'],
-        assigned_roles: ['counselor', 'staff'],
+        assigned_roles: ['counselor', 'staff', 'education_admin'],
         is_active: true,
       },
       {
-        id: 'shift-rimi-01',
-        name: 'Warehouse & Logistics Shift',
+        id: '55555555-5555-5555-5555-555555555003',
+        name: 'Rimi Cold Chain Distribution Shift',
         division: 'rimi',
         start_time: '08:00:00',
         end_time: '17:00:00',
-        grace_period_mins: 10,
+        grace_period_mins: 15,
+        half_day_hours: 4.0,
+        full_day_hours: 8.0,
         half_day_threshold_hours: 4.0,
         full_day_threshold_hours: 8.0,
         target_type: 'division',
         assigned_staff_emails: ['rimi@ferex.com', 'logistics@ferex.com'],
-        assigned_roles: ['logistics_officer', 'staff'],
+        assigned_roles: ['logistics_officer', 'staff', 'rimi_admin'],
         is_active: true,
       },
       {
-        id: 'shift-trade-01',
-        name: 'Global Trading Floor Shift',
+        id: '55555555-5555-5555-5555-555555555004',
+        name: 'Global Trade Port Logistics Shift',
         division: 'trade',
-        start_time: '08:30:00',
-        end_time: '17:30:00',
+        start_time: '09:00:00',
+        end_time: '18:00:00',
         grace_period_mins: 15,
+        half_day_hours: 4.0,
+        full_day_hours: 8.0,
         half_day_threshold_hours: 4.0,
         full_day_threshold_hours: 8.0,
         target_type: 'division',
         assigned_staff_emails: ['trade@ferex.com'],
-        assigned_roles: ['operations_manager', 'staff'],
+        assigned_roles: ['operations_manager', 'staff', 'trade_admin'],
         is_active: true,
       },
       {
-        id: 'shift-digital-01',
-        name: 'Digital Agency Tech Shift',
+        id: '55555555-5555-5555-5555-555555555005',
+        name: 'Digital Agency Creative & Dev Shift',
         division: 'digital',
         start_time: '10:00:00',
         end_time: '19:00:00',
-        grace_period_mins: 20,
+        grace_period_mins: 30,
+        half_day_hours: 4.0,
+        full_day_hours: 8.0,
         half_day_threshold_hours: 4.0,
         full_day_threshold_hours: 8.0,
         target_type: 'division',
-        assigned_staff_emails: ['digimanager@ferex.com', 'digital@ferex.com', 'pm@ferex.com'],
-        assigned_roles: ['digital_manager', 'pm', 'digital_staff'],
+        assigned_staff_emails: ['digimanager@ferex.com', 'digital@ferex.com', 'pm@ferex.com', 'creative@ferex.com'],
+        assigned_roles: ['digital_manager', 'pm', 'digital_staff', 'digital_admin'],
         is_active: true,
       },
     ]);
-    let result = local;
+    const formattedLocal = local.map(formatShiftFromDb);
+    let result = formattedLocal;
     if (division && division !== 'all' && division !== 'central') {
-      result = local.filter(
+      result = formattedLocal.filter(
         (s) =>
           s.division === division ||
           s.division === 'all' ||
@@ -299,28 +337,59 @@ export const getShifts = async (
 };
 
 export const createShift = async (shift: Partial<Shift>): Promise<Shift> => {
-  const newShift: Shift = {
-    id: `shift-${Date.now()}`,
+  const half = Number(shift.half_day_hours ?? shift.half_day_threshold_hours ?? 4.0);
+  const full = Number(shift.full_day_hours ?? shift.full_day_threshold_hours ?? 8.0);
+
+  const dbPayload: any = {
     name: shift.name || 'General Shift',
     division: shift.division || 'all',
     start_time: shift.start_time || '09:00:00',
     end_time: shift.end_time || '18:00:00',
-    grace_period_mins: shift.grace_period_mins ?? 15,
-    half_day_threshold_hours: shift.half_day_threshold_hours ?? 4.0,
-    full_day_threshold_hours: shift.full_day_threshold_hours ?? 8.0,
+    grace_period_mins: Number(shift.grace_period_mins ?? 15),
+    half_day_hours: half,
+    full_day_hours: full,
     target_type: shift.target_type || 'division',
-    assigned_staff_emails: shift.assigned_staff_emails || [],
-    assigned_roles: shift.assigned_roles || [],
+    assigned_staff_emails: Array.isArray(shift.assigned_staff_emails) ? shift.assigned_staff_emails : [],
+    assigned_roles: Array.isArray(shift.assigned_roles) ? shift.assigned_roles : [],
     is_active: shift.is_active ?? true,
-    created_at: new Date().toISOString()
   };
 
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (shift.id && uuidRegex.test(shift.id)) {
+    dbPayload.id = shift.id;
+  }
+
   try {
-    const { data, error } = await supabase.from('shifts').insert([newShift]).select().single();
+    const { data, error } = await supabase.from('shifts').insert([dbPayload]).select().single();
     if (error || !data) throw error;
+    const formatted = formatShiftFromDb(data);
+
+    const local = getLocalData<Shift>(LOCAL_SHIFTS_KEY, []);
+    local.unshift(formatted);
+    saveLocalData(LOCAL_SHIFTS_KEY, local);
+
     window.dispatchEvent(new CustomEvent('ferex-shifts-updated'));
-    return data as Shift;
+    return formatted;
   } catch (err) {
+    console.warn('Supabase createShift error, falling back to local storage:', err);
+    const fallbackId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `shift-${Date.now()}`;
+    const newShift: Shift = {
+      id: fallbackId,
+      name: dbPayload.name,
+      division: dbPayload.division,
+      start_time: dbPayload.start_time,
+      end_time: dbPayload.end_time,
+      grace_period_mins: dbPayload.grace_period_mins,
+      half_day_hours: half,
+      full_day_hours: full,
+      half_day_threshold_hours: half,
+      full_day_threshold_hours: full,
+      target_type: dbPayload.target_type,
+      assigned_staff_emails: dbPayload.assigned_staff_emails,
+      assigned_roles: dbPayload.assigned_roles,
+      is_active: dbPayload.is_active,
+      created_at: new Date().toISOString()
+    };
     const local = getLocalData<Shift>(LOCAL_SHIFTS_KEY, []);
     local.unshift(newShift);
     saveLocalData(LOCAL_SHIFTS_KEY, local);
@@ -330,21 +399,59 @@ export const createShift = async (shift: Partial<Shift>): Promise<Shift> => {
 };
 
 export const updateShift = async (id: string, updates: Partial<Shift>): Promise<Shift | null> => {
+  const dbUpdates: any = {
+    updated_at: new Date().toISOString()
+  };
+  if (updates.name !== undefined) dbUpdates.name = updates.name;
+  if (updates.division !== undefined) dbUpdates.division = updates.division;
+  if (updates.start_time !== undefined) dbUpdates.start_time = updates.start_time;
+  if (updates.end_time !== undefined) dbUpdates.end_time = updates.end_time;
+  if (updates.grace_period_mins !== undefined) dbUpdates.grace_period_mins = Number(updates.grace_period_mins);
+  if (updates.half_day_hours !== undefined || updates.half_day_threshold_hours !== undefined) {
+    dbUpdates.half_day_hours = Number(updates.half_day_hours ?? updates.half_day_threshold_hours);
+  }
+  if (updates.full_day_hours !== undefined || updates.full_day_threshold_hours !== undefined) {
+    dbUpdates.full_day_hours = Number(updates.full_day_hours ?? updates.full_day_threshold_hours);
+  }
+  if (updates.target_type !== undefined) dbUpdates.target_type = updates.target_type;
+  if (updates.assigned_staff_emails !== undefined) dbUpdates.assigned_staff_emails = updates.assigned_staff_emails;
+  if (updates.assigned_roles !== undefined) dbUpdates.assigned_roles = updates.assigned_roles;
+  if (updates.is_active !== undefined) dbUpdates.is_active = updates.is_active;
+
   try {
     const { data, error } = await supabase
       .from('shifts')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update(dbUpdates)
       .eq('id', id)
       .select()
       .single();
     if (error || !data) throw error;
-    window.dispatchEvent(new CustomEvent('ferex-shifts-updated'));
-    return data as Shift;
-  } catch (err) {
+    const formatted = formatShiftFromDb(data);
+
     const local = getLocalData<Shift>(LOCAL_SHIFTS_KEY, []);
     const idx = local.findIndex(s => s.id === id);
     if (idx !== -1) {
-      local[idx] = { ...local[idx], ...updates, updated_at: new Date().toISOString() };
+      local[idx] = formatted;
+      saveLocalData(LOCAL_SHIFTS_KEY, local);
+    }
+    window.dispatchEvent(new CustomEvent('ferex-shifts-updated'));
+    return formatted;
+  } catch (err) {
+    console.warn('Supabase updateShift fallback:', err);
+    const local = getLocalData<Shift>(LOCAL_SHIFTS_KEY, []);
+    const idx = local.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      const half = Number(updates.half_day_hours ?? updates.half_day_threshold_hours ?? local[idx].half_day_hours ?? 4.0);
+      const full = Number(updates.full_day_hours ?? updates.full_day_threshold_hours ?? local[idx].full_day_hours ?? 8.0);
+      local[idx] = {
+        ...local[idx],
+        ...updates,
+        half_day_hours: half,
+        full_day_hours: full,
+        half_day_threshold_hours: half,
+        full_day_threshold_hours: full,
+        updated_at: new Date().toISOString()
+      };
       saveLocalData(LOCAL_SHIFTS_KEY, local);
       window.dispatchEvent(new CustomEvent('ferex-shifts-updated'));
       return local[idx];
@@ -356,7 +463,7 @@ export const updateShift = async (id: string, updates: Partial<Shift>): Promise<
 export const deleteShift = async (id: string): Promise<boolean> => {
   try {
     const { error } = await supabase.from('shifts').delete().eq('id', id);
-    if (error) throw error;
+    if (error) console.warn('Supabase delete shift error:', error.message);
   } catch (err) {
     console.warn('Fallback delete shift:', err);
   }
@@ -365,6 +472,80 @@ export const deleteShift = async (id: string): Promise<boolean> => {
   saveLocalData(LOCAL_SHIFTS_KEY, filtered);
   window.dispatchEvent(new CustomEvent('ferex-shifts-updated'));
   return true;
+};
+
+export interface StaffMember {
+  id?: string;
+  email: string;
+  name: string;
+  role: string;
+  division: string;
+}
+
+export const getEnterpriseStaff = async (): Promise<StaffMember[]> => {
+  const staffMap = new Map<string, StaffMember>();
+
+  // Baseline known staff
+  const defaults: StaffMember[] = [
+    { email: 'counselor@ferex.com', name: 'Education Counselor', role: 'counselor', division: 'education' },
+    { email: 'education@ferex.com', name: 'Admissions Lead Counselor', role: 'education_admin', division: 'education' },
+    { email: 'rimi@ferex.com', name: 'Rimi Cold Chain Logistics Lead', role: 'logistics_officer', division: 'rimi' },
+    { email: 'trade@ferex.com', name: 'Global Trade Operations Director', role: 'operations_manager', division: 'trade' },
+    { email: 'digital@ferex.com', name: 'Ferex Digital Director', role: 'digital_admin', division: 'digital' },
+    { email: 'digimanager@ferex.com', name: 'Digital Delivery Manager', role: 'digital_manager', division: 'digital' },
+    { email: 'pm@ferex.com', name: 'Digital Project Manager', role: 'project_manager', division: 'digital' },
+    { email: 'creative@ferex.com', name: 'Lead Creative Designer', role: 'digital_staff', division: 'digital' },
+    { email: 'centraladmin@ferexventures.com', name: 'Central Super Admin', role: 'superadmin', division: 'central' },
+    { email: 'admin@ferex.com', name: 'Central Admin', role: 'superadmin', division: 'central' },
+  ];
+  defaults.forEach(s => staffMap.set(s.email.toLowerCase(), s));
+
+  try {
+    // 1. Fetch salaries for configured employees
+    const { data: salaries } = await supabase.from('employee_salaries').select('user_email, user_name, user_role, division');
+    if (salaries && Array.isArray(salaries)) {
+      for (const sal of salaries) {
+        if (sal.user_email) {
+          const em = sal.user_email.toLowerCase();
+          staffMap.set(em, {
+            email: em,
+            name: sal.user_name || em.split('@')[0],
+            role: sal.user_role || 'staff',
+            division: sal.division || 'central'
+          });
+        }
+      }
+    }
+
+    // 2. Fetch users where role is not student
+    const { data: users } = await supabase.from('users').select('id, email, full_name, role, department').neq('role', 'student');
+    if (users && Array.isArray(users)) {
+      for (const u of users) {
+        if (u.email) {
+          const emailLower = u.email.toLowerCase();
+          const existing = staffMap.get(emailLower);
+          let div = 'central';
+          const dept = (u.department || '').toLowerCase();
+          if (dept.includes('education') || u.role === 'counselor' || u.role === 'education_admin') div = 'education';
+          else if (dept.includes('rimi') || dept.includes('cold') || dept.includes('logistics') || u.role === 'logistics_officer' || u.role === 'rimi_admin') div = 'rimi';
+          else if (dept.includes('trade') || u.role === 'trade_admin' || u.role === 'operations_manager') div = 'trade';
+          else if (dept.includes('digital') || u.role === 'digital_staff' || u.role === 'digital_admin' || u.role === 'project_manager') div = 'digital';
+
+          staffMap.set(emailLower, {
+            id: u.id,
+            email: emailLower,
+            name: u.full_name || existing?.name || emailLower.split('@')[0],
+            role: u.role || existing?.role || 'staff',
+            division: existing?.division || div
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Failed fetching live enterprise staff:', err);
+  }
+
+  return Array.from(staffMap.values());
 };
 
 // ================= ATTENDANCE & TIMESHEETS API =================
