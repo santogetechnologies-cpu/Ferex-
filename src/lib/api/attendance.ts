@@ -186,6 +186,61 @@ export const formatShiftFromDb = (row: any): Shift => {
   };
 };
 
+export const inferDivision = (
+  role?: string,
+  department?: string,
+  email?: string
+): string => {
+  const r = (role || '').toLowerCase();
+  const d = (department || '').toLowerCase();
+  const em = (email || '').toLowerCase();
+
+  if (r === 'superadmin' || d.includes('central') || em.includes('centraladmin@')) {
+    return 'central';
+  }
+  if (
+    r.includes('trade') ||
+    r.includes('logistics') ||
+    r === 'operations_manager' ||
+    d.includes('trade') ||
+    em.includes('trade') ||
+    em.includes('tlo@')
+  ) {
+    return 'trade';
+  }
+  if (
+    r.includes('rimi') ||
+    d.includes('rimi') ||
+    d.includes('frozen') ||
+    em.includes('rimi')
+  ) {
+    return 'rimi';
+  }
+  if (
+    r.includes('digital') ||
+    r.includes('project_manager') ||
+    r === 'pm' ||
+    d.includes('digital') ||
+    em.includes('digital') ||
+    em.includes('dm@') ||
+    em.includes('pm@')
+  ) {
+    return 'digital';
+  }
+  if (
+    r.includes('counselor') ||
+    r.includes('teacher') ||
+    r.includes('student') ||
+    r.includes('education') ||
+    d.includes('education') ||
+    em.includes('counselor') ||
+    em.includes('education')
+  ) {
+    return 'education';
+  }
+  return 'education';
+};
+
 export const getShifts = async (
   division?: string,
   userEmail?: string,
@@ -200,24 +255,49 @@ export const getShifts = async (
     const formattedData = data.map(formatShiftFromDb);
     saveLocalData(LOCAL_SHIFTS_KEY, formattedData);
 
-    let result = formattedData;
+    const cleanEmail = (userEmail || '').trim().toLowerCase();
+    const cleanRole = (userRole || '').trim().toLowerCase();
+
+    let result = formattedData.filter((s) => s.is_active !== false);
+
     if (division && division !== 'all' && division !== 'central') {
-      result = result.filter(
-        (s) =>
-          s.division === division ||
-          s.division === 'all' ||
-          (userEmail && s.assigned_staff_emails && s.assigned_staff_emails.includes(userEmail)) ||
-          (userRole && s.assigned_roles && s.assigned_roles.includes(userRole))
-      );
+      result = result.filter((s) => {
+        // Shift assigned to all enterprises / global
+        if (s.division === 'all') return true;
+        // Shift assigned to this specific division
+        if (s.division === division) return true;
+        // Explicitly assigned staff email
+        if (
+          cleanEmail &&
+          s.assigned_staff_emails &&
+          s.assigned_staff_emails.some((e) => (e || '').trim().toLowerCase() === cleanEmail)
+        ) {
+          return true;
+        }
+        // Explicitly assigned role
+        if (
+          cleanRole &&
+          s.assigned_roles &&
+          s.assigned_roles.some((r) => (r || '').trim().toLowerCase() === cleanRole)
+        ) {
+          return true;
+        }
+        return false;
+      });
     }
-    if (userEmail || userRole) {
+
+    if (cleanEmail || cleanRole) {
       result.sort((a, b) => {
         const aMatch =
-          (userEmail && a.assigned_staff_emails?.includes(userEmail)) ||
-          (userRole && a.assigned_roles?.includes(userRole));
+          (cleanEmail &&
+            a.assigned_staff_emails?.some((e) => (e || '').trim().toLowerCase() === cleanEmail)) ||
+          (cleanRole &&
+            a.assigned_roles?.some((r) => (r || '').trim().toLowerCase() === cleanRole));
         const bMatch =
-          (userEmail && b.assigned_staff_emails?.includes(userEmail)) ||
-          (userRole && b.assigned_roles?.includes(userRole));
+          (cleanEmail &&
+            b.assigned_staff_emails?.some((e) => (e || '').trim().toLowerCase() === cleanEmail)) ||
+          (cleanRole &&
+            b.assigned_roles?.some((r) => (r || '').trim().toLowerCase() === cleanRole));
         if (aMatch && !bMatch) return -1;
         if (!aMatch && bMatch) return 1;
         return 0;
@@ -1015,13 +1095,21 @@ export const getLeaveRequests = async (filters?: {
 export const createLeaveRequest = async (
   req: Partial<LeavePermissionRequest>
 ): Promise<LeavePermissionRequest> => {
+  let division = req.division;
+  if (!division || division === 'education') {
+    const inferred = inferDivision(req.user_role, undefined, req.user_email);
+    if (inferred !== 'education') {
+      division = inferred;
+    }
+  }
+
   const newReq: LeavePermissionRequest = {
-    id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    id: req.id || `req-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     user_id: req.user_id || null,
     user_email: req.user_email || '',
     user_name: req.user_name || 'Staff Member',
     user_role: req.user_role || 'staff',
-    division: req.division || 'education',
+    division: division || 'education',
     request_type: req.request_type || 'full_day_leave',
     policy_code: req.policy_code || 'CL',
     policy_name: req.policy_name || 'Casual Leave',

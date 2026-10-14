@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Clock,
   ShieldCheck,
@@ -14,6 +15,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { ClockInOutWidget } from '../../components/ClockInOutWidget';
 import { LeavePermissionModal } from '../../components/LeavePermissionModal';
+import { ShiftDetailsView } from '../../components/ShiftDetailsView';
 import {
   getTimesheets,
   verifyTimesheetByAdmin,
@@ -25,7 +27,9 @@ import {
 
 export const DigitalAttendance: React.FC = () => {
   const { user, profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'timesheets' | 'leaves'>('timesheets');
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'shifts' ? 'shifts' : searchParams.get('tab') === 'leaves' ? 'leaves' : 'timesheets';
+  const [activeTab, setActiveTab] = useState<'timesheets' | 'leaves' | 'shifts'>(initialTab);
   const [timesheets, setTimesheets] = useState<AttendanceTimesheet[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeavePermissionRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -170,6 +174,18 @@ export const DigitalAttendance: React.FC = () => {
         >
           <Calendar className="w-3.5 h-3.5" />
           <span>Leave & Permission Requests</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('shifts')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            activeTab === 'shifts'
+              ? 'bg-[#58051E] text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+          }`}
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>Assigned Shifts / Shift Details</span>
         </button>
       </div>
 
@@ -327,6 +343,16 @@ export const DigitalAttendance: React.FC = () => {
             </table>
           </div>
         </div>
+      )}
+
+      {/* ASSIGNED SHIFTS TAB */}
+      {activeTab === 'shifts' && (
+        <ShiftDetailsView
+          division="digital"
+          userEmail={user?.email || profile?.email || 'digital@ferex.com'}
+          userRole={profile?.role || 'digital_manager'}
+          userName={profile?.full_name || 'Digital Team Member'}
+        />
       )}
 
       {/* APPLY MODAL */}

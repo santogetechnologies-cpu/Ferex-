@@ -416,6 +416,8 @@ function App() {
           <Route path="/trade/tickets" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeTickets /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/attendance" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeAttendance /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/timesheets" element={<Navigate to="/trade/attendance" replace />} />
+          <Route path="/trade/shifts" element={<Navigate to="/trade/attendance?tab=shifts" replace />} />
+          <Route path="/trade/shift-details" element={<Navigate to="/trade/attendance?tab=shifts" replace />} />
           <Route path="/trade/profile" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeProfile /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/settings" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeSettings /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/client-portal" element={<Navigate to="/trade/dashboard" replace />} />
@@ -448,6 +450,8 @@ function App() {
           <Route path="/rimi/emails" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><CentralEmailLogs defaultDivision="rimi" /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/attendance" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiAttendance /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/timesheets" element={<Navigate to="/rimi/attendance" replace />} />
+          <Route path="/rimi/shifts" element={<Navigate to="/rimi/attendance?tab=shifts" replace />} />
+          <Route path="/rimi/shift-details" element={<Navigate to="/rimi/attendance?tab=shifts" replace />} />
           <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/tasks" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiTasks /></RimiLayout></ProtectedRoute>} />
@@ -487,6 +491,8 @@ function App() {
           {/* Digital Team */}
           <Route path="/digital/attendance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/timesheets" element={<Navigate to="/digital/attendance" replace />} />
+          <Route path="/digital/shifts" element={<Navigate to="/digital/attendance?tab=shifts" replace />} />
+          <Route path="/digital/shift-details" element={<Navigate to="/digital/attendance?tab=shifts" replace />} />
           <Route path="/digital/employees" element={<Navigate to="/central/roles-users" replace />} />
           <Route path="/digital/team/employees" element={<Navigate to="/central/roles-users" replace />} />
           <Route path="/digital/team/attendance" element={<Navigate to="/digital/attendance" replace />} />
@@ -519,6 +525,8 @@ function App() {
           <Route path="/digital/pm/notifications" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMNotifications /></DigitalPMLayout></ProtectedRoute>} />
           <Route path="/digital/pm/attendance" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMAttendance /></DigitalPMLayout></ProtectedRoute>} />
           <Route path="/digital/pm/timesheets" element={<Navigate to="/digital/pm/attendance" replace />} />
+          <Route path="/digital/pm/shifts" element={<Navigate to="/digital/pm/attendance?tab=shifts" replace />} />
+          <Route path="/digital/pm/shift-details" element={<Navigate to="/digital/pm/attendance?tab=shifts" replace />} />
           <Route path="/digital/pm/profile" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMProfile /></DigitalPMLayout></ProtectedRoute>} />
 
           {/* ── Ferex Digital Client Portal ── */}
@@ -541,10 +549,18 @@ function App() {
           <Route path="/staff/tickets" element={<Navigate to="/staff/support" replace />} />
           <Route path="/staff/attendance" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffAttendance /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/timesheets" element={<Navigate to="/staff/attendance" replace />} />
+          <Route path="/staff/shifts" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
+          <Route path="/staff/shift-details" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
           <Route path="/staff/meetings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminMeetings /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/notifications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminNotifications /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/profile" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/settings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />
+
+          {/* ── Global Employee Shift Aliases ── */}
+          <Route path="/shifts" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
+          <Route path="/shift-details" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
+          <Route path="/employee/shifts" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
+          <Route path="/employee/shift-details" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />

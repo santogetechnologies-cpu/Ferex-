@@ -7,6 +7,7 @@ import {
   clockIn,
   clockOut,
   getShifts,
+  inferDivision,
   type Shift,
   type AttendanceTimesheet,
 } from '../lib/api/attendance';
@@ -41,8 +42,17 @@ export const ClockInOutWidget: React.FC<ClockInOutWidgetProps> = ({
     return null;
   }
 
-  const currentDivision =
-    divisionOverride || (profile as any)?.division || 'education';
+  const currentDivision = (() => {
+    if (divisionOverride && divisionOverride !== 'education') {
+      return divisionOverride;
+    }
+    const inferred = inferDivision(
+      profile?.role,
+      profile?.department,
+      user?.email || profile?.email
+    );
+    return inferred || divisionOverride || 'education';
+  })();
   const userName = profile?.full_name || user?.email?.split('@')[0] || 'Team Member';
   const userId = user?.id || profile?.id || 'usr-temp';
 

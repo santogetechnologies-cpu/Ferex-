@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   getLeavePolicies,
   createLeaveRequest,
+  inferDivision,
   type LeavePolicyConfig,
   type LeavePermissionRequest,
 } from '../lib/api/attendance';
@@ -53,9 +54,17 @@ export const LeavePermissionModal: React.FC<LeavePermissionModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
 
-  const currentDivision =
-    divisionOverride ||
-    (profile?.role === 'superadmin' ? 'central' : (profile as any)?.division || 'education');
+  const currentDivision = (() => {
+    if (divisionOverride && divisionOverride !== 'education') {
+      return divisionOverride;
+    }
+    const inferred = inferDivision(
+      profile?.role,
+      profile?.department,
+      user?.email || profile?.email
+    );
+    return inferred || divisionOverride || 'education';
+  })();
 
   const userEmail = user?.email || profile?.email || 'staff@ferex.com';
   const userName = profile?.full_name || user?.email?.split('@')[0] || 'Team Member';

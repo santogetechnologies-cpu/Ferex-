@@ -46,7 +46,31 @@ export const AdminAttendance: React.FC = () => {
         setTimesheets(data);
       } else {
         const leaves = await getLeaveRequests({ division: 'education' });
-        setLeaveRequests(leaves);
+        const strictEduLeaves = (leaves || []).filter((r) => {
+          const div = (r.division || '').toLowerCase();
+          const role = (r.user_role || '').toLowerCase();
+          const email = (r.user_email || '').toLowerCase();
+
+          const isNonEdu =
+            div === 'trade' ||
+            div === 'digital' ||
+            div === 'rimi' ||
+            div === 'central' ||
+            role.includes('trade') ||
+            role.includes('logistics') ||
+            role.includes('digital') ||
+            role.includes('project_manager') ||
+            role === 'pm' ||
+            role.includes('rimi') ||
+            email.includes('trade') ||
+            email.includes('tlo@') ||
+            email.includes('digital') ||
+            email.includes('dm@') ||
+            email.includes('rimi');
+
+          return !isNonEdu && (div === 'education' || div === '' || !div);
+        });
+        setLeaveRequests(strictEduLeaves);
       }
     } catch (err) {
       console.error(err);

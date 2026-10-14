@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Clock,
   ShieldCheck,
@@ -12,6 +13,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { ClockInOutWidget } from '../../components/ClockInOutWidget';
 import { LeavePermissionModal } from '../../components/LeavePermissionModal';
+import { ShiftDetailsView } from '../../components/ShiftDetailsView';
 import {
   getTimesheets,
   getLeaveRequests,
@@ -21,13 +23,17 @@ import {
 
 export const StaffAttendance: React.FC = () => {
   const { user, profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'timesheets' | 'leaves'>('timesheets');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'shifts' ? 'shifts' : searchParams.get('tab') === 'leaves' ? 'leaves' : 'timesheets';
+  const [activeTab, setActiveTab] = useState<'timesheets' | 'leaves' | 'shifts'>(initialTab);
   const [myTimesheets, setMyTimesheets] = useState<AttendanceTimesheet[]>([]);
   const [myLeaves, setMyLeaves] = useState<LeavePermissionRequest[]>([]);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const userEmail = user?.email || profile?.email || 'counselor@ferex.com';
+  const userName = profile?.full_name || user?.email?.split('@')[0] || 'Admissions Counselor';
+  const userRole = profile?.role || 'counselor';
 
   const loadData = async () => {
     setLoading(true);
@@ -118,6 +124,18 @@ export const StaffAttendance: React.FC = () => {
         >
           <Calendar className="w-3.5 h-3.5" />
           <span>My Leave Applications ({myLeaves.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('shifts')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            activeTab === 'shifts'
+              ? 'bg-[#58051E] text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+          }`}
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>Assigned Shifts / Shift Details</span>
         </button>
       </div>
 
@@ -290,6 +308,16 @@ export const StaffAttendance: React.FC = () => {
             </table>
           </div>
         </div>
+      )}
+
+      {/* ASSIGNED SHIFTS TAB */}
+      {activeTab === 'shifts' && (
+        <ShiftDetailsView
+          division="education"
+          userEmail={userEmail}
+          userRole={userRole}
+          userName={userName}
+        />
       )}
 
       {/* APPLY MODAL */}
