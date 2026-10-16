@@ -76,27 +76,44 @@ export async function getTicketReplies(ticketId: string): Promise<TicketReply[]>
 }
 
 export async function createTicket(payload: {
-  student_id: string;
+  student_id?: string;
+  user_id?: string;
   ticket_no?: string;
   ticket_number?: string;
   subject: string;
   description: string;
   category?: string;
   priority?: SupportTicket['priority'];
+  division?: string;
+  assigned_to?: string;
+  assigned_staff?: string;
+  student_name?: string;
+  user_name?: string;
+  user_email?: string;
 }): Promise<SupportTicket> {
   const newId = generateUUID();
-  const ticketNo = payload.ticket_no || payload.ticket_number || `TC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+  const ticketNo = payload.ticket_no || payload.ticket_number || `TCK-${Math.floor(1000 + Math.random() * 9000)}`;
   const categoryValue = payload.category || 'General Query';
+  const divisionValue = payload.division || 'Education';
+  const assignedStaff = payload.assigned_to || payload.assigned_staff || 'Admissions Lead';
+  const studentDisplayName = payload.student_name || payload.user_name || 'Client / Student';
   const now = new Date().toISOString();
 
   const ticketObj: any = {
     id: newId,
-    student_id: payload.student_id,
+    student_id: payload.student_id || payload.user_id,
+    user_id: payload.user_id || payload.student_id,
+    student_name: studentDisplayName,
+    user_name: studentDisplayName,
+    user_email: payload.user_email || '',
     ticket_no: ticketNo,
     ticket_number: ticketNo,
     subject: payload.subject.trim(),
     description: payload.description.trim(),
     category: categoryValue,
+    division: divisionValue,
+    assigned_to: assignedStaff,
+    assigned_staff: assignedStaff,
     priority: payload.priority || 'Medium',
     status: 'Open',
     created_at: now,
@@ -106,20 +123,36 @@ export async function createTicket(payload: {
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
 
-  // DB Insert with schema resilience (trying ticket_no, ticket_number, and stripped payloads)
+  // DB Insert with schema resilience (trying rich payload, then simplified payloads)
   try {
+    const isValidUUID = (id?: string) => id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const validStudentId = isValidUUID(payload.student_id) ? payload.student_id : (isValidUUID(payload.user_id) ? payload.user_id : null);
+
     const dbPayload: any = {
       id: newId,
-      student_id: payload.student_id,
       ticket_no: ticketNo,
+      ticket_number: ticketNo,
       subject: payload.subject.trim(),
       description: payload.description.trim(),
       category: categoryValue,
+      division: divisionValue,
+      student_name: studentDisplayName,
+      user_name: studentDisplayName,
       priority: payload.priority || 'Medium',
       status: 'Open',
       created_at: now,
       updated_at: now,
     };
+    if (validStudentId) {
+      dbPayload.student_id = validStudentId;
+      dbPayload.user_id = validStudentId;
+    }
+    if (payload.user_email) {
+      dbPayload.user_email = payload.user_email;
+    }
+    if (assignedStaff) {
+      dbPayload.assigned_to = assignedStaff;
+    }
 
     let { data, error } = await client
       .from('support_tickets')
@@ -128,11 +161,9 @@ export async function createTicket(payload: {
 
     if (error) {
       console.warn('[createTicket primary insert notice]:', error.message);
-      // Fallback 1: Try with ticket_number if schema uses ticket_number instead
-      const withTicketNumberPayload: any = {
+      // Fallback 1: Try without division/student_name if schema does not yet have them
+      const fallbackPayload: any = {
         id: newId,
-        student_id: payload.student_id,
-        ticket_number: ticketNo,
         subject: payload.subject.trim(),
         description: payload.description.trim(),
         category: categoryValue,
@@ -141,15 +172,20 @@ export async function createTicket(payload: {
         created_at: now,
         updated_at: now,
       };
-      const resNum = await client.from('support_tickets').insert(withTicketNumberPayload).select();
+      if (validStudentId) fallbackPayload.student_id = validStudentId;
+      if (ticketNo) {
+        fallbackPayload.ticket_no = ticketNo;
+        fallbackPayload.ticket_number = ticketNo;
+      }
+
+      const resNum = await client.from('support_tickets').insert(fallbackPayload).select();
       if (!resNum.error && resNum.data) {
         data = resNum.data;
         error = null;
       } else {
-        // Fallback 2: Try without ticket identifier column if schema auto-generates it
+        // Fallback 2: Minimal stripped payload
         const strippedPayload: any = {
           id: newId,
-          student_id: payload.student_id,
           subject: payload.subject.trim(),
           description: payload.description.trim(),
           category: categoryValue,
@@ -158,6 +194,7 @@ export async function createTicket(payload: {
           created_at: now,
           updated_at: now,
         };
+        if (validStudentId) strippedPayload.student_id = validStudentId;
         const res2 = await client.from('support_tickets').insert(strippedPayload).select();
         if (!res2.error && res2.data) {
           data = res2.data;
@@ -176,12 +213,19 @@ export async function createTicket(payload: {
   // Ensure both ticket_no and ticket_number are populated on the ticket instance
   ticketObj.ticket_no = ticketObj.ticket_no || ticketNo;
   ticketObj.ticket_number = ticketObj.ticket_number || ticketObj.ticket_no || ticketNo;
+  ticketObj.division = ticketObj.division || divisionValue;
+  ticketObj.assigned_to = ticketObj.assigned_to || assignedStaff;
+  ticketObj.assigned_staff = ticketObj.assigned_staff || assignedStaff;
+  ticketObj.student_name = ticketObj.student_name || studentDisplayName;
 
   try {
-    const studentKey = `ferex_tickets_${payload.student_id}`;
-    const local = localStorage.getItem(studentKey);
-    const existing = local ? JSON.parse(local) : [];
-    localStorage.setItem(studentKey, JSON.stringify([ticketObj, ...existing.filter((t: any) => t.id !== ticketObj.id)]));
+    const sId = payload.student_id || payload.user_id;
+    if (sId) {
+      const studentKey = `ferex_tickets_${sId}`;
+      const local = localStorage.getItem(studentKey);
+      const existing = local ? JSON.parse(local) : [];
+      localStorage.setItem(studentKey, JSON.stringify([ticketObj, ...existing.filter((t: any) => t.id !== ticketObj.id)]));
+    }
 
     const allLocal = localStorage.getItem(TICKETS_CACHE_KEY);
     const allExisting = allLocal ? JSON.parse(allLocal) : [];

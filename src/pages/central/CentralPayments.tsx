@@ -33,7 +33,6 @@ interface TransactionItem {
 export const CentralPayments: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivision, setSelectedDivision] = useState<string>('All');
-  const [statusFilter, setStatusFilter] = useState<string>('All');
   const [toast, setToast] = useState('');
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,10 +231,9 @@ export const CentralPayments: React.FC = () => {
         t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.refNo.toLowerCase().includes(searchQuery.toLowerCase());
       const matchDivision = selectedDivision === 'All' || t.division === selectedDivision;
-      const matchStatus = statusFilter === 'All' || t.status === statusFilter;
-      return matchSearch && matchDivision && matchStatus;
+      return matchSearch && matchDivision;
     });
-  }, [transactions, searchQuery, selectedDivision, statusFilter]);
+  }, [transactions, searchQuery, selectedDivision]);
 
   const totalInflow = useMemo(() => {
     return transactions.reduce((s, t) => s + t.amount, 0);
@@ -349,23 +347,6 @@ export const CentralPayments: React.FC = () => {
                   }`}
                 >
                   {div === 'All' ? 'All Divisions' : div}
-                </button>
-              ))}
-            </div>
-
-            {/* Status Selector Tabs */}
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
-              {['All', 'Verified', 'Pending', 'Settled'].map(st => (
-                <button
-                  key={st}
-                  onClick={() => setStatusFilter(st)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    statusFilter === st
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {st}
                 </button>
               ))}
             </div>

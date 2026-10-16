@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, CheckCircle2, X, MessageSquare, User, Clock, 
   HelpCircle, Send, ShieldAlert, AlertCircle, RefreshCw,
-  Copy, Phone, Mail
+  Copy, Phone, Mail, Plus
 } from 'lucide-react';
 import { useTickets } from '../../hooks/useTickets';
 import { getTicketReplies } from '../../lib/api/tickets';
@@ -52,7 +52,7 @@ const CANNED_RESPONSES = [
 
 export const AdminSupportTickets: React.FC = () => {
   const { user, profile } = useAuth();
-  const { tickets: dbTickets, reply: sendReplyApi, changeStatus, assignTicket, loading, refresh } = useTickets();
+  const { tickets: dbTickets, reply: sendReplyApi, changeStatus, assignTicket, newTicket, loading, refresh } = useTickets();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
@@ -63,6 +63,16 @@ export const AdminSupportTickets: React.FC = () => {
   const [toast, setToast] = useState('');
   const [replies, setReplies] = useState<any[]>([]);
   const [isReplying, setIsReplying] = useState(false);
+
+  // Create Ticket Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newCategory, setNewCategory] = useState('General Query');
+  const [newPriority, setNewPriority] = useState<TicketPriority>('Medium');
+  const [newSubject, setNewSubject] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newAssignee, setNewAssignee] = useState('');
 
   useEffect(() => {
     getStaffMembers().then(data => {
@@ -258,6 +268,38 @@ export const AdminSupportTickets: React.FC = () => {
     label: s, count: s === 'All' ? tickets.length : tickets.filter(t => t.status === s).length
   }));
 
+  const handleCreateTicketSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubject.trim() || !newDesc.trim()) {
+      showToast('Please provide both subject and description.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await newTicket({
+        student_id: user?.id || '00000000-0000-0000-0000-000000000000',
+        user_id: user?.id,
+        ticket_no: `TCK-${Math.floor(1000 + Math.random() * 9000)}`,
+        subject: newSubject.trim(),
+        description: newDesc.trim(),
+        category: newCategory,
+        priority: newPriority,
+        student_name: newStudentName.trim() || 'Student Applicant',
+        assigned_to: newAssignee || 'Unassigned',
+      } as any);
+      showToast('Support ticket created successfully!');
+      setShowCreateModal(false);
+      setNewSubject('');
+      setNewDesc('');
+      setNewStudentName('');
+      refresh();
+    } catch (err: any) {
+      showToast(`Failed to create ticket: ${err.message || err}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] antialiased select-none font-sans text-left relative">
       {/* Toast Alert */}
@@ -271,6 +313,12 @@ export const AdminSupportTickets: React.FC = () => {
           </h1>
           <p className="text-xs font-semibold text-slate-400 mt-0.5">Manage, delegate, and resolve student helpdesk tickets.</p>
         </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
+        >
+          <Plus className="w-4 h-4" /> Create Ticket
+        </button>
       </div>
 
       {/* Main Dual-Pane Window */}
@@ -574,6 +622,162 @@ export const AdminSupportTickets: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Create Ticket Modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"
+              onClick={() => setShowCreateModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left space-y-4 max-h-[90vh] overflow-y-auto my-auto"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-[#58051E] text-white flex items-center justify-center">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Create New Support Ticket</h3>
+                    <p className="text-xs font-semibold text-slate-400">
+                      File a new helpdesk ticket on behalf of a student.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateTicketSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                    Student Applicant Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newStudentName}
+                    onChange={(e) => setNewStudentName(e.target.value)}
+                    placeholder="e.g. Sneakha S.R / Rahul Sharma"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                      Ticket Category
+                    </label>
+                    <select
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    >
+                      <option value="General Query">General Query</option>
+                      <option value="Admissions Assistance">Admissions Assistance</option>
+                      <option value="Billing & Payments">Billing & Payments</option>
+                      <option value="Academic Documents">Academic Documents</option>
+                      <option value="Visa Coordination">Visa Coordination</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                      Priority Level
+                    </label>
+                    <select
+                      value={newPriority}
+                      onChange={(e: any) => setNewPriority(e.target.value)}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                    Assign to Counselor / Staff
+                  </label>
+                  <select
+                    value={newAssignee}
+                    onChange={(e) => setNewAssignee(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                  >
+                    <option value="">Unassigned</option>
+                    {staffList.map((s) => (
+                      <option key={s.id} value={s.full_name || s.email}>
+                        {s.full_name || s.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                    Subject / Concern Summary *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newSubject}
+                    onChange={(e) => setNewSubject(e.target.value)}
+                    placeholder="Brief headline of student inquiry..."
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                    Detailed Description *
+                  </label>
+                  <textarea
+                    rows={4}
+                    required
+                    value={newDesc}
+                    onChange={(e) => setNewDesc(e.target.value)}
+                    placeholder="Provide details regarding the student's request..."
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E] resize-none leading-relaxed"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="h-9 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {isSubmitting ? 'Creating Ticket...' : 'Create Ticket'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

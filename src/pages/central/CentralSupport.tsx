@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LifeBuoy, Search, MessageSquare, CheckCircle2, X, Send, RefreshCw, UserCheck, ShieldCheck } from 'lucide-react';
+import { LifeBuoy, Search, MessageSquare, CheckCircle2, X, Send, RefreshCw, UserCheck, ShieldCheck, Plus } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
-import { getTickets, replyToTicket, updateTicketStatus, updateTicketAssignee } from '../../lib/api/tickets';
+import { getTickets, createTicket, replyToTicket, updateTicketStatus, updateTicketAssignee } from '../../lib/api/tickets';
 import { getDivisionStaff, type DivisionStaffMember } from '../../lib/api/staff';
+import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import type { SupportTicket } from '../../lib/types';
 
 export const CentralSupport: React.FC = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivision, setSelectedDivision] = useState<string>('All');
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -20,6 +22,18 @@ export const CentralSupport: React.FC = () => {
   const [tickets, setTickets] = useState<any[]>([]);
   const [staffList, setStaffList] = useState<DivisionStaffMember[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Create Ticket Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newDivision, setNewDivision] = useState('Education');
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newCategory, setNewCategory] = useState('General Query');
+  const [newPriority, setNewPriority] = useState<'Low' | 'Medium' | 'High' | 'Urgent'>('Medium');
+  const [newAssignee, setNewAssignee] = useState('');
+  const [newSubject, setNewSubject] = useState('');
+  const [newDescription, setNewDescription] = useState('');
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
@@ -118,6 +132,45 @@ export const CentralSupport: React.FC = () => {
     }
   };
 
+  const handleCreateTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubject.trim() || !newDescription.trim()) {
+      showToastMsg('Please enter both subject and description.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await createTicket({
+        student_id: user?.id,
+        user_id: user?.id,
+        student_name: newStudentName.trim() || 'Central Enterprise Client',
+        user_name: newStudentName.trim() || 'Central Enterprise Client',
+        user_email: newEmail.trim() || user?.email || '',
+        subject: newSubject.trim(),
+        description: newDescription.trim(),
+        category: newCategory,
+        priority: newPriority as any,
+        division: newDivision,
+        assigned_to: newAssignee || (staffList[0]?.name || 'Admissions Lead'),
+      });
+
+      showToastMsg('Support ticket created successfully!');
+      setShowCreateModal(false);
+      setNewSubject('');
+      setNewDescription('');
+      setNewStudentName('');
+      setNewEmail('');
+      setNewCategory('General Query');
+      setNewPriority('Medium');
+      setNewDivision('Education');
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Failed to create ticket: ${err?.message || err}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const filteredTickets = tickets.filter(t => {
     const matchSearch =
       t.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -141,9 +194,18 @@ export const CentralSupport: React.FC = () => {
             Centrally inspect, reply, resolve, and reassign support tickets across all enterprise divisions.
           </p>
         </div>
-        <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadData}>
-          <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh Desk
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => setShowCreateModal(true)}
+            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" /> Create Ticket
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadData}>
+            <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh Desk
+          </Button>
+        </div>
       </div>
 
       {/* Division Filter Tabs & Search Bar */}
@@ -318,6 +380,210 @@ export const CentralSupport: React.FC = () => {
               </form>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Create Ticket Modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"
+              onClick={() => setShowCreateModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left space-y-4 max-h-[90vh] overflow-y-auto my-auto"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-[#58051E] text-white flex items-center justify-center">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Create New Support Ticket</h3>
+                    <p className="text-xs font-semibold text-slate-400">
+                      File an escalation across Education, Trade ERP, Rimi, or Digital.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateTicket} className="space-y-4">
+                {/* Division Selector */}
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
+                    Target Subsidiary / Division *
+                  </label>
+                  <div className="grid grid-cols-4 gap-1.5 bg-slate-100 p-1 rounded-xl">
+                    {['Education', 'Trade', 'Rimi', 'Digital'].map((div) => (
+                      <button
+                        key={div}
+                        type="button"
+                        onClick={() => setNewDivision(div)}
+                        className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer text-center ${
+                          newDivision === div
+                            ? 'bg-[#58051E] text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {div}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Requester Info */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                      Client / Student Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newStudentName}
+                      onChange={(e) => setNewStudentName(e.target.value)}
+                      placeholder="e.g. Maria Kowalska / Client Corp"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="e.g. client@example.com"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+                </div>
+
+                {/* Category & Priority */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                      Ticket Category
+                    </label>
+                    <select
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    >
+                      <option value="General Query">General Query</option>
+                      <option value="Admissions & Visa">Admissions & Visa</option>
+                      <option value="Invoicing & Payments">Invoicing & Payments</option>
+                      <option value="Technical Support">Technical Support</option>
+                      <option value="Orders & Logistics">Orders & Logistics</option>
+                      <option value="Security & Compliance">Security & Compliance</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                      Priority Level
+                    </label>
+                    <select
+                      value={newPriority}
+                      onChange={(e: any) => setNewPriority(e.target.value)}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                      <option value="Urgent">Urgent</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Staff Assignment */}
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                    Assign to Staff Member
+                  </label>
+                  <select
+                    value={newAssignee}
+                    onChange={(e) => setNewAssignee(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                  >
+                    <option value="">Auto-assign (Admissions / Operations Lead)</option>
+                    {staffList.map((s, idx) => (
+                      <option key={s.id || idx} value={s.name}>
+                        {s.name} ({s.role || s.division})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Subject */}
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                    Subject / Concern Summary *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newSubject}
+                    onChange={(e) => setNewSubject(e.target.value)}
+                    placeholder="Brief headline of the request or problem..."
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                    Detailed Description *
+                  </label>
+                  <textarea
+                    rows={4}
+                    required
+                    value={newDescription}
+                    onChange={(e) => setNewDescription(e.target.value)}
+                    placeholder="Provide complete background, transaction references, or requirements..."
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E] resize-none leading-relaxed"
+                  />
+                </div>
+
+                {/* Modal Actions */}
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs font-bold"
+                    onClick={() => setShowCreateModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    size="sm"
+                    className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {isSubmitting ? 'Creating Ticket...' : 'Create Ticket'}
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
