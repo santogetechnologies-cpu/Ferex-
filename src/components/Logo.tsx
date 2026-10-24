@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../contexts/ThemeContext';
 
 export interface LogoProps {
   className?: string;
@@ -19,8 +20,12 @@ export const Logo: React.FC<LogoProps> = ({
   color,
   align = 'left',
 }) => {
+  const { isDark } = useTheme();
   const isWhite = variant === 'white' || color === 'white' || color === '#ffffff' || color === '#fff' || color?.toLowerCase() === '#ffffff';
-  const effectiveColor = color ? color : (isWhite ? '#ffffff' : '#570229');
+  
+  // When in dark mode and default burgundy was used, illuminate to a vibrant legible rose (#fb7185)
+  const defaultBrandColor = isDark ? '#fb7185' : '#570229';
+  const effectiveColor = color ? color : (isWhite ? '#ffffff' : defaultBrandColor);
 
   // If variant is 'badge', render the signature burgundy rounded brand tile
   if (variant === 'badge') {
@@ -33,7 +38,7 @@ export const Logo: React.FC<LogoProps> = ({
     }[size];
 
     return (
-      <div className={`inline-flex flex-col items-center justify-center bg-[#570229] text-white shadow-md select-none ${badgePadding} ${className}`}>
+      <div className={`inline-flex flex-col items-center justify-center bg-[#570229] dark:bg-rose-950/70 border border-transparent dark:border-rose-900/60 text-white shadow-md select-none ${badgePadding} ${className}`}>
         <FerexVectorMark color="#ffffff" size={size} />
         <div className="text-center mt-1">
           <span className={`font-serif tracking-wider font-extrabold uppercase block leading-none ${
@@ -62,8 +67,8 @@ export const Logo: React.FC<LogoProps> = ({
     );
   }
 
-  const textColor = isWhite ? 'text-white' : 'text-[#570229]';
-  const subtitleColor = isWhite ? 'text-white/80' : 'text-[#570229]/90';
+  const textColor = isWhite ? 'text-white' : 'text-[#570229] dark:text-rose-400';
+  const subtitleColor = isWhite ? 'text-white/80' : 'text-[#570229]/90 dark:text-rose-300/80';
   const iconColor = effectiveColor;
 
   const ferexSizeClass = {

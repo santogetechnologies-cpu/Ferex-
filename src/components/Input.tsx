@@ -22,7 +22,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label 
             htmlFor={id} 
-            className="block text-xs font-semibold text-slate-700 mb-1.5 select-none"
+            className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 select-none"
           >
             {label}
           </label>
@@ -31,7 +31,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {/* Input Wrapper */}
         <div className="relative flex items-center">
           {leftIcon && (
-            <div className="absolute left-3 text-slate-400 pointer-events-none shrink-0">
+            <div className="absolute left-3 text-slate-400 dark:text-slate-400 pointer-events-none shrink-0">
               {leftIcon}
             </div>
           )}
@@ -42,12 +42,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={inputType}
             disabled={disabled}
             className={cn(
-              'w-full h-10 px-3 rounded-xl border text-xs font-medium text-slate-900 bg-white placeholder-slate-400 focus:outline-none transition-all duration-150 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed hover:border-slate-300',
+              'w-full h-10 px-3 rounded-xl border text-xs font-medium text-slate-900 dark:text-white bg-white dark:bg-slate-800 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-150 disabled:bg-slate-50 dark:disabled:bg-slate-900 disabled:text-slate-400 disabled:cursor-not-allowed hover:border-slate-300 dark:hover:border-slate-600',
               leftIcon && 'pl-9',
               hasToggle && 'pr-9',
               error
-                ? 'border-rose-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15'
-                : 'border-slate-200/90 focus:border-[#58051E] focus:ring-2 focus:ring-[#58051E]/10'
+                ? 'border-rose-300 dark:border-rose-700 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15'
+                : 'border-slate-200/90 dark:border-slate-700 focus:border-[#58051E] dark:focus:border-rose-400 focus:ring-2 focus:ring-[#58051E]/10 dark:focus:ring-rose-500/20'
             )}
             {...props}
           />

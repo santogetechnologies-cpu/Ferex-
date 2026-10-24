@@ -134,7 +134,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E] overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50/80 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E] overflow-x-hidden">
       {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobileOpen && (
@@ -147,7 +147,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       </AnimatePresence>
 
       {/* Sidebar Panel */}
-      <aside className={`fixed top-0 left-0 bottom-0 h-screen w-60 bg-white border-r border-slate-200/80 z-40 flex flex-col transition-transform duration-200 ease-out select-none
+      <aside className={`fixed top-0 left-0 bottom-0 h-screen w-60 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 z-40 flex flex-col transition-transform duration-200 ease-out select-none
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
 
         {/* Logo Header */}
@@ -251,7 +251,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       <div className="flex-1 flex flex-col min-h-screen min-w-0 lg:pl-60">
 
         {/* Sticky Header */}
-        <header className="h-14 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 flex items-center px-4 sm:px-6 gap-3 sticky top-0 z-30 select-none">
+        <header className="h-14 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 flex items-center px-4 sm:px-6 gap-3 sticky top-0 z-30 select-none">
 
           <button onClick={() => setIsMobileOpen(true)} className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer">
             <Menu className="w-4.5 h-4.5" />

@@ -227,7 +227,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
 
       {/* MOBILE SIDEBAR DRAWER BACKDROP */}
       <AnimatePresence>
@@ -241,12 +241,12 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       </AnimatePresence>
 
       {/* SIDEBAR NAVIGATION PANEL */}
-      <aside className={`fixed top-0 left-0 bottom-0 h-screen bg-white border-r border-slate-200/80 z-40 flex flex-col transition-all duration-200 ease-out select-none
+      <aside className={`fixed top-0 left-0 bottom-0 h-screen bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 z-40 flex flex-col transition-all duration-200 ease-out select-none
         ${isCollapsed ? 'w-18' : 'w-60'}
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
 
         {/* Sidebar Header */}
-        <div className="h-14 border-b border-slate-100 flex items-center justify-between px-4 select-none shrink-0">
+        <div className="h-14 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-4 select-none shrink-0">
           <div className="flex items-center overflow-hidden">
             {isCollapsed ? (
               <Logo variant="icon" size="sm" />
@@ -320,7 +320,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200 ${isCollapsed ? 'lg:pl-18' : 'lg:pl-60'}`}>
 
         {/* STICKY TOP NAVBAR */}
-        <header className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0">
+        <header className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0">
 
           {/* Left part: Toggles & Breadcrumbs */}
           <div className="flex items-center gap-2.5">
@@ -343,11 +343,11 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
 
             {/* Breadcrumbs */}
             <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
-              <Link to="/student/dashboard" className="hover:text-slate-700 transition-colors text-slate-500 font-semibold">
+              <Link to="/student/dashboard" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors text-slate-500 dark:text-slate-400 font-semibold">
                 Portal
               </Link>
               <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />
-              <span className="text-slate-800 font-bold bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/60">{activeItem}</span>
+              <span className="text-slate-800 dark:text-white font-bold bg-slate-100/80 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700">{activeItem}</span>
             </div>
           </div>
 
@@ -362,9 +362,9 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search portal..."
-                className="w-full h-8.5 pl-8.5 pr-8 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40 focus:ring-2 focus:ring-[#58051E]/5 transition-all"
+                className="w-full h-8.5 pl-8.5 pr-8 bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-[#58051E]/40 dark:focus:border-rose-400 focus:ring-2 focus:ring-[#58051E]/5 transition-all"
               />
-              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.2 text-[9px] font-bold text-slate-400 bg-white border border-slate-200 rounded">
+              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.2 text-[9px] font-bold text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded">
                 ⌘K
               </kbd>
             </div>
@@ -379,7 +379,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                   setShowNotifications(!showNotifications);
                   setShowProfileDropdown(false);
                 }}
-                className="relative p-2 text-slate-600 hover:bg-slate-50 border border-slate-200/80 rounded-xl transition-colors cursor-pointer"
+                className="relative p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl transition-colors cursor-pointer"
                 aria-label="View notifications"
               >
                 <Bell size={16} />
@@ -396,7 +396,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 6, scale: 0.97 }}
                     transition={{ duration: 0.12 }}
-                    className="absolute right-0 mt-2 w-80 bg-white border border-slate-200/90 rounded-2xl shadow-card p-3 text-left z-50"
+                    className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-card p-3 text-left z-50"
                   >
                     <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-2 select-none px-1">
                       <div className="flex items-center gap-2">
@@ -494,7 +494,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                   setShowProfileDropdown(!showProfileDropdown);
                   setShowNotifications(false);
                 }}
-                className="flex items-center gap-2.5 h-9.5 px-3 rounded-xl border border-slate-200/80 hover:bg-slate-50 transition-colors select-none group"
+                className="flex items-center gap-2.5 h-9.5 px-3 rounded-xl border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors select-none group"
               >
                 <div className="relative">
                   {profilePhoto ? (
@@ -508,7 +508,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                 </div>
 
                 <div className="hidden sm:block text-left min-w-0">
-                  <span className="block text-xs font-extrabold text-slate-800 leading-none">{displayName}</span>
+                  <span className="block text-xs font-extrabold text-slate-800 dark:text-white leading-none">{displayName}</span>
                   <span className="block text-[9px] font-semibold text-slate-400 mt-0.5">Active Student</span>
                 </div>
 
@@ -523,7 +523,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-52 bg-white border border-slate-200/80 rounded-2xl shadow-xl p-2 z-50 text-left"
+                    className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xl p-2 z-50 text-left"
                   >
                     <div className="px-3 py-2 border-b border-slate-100">
                       <p className="text-xs font-extrabold text-slate-900">{displayName}</p>

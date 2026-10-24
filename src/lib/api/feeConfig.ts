@@ -42,14 +42,14 @@ export interface CustomPaymentItem {
 }
 
 export interface SystemFeeConfig {
-  // ── Flyviz Payment 1: Registration Fee ─────────────────────────────────────
+  // ── Ferex Payment 1: Registration Fee ─────────────────────────────────────
   advance_registration_fee_enabled: boolean;
   advance_registration_fee_amount: number;
   advance_registration_fee_currency: 'INR' | 'EUR' | 'USD';
   gst_enabled_registration_fee: boolean;
   registration_fee_tax_type: string;
 
-  // ── Flyviz Payment 2: Cost for Documents for Visa (Pay after the offer letter) ──
+  // ── Ferex Payment 2: Cost for Documents for Visa (Pay after the offer letter) ──
   visa_documents_fee_enabled: boolean;
   visa_documents_fee_amount: number;
   visa_documents_fee_currency: 'INR' | 'EUR' | 'USD';
@@ -57,7 +57,7 @@ export interface SystemFeeConfig {
   visa_documents_fee_tax_type: string;
   visa_documents_fee_trigger: string; // "Pay after the offer letter"
 
-  // ── Flyviz Payment 3: Service Charge (After visa) ──────────────────────────
+  // ── Ferex Payment 3: Service Charge (After visa) ──────────────────────────
   service_charge_enabled: boolean;
   service_charge_amount: number;
   service_charge_currency: 'INR' | 'EUR' | 'USD';
@@ -166,7 +166,7 @@ export const DEFAULT_FEE_CONFIG: SystemFeeConfig = {
   // Additional dynamic payments configured by Admin
   custom_payments: [],
 
-  // Direct Student Payments (NOT to Ferex/Flyviz)
+  // Direct Student Payments (NOT to Ferex)
   direct_payments_info: {
     university_application_note: 'Paid by the student directly to the university application portal.',
     tuition_fee_note: 'Paid by the student directly to the university official account / Flywire / Convera.',

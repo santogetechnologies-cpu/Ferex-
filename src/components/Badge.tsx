@@ -23,28 +23,28 @@ export const Badge: React.FC<BadgeProps> = ({
   const hasDot = showDot || dot;
   const variantStyles: Record<BadgeVariant, { container: string; dot: string }> = {
     brand: {
-      container: 'bg-[#58051E]/8 text-[#58051E] border-[#58051E]/20 font-semibold',
-      dot: 'bg-[#58051E]',
+      container: 'bg-[#58051E]/8 dark:bg-rose-950/40 text-[#58051E] dark:text-rose-300 border-[#58051E]/20 dark:border-rose-900/60 font-semibold',
+      dot: 'bg-[#58051E] dark:bg-rose-400',
     },
     success: {
-      container: 'bg-emerald-50 text-emerald-700 border-emerald-200/70 font-semibold',
+      container: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-900/60 font-semibold',
       dot: 'bg-emerald-500',
     },
     warning: {
-      container: 'bg-amber-50 text-amber-800 border-amber-200/70 font-semibold',
+      container: 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200/70 dark:border-amber-900/60 font-semibold',
       dot: 'bg-amber-500',
     },
     error: {
-      container: 'bg-rose-50 text-rose-700 border-rose-200/70 font-semibold',
+      container: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200/70 dark:border-rose-900/60 font-semibold',
       dot: 'bg-rose-500',
     },
     info: {
-      container: 'bg-sky-50 text-sky-700 border-sky-200/70 font-semibold',
+      container: 'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200/70 dark:border-sky-900/60 font-semibold',
       dot: 'bg-sky-500',
     },
     neutral: {
-      container: 'bg-slate-100 text-slate-700 border-slate-200/70 font-medium',
-      dot: 'bg-slate-400',
+      container: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/70 dark:border-slate-700 font-medium',
+      dot: 'bg-slate-400 dark:bg-slate-500',
     },
   };
 

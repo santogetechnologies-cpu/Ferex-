@@ -29,11 +29,11 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = 'inline-flex items-center justify-center font-semibold transition-all duration-150 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#58051E]/40 disabled:opacity-50 disabled:pointer-events-none select-none cursor-pointer tracking-tight';
   
   const variants: Record<ButtonVariant, string> = {
-    primary: 'bg-[#58051E] text-white hover:bg-[#430316] active:bg-[#3E0213] shadow-xs border border-[#58051E]',
-    secondary: 'bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100 border border-slate-200/90 shadow-2xs',
-    outline: 'border border-slate-200/90 bg-transparent text-slate-700 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100',
-    ghost: 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 active:bg-slate-200/50',
-    destructive: 'bg-rose-50 text-rose-700 border border-rose-200/80 hover:bg-rose-100 active:bg-rose-200/80',
+    primary: 'bg-[#58051E] dark:bg-rose-700 text-white hover:bg-[#430316] dark:hover:bg-rose-600 active:bg-[#3E0213] shadow-xs border border-[#58051E] dark:border-rose-600',
+    secondary: 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:bg-slate-100 dark:active:bg-slate-600 border border-slate-200/90 dark:border-slate-700 shadow-2xs',
+    outline: 'border border-slate-200/90 dark:border-slate-700 bg-transparent text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white active:bg-slate-100',
+    ghost: 'text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white active:bg-slate-200/50',
+    destructive: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/60 active:bg-rose-200/80',
   };
 
   const sizes: Record<ButtonSize, string> = {

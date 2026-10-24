@@ -13,19 +13,19 @@ export const AdminFeeConfig: React.FC = () => {
   const { config, updateConfig } = useFeeConfig();
   const { universities } = useUniversities();
 
-  // 1. Registration Fee (Flyviz Payment 1)
+  // 1. Registration Fee (Ferex Payment 1)
   const [advFeeEnabled, setAdvFeeEnabled] = useState<boolean>(config.advance_registration_fee_enabled ?? true);
   const [advFeeAmount, setAdvFeeAmount] = useState<number>(config.advance_registration_fee_amount ?? 1500);
   const [advFeeCurrency, setAdvFeeCurrency] = useState<'INR' | 'EUR' | 'USD'>(config.advance_registration_fee_currency || 'INR');
   const [advFeeGstEnabled, setAdvFeeGstEnabled] = useState<boolean>(config.gst_enabled_registration_fee ?? true);
 
-  // 2. Cost for Documents for Visa (Flyviz Payment 2 - Pay after offer letter)
+  // 2. Cost for Documents for Visa (Ferex Payment 2 - Pay after offer letter)
   const [docFeeEnabled, setDocFeeEnabled] = useState<boolean>(config.visa_documents_fee_enabled ?? true);
   const [docFeeAmount, setDocFeeAmount] = useState<number>(config.visa_documents_fee_amount ?? 15000);
   const [docFeeCurrency, setDocFeeCurrency] = useState<'INR' | 'EUR' | 'USD'>(config.visa_documents_fee_currency || 'INR');
   const [docFeeGstEnabled, setDocFeeGstEnabled] = useState<boolean>(config.gst_enabled_visa_documents_fee ?? true);
 
-  // 3. Service Charge (Flyviz Payment 3 - Pay after visa)
+  // 3. Service Charge (Ferex Payment 3 - Pay after visa)
   const [serviceFeeEnabled, setServiceFeeEnabled] = useState<boolean>(config.service_charge_enabled ?? true);
   const [serviceFeeAmount, setServiceFeeAmount] = useState<number>(config.service_charge_amount ?? 25000);
   const [serviceFeeCurrency, setServiceFeeCurrency] = useState<'INR' | 'EUR' | 'USD'>(config.service_charge_currency || 'INR');
@@ -173,7 +173,7 @@ export const AdminFeeConfig: React.FC = () => {
       trigger_stage: newPayTrigger,
       trigger_label: triggerLabels[newPayTrigger] || 'Journey Milestone',
       recipient: newPayRecipient,
-      recipient_label: newPayRecipient === 'ferex' ? 'Ferex / Flyviz' : 'Direct Student Payment (Third Party)',
+      recipient_label: newPayRecipient === 'ferex' ? 'Ferex' : 'Direct Student Payment (Third Party)',
       description: newPayDesc.trim() || 'Custom administrative fee or processing deposit.',
       enabled: true,
     };
@@ -267,14 +267,14 @@ export const AdminFeeConfig: React.FC = () => {
               Finance &amp; Governance
             </span>
             <span className="text-[11px] font-semibold text-slate-400">
-              Payments to Flyviz / Ferex
+              Payments to Ferex
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             Fee Structure &amp; Dynamic Payments Governance
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Configure the 3 core Flyviz payments, university-specific overrides, and customizable journey payment milestones.
+            Configure the 3 core Ferex payments, university-specific overrides, and customizable journey payment milestones.
           </p>
         </div>
 
@@ -287,13 +287,13 @@ export const AdminFeeConfig: React.FC = () => {
         </button>
       </div>
 
-      {/* Flyviz Payment Summary Banner */}
+      {/* Ferex Payment Summary Banner */}
       <div className="bg-gradient-to-r from-[#570229]/5 via-amber-50/50 to-indigo-50/40 p-5 rounded-2xl border border-slate-200/90 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-[#570229]" />
             <h2 className="text-sm font-black text-slate-900">
-              Payments to Flyviz / Ferex Structure
+              Payments to Ferex Structure
             </h2>
           </div>
           <p className="text-xs text-slate-600">
@@ -313,7 +313,7 @@ export const AdminFeeConfig: React.FC = () => {
         </div>
       </div>
 
-      {/* ── SECTION 1: The 3 Core Flyviz Payments ── */}
+      {/* ── SECTION 1: The 3 Core Ferex Payments ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Payment 1: Registration Fee */}
         <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
@@ -712,7 +712,7 @@ export const AdminFeeConfig: React.FC = () => {
                 onChange={(e) => setNewPayRecipient(e.target.value as any)}
                 className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#570229]"
               >
-                <option value="ferex">Ferex / Flyviz (Pay Online / Account)</option>
+                <option value="ferex">Ferex (Pay Online / Account)</option>
                 <option value="direct_third_party">Direct Student Payment (Third Party)</option>
               </select>
             </div>
@@ -768,7 +768,7 @@ export const AdminFeeConfig: React.FC = () => {
                             : 'bg-amber-100 text-amber-800'
                         }`}
                       >
-                        {p.recipient === 'ferex' ? 'Ferex / Flyviz' : 'Direct (3rd Party)'}
+                        {p.recipient === 'ferex' ? 'Ferex' : 'Direct (3rd Party)'}
                       </span>
                     </td>
                     <td className="py-3 px-4 font-mono font-black text-slate-900">

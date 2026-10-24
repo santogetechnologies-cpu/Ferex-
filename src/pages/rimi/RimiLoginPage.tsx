@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff, CheckCircle2, Snowflake } from 'lucide-react';
 import { Logo } from '../../components/Logo';
+import { ThemeToggle } from '../../components/ThemeToggle';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -90,9 +91,10 @@ export const RimiLoginPage: React.FC = () => {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 border border-slate-100 z-10 relative"
+        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 border border-slate-100 dark:border-slate-800 z-10 relative text-slate-900 dark:text-slate-100"
       >
         {/* Header */}
+        <div className="absolute top-4 right-4 z-20"><ThemeToggle size="sm" /></div>
         <div className="flex flex-col items-center text-center mb-6">
           <Logo variant="full" color="maroon" size="md" subtitle="RIMI FROZEN" align="center" />
           <p className="text-xs font-semibold text-slate-500 mt-2">

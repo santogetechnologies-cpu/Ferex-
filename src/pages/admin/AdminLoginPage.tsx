@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, AlertCircle, CheckCircle2, ShieldCheck, ArrowLeft, Shield, UserPlus, LogIn, Lock } from 'lucide-react';
 import { Logo } from '../../components/Logo';
+import { ThemeToggle } from '../../components/ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import { getDashboardRoute, getPortalLabel, isSuperAdmin } from '../../lib/roleRouter';
 import { supabase } from '../../lib/supabase';

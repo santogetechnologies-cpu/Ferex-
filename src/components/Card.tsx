@@ -23,8 +23,8 @@ export const Card: React.FC<CardProps> = ({
       whileHover={hoverEffect ? { y: -2 } : {}}
       transition={{ duration: 0.15, ease: 'easeOut' }}
       className={cn(
-        'bg-white border border-slate-200/80 rounded-2xl p-5 text-left shadow-subtle transition-all duration-200',
-        hoverEffect && 'cursor-pointer hover:border-slate-300 hover:shadow-card',
+        'bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-2xl p-5 text-left shadow-subtle dark:shadow-black/40 transition-all duration-200',
+        hoverEffect && 'cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-card',
         className
       )}
     >

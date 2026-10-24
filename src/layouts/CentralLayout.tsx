@@ -201,7 +201,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
       <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200 ${isCollapsed ? 'lg:pl-[70px]' : 'lg:pl-[250px]'}`}>
         
         {/* STICKY TOP NAVBAR */}
-        <header className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0">
+        <header className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0">
           
           {/* Left part: Toggles, Breadcrumbs & Division Switcher */}
           <div className="flex items-center gap-2.5">

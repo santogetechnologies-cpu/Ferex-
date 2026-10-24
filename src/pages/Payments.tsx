@@ -195,7 +195,7 @@ export const Payments: React.FC = () => {
   const isVisaApproved = rawOutcome === 'Approved';
 
   // ───────────────────────────────────────────────────────────
-  // ── 3 Payments to Flyviz / Ferex ───────────────────────────
+  // ── 3 Payments to Ferex ───────────────────────────
   // ───────────────────────────────────────────────────────────
 
   // 1. Registration Fee: "Registration — you already paid."
@@ -209,7 +209,7 @@ export const Payments: React.FC = () => {
   const advDisplayFormatted = `₹${advDisplayAmount.toLocaleString('en-IN')}`;
 
   const advFeeItem: PaymentItem = {
-    id: 'fee-flyviz-registration',
+    id: 'fee-ferex-registration',
     itemType: 'advanced_registration',
     payee: 'ferex',
     title: isAdvFeePaid ? '1. Registration — you already paid.' : '1. Registration Fee',
@@ -241,7 +241,7 @@ export const Payments: React.FC = () => {
   const docDisplayFormatted = `₹${docDisplayAmount.toLocaleString('en-IN')}`;
 
   const docFeeItem: PaymentItem = {
-    id: 'fee-flyviz-documents',
+    id: 'fee-ferex-documents',
     itemType: 'visa_documents_fee',
     payee: 'ferex',
     title: '2. Cost for Documents for Visa',
@@ -280,7 +280,7 @@ export const Payments: React.FC = () => {
   const serviceDisplayFormatted = `₹${serviceDisplayAmount.toLocaleString('en-IN')}`;
 
   const serviceChargeItem: PaymentItem = {
-    id: 'fee-flyviz-service-charge',
+    id: 'fee-ferex-service-charge',
     itemType: 'service_charge',
     payee: 'ferex',
     title: '3. Service Charge',
@@ -451,10 +451,10 @@ export const Payments: React.FC = () => {
   }, [config.custom_payments, dbPayments]);
 
   // Financial Totals
-  const flyvizItems = [advFeeItem, docFeeItem, serviceChargeItem, ...customFerexItems];
-  const flyvizTotalAmount = flyvizItems.reduce((acc, i) => acc + i.amount, 0);
-  const flyvizTotalPaid = flyvizItems.filter(i => i.status === 'Paid').reduce((acc, i) => acc + i.amount, 0);
-  const flyvizTotalPending = Math.max(0, flyvizTotalAmount - flyvizTotalPaid);
+  const ferexItems = [advFeeItem, docFeeItem, serviceChargeItem, ...customFerexItems];
+  const ferexTotalAmount = ferexItems.reduce((acc, i) => acc + i.amount, 0);
+  const ferexTotalPaid = ferexItems.filter(i => i.status === 'Paid').reduce((acc, i) => acc + i.amount, 0);
+  const ferexTotalPending = Math.max(0, ferexTotalAmount - ferexTotalPaid);
 
   // Modal Submission Handlers
   const [payMethod, setPayMethod] = useState('Direct NEFT / IMPS Bank Wire');
@@ -807,7 +807,7 @@ export const Payments: React.FC = () => {
             Payment Schedule
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-            Review official payments to Flyviz / Ferex and direct third-party tuition and consular fees.
+            Review official payments to Ferex and direct third-party tuition and consular fees.
           </p>
         </div>
 
@@ -831,11 +831,11 @@ export const Payments: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="p-4 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Flyviz / Ferex Total Fees</span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Ferex Total Fees</span>
             <span className="text-[10px] font-bold text-slate-400">3 Milestones</span>
           </div>
           <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-            ₹{flyvizTotalAmount.toLocaleString('en-IN')}
+            ₹{ferexTotalAmount.toLocaleString('en-IN')}
           </span>
           <span className="text-xs text-slate-400 block mt-2">
             Registration + Documents + Service Charge
@@ -848,30 +848,30 @@ export const Payments: React.FC = () => {
             <Badge variant="success">Cleared</Badge>
           </div>
           <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
-            ₹{flyvizTotalPaid.toLocaleString('en-IN')}
+            ₹{ferexTotalPaid.toLocaleString('en-IN')}
           </span>
           <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
             <div
               className="bg-emerald-600 dark:bg-emerald-500 h-full transition-all"
-              style={{ width: `${flyvizTotalAmount > 0 ? (flyvizTotalPaid / flyvizTotalAmount) * 100 : 0}%` }}
+              style={{ width: `${ferexTotalAmount > 0 ? (ferexTotalPaid / ferexTotalAmount) * 100 : 0}%` }}
             />
           </div>
         </Card>
 
         <Card className="p-4 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Pending Flyviz Balance</span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Pending Ferex Balance</span>
             <Badge variant="neutral">Open Schedule</Badge>
           </div>
           <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-            ₹{flyvizTotalPending.toLocaleString('en-IN')}
+            ₹{ferexTotalPending.toLocaleString('en-IN')}
           </span>
           <span className="text-xs text-slate-400 block mt-2">Payable across future roadmap stages</span>
         </Card>
       </div>
 
       {/* ─────────────────────────────────────────────────────────── */}
-      {/* ── SECTION 1: Payments to Flyviz / Ferex (3 Core Steps) ─── */}
+      {/* ── SECTION 1: Payments to Ferex (3 Core Steps) ─── */}
       {/* ─────────────────────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="p-4 bg-gradient-to-r from-[#58051E]/5 via-[#58051E]/10 to-transparent dark:from-[#58051E]/20 dark:via-[#58051E]/10 dark:to-transparent border border-[#58051E]/20 dark:border-[#58051E]/30 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -881,10 +881,10 @@ export const Payments: React.FC = () => {
             </div>
             <div>
               <h2 className="text-sm font-black text-slate-900 dark:text-white">
-                Payments to Flyviz / Ferex
+                Payments to Ferex
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-0.5">
-                There are <strong>3 distinct payments to Flyviz</strong> throughout your study abroad journey.
+                There are <strong>3 distinct payments to Ferex</strong> throughout your study abroad journey.
               </p>
             </div>
           </div>
@@ -898,13 +898,13 @@ export const Payments: React.FC = () => {
         </div>
 
         {/* 1. Registration Fee */}
-        {renderPaymentCard(advFeeItem, 'Flyviz Payment 1 • Intake Deposit', '#58051E')}
+        {renderPaymentCard(advFeeItem, 'Ferex Payment 1 • Intake Deposit', '#58051E')}
 
         {/* 2. Cost for Documents for Visa */}
-        {renderPaymentCard(docFeeItem, 'Flyviz Payment 2 • After Offer Letter', '#0284c7')}
+        {renderPaymentCard(docFeeItem, 'Ferex Payment 2 • After Offer Letter', '#0284c7')}
 
         {/* 3. Service Charge */}
-        {renderPaymentCard(serviceChargeItem, 'Flyviz Payment 3 • After Visa Approval', '#7c3aed')}
+        {renderPaymentCard(serviceChargeItem, 'Ferex Payment 3 • After Visa Approval', '#7c3aed')}
 
         {/* Additional Admin-Configured Payments to Ferex */}
         {customFerexItems.length > 0 && (
