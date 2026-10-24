@@ -4,15 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home, Milestone, Target, GraduationCap, FileText, Folder, CreditCard,
   FileSpreadsheet, Calendar, LifeBuoy, Bell, User,
-  Search, Menu, ChevronDown, ChevronRight, LogOut, Settings, X, ShieldCheck, Plane, MessageCircle
+  Search, Menu, ChevronDown, ChevronRight, LogOut, Settings, X, ShieldCheck, Plane, MessageCircle, FileCheck
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { useSystemConfig } from '../hooks/useSystemConfig';
 import { supabase } from '../lib/supabase';
 import { normalizeRole, getDashboardRoute } from '../lib/roleRouter';
 import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
+import { isAgreementSigned } from '../lib/api/agreement';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -169,8 +171,33 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   const hasUnreadVisa = hasUnreadCategory('Visa') && !visitedRoutes['/student/visa-tracker'];
   const hasUnreadJourney = hasUnreadCategory('Application') && !visitedRoutes['/student/journey-tracker'];
 
+  // Track service agreement status
+  const [hasSignedAgreement, setHasSignedAgreement] = useState<boolean>(() => {
+    return isAgreementSigned(user?.id || profile?.id || '');
+  });
+
+  useEffect(() => {
+    const checkAgreement = () => {
+      setHasSignedAgreement(isAgreementSigned(user?.id || profile?.id || ''));
+    };
+    checkAgreement();
+    window.addEventListener('ferex_agreement_change', checkAgreement);
+    window.addEventListener('storage', checkAgreement);
+    return () => {
+      window.removeEventListener('ferex_agreement_change', checkAgreement);
+      window.removeEventListener('storage', checkAgreement);
+    };
+  }, [user?.id, profile?.id]);
+
   const menuItems = [
     { name: 'Dashboard', path: '/student/dashboard', icon: Home, badge: null, hasUpdate: false },
+    {
+      name: 'Service Agreement',
+      path: '/student/agreement',
+      icon: FileCheck,
+      badge: !hasSignedAgreement ? 'SIGN' : null,
+      hasUpdate: !hasSignedAgreement,
+    },
     { name: 'Journey Tracker', path: '/student/journey-tracker', icon: Milestone, badge: hasUnreadJourney ? 'ROADMAP' : null, hasUpdate: hasUnreadJourney },
     { name: 'Select University', path: '/student/select-university', icon: Target, badge: null, hasUpdate: false },
     { name: 'University Applications', path: '/student/applications', icon: GraduationCap, badge: null, hasUpdate: false },
@@ -341,6 +368,9 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                 ⌘K
               </kbd>
             </div>
+
+            {/* Dark Mode / Light Mode Switcher */}
+            <ThemeToggle size="sm" />
 
             {/* Notification Bell */}
             <div className="relative" onClick={(e) => e.stopPropagation()}>

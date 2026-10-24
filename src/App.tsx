@@ -1,12 +1,14 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthLayout } from './layouts/AuthLayout';
 import { LoginPage } from './pages/LoginPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { FerexLandingPage } from './pages/FerexLandingPage';
 import { StudentLayout } from './layouts/StudentLayout';
 import { StudentDashboard } from './pages/StudentDashboard';
+import { ServiceAgreement } from './pages/ServiceAgreement';
 import { JourneyTracker } from './pages/JourneyTracker';
 import { SelectUniversity } from './pages/SelectUniversity';
 import { UniversityApplications } from './pages/UniversityApplications';
@@ -297,28 +299,30 @@ function HashMigrationRedirect() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <HashMigrationRedirect />
-        <AppInitializer />
-        <Routes>
-          {/* ── Official FEREX Education Website & Login Portal ── */}
-          <Route path="/" element={<FerexLandingPage />} />
-          <Route path="/login" element={<AuthLayout><LoginPage /></AuthLayout>} />
-          <Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
-          <Route path="/admin/login" element={<Navigate to="/login" replace />} />
-          <Route path="/trade/login" element={<Navigate to="/login" replace />} />
-          <Route path="/rimi/login" element={<RimiLoginPage />} />
-          <Route path="/digital/login" element={<DigitalLoginPage />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <HashMigrationRedirect />
+          <AppInitializer />
+          <Routes>
+            {/* ── Official FEREX Education Website & Login Portal ── */}
+            <Route path="/" element={<FerexLandingPage />} />
+            <Route path="/login" element={<AuthLayout><LoginPage /></AuthLayout>} />
+            <Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
+            <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+            <Route path="/trade/login" element={<Navigate to="/login" replace />} />
+            <Route path="/rimi/login" element={<RimiLoginPage />} />
+            <Route path="/digital/login" element={<DigitalLoginPage />} />
 
-          {/* ── Student Routes (STRICTLY role = 'student' ONLY) ── */}
-          <Route path="/student/dashboard" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><StudentDashboard /></StudentLayout></ProtectedRoute>} />
-          <Route path="/student/journey-tracker" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><JourneyTracker /></StudentLayout></ProtectedRoute>} />
-          <Route path="/student/select-university" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><SelectUniversity /></StudentLayout></ProtectedRoute>} />
-          <Route path="/student/applications" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><UniversityApplications /></StudentLayout></ProtectedRoute>} />
-          <Route path="/student/offers" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><OfferLetters /></StudentLayout></ProtectedRoute>} />
-          <Route path="/student/documents" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Documents /></StudentLayout></ProtectedRoute>} />
-          <Route path="/student/payments" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Payments /></StudentLayout></ProtectedRoute>} />
+            {/* ── Student Routes (STRICTLY role = 'student' ONLY) ── */}
+            <Route path="/student/dashboard" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><StudentDashboard /></StudentLayout></ProtectedRoute>} />
+            <Route path="/student/agreement" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><ServiceAgreement /></StudentLayout></ProtectedRoute>} />
+            <Route path="/student/journey-tracker" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><JourneyTracker /></StudentLayout></ProtectedRoute>} />
+            <Route path="/student/select-university" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><SelectUniversity /></StudentLayout></ProtectedRoute>} />
+            <Route path="/student/applications" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><UniversityApplications /></StudentLayout></ProtectedRoute>} />
+            <Route path="/student/offers" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><OfferLetters /></StudentLayout></ProtectedRoute>} />
+            <Route path="/student/documents" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Documents /></StudentLayout></ProtectedRoute>} />
+            <Route path="/student/payments" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Payments /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/invoices" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Invoices /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/meetings" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Meetings /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/chat" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Chat /></StudentLayout></ProtectedRoute>} />
@@ -348,7 +352,7 @@ function App() {
           <Route path="/admin/nawa" element={<Navigate to="/admin/legalization" replace />} />
           <Route path="/admin/nawa-tracker" element={<Navigate to="/admin/legalization" replace />} />
           <Route path="/admin/payment-control" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPaymentControl /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/payments" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPayments /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/payments" element={<Navigate to="/admin/payment-control" replace />} />
           <Route path="/admin/support" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSupportTickets /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminChatSupport /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminReports /></AdminLayout></ProtectedRoute>} />
@@ -567,6 +571,7 @@ function App() {
         </Routes>
       </Router>
     </AuthProvider>
+    </ThemeProvider>
   );
 }
 

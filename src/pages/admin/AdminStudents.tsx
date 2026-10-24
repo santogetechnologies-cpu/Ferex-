@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
 import { useDocuments } from '../../hooks/useDocuments';
@@ -8,6 +8,7 @@ import { getStaffMembers, createStaffMember, DEFAULT_COUNSELOR_ROSTER, assignCou
 import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../../lib/api/documentRequirements';
 import type { UserProfile } from '../../lib/types';
 import { ToastNotification } from '../../components/ToastNotification';
+import { isAgreementSigned, getLocalAgreement } from '../../lib/api/agreement';
 
 interface StudentItem {
   id: string;
@@ -563,6 +564,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
               <th className="text-left px-4 py-3.5 min-w-[180px]">Contact</th>
               <th className="text-left px-4 py-3.5 min-w-[220px]">Target Country & University</th>
               <th className="text-left px-4 py-3.5 min-w-[140px]">Status</th>
+              <th className="text-left px-4 py-3.5 min-w-[140px]">Agreement</th>
               <th className="text-left px-4 py-3.5 min-w-[180px]">Assigned Counselor</th>
               <th className="text-left px-4 py-3.5 min-w-[110px]">Joined</th>
               <th className="text-center px-4 py-3.5 min-w-[170px] w-[170px] whitespace-nowrap sticky right-0 bg-slate-50 z-20 border-l border-slate-200 shadow-[-6px_0_12px_-4px_rgba(0,0,0,0.06)]">
@@ -572,7 +574,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
           </thead>
           <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
             {paged.length === 0 ? (
-              <tr><td colSpan={7} className="py-8 text-center text-slate-400 font-bold">No students match your filter.</td></tr>
+              <tr><td colSpan={8} className="py-8 text-center text-slate-400 font-bold">No students match your filter.</td></tr>
             ) : (
               paged.map((s) => (
                 <tr key={s.id} className="group hover:bg-slate-50/80 transition-colors">
@@ -628,6 +630,17 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                         </div>
                       );
                     })()}
+                  </td>
+                  <td className="px-4 py-3.5">
+                    {isAgreementSigned(s.id) ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Signed & Bound
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200">
+                        <Clock className="w-3 h-3 text-amber-600" /> Pending Sign
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3.5">
                     <div
@@ -774,6 +787,37 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                         {viewDossier.isComplete
                           ? `All ${viewDossier.mandatoryCount} mandatory compliance files for ${viewStudent.targetCountry} are uploaded.`
                           : `Student has uploaded ${viewDossier.uploadedMandatoryCount} of ${viewDossier.mandatoryCount} mandatory files for ${viewStudent.targetCountry}.`}
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                {/* Service Agreement Status Card */}
+                {(() => {
+                  const isSigned = isAgreementSigned(viewStudent.id);
+                  const agreement = getLocalAgreement(viewStudent.id);
+                  return (
+                    <div className={`p-4 rounded-xl border space-y-1.5 ${
+                      isSigned
+                        ? 'bg-emerald-50/70 border-emerald-200'
+                        : 'bg-amber-50/70 border-amber-200'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider block text-slate-700">
+                          Legal Service Agreement (13 Clauses)
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                          isSigned
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {isSigned ? 'Legally Signed & Verified' : 'Signature Required'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600">
+                        {isSigned && agreement
+                          ? `Digitally executed by ${agreement.student_name} on ${new Date(agreement.signed_at).toLocaleDateString()} with Ferex Education (under Ferex Ventures Pvt Ltd).`
+                          : 'Student has not yet executed the official 13-clause Ferex Service Agreement.'}
                       </p>
                     </div>
                   );

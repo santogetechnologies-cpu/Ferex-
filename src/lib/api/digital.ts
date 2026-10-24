@@ -92,7 +92,26 @@ export interface DigitalProjectRecord {
   client?: any;
 }
 
+function getDeletedClientIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem('ferex_deleted_client_ids');
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function addDeletedClientId(id: string) {
+  try {
+    const set = getDeletedClientIds();
+    set.add(id);
+    localStorage.setItem('ferex_deleted_client_ids', JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
 export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
+  const deletedIds = getDeletedClientIds();
+
   const officialInternalSubsidiaries: DigitalClientRecord[] = [
     {
       id: '00000000-0000-0000-0000-000000000001',
@@ -159,14 +178,16 @@ export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
 
     const clientMap = new Map<string, DigitalClientRecord>();
 
-    // 1. Seed official internal subsidiaries
+    // 1. Seed official internal subsidiaries (skip deleted)
     for (const sub of officialInternalSubsidiaries) {
-      clientMap.set(sub.id || sub.company_name, sub);
+      if (!deletedIds.has(sub.id) && !deletedIds.has(sub.company_name) && !sub.is_deleted) {
+        clientMap.set(sub.id || sub.company_name, sub);
+      }
     }
 
     // 2. Add local clients (preserves newly added leads before/during db sync)
     for (const item of localClients) {
-      if (item && !item.is_deleted) {
+      if (item && !item.is_deleted && !deletedIds.has(item.id) && !deletedIds.has(item.company_name)) {
         clientMap.set(item.id || item.company_name, item);
       }
     }
@@ -175,6 +196,8 @@ export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
     if (!error && Array.isArray(data) && data.length > 0) {
       const filtered = data.filter((c: any) => 
         !c.is_deleted && 
+        !deletedIds.has(c.id) &&
+        !deletedIds.has(c.company_name) &&
         !c.company_name?.toLowerCase().includes('c tech') && 
         !c.company_name?.toLowerCase().includes('santoge digital')
       );
@@ -184,15 +207,25 @@ export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
       }
     }
 
+    // Final safety check to remove any deleted clients from map
+    for (const [key, item] of Array.from(clientMap.entries())) {
+      if (item.is_deleted || deletedIds.has(item.id) || deletedIds.has(item.company_name)) {
+        clientMap.delete(key);
+      }
+    }
+
     const merged = Array.from(clientMap.values());
     try { localStorage.setItem('ferex_digital_clients', JSON.stringify(merged)); } catch {}
     return merged;
   } catch {
     try {
       const local = localStorage.getItem('ferex_digital_clients');
-      if (local) return JSON.parse(local);
+      if (local) {
+        const parsed: DigitalClientRecord[] = JSON.parse(local);
+        return parsed.filter(c => !c.is_deleted && !deletedIds.has(c.id) && !deletedIds.has(c.company_name));
+      }
     } catch {}
-    return officialInternalSubsidiaries;
+    return officialInternalSubsidiaries.filter(s => !s.is_deleted && !deletedIds.has(s.id) && !deletedIds.has(s.company_name));
   }
 }
 
@@ -295,10 +328,28 @@ export async function updateDigitalClient(id: string, updates: any) {
 }
 
 export async function deleteDigitalClient(id: string, deleted_by?: string) {
+  addDeletedClientId(id);
   const current = await getDigitalClients();
-  const updated = current.map((c: any) => c.id === id ? { ...c, is_deleted: true, updated_by: deleted_by || 'Admin', updated_at: new Date().toISOString() } : c);
+  const target = current.find(c => c.id === id || c.company_name === id);
+  if (target) {
+    if (target.id) addDeletedClientId(target.id);
+    if (target.company_name) addDeletedClientId(target.company_name);
+  }
+
+  const updated = current
+    .filter((c: any) => c.id !== id && c.company_name !== id && (!target || (c.id !== target.id && c.company_name !== target.company_name)))
+    .map((c: any) => ({ ...c }));
+
   try { localStorage.setItem('ferex_digital_clients', JSON.stringify(updated)); } catch {}
-  try { await supabase.from('digital_clients').update({ is_deleted: true }).eq('id', id); } catch {}
+  try {
+    await supabase.from('digital_clients').update({ is_deleted: true, updated_at: new Date().toISOString() }).eq('id', id);
+    await supabase.from('digital_clients').delete().eq('id', id);
+    if (target?.company_name) {
+      await supabase.from('digital_clients').update({ is_deleted: true, updated_at: new Date().toISOString() }).eq('company_name', target.company_name);
+      await supabase.from('digital_clients').delete().eq('company_name', target.company_name);
+    }
+  } catch {}
+
   triggerLocalSync('ferex_digital_clients_change');
   return true;
 }

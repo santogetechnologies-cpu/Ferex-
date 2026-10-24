@@ -11,6 +11,7 @@ import {
 import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
 import { ClockInOutWidget } from '../components/ClockInOutWidget';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
 import { getTradeNotifications, globalSearchTrade } from '../lib/api/trade';
 
@@ -302,6 +303,8 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
             <ClockInOutWidget compact divisionOverride="trade" />
 
             <AppSwitcher />
+
+            <ThemeToggle />
 
             {/* Notifications Button */}
             <div className="relative">

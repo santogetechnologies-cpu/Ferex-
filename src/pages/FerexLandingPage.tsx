@@ -12,6 +12,7 @@ import { getDashboardRoute } from '../lib/roleRouter';
 import type { University } from '../lib/types';
 import { Logo } from '../components/Logo';
 import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 // Student images provided by the user
 import heroStudentTransparent from '../assets/hero-student-transparent.png';
@@ -401,6 +402,7 @@ export const FerexLandingPage: React.FC = () => {
 
           {/* Right Action Controls */}
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             {session && user ? (
               <div className="flex items-center gap-2">
                 <button

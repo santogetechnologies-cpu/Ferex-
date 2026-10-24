@@ -21,6 +21,15 @@ export async function autoSeedAllDataToSupabase() {
         .delete()
         .or('company_name.ilike.%C Tech%,company_name.ilike.%Santoge Digital%');
 
+      const deletedIds = (() => {
+        try {
+          const raw = localStorage.getItem('ferex_deleted_client_ids');
+          return new Set(raw ? JSON.parse(raw) : []);
+        } catch {
+          return new Set();
+        }
+      })();
+
       const officialSubsidiaries = [
         {
           id: '00000000-0000-0000-0000-000000000001',
@@ -70,9 +79,11 @@ export async function autoSeedAllDataToSupabase() {
           client_type: 'Internal',
           updated_at: new Date().toISOString()
         }
-      ];
+      ].filter(s => !deletedIds.has(s.id) && !deletedIds.has(s.company_name));
 
-      await supabase.from('digital_clients').upsert(officialSubsidiaries);
+      if (officialSubsidiaries.length > 0) {
+        await supabase.from('digital_clients').upsert(officialSubsidiaries);
+      }
     } catch {}
   } catch (err: any) {
     // Silent fail - offline or RLS protected

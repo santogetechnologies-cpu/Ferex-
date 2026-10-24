@@ -1289,38 +1289,18 @@ export const CentralAttendance: React.FC = () => {
               </div>
 
               <form onSubmit={handleSaveShift} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Shift Name*
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={shiftForm.name}
-                      onChange={(e) => setShiftForm({ ...shiftForm, name: e.target.value })}
-                      placeholder="e.g. Education Counselor Regular Shift"
-                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
-                    />
-                  </div>
-
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Division
-                    </label>
-                    <select
-                      value={shiftForm.division}
-                      onChange={(e) => setShiftForm({ ...shiftForm, division: e.target.value })}
-                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
-                    >
-                      <option value="all">All Divisions (Global)</option>
-                      <option value="education">Education Counselors</option>
-                      <option value="rimi">Rimi Frozen Logistics</option>
-                      <option value="trade">Global Trade Floor</option>
-                      <option value="digital">Ferex Digital Tech</option>
-                      <option value="central">Central Platform</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Shift Name*
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={shiftForm.name}
+                    onChange={(e) => setShiftForm({ ...shiftForm, name: e.target.value })}
+                    placeholder="e.g. Regular Working Shift"
+                    className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

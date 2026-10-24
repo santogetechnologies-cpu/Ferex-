@@ -13,7 +13,9 @@ import { useApplications } from '../hooks/useApplications';
 import { useDocuments } from '../hooks/useDocuments';
 import { useVisa } from '../hooks/useVisa';
 import { useMeetings } from '../hooks/useMeetings';
+import { usePayments } from '../hooks/usePayments';
 import { isRealApplication } from '../lib/api/applications';
+import { isAgreementSigned } from '../lib/api/agreement';
 
 export const JourneyTracker: React.FC = () => {
   const navigate = useNavigate();
@@ -22,12 +24,21 @@ export const JourneyTracker: React.FC = () => {
   const { documents } = useDocuments(user?.id);
   const { records: visaRecords } = useVisa(user?.id);
   const { meetings } = useMeetings(user?.id);
+  const { payments } = usePayments(user?.id);
 
   // Active tracker tab: 'university', 'visa', 'travel'
   const [activeTracker, setActiveTracker] = useState<'university' | 'visa' | 'travel'>('university');
 
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
   const isProfileDone = Boolean(profile?.full_name);
+
+  // Agreement and Registration states
+  const isAgreementDone = isAgreementSigned(user?.id || profile?.id || '');
+  const isRegPaid = payments.some(p => {
+    const text = (String(p.title || '') + ' ' + String(p.description || '')).toLowerCase();
+    return (text.includes('registration') || text.includes('advance') || (p as any).stage_number === 1) &&
+      (p.status === 'Paid' || p.status === 'Verified');
+  });
 
   // Meeting verification states for Counselling stage
   const hasCompletedMeeting = meetings.some(m =>
@@ -71,7 +82,7 @@ export const JourneyTracker: React.FC = () => {
     (visaRecord?.status_label?.toLowerCase().includes('approv') ? 'Approved' : 'Pending');
   const isVisaApproved = rawOutcome === 'Approved';
 
-  // TRACKER 1: University Application (8 Stages)
+  // TRACKER 1: University Application (10 Stages)
   const universityStages = [
     {
       id: 'u1',
@@ -85,15 +96,33 @@ export const JourneyTracker: React.FC = () => {
     {
       id: 'u2',
       num: 2,
+      title: 'Student Service Agreement',
+      status: isAgreementDone ? 'completed' : (isProfileDone ? 'current' : 'upcoming'),
+      desc: 'Official service agreement between student and Ferex Education (under Ferex Ventures Pvt Ltd) executed with 13 clauses.',
+      actionLabel: isAgreementDone ? 'View Agreement' : 'Sign Agreement',
+      actionRoute: '/student/agreement',
+    },
+    {
+      id: 'u3',
+      num: 3,
+      title: 'Advanced Registration Fee',
+      status: isRegPaid ? 'completed' : (isAgreementDone ? 'current' : 'upcoming'),
+      desc: 'Initial intake deposit & compliance seat reservation.',
+      actionLabel: isRegPaid ? 'View Invoice' : 'Pay Registration',
+      actionRoute: '/student/payments',
+    },
+    {
+      id: 'u4',
+      num: 4,
       title: 'Academic Counselling',
-      status: hasCompletedMeeting ? 'completed' : (hasScheduledMeeting ? 'in_progress' : (isProfileDone ? 'current' : 'upcoming')),
+      status: hasCompletedMeeting ? 'completed' : (hasScheduledMeeting ? 'in_progress' : (isRegPaid ? 'current' : 'upcoming')),
       desc: 'One-on-one session with dedicated European education counsellor.',
       actionLabel: hasCompletedMeeting ? 'View Notes' : (hasScheduledMeeting ? 'View Session' : 'Schedule Session'),
       actionRoute: '/student/meetings',
     },
     {
-      id: 'u3',
-      num: 3,
+      id: 'u5',
+      num: 5,
       title: 'University Shortlisting',
       status: activeApp ? 'completed' : (isProfileDone ? 'current' : 'upcoming'),
       desc: 'Target universities and accredited degree programs selected.',
@@ -101,8 +130,8 @@ export const JourneyTracker: React.FC = () => {
       actionRoute: '/student/select-university',
     },
     {
-      id: 'u4',
-      num: 4,
+      id: 'u6',
+      num: 6,
       title: 'Document Preparation',
       status: hasApprovedDocs ? 'completed' : (hasUploadedDocs ? 'in_progress' : (activeApp ? 'current' : 'upcoming')),
       desc: 'Transcripts, statement of purpose, and passport verified.',
@@ -110,8 +139,8 @@ export const JourneyTracker: React.FC = () => {
       actionRoute: '/student/documents',
     },
     {
-      id: 'u5',
-      num: 5,
+      id: 'u7',
+      num: 7,
       title: 'Application Submission',
       status: activeApp ? 'completed' : 'upcoming',
       desc: 'Formal application dossier submitted to University Admissions.',
@@ -119,8 +148,8 @@ export const JourneyTracker: React.FC = () => {
       actionRoute: '/student/applications',
     },
     {
-      id: 'u6',
-      num: 6,
+      id: 'u8',
+      num: 8,
       title: 'University Review',
       status: hasOffer ? 'completed' : (activeApp ? 'current' : 'upcoming'),
       desc: 'Admissions Committee evaluating academic qualifications.',
@@ -128,8 +157,8 @@ export const JourneyTracker: React.FC = () => {
       actionRoute: '/student/applications',
     },
     {
-      id: 'u7',
-      num: 7,
+      id: 'u9',
+      num: 9,
       title: 'Offer Decision',
       status: hasOffer ? 'completed' : 'upcoming',
       desc: 'Official University Offer Letter issued with tuition schedule.',
@@ -137,8 +166,8 @@ export const JourneyTracker: React.FC = () => {
       actionRoute: '/student/offers',
     },
     {
-      id: 'u8',
-      num: 8,
+      id: 'u10',
+      num: 10,
       title: 'Admission Confirmation',
       status: isOfferAccepted ? 'completed' : (hasOffer ? 'current' : 'upcoming'),
       desc: 'Offer accepted, initial fee settled & Final Acceptance issued.',

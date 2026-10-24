@@ -15,6 +15,7 @@ import { isSuperAdmin } from '../lib/roleRouter';
 import { getAllPaymentsAdmin } from '../lib/api/payments';
 import { AppSwitcher } from '../components/AppSwitcher';
 import { ClockInOutWidget } from '../components/ClockInOutWidget';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { Clock } from 'lucide-react';
 
 interface AdminLayoutProps { children: React.ReactNode; }
@@ -31,8 +32,7 @@ const baseMenuItems = [
   { name: 'Documents Review', path: '/admin/documents', icon: FolderOpen, badge: null, hasUpdate: false },
   { name: 'Document Config', path: '/admin/document-config', icon: FileText, badge: null, hasUpdate: false },
   { name: 'Legalization & Workflows', path: '/admin/legalization', icon: FileCheck, badge: null, hasUpdate: false },
-  { name: 'Payment Control', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
-  { name: 'Payments Ledger', path: '/admin/payments', icon: CreditCard, badge: null, hasUpdate: false },
+  { name: 'Payment & Billing Control', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
   { name: 'VFS Visa Tracker', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },
   { name: 'Pre-Departure', path: '/admin/pre-departure', icon: Plane, badge: null, hasUpdate: false },
   { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
@@ -99,7 +99,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const hasUnreadVisa = hasUnreadCategory('Visa') || hasUnreadCategory('VFS') || hasUnreadCategory('Embassy');
   const hasUnreadLegalization = hasUnreadCategory('Legalization') || hasUnreadCategory('Apostille');
 
-  const active = baseMenuItems.find(m => location.pathname === m.path)?.name || 'Dashboard';
+  const active = baseMenuItems.find(m => location.pathname === m.path || (m.path === '/admin/payment-control' && location.pathname === '/admin/payments'))?.name || 'Dashboard';
   const localSavedUser = (() => {
     try {
       const r = localStorage.getItem('ferex_user');
@@ -116,8 +116,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const menuItems = baseMenuItems.map(item => {
     if (item.path === '/admin/applications') return { ...item, badge: hasUnreadApps ? 'REVIEW' : null, hasUpdate: hasUnreadApps };
     if (item.path === '/admin/documents') return { ...item, badge: hasUnreadDocs ? 'NEW DOC' : null, hasUpdate: hasUnreadDocs };
-    if (item.path === '/admin/payment-control') return { ...item, badge: pendingPaymentsCount > 0 ? `VERIFY (${pendingPaymentsCount})` : null, hasUpdate: pendingPaymentsCount > 0 };
-    if (item.path === '/admin/payments') return { ...item, badge: hasUnreadPayments ? (pendingPaymentsCount > 0 ? `VERIFY (${pendingPaymentsCount})` : 'NEW PAYMENT') : null, hasUpdate: hasUnreadPayments };
+    if (item.path === '/admin/payment-control') return { ...item, badge: pendingPaymentsCount > 0 ? `VERIFY (${pendingPaymentsCount})` : (hasUnreadPayments ? 'NEW PAYMENT' : null), hasUpdate: pendingPaymentsCount > 0 || hasUnreadPayments };
     if (item.path === '/admin/legalization') return { ...item, badge: hasUnreadLegalization ? 'LEGAL' : null, hasUpdate: hasUnreadLegalization };
     if (item.path === '/admin/visa-tracker') return { ...item, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa };
     return item;
@@ -303,6 +302,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
             {/* Google-Style 9-Dots 4-App Switcher */}
             <AppSwitcher />
+
+            {/* Dark / Light Mode Toggle */}
+            <ThemeToggle />
 
             {/* Quick Notification Bell */}
             <div className="relative" onClick={(e) => e.stopPropagation()}>

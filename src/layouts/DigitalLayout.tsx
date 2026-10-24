@@ -11,6 +11,7 @@ import {
 import { Logo } from '../components/Logo';
 import { AppSwitcher } from '../components/AppSwitcher';
 import { ClockInOutWidget } from '../components/ClockInOutWidget';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
 import { getDigitalNotifications } from '../lib/api/digital';
@@ -306,6 +307,8 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
 
             {/* 4-App Switcher */}
             <AppSwitcher />
+
+            <ThemeToggle />
 
             {/* Quick Actions Trigger */}
             <div className="relative">

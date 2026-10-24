@@ -11,6 +11,7 @@ import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { AppSwitcher } from '../components/AppSwitcher';
 import { ClockInOutWidget } from '../components/ClockInOutWidget';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 interface CentralLayoutProps {
   children: React.ReactNode;
@@ -247,6 +248,9 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
 
             {/* Google-Style 9-Dots 4-App Switcher */}
             <AppSwitcher />
+
+            {/* Dark / Light Mode Toggle */}
+            <ThemeToggle />
 
             {/* Notification Bell */}
             <div className="relative" onClick={(e) => e.stopPropagation()}>

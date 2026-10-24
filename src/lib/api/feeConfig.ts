@@ -10,14 +10,75 @@ export interface AgencyMilestone {
   description?: string;
 }
 
+export interface UniversityServiceFeeOverride {
+  university_id: string;
+  university_name: string;
+  service_charge_amount: number;
+  visa_documents_amount?: number;
+  currency: 'INR' | 'EUR' | 'USD';
+  notes?: string;
+}
+
+export interface CustomPaymentItem {
+  id: string;
+  title: string;
+  amount: number;
+  currency: 'INR' | 'EUR' | 'USD';
+  gst_enabled: boolean;
+  trigger_stage:
+    | 'before_reg'
+    | 'after_agreement'
+    | 'before_application'
+    | 'after_offer'
+    | 'before_visa'
+    | 'after_visa'
+    | 'pre_departure'
+    | 'custom';
+  trigger_label: string;
+  recipient: 'ferex' | 'direct_third_party';
+  recipient_label: string;
+  description: string;
+  enabled: boolean;
+}
+
 export interface SystemFeeConfig {
-  // Advanced Registration Fee configuration
+  // ── Flyviz Payment 1: Registration Fee ─────────────────────────────────────
   advance_registration_fee_enabled: boolean;
   advance_registration_fee_amount: number;
   advance_registration_fee_currency: 'INR' | 'EUR' | 'USD';
   gst_enabled_registration_fee: boolean;
+  registration_fee_tax_type: string;
 
-  // Installment Payment & Verification Schedule
+  // ── Flyviz Payment 2: Cost for Documents for Visa (Pay after the offer letter) ──
+  visa_documents_fee_enabled: boolean;
+  visa_documents_fee_amount: number;
+  visa_documents_fee_currency: 'INR' | 'EUR' | 'USD';
+  gst_enabled_visa_documents_fee: boolean;
+  visa_documents_fee_tax_type: string;
+  visa_documents_fee_trigger: string; // "Pay after the offer letter"
+
+  // ── Flyviz Payment 3: Service Charge (After visa) ──────────────────────────
+  service_charge_enabled: boolean;
+  service_charge_amount: number;
+  service_charge_currency: 'INR' | 'EUR' | 'USD';
+  gst_enabled_service_charge: boolean;
+  service_charge_tax_type: string;
+  service_charge_trigger: string; // "Pay after visa"
+
+  // ── University-Wise Service Fee Overrides ──────────────────────────────────
+  university_service_fees: UniversityServiceFeeOverride[];
+
+  // ── Additional Dynamic Payments (Customizable before/after any step) ───────
+  custom_payments: CustomPaymentItem[];
+
+  // ── Direct Student Payment Notices (NOT to Ferex) ──────────────────────────
+  direct_payments_info: {
+    university_application_note: string;
+    tuition_fee_note: string;
+    vfs_charge_note: string;
+  };
+
+  // ── Installment Schedule & Legacy Compatibility ───────────────────────────
   installment_schedule_enabled: boolean;
   tuition_installment_enabled: boolean;
   installment_percentages: {
@@ -26,7 +87,6 @@ export interface SystemFeeConfig {
     installment_3: number;
   };
 
-  // Agency Fee Separation
   separate_agency_fee_enabled: boolean;
   agency_fee_model: 'agency_fee_only' | 'milestones' | 'milestone_plus_fee';
   agency_fee_amount: number;
@@ -35,21 +95,16 @@ export interface SystemFeeConfig {
   agency_fee_tax_type: string;
   agency_milestones: AgencyMilestone[];
 
-  // VFS Fee Tax
   gst_enabled_vfs_fee: boolean;
   vfs_fee_tax_type: string;
 
-  // Tuition installment control
   tuition_payment_mode: 'single' | 'installment';
   tuition_installments_platform_enabled: boolean;
 
-  // Tax type configuration
   tax_type: 'GST' | 'VAT' | 'SALES_TAX' | string;
   gst_enabled_tuition_fee: boolean;
   tuition_fee_tax_type: string;
-  registration_fee_tax_type: string;
 
-  // Supported payment channels
   payment_gateways: {
     phonepe_upi_enabled: boolean;
     phonepe_merchant_id?: string;
@@ -57,7 +112,6 @@ export interface SystemFeeConfig {
     cash_admin_enabled: boolean;
   };
 
-  // Basic Invoice & Tax Settings (18% GST: CGST 9% + SGST 9%)
   invoice_settings: {
     company_gstin: string;
     company_pan: string;
@@ -71,7 +125,6 @@ export interface SystemFeeConfig {
     terms_conditions: string;
   };
 
-  // Legacy fallback compatibility
   currency?: string;
   default_agency_fee?: string;
   default_vfs_fee?: string;
@@ -84,10 +137,41 @@ export interface SystemFeeConfig {
 const STORAGE_KEY = 'ferex_system_fee_config';
 
 export const DEFAULT_FEE_CONFIG: SystemFeeConfig = {
+  // Payment 1: Registration Fee
   advance_registration_fee_enabled: true,
   advance_registration_fee_amount: 1500,
   advance_registration_fee_currency: 'INR',
   gst_enabled_registration_fee: true,
+  registration_fee_tax_type: 'GST 18% (CGST 9% + SGST 9% | SAC 9983)',
+
+  // Payment 2: Cost for Documents for Visa — pay after offer letter
+  visa_documents_fee_enabled: true,
+  visa_documents_fee_amount: 15000,
+  visa_documents_fee_currency: 'INR',
+  gst_enabled_visa_documents_fee: true,
+  visa_documents_fee_tax_type: 'GST 18% (CGST 9% + SGST 9% | SAC 9983)',
+  visa_documents_fee_trigger: 'Pay after the offer letter',
+
+  // Payment 3: Service Charge — after visa
+  service_charge_enabled: true,
+  service_charge_amount: 25000,
+  service_charge_currency: 'INR',
+  gst_enabled_service_charge: true,
+  service_charge_tax_type: 'GST 18% (CGST 9% + SGST 9% | SAC 9983)',
+  service_charge_trigger: 'Pay after visa',
+
+  // University-wise overrides
+  university_service_fees: [],
+
+  // Additional dynamic payments configured by Admin
+  custom_payments: [],
+
+  // Direct Student Payments (NOT to Ferex/Flyviz)
+  direct_payments_info: {
+    university_application_note: 'Paid by the student directly to the university application portal.',
+    tuition_fee_note: 'Paid by the student directly to the university official account / Flywire / Convera.',
+    vfs_charge_note: 'Paid by the student directly to VFS Global / Consulate appointment booking system.',
+  },
 
   installment_schedule_enabled: false,
   tuition_installment_enabled: false,
@@ -105,9 +189,8 @@ export const DEFAULT_FEE_CONFIG: SystemFeeConfig = {
   agency_fee_tax_type: 'GST 18% (CGST 9% + SGST 9% | SAC 9983)',
   agency_milestones: [
     { id: 'm-1', name: 'Application Processing & Eligibility Review', amount: 5000, due_trigger: 'On Application Lodgement', description: 'Document screening & university dossier review' },
-    { id: 'm-2', name: 'Offer Letter Issuance & Placement', amount: 8000, due_trigger: 'On Unconditional Offer Release', description: 'Institutional placement & admission validation' },
-    { id: 'm-3', name: 'VFS Visa File Preparation & Advisory', amount: 8000, due_trigger: 'On Visa Slot Booking', description: 'SOP crafting, bank statement validation, mock interview' },
-    { id: 'm-4', name: 'Pre-Departure Briefing & Airport Transfer', amount: 4000, due_trigger: 'On Visa Result Confirmed', description: 'Foreign exchange, student accommodation & arrival pickup' },
+    { id: 'm-2', name: 'Cost for Documents for Visa', amount: 15000, due_trigger: 'Pay after the offer letter', description: 'Apostilles, official translations & embassy document preparation' },
+    { id: 'm-3', name: 'Ferex Service Charge', amount: 25000, due_trigger: 'Pay after visa', description: 'Comprehensive admissions placement & visa outcome clearance' },
   ],
 
   gst_enabled_vfs_fee: false,
@@ -119,7 +202,6 @@ export const DEFAULT_FEE_CONFIG: SystemFeeConfig = {
   tax_type: 'GST',
   gst_enabled_tuition_fee: false,
   tuition_fee_tax_type: 'No Tax (Direct University)',
-  registration_fee_tax_type: 'GST 18% (CGST 9% + SGST 9% | SAC 9983)',
 
   payment_gateways: {
     phonepe_upi_enabled: true,
@@ -131,14 +213,14 @@ export const DEFAULT_FEE_CONFIG: SystemFeeConfig = {
   invoice_settings: {
     company_gstin: '32AAGCF8602A1Z8',
     company_pan: 'AAGCF8602A',
-    company_address: '12/640 Thachukuzhi, Companipady Road, Nellikuzhy PO, Kothamangalam, Kerala - 686 691',
+    company_address: '12/640 Thachukuzhi, Companipady Road , Nellikuzhy PO, Kothamangalam, Kerala - 686 691',
     invoice_prefix: 'FRX-INV',
     receipt_prefix: 'FRX-RCP',
     tax_rate_percent: 18,
     cgst_percent: 9,
     sgst_percent: 9,
     sac_code: '9983',
-    terms_conditions: 'All consulting and onboarding services are billed under Indian GST SAC 9983 (18% GST: CGST 9% + SGST 9%). Governed by FEREX Admission Terms.',
+    terms_conditions: 'Payments to Ferex Education (under Ferex Ventures Pvt Ltd) cover registration, visa document processing, and service charges under Indian GST SAC 9983. Tuition fees, university application fees, and VFS charges are paid directly by the student to respective institutions.',
   },
 
   currency: '₹',
@@ -163,7 +245,7 @@ export function getSystemFeeConfig(): SystemFeeConfig {
         ...(parsed.invoice_settings || {}),
         company_gstin: parsed.invoice_settings?.company_gstin && parsed.invoice_settings.company_gstin !== '32AABCF1234F1Z8' ? parsed.invoice_settings.company_gstin : '32AAGCF8602A1Z8',
         company_pan: parsed.invoice_settings?.company_pan && parsed.invoice_settings.company_pan !== 'AABCF1234F' ? parsed.invoice_settings.company_pan : 'AAGCF8602A',
-        company_address: parsed.invoice_settings?.company_address && !parsed.invoice_settings.company_address.includes('Infopark') ? parsed.invoice_settings.company_address : '12/640 Thachukuzhi, Companipady Road, Nellikuzhy PO, Kothamangalam, Kerala - 686 691',
+        company_address: parsed.invoice_settings?.company_address && !parsed.invoice_settings.company_address.includes('Infopark') ? parsed.invoice_settings.company_address : '12/640 Thachukuzhi, Companipady Road , Nellikuzhy PO, Kothamangalam, Kerala - 686 691',
         tax_rate_percent: parsed.invoice_settings?.tax_rate_percent !== undefined && parsed.invoice_settings?.tax_rate_percent > 0 ? parsed.invoice_settings.tax_rate_percent : 18,
         cgst_percent: parsed.invoice_settings?.cgst_percent ?? 9,
         sgst_percent: parsed.invoice_settings?.sgst_percent ?? 9,
@@ -175,9 +257,15 @@ export function getSystemFeeConfig(): SystemFeeConfig {
         ...parsed,
         advance_registration_fee_amount: amount,
         advance_registration_fee_inr: amount,
+        visa_documents_fee_amount: parsed.visa_documents_fee_amount !== undefined ? Number(parsed.visa_documents_fee_amount) : DEFAULT_FEE_CONFIG.visa_documents_fee_amount,
+        service_charge_amount: parsed.service_charge_amount !== undefined ? Number(parsed.service_charge_amount) : (parsed.agency_fee_amount !== undefined ? Number(parsed.agency_fee_amount) : DEFAULT_FEE_CONFIG.service_charge_amount),
+        university_service_fees: Array.isArray(parsed.university_service_fees) ? parsed.university_service_fees : [],
+        custom_payments: Array.isArray(parsed.custom_payments) ? parsed.custom_payments : [],
+        direct_payments_info: { ...DEFAULT_FEE_CONFIG.direct_payments_info, ...(parsed.direct_payments_info || {}) },
         gst_enabled_registration_fee: parsed.gst_enabled_registration_fee !== undefined ? parsed.gst_enabled_registration_fee : true,
+        gst_enabled_visa_documents_fee: parsed.gst_enabled_visa_documents_fee !== undefined ? parsed.gst_enabled_visa_documents_fee : true,
+        gst_enabled_service_charge: parsed.gst_enabled_service_charge !== undefined ? parsed.gst_enabled_service_charge : true,
         separate_agency_fee_enabled: parsed.separate_agency_fee_enabled !== undefined ? parsed.separate_agency_fee_enabled : true,
-        gst_enabled_agency_fee: parsed.gst_enabled_agency_fee !== undefined ? parsed.gst_enabled_agency_fee : true,
         installment_percentages: { ...DEFAULT_FEE_CONFIG.installment_percentages, ...(parsed.installment_percentages || {}) },
         payment_gateways: { ...DEFAULT_FEE_CONFIG.payment_gateways, ...(parsed.payment_gateways || {}) },
         invoice_settings: mergedInvoiceSettings,
@@ -207,7 +295,10 @@ export function saveSystemFeeConfig(config: Partial<SystemFeeConfig>): SystemFee
     },
     payment_gateways: {
       ...current.payment_gateways,
-    }
+      ...(config.payment_gateways || {})
+    },
+    university_service_fees: config.university_service_fees !== undefined ? config.university_service_fees : current.university_service_fees,
+    custom_payments: config.custom_payments !== undefined ? config.custom_payments : current.custom_payments,
   };
 
   // Sync to localStorage
@@ -226,7 +317,6 @@ export function saveSystemFeeConfig(config: Partial<SystemFeeConfig>): SystemFee
       const admin = await getAdminSupabaseClient();
       const now = new Date().toISOString();
       
-      // Save to both fee_config and ferex_fee_governance_config
       const { error } = await admin.from('system_config').upsert([
         { key: 'fee_config', value: updated, updated_at: now },
         { key: 'ferex_fee_governance_config', value: updated, updated_at: now }
@@ -265,6 +355,8 @@ export async function fetchSystemFeeConfigAsync(): Promise<SystemFeeConfig> {
           ...govConfig,
           advance_registration_fee_amount: amount,
           advance_registration_fee_inr: amount,
+          university_service_fees: Array.isArray(govConfig.university_service_fees) ? govConfig.university_service_fees : local.university_service_fees,
+          custom_payments: Array.isArray(govConfig.custom_payments) ? govConfig.custom_payments : local.custom_payments,
         };
 
         try {

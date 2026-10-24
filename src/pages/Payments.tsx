@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   CreditCard, CheckCircle2, X, Upload, Clock,
   AlertCircle, FileText, Eye, QrCode, ShieldCheck, Building2, Briefcase, ChevronRight,
-  Landmark, ShieldAlert, Check
+  Landmark, ShieldAlert, Check, Lock, Sparkles, ExternalLink, Info, ArrowUpRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card } from '../components/Card';
@@ -14,6 +14,8 @@ import { usePayments } from '../hooks/usePayments';
 import { useApplications } from '../hooks/useApplications';
 import { useUniversities } from '../hooks/useUniversities';
 import { useFeeConfig } from '../hooks/useFeeConfig';
+import { useVisa } from '../hooks/useVisa';
+import { isAgreementSigned } from '../lib/api/agreement';
 import { createValidInvoicePdfBlob } from '../lib/api/payments';
 import { InvoiceModal, type InvoiceData } from '../components/InvoiceModal';
 import { UnifiedPaymentModal } from '../components/UnifiedPaymentModal';
@@ -59,22 +61,23 @@ export function formatFeeEURandINR(feeStr?: string | number): string {
   const suffix = hasYr ? ' / yr' : hasMo ? ' / mo' : '';
 
   if (str.includes('€') || str.toLowerCase().includes('eur')) {
-    const inrVal = Math.round(num * 90);
-    return `€${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
-  } else if (str.includes('₹') || str.toLowerCase().includes('inr') || (!str.includes('€') && !str.includes('$') && !str.includes('£') && num > 1000 && !hasYr)) {
-    const eurVal = Math.round(num / 90);
-    return `₹${num.toLocaleString('en-IN')}${suffix} (~€${eurVal.toLocaleString('en-US')}${suffix})`;
-  } else if (str.includes('£')) {
-    const inrVal = Math.round(num * 105);
-    return `£${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
-  } else if (str.includes('$') || str.includes('CAD')) {
-    const inrVal = str.includes('CAD') ? Math.round(num * 62) : Math.round(num * 84);
-    return `$${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+    const inr = Math.round(num * 90);
+    return `€${num.toLocaleString('en-US')}${suffix} (~₹${inr.toLocaleString('en-IN')}${suffix})`;
+  }
+  if (str.includes('₹') || str.toLowerCase().includes('inr')) {
+    const eur = Math.round(num / 90);
+    return `₹${num.toLocaleString('en-IN')}${suffix} (~€${eur.toLocaleString('en-US')}${suffix})`;
+  }
+  if (str.includes('£') || str.toLowerCase().includes('gbp')) {
+    const inr = Math.round(num * 105);
+    return `£${num.toLocaleString('en-US')}${suffix} (~₹${inr.toLocaleString('en-IN')}${suffix})`;
+  }
+  if (str.includes('$') || str.toLowerCase().includes('usd')) {
+    const inr = Math.round(num * 84);
+    return `$${num.toLocaleString('en-US')}${suffix} (~₹${inr.toLocaleString('en-IN')}${suffix})`;
   }
 
-  // Default fallback EUR to INR
-  const inrVal = Math.round(num * 90);
-  return `€${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+  return str;
 }
 
 export function parseFeeToINR(feeStr?: string | number): number {
@@ -102,7 +105,7 @@ export function parseFeeToINR(feeStr?: string | number): number {
 
 export interface PaymentItem {
   id: string;
-  itemType: 'advanced_registration' | 'agency_fee' | 'vfs_fee' | 'tuition_installment';
+  itemType: 'advanced_registration' | 'visa_documents_fee' | 'service_charge' | 'agency_fee' | 'vfs_fee' | 'tuition_installment' | 'custom_fee' | 'university_app_fee';
   title: string;
   stageName: string;
   amount: number;
@@ -111,6 +114,8 @@ export interface PaymentItem {
   dueDateStr: string;
   status: 'Paid' | 'Pending Verification' | 'Rejected' | 'Pending' | 'Upcoming';
   unlocked: boolean;
+  lockReason?: string;
+  payee?: 'ferex' | 'direct_third_party';
   notes?: string;
   utr?: string;
   verificationRequirement?: string;
@@ -123,6 +128,7 @@ export const Payments: React.FC = () => {
   const { applications } = useApplications(user?.id);
   const { universities } = useUniversities();
   const { config } = useFeeConfig();
+  const { records: visaRecords } = useVisa(user?.id);
 
   const [viewInvoice, setViewInvoice] = useState<InvoiceData | null>(null);
   const [onlinePayItem, setOnlinePayItem] = useState<PaymentItem | null>(null);
@@ -162,57 +168,56 @@ export const Payments: React.FC = () => {
   const selectedCourse = activeApp?.course || activeApp?.program_name || 'Degree Program';
   const selectedUniversityName = appliedUniversity?.name || activeApp?.university_name || 'Selected University';
 
-  // 2. Identify Payments from Database
+  // University-Wise Fee Override Check
+  const uniOverride = useMemo(() => {
+    const targetId = appliedUniversity?.id || activeApp?.university_id;
+    const targetName = appliedUniversity?.name || activeApp?.university_name;
+    return config.university_service_fees?.find(o =>
+      (targetId && o.university_id === targetId) ||
+      (targetName && o.university_name?.toLowerCase().trim() === targetName.toLowerCase().trim())
+    ) || null;
+  }, [appliedUniversity, activeApp, config.university_service_fees]);
+
+  // Stage milestone tracking for locking/unlocking fees
+  const hasOffer = applications.some(a =>
+    (a.status as string) === 'Offer Issued' ||
+    (a.status as string) === 'Accepted' ||
+    (a.status as string) === 'Final Acceptance Issued' ||
+    Boolean(a.offer_letter_url)
+  );
+
+  const visaRecord = visaRecords?.find(r =>
+    (user?.id && r.student_id === user.id) ||
+    (r.student_name && studentName.toLowerCase().includes(r.student_name.toLowerCase()))
+  );
+  const rawOutcome = (visaRecord as any)?.decision_outcome ||
+    (visaRecord?.status_label?.toLowerCase().includes('approv') ? 'Approved' : 'Pending');
+  const isVisaApproved = rawOutcome === 'Approved';
+
+  // ───────────────────────────────────────────────────────────
+  // ── 3 Payments to Flyviz / Ferex ───────────────────────────
+  // ───────────────────────────────────────────────────────────
+
+  // 1. Registration Fee: "Registration — you already paid."
   const advPaymentRecord = dbPayments.find(p => {
     const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
     return text.includes('registration') || text.includes('advance') || text.includes('audit deposit') || (p as any).stage_number === 1;
   });
   const isAdvFeePaid = advPaymentRecord?.status === 'Paid' || advPaymentRecord?.status === 'Verified';
-
-  const agencyPaymentRecord = dbPayments.find(p => {
-    const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
-    return text.includes('agency') && !text.includes('tuition');
-  });
-  const isAgencyFeePaid = agencyPaymentRecord?.status === 'Paid' || agencyPaymentRecord?.status === 'Verified';
-
-  const vfsPaymentRecord = dbPayments.find(p => {
-    const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
-    return text.includes('vfs') || text.includes('visa gov') || text.includes('consular fee');
-  });
-  const isVfsFeePaid = vfsPaymentRecord?.status === 'Paid' || vfsPaymentRecord?.status === 'Verified';
-
-  const tuitionSingleRecord = dbPayments.find(p => {
-    const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
-    return text.includes('tuition') && !text.includes('agency') && !text.includes('#');
-  });
-  const isTuitionSinglePaid = tuitionSingleRecord?.status === 'Paid' || tuitionSingleRecord?.status === 'Verified';
-
-  // 3. Item 1: Advanced Registration Fee (Platform Intake Deposit from Governance)
-  const isAdvanceFeeEnabled = config.advance_registration_fee_enabled !== false;
-  const configuredAdvanceAmount = Number(config.advance_registration_fee_amount ?? config.advance_registration_fee_inr ?? 1500);
-  const advanceFeeCurrency = config.advance_registration_fee_currency || 'INR';
-
-  // Display actual amount paid if paid, or live configured amount if unpaid
+  const configuredAdvanceAmount = Number(config.advance_registration_fee_amount ?? 1500);
   const advDisplayAmount = isAdvFeePaid && advPaymentRecord?.amount ? Number(advPaymentRecord.amount) : configuredAdvanceAmount;
-  const advDisplayFormatted = isAdvFeePaid && advPaymentRecord?.amount
-    ? `₹${Number(advPaymentRecord.amount).toLocaleString('en-IN')}`
-    : `${advanceFeeCurrency === 'EUR' ? '€' : advanceFeeCurrency === 'USD' ? '$' : '₹'}${configuredAdvanceAmount.toLocaleString('en-IN')}`;
+  const advDisplayFormatted = `₹${advDisplayAmount.toLocaleString('en-IN')}`;
 
   const advFeeItem: PaymentItem = {
-    id: 'fee-advance-reg',
+    id: 'fee-flyviz-registration',
     itemType: 'advanced_registration',
-    title: isAdvFeePaid
-      ? `Advanced Registration Fee (${advDisplayFormatted})`
-      : isAdvanceFeeEnabled
-      ? `Advanced Registration Fee (${advDisplayFormatted})`
-      : 'Advanced Registration Fee (Waived by Policy)',
-    stageName: 'Initial Platform Intake & Legalization Audit',
-    amount: isAdvFeePaid ? advDisplayAmount : (isAdvanceFeeEnabled ? configuredAdvanceAmount : 0),
+    payee: 'ferex',
+    title: isAdvFeePaid ? '1. Registration — you already paid.' : '1. Registration Fee',
+    stageName: 'Stage 1: Lead Inquiry & Platform Intake',
+    amount: advDisplayAmount,
     amountFormatted: advDisplayFormatted,
-    description: isAdvanceFeeEnabled
-      ? 'Advisory fee, student eligibility verification, institutional seat reservation, and initial compliance audit.'
-      : 'Advanced registration deposit has been waived by administrative policy.',
-    dueDateStr: isAdvFeePaid ? 'Settled & Verified' : 'Due Before Application Lodging',
+    description: 'Advisory fee, student eligibility evaluation, profile verification, and institutional seat reservation.',
+    dueDateStr: isAdvFeePaid ? 'Settled & Cleared' : 'Due on Student Signup / Onboarding',
     status: isAdvFeePaid
       ? 'Paid'
       : advPaymentRecord?.status === 'Pending Verification'
@@ -225,87 +230,154 @@ export const Payments: React.FC = () => {
     utr: advPaymentRecord?.utr_number,
   };
 
-  // 4. Item 2: Separate Agency Processing Fee (Varies upon Country & University)
-  const rawAgencyFeeStr = appliedUniversity?.agency_fee || (config.agency_fee_amount ? (`₹${Number(config.agency_fee_amount).toLocaleString('en-IN')}`) : (config.default_agency_fee || '₹25,000'));
-  const configuredAgencyInr = parseFeeToINR(rawAgencyFeeStr);
-  const agencyDisplayAmount = isAgencyFeePaid && agencyPaymentRecord?.amount ? Number(agencyPaymentRecord.amount) : configuredAgencyInr;
-  const agencyDisplayFormatted = isAgencyFeePaid && agencyPaymentRecord?.amount
-    ? `₹${Number(agencyPaymentRecord.amount).toLocaleString('en-IN')}`
-    : formatFeeEURandINR(rawAgencyFeeStr);
-  const agencyFeeDesc = appliedUniversity?.agency_fee_description || 'FEREX Comprehensive Admissions Processing, Document Legalization Guidance & Offer Letter Handling';
+  // 2. Cost for Documents for Visa: "pay after the offer letter."
+  const docPaymentRecord = dbPayments.find(p => {
+    const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
+    return (text.includes('document') && text.includes('visa')) || text.includes('visa documents');
+  });
+  const isDocFeePaid = docPaymentRecord?.status === 'Paid' || docPaymentRecord?.status === 'Verified';
+  const configuredDocAmount = Number(uniOverride?.visa_documents_amount ?? config.visa_documents_fee_amount ?? 12000);
+  const docDisplayAmount = isDocFeePaid && docPaymentRecord?.amount ? Number(docPaymentRecord.amount) : configuredDocAmount;
+  const docDisplayFormatted = `₹${docDisplayAmount.toLocaleString('en-IN')}`;
 
-  const agencyFeeItem: PaymentItem = {
-    id: 'fee-agency-processing',
-    itemType: 'agency_fee',
-    title: `Agency Processing Fee (${agencyDisplayFormatted})`,
-    stageName: 'Admissions Processing & Consular Support',
-    amount: agencyDisplayAmount,
-    amountFormatted: agencyDisplayFormatted,
-    description: agencyFeeDesc,
-    dueDateStr: isAgencyFeePaid ? 'Settled & Verified' : 'Due on University Application Lodging',
-    status: isAgencyFeePaid
+  const docFeeItem: PaymentItem = {
+    id: 'fee-flyviz-documents',
+    itemType: 'visa_documents_fee',
+    payee: 'ferex',
+    title: '2. Cost for Documents for Visa',
+    stageName: 'Stage 7: Offer Letter Issued & Legalization Dossier',
+    amount: docDisplayAmount,
+    amountFormatted: docDisplayFormatted,
+    description: 'Certified translations, sworn affidavit drafting, apostille verification, and embassy checklist assembly. Pay after the offer letter.',
+    dueDateStr: isDocFeePaid ? 'Settled & Cleared' : 'Pay after the offer letter',
+    status: isDocFeePaid
       ? 'Paid'
-      : agencyPaymentRecord?.status === 'Pending Verification'
+      : docPaymentRecord?.status === 'Pending Verification'
       ? 'Pending Verification'
-      : agencyPaymentRecord?.status === 'Rejected'
+      : docPaymentRecord?.status === 'Rejected'
       ? 'Rejected'
+      : !hasOffer
+      ? 'Upcoming'
       : 'Pending',
-    unlocked: true,
-    notes: agencyPaymentRecord?.reviewer_notes,
-    utr: agencyPaymentRecord?.utr_number,
+    unlocked: hasOffer || isDocFeePaid || docPaymentRecord?.status === 'Pending Verification',
+    lockReason: 'Pay after the offer letter — Unlocks automatically once university offer letter is released.',
+    notes: docPaymentRecord?.reviewer_notes,
+    utr: docPaymentRecord?.utr_number,
   };
 
-  // 5. Item 3: VFS / Visa Gov Fee (Varies upon Country & Embassy)
-  const rawVfsFeeStr = appliedUniversity?.vfs_fee || config.default_vfs_fee || '₹15,000';
-  const configuredVfsInr = parseFeeToINR(rawVfsFeeStr);
-  const vfsDisplayAmount = isVfsFeePaid && vfsPaymentRecord?.amount ? Number(vfsPaymentRecord.amount) : configuredVfsInr;
-  const vfsDisplayFormatted = isVfsFeePaid && vfsPaymentRecord?.amount
-    ? `₹${Number(vfsPaymentRecord.amount).toLocaleString('en-IN')}`
-    : formatFeeEURandINR(rawVfsFeeStr);
+  // 3. Service Charge: "after visa."
+  const serviceChargeRecord = dbPayments.find(p => {
+    const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
+    return (text.includes('service charge') || text.includes('agency fee')) && !text.includes('tuition');
+  });
+  const isServiceChargePaid = serviceChargeRecord?.status === 'Paid' || serviceChargeRecord?.status === 'Verified';
+  const configuredServiceAmount = Number(
+    uniOverride?.service_charge_amount ??
+    config.service_charge_amount ??
+    (config.agency_fee_amount ? Number(config.agency_fee_amount) : 25000)
+  );
+  const serviceDisplayAmount = isServiceChargePaid && serviceChargeRecord?.amount ? Number(serviceChargeRecord.amount) : configuredServiceAmount;
+  const serviceDisplayFormatted = `₹${serviceDisplayAmount.toLocaleString('en-IN')}`;
 
-  const vfsFeeItem: PaymentItem = {
-    id: 'fee-vfs-gov',
-    itemType: 'vfs_fee',
-    title: `VFS / Visa Gov Fee (${vfsDisplayFormatted})`,
-    stageName: 'Embassy & VFS Biometrics Filing',
-    amount: vfsDisplayAmount,
-    amountFormatted: vfsDisplayFormatted,
-    description: 'Official government visa application charge, biometric enrolment, and consular appointment booking at VFS Global / Embassy.',
-    dueDateStr: isVfsFeePaid ? 'Settled & Verified' : 'Due Prior to Visa Appointment',
-    status: isVfsFeePaid
+  const serviceChargeItem: PaymentItem = {
+    id: 'fee-flyviz-service-charge',
+    itemType: 'service_charge',
+    payee: 'ferex',
+    title: '3. Service Charge',
+    stageName: 'Stage 9: Visa Decision & Pre-Departure',
+    amount: serviceDisplayAmount,
+    amountFormatted: serviceDisplayFormatted,
+    description: 'Full professional facilitation charge for university admission guidance, visa interview briefing, and departure support. Pay after visa approval.',
+    dueDateStr: isServiceChargePaid ? 'Settled & Cleared' : 'Pay after visa approval',
+    status: isServiceChargePaid
       ? 'Paid'
-      : vfsPaymentRecord?.status === 'Pending Verification'
+      : serviceChargeRecord?.status === 'Pending Verification'
       ? 'Pending Verification'
-      : vfsPaymentRecord?.status === 'Rejected'
+      : serviceChargeRecord?.status === 'Rejected'
       ? 'Rejected'
+      : !isVisaApproved
+      ? 'Upcoming'
       : 'Pending',
-    unlocked: true,
-    notes: vfsPaymentRecord?.reviewer_notes,
-    utr: vfsPaymentRecord?.utr_number,
+    unlocked: isVisaApproved || isServiceChargePaid || serviceChargeRecord?.status === 'Pending Verification',
+    lockReason: 'Pay after visa — Unlocks automatically once embassy grants your visa approval.',
+    notes: serviceChargeRecord?.reviewer_notes,
+    utr: serviceChargeRecord?.utr_number,
   };
 
-  // 6. Item 4: University Tuition Fee / Installments (Default Disabled unless explicitly enabled)
+  // Additional Admin Configured Custom Payments for Ferex
+  const customFerexItems: PaymentItem[] = useMemo(() => {
+    const rawList = (config.custom_payments || []).filter(c => c.enabled !== false && c.recipient === 'ferex');
+    return rawList.map(c => {
+      const match = dbPayments.find(p =>
+        (p.title && p.title.toLowerCase().includes(c.title.toLowerCase())) ||
+        (p as any).custom_payment_id === c.id
+      );
+      const isPaid = match?.status === 'Paid' || match?.status === 'Verified';
+      const isPendingVer = match?.status === 'Pending Verification';
+      const isRej = match?.status === 'Rejected';
+
+      const triggerName = c.trigger_label || c.trigger_stage || 'Custom Milestone';
+
+      return {
+        id: c.id,
+        itemType: 'custom_fee',
+        payee: 'ferex',
+        title: c.title,
+        stageName: triggerName,
+        amount: c.amount,
+        amountFormatted: `₹${c.amount.toLocaleString('en-IN')}`,
+        description: c.description || `Custom payment payable to Ferex Education for ${triggerName}.`,
+        dueDateStr: triggerName,
+        status: isPaid ? 'Paid' : isPendingVer ? 'Pending Verification' : isRej ? 'Rejected' : 'Pending',
+        unlocked: true,
+        notes: match?.reviewer_notes,
+        utr: match?.utr_number,
+      };
+    });
+  }, [config.custom_payments, dbPayments]);
+
+  // ───────────────────────────────────────────────────────────
+  // ── Direct Student Payments (NOT to Ferex) ─────────────────
+  // ───────────────────────────────────────────────────────────
+
+  // Direct Item 1: University Application Fee
+  const rawUniAppFee = (appliedUniversity as any)?.application_fee || '€100';
+  const uniAppFeeItem: PaymentItem = {
+    id: 'fee-direct-university-app',
+    itemType: 'university_app_fee',
+    payee: 'direct_third_party',
+    title: 'University Application Fee',
+    stageName: 'Stage 6: University Application Submission',
+    amount: parseFeeToINR(rawUniAppFee),
+    amountFormatted: formatFeeEURandINR(rawUniAppFee),
+    description: `Official application processing charge paid directly on ${selectedUniversityName}'s admissions portal.`,
+    dueDateStr: 'Paid directly on University Admissions Portal',
+    status: 'Pending',
+    unlocked: true,
+  };
+
+  // Direct Item 2: University Tuition Fee
   const tuitionFeeEnabled = Boolean(appliedUniversity?.tuition_fee_enabled);
   const installmentsEnabled = Boolean(appliedUniversity?.installments_enabled);
   const hasMultipleInstallments = Boolean(appliedUniversity?.installments && appliedUniversity.installments.length > 0);
 
-  // Single University Tuition Fee Item
-  const rawTuitionStr = appliedUniversity?.university_fee || appliedUniversity?.tuition_range || '€3,500 / yr';
-  const configuredTuitionInr = tuitionFeeEnabled ? parseFeeToINR(rawTuitionStr) : 0;
-  const tuitionDisplayAmount = isTuitionSinglePaid && tuitionSingleRecord?.amount ? Number(tuitionSingleRecord.amount) : configuredTuitionInr;
-  const tuitionDisplayFormatted = isTuitionSinglePaid && tuitionSingleRecord?.amount
-    ? `₹${Number(tuitionSingleRecord.amount).toLocaleString('en-IN')}`
-    : formatFeeEURandINR(rawTuitionStr);
+  const tuitionSingleRecord = dbPayments.find(p => {
+    const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
+    return text.includes('tuition') && !text.includes('agency') && !text.includes('#');
+  });
+  const isTuitionSinglePaid = tuitionSingleRecord?.status === 'Paid' || tuitionSingleRecord?.status === 'Verified';
 
+  const rawTuitionStr = appliedUniversity?.university_fee || appliedUniversity?.tuition_range || '€3,500 / yr';
   const singleTuitionItem: PaymentItem = {
-    id: 'fee-university-tuition-single',
+    id: 'fee-direct-tuition-single',
     itemType: 'tuition_installment',
-    title: `University Tuition Fee (${tuitionDisplayFormatted})`,
-    stageName: 'Direct University Tuition / Seat Confirmation',
-    amount: tuitionDisplayAmount,
-    amountFormatted: tuitionDisplayFormatted,
-    description: `Annual institutional tuition fee for ${selectedUniversityName}. Direct university bank SWIFT transfer proof or online fee settlement.`,
-    dueDateStr: isTuitionSinglePaid ? 'Settled & Verified' : 'Due on Unconditional Offer / Prior to Visa Stamping',
+    payee: 'direct_third_party',
+    title: `University Tuition Fee (${formatFeeEURandINR(rawTuitionStr)})`,
+    stageName: 'Stage 8: Tuition Remittance & Seat Acceptance',
+    amount: parseFeeToINR(rawTuitionStr),
+    amountFormatted: formatFeeEURandINR(rawTuitionStr),
+    description: `Direct university institutional tuition fee for ${selectedUniversityName}. Remitted via international bank SWIFT wire directly to the university account.`,
+    dueDateStr: isTuitionSinglePaid ? 'Remitted & Verified' : 'Due on Unconditional Offer Letter',
     status: isTuitionSinglePaid
       ? 'Paid'
       : tuitionSingleRecord?.status === 'Pending Verification'
@@ -318,78 +390,71 @@ export const Payments: React.FC = () => {
     utr: tuitionSingleRecord?.utr_number,
   };
 
-  // Multiple Milestone Tuition Items (if university has configured milestone schedule)
-  const tuitionInstallmentItems: PaymentItem[] = useMemo(() => {
-    if (!installmentsEnabled || !hasMultipleInstallments || !appliedUniversity?.installments) return [];
+  // Direct Item 3: VFS / Visa Embassy Charge
+  const vfsPaymentRecord = dbPayments.find(p => {
+    const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
+    return text.includes('vfs') || text.includes('visa gov') || text.includes('consular fee');
+  });
+  const isVfsFeePaid = vfsPaymentRecord?.status === 'Paid' || vfsPaymentRecord?.status === 'Verified';
+  const rawVfsFeeStr = appliedUniversity?.vfs_fee || config.default_vfs_fee || '₹15,000';
+  const vfsFeeItem: PaymentItem = {
+    id: 'fee-direct-vfs-gov',
+    itemType: 'vfs_fee',
+    payee: 'direct_third_party',
+    title: `VFS / Consular Embassy Charge (${formatFeeEURandINR(rawVfsFeeStr)})`,
+    stageName: 'Stage 9: Visa Appointment & Biometrics Booking',
+    amount: parseFeeToINR(rawVfsFeeStr),
+    amountFormatted: formatFeeEURandINR(rawVfsFeeStr),
+    description: 'Official government consular visa fee & biometric appointment booking charge paid directly on the VFS Global or Embassy appointment portal.',
+    dueDateStr: isVfsFeePaid ? 'Settled & Verified' : 'Paid directly on VFS / Embassy portal prior to appointment',
+    status: isVfsFeePaid
+      ? 'Paid'
+      : vfsPaymentRecord?.status === 'Pending Verification'
+      ? 'Pending Verification'
+      : vfsPaymentRecord?.status === 'Rejected'
+      ? 'Rejected'
+      : 'Pending',
+    unlocked: true,
+    notes: vfsPaymentRecord?.reviewer_notes,
+    utr: vfsPaymentRecord?.utr_number,
+  };
 
-    return appliedUniversity.installments.map((inst, index) => {
-      const instTitle = inst.title || inst.name || `Tuition Installment #${index + 1}`;
-      const instStage = inst.due_stage || inst.due_trigger || 'Tuition Milestone';
+  // Direct Custom Payments configured by Admin
+  const customDirectItems: PaymentItem[] = useMemo(() => {
+    const rawList = (config.custom_payments || []).filter(c => c.enabled !== false && c.recipient === 'direct_third_party');
+    return rawList.map(c => {
+      const match = dbPayments.find(p =>
+        (p.title && p.title.toLowerCase().includes(c.title.toLowerCase())) ||
+        (p as any).custom_payment_id === c.id
+      );
+      const isPaid = match?.status === 'Paid' || match?.status === 'Verified';
+      const isPendingVer = match?.status === 'Pending Verification';
 
-      const instRecord = dbPayments.find(p => {
-        if ((p as any).installment_id === inst.id) return true;
-        const text = (String(p.title || '') + ' ' + String(p.description || '') + ' ' + String(p.payment_type || '')).toLowerCase();
-        return (instTitle && text.includes(instTitle.toLowerCase())) ||
-               (inst.name && text.includes(inst.name.toLowerCase())) ||
-               text.includes(`installment #${index + 1}`) ||
-               text.includes(`tuition installment #${index + 1}`);
-      });
-
-      const isPaid = instRecord?.status === 'Paid' || instRecord?.status === 'Verified';
-      const isPendingVerification = instRecord?.status === 'Pending Verification';
-      const isRejected = instRecord?.status === 'Rejected';
-
-      const rawAmountStr = String(inst.amount || '€1,750');
-      const amountInr = isPaid && instRecord?.amount ? Number(instRecord.amount) : parseFeeToINR(rawAmountStr);
-      const amountFormatted = isPaid && instRecord?.amount ? `₹${Number(instRecord.amount).toLocaleString('en-IN')}` : formatFeeEURandINR(rawAmountStr);
+      const triggerName = c.trigger_label || c.trigger_stage || 'Direct Remittance';
 
       return {
-        id: inst.id || `inst-${index + 1}`,
-        itemType: 'tuition_installment',
-        installmentIndex: index + 1,
-        title: instTitle,
-        stageName: instStage,
-        amount: amountInr,
-        amountFormatted,
-        description: `Institutional tuition fee milestone for ${selectedUniversityName}. Verification Schedule Trigger: ${instStage}.`,
-        dueDateStr: instStage,
-        verificationRequirement: inst.verification_requirement || 'SWIFT Transfer Receipt Upload',
-        status: isPaid
-          ? 'Paid'
-          : isPendingVerification
-          ? 'Pending Verification'
-          : isRejected
-          ? 'Rejected'
-          : 'Pending',
+        id: c.id,
+        itemType: 'custom_fee',
+        payee: 'direct_third_party',
+        title: c.title,
+        stageName: triggerName,
+        amount: c.amount,
+        amountFormatted: `₹${c.amount.toLocaleString('en-IN')}`,
+        description: c.description || `Direct payment paid by student for ${triggerName}. Not payable to Ferex.`,
+        dueDateStr: triggerName,
+        status: isPaid ? 'Paid' : isPendingVer ? 'Pending Verification' : 'Pending',
         unlocked: true,
-        notes: instRecord?.reviewer_notes,
-        utr: instRecord?.utr_number,
+        notes: match?.reviewer_notes,
+        utr: match?.utr_number,
       };
     });
-  }, [installmentsEnabled, hasMultipleInstallments, appliedUniversity, dbPayments, selectedUniversityName]);
+  }, [config.custom_payments, dbPayments]);
 
-  // 7. Financial Outlay Totals
-  const tuitionTotalDue = installmentsEnabled
-    ? (hasMultipleInstallments ? tuitionInstallmentItems.reduce((acc, i) => acc + i.amount, 0) : singleTuitionItem.amount)
-    : (tuitionFeeEnabled ? singleTuitionItem.amount : 0);
-
-  const tuitionTotalPaid = installmentsEnabled
-    ? (hasMultipleInstallments
-        ? tuitionInstallmentItems.filter(i => i.status === 'Paid').reduce((acc, i) => acc + i.amount, 0)
-        : (singleTuitionItem.status === 'Paid' ? singleTuitionItem.amount : 0))
-    : (tuitionFeeEnabled && singleTuitionItem.status === 'Paid' ? singleTuitionItem.amount : 0);
-
-  const totalDueAmount = advFeeItem.amount +
-    (hasCourseSelected ? agencyFeeItem.amount : 0) +
-    (hasCourseSelected ? vfsFeeItem.amount : 0) +
-    (hasCourseSelected ? tuitionTotalDue : 0);
-
-  const totalPaidAmount = (advFeeItem.status === 'Paid' ? advFeeItem.amount : 0) +
-    (hasCourseSelected && agencyFeeItem.status === 'Paid' ? agencyFeeItem.amount : 0) +
-    (hasCourseSelected && vfsFeeItem.status === 'Paid' ? vfsFeeItem.amount : 0) +
-    (hasCourseSelected ? tuitionTotalPaid : 0);
-
-  const totalPendingAmount = Math.max(0, totalDueAmount - totalPaidAmount);
+  // Financial Totals
+  const flyvizItems = [advFeeItem, docFeeItem, serviceChargeItem, ...customFerexItems];
+  const flyvizTotalAmount = flyvizItems.reduce((acc, i) => acc + i.amount, 0);
+  const flyvizTotalPaid = flyvizItems.filter(i => i.status === 'Paid').reduce((acc, i) => acc + i.amount, 0);
+  const flyvizTotalPending = Math.max(0, flyvizTotalAmount - flyvizTotalPaid);
 
   // Modal Submission Handlers
   const [payMethod, setPayMethod] = useState('Direct NEFT / IMPS Bank Wire');
@@ -404,7 +469,6 @@ export const Payments: React.FC = () => {
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvv, setCardCvv] = useState('');
-  const [upiId, setUpiId] = useState('');
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -433,13 +497,13 @@ export const Payments: React.FC = () => {
 
       const paymentTypeLabel = selectedItem.itemType === 'advanced_registration'
         ? 'Advanced Registration Fee'
-        : selectedItem.itemType === 'agency_fee'
-        ? 'Agency Processing Fee'
+        : selectedItem.itemType === 'visa_documents_fee'
+        ? 'Cost for Documents for Visa'
+        : selectedItem.itemType === 'service_charge'
+        ? 'Service Charge'
         : selectedItem.itemType === 'vfs_fee'
         ? 'VFS / Visa Gov Fee'
-        : selectedItem.installmentIndex
-        ? `Tuition Installment #${selectedItem.installmentIndex}`
-        : 'University Tuition Fee';
+        : selectedItem.title;
 
       const completedPayment = await processPayment({
         student_id: studentIdVal,
@@ -491,18 +555,18 @@ export const Payments: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      const studentIdVal = user?.id || 'demo-student-id';
+      const studentIdVal = user?.id;
       const studentNameVal = profile?.full_name || user?.email?.split('@')[0] || 'Student';
 
       const paymentTypeLabel = selectedItem.itemType === 'advanced_registration'
         ? 'Advanced Registration Fee'
-        : selectedItem.itemType === 'agency_fee'
-        ? 'Agency Processing Fee'
+        : selectedItem.itemType === 'visa_documents_fee'
+        ? 'Cost for Documents for Visa'
+        : selectedItem.itemType === 'service_charge'
+        ? 'Service Charge'
         : selectedItem.itemType === 'vfs_fee'
         ? 'VFS / Visa Gov Fee'
-        : selectedItem.installmentIndex
-        ? `Tuition Installment #${selectedItem.installmentIndex}`
-        : 'University Tuition Fee';
+        : selectedItem.title;
 
       await submitProof({
         student_id: studentIdVal,
@@ -520,6 +584,7 @@ export const Payments: React.FC = () => {
       setUtrNumber('');
       setReceiptUrl('');
       showToast(`Payment proof for "${selectedItem.title}" submitted for review.`);
+      window.dispatchEvent(new Event('ferex_payment_change'));
     } catch (err: any) {
       setIsSubmitting(false);
       showToast(`Error submitting payment: ${err.message || 'Submission failed'}`);
@@ -547,6 +612,169 @@ export const Payments: React.FC = () => {
     showToast(`Tax invoice PDF generated for ${item.title}.`);
   };
 
+  // Reusable Payment Card Component
+  const renderPaymentCard = (item: PaymentItem, stepBadge: string, badgeAccent: string = '#58051E') => {
+    const isPaid = item.status === 'Paid';
+    const isPendingVer = item.status === 'Pending Verification';
+    const isRejected = item.status === 'Rejected';
+    const isLocked = !item.unlocked;
+
+    return (
+      <Card
+        key={item.id}
+        className={`p-5 flex flex-col justify-between transition-all select-none relative bg-white dark:bg-slate-900 border ${
+          isPaid
+            ? 'border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/10 dark:bg-emerald-950/10'
+            : isPendingVer
+            ? 'border-amber-200 dark:border-amber-900/60 bg-amber-50/10 dark:bg-amber-950/10'
+            : isRejected
+            ? 'border-red-200 dark:border-red-900/60 bg-red-50/10 dark:bg-red-950/10'
+            : isLocked
+            ? 'border-slate-200 dark:border-slate-800 opacity-80'
+            : 'border-[#58051E]/30 dark:border-[#58051E]/40 shadow-xs'
+        }`}
+      >
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <span
+              className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md"
+              style={{ backgroundColor: `${badgeAccent}15`, color: badgeAccent }}
+            >
+              {stepBadge}
+            </span>
+            {isPaid && <Badge variant="success" dot>Paid & Cleared</Badge>}
+            {isPendingVer && <Badge variant="brand" dot>In Verification</Badge>}
+            {isRejected && <Badge variant="error" dot>Action Required</Badge>}
+            {isLocked && (
+              <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                <Lock className="w-3 h-3 text-slate-400" /> Locked Stage
+              </span>
+            )}
+            {!isPaid && !isPendingVer && !isRejected && !isLocked && (
+              <Badge variant="neutral">Payment Due</Badge>
+            )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-2">
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white leading-snug">{item.title}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{item.description}</p>
+              <div className="flex items-center gap-2 mt-1.5 text-[11px] text-[#58051E] dark:text-rose-400 font-semibold">
+                <Clock className="w-3.5 h-3.5" />
+                <span>{item.dueDateStr}</span>
+              </div>
+            </div>
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/60 text-left sm:text-right shrink-0">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Required Outlay</span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white">
+                {item.amountFormatted}
+              </span>
+            </div>
+          </div>
+
+          {isLocked && item.lockReason && (
+            <div className="p-3 my-3 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl text-xs text-amber-900 dark:text-amber-300 flex items-start gap-2">
+              <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block">Stage Milestone Locked:</span>
+                {item.lockReason}
+              </div>
+            </div>
+          )}
+
+          {item.notes && isRejected && (
+            <div className="p-3 mb-3 bg-red-50/80 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg text-xs text-red-900 dark:text-red-300 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold block">Admin Feedback:</span>
+                {item.notes}
+              </div>
+            </div>
+          )}
+
+          {isPendingVer && (
+            <div className="p-3 mb-3 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg text-xs text-amber-900 dark:text-amber-300 flex items-start gap-2">
+              <Clock className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold block">Under Administrative Verification</span>
+                Reference UTR: <span className="font-mono font-semibold">{item.utr || 'Logged in Registry'}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 mt-2">
+          {isPaid ? (
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="flex-1 h-9 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Settled & Verified
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setViewInvoice({
+                    invoice_no: `FE/2026-27/${Math.floor(1000 + Math.random() * 9000)}`,
+                    student_name: studentName,
+                    amount: item.amount,
+                    currency: 'INR',
+                    description: item.title,
+                    date: new Date().toISOString(),
+                    payment_method: 'Direct Bank Wire / Online Gateway',
+                    utr_number: item.utr || 'VERIFIED-BANK-UTR-84920',
+                    sac_code: '9983',
+                    place_of_supply: 'India'
+                  })}
+                  leftIcon={<Eye className="w-3.5 h-3.5" />}
+                >
+                  Invoice (18% GST)
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleDownloadInvoice(item)}
+                  leftIcon={<FileText className="w-3.5 h-3.5" />}
+                >
+                  PDF Receipt
+                </Button>
+              </div>
+            </div>
+          ) : isPendingVer ? (
+            <div className="w-full h-9 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 animate-spin text-amber-600 dark:text-amber-400" /> Awaiting Admin Verification
+            </div>
+          ) : isLocked ? (
+            <div className="w-full h-9 bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+              <Lock className="w-3.5 h-3.5" /> Locked until prerequisite stage completion
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <Button
+                size="sm"
+                className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold"
+                onClick={() => setOnlinePayItem(item)}
+                leftIcon={<CreditCard className="w-3.5 h-3.5" />}
+              >
+                Pay Online (Card / NetBanking)
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setSelectedItem(item);
+                  setUtrNumber('');
+                }}
+                leftIcon={<Upload className="w-3.5 h-3.5" />}
+              >
+                Upload Bank Transfer Proof
+              </Button>
+            </div>
+          )}
+        </div>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6 text-left relative min-h-[600px] pb-12">
       {/* Toast Notification */}
@@ -565,748 +793,207 @@ export const Payments: React.FC = () => {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-[#58051E]/10 text-[#58051E]">
+            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-[#58051E]/10 dark:bg-[#58051E]/25 text-[#58051E] dark:text-rose-400">
               Finance & Invoices
             </span>
+            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              3 Stage Fee Model
+            </span>
           </div>
-          <h1 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
+          <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white mt-1">
             Payment Schedule
           </h1>
-          <p className="text-xs text-slate-500 font-semibold mt-0.5">
-            Review and track registration fee, university tuition, and consular payment milestones.
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+            Review official payments to Flyviz / Ferex and direct third-party tuition and consular fees.
           </p>
         </div>
 
         {appliedUniversity && (
-          <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2.5 text-xs shrink-0 self-start sm:self-auto">
-            <Building2 className="w-4 h-4 text-[#58051E]" />
+          <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-2.5 text-xs shrink-0 self-start sm:self-auto">
+            <Building2 className="w-4 h-4 text-[#58051E] dark:text-rose-400" />
             <div>
-              <span className="font-black text-slate-900 block leading-tight">{appliedUniversity.name}</span>
+              <span className="font-black text-slate-900 dark:text-white block leading-tight">{appliedUniversity.name}</span>
               <span className="text-[10px] text-slate-400 font-bold">{appliedUniversity.city}, {appliedUniversity.country}</span>
             </div>
+            {uniOverride && (
+              <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black uppercase rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                Custom Uni Rate
+              </span>
+            )}
           </div>
         )}
       </div>
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 border border-slate-200/80 bg-white">
+        <Card className="p-4 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold text-slate-500">Total Program Outlay</span>
-            <span className="text-[10px] font-bold text-slate-400">Total All Stages</span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Flyviz / Ferex Total Fees</span>
+            <span className="text-[10px] font-bold text-slate-400">3 Milestones</span>
           </div>
-          <span className="text-2xl font-black text-slate-900 leading-none">
-            ₹{totalDueAmount.toLocaleString('en-IN')}
+          <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">
+            ₹{flyvizTotalAmount.toLocaleString('en-IN')}
           </span>
           <span className="text-xs text-slate-400 block mt-2">
-            {hasCourseSelected ? `${selectedCourse} • ${selectedUniversityName}` : 'Advance Fee • Course Pending'}
+            Registration + Documents + Service Charge
           </span>
         </Card>
 
-        <Card className="p-4 border border-slate-200/80 bg-white">
+        <Card className="p-4 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold text-slate-500">Verified & Settled</span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Verified & Settled</span>
             <Badge variant="success">Cleared</Badge>
           </div>
-          <span className="text-2xl font-black text-emerald-600 leading-none">
-            ₹{totalPaidAmount.toLocaleString('en-IN')}
+          <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
+            ₹{flyvizTotalPaid.toLocaleString('en-IN')}
           </span>
-          <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
+          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
             <div
-              className="bg-emerald-600 h-full transition-all"
-              style={{ width: `${totalDueAmount > 0 ? (totalPaidAmount / totalDueAmount) * 100 : 0}%` }}
+              className="bg-emerald-600 dark:bg-emerald-500 h-full transition-all"
+              style={{ width: `${flyvizTotalAmount > 0 ? (flyvizTotalPaid / flyvizTotalAmount) * 100 : 0}%` }}
             />
           </div>
         </Card>
 
-        <Card className="p-4 border border-slate-200/80 bg-white">
+        <Card className="p-4 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold text-slate-500">Pending Balance</span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Pending Flyviz Balance</span>
             <Badge variant="neutral">Open Schedule</Badge>
           </div>
-          <span className="text-2xl font-black text-slate-900 leading-none">
-            ₹{totalPendingAmount.toLocaleString('en-IN')}
+          <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">
+            ₹{flyvizTotalPending.toLocaleString('en-IN')}
           </span>
-          <span className="text-xs text-slate-400 block mt-2">Remaining balance across open stages</span>
+          <span className="text-xs text-slate-400 block mt-2">Payable across future roadmap stages</span>
         </Card>
       </div>
 
       {/* ─────────────────────────────────────────────────────────── */}
-      {/* ── SECTION 1: Advanced Registration Fee (Default Intake) ── */}
+      {/* ── SECTION 1: Payments to Flyviz / Ferex (3 Core Steps) ─── */}
       {/* ─────────────────────────────────────────────────────────── */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-lg bg-[#58051E] text-white font-bold flex items-center justify-center text-xs">
-              01
-            </span>
-            <h2 className="text-sm font-black text-slate-900">
-              Advanced Registration Fee
-            </h2>
-            {config.gst_enabled_registration_fee !== false ? (
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                Includes {config.invoice_settings?.tax_rate_percent || 18}% GST ({config.registration_fee_tax_type || 'SAC 9983'})
-              </span>
-            ) : (
-              <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-                GST Exempt / Zero Tax
-              </span>
-            )}
-          </div>
-          <span className="text-xs text-slate-400 font-semibold">Fee & Financial Governance</span>
-        </div>
-
-        <Card
-          className={`p-5 flex flex-col justify-between transition-all select-none relative bg-white border ${
-            advFeeItem.status === 'Paid'
-              ? 'border-emerald-200/80 bg-emerald-50/10'
-              : advFeeItem.status === 'Pending Verification'
-              ? 'border-amber-200/80 bg-amber-50/10'
-              : advFeeItem.status === 'Rejected'
-              ? 'border-red-200/80 bg-red-50/10'
-              : 'border-[#58051E]/30 shadow-subtle'
-          }`}
-        >
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#58051E] bg-[#58051E]/10 px-2.5 py-1 rounded-md">
-                Official Intake Voucher
-              </span>
-              {advFeeItem.status === 'Paid' && <Badge variant="success" dot>Paid & Cleared</Badge>}
-              {advFeeItem.status === 'Pending Verification' && <Badge variant="brand" dot>In Verification</Badge>}
-              {advFeeItem.status === 'Rejected' && <Badge variant="error" dot>Action Required</Badge>}
-              {advFeeItem.status === 'Pending' && <Badge variant="neutral">Payment Due</Badge>}
+      <div className="space-y-4">
+        <div className="p-4 bg-gradient-to-r from-[#58051E]/5 via-[#58051E]/10 to-transparent dark:from-[#58051E]/20 dark:via-[#58051E]/10 dark:to-transparent border border-[#58051E]/20 dark:border-[#58051E]/30 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[#58051E] text-white flex items-center justify-center shrink-0 mt-0.5">
+              <ShieldCheck className="w-4 h-4 text-white" />
             </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-2">
-              <div>
-                <h3 className="text-base font-black text-slate-900 leading-snug">{advFeeItem.title}</h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">{advFeeItem.description}</p>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left sm:text-right shrink-0">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Intake Outlay</span>
-                <span className="text-2xl font-black text-slate-900">
-                  {advFeeItem.amountFormatted}
-                </span>
-              </div>
-            </div>
-
-            {advFeeItem.notes && advFeeItem.status === 'Rejected' && (
-              <div className="p-3 mb-3 bg-red-50/80 border border-red-200 rounded-lg text-xs text-red-900 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-semibold block">Admin Feedback:</span>
-                  {advFeeItem.notes}
-                </div>
-              </div>
-            )}
-
-            {advFeeItem.status === 'Pending Verification' && (
-              <div className="p-3 mb-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
-                <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-semibold block">Under Administrative Verification</span>
-                  Reference UTR: <span className="font-mono font-semibold">{advFeeItem.utr || 'Logged'}</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="pt-4 border-t border-slate-100 mt-2">
-            {advFeeItem.status === 'Paid' ? (
-              <div className="flex flex-col sm:flex-row items-center gap-3">
-                <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Settled & Verified
-                </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setViewInvoice({
-                      invoice_no: `FE/2026-27/${Math.floor(1000 + Math.random() * 9000)}`,
-                      student_name: studentName,
-                      amount: advFeeItem.amount,
-                      currency: 'INR',
-                      description: advFeeItem.title,
-                      date: new Date().toISOString(),
-                      payment_method: 'Direct Bank Wire / NetBanking',
-                      utr_number: advFeeItem.utr || 'VERIFIED-BANK-UTR-84920',
-                      sac_code: '9983',
-                      place_of_supply: 'India'
-                    })}
-                    leftIcon={<Eye className="w-3.5 h-3.5" />}
-                  >
-                    Invoice ({config.gst_enabled_registration_fee !== false ? `${config.invoice_settings?.tax_rate_percent || 18}% GST` : 'Tax Exempt'})
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownloadInvoice(advFeeItem)}
-                    leftIcon={<FileText className="w-3.5 h-3.5" />}
-                  >
-                    PDF Receipt
-                  </Button>
-                </div>
-              </div>
-            ) : advFeeItem.status === 'Pending Verification' ? (
-              <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Admin Verification
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row gap-2.5">
-                <Button
-                  size="sm"
-                  className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold"
-                  onClick={() => setOnlinePayItem(advFeeItem)}
-                  leftIcon={<CreditCard className="w-3.5 h-3.5" />}
-                >
-                  Pay Online (Card / NetBanking)
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedItem(advFeeItem);
-                    setUtrNumber('');
-                  }}
-                  leftIcon={<Upload className="w-3.5 h-3.5" />}
-                >
-                  Upload Bank Transfer Proof
-                </Button>
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────── */}
-      {/* ── SECTION 2: Separate Agency Processing Fee ───────────── */}
-      {/* ─────────────────────────────────────────────────────────── */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-bold flex items-center justify-center text-xs">
-              02
-            </span>
-            <h2 className="text-sm font-black text-slate-900">
-              Separate Agency Processing Fee
-            </h2>
-            {config.gst_enabled_agency_fee !== false ? (
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                Includes 18% GST ({config.agency_fee_tax_type || 'SAC 9983'})
-              </span>
-            ) : (
-              <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-                GST Exempt / Zero Tax
-              </span>
-            )}
-          </div>
-          <span className="text-xs text-slate-400 font-semibold">Admissions & Visa Filing Support</span>
-        </div>
-
-        {hasCourseSelected ? (
-          <Card
-            className={`p-5 flex flex-col justify-between transition-all select-none relative bg-white border ${
-              agencyFeeItem.status === 'Paid'
-                ? 'border-emerald-200/80 bg-emerald-50/10'
-                : agencyFeeItem.status === 'Pending Verification'
-                ? 'border-amber-200/80 bg-amber-50/10'
-                : agencyFeeItem.status === 'Rejected'
-                ? 'border-red-200/80 bg-red-50/10'
-                : 'border-indigo-200/80 shadow-xs'
-            }`}
-          >
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-200">
-                  {selectedUniversityName} Admissions Processing
-                </span>
-                {agencyFeeItem.status === 'Paid' && <Badge variant="success" dot>Paid & Cleared</Badge>}
-                {agencyFeeItem.status === 'Pending Verification' && <Badge variant="brand" dot>In Verification</Badge>}
-                {agencyFeeItem.status === 'Rejected' && <Badge variant="error" dot>Action Required</Badge>}
-                {agencyFeeItem.status === 'Pending' && <Badge variant="neutral">Payment Due</Badge>}
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-2">
-                <div>
-                  <h3 className="text-base font-black text-slate-900 leading-snug">{agencyFeeItem.title}</h3>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">{agencyFeeItem.description}</p>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left sm:text-right shrink-0">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Agency Outlay</span>
-                  <span className="text-2xl font-black text-slate-900">
-                    {agencyFeeItem.amountFormatted}
-                  </span>
-                </div>
-              </div>
-
-              {agencyFeeItem.status === 'Pending Verification' && (
-                <div className="p-3 mb-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
-                  <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-semibold block">Under Verification</span>
-                    Reference UTR: <span className="font-mono font-semibold">{agencyFeeItem.utr || 'Logged'}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 mt-2">
-              {agencyFeeItem.status === 'Paid' ? (
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Agency Processing Cleared
-                  </div>
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setViewInvoice({
-                        invoice_no: `FE/2026-27/${Math.floor(1000 + Math.random() * 9000)}`,
-                        student_name: studentName,
-                        amount: agencyFeeItem.amount,
-                        currency: 'INR',
-                        description: agencyFeeItem.title,
-                        date: new Date().toISOString(),
-                        payment_method: 'Direct Bank Wire / Online Gateway',
-                        utr_number: agencyFeeItem.utr || 'VERIFIED-BANK-UTR-94821',
-                        sac_code: '9983',
-                        place_of_supply: 'India',
-                        course_destination: selectedUniversityName
-                      })}
-                      leftIcon={<Eye className="w-3.5 h-3.5" />}
-                    >
-                      Invoice ({config.gst_enabled_agency_fee !== false ? '18% GST' : 'Tax Exempt'})
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDownloadInvoice(agencyFeeItem)}
-                      leftIcon={<FileText className="w-3.5 h-3.5" />}
-                    >
-                      PDF Receipt
-                    </Button>
-                  </div>
-                </div>
-              ) : agencyFeeItem.status === 'Pending Verification' ? (
-                <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Review
-                </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row gap-2.5">
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
-                    onClick={() => setOnlinePayItem(agencyFeeItem)}
-                    leftIcon={<QrCode className="w-3.5 h-3.5" />}
-                  >
-                    Pay Agency Fee Online
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedItem(agencyFeeItem);
-                      setUtrNumber('');
-                    }}
-                    leftIcon={<Upload className="w-3.5 h-3.5" />}
-                  >
-                    Upload Bank Transfer Proof
-                  </Button>
-                </div>
-              )}
-            </div>
-          </Card>
-        ) : (
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div>
-              <h3 className="font-bold text-slate-800">Select Destination University</h3>
-              <p className="text-slate-500 mt-0.5">
-                Agency processing fee is configured individually per destination university and country.
+              <h2 className="text-sm font-black text-slate-900 dark:text-white">
+                Payments to Flyviz / Ferex
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-0.5">
+                There are <strong>3 distinct payments to Flyviz</strong> throughout your study abroad journey.
               </p>
             </div>
-            <Link to="/student/select-university">
-              <Button size="sm" variant="outline" rightIcon={<ChevronRight className="w-3.5 h-3.5" />}>
-                Browse Universities
-              </Button>
-            </Link>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] font-bold text-[#58051E] dark:text-rose-400 bg-white/80 dark:bg-slate-900/80 px-3 py-1.5 rounded-xl border border-[#58051E]/15 self-start md:self-auto">
+            <span>1. Registration</span>
+            <span>•</span>
+            <span>2. Visa Documents (Post-Offer)</span>
+            <span>•</span>
+            <span>3. Service Charge (Post-Visa)</span>
+          </div>
+        </div>
+
+        {/* 1. Registration Fee */}
+        {renderPaymentCard(advFeeItem, 'Flyviz Payment 1 • Intake Deposit', '#58051E')}
+
+        {/* 2. Cost for Documents for Visa */}
+        {renderPaymentCard(docFeeItem, 'Flyviz Payment 2 • After Offer Letter', '#0284c7')}
+
+        {/* 3. Service Charge */}
+        {renderPaymentCard(serviceChargeItem, 'Flyviz Payment 3 • After Visa Approval', '#7c3aed')}
+
+        {/* Additional Admin-Configured Payments to Ferex */}
+        {customFerexItems.length > 0 && (
+          <div className="space-y-3 pt-2">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Additional Custom Payments to Ferex
+            </h3>
+            {customFerexItems.map(item => renderPaymentCard(item, 'Ferex Custom Fee', '#059669'))}
           </div>
         )}
       </div>
 
       {/* ─────────────────────────────────────────────────────────── */}
-      {/* ── SECTION 3: VFS / Visa Gov Fee ───────────────────────── */}
+      {/* ── SECTION 2: Direct Student Payments (NOT to Ferex) ────── */}
       {/* ─────────────────────────────────────────────────────────── */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-lg bg-emerald-700 text-white font-bold flex items-center justify-center text-xs">
-              03
-            </span>
-            <h2 className="text-sm font-black text-slate-900">
-              VFS / Visa Gov Fee
-            </h2>
-            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              Embassy & Biometrics
-            </span>
-          </div>
-          <span className="text-xs text-slate-400 font-semibold">Government Consular Fee</span>
-        </div>
-
-        {hasCourseSelected ? (
-          <Card
-            className={`p-5 flex flex-col justify-between transition-all select-none relative bg-white border ${
-              vfsFeeItem.status === 'Paid'
-                ? 'border-emerald-200/80 bg-emerald-50/10'
-                : vfsFeeItem.status === 'Pending Verification'
-                ? 'border-amber-200/80 bg-amber-50/10'
-                : vfsFeeItem.status === 'Rejected'
-                ? 'border-red-200/80 bg-red-50/10'
-                : 'border-emerald-200/80 shadow-xs'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
-                  Consular Visa & Biometrics Fee
-                </span>
-                {vfsFeeItem.status === 'Paid' && <Badge variant="success" dot>Paid & Cleared</Badge>}
-                {vfsFeeItem.status === 'Pending Verification' && <Badge variant="brand" dot>In Verification</Badge>}
-                {vfsFeeItem.status === 'Rejected' && <Badge variant="error" dot>Action Required</Badge>}
-                {vfsFeeItem.status === 'Pending' && <Badge variant="neutral">Payment Due</Badge>}
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-2">
-                <div>
-                  <h3 className="text-base font-black text-slate-900 leading-snug">{vfsFeeItem.title}</h3>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">{vfsFeeItem.description}</p>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left sm:text-right shrink-0">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">VFS / Visa Outlay</span>
-                  <span className="text-2xl font-black text-slate-900">
-                    {vfsFeeItem.amountFormatted}
-                  </span>
-                </div>
-              </div>
-
-              {vfsFeeItem.status === 'Pending Verification' && (
-                <div className="p-3 mb-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
-                  <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-semibold block">Under Verification</span>
-                    Reference UTR: <span className="font-mono font-semibold">{vfsFeeItem.utr || 'Logged'}</span>
-                  </div>
-                </div>
-              )}
+      <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+        {/* Critical Mandatory Disclaimer Banner */}
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-700/60 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-left">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5">
+              <ShieldAlert className="w-4 h-4 text-white" />
             </div>
-
-            <div className="pt-4 border-t border-slate-100 mt-2">
-              {vfsFeeItem.status === 'Paid' ? (
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> VFS / Visa Fee Cleared
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownloadInvoice(vfsFeeItem)}
-                    leftIcon={<FileText className="w-3.5 h-3.5" />}
-                  >
-                    PDF Receipt
-                  </Button>
-                </div>
-              ) : vfsFeeItem.status === 'Pending Verification' ? (
-                <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Review
-                </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row gap-2.5">
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
-                    onClick={() => setOnlinePayItem(vfsFeeItem)}
-                    leftIcon={<QrCode className="w-3.5 h-3.5" />}
-                  >
-                    Pay VFS / Visa Fee Online
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedItem(vfsFeeItem);
-                      setUtrNumber('');
-                    }}
-                    leftIcon={<Upload className="w-3.5 h-3.5" />}
-                  >
-                    Upload Payment Proof
-                  </Button>
-                </div>
-              )}
-            </div>
-          </Card>
-        ) : (
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div>
-              <h3 className="font-bold text-slate-800">Select Destination University</h3>
-              <p className="text-slate-500 mt-0.5">
-                VFS / Visa Gov Fee is configured based on destination country and consular embassy.
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded">
+                Direct Third-Party Remittance
+              </span>
+              <h2 className="text-sm font-black text-amber-950 dark:text-amber-200 mt-1">
+                University Application / Tuition Fee / VFS charge are paid by the student directly — not to ferex
+              </h2>
+              <p className="text-xs text-amber-800 dark:text-amber-300 font-medium mt-0.5">
+                Ferex Education acts strictly as a counselling and processing facilitator. All tuition fees, institutional university application charges, and official embassy consular appointments are remitted directly by the student to the respective entities.
               </p>
             </div>
-            <Link to="/student/select-university">
-              <Button size="sm" variant="outline" rightIcon={<ChevronRight className="w-3.5 h-3.5" />}>
-                Browse Universities
-              </Button>
-            </Link>
           </div>
-        )}
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────── */}
-      {/* ── SECTION 4: University Tuition Fee & Milestone Schedule ─ */}
-      {/* ─────────────────────────────────────────────────────────── */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-lg bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
-              04
-            </span>
-            <h2 className="text-sm font-black text-slate-900">
-              University Tuition Fee
-            </h2>
-            {installmentsEnabled && hasMultipleInstallments && (
-              <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-                Milestone Schedule Active
-              </span>
-            )}
-          </div>
-          <span className="text-xs text-slate-400 font-semibold">Institutional Tuition Settlement</span>
         </div>
 
-        {!hasCourseSelected ? (
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-2">
-            <Building2 className="w-8 h-8 text-slate-400 mx-auto" />
-            <h3 className="text-xs font-bold text-slate-800">Institution-Specific Tuition Schedule</h3>
-            <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Please choose your destination university in the <strong>Select University</strong> catalog to view the university's official tuition schedule and verification triggers.
-            </p>
-            <div className="pt-1">
-              <Link to="/student/select-university">
-                <Button size="sm" className="bg-[#58051E] text-white">
-                  Go to University Selection
-                </Button>
-              </Link>
-            </div>
+        {/* Direct Card 1: University Application Processing Fee */}
+        <Card className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-900/50">
+              Direct University Payment
+            </span>
+            <Badge variant="neutral">Paid to University</Badge>
           </div>
-        ) : !tuitionFeeEnabled && !installmentsEnabled ? (
-          /* Direct Tuition Fee Disabled / Waived by University Policy */
-          <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs text-slate-700">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <h3 className="font-bold text-sm text-slate-900">Direct Tuition Fee Disabled in Portal Billing</h3>
-            </div>
-            <p className="text-slate-500 leading-relaxed">
-              Tuition fee for <strong>{selectedUniversityName}</strong> is not charged through the FEREX portal billing schedule. Students settle tuition directly with the university or through institutional scholarships.
-            </p>
-          </div>
-        ) : !installmentsEnabled ? (
-          /* Single Direct Tuition Fee Card */
-          <Card
-            className={`p-5 flex flex-col justify-between transition-all select-none relative bg-white border ${
-              singleTuitionItem.status === 'Paid'
-                ? 'border-emerald-200/80 bg-emerald-50/10'
-                : singleTuitionItem.status === 'Pending Verification'
-                ? 'border-amber-200/80 bg-amber-50/10'
-                : singleTuitionItem.status === 'Rejected'
-                ? 'border-red-200/80 bg-red-50/10'
-                : 'border-slate-800/30 shadow-xs'
-            }`}
-          >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-2">
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-300">
-                  Full Annual Tuition Fee (Single Wire)
-                </span>
-                {singleTuitionItem.status === 'Paid' && <Badge variant="success" dot>Paid & Verified</Badge>}
-                {singleTuitionItem.status === 'Pending Verification' && <Badge variant="brand" dot>In Verification</Badge>}
-                {singleTuitionItem.status === 'Rejected' && <Badge variant="error" dot>Action Required</Badge>}
-                {singleTuitionItem.status === 'Pending' && <Badge variant="neutral">Payment Due</Badge>}
+              <h3 className="text-base font-black text-slate-900 dark:text-white leading-snug">{uniAppFeeItem.title}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{uniAppFeeItem.description}</p>
+              <div className="flex items-center gap-2 mt-1.5 text-[11px] text-blue-600 dark:text-blue-400 font-semibold">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Payable directly upon university admission portal application lodging</span>
               </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-2">
-                <div>
-                  <h3 className="text-base font-black text-slate-900 leading-snug">{singleTuitionItem.title}</h3>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">{singleTuitionItem.description}</p>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left sm:text-right shrink-0">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Tuition Outlay</span>
-                  <span className="text-2xl font-black text-slate-900">
-                    {singleTuitionItem.amountFormatted}
-                  </span>
-                </div>
-              </div>
-
-              {singleTuitionItem.status === 'Pending Verification' && (
-                <div className="p-3 mb-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
-                  <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-semibold block">Under Verification</span>
-                    Reference UTR: <span className="font-mono font-semibold">{singleTuitionItem.utr || 'Logged'}</span>
-                  </div>
-                </div>
-              )}
             </div>
-
-            <div className="pt-4 border-t border-slate-100 mt-2">
-              {singleTuitionItem.status === 'Paid' ? (
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Tuition Settled & Verified
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownloadInvoice(singleTuitionItem)}
-                    leftIcon={<FileText className="w-3.5 h-3.5" />}
-                  >
-                    PDF Receipt
-                  </Button>
-                </div>
-              ) : singleTuitionItem.status === 'Pending Verification' ? (
-                <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Review
-                </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row gap-2.5">
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-slate-900 hover:bg-black text-white font-bold"
-                    onClick={() => setOnlinePayItem(singleTuitionItem)}
-                    leftIcon={<QrCode className="w-3.5 h-3.5" />}
-                  >
-                    Pay Tuition Online
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedItem(singleTuitionItem);
-                      setUtrNumber('');
-                    }}
-                    leftIcon={<Upload className="w-3.5 h-3.5" />}
-                  >
-                    Upload SWIFT Proof
-                  </Button>
-                </div>
-              )}
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/60 text-left sm:text-right shrink-0">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Typical University Fee</span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white">
+                {uniAppFeeItem.amountFormatted}
+              </span>
             </div>
-          </Card>
-        ) : hasMultipleInstallments ? (
-          /* Milestone-wise Tuition Installments */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {tuitionInstallmentItems.map((inst) => {
-              const isPaid = inst.status === 'Paid';
-              const isPendingVerification = inst.status === 'Pending Verification';
-              const isRejected = inst.status === 'Rejected';
-              const isPending = inst.status === 'Pending';
-
-              return (
-                <Card
-                  key={inst.id}
-                  className={`p-5 flex flex-col justify-between transition-all select-none relative bg-white border ${
-                    isPaid
-                      ? 'border-emerald-200/80 bg-emerald-50/10'
-                      : isPendingVerification
-                      ? 'border-amber-200/80 bg-amber-50/10'
-                      : isRejected
-                      ? 'border-red-200/80 bg-red-50/10'
-                      : 'border-[#58051E]/30 shadow-subtle'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="w-7 h-7 rounded-lg bg-[#58051E] text-white font-bold flex items-center justify-center text-xs">
-                        {inst.installmentIndex}
-                      </span>
-                      {isPaid && <Badge variant="success" dot>Paid</Badge>}
-                      {isPendingVerification && <Badge variant="brand" dot>In Verification</Badge>}
-                      {isRejected && <Badge variant="error" dot>Action Required</Badge>}
-                      {isPending && <Badge variant="neutral">Pending</Badge>}
-                    </div>
-
-                    <h3 className="text-sm font-bold text-slate-900 leading-snug mb-1">{inst.title}</h3>
-                    <p className="text-xs text-[#58051E] font-semibold mb-2 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-[#58051E]" /> Trigger: {inst.stageName}
-                    </p>
-
-                    <div className="my-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold text-slate-400">Milestone Fee</span>
-                      <span className="text-lg font-black text-slate-900">{inst.amountFormatted}</span>
-                    </div>
-
-                    {inst.verificationRequirement && (
-                      <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 text-[11px] text-slate-600 mb-3 space-y-0.5">
-                        <span className="text-[9.5px] uppercase font-bold text-slate-400 block">Verification Requirement:</span>
-                        <span className="font-semibold text-slate-800">{inst.verificationRequirement}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 mt-2">
-                    {isPaid ? (
-                      <div className="flex flex-col sm:flex-row items-center gap-3">
-                        <div className="flex-1 h-9 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 w-full">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Verified & Cleared
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDownloadInvoice(inst)}
-                          leftIcon={<FileText className="w-3.5 h-3.5" />}
-                        >
-                          PDF Receipt
-                        </Button>
-                      </div>
-                    ) : isPendingVerification ? (
-                      <div className="w-full h-9 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" /> Awaiting Verification
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-[#58051E] hover:bg-[#430316] text-white font-bold"
-                          onClick={() => setOnlinePayItem(inst)}
-                          leftIcon={<QrCode className="w-3.5 h-3.5" />}
-                        >
-                          Pay Online
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedItem(inst);
-                            setUtrNumber('');
-                          }}
-                          leftIcon={<Upload className="w-3.5 h-3.5" />}
-                        >
-                          Upload Proof
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
           </div>
-        ) : (
-          /* Single Fallback */
-          <Card className="p-5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-600">
-            <h3 className="font-bold text-slate-900">Direct Tuition Remittance</h3>
-            <p className="mt-1">Full tuition is settled in a single international SWIFT remittance.</p>
-          </Card>
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <span>Settled directly by credit card on university admissions portal</span>
+            {(appliedUniversity as any)?.website_url && (
+              <a
+                href={(appliedUniversity as any).website_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#58051E] dark:text-rose-400 font-bold flex items-center gap-1 hover:underline"
+              >
+                Official Portal <ArrowUpRight className="w-3 h-3" />
+              </a>
+            )}
+          </div>
+        </Card>
+
+        {/* Direct Card 2: University Tuition Fee */}
+        {renderPaymentCard(singleTuitionItem, 'Direct University Tuition SWIFT Remittance', '#1e293b')}
+
+        {/* Direct Card 3: VFS / Visa Embassy Charge */}
+        {renderPaymentCard(vfsFeeItem, 'Direct Consular Embassy / VFS Global Portal', '#047857')}
+
+        {/* Additional Admin-Configured Direct Third-Party Payments */}
+        {customDirectItems.length > 0 && (
+          <div className="space-y-3 pt-2">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Additional Direct Student Remittances
+            </h3>
+            {customDirectItems.map(item => renderPaymentCard(item, 'Direct 3rd Party Outlay', '#475569'))}
+          </div>
         )}
       </div>
 
@@ -1346,29 +1033,31 @@ export const Payments: React.FC = () => {
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-200 z-10 text-left"
+              className="relative bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 z-10 text-left"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
                 <div>
-                  <h3 className="text-base font-black text-slate-900">Submit Payment Proof</h3>
-                  <p className="text-xs text-slate-500 truncate max-w-[280px]">{selectedItem.title}</p>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">Submit Payment Proof</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[280px]">{selectedItem.title}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelectedItem(null)}
-                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer"
+                  className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Segmented Mode Selector */}
-              <div className="flex gap-1.5 mb-4 p-1 bg-slate-100 rounded-xl">
+              <div className="flex gap-1.5 mb-4 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
                 <button
                   type="button"
                   onClick={() => setPaymentMode('gateway')}
                   className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
-                    paymentMode === 'gateway' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    paymentMode === 'gateway'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Direct Gateway
@@ -1377,7 +1066,9 @@ export const Payments: React.FC = () => {
                   type="button"
                   onClick={() => setPaymentMode('manual')}
                   className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
-                    paymentMode === 'manual' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    paymentMode === 'manual'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Bank Wire / UTR
@@ -1386,13 +1077,13 @@ export const Payments: React.FC = () => {
 
               {paymentMode === 'gateway' ? (
                 <form onSubmit={handleGatewaySubmit} className="space-y-4">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center">
-                    <span className="text-xs font-semibold text-slate-600">Amount Due:</span>
-                    <span className="text-base font-black text-[#58051E]">₹{selectedItem.amount.toLocaleString('en-IN')}</span>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Amount Due:</span>
+                    <span className="text-base font-black text-[#58051E] dark:text-rose-400">₹{selectedItem.amount.toLocaleString('en-IN')}</span>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Payment Method</label>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Payment Method</label>
                     <div className="grid grid-cols-2 gap-2">
                       {(['card', 'netbanking'] as const).map(type => (
                         <button
@@ -1401,8 +1092,8 @@ export const Payments: React.FC = () => {
                           onClick={() => setGatewayType(type)}
                           className={`h-9 rounded-xl text-xs font-bold border transition-colors text-center uppercase tracking-wide cursor-pointer ${
                             gatewayType === type
-                              ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-xs'
+                              : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                           }`}
                         >
                           {type === 'card' ? 'Debit / Credit Card' : 'Net Banking'}
@@ -1412,9 +1103,9 @@ export const Payments: React.FC = () => {
                   </div>
 
                   {gatewayType === 'card' && (
-                    <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Card Number</label>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Card Number</label>
                         <input
                           required
                           type="text"
@@ -1425,12 +1116,12 @@ export const Payments: React.FC = () => {
                             setCardNumber(val);
                           }}
                           placeholder="4111 2222 3333 4444"
-                          className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
+                          className="w-full h-9 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-900 dark:text-white focus:outline-none"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-2.5">
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Expiry</label>
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Expiry</label>
                           <input
                             required
                             type="text"
@@ -1445,11 +1136,11 @@ export const Payments: React.FC = () => {
                               }
                             }}
                             placeholder="MM/YY"
-                            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-center focus:outline-none"
+                            className="w-full h-9 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-center text-slate-900 dark:text-white focus:outline-none"
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">CVV</label>
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">CVV</label>
                           <input
                             required
                             type="password"
@@ -1457,7 +1148,7 @@ export const Payments: React.FC = () => {
                             value={cardCvv}
                             onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ''))}
                             placeholder="•••"
-                            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-center focus:outline-none"
+                            className="w-full h-9 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-center text-slate-900 dark:text-white focus:outline-none"
                           />
                         </div>
                       </div>
@@ -1484,29 +1175,29 @@ export const Payments: React.FC = () => {
                 </form>
               ) : (
                 <form onSubmit={handleProofSubmit} className="space-y-4">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center">
-                    <span className="text-xs font-semibold text-slate-600">Amount Due:</span>
-                    <span className="text-base font-black text-[#58051E]">₹{selectedItem.amount.toLocaleString('en-IN')}</span>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Amount Due:</span>
+                    <span className="text-base font-black text-[#58051E] dark:text-rose-400">₹{selectedItem.amount.toLocaleString('en-IN')}</span>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Transaction UTR / Reference Number</label>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Transaction UTR / Reference Number</label>
                     <input
                       required
                       type="text"
                       value={utrNumber}
                       onChange={(e) => setUtrNumber(e.target.value)}
                       placeholder="e.g. 429381029384"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-semibold text-slate-900 focus:outline-none focus:bg-white"
+                      className="w-full h-9 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono font-semibold text-slate-900 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-slate-900"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Select Payment Channel</label>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Select Payment Channel</label>
                     <select
                       value={payMethod}
                       onChange={(e) => setPayMethod(e.target.value)}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none"
+                      className="w-full h-9 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none"
                     >
                       <option value="Direct NEFT / IMPS Bank Wire">Direct NEFT / IMPS Bank Wire</option>
                       <option value="International SWIFT Wire">International SWIFT Wire (EUR / USD)</option>
@@ -1515,12 +1206,12 @@ export const Payments: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Upload Receipt Proof (Optional)</label>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Upload Receipt Proof (Optional)</label>
                     <input
                       type="file"
                       accept="image/*,application/pdf"
                       onChange={handleFileUpload}
-                      className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#58051E]/10 file:text-[#58051E] hover:file:bg-[#58051E]/20"
+                      className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#58051E]/10 file:text-[#58051E] dark:file:bg-[#58051E]/20 dark:file:text-rose-400 hover:file:bg-[#58051E]/20"
                     />
                   </div>
 
@@ -1559,4 +1250,5 @@ export const Payments: React.FC = () => {
     </div>
   );
 };
+
 export default Payments;

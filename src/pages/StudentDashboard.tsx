@@ -20,6 +20,7 @@ import { getNawaRecords } from '../lib/api/nawa';
 import type { NawaRecord } from '../lib/api/nawa';
 import { getDocumentRequirements, calculateDossierStatus } from '../lib/api/documentRequirements';
 import { isRealApplication } from '../lib/api/applications';
+import { isAgreementSigned } from '../lib/api/agreement';
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -162,26 +163,50 @@ export const StudentDashboard: React.FC = () => {
   const isLegalizationSubmitted = applications.some(a => String(a.status || '') === 'Legalization Lodged' || String(a.status || '') === 'Legalization Submitted');
   const isLegalizationInReview = applications.some(a => String(a.status || '') === 'Legalization Reviewed' || String(a.status || '') === 'Legalization Review');
 
+  // Service Agreement Status
+  const [isAgreementDone, setIsAgreementDone] = React.useState<boolean>(() => {
+    return isAgreementSigned(user?.id || profile?.id || '');
+  });
+
+  React.useEffect(() => {
+    const updateAgreement = () => {
+      setIsAgreementDone(isAgreementSigned(user?.id || profile?.id || ''));
+    };
+    updateAgreement();
+    window.addEventListener('ferex_agreement_change', updateAgreement);
+    window.addEventListener('storage', updateAgreement);
+    return () => {
+      window.removeEventListener('ferex_agreement_change', updateAgreement);
+      window.removeEventListener('storage', updateAgreement);
+    };
+  }, [user?.id, profile?.id]);
+
   const checklistItems = [
-    { title: '1. Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },
+    { title: '1. Lead Inquiry & Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },
     {
-      title: '2. Required Documents',
+      title: '2. Student Service Agreement (Legal Execution)',
+      isDone: isAgreementDone,
+      path: '/student/agreement',
+      tag: isAgreementDone ? 'Signed' : 'Signature Required'
+    },
+    { title: `3. Advanced Registration Fee Payment`, isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
+    {
+      title: '4. Required Academic Documents',
       isDone: dossierStatus.isComplete,
       path: '/student/documents',
       tag: dossierStatus.isComplete
         ? (approvedDocsCount === documents.length && documents.length > 0 ? 'Verified' : 'Submitted')
         : `Incomplete (${dossierStatus.uploadedMandatoryCount}/${dossierStatus.mandatoryCount || 2})`
     },
-    { title: `3. Advanced Registration Fee Payment`, isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
-    { title: `4. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isLegalizationApproved, path: '/student/documents', tag: isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Pending' },
-    { title: '5. University Selection & Course Application', isDone: isUniSelected, path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Pending Selection' },
-    { title: '6. Official Admission Offer Issued & Accepted', isDone: isOfferAccepted, path: '/student/offers', tag: isOfferAccepted ? 'Accepted' : hasOffer ? 'Offer Released' : 'Pending' },
-    { title: '7. University Tuition Deposit & Visa Clearance', isDone: inst2Paid, path: '/student/payments', tag: inst2Paid ? `Cleared (${visaRecord?.status_label || 'Visa Ready'})` : 'Due' },
-    { title: '8. Final Acceptance Letter from University', isDone: isFinalAcceptanceIssued, path: '/student/offers', tag: isFinalAcceptanceIssued ? 'Released' : inst2Paid ? 'Awaiting Release' : 'Pending Deposit' },
-    { title: '9. VFS Embassy Visa Application Filed', isDone: isVisaFiled, path: '/student/visa-tracker', tag: isVisaFiled ? 'Filed' : 'Pending' },
-    { title: '10. Embassy Visa Decision (Approved / Rejected)', isDone: isVisaApproved, isRejected: isVisaRejected, path: '/student/visa-tracker', tag: isVisaApproved ? 'Approved' : isVisaRejected ? 'Rejected' : 'Review' },
-    { title: `11. Agency Processing & Departure Clearance`, isDone: inst3Paid, path: '/student/payments', tag: inst3Paid ? 'Paid' : 'Due' },
-    { title: '12. Post Travel & Campus Arrival', isDone: inst3Paid && isVisaApproved, path: '/student/pre-departure', tag: inst3Paid && isVisaApproved ? 'Arrival Ready' : 'Final Milestone' },
+    { title: `5. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isLegalizationApproved, path: '/student/documents', tag: isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Pending' },
+    { title: '6. University Selection & Course Application', isDone: isUniSelected, path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Pending Selection' },
+    { title: '7. Official Admission Offer Issued & Accepted', isDone: isOfferAccepted, path: '/student/offers', tag: isOfferAccepted ? 'Accepted' : hasOffer ? 'Offer Released' : 'Pending' },
+    { title: '8. University Tuition Deposit & Visa Documents Clearance', isDone: inst2Paid, path: '/student/payments', tag: inst2Paid ? `Cleared (${visaRecord?.status_label || 'Visa Ready'})` : 'Due' },
+    { title: '9. Final Acceptance Letter from University', isDone: isFinalAcceptanceIssued, path: '/student/offers', tag: isFinalAcceptanceIssued ? 'Released' : inst2Paid ? 'Awaiting Release' : 'Pending Deposit' },
+    { title: '10. VFS Embassy Visa Application Filed', isDone: isVisaFiled, path: '/student/visa-tracker', tag: isVisaFiled ? 'Filed' : 'Pending' },
+    { title: '11. Embassy Visa Decision (Approved / Rejected)', isDone: isVisaApproved, isRejected: isVisaRejected, path: '/student/visa-tracker', tag: isVisaApproved ? 'Approved' : isVisaRejected ? 'Rejected' : 'Review' },
+    { title: `12. Service Charge & Consular Clearance`, isDone: inst3Paid, path: '/student/payments', tag: inst3Paid ? 'Paid' : 'Due' },
+    { title: '13. Post Travel & Campus Arrival', isDone: inst3Paid && isVisaApproved, path: '/student/pre-departure', tag: inst3Paid && isVisaApproved ? 'Arrival Ready' : 'Final Milestone' },
   ];
 
   const completedCount = checklistItems.filter(i => i.isDone).length;
@@ -193,6 +218,33 @@ export const StudentDashboard: React.FC = () => {
       animate="visible"
       className="space-y-5 text-left"
     >
+      {/* Service Agreement Mandatory Alert Banner if not signed */}
+      {!isAgreementDone && (
+        <motion.div variants={itemVariants}>
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                <ScrollText className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-black text-amber-950 dark:text-amber-200">
+                  Action Required: Student Service Agreement (Stage 2)
+                </h4>
+                <p className="text-amber-800 dark:text-amber-300 font-medium mt-0.5">
+                  Please review and electronically sign the official Ferex Education Service Agreement before proceeding to Advanced Registration Fee.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/student/agreement')}
+              className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#570229] hover:bg-[#6F0335] shadow-xs cursor-pointer shrink-0 flex items-center gap-1.5"
+            >
+              Sign Agreement <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Clean Modern Welcome Header */}
       <motion.div variants={itemVariants}>
         <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">

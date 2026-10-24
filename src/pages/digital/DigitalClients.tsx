@@ -199,7 +199,7 @@ export const DigitalClients: React.FC = () => {
     if (!window.confirm(`Are you sure you want to delete client account "${name}"?`)) return;
     try {
       await deleteDigitalClient(id);
-      setClients(prev => prev.filter(c => c.id !== id));
+      setClients(prev => prev.filter(c => c.id !== id && c.name !== name));
       showToast(`Deleted ${name}`);
     } catch (err: any) {
       showToast(`Error deleting client: ${err.message || 'Unknown error'}`);
