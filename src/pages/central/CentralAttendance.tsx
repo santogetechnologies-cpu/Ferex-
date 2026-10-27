@@ -115,7 +115,7 @@ export const CentralAttendance: React.FC = () => {
     grace_period_mins: 15,
     half_day_threshold_hours: 4.0,
     full_day_threshold_hours: 8.0,
-    target_type: 'division',
+    target_type: 'all',
     assigned_staff_emails: [],
     assigned_roles: [],
     is_active: true,
@@ -244,7 +244,7 @@ export const CentralAttendance: React.FC = () => {
       grace_period_mins: 15,
       half_day_threshold_hours: 4.0,
       full_day_threshold_hours: 8.0,
-      target_type: 'division',
+      target_type: 'all',
       assigned_staff_emails: [],
       assigned_roles: [],
       is_active: true,
@@ -259,6 +259,8 @@ export const CentralAttendance: React.FC = () => {
     setEditingShiftId(shift.id);
     setShiftError('');
     setStaffModalSearch('');
+    const rawTarget = shift.target_type;
+    const resolvedTarget = rawTarget === 'roles' ? 'roles' : rawTarget === 'specific_staff' ? 'specific_staff' : 'all';
     setShiftForm({
       name: shift.name,
       division: shift.division || 'all',
@@ -267,7 +269,7 @@ export const CentralAttendance: React.FC = () => {
       grace_period_mins: shift.grace_period_mins ?? 15,
       half_day_threshold_hours: shift.half_day_threshold_hours ?? (shift.half_day_hours ?? 4.0),
       full_day_threshold_hours: shift.full_day_threshold_hours ?? (shift.full_day_hours ?? 8.0),
-      target_type: (shift.target_type as any) || 'division',
+      target_type: resolvedTarget,
       assigned_staff_emails: shift.assigned_staff_emails || [],
       assigned_roles: shift.assigned_roles || [],
       is_active: shift.is_active ?? true,
@@ -1394,10 +1396,9 @@ export const CentralAttendance: React.FC = () => {
                     Target Audience & Staff Assignment
                   </label>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {[
                       { id: 'all', label: 'All Staff' },
-                      { id: 'division', label: 'Entire Division' },
                       { id: 'roles', label: 'Target Roles' },
                       { id: 'specific_staff', label: 'Target Staff' },
                     ].map((t) => (

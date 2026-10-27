@@ -22,7 +22,6 @@ interface AdminLayoutProps { children: React.ReactNode; }
 
 const baseMenuItems = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, badge: null, hasUpdate: false },
-  { name: 'AI Copilot', path: '/admin/ai-copilot', icon: Sparkles, badge: null, hasUpdate: false },
   { name: 'Staff Attendance & Hours', path: '/admin/attendance', icon: Clock, badge: null, hasUpdate: false },
   { name: 'Students', path: '/admin/students', icon: Users, badge: null, hasUpdate: false },
   { name: 'Universities', path: '/admin/universities', icon: Building2, badge: null, hasUpdate: false },
@@ -113,14 +112,27 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const unreadNotifs = (notifications || []).filter(n => !n.is_read);
   const totalUnreadCount = unreadNotifs.length + pendingPaymentsCount;
 
-  const menuItems = baseMenuItems.map(item => {
-    if (item.path === '/admin/applications') return { ...item, badge: hasUnreadApps ? 'REVIEW' : null, hasUpdate: hasUnreadApps };
-    if (item.path === '/admin/documents') return { ...item, badge: hasUnreadDocs ? 'NEW DOC' : null, hasUpdate: hasUnreadDocs };
-    if (item.path === '/admin/payment-control') return { ...item, badge: pendingPaymentsCount > 0 ? `VERIFY (${pendingPaymentsCount})` : (hasUnreadPayments ? 'NEW PAYMENT' : null), hasUpdate: pendingPaymentsCount > 0 || hasUnreadPayments };
-    if (item.path === '/admin/legalization') return { ...item, badge: hasUnreadLegalization ? 'LEGAL' : null, hasUpdate: hasUnreadLegalization };
-    if (item.path === '/admin/visa-tracker') return { ...item, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa };
-    return item;
-  });
+  const seenPaths = new Set<string>();
+  const seenNames = new Set<string>();
+  const menuItems = baseMenuItems
+    .filter(item => {
+      const normalizedPath = item.path.toLowerCase();
+      const normalizedName = item.name.toLowerCase();
+      if (seenPaths.has(normalizedPath) || seenNames.has(normalizedName)) {
+        return false;
+      }
+      seenPaths.add(normalizedPath);
+      seenNames.add(normalizedName);
+      return true;
+    })
+    .map(item => {
+      if (item.path === '/admin/applications') return { ...item, badge: hasUnreadApps ? 'REVIEW' : null, hasUpdate: hasUnreadApps };
+      if (item.path === '/admin/documents') return { ...item, badge: hasUnreadDocs ? 'NEW DOC' : null, hasUpdate: hasUnreadDocs };
+      if (item.path === '/admin/payment-control') return { ...item, badge: pendingPaymentsCount > 0 ? `VERIFY (${pendingPaymentsCount})` : (hasUnreadPayments ? 'NEW PAYMENT' : null), hasUpdate: pendingPaymentsCount > 0 || hasUnreadPayments };
+      if (item.path === '/admin/legalization') return { ...item, badge: hasUnreadLegalization ? 'LEGAL' : null, hasUpdate: hasUnreadLegalization };
+      if (item.path === '/admin/visa-tracker') return { ...item, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa };
+      return item;
+    });
 
   const handleSignOut = async () => {
     await signOut();

@@ -199,6 +199,14 @@ export const inferDivision = (
     return 'central';
   }
   if (
+    r.includes('rimi') ||
+    d.includes('rimi') ||
+    d.includes('frozen') ||
+    em.includes('rimi')
+  ) {
+    return 'rimi';
+  }
+  if (
     r.includes('trade') ||
     r.includes('logistics') ||
     r === 'operations_manager' ||
@@ -207,14 +215,6 @@ export const inferDivision = (
     em.includes('tlo@')
   ) {
     return 'trade';
-  }
-  if (
-    r.includes('rimi') ||
-    d.includes('rimi') ||
-    d.includes('frozen') ||
-    em.includes('rimi')
-  ) {
-    return 'rimi';
   }
   if (
     r.includes('digital') ||
@@ -630,24 +630,31 @@ export const getEnterpriseStaff = async (): Promise<StaffMember[]> => {
 
 // ================= ATTENDANCE & TIMESHEETS API =================
 export const getActiveClockIn = async (userEmail: string): Promise<AttendanceTimesheet | null> => {
+  if (!userEmail) return null;
+  const emLower = userEmail.toLowerCase();
   try {
     const { data, error } = await supabase
       .from('attendance_timesheets')
       .select('*')
-      .eq('user_email', userEmail)
-      .eq('status', 'active')
+      .ilike('user_email', emLower)
+      .or('status.eq.active,status.eq.Clocked In')
       .order('clock_in', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (error) throw error;
-    if (data) return data as AttendanceTimesheet;
+    if (!error && data) {
+      return {
+        ...data,
+        date: data.work_date || data.date || (data.clock_in ? data.clock_in.split('T')[0] : new Date().toISOString().split('T')[0]),
+        status: 'active'
+      } as AttendanceTimesheet;
+    }
   } catch (err) {
     console.warn('Active clock-in query fallback:', err);
   }
 
   const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
-  return local.find(t => t.user_email === userEmail && t.status === 'active') || null;
+  return local.find(t => t.user_email?.toLowerCase() === emLower && t.status === 'active') || null;
 };
 
 export const clockIn = async (params: {
@@ -660,8 +667,15 @@ export const clockIn = async (params: {
   shiftName?: string;
 }): Promise<AttendanceTimesheet> => {
   const today = new Date().toISOString().split('T')[0];
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const recordId = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
+        (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+      );
+
   const newRecord: AttendanceTimesheet = {
-    id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    id: recordId,
     user_id: params.userId,
     user_email: params.userEmail,
     user_name: params.userName,
@@ -680,22 +694,44 @@ export const clockIn = async (params: {
     created_at: new Date().toISOString()
   };
 
+  // 1. Immediately cache in local storage so it is active across session and timesheets
+  const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
+  local.unshift(newRecord);
+  saveLocalData(LOCAL_TIMESHEETS_KEY, local);
+
+  // 2. Persist to Supabase with schema-aligned column names
   try {
-    const { data, error } = await supabase
+    const dbPayload: any = {
+      id: recordId,
+      user_name: params.userName,
+      user_email: params.userEmail,
+      user_role: params.userRole,
+      division: params.division,
+      shift_name: params.shiftName || 'Standard Shift',
+      work_date: today,
+      clock_in: newRecord.clock_in,
+      total_hours: 0,
+      status: 'active'
+    };
+    if (uuidRegex.test(params.userId)) {
+      dbPayload.user_id = params.userId;
+    }
+    if (params.shiftId && uuidRegex.test(params.shiftId)) {
+      dbPayload.shift_id = params.shiftId;
+    }
+
+    const { error } = await supabase
       .from('attendance_timesheets')
-      .insert([newRecord])
-      .select()
-      .single();
-    if (error || !data) throw error;
-    window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
-    return data as AttendanceTimesheet;
+      .insert([dbPayload]);
+    if (error) {
+      console.warn('[AttendanceAPI] Supabase clockIn insert warning:', error.message);
+    }
   } catch (err) {
-    const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
-    local.unshift(newRecord);
-    saveLocalData(LOCAL_TIMESHEETS_KEY, local);
-    window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
-    return newRecord;
+    console.warn('[AttendanceAPI] Supabase clockIn handled:', err);
   }
+
+  window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
+  return newRecord;
 };
 
 export const clockOut = async (
@@ -704,19 +740,38 @@ export const clockOut = async (
 ): Promise<AttendanceTimesheet | null> => {
   const clockOutTime = new Date().toISOString();
 
+  // 1. Update local storage cache immediately
+  const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
+  const idx = local.findIndex(t => t.id === timesheetId);
+  let updatedRecord: AttendanceTimesheet | null = null;
+  let totalHours = 8.0;
+
+  if (idx !== -1) {
+    const rec = local[idx];
+    const diffMs = new Date(clockOutTime).getTime() - new Date(rec.clock_in).getTime();
+    totalHours = Math.max(0.1, Number((diffMs / (1000 * 60 * 60)).toFixed(2)));
+    updatedRecord = {
+      ...rec,
+      clock_out: clockOutTime,
+      work_summary: workSummary,
+      total_hours: totalHours,
+      status: 'completed',
+      updated_at: clockOutTime
+    };
+    local[idx] = updatedRecord;
+    saveLocalData(LOCAL_TIMESHEETS_KEY, local);
+  }
+
+  // 2. Update Supabase
   try {
-    let clockInTime: string | null = null;
     const { data: current } = await supabase
       .from('attendance_timesheets')
       .select('clock_in')
       .eq('id', timesheetId)
-      .single();
+      .maybeSingle();
 
-    if (current) clockInTime = current.clock_in;
-
-    let totalHours = 8.0;
-    if (clockInTime) {
-      const diffMs = new Date(clockOutTime).getTime() - new Date(clockInTime).getTime();
+    if (current?.clock_in) {
+      const diffMs = new Date(clockOutTime).getTime() - new Date(current.clock_in).getTime();
       totalHours = Math.max(0.1, Number((diffMs / (1000 * 60 * 60)).toFixed(2)));
     }
 
@@ -731,32 +786,28 @@ export const clockOut = async (
       })
       .eq('id', timesheetId)
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error || !data) throw error;
-    window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
-    return data as AttendanceTimesheet;
-  } catch (err) {
-    const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
-    const idx = local.findIndex(t => t.id === timesheetId);
-    if (idx !== -1) {
-      const rec = local[idx];
-      const diffMs = new Date(clockOutTime).getTime() - new Date(rec.clock_in).getTime();
-      const totalHours = Math.max(0.1, Number((diffMs / (1000 * 60 * 60)).toFixed(2)));
-      local[idx] = {
-        ...rec,
-        clock_out: clockOutTime,
-        work_summary: workSummary,
-        total_hours: totalHours,
+    if (!error && data) {
+      const formatted: AttendanceTimesheet = {
+        ...data,
+        date: data.work_date || data.date || clockOutTime.split('T')[0],
         status: 'completed',
-        updated_at: clockOutTime
+        is_admin_verified: !!(data.is_admin_verified || data.verified_by || data.verified_at),
+        is_superadmin_locked: !!(data.is_superadmin_locked || data.locked_by || data.locked_at)
       };
-      saveLocalData(LOCAL_TIMESHEETS_KEY, local);
-      window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
-      return local[idx];
+      if (idx !== -1) {
+        local[idx] = { ...local[idx], ...formatted };
+        saveLocalData(LOCAL_TIMESHEETS_KEY, local);
+      }
+      updatedRecord = updatedRecord ? { ...updatedRecord, ...formatted } : formatted;
     }
-    return null;
+  } catch (err) {
+    console.warn('[AttendanceAPI] Supabase clockOut handled:', err);
   }
+
+  window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
+  return updatedRecord;
 };
 
 export const getTimesheets = async (filters?: {
@@ -767,6 +818,8 @@ export const getTimesheets = async (filters?: {
   endDate?: string;
   status?: string;
 }): Promise<AttendanceTimesheet[]> => {
+  let dbTimesheets: AttendanceTimesheet[] = [];
+
   try {
     let query = supabase.from('attendance_timesheets').select('*').order('clock_in', { ascending: false });
 
@@ -774,46 +827,69 @@ export const getTimesheets = async (filters?: {
       query = query.eq('division', filters.division);
     }
     if (filters?.userEmail) {
-      query = query.eq('user_email', filters.userEmail);
+      query = query.ilike('user_email', filters.userEmail);
     }
     if (filters?.date) {
-      query = query.eq('date', filters.date);
-    }
-    if (filters?.startDate) {
-      query = query.gte('date', filters.startDate);
-    }
-    if (filters?.endDate) {
-      query = query.lte('date', filters.endDate);
+      query = query.or(`work_date.eq.${filters.date},date.eq.${filters.date}`);
     }
     if (filters?.status && filters.status !== 'all') {
       query = query.eq('status', filters.status);
     }
 
     const { data, error } = await query;
-    if (error || !data) throw error;
-    return data as AttendanceTimesheet[];
+    if (!error && Array.isArray(data)) {
+      dbTimesheets = data.map((row: any) => ({
+        ...row,
+        date: row.work_date || row.date || (row.clock_in ? row.clock_in.split('T')[0] : new Date().toISOString().split('T')[0]),
+        status: row.status === 'Clocked In' ? 'active' : (row.status === 'Submitted' ? 'completed' : row.status?.toLowerCase() || 'completed'),
+        is_admin_verified: !!(row.is_admin_verified || row.verified_by || row.verified_at),
+        is_superadmin_locked: !!(row.is_superadmin_locked || row.locked_by || row.locked_at)
+      }));
+    }
   } catch (err) {
-    let local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
-    if (filters?.division && filters.division !== 'all' && filters.division !== 'central') {
-      local = local.filter(t => t.division === filters.division);
-    }
-    if (filters?.userEmail) {
-      local = local.filter(t => t.user_email === filters.userEmail);
-    }
-    if (filters?.date) {
-      local = local.filter(t => t.date === filters.date);
-    }
-    if (filters?.startDate) {
-      local = local.filter(t => t.date >= filters.startDate!);
-    }
-    if (filters?.endDate) {
-      local = local.filter(t => t.date <= filters.endDate!);
-    }
-    if (filters?.status && filters.status !== 'all') {
-      local = local.filter(t => t.status === filters.status);
-    }
-    return local;
+    console.warn('[AttendanceAPI] Supabase timesheets query fallback:', err);
   }
+
+  // Merge Supabase records with local storage cache so attendance records are always visible
+  const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
+  const map = new Map<string, AttendanceTimesheet>();
+
+  local.forEach(t => map.set(t.id, t));
+  dbTimesheets.forEach(t => {
+    const localItem = map.get(t.id);
+    if (localItem && localItem.updated_at && t.updated_at) {
+      if (new Date(localItem.updated_at).getTime() > new Date(t.updated_at).getTime()) {
+        map.set(t.id, { ...t, ...localItem });
+        return;
+      }
+    }
+    map.set(t.id, { ...localItem, ...t });
+  });
+
+  let allRecords = Array.from(map.values()).sort(
+    (a, b) => new Date(b.clock_in || b.created_at || '').getTime() - new Date(a.clock_in || a.created_at || '').getTime()
+  );
+
+  if (filters?.division && filters.division !== 'all' && filters.division !== 'central') {
+    allRecords = allRecords.filter(t => t.division === filters.division);
+  }
+  if (filters?.userEmail) {
+    allRecords = allRecords.filter(t => t.user_email?.toLowerCase() === filters.userEmail?.toLowerCase());
+  }
+  if (filters?.date) {
+    allRecords = allRecords.filter(t => t.date === filters.date);
+  }
+  if (filters?.startDate) {
+    allRecords = allRecords.filter(t => t.date >= filters.startDate!);
+  }
+  if (filters?.endDate) {
+    allRecords = allRecords.filter(t => t.date <= filters.endDate!);
+  }
+  if (filters?.status && filters.status !== 'all') {
+    allRecords = allRecords.filter(t => t.status === filters.status);
+  }
+
+  return allRecords;
 };
 
 export const verifyTimesheetByAdmin = async (
@@ -823,6 +899,22 @@ export const verifyTimesheetByAdmin = async (
   notes?: string
 ): Promise<boolean> => {
   const verifiedAt = new Date().toISOString();
+  const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
+  const idx = local.findIndex(t => t.id === timesheetId);
+  if (idx !== -1) {
+    local[idx] = {
+      ...local[idx],
+      is_admin_verified: true,
+      verified_by_admin_id: adminId,
+      verified_by_admin_name: adminName,
+      verified_at: verifiedAt,
+      status: 'verified',
+      admin_notes: notes || 'Verified by Division Admin',
+      updated_at: verifiedAt
+    };
+    saveLocalData(LOCAL_TIMESHEETS_KEY, local);
+  }
+
   try {
     const { error } = await supabase
       .from('attendance_timesheets')
@@ -832,32 +924,18 @@ export const verifyTimesheetByAdmin = async (
         verified_by_admin_name: adminName,
         verified_at: verifiedAt,
         status: 'verified',
-        admin_notes: notes || 'Verified by Division Admin'
+        admin_notes: notes || 'Verified by Division Admin',
+        updated_at: verifiedAt
       })
       .eq('id', timesheetId);
 
-    if (error) throw error;
-    window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
-    return true;
+    if (error) console.warn('[AttendanceAPI] Supabase verify timesheet warning:', error.message);
   } catch (err) {
-    const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
-    const idx = local.findIndex(t => t.id === timesheetId);
-    if (idx !== -1) {
-      local[idx] = {
-        ...local[idx],
-        is_admin_verified: true,
-        verified_by_admin_id: adminId,
-        verified_by_admin_name: adminName,
-        verified_at: verifiedAt,
-        status: 'verified',
-        admin_notes: notes || 'Verified by Division Admin'
-      };
-      saveLocalData(LOCAL_TIMESHEETS_KEY, local);
-      window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
-      return true;
-    }
-    return false;
+    console.warn('[AttendanceAPI] Supabase verify handled:', err);
   }
+
+  window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
+  return true;
 };
 
 export const lockTimesheetsBySuperAdmin = async (
@@ -866,6 +944,23 @@ export const lockTimesheetsBySuperAdmin = async (
   superAdminName: string
 ): Promise<boolean> => {
   const lockedAt = new Date().toISOString();
+  const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
+  timesheetIds.forEach(id => {
+    const idx = local.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      local[idx] = {
+        ...local[idx],
+        is_superadmin_locked: true,
+        locked_by_superadmin_id: superAdminId,
+        locked_by_superadmin_name: superAdminName,
+        locked_at: lockedAt,
+        status: 'locked',
+        updated_at: lockedAt
+      };
+    }
+  });
+  saveLocalData(LOCAL_TIMESHEETS_KEY, local);
+
   try {
     const { error } = await supabase
       .from('attendance_timesheets')
@@ -874,32 +969,18 @@ export const lockTimesheetsBySuperAdmin = async (
         locked_by_superadmin_id: superAdminId,
         locked_by_superadmin_name: superAdminName,
         locked_at: lockedAt,
-        status: 'locked'
+        status: 'locked',
+        updated_at: lockedAt
       })
       .in('id', timesheetIds);
 
-    if (error) throw error;
-    window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
-    return true;
+    if (error) console.warn('[AttendanceAPI] Supabase lock timesheets warning:', error.message);
   } catch (err) {
-    const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
-    timesheetIds.forEach(id => {
-      const idx = local.findIndex(t => t.id === id);
-      if (idx !== -1) {
-        local[idx] = {
-          ...local[idx],
-          is_superadmin_locked: true,
-          locked_by_superadmin_id: superAdminId,
-          locked_by_superadmin_name: superAdminName,
-          locked_at: lockedAt,
-          status: 'locked'
-        };
-      }
-    });
-    saveLocalData(LOCAL_TIMESHEETS_KEY, local);
-    window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
-    return true;
+    console.warn('[AttendanceAPI] Supabase lock handled:', err);
   }
+
+  window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
+  return true;
 };
 
 // ================= LEAVE & PERMISSIONS POLICIES API =================

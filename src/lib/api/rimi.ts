@@ -1020,7 +1020,17 @@ export async function getRimiSalesOrders(filters?: {
     const local = getLocalRimiSalesOrders();
     const map = new Map<string, RimiSalesOrderRecord>();
     local.forEach(o => map.set(o.id, o));
-    orders.forEach(o => map.set(o.id, { ...map.get(o.id), ...o }));
+    orders.forEach(o => {
+      const localItem = map.get(o.id);
+      if (localItem && localItem.updated_at && o.updated_at) {
+        if (new Date(localItem.updated_at).getTime() > new Date(o.updated_at).getTime()) {
+          // Local cache has more recent status update
+          map.set(o.id, { ...o, ...localItem });
+          return;
+        }
+      }
+      map.set(o.id, { ...localItem, ...o });
+    });
 
     let merged = Array.from(map.values()).sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
     if (filters?.customerId) {
@@ -1235,14 +1245,35 @@ export async function createRimiSalesOrder(order: {
 }
 
 export async function updateRimiSalesOrderStatus(orderId: string, status: RimiSalesOrderRecord['order_status']): Promise<void> {
-  await supabase
-    .from('rimi_sales_orders')
-    .update({ order_status: status, updated_at: new Date().toISOString() })
-    .eq('id', orderId);
+  const localOrders = getLocalRimiSalesOrders();
+  let found = false;
+  const nowIso = new Date().toISOString();
+  const updatedOrders = localOrders.map(o => {
+    if (o.id === orderId) {
+      found = true;
+      return { ...o, order_status: status, updated_at: nowIso };
+    }
+    return o;
+  });
+  if (found) {
+    saveLocalRimiSalesOrders(updatedOrders);
+  }
+
+  try {
+    const { error } = await supabase
+      .from('rimi_sales_orders')
+      .update({ order_status: status, updated_at: nowIso })
+      .eq('id', orderId);
+    if (error) {
+      console.warn('[RimiAPI] Supabase sales order status update error:', error.message);
+    }
+  } catch (dbErr) {
+    console.warn('[RimiAPI] Supabase update exception:', dbErr);
+  }
 
   try {
     const orders = await getRimiSalesOrders();
-    const order = orders.find(o => o.id === orderId);
+    const order = orders.find(o => o.id === orderId) || updatedOrders.find(o => o.id === orderId);
     if (order?.customer_id) {
       const customer = await getRimiCustomerById(order.customer_id);
       if (customer?.email) {
@@ -1262,8 +1293,14 @@ export async function updateRimiSalesOrderStatus(orderId: string, status: RimiSa
 }
 
 export async function deleteRimiSalesOrder(orderId: string): Promise<boolean> {
-  const { error } = await supabase.from('rimi_sales_orders').delete().eq('id', orderId);
-  if (error) throw error;
+  const localOrders = getLocalRimiSalesOrders();
+  saveLocalRimiSalesOrders(localOrders.filter(o => o.id !== orderId));
+  try {
+    const { error } = await supabase.from('rimi_sales_orders').delete().eq('id', orderId);
+    if (error) console.warn('[RimiAPI] Supabase delete error:', error.message);
+  } catch (err) {
+    console.warn('[RimiAPI] Supabase delete exception:', err);
+  }
   triggerLocalSync('ferex_rimi_orders_change');
   return true;
 }

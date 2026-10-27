@@ -185,12 +185,14 @@ export const RimiSalesOrders: React.FC = () => {
 
   const handleUpdateStatus = async (orderId: string, status: RimiSalesOrderRecord['order_status']) => {
     try {
-      await updateRimiSalesOrderStatus(orderId, status);
-      showToast(`Order status updated to "${status}"`);
-      await loadData();
+      // Optimistically update order status in state so UI reflects it immediately
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, order_status: status } : o));
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(prev => prev ? { ...prev, order_status: status } : null);
       }
+      await updateRimiSalesOrderStatus(orderId, status);
+      showToast(`Order status updated to "${status}"`);
+      await loadData();
     } catch (err: any) {
       showToast(`Error updating status: ${err.message || 'Database error'}`);
     }
@@ -592,7 +594,20 @@ export const RimiSalesOrders: React.FC = () => {
             <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-lg bg-white z-50 shadow-2xl p-6 overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                 <div>
-                  <h3 className="text-base font-black text-slate-900">{selectedOrder.order_no}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-black text-slate-900">{selectedOrder.order_no}</h3>
+                    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                      selectedOrder.order_status === 'Delivered'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : selectedOrder.order_status === 'Dispatched'
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : selectedOrder.order_status === 'Cancelled'
+                        ? 'bg-rose-50 text-rose-700 border-rose-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}>
+                      {selectedOrder.order_status}
+                    </span>
+                  </div>
                   <span className="text-[10px] font-bold text-[#58051E] uppercase">{selectedOrder.customer_name}</span>
                 </div>
                 <button onClick={() => setSelectedOrder(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-4 h-4" /></button>
