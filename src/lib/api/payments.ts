@@ -151,9 +151,18 @@ export async function createAndCompletePayment(payload: {
   currency?: string;
   payment_type?: string;
   payment_method?: string;
+  status?: string;
+  paid_at?: string | null;
+  utr_number?: string;
+  description?: string;
+  verified_by?: string;
+  verified_at?: string;
+  stage_number?: number;
 }) {
   const newId = generateUUID();
   const refNo = `FEREX-PAY-${Math.floor(100000 + Math.random() * 900000)}`;
+  const status = payload.status || 'Paid';
+  const isPaid = status === 'Paid' || status === 'Verified';
 
   const insertData = {
     id: newId,
@@ -161,13 +170,17 @@ export async function createAndCompletePayment(payload: {
     student_name: payload.student_name || 'Student',
     ref_no: refNo,
     title: payload.title,
-    description: payload.title,
-    amount: payload.amount,
+    description: payload.description || payload.title,
+    amount: Number(payload.amount) || 0,
     currency: payload.currency || 'INR',
     payment_type: payload.payment_type || 'Installment Fee',
-    status: 'Pending Verification',
-    paid_at: null,
-    payment_method: payload.payment_method || 'UPI / Instant NetBanking',
+    status: status,
+    paid_at: payload.paid_at !== undefined ? payload.paid_at : (isPaid ? new Date().toISOString() : null),
+    payment_method: payload.payment_method || 'Direct Bank Transfer',
+    utr_number: payload.utr_number || '',
+    verified_by: payload.verified_by || (isPaid ? 'Admissions Finance Desk' : undefined),
+    verified_at: payload.verified_at || (isPaid ? new Date().toISOString() : undefined),
+    stage_number: payload.stage_number,
     created_at: new Date().toISOString()
   };
 
@@ -177,6 +190,7 @@ export async function createAndCompletePayment(payload: {
   } catch {}
 
   await syncPaymentToCloudCatalog(insertData as unknown as Payment);
+  window.dispatchEvent(new Event('ferex_payment_change'));
   return insertData as unknown as Payment;
 }
 

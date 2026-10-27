@@ -112,72 +112,77 @@ export async function getAssignedDigitalProjects(pm?: DigitalPMIdentity): Promis
   const myName = (name || '').toLowerCase().trim();
   const myId = id;
 
-  const isCurrentUserPMOrManager = Boolean(
-    !myEmail ||
-    myEmail.includes('pm') ||
-    myEmail.includes('manager') ||
-    myEmail.includes('digimanager') ||
-    myEmail.includes('digital') ||
-    myName.includes('manager') ||
-    myName.includes('pm') ||
-    myName.includes('director') ||
-    myName.includes('lead')
-  );
+  // If we have absolutely no identity, return all non-deleted projects (fallback for new accounts)
+  if (!myEmail && !myName && !myId) {
+    return allProjects;
+  }
+
+  const isValidUUID = (val?: string | null) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
   const isMatch = (p: any) => {
-    if (!myEmail && !myName && !myId) return true;
     const pEmail = (p.assigned_staff_email || '').toLowerCase().trim();
     const pName = (p.assigned_staff_name || '').toLowerCase().trim();
     const pId = p.assigned_staff_id;
+    const pLeadDev = (p.lead_developer || '').toLowerCase().trim();
     const pCreatedBy = (p.created_by || '').toLowerCase().trim();
 
-    // 1. Explicit UUID match
+    // 1. Exact UUID match — most reliable
     if (myId && pId && myId === pId) return true;
 
-    // 2. Direct email or username match
+    // 2. Exact email match
+    if (myEmail && pEmail && pEmail === myEmail) return true;
+
+    // 3. Partial email / username match (handle sub-domain variations)
     if (myEmail && pEmail) {
-      if (pEmail === myEmail || pEmail.includes(myEmail) || myEmail.includes(pEmail)) return true;
-      const myUser = myEmail.split('@')[0];
-      const pUser = pEmail.split('@')[0];
-      if (myUser && pUser && (myUser.includes(pUser) || pUser.includes(myUser))) return true;
+      const myUser = myEmail.split('@')[0].toLowerCase();
+      const pUser = pEmail.split('@')[0].toLowerCase();
+      if (myUser && pUser && myUser.length >= 3 && pUser.length >= 3 &&
+          (myUser === pUser || myUser.includes(pUser) || pUser.includes(myUser))) return true;
     }
 
-    // 3. Direct name match
-    if (myName && pName) {
+    // 4. Exact name match
+    if (myName && pName && pName === myName) return true;
+
+    // 5. Partial name match (safe: only if name length >= 4 to avoid false positives)
+    if (myName && myName.length >= 4) {
       if (pName.includes(myName) || myName.includes(pName)) return true;
+      if (pLeadDev && (pLeadDev.includes(myName) || myName.includes(pLeadDev))) return true;
     }
 
-    // 4. Digital Manager / Project Manager equivalence
-    const isProjectAssignedToManager = Boolean(
-      !p.assigned_staff_name ||
-      pName.includes('manager') ||
-      pName.includes('lead') ||
-      pName === 'digital manager' ||
-      pName === 'digital project manager' ||
-      pName === 'project manager' ||
-      pEmail.includes('digimanager') ||
-      pEmail.includes('pm@') ||
-      pEmail.includes('manager')
-    );
-
-    if (isCurrentUserPMOrManager && isProjectAssignedToManager) {
-      return true;
+    // 6. PM role alias matching: if current user is PM/Manager and project is assigned to PM/Manager
+    const isCurrentUserPM = myEmail.includes('pm') || myEmail.includes('manager') || myName.includes('pm') || myName.includes('manager');
+    if (isCurrentUserPM) {
+      if (pEmail.includes('pm') || pEmail.includes('manager') || pName.includes('pm') || pName.includes('manager') || pLeadDev.includes('pm') || pLeadDev.includes('manager')) return true;
     }
 
-    // 5. Created by creator / manager match
-    if (myEmail && pCreatedBy && (pCreatedBy.includes(myEmail) || myEmail.includes(pCreatedBy))) return true;
-    if (myName && pCreatedBy && (pCreatedBy.includes(myName) || myName.includes(pCreatedBy))) return true;
+    // 7. Created by match
+    if (myEmail && pCreatedBy && pCreatedBy === myEmail) return true;
+    if (myName && myName.length >= 4 && pCreatedBy && (pCreatedBy.includes(myName) || myName.includes(pCreatedBy))) return true;
 
     return false;
   };
 
-  const filtered = allProjects.filter(isMatch);
-  if (filtered.length > 0) {
-    return filtered;
+  const matched = allProjects.filter(isMatch);
+
+  // If we found explicit matches, return them
+  if (matched.length > 0) {
+    return matched;
   }
 
-  // Resilient fallback: Return all available projects so PM is never blocked
-  return allProjects;
+  // Check if current user is admin/central
+  const { data: authData } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const userRole = (authData?.user?.user_metadata?.role || '').toLowerCase();
+  if (userRole === 'digital_admin' || userRole === 'digital' || userRole === 'ferex_digital' || userRole === 'central' || userRole === 'super_admin' || userRole === 'superadmin') {
+    return allProjects;
+  }
+
+  // If PM has no directly assigned project, return projects that are unassigned or tagged for Digital PM
+  const pmPool = allProjects.filter(p => !p.assigned_staff_name || p.assigned_staff_name === 'Unassigned' || p.assigned_staff_name.toLowerCase().includes('digital') || p.assigned_staff_name.toLowerCase().includes('pm') || p.assigned_staff_name.toLowerCase().includes('manager'));
+  if (pmPool.length > 0) {
+    return pmPool;
+  }
+
+  return [];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -185,6 +190,17 @@ export async function getAssignedDigitalProjects(pm?: DigitalPMIdentity): Promis
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<DigitalPMTask[]> {
   const { id, email, name } = await resolvePMIdentity(pm);
+  const isValidUUID = (val?: string | null) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+  // Build local cache fallback for resilience
+  let localTasks: DigitalPMTask[] = [];
+  try {
+    const raw = localStorage.getItem('ferex_digital_tasks');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) localTasks = parsed;
+    }
+  } catch {}
 
   // 1. Query digital_tasks table
   let digitalQuery = supabase
@@ -193,26 +209,57 @@ export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<D
     .order('created_at', { ascending: false });
 
   const dFilters: string[] = [];
-  if (id) {
+  if (id && isValidUUID(id)) {
     dFilters.push(`assigned_staff_id.eq.${id}`);
-    dFilters.push(`assigned_to.eq.${id}`);
   }
   if (email) {
     dFilters.push(`assigned_to_email.eq.${email}`);
     dFilters.push(`assigned_to_email.ilike.%${email}%`);
+    const emailPrefix = email.split('@')[0];
+    if (emailPrefix && emailPrefix.length >= 3) {
+      dFilters.push(`assigned_to_email.ilike.%${emailPrefix}%`);
+    }
   }
-  if (name) {
+  if (name && name.length >= 3) {
     dFilters.push(`assigned_to_name.eq.${name}`);
     dFilters.push(`assigned_to_name.ilike.%${name}%`);
+  }
+
+  // If user is PM, also include tasks assigned to Digital PM / Manager
+  const isPM = (email && (email.toLowerCase().includes('pm') || email.toLowerCase().includes('manager'))) ||
+               (name && (name.toLowerCase().includes('pm') || name.toLowerCase().includes('manager')));
+  if (isPM) {
+    dFilters.push(`assigned_to_name.ilike.%Manager%`);
+    dFilters.push(`assigned_to_name.ilike.%PM%`);
   }
 
   if (dFilters.length > 0) {
     digitalQuery = digitalQuery.or(dFilters.join(','));
   }
 
-  const { data: dTasks, error: dError } = await digitalQuery;
-  if (dError) {
-    throw new Error(`Failed to load digital tasks from database: ${dError.message}`);
+  let dTasks: any[] = [];
+  try {
+    const { data: dData, error: dError } = await digitalQuery;
+    if (dError) {
+      console.warn('[DigitalPM] digital_tasks DB query notice, using local cache:', dError.message);
+      // Fallback to local cache filtered by identity
+      dTasks = localTasks.filter((t: any) => {
+        if (!email && !name && !id) return true;
+        const tEmail = (t.assigned_to_email || '').toLowerCase().trim();
+        const tName = (t.assigned_to_name || '').toLowerCase().trim();
+        const tStaffId = t.assigned_staff_id;
+        if (id && tStaffId === id) return true;
+        if (email && (tEmail === email.toLowerCase() || tEmail.includes(email.toLowerCase()) || email.toLowerCase().includes(tEmail))) return true;
+        if (name && (tName.includes(name.toLowerCase()) || name.toLowerCase().includes(tName))) return true;
+        if (isPM && (tEmail.includes('pm') || tName.includes('pm') || tName.includes('manager'))) return true;
+        return false;
+      });
+    } else {
+      dTasks = dData || [];
+    }
+  } catch (err) {
+    console.warn('[DigitalPM] digital_tasks query exception, using local cache:', err);
+    dTasks = localTasks;
   }
 
   // 2. Query general tasks assigned to PM (from Central Admin / Super Admin)
@@ -222,8 +269,10 @@ export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<D
     .order('created_at', { ascending: false });
 
   const gFilters: string[] = [];
-  if (id) {
+  if (id && isValidUUID(id)) {
     gFilters.push(`assigned_staff_id.eq.${id}`);
+  }
+  if (id) {
     gFilters.push(`assigned_to.eq.${id}`);
   }
   if (email) {
@@ -239,10 +288,16 @@ export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<D
     generalQuery = generalQuery.or(gFilters.join(','));
   }
 
-  const { data: gTasks } = await generalQuery;
+  let gTasks: any[] = [];
+  try {
+    const { data: gData } = await generalQuery;
+    gTasks = gData || [];
+  } catch {
+    gTasks = [];
+  }
 
   // Format general tasks into standard DigitalPMTask
-  const mappedGeneralTasks: DigitalPMTask[] = (gTasks || []).map((t: any) => ({
+  const mappedGeneralTasks: DigitalPMTask[] = gTasks.map((t: any) => ({
     id: t.id,
     project_title: t.category ? `[${t.category}] Central Directive` : 'Central Operations Directive',
     title: t.title,
@@ -259,7 +314,7 @@ export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<D
   }));
 
   // Combine and de-duplicate by ID
-  const directTasks = (dTasks || []).map((t: any) => {
+  const directTasks = dTasks.map((t: any) => {
     const isCentral = t.created_by === 'Central Admin' ||
       (t.notes && t.notes.toLowerCase().includes('central admin')) ||
       (t.title && t.title.toLowerCase().includes('central admin')) ||

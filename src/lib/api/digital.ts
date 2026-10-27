@@ -606,24 +606,51 @@ export async function assignDigitalProject(
         assigned_staff_id: staffId,
         assigned_staff_name: staffName,
         assigned_staff_email: staffEmail,
+        lead_developer: staffName,
         updated_at: new Date().toISOString(),
       };
     }
     return p;
   });
   try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
+
+  // Write all relevant assignment fields to DB — both staff_id and email/name for resilient PM lookup
   try {
-    await supabase.from('digital_projects').update({
+    const isValidUUID = (id?: string | null) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const { error } = await supabase.from('digital_projects').update({
       assigned_staff_name: staffName,
       assigned_staff_email: staffEmail,
+      assigned_staff_id: isValidUUID(staffId) ? staffId : null,
+      lead_developer: staffName,
       updated_at: new Date().toISOString(),
     }).eq('id', projectId);
-  } catch {}
+    if (error) {
+      console.warn('[DigitalAPI] assignDigitalProject DB update warning:', error.message);
+    }
+  } catch (err) {
+    console.warn('[DigitalAPI] assignDigitalProject DB update failed (saved locally):', err);
+  }
+
   triggerLocalSync('ferex_digital_projects_change');
   return true;
 }
 
 export async function reassignDigitalProject(projectId: string, leadName: string, staffEmail?: string, staffId?: string): Promise<boolean> {
+  const isValidUUID = (id?: string | null) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  // Update local cache
+  try {
+    const current = await getDigitalProjects();
+    const updated = current.map((p: any) => p.id === projectId ? {
+      ...p,
+      lead_developer: leadName,
+      assigned_staff_name: leadName,
+      assigned_staff_email: staffEmail || `${leadName.toLowerCase().replace(/\s+/g, '.')}@ferex.com`,
+      assigned_staff_id: isValidUUID(staffId) ? staffId : p.assigned_staff_id,
+      updated_at: new Date().toISOString()
+    } : p);
+    try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
+  } catch {}
+
   try {
     const { error } = await supabase
       .from('digital_projects')
@@ -631,7 +658,7 @@ export async function reassignDigitalProject(projectId: string, leadName: string
         lead_developer: leadName,
         assigned_staff_name: leadName,
         assigned_staff_email: staffEmail || `${leadName.toLowerCase().replace(/\s+/g, '.')}@ferex.com`,
-        assigned_staff_id: staffId || null,
+        assigned_staff_id: isValidUUID(staffId) ? staffId : null,
         updated_at: new Date().toISOString()
       })
       .eq('id', projectId);
@@ -643,7 +670,8 @@ export async function reassignDigitalProject(projectId: string, leadName: string
     return true;
   } catch (err) {
     console.error('[DigitalAPI] Error reassigning digital project:', err);
-    throw err;
+    triggerLocalSync('ferex_digital_projects_change');
+    return true; // Return true since local cache was updated
   }
 }
 
@@ -920,21 +948,26 @@ export async function createDigitalTask(task: {
   due_date?: string;
   assigned_to_name?: string;
   assigned_to_email?: string;
+  assigned_staff_id?: string;
   notes?: string;
 }) {
+  const isValidUUID = (id?: string | null) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const projects = await getDigitalProjects();
   const projectObj = projects.find((p: any) => p.id === task.project_id);
+  const projTitle = task.project_title || projectObj?.title || 'Sprint Project';
 
   const payload = {
     id: generateUUID(),
-    project_id: task.project_id || null,
-    project: projectObj || { title: task.project_title || 'Sprint Project' },
+    project_id: isValidUUID(task.project_id) ? task.project_id : null,
+    project_title: projTitle,
+    project: projectObj || { title: projTitle },
     title: task.title,
     priority: task.priority || 'Medium',
     status: task.status || 'To Do',
     due_date: task.due_date || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
     assigned_to_name: task.assigned_to_name || 'Digital Project Manager',
     assigned_to_email: task.assigned_to_email || 'pm@ferex.com',
+    assigned_staff_id: isValidUUID(task.assigned_staff_id) ? task.assigned_staff_id : null,
     notes: task.notes || '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),

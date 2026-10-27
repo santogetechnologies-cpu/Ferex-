@@ -10,7 +10,12 @@ import {
   Calendar,
   Check,
   X,
-  Plus
+  Plus,
+  Lock,
+  Unlock,
+  ChevronLeft,
+  ChevronRight,
+  Filter
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ClockInOutWidget } from '../../components/ClockInOutWidget';
@@ -19,8 +24,14 @@ import { ShiftDetailsView } from '../../components/ShiftDetailsView';
 import {
   getTimesheets,
   verifyTimesheetByAdmin,
+  lockTimesheetsBySuperAdmin,
+  unlockTimesheetsBySuperAdmin,
+  closeTimesheetForDay,
+  getDateRangeForPeriod,
+  isTimesheetForAdmin,
   getLeaveRequests,
   updateLeaveRequestStatus,
+  isAdminUser,
   type AttendanceTimesheet,
   type LeavePermissionRequest,
 } from '../../lib/api/attendance';
@@ -33,6 +44,10 @@ export const RimiAttendance: React.FC = () => {
   const [timesheets, setTimesheets] = useState<AttendanceTimesheet[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeavePermissionRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [periodFilter, setPeriodFilter] = useState<'daily' | 'weekly' | 'monthly' | 'all'>('daily');
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
@@ -48,7 +63,11 @@ export const RimiAttendance: React.FC = () => {
         setTimesheets(data);
       } else {
         const leaves = await getLeaveRequests({ division: 'rimi' });
-        setLeaveRequests(leaves);
+        const currentAdminEmail = (user?.email || profile?.email || '').toLowerCase().trim();
+        const staffLeaves = (leaves || []).filter(
+          (r) => !r.is_admin_request && !isAdminUser(r.user_role, r.user_email) && r.user_email.toLowerCase() !== currentAdminEmail
+        );
+        setLeaveRequests(staffLeaves);
       }
     } catch (err) {
       console.error(err);
@@ -73,14 +92,83 @@ export const RimiAttendance: React.FC = () => {
     setTimeout(() => setToastMsg(''), 4000);
   };
 
-  const handleVerify = async (id: string, staffName: string) => {
+  const handleVerify = async (id: string, staffName: string, hours?: number) => {
     try {
-      await verifyTimesheetByAdmin(id, adminId, adminName, 'Verified by Rimi Operations Admin');
-      showToast(`Timesheet for ${staffName} verified.`);
+      await verifyTimesheetByAdmin(
+        id,
+        adminId,
+        adminName,
+        hours ? `Verified as ${hours} hrs by Rimi Admin` : 'Verified by Rimi Operations Admin',
+        hours
+      );
+      showToast(`Timesheet for ${staffName} verified (${hours ? `${hours} hrs` : 'Actual'}).`);
       loadData();
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleToggleLock = async (t: AttendanceTimesheet) => {
+    try {
+      if (t.is_superadmin_locked) {
+        await unlockTimesheetsBySuperAdmin([t.id], adminId, adminName);
+        showToast(`Timesheet unlocked for ${t.user_name}.`);
+      } else {
+        await lockTimesheetsBySuperAdmin([t.id], adminId, adminName);
+        showToast(`Timesheet locked for ${t.user_name}.`);
+      }
+      loadData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCloseSheetForEmployee = async (t: AttendanceTimesheet) => {
+    try {
+      await closeTimesheetForDay(t.id, adminId, adminName, t.total_hours || 8.0);
+      showToast(`Timesheet for ${t.user_name} closed and locked for payroll.`);
+      loadData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handlePrevPeriod = () => {
+    if (periodFilter === 'daily') {
+      const d = new Date(selectedDate + 'T00:00:00');
+      d.setDate(d.getDate() - 1);
+      setSelectedDate(d.toISOString().split('T')[0]);
+    } else if (periodFilter === 'weekly') {
+      const d = new Date(selectedDate + 'T00:00:00');
+      d.setDate(d.getDate() - 7);
+      setSelectedDate(d.toISOString().split('T')[0]);
+    } else if (periodFilter === 'monthly') {
+      const parts = selectedMonth.split('-').map(Number);
+      const prev = new Date(parts[0], parts[1] - 2, 1);
+      setSelectedMonth(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`);
+    }
+  };
+
+  const handleNextPeriod = () => {
+    if (periodFilter === 'daily') {
+      const d = new Date(selectedDate + 'T00:00:00');
+      d.setDate(d.getDate() + 1);
+      setSelectedDate(d.toISOString().split('T')[0]);
+    } else if (periodFilter === 'weekly') {
+      const d = new Date(selectedDate + 'T00:00:00');
+      d.setDate(d.getDate() + 7);
+      setSelectedDate(d.toISOString().split('T')[0]);
+    } else if (periodFilter === 'monthly') {
+      const parts = selectedMonth.split('-').map(Number);
+      const next = new Date(parts[0], parts[1], 1);
+      setSelectedMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`);
+    }
+  };
+
+  const handleToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setSelectedDate(today);
+    setSelectedMonth(today.slice(0, 7));
   };
 
   const handleReviewLeave = async (
@@ -103,12 +191,33 @@ export const RimiAttendance: React.FC = () => {
     }
   };
 
-  const filtered = timesheets.filter(
-    (t) =>
+  const dateRange = getDateRangeForPeriod(periodFilter, selectedDate, selectedMonth);
+
+  const filtered = timesheets.filter((t) => {
+    const matchesQuery =
       t.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.user_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (t.work_summary && t.work_summary.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+      (t.work_summary && t.work_summary.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesStatus =
+      statusFilter === 'all'
+        ? true
+        : statusFilter === 'verified'
+        ? t.is_admin_verified
+        : statusFilter === 'active'
+        ? t.status === 'active'
+        : statusFilter === 'locked'
+        ? t.is_superadmin_locked
+        : t.status === 'completed' && !t.is_admin_verified;
+
+    let matchesDate = true;
+    if (dateRange.startDate && dateRange.endDate) {
+      const tDate = t.date || (t.clock_in ? t.clock_in.split('T')[0] : '');
+      matchesDate = tDate >= dateRange.startDate && tDate <= dateRange.endDate;
+    }
+
+    return matchesQuery && matchesStatus && matchesDate;
+  });
 
   return (
     <div className="space-y-6 relative text-left pb-8 text-slate-900">
@@ -191,24 +300,145 @@ export const RimiAttendance: React.FC = () => {
 
       {activeTab === 'timesheets' && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search staff or shift summary..."
-                className="bg-white border border-slate-200 text-slate-800 text-xs rounded-lg pl-8 pr-3 py-1.5 w-60 focus:outline-none focus:border-[#58051E]"
-              />
+          {/* Filter Bar */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Period selector */}
+              <div className="inline-flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200/80 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setPeriodFilter('daily')}
+                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                    periodFilter === 'daily'
+                      ? 'bg-white text-slate-900 shadow-xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Daily
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPeriodFilter('weekly')}
+                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                    periodFilter === 'weekly'
+                      ? 'bg-white text-slate-900 shadow-xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Weekly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPeriodFilter('monthly')}
+                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                    periodFilter === 'monthly'
+                      ? 'bg-white text-slate-900 shadow-xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPeriodFilter('all')}
+                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                    periodFilter === 'all'
+                      ? 'bg-white text-slate-900 shadow-xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Time
+                </button>
+              </div>
+
+              {/* Date navigator for Daily/Weekly/Monthly */}
+              {periodFilter !== 'all' && (
+                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={handlePrevPeriod}
+                    className="p-0.5 rounded hover:bg-slate-200 text-slate-600 cursor-pointer"
+                    title="Previous"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleToday}
+                    className="px-1.5 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-200 rounded cursor-pointer"
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextPeriod}
+                    className="p-0.5 rounded hover:bg-slate-200 text-slate-600 cursor-pointer"
+                    title="Next"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+
+                  <div className="border-l border-slate-200 pl-1.5 ml-1">
+                    {periodFilter === 'monthly' ? (
+                      <input
+                        type="month"
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="bg-transparent text-slate-800 text-xs font-medium focus:outline-none cursor-pointer"
+                      />
+                    ) : (
+                      <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="bg-transparent text-slate-800 text-xs font-medium focus:outline-none cursor-pointer"
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-            <button
-              onClick={loadData}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition-all cursor-pointer shadow-xs"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </button>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search staff or shift summary..."
+                  className="bg-white border border-slate-200 text-slate-800 text-xs rounded-lg pl-8 pr-7 py-1.5 w-56 focus:outline-none focus:border-[#58051E]"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-white border border-slate-200 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#58051E]"
+              >
+                <option value="all">All Shifts</option>
+                <option value="pending">Pending Verification</option>
+                <option value="verified">Verified Shifts</option>
+                <option value="active">Active (Clocked In)</option>
+                <option value="locked">Locked for Payroll</option>
+              </select>
+
+              <button
+                onClick={loadData}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition-all cursor-pointer shadow-xs"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
 
           <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs">
@@ -253,13 +483,17 @@ export const RimiAttendance: React.FC = () => {
                           {t.work_summary ? `"${t.work_summary}"` : '--'}
                         </td>
                         <td className="p-3">
-                          {t.is_admin_verified ? (
+                          {t.is_superadmin_locked ? (
+                            <span className="inline-flex items-center gap-1 bg-purple-50 border border-purple-200 text-purple-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                              <Lock className="w-3 h-3" /> Locked
+                            </span>
+                          ) : t.is_admin_verified ? (
                             <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
                               <Check className="w-3 h-3" /> Verified
                             </span>
                           ) : t.status === 'active' ? (
                             <span className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
-                              In Progress
+                              <Clock className="w-3 h-3 animate-spin" /> In Progress
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
@@ -268,14 +502,47 @@ export const RimiAttendance: React.FC = () => {
                           )}
                         </td>
                         <td className="p-3 text-right">
-                          {!t.is_admin_verified && t.status === 'completed' && (
-                            <button
-                              onClick={() => handleVerify(t.id, t.user_name)}
-                              className="bg-[#58051E] hover:bg-[#430316] text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer"
-                            >
-                              Verify Shift
-                            </button>
-                          )}
+                          <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                            {isAdminUser(t.user_role, t.user_email) ? (
+                              <span className="text-[10px] text-purple-700 bg-purple-50 px-2.5 py-1 rounded-md font-bold border border-purple-200 inline-flex items-center gap-1">
+                                <Lock className="w-3 h-3" />
+                                {t.is_superadmin_locked ? 'Locked by SuperAdmin' : 'Audited by SuperAdmin'}
+                              </span>
+                            ) : (
+                              <>
+                                {!t.is_superadmin_locked && !t.is_admin_verified && (
+                                  <button
+                                    onClick={() => handleVerify(t.id, t.user_name, 8.0)}
+                                    className="bg-[#58051E] hover:bg-[#430316] text-white text-[11px] font-semibold px-2 py-1 rounded-lg shadow-xs transition-all cursor-pointer inline-flex items-center gap-1"
+                                    title="Verify as 1 Full Day (8 hrs)"
+                                  >
+                                    <Check className="w-3 h-3" />
+                                    <span>Verify (1 Day)</span>
+                                  </button>
+                                )}
+
+                                {!t.is_superadmin_locked ? (
+                                  <button
+                                    onClick={() => handleCloseSheetForEmployee(t)}
+                                    className="bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-xs transition-all cursor-pointer inline-flex items-center gap-1"
+                                    title="Close and lock shift for payroll"
+                                  >
+                                    <Lock className="w-3 h-3" />
+                                    <span>Close Sheet</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleToggleLock(t)}
+                                    className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-semibold px-2 py-1 rounded-lg shadow-xs transition-all cursor-pointer inline-flex items-center gap-1"
+                                    title="Unlock timesheet for corrections"
+                                  >
+                                    <Unlock className="w-3 h-3" />
+                                    <span>Unlock</span>
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))

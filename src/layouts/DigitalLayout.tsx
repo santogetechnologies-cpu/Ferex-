@@ -118,7 +118,6 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       title: 'Agency Operations',
       items: [
         { label: 'Clients', path: '/digital/clients', icon: Users },
-        { label: 'Staff Team', path: '/digital/staff', icon: Users },
         { label: 'Attendance & Timesheets', path: '/digital/attendance', icon: Clock },
         { label: 'Projects', path: '/digital/projects', icon: FolderKanban },
         { label: 'Deliverables', path: '/digital/deliverables', icon: Layers },

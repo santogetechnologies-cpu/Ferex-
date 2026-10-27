@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FolderKanban, Search, Plus, X, CheckCircle2, Trash2,
   ExternalLink, Paperclip, ChevronRight, Layers,
-  Building2, Globe2, Edit3
+  Building2, Globe2, Edit3, UserCheck
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -13,6 +13,7 @@ import {
   getDigitalProjects,
   createDigitalProject,
   updateDigitalProject,
+  reassignDigitalProject,
   deleteDigitalProject,
   advanceDigitalProjectStage,
   addDigitalDeliverable,
@@ -56,6 +57,8 @@ export const DigitalProjects: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<DigitalProjectRecord | null>(null);
   const [showDeliverableModal, setShowDeliverableModal] = useState(false);
+  const [reassignProject, setReassignProject] = useState<DigitalProjectRecord | null>(null);
+  const [reassignStaffName, setReassignStaffName] = useState<string>('');
   const [toast, setToast] = useState('');
 
   // New Project Form State
@@ -248,6 +251,19 @@ export const DigitalProjects: React.FC = () => {
     if (selectedProject?.id === id) setSelectedProject(null);
     showToast(`Removed project ${title}`);
     await loadData();
+  };
+
+  const handleConfirmReassign = async () => {
+    if (!reassignProject || !reassignStaffName) return;
+    try {
+      const staffMember = staffList.find(s => s.name === reassignStaffName || s.email === reassignStaffName);
+      await reassignDigitalProject(reassignProject.id, reassignStaffName, staffMember?.email, staffMember?.id);
+      showToast(`Reassigned "${reassignProject.title}" to ${reassignStaffName}`);
+      setReassignProject(null);
+      await loadData();
+    } catch (err: any) {
+      showToast(`Failed to reassign: ${err.message}`);
+    }
   };
 
   // Filtering
@@ -582,6 +598,20 @@ export const DigitalProjects: React.FC = () => {
                       <Layers className="w-3.5 h-3.5 mr-1 text-[#58051E]" /> Deliverables ({ (p.deliverables || []).length })
                     </Button>
 
+                    {(isAdmin || isCentral) && (
+                      <button
+                        onClick={() => {
+                          setReassignProject(p);
+                          setReassignStaffName(p.assigned_staff_name || '');
+                        }}
+                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-[#58051E]/10 text-slate-700 hover:text-[#58051E] rounded-lg text-xs font-bold border border-slate-200 transition-colors cursor-pointer shrink-0"
+                        title="Reassign Project Manager / Lead"
+                      >
+                        <UserCheck className="w-3.5 h-3.5 inline mr-1 text-[#58051E]" />
+                        <span>Reassign PM</span>
+                      </button>
+                    )}
+
                     {(() => {
                       const canAdvance = isAdmin || isCentral || Boolean(
                         (profile?.full_name && (p.assigned_staff_name || '').toLowerCase().includes(profile.full_name.toLowerCase())) ||
@@ -758,10 +788,24 @@ export const DigitalProjects: React.FC = () => {
                 <p className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">
                   {selectedProject.scope || 'No specific scope text logged.'}
                 </p>
-                <div className="pt-2 flex flex-wrap gap-4 text-xs font-bold text-slate-500 border-t border-slate-200/60">
-                  <span>Start: <strong className="text-slate-800">{selectedProject.start_date || 'N/A'}</strong></span>
-                  <span>Deadline: <strong className="text-slate-800">{selectedProject.deadline || 'N/A'}</strong></span>
-                  <span>Staff: <strong className="text-slate-800">{selectedProject.assigned_staff_name || 'Unassigned'}</strong></span>
+                <div className="pt-2 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-slate-500 border-t border-slate-200/60">
+                  <div className="flex flex-wrap gap-4">
+                    <span>Start: <strong className="text-slate-800">{selectedProject.start_date || 'N/A'}</strong></span>
+                    <span>Deadline: <strong className="text-slate-800">{selectedProject.deadline || 'N/A'}</strong></span>
+                    <span>Staff Lead: <strong className="text-slate-800">{selectedProject.assigned_staff_name || 'Unassigned'}</strong></span>
+                  </div>
+                  {(isAdmin || isCentral) && (
+                    <button
+                      onClick={() => {
+                        setReassignProject(selectedProject);
+                        setReassignStaffName(selectedProject.assigned_staff_name || '');
+                      }}
+                      className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 hover:text-[#58051E] rounded-md text-[11px] font-bold cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                    >
+                      <UserCheck className="w-3 h-3 text-[#58051E]" />
+                      <span>Change PM</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -930,11 +974,18 @@ export const DigitalProjects: React.FC = () => {
                       onChange={(e) => setNewProj({ ...newProj, service_category: e.target.value })}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     >
-                      <option value="Digital Marketing & Advertising">Digital Marketing & Advertising</option>
-                      <option value="Branding & Visual Identity">Branding & Visual Identity</option>
-                      <option value="Social Media & Video Production">Social Media & Video Production</option>
-                      <option value="Web & App Development">Web & App Development</option>
-                      <option value="SEO & Performance PR">SEO & Performance PR</option>
+                      <option value="Web & App Development">Web Application Development (Full Stack)</option>
+                      <option value="Mobile App Development">Mobile App (iOS / Android / Flutter)</option>
+                      <option value="Enterprise Cloud ERP & SaaS">Enterprise Cloud ERP & SaaS Architecture</option>
+                      <option value="UI/UX System & Product Design">UI/UX System & Product Design</option>
+                      <option value="AI / ML Copilot & Intelligent Agents">AI / ML Copilot & Intelligent Agents</option>
+                      <option value="DevOps & Cloud Infrastructure">DevOps, CI/CD & Cloud Infrastructure</option>
+                      <option value="Cybersecurity & Penetration Testing">Cybersecurity & Penetration Testing</option>
+                      <option value="API & Database Architecture">API & Database Architecture</option>
+                      <option value="Custom Enterprise Software">Custom Enterprise Software Engineering</option>
+                      <option value="Digital Marketing & Advertising">Digital Marketing & Performance Ads</option>
+                      <option value="SEO & Growth Engineering">SEO & Growth Engineering</option>
+                      <option value="Branding & Visual Identity">Branding & Corporate Identity</option>
                     </select>
                   </div>
                 </div>
@@ -1179,6 +1230,88 @@ export const DigitalProjects: React.FC = () => {
                   </Button>
                 </div>
               </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── REASSIGN PM MODAL ── */}
+      <AnimatePresence>
+        {reassignProject && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50"
+              onClick={() => setReassignProject(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 text-left space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                    <UserCheck className="w-4 h-4 text-[#58051E]" />
+                    <span>Reassign Project Lead / PM</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5 truncate max-w-xs">{reassignProject.title}</p>
+                </div>
+                <button
+                  onClick={() => setReassignProject(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="text-xs text-slate-600">
+                  Select a Digital Project Manager or Developer to assign this project to. The project will immediately appear in their workspace and task queue.
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
+                    Select Digital Manager / Lead *
+                  </label>
+                  <select
+                    value={reassignStaffName}
+                    onChange={(e) => setReassignStaffName(e.target.value)}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  >
+                    <option value="">-- Choose Staff Member --</option>
+                    {staffList.map((s: any) => (
+                      <option key={s.id || s.email} value={s.name}>
+                        {s.name} ({s.roleLabel || s.role || 'Project Lead'}) - {s.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-2 flex gap-2 border-t border-slate-100">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-xs font-bold"
+                  onClick={() => setReassignProject(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!reassignStaffName}
+                  className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
+                  onClick={handleConfirmReassign}
+                >
+                  Confirm Reassign
+                </Button>
+              </div>
             </motion.div>
           </>
         )}

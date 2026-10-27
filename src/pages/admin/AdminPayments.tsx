@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Eye, CheckCircle2, X, CreditCard, Clock, Sparkles, AlertCircle,
   ExternalLink, Download, RefreshCw, TrendingUp, RotateCcw, FileText, Filter, Plus,
-  Building2, GraduationCap, Layers, ArrowRight, CheckCircle, ShieldCheck, Trash2
+  Building2, GraduationCap, Layers, ArrowRight, CheckCircle, ShieldCheck, Trash2,
+  Landmark, Banknote, ArrowRightLeft
 } from 'lucide-react';
 import { usePayments } from '../../hooks/usePayments';
 import { useStudents } from '../../hooks/useStudents';
@@ -53,13 +54,18 @@ export const AdminPayments: React.FC = () => {
 
   // Manual payment entry modal
   const [showManualModal, setShowManualModal] = useState(false);
+  const [manualPaymentMode, setManualPaymentMode] = useState<'bank' | 'cash' | 'split'>('bank');
   const [manualStudentName, setManualStudentName] = useState('');
   const [manualStudentId, setManualStudentId] = useState('');
   const [manualTitle, setManualTitle] = useState('Advanced Registration Fee');
   const [manualAmount, setManualAmount] = useState('15000');
+  const [manualBankAmount, setManualBankAmount] = useState('15000');
+  const [manualCashAmount, setManualCashAmount] = useState('0');
   const [manualType] = useState('Installment Fee');
-  const [manualMethod, setManualMethod] = useState('Bank Wire Transfer');
+  const [manualMethod, setManualMethod] = useState('Direct Bank Transfer');
+  const [manualBankName, setManualBankName] = useState('HDFC Bank');
   const [manualUtr, setManualUtr] = useState('');
+  const [manualCashReceipt, setManualCashReceipt] = useState(`FRX-CSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
   const [manualStatus, setManualStatus] = useState<'Paid' | 'Pending'>('Paid');
 
   const [toast, setToast] = useState('');
@@ -385,28 +391,104 @@ export const AdminPayments: React.FC = () => {
   // Manual Offline Payment Submit
   const handleManualPaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualStudentName.trim() || !manualAmount) {
-      showToast('Student name and amount are required.');
+    if (!manualStudentName.trim()) {
+      showToast('Student name is required.');
       return;
     }
 
     try {
       setIsProcessing('manual');
-      const amt = parseFloat(manualAmount);
-      const created = await createAndCompletePayment({
-        student_name: manualStudentName.trim(),
-        student_id: manualStudentId.trim() || undefined,
-        title: manualTitle.trim(),
-        amount: amt,
-        payment_type: manualType,
-        payment_method: manualMethod,
-      });
+      const totTarget = parseFloat(manualAmount) || 0;
 
-      if (manualStatus === 'Paid') {
-        await verifyPayment(created.id, `Offline payment recorded by Admin via ${manualMethod}. UTR: ${manualUtr || 'N/A'}`);
+      if (manualPaymentMode === 'bank') {
+        const amt = parseFloat(manualBankAmount) || totTarget;
+        if (amt <= 0) {
+          showToast('Please enter a valid bank transfer amount.');
+          setIsProcessing(null);
+          return;
+        }
+        const utrVal = manualUtr.trim() || `NEFT-${Date.now().toString().slice(-6)}`;
+        await createAndCompletePayment({
+          student_name: manualStudentName.trim(),
+          student_id: manualStudentId.trim() || undefined,
+          title: `${manualTitle.trim()} - Direct Bank Wire`,
+          description: `Direct Bank Transfer via ${manualBankName}. UTR #${utrVal}`,
+          amount: amt,
+          payment_type: manualType,
+          payment_method: 'Direct Bank Transfer',
+          status: manualStatus,
+          utr_number: utrVal,
+        });
+        showToast(`Bank Transfer of INR ${amt.toLocaleString('en-IN')} recorded for ${manualStudentName}.`);
+      } else if (manualPaymentMode === 'cash') {
+        const amt = parseFloat(manualCashAmount) || totTarget;
+        if (amt <= 0) {
+          showToast('Please enter a valid cash amount.');
+          setIsProcessing(null);
+          return;
+        }
+        const receiptNo = manualCashReceipt.trim() || `FRX-CSH-${Date.now().toString().slice(-6)}`;
+        await createAndCompletePayment({
+          student_name: manualStudentName.trim(),
+          student_id: manualStudentId.trim() || undefined,
+          title: `${manualTitle.trim()} - Cash Receipt`,
+          description: `In-Person Cash Payment. Receipt #${receiptNo}`,
+          amount: amt,
+          payment_type: manualType,
+          payment_method: 'Cash Payment',
+          status: manualStatus,
+          utr_number: receiptNo,
+        });
+        showToast(`Cash payment of INR ${amt.toLocaleString('en-IN')} recorded for ${manualStudentName}.`);
+      } else {
+        // Split Mode
+        const bAmt = parseFloat(manualBankAmount) || 0;
+        const cAmt = parseFloat(manualCashAmount) || 0;
+        if (bAmt <= 0 && cAmt <= 0) {
+          showToast('Please allocate positive amounts for bank and/or cash portions.');
+          setIsProcessing(null);
+          return;
+        }
+        if (Math.abs((bAmt + cAmt) - totTarget) > 0.01) {
+          showToast(`Split total (INR ${(bAmt + cAmt).toLocaleString('en-IN')}) does not match the target total (INR ${totTarget.toLocaleString('en-IN')}).`);
+          setIsProcessing(null);
+          return;
+        }
+
+        const splitRef = `SPLIT-FRX-${Date.now().toString().slice(-6)}`;
+        const utrVal = manualUtr.trim() || `NEFT-${Date.now().toString().slice(-6)}`;
+        const receiptNo = manualCashReceipt.trim() || `FRX-CSH-${Date.now().toString().slice(-6)}`;
+
+        if (bAmt > 0) {
+          await createAndCompletePayment({
+            student_name: manualStudentName.trim(),
+            student_id: manualStudentId.trim() || undefined,
+            title: `${manualTitle.trim()} - Bank Wire Portion`,
+            description: `Split Payment [${splitRef}]: Bank portion of INR ${bAmt.toLocaleString('en-IN')} via ${manualBankName} (UTR #${utrVal}). Total: INR ${totTarget.toLocaleString('en-IN')}`,
+            amount: bAmt,
+            payment_type: manualType,
+            payment_method: 'Direct Bank Transfer',
+            status: manualStatus,
+            utr_number: utrVal,
+          });
+        }
+
+        if (cAmt > 0) {
+          await createAndCompletePayment({
+            student_name: manualStudentName.trim(),
+            student_id: manualStudentId.trim() || undefined,
+            title: `${manualTitle.trim()} - Cash Portion`,
+            description: `Split Payment [${splitRef}]: Cash portion of INR ${cAmt.toLocaleString('en-IN')} (Receipt #${receiptNo}). Total: INR ${totTarget.toLocaleString('en-IN')}`,
+            amount: cAmt,
+            payment_type: manualType,
+            payment_method: 'Cash Payment',
+            status: manualStatus,
+            utr_number: receiptNo,
+          });
+        }
+        showToast(`Split payment (INR ${bAmt.toLocaleString('en-IN')} Bank + INR ${cAmt.toLocaleString('en-IN')} Cash) recorded for ${manualStudentName}.`);
       }
 
-      showToast(`Payment of INR ${amt.toLocaleString()} recorded for ${manualStudentName}.`);
       setShowManualModal(false);
       setManualStudentName('');
       setManualStudentId('');
@@ -1325,50 +1407,211 @@ export const AdminPayments: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Mode Switcher Tabs */}
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl text-xs font-black">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualPaymentMode('bank');
+                        setManualBankAmount(manualAmount);
+                        setManualCashAmount('0');
+                      }}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg transition-all cursor-pointer ${
+                        manualPaymentMode === 'bank'
+                          ? 'bg-white text-blue-700 shadow-xs border border-blue-200/60 font-black'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Landmark className="w-3.5 h-3.5" />
+                      Direct Bank Wire
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualPaymentMode('cash');
+                        setManualCashAmount(manualAmount);
+                        setManualBankAmount('0');
+                      }}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg transition-all cursor-pointer ${
+                        manualPaymentMode === 'cash'
+                          ? 'bg-white text-emerald-700 shadow-xs border border-emerald-200/60 font-black'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Banknote className="w-3.5 h-3.5" />
+                      Paid in Cash
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualPaymentMode('split');
+                        const tot = parseFloat(manualAmount) || 0;
+                        const half = Math.round(tot / 2);
+                        setManualBankAmount(String(half));
+                        setManualCashAmount(String(tot - half));
+                      }}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg transition-all cursor-pointer ${
+                        manualPaymentMode === 'split'
+                          ? 'bg-[#58051E] text-white shadow-xs font-black'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <ArrowRightLeft className="w-3.5 h-3.5" />
+                      Split Payment
+                    </button>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Amount (INR) *</label>
-                      <input type="number" required min={1} value={manualAmount} onChange={e => setManualAmount(e.target.value)}
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Total Fee Amount (INR) *</label>
+                      <input type="number" required min={1} value={manualAmount}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setManualAmount(val);
+                          const tot = parseFloat(val) || 0;
+                          if (manualPaymentMode === 'bank') setManualBankAmount(val);
+                          else if (manualPaymentMode === 'cash') setManualCashAmount(val);
+                          else {
+                            const half = Math.round(tot / 2);
+                            setManualBankAmount(String(half));
+                            setManualCashAmount(String(tot - half));
+                          }
+                        }}
                         className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Payment Method *</label>
-                      <select value={manualMethod} onChange={e => setManualMethod(e.target.value)}
-                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer">
-                        <option value="Bank Wire Transfer (NEFT/RTGS/IMPS)">Bank Wire Transfer (NEFT/RTGS/IMPS)</option>
-                        <option value="International SWIFT Wire (EUR/USD)">International SWIFT Wire (EUR/USD)</option>
-                        <option value="Direct Net Banking / Debit Card">Direct Net Banking / Debit Card</option>
-                        <option value="Cheque / Demand Draft (DD)">Cheque / Demand Draft (DD)</option>
-                        <option value="Cash Payment (Counter Voucher)">Cash Payment (Counter Voucher)</option>
-                      </select>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Fee Description / Stage Title</label>
+                      <input type="text" value={manualTitle} onChange={e => setManualTitle(e.target.value)}
+                        placeholder="e.g. Advanced Registration Fee"
+                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none" />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Fee Description / Stage Title</label>
-                    <input type="text" value={manualTitle} onChange={e => setManualTitle(e.target.value)}
-                      placeholder="e.g. Advanced Registration Fee"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none" />
-                  </div>
+                  {/* Mode-Specific Details */}
+                  {manualPaymentMode === 'bank' && (
+                    <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-xl space-y-2.5">
+                      <div className="text-xs font-black text-blue-900 flex items-center gap-1.5">
+                        <Landmark className="w-4 h-4 text-blue-700" /> Direct Bank Wire Details
+                      </div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 mb-1">Bank Name *</label>
+                          <input type="text" value={manualBankName} onChange={e => setManualBankName(e.target.value)}
+                            placeholder="e.g. HDFC Bank"
+                            className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 mb-1">Bank UTR / Ref Number *</label>
+                          <input type="text" value={manualUtr} onChange={e => setManualUtr(e.target.value)}
+                            placeholder="e.g. HDFC2026091384"
+                            className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-semibold text-slate-900 focus:outline-none focus:border-blue-500" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
-                        {manualMethod.includes('Cash') ? 'Voucher / Receipt Ref' : manualMethod.includes('Cheque') ? 'Cheque / DD No' : 'UTR / Wire Ref No'}
-                      </label>
-                      <input type="text" value={manualUtr} onChange={e => setManualUtr(e.target.value)}
-                        placeholder={manualMethod.includes('Cash') ? 'e.g. CSH-VCH-8901' : manualMethod.includes('Cheque') ? 'e.g. CHQ-004812' : 'e.g. HDFC129038102'}
-                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:outline-none" />
+                  {manualPaymentMode === 'cash' && (
+                    <div className="p-3 bg-emerald-50/50 border border-emerald-200 rounded-xl space-y-2.5">
+                      <div className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                        <Banknote className="w-4 h-4 text-emerald-700" /> Cash Desk Voucher Details
+                      </div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 mb-1">Cash Receipt Ref *</label>
+                          <input type="text" value={manualCashReceipt} onChange={e => setManualCashReceipt(e.target.value)}
+                            className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-semibold text-slate-900 focus:outline-none focus:border-emerald-500" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 mb-1">Clearance Desk</label>
+                          <input type="text" readOnly value="Admissions Cash Drawer"
+                            className="w-full h-8 px-2.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600" />
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Initial Status</label>
-                      <select value={manualStatus} onChange={e => setManualStatus(e.target.value as any)}
-                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none cursor-pointer">
-                        <option value="Paid">Verified & Paid</option>
-                        <option value="Pending">Pending Verification</option>
-                      </select>
-                    </div>
-                  </div>
+                  )}
+
+                  {manualPaymentMode === 'split' && (() => {
+                    const bNum = parseFloat(manualBankAmount) || 0;
+                    const cNum = parseFloat(manualCashAmount) || 0;
+                    const totTarget = parseFloat(manualAmount) || 0;
+                    const splitDiff = totTarget - (bNum + cNum);
+
+                    return (
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                          <span className="font-extrabold text-slate-700 flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5 text-[#58051E]" /> Quick Split:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const half = Math.round(totTarget / 2);
+                              setManualBankAmount(String(half));
+                              setManualCashAmount(String(totTarget - half));
+                            }}
+                            className="px-2 py-0.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-md font-bold text-[10px] text-[#58051E] cursor-pointer"
+                          >
+                            50% Bank / 50% Cash (Half & Half)
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <div className="p-2.5 bg-blue-50/50 border border-blue-200 rounded-xl space-y-2">
+                            <span className="text-[11px] font-black text-blue-900 flex items-center gap-1">
+                              <Landmark className="w-3 h-3 text-blue-700" /> Bank Portion
+                            </span>
+                            <div>
+                              <label className="block text-[9.5px] font-bold text-slate-600 mb-0.5">Amount (INR)</label>
+                              <input type="number" min={0} value={manualBankAmount} onChange={e => setManualBankAmount(e.target.value)}
+                                className="w-full h-7 px-2 bg-white border border-slate-200 rounded text-xs font-bold text-slate-900 focus:outline-none" />
+                            </div>
+                            <div>
+                              <label className="block text-[9.5px] font-bold text-slate-600 mb-0.5">Bank UTR</label>
+                              <input type="text" value={manualUtr} onChange={e => setManualUtr(e.target.value)} placeholder="UTR / Ref"
+                                className="w-full h-7 px-2 bg-white border border-slate-200 rounded text-xs font-mono text-slate-900 focus:outline-none" />
+                            </div>
+                          </div>
+
+                          <div className="p-2.5 bg-emerald-50/50 border border-emerald-200 rounded-xl space-y-2">
+                            <span className="text-[11px] font-black text-emerald-950 flex items-center gap-1">
+                              <Banknote className="w-3 h-3 text-emerald-700" /> Cash Portion
+                            </span>
+                            <div>
+                              <label className="block text-[9.5px] font-bold text-slate-600 mb-0.5">Amount (INR)</label>
+                              <input type="number" min={0} value={manualCashAmount} onChange={e => setManualCashAmount(e.target.value)}
+                                className="w-full h-7 px-2 bg-white border border-slate-200 rounded text-xs font-bold text-slate-900 focus:outline-none" />
+                            </div>
+                            <div>
+                              <label className="block text-[9.5px] font-bold text-slate-600 mb-0.5">Receipt No</label>
+                              <input type="text" value={manualCashReceipt} onChange={e => setManualCashReceipt(e.target.value)}
+                                className="w-full h-7 px-2 bg-white border border-slate-200 rounded text-xs font-mono text-slate-900 focus:outline-none" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className={`p-2 rounded-lg border text-[11px] font-bold flex items-center justify-between ${
+                          Math.abs(splitDiff) < 0.01 && (bNum > 0 || cNum > 0)
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                        }`}>
+                          <span>
+                            {Math.abs(splitDiff) < 0.01 && (bNum > 0 || cNum > 0)
+                              ? `✓ Balanced: INR ${bNum.toLocaleString('en-IN')} Bank + INR ${cNum.toLocaleString('en-IN')} Cash = INR ${totTarget.toLocaleString('en-IN')}`
+                              : `Mismatch: INR ${Math.abs(splitDiff).toLocaleString('en-IN')} ${splitDiff > 0 ? 'under-allocated' : 'over-allocated'}`}
+                          </span>
+                          {Math.abs(splitDiff) >= 0.01 && (
+                            <button
+                              type="button"
+                              onClick={() => setManualCashAmount(String(Math.max(0, totTarget - bNum)))}
+                              className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-[9.5px] cursor-pointer"
+                            >
+                              Auto-balance
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="flex gap-2 pt-2 border-t border-slate-100">
                     <button type="button" onClick={() => setShowManualModal(false)}

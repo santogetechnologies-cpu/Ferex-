@@ -73,6 +73,7 @@ export interface LeavePermissionRequest {
   user_name: string;
   user_role: string;
   division: string;
+  is_admin_request?: boolean;
   request_type: 'full_day_leave' | 'half_day_leave' | 'hourly_permission' | 'unplanned_emergency';
   policy_code: string;
   policy_name: string;
@@ -101,6 +102,7 @@ export interface EmployeeSalary {
   user_name: string;
   user_role: string;
   division: string;
+  salary_type?: 'monthly' | 'hourly' | 'both';
   monthly_base_salary: number;
   hourly_rate: number;
   currency: string;
@@ -123,11 +125,15 @@ export interface MonthlyPayroll {
   total_working_days: number;
   attended_days: number;
   verified_hours: number;
+  salary_type?: 'monthly' | 'hourly' | 'both';
   base_salary: number;
   hourly_rate: number;
   calculated_gross_pay: number;
   allowances: number;
   deductions: number;
+  loss_of_pay_deduction?: number;
+  custom_deductions?: number;
+  deduction_reason?: string;
   net_payable: number;
   status: 'draft' | 'approved' | 'paid' | 'locked';
   payment_reference?: string | null;
@@ -136,6 +142,13 @@ export interface MonthlyPayroll {
   processed_at?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface PayrollDeductionInput {
+  lossOfPayDeduction?: number;
+  customDeductions?: number;
+  deductionReason?: string;
+  allowances?: number;
 }
 
 const LOCAL_SHIFTS_KEY = 'ferex_shifts';
@@ -838,13 +851,26 @@ export const getTimesheets = async (filters?: {
 
     const { data, error } = await query;
     if (!error && Array.isArray(data)) {
-      dbTimesheets = data.map((row: any) => ({
-        ...row,
-        date: row.work_date || row.date || (row.clock_in ? row.clock_in.split('T')[0] : new Date().toISOString().split('T')[0]),
-        status: row.status === 'Clocked In' ? 'active' : (row.status === 'Submitted' ? 'completed' : row.status?.toLowerCase() || 'completed'),
-        is_admin_verified: !!(row.is_admin_verified || row.verified_by || row.verified_at),
-        is_superadmin_locked: !!(row.is_superadmin_locked || row.locked_by || row.locked_at)
-      }));
+      dbTimesheets = data.map((row: any) => {
+        // Normalize status: handle both old ('Clocked In', 'Submitted') and new ('active', 'completed') values
+        let normalizedStatus = (row.status || 'completed').toLowerCase();
+        if (normalizedStatus === 'clocked in' || normalizedStatus === 'clocked_in') normalizedStatus = 'active';
+        if (normalizedStatus === 'submitted') normalizedStatus = 'completed';
+        // is_admin_verified: prefer boolean column, fallback to old text-based verified_by
+        const isVerified = !!(row.is_admin_verified || (row.verified_by && row.verified_by !== '') || (row.verified_by_admin_id && row.verified_by_admin_id !== ''));
+        const isLocked = !!(row.is_superadmin_locked || (row.locked_by && row.locked_by !== '') || (row.locked_by_superadmin_id && row.locked_by_superadmin_id !== ''));
+        return {
+          ...row,
+          date: row.date || row.work_date || (row.clock_in ? row.clock_in.split('T')[0] : new Date().toISOString().split('T')[0]),
+          status: isLocked ? 'locked' : isVerified ? 'verified' : normalizedStatus,
+          is_admin_verified: isVerified,
+          is_superadmin_locked: isLocked,
+          verified_by_admin_id: row.verified_by_admin_id || row.verified_by || null,
+          verified_by_admin_name: row.verified_by_admin_name || row.verified_by || null,
+          locked_by_superadmin_id: row.locked_by_superadmin_id || row.locked_by || null,
+          locked_by_superadmin_name: row.locked_by_superadmin_name || row.locked_by || null,
+        };
+      });
     }
   } catch (err) {
     console.warn('[AttendanceAPI] Supabase timesheets query fallback:', err);
@@ -896,40 +922,72 @@ export const verifyTimesheetByAdmin = async (
   timesheetId: string,
   adminId: string,
   adminName: string,
-  notes?: string
+  notes?: string,
+  hoursOverride?: number
 ): Promise<boolean> => {
   const verifiedAt = new Date().toISOString();
+
+  // Update local cache immediately for instant UI feedback
   const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
   const idx = local.findIndex(t => t.id === timesheetId);
+  let resolvedHours = hoursOverride;
   if (idx !== -1) {
+    const prev = local[idx];
+    if (resolvedHours === undefined || resolvedHours === null) {
+      resolvedHours = prev.total_hours > 0 ? prev.total_hours : 8.0;
+    }
     local[idx] = {
-      ...local[idx],
+      ...prev,
+      total_hours: resolvedHours,
+      clock_out: prev.clock_out || verifiedAt,
       is_admin_verified: true,
       verified_by_admin_id: adminId,
       verified_by_admin_name: adminName,
       verified_at: verifiedAt,
-      status: 'verified',
-      admin_notes: notes || 'Verified by Division Admin',
+      status: 'completed',
+      admin_notes: notes || `Verified by Admin (${resolvedHours} hrs)`,
       updated_at: verifiedAt
     };
     saveLocalData(LOCAL_TIMESHEETS_KEY, local);
   }
 
+  // Write to Supabase — write both new boolean columns AND old text column for backward compat
   try {
+    const updatePayload: any = {
+      is_admin_verified: true,
+      verified_by_admin_id: adminId,
+      verified_by_admin_name: adminName,
+      verified_at: verifiedAt,
+      verified_by: adminName,
+      status: 'completed',
+      admin_notes: notes || (resolvedHours ? `Verified by Admin (${resolvedHours} hrs)` : 'Verified by Division Admin'),
+      updated_at: verifiedAt
+    };
+    if (resolvedHours !== undefined && resolvedHours !== null && resolvedHours > 0) {
+      updatePayload.total_hours = resolvedHours;
+    }
+
     const { error } = await supabase
       .from('attendance_timesheets')
-      .update({
-        is_admin_verified: true,
-        verified_by_admin_id: adminId,
-        verified_by_admin_name: adminName,
-        verified_at: verifiedAt,
-        status: 'verified',
-        admin_notes: notes || 'Verified by Division Admin',
-        updated_at: verifiedAt
-      })
+      .update(updatePayload)
       .eq('id', timesheetId);
 
-    if (error) console.warn('[AttendanceAPI] Supabase verify timesheet warning:', error.message);
+    if (error) {
+      console.warn('[AttendanceAPI] Full verify update failed, retrying minimal:', error.message);
+      const minimalPayload: any = {
+        verified_by: adminName,
+        status: 'Completed',
+        updated_at: verifiedAt
+      };
+      if (resolvedHours !== undefined && resolvedHours > 0) {
+        minimalPayload.total_hours = resolvedHours;
+      }
+      const { error: retryErr } = await supabase
+        .from('attendance_timesheets')
+        .update(minimalPayload)
+        .eq('id', timesheetId);
+      if (retryErr) console.warn('[AttendanceAPI] Minimal verify update warning:', retryErr.message);
+    }
   } catch (err) {
     console.warn('[AttendanceAPI] Supabase verify handled:', err);
   }
@@ -944,12 +1002,15 @@ export const lockTimesheetsBySuperAdmin = async (
   superAdminName: string
 ): Promise<boolean> => {
   const lockedAt = new Date().toISOString();
+
+  // Update local cache immediately
   const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
   timesheetIds.forEach(id => {
     const idx = local.findIndex(t => t.id === id);
     if (idx !== -1) {
       local[idx] = {
         ...local[idx],
+        is_admin_verified: true,
         is_superadmin_locked: true,
         locked_by_superadmin_id: superAdminId,
         locked_by_superadmin_name: superAdminName,
@@ -961,26 +1022,106 @@ export const lockTimesheetsBySuperAdmin = async (
   });
   saveLocalData(LOCAL_TIMESHEETS_KEY, local);
 
+  // Write to Supabase — write both new boolean columns AND old text column
   try {
     const { error } = await supabase
       .from('attendance_timesheets')
       .update({
+        // New columns (migration 20261027000001)
+        is_admin_verified: true,
         is_superadmin_locked: true,
         locked_by_superadmin_id: superAdminId,
         locked_by_superadmin_name: superAdminName,
         locked_at: lockedAt,
+        // Old text column backward compat
+        locked_by: superAdminName,
+        verified_by: superAdminName,
         status: 'locked',
         updated_at: lockedAt
       })
       .in('id', timesheetIds);
 
-    if (error) console.warn('[AttendanceAPI] Supabase lock timesheets warning:', error.message);
+    if (error) {
+      console.warn('[AttendanceAPI] Full lock update failed, retrying minimal:', error.message);
+      // Minimal retry using only legacy columns
+      await supabase
+        .from('attendance_timesheets')
+        .update({ locked_by: superAdminName, verified_by: superAdminName, status: 'Locked', updated_at: lockedAt })
+        .in('id', timesheetIds);
+    }
   } catch (err) {
     console.warn('[AttendanceAPI] Supabase lock handled:', err);
   }
 
   window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
   return true;
+};
+
+export const unlockTimesheetsBySuperAdmin = async (
+  timesheetIds: string[],
+  adminId: string,
+  adminName: string
+): Promise<boolean> => {
+  const unlockedAt = new Date().toISOString();
+
+  // Update local cache immediately
+  const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
+  timesheetIds.forEach(id => {
+    const idx = local.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      local[idx] = {
+        ...local[idx],
+        is_superadmin_locked: false,
+        locked_by_superadmin_id: undefined,
+        locked_by_superadmin_name: undefined,
+        locked_at: undefined,
+        status: 'completed',
+        updated_at: unlockedAt
+      };
+    }
+  });
+  saveLocalData(LOCAL_TIMESHEETS_KEY, local);
+
+  // Write to Supabase
+  try {
+    const { error } = await supabase
+      .from('attendance_timesheets')
+      .update({
+        is_superadmin_locked: false,
+        locked_by_superadmin_id: null,
+        locked_by_superadmin_name: null,
+        locked_at: null,
+        locked_by: null,
+        status: 'completed',
+        updated_at: unlockedAt
+      })
+      .in('id', timesheetIds);
+
+    if (error) {
+      console.warn('[AttendanceAPI] Full unlock update failed, retrying minimal:', error.message);
+      await supabase
+        .from('attendance_timesheets')
+        .update({ locked_by: null, status: 'Completed', updated_at: unlockedAt })
+        .in('id', timesheetIds);
+    }
+  } catch (err) {
+    console.warn('[AttendanceAPI] Supabase unlock handled:', err);
+  }
+
+  window.dispatchEvent(new CustomEvent('ferex-attendance-updated'));
+  return true;
+};
+
+export const toggleTimesheetLock = async (
+  timesheet: AttendanceTimesheet,
+  adminId: string,
+  adminName: string
+): Promise<boolean> => {
+  if (timesheet.is_superadmin_locked) {
+    return unlockTimesheetsBySuperAdmin([timesheet.id], adminId, adminName);
+  } else {
+    return lockTimesheetsBySuperAdmin([timesheet.id], adminId, adminName);
+  }
 };
 
 // ================= LEAVE & PERMISSIONS POLICIES API =================
@@ -1137,11 +1278,51 @@ export const upsertLeavePolicy = async (policy: Partial<LeavePolicyConfig>): Pro
   }
 };
 
+// ================= ADMIN ROLE CHECK HELPER =================
+export const isAdminUser = (role?: string | null, email?: string | null): boolean => {
+  const r = (role || '').toLowerCase().trim();
+  const e = (email || '').toLowerCase().trim();
+
+  if ([
+    'admin',
+    'superadmin',
+    'super_admin',
+    'central_admin',
+    'education_admin',
+    'rimi_admin',
+    'trade_admin',
+    'digital_admin',
+    'division_admin',
+  ].includes(r)) {
+    return true;
+  }
+
+  if (r.includes('admin') || r.includes('superadmin')) {
+    return true;
+  }
+
+  if (
+    e.includes('admin') ||
+    e.includes('superadmin') ||
+    e === 'education@ferex.com' ||
+    e === 'trade@ferex.com' ||
+    e === 'rimi@ferex.com' ||
+    e === 'digital@ferex.com' ||
+    e === 'centraladmin@ferexventures.com'
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
 // ================= LEAVE & PERMISSION REQUESTS API =================
 export const getLeaveRequests = async (filters?: {
   division?: string;
   userEmail?: string;
   status?: string;
+  excludeAdmins?: boolean;
+  adminsOnly?: boolean;
 }): Promise<LeavePermissionRequest[]> => {
   try {
     let query = supabase.from('leave_permission_requests').select('*').order('created_at', { ascending: false });
@@ -1157,9 +1338,27 @@ export const getLeaveRequests = async (filters?: {
     const { data, error } = await query;
     if (error || !data) throw error;
     saveLocalData(LOCAL_LEAVE_REQ_KEY, data);
-    return data as LeavePermissionRequest[];
+    
+    let result = (data as LeavePermissionRequest[]).map(r => ({
+      ...r,
+      is_admin_request: r.is_admin_request ?? isAdminUser(r.user_role, r.user_email)
+    }));
+
+    if (filters?.excludeAdmins) {
+      result = result.filter(r => !r.is_admin_request && !isAdminUser(r.user_role, r.user_email));
+    }
+    if (filters?.adminsOnly) {
+      result = result.filter(r => r.is_admin_request || isAdminUser(r.user_role, r.user_email));
+    }
+
+    return result;
   } catch (err) {
     let local = getLocalData<LeavePermissionRequest>(LOCAL_LEAVE_REQ_KEY, []);
+    local = local.map(r => ({
+      ...r,
+      is_admin_request: r.is_admin_request ?? isAdminUser(r.user_role, r.user_email)
+    }));
+
     if (filters?.division && filters.division !== 'all' && filters.division !== 'central') {
       local = local.filter(r => r.division === filters.division);
     }
@@ -1168,6 +1367,12 @@ export const getLeaveRequests = async (filters?: {
     }
     if (filters?.status && filters.status !== 'all') {
       local = local.filter(r => r.status === filters.status);
+    }
+    if (filters?.excludeAdmins) {
+      local = local.filter(r => !r.is_admin_request && !isAdminUser(r.user_role, r.user_email));
+    }
+    if (filters?.adminsOnly) {
+      local = local.filter(r => r.is_admin_request || isAdminUser(r.user_role, r.user_email));
     }
     return local;
   }
@@ -1184,13 +1389,16 @@ export const createLeaveRequest = async (
     }
   }
 
+  const isAdmin = req.is_admin_request !== undefined ? req.is_admin_request : isAdminUser(req.user_role, req.user_email);
+
   const newReq: LeavePermissionRequest = {
     id: req.id || `req-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     user_id: req.user_id || null,
     user_email: req.user_email || '',
     user_name: req.user_name || 'Staff Member',
-    user_role: req.user_role || 'staff',
+    user_role: req.user_role || (isAdmin ? 'admin' : 'staff'),
     division: division || 'education',
+    is_admin_request: isAdmin,
     request_type: req.request_type || 'full_day_leave',
     policy_code: req.policy_code || 'CL',
     policy_name: req.policy_name || 'Casual Leave',
@@ -1235,39 +1443,36 @@ export const updateLeaveRequestStatus = async (
   reviewNotes?: string
 ): Promise<boolean> => {
   const reviewedAt = new Date().toISOString();
+  const updates = {
+    status,
+    reviewed_by_id: reviewerId,
+    reviewed_by_name: reviewerName,
+    reviewed_at: reviewedAt,
+    review_notes: reviewNotes || `Status updated to ${status}`,
+    updated_at: reviewedAt
+  };
+
+  // Always update local cache first (optimistic update)
+  const local = getLocalData<LeavePermissionRequest>(LOCAL_LEAVE_REQ_KEY, []);
+  const idx = local.findIndex(r => r.id === requestId);
+  if (idx !== -1) {
+    local[idx] = { ...local[idx], ...updates };
+    saveLocalData(LOCAL_LEAVE_REQ_KEY, local);
+  }
+
   try {
     const { error } = await supabase
       .from('leave_permission_requests')
-      .update({
-        status,
-        reviewed_by_id: reviewerId,
-        reviewed_by_name: reviewerName,
-        reviewed_at: reviewedAt,
-        review_notes: reviewNotes || `Status updated to ${status}`
-      })
+      .update(updates)
       .eq('id', requestId);
 
-    if (error) throw error;
-    window.dispatchEvent(new CustomEvent('ferex-leave-updated'));
-    return true;
+    if (error) console.warn('[AttendanceAPI] Leave status update DB warning:', error.message);
   } catch (err) {
-    const local = getLocalData<LeavePermissionRequest>(LOCAL_LEAVE_REQ_KEY, []);
-    const idx = local.findIndex(r => r.id === requestId);
-    if (idx !== -1) {
-      local[idx] = {
-        ...local[idx],
-        status,
-        reviewed_by_id: reviewerId,
-        reviewed_by_name: reviewerName,
-        reviewed_at: reviewedAt,
-        review_notes: reviewNotes || `Status updated to ${status}`
-      };
-      saveLocalData(LOCAL_LEAVE_REQ_KEY, local);
-      window.dispatchEvent(new CustomEvent('ferex-leave-updated'));
-      return true;
-    }
-    return false;
+    console.warn('[AttendanceAPI] Leave status update handled locally:', err);
   }
+
+  window.dispatchEvent(new CustomEvent('ferex-leave-updated'));
+  return true;
 };
 
 // ================= SALARIES & PAYROLL API =================
@@ -1290,6 +1495,7 @@ export const getEmployeeSalaries = async (): Promise<EmployeeSalary[]> => {
         user_name: 'Central Admin',
         user_role: 'superadmin',
         division: 'central',
+        salary_type: 'both',
         monthly_base_salary: 7500,
         hourly_rate: 45,
         currency: 'USD',
@@ -1302,6 +1508,7 @@ export const getEmployeeSalaries = async (): Promise<EmployeeSalary[]> => {
         user_name: 'Education Admin',
         user_role: 'admin',
         division: 'education',
+        salary_type: 'monthly',
         monthly_base_salary: 5000,
         hourly_rate: 30,
         currency: 'USD',
@@ -1314,6 +1521,7 @@ export const getEmployeeSalaries = async (): Promise<EmployeeSalary[]> => {
         user_name: 'Study Abroad Counselor',
         user_role: 'counselor',
         division: 'education',
+        salary_type: 'monthly',
         monthly_base_salary: 3800,
         hourly_rate: 22,
         currency: 'USD',
@@ -1326,6 +1534,7 @@ export const getEmployeeSalaries = async (): Promise<EmployeeSalary[]> => {
         user_name: 'Rimi Frozen Admin',
         user_role: 'admin',
         division: 'rimi',
+        salary_type: 'monthly',
         monthly_base_salary: 5200,
         hourly_rate: 31,
         currency: 'USD',
@@ -1338,6 +1547,7 @@ export const getEmployeeSalaries = async (): Promise<EmployeeSalary[]> => {
         user_name: 'Global Trade Director',
         user_role: 'admin',
         division: 'trade',
+        salary_type: 'both',
         monthly_base_salary: 6000,
         hourly_rate: 35,
         currency: 'USD',
@@ -1350,6 +1560,7 @@ export const getEmployeeSalaries = async (): Promise<EmployeeSalary[]> => {
         user_name: 'Digital Agency Admin',
         user_role: 'admin',
         division: 'digital',
+        salary_type: 'monthly',
         monthly_base_salary: 5500,
         hourly_rate: 32,
         currency: 'USD',
@@ -1362,6 +1573,7 @@ export const getEmployeeSalaries = async (): Promise<EmployeeSalary[]> => {
         user_name: 'Digital Project Lead',
         user_role: 'digital_manager',
         division: 'digital',
+        salary_type: 'hourly',
         monthly_base_salary: 4500,
         hourly_rate: 26,
         currency: 'USD',
@@ -1372,6 +1584,7 @@ export const getEmployeeSalaries = async (): Promise<EmployeeSalary[]> => {
 };
 
 export const upsertEmployeeSalary = async (salary: Partial<EmployeeSalary>): Promise<EmployeeSalary> => {
+  const salaryType = salary.salary_type || 'both';
   const rec: EmployeeSalary = {
     id: salary.id || `sal-${Date.now()}`,
     user_id: salary.user_id || `usr-${Date.now()}`,
@@ -1379,8 +1592,9 @@ export const upsertEmployeeSalary = async (salary: Partial<EmployeeSalary>): Pro
     user_name: salary.user_name || 'Staff Member',
     user_role: salary.user_role || 'staff',
     division: salary.division || 'general',
-    monthly_base_salary: Number(salary.monthly_base_salary) || 3000,
-    hourly_rate: Number(salary.hourly_rate) || 20,
+    salary_type: salaryType,
+    monthly_base_salary: Number(salary.monthly_base_salary) || 0,
+    hourly_rate: Number(salary.hourly_rate) || 0,
     currency: salary.currency || 'USD',
     bank_account_name: salary.bank_account_name || null,
     bank_account_number: salary.bank_account_number || null,
@@ -1432,7 +1646,8 @@ export const getMonthlyPayrolls = async (month?: string): Promise<MonthlyPayroll
 export const generateMonthlyPayroll = async (
   month: string,
   processedById: string,
-  processedByName: string
+  processedByName: string,
+  customDeductionsMap?: Record<string, PayrollDeductionInput>
 ): Promise<MonthlyPayroll[]> => {
   const [salaries, allTimesheets, allLeaveRequests] = await Promise.all([
     getEmployeeSalaries(),
@@ -1457,17 +1672,52 @@ export const generateMonthlyPayroll = async (
     const verifiedHours = verifiedTimesheets.reduce((acc, curr) => acc + (curr.total_hours || 0), 0);
     const totalWorkingDays = 22;
 
-    let calculatedGross = salary.monthly_base_salary;
-    if (attendedDays < totalWorkingDays && attendedDays > 0) {
-      calculatedGross = Number(((salary.monthly_base_salary / totalWorkingDays) * attendedDays).toFixed(2));
-    } else if (attendedDays === 0) {
-      calculatedGross = Number((verifiedHours * salary.hourly_rate).toFixed(2));
+    const salaryType = salary.salary_type || 'both';
+    let calculatedGross = 0;
+
+    if (salaryType === 'hourly') {
+      // Hourly scale: strictly based on verified working hours
+      calculatedGross = Number((verifiedHours * (salary.hourly_rate || 0)).toFixed(2));
+    } else if (salaryType === 'monthly') {
+      // Monthly scale: fixed base prorated by attended days (including paid leaves)
+      if (attendedDays >= totalWorkingDays) {
+        calculatedGross = salary.monthly_base_salary;
+      } else if (attendedDays > 0) {
+        calculatedGross = Number(((salary.monthly_base_salary / totalWorkingDays) * attendedDays).toFixed(2));
+      } else {
+        calculatedGross = 0;
+      }
+    } else {
+      // Both: Monthly base salary prorated by attendance + hourly overtime for verified hours exceeding standard shift quota (176 hrs)
+      let basePart = salary.monthly_base_salary;
+      if (attendedDays < totalWorkingDays && attendedDays > 0) {
+        basePart = Number(((salary.monthly_base_salary / totalWorkingDays) * attendedDays).toFixed(2));
+      } else if (attendedDays === 0) {
+        basePart = 0;
+      }
+      const standardHoursThreshold = totalWorkingDays * 8; // 176 hrs
+      const overtimeHours = Math.max(0, verifiedHours - standardHoursThreshold);
+      const overtimePay = Number((overtimeHours * (salary.hourly_rate || 0)).toFixed(2));
+      calculatedGross = Number((basePart + overtimePay).toFixed(2));
     }
 
-    const unpaidDeductions = Number(((salary.monthly_base_salary / totalWorkingDays) * unpaidLeaveDays).toFixed(2));
-    const allowances = 150;
-    const deductions = unpaidDeductions;
-    const netPayable = Math.max(0, calculatedGross + allowances - deductions);
+    // Default unpaid deductions apply to monthly base salary
+    let defaultLopDeduction = 0;
+    if (salaryType !== 'hourly' && unpaidLeaveDays > 0) {
+      defaultLopDeduction = Number(((salary.monthly_base_salary / totalWorkingDays) * unpaidLeaveDays).toFixed(2));
+    }
+
+    // Check if custom deductions were supplied
+    const deductionOverride = customDeductionsMap ? customDeductionsMap[salary.user_email] : undefined;
+    const lopDeduction = deductionOverride?.lossOfPayDeduction !== undefined
+      ? deductionOverride.lossOfPayDeduction
+      : defaultLopDeduction;
+    const customDeductions = deductionOverride?.customDeductions ?? 0;
+    const deductionReason = deductionOverride?.deductionReason || (lopDeduction > 0 ? `${unpaidLeaveDays} unpaid leave day(s)` : '');
+    const allowances = deductionOverride?.allowances !== undefined ? deductionOverride.allowances : 150;
+
+    const totalDeductions = Number((lopDeduction + customDeductions).toFixed(2));
+    const netPayable = Math.max(0, Number((calculatedGross + allowances - totalDeductions).toFixed(2)));
 
     const payrollItem: MonthlyPayroll = {
       id: `pay-${month}-${salary.user_email.replace(/[@.]/g, '-')}`,
@@ -1480,11 +1730,15 @@ export const generateMonthlyPayroll = async (
       total_working_days: totalWorkingDays,
       attended_days: Math.min(totalWorkingDays, attendedDays),
       verified_hours: Number(verifiedHours.toFixed(1)),
+      salary_type: salaryType,
       base_salary: salary.monthly_base_salary,
       hourly_rate: salary.hourly_rate,
       calculated_gross_pay: calculatedGross,
       allowances,
-      deductions,
+      deductions: totalDeductions,
+      loss_of_pay_deduction: lopDeduction,
+      custom_deductions: customDeductions,
+      deduction_reason: deductionReason,
       net_payable: netPayable,
       status: 'approved',
       processed_by_id: processedById,
@@ -1504,9 +1758,148 @@ export const generateMonthlyPayroll = async (
 
     if (error || !data) throw error;
     saveLocalData(LOCAL_PAYROLLS_KEY, data as MonthlyPayroll[]);
+    window.dispatchEvent(new CustomEvent('ferex-payroll-updated'));
     return data as MonthlyPayroll[];
   } catch (err) {
     saveLocalData(LOCAL_PAYROLLS_KEY, payrolls);
+    window.dispatchEvent(new CustomEvent('ferex-payroll-updated'));
     return payrolls;
   }
+};
+
+export const updatePayrollItem = async (
+  payrollId: string,
+  updates: Partial<MonthlyPayroll>
+): Promise<MonthlyPayroll | null> => {
+  const local = getLocalData<MonthlyPayroll>(LOCAL_PAYROLLS_KEY, []);
+  const idx = local.findIndex(p => p.id === payrollId);
+  let updated: MonthlyPayroll | null = null;
+
+  if (idx !== -1) {
+    const current = local[idx];
+    const lop = updates.loss_of_pay_deduction !== undefined ? updates.loss_of_pay_deduction : (current.loss_of_pay_deduction || 0);
+    const custom = updates.custom_deductions !== undefined ? updates.custom_deductions : (current.custom_deductions || 0);
+    const totalDeductions = Number((lop + custom).toFixed(2));
+    const allow = updates.allowances !== undefined ? updates.allowances : current.allowances;
+    const gross = updates.calculated_gross_pay !== undefined ? updates.calculated_gross_pay : current.calculated_gross_pay;
+    const net = Math.max(0, Number((gross + allow - totalDeductions).toFixed(2)));
+
+    updated = {
+      ...current,
+      ...updates,
+      deductions: totalDeductions,
+      loss_of_pay_deduction: lop,
+      custom_deductions: custom,
+      allowances: allow,
+      net_payable: net,
+      updated_at: new Date().toISOString()
+    };
+    local[idx] = updated;
+    saveLocalData(LOCAL_PAYROLLS_KEY, local);
+  }
+
+  try {
+    if (updated) {
+      await supabase
+        .from('monthly_payrolls')
+        .update({
+          deductions: updated.deductions,
+          loss_of_pay_deduction: updated.loss_of_pay_deduction,
+          custom_deductions: updated.custom_deductions,
+          deduction_reason: updated.deduction_reason,
+          allowances: updated.allowances,
+          net_payable: updated.net_payable,
+          status: updated.status,
+          updated_at: updated.updated_at
+        })
+        .eq('id', payrollId);
+    }
+  } catch (err) {
+    console.warn('[AttendanceAPI] Supabase updatePayrollItem handled:', err);
+  }
+
+  window.dispatchEvent(new CustomEvent('ferex-payroll-updated'));
+  return updated;
+};
+
+// ================= DATE FILTER & ATTENDANCE HELPERS =================
+export const getDateRangeForPeriod = (
+  period: 'daily' | 'weekly' | 'monthly' | 'all',
+  selectedDate?: string, // 'YYYY-MM-DD'
+  selectedMonth?: string // 'YYYY-MM'
+): { startDate?: string; endDate?: string; label: string } => {
+  const now = new Date();
+  const todayStr = selectedDate || now.toISOString().split('T')[0];
+
+  if (period === 'daily') {
+    const d = new Date(todayStr + 'T00:00:00');
+    const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    return { startDate: todayStr, endDate: todayStr, label: `Daily: ${label}` };
+  }
+
+  if (period === 'weekly') {
+    const d = new Date(todayStr + 'T00:00:00');
+    const dayOfWeek = d.getDay(); // 0 is Sunday
+    const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMon);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const startStr = monday.toISOString().split('T')[0];
+    const endStr = sunday.toISOString().split('T')[0];
+    const monLabel = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const sunLabel = sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return { startDate: startStr, endDate: endStr, label: `Weekly: ${monLabel} – ${sunLabel}` };
+  }
+
+  if (period === 'monthly') {
+    const mStr = selectedMonth || todayStr.slice(0, 7);
+    const parts = mStr.split('-').map(Number);
+    const y = parts[0];
+    const m = parts[1];
+    const lastDay = new Date(y, m, 0).getDate();
+    const startStr = `${mStr}-01`;
+    const endStr = `${mStr}-${String(lastDay).padStart(2, '0')}`;
+    const d = new Date(y, m - 1, 1);
+    const monthLabel = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return { startDate: startStr, endDate: endStr, label: `Monthly: ${monthLabel}` };
+  }
+
+  return { label: 'All Records' };
+};
+
+export const isTimesheetForAdmin = (t: AttendanceTimesheet): boolean => {
+  const r = (t.user_role || '').toLowerCase();
+  const e = (t.user_email || '').toLowerCase();
+  return (
+    r.includes('admin') ||
+    r === 'superadmin' ||
+    e.includes('admin') ||
+    e === 'education@ferex.com' ||
+    e === 'trade@ferex.com' ||
+    e === 'rimi@ferex.com' ||
+    e === 'digital@ferex.com' ||
+    e === 'centraladmin@ferexventures.com' ||
+    e === 'eduadmin@santoge.com'
+  );
+};
+
+export const closeTimesheetForDay = async (
+  timesheetId: string,
+  closedById: string,
+  closedByName: string,
+  hoursOverride?: number
+): Promise<AttendanceTimesheet | null> => {
+  await verifyTimesheetByAdmin(
+    timesheetId,
+    closedById,
+    closedByName,
+    `Shift closed and locked for payroll by ${closedByName}`,
+    hoursOverride
+  );
+  await lockTimesheetsBySuperAdmin([timesheetId], closedById, closedByName);
+
+  const local = getLocalData<AttendanceTimesheet>(LOCAL_TIMESHEETS_KEY, []);
+  return local.find(t => t.id === timesheetId) || null;
 };

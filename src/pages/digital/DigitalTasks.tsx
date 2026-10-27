@@ -135,6 +135,7 @@ export const DigitalTasks: React.FC = () => {
       due_date: newTask.due_date,
       assigned_to_name: assignedName,
       assigned_to_email: assignedEmail,
+      assigned_staff_id: matchedStaff?.id,
       notes: newTask.notes,
       status: 'To Do'
     });

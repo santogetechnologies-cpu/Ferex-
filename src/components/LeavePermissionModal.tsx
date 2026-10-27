@@ -16,6 +16,7 @@ import {
   getLeavePolicies,
   createLeaveRequest,
   inferDivision,
+  isAdminUser,
   type LeavePolicyConfig,
   type LeavePermissionRequest,
 } from '../lib/api/attendance';
@@ -117,11 +118,14 @@ export const LeavePermissionModal: React.FC<LeavePermissionModalProps> = ({
         permissionHours = Math.max(0.5, Number(((endH * 60 + endM - (startH * 60 + startM)) / 60).toFixed(1)));
       }
 
+      const isUserAdmin = isAdminUser(userRole, userEmail);
+
       await createLeaveRequest({
         user_id: userId,
         user_email: userEmail,
         user_name: userName,
         user_role: userRole,
+        is_admin_request: isUserAdmin,
         division: currentDivision,
         request_type: requestType,
         policy_code: currentPolicy?.code || 'CL',
@@ -150,6 +154,8 @@ export const LeavePermissionModal: React.FC<LeavePermissionModalProps> = ({
     }
   };
 
+  const isUserAdmin = isAdminUser(userRole, userEmail);
+
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in text-slate-900 text-left">
       <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
@@ -161,7 +167,7 @@ export const LeavePermissionModal: React.FC<LeavePermissionModalProps> = ({
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-center gap-3 mb-5">
+        <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center border border-[#58051E]/20">
             <Calendar className="w-5 h-5" />
           </div>
@@ -172,6 +178,23 @@ export const LeavePermissionModal: React.FC<LeavePermissionModalProps> = ({
             </p>
           </div>
         </div>
+
+        {/* APPROVAL ROUTING NOTICE */}
+        {isUserAdmin ? (
+          <div className="mb-4 bg-purple-50/80 border border-purple-200 text-purple-900 text-xs p-3 rounded-xl flex items-start gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-purple-700 mt-0.5 shrink-0" />
+            <div>
+              <span className="font-bold">Administrative Request:</span> As a Division Administrator, your leave application will be routed directly to the <span className="font-semibold underline">Central Super Admin</span> for approval.
+            </div>
+          </div>
+        ) : (
+          <div className="mb-4 bg-emerald-50/70 border border-emerald-200 text-emerald-900 text-xs p-3 rounded-xl flex items-start gap-2.5">
+            <CheckCircle className="w-4 h-4 text-emerald-700 mt-0.5 shrink-0" />
+            <div>
+              Your leave request will be routed to your <span className="font-semibold">Division Administrator</span> and <span className="font-semibold">Central Super Admin</span> for review.
+            </div>
+          </div>
+        )}
 
         {errorMsg && (
           <div className="mb-4 flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700 text-xs p-3 rounded-lg">
