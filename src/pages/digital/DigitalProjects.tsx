@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FolderKanban, Search, Plus, X, CheckCircle2, Trash2,
   ExternalLink, Paperclip, ChevronRight, Layers,
-  Building2, Globe2, Edit3, UserCheck
+  Building2, Globe2, Edit3, UserCheck, Shield, DollarSign, Split, AlertTriangle
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
+import { generateUUID } from '../../utils/uuid';
 import { supabase } from '../../lib/supabase';
 import {
   getDigitalProjects,
@@ -68,13 +69,15 @@ export const DigitalProjects: React.FC = () => {
     client_name: '',
     client_type: 'Internal' as 'Internal' | 'External',
     scope: '',
-    service_category: 'Digital Marketing & Advertising',
+    service_category: 'Digital Marketing & Performance Ads',
     budget: 500000,
-    payment_terms: 'Advance Payment' as 'Advance Payment' | 'Milestone-Based' | 'Full Payment',
+    payment_terms: 'Advance Payment (30% Upfront)' as string,
+    payment_split_type: 'advance_30' as 'advance_30' | 'advance_50' | 'three_milestones' | 'full' | 'custom_advance',
+    advance_percentage: 30,
     start_date: new Date().toISOString().split('T')[0],
     deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    assigned_staff_name: profile?.full_name || 'Digital Project Manager',
-    assigned_staff_email: profile?.email || 'pm@ferex.com',
+    assigned_staff_name: 'digital admin',
+    assigned_staff_email: 'digitaladmin@ferex.com',
     status: 'Briefing' as DigitalProjectStage,
   });
 
@@ -104,7 +107,23 @@ export const DigitalProjects: React.FC = () => {
       ]);
       setClients(clientData || []);
       setProjects(projData || []);
-      setStaffList(realStaff || []);
+
+      let staff = realStaff || [];
+      const hasDigitalAdmin = staff.some(s => s.name.toLowerCase().includes('digital admin') || s.email.toLowerCase().includes('digitaladmin'));
+      if (!hasDigitalAdmin) {
+        staff = [
+          {
+            id: 'staff-digital-admin',
+            name: 'digital admin',
+            email: 'digitaladmin@ferex.com',
+            role: 'digital_admin',
+            roleLabel: 'Digital Agency Director'
+          },
+          ...staff
+        ];
+      }
+      setStaffList(staff);
+
       if (masterStages && masterStages.length > 0) setStages(masterStages);
       if (categories && categories.length > 0) setServiceCategories(categories);
     } finally {
@@ -161,6 +180,18 @@ export const DigitalProjects: React.FC = () => {
     const assignedEmail = matchedStaff?.email || newProj.assigned_staff_email || 'pm@ferex.com';
     const assignedStaffId = matchedStaff?.id || (matchedStaff as any)?.user_id || undefined;
 
+    const budgetVal = Number(newProj.budget) || 0;
+    const advancePct =
+      newProj.payment_split_type === 'advance_30' ? 30 :
+      newProj.payment_split_type === 'advance_50' ? 50 :
+      newProj.payment_split_type === 'three_milestones' ? 40 :
+      newProj.payment_split_type === 'full' ? 100 :
+      newProj.advance_percentage;
+
+    const advanceAmt = Math.round(budgetVal * (advancePct / 100));
+    const balanceAmt = Math.max(0, budgetVal - advanceAmt);
+    const splitNum: 1 | 2 | 3 = newProj.payment_split_type === 'full' ? 1 : newProj.payment_split_type === 'three_milestones' ? 3 : 2;
+
     try {
       const created = await createDigitalProject({
         title: newProj.title.trim(),
@@ -170,8 +201,10 @@ export const DigitalProjects: React.FC = () => {
         scope: newProj.scope,
         description: newProj.scope,
         service_category: newProj.service_category,
-        budget: Number(newProj.budget) || 0,
-        payment_terms: newProj.payment_terms,
+        budget: budgetVal,
+        payment_terms: newProj.payment_terms as any,
+        advance_amount: advanceAmt,
+        balance_amount: balanceAmt,
         start_date: newProj.start_date,
         deadline: newProj.deadline,
         assigned_staff_name: assignedName,
@@ -180,21 +213,152 @@ export const DigitalProjects: React.FC = () => {
         status: newProj.status,
       });
 
+      // Directly initialize the Single Source of Truth in Centralized Billing with configured payment parts
+      try {
+        const rawBillings = localStorage.getItem('ferex_digital_centralized_billings');
+        const billings: any[] = rawBillings ? JSON.parse(rawBillings) : [];
+
+        let parts: any[] = [];
+        if (splitNum === 1) {
+          parts = [{
+            id: generateUUID(),
+            part_number: 1,
+            label: 'Full Payment (100%)',
+            percentage: 100,
+            configured_amount: budgetVal,
+            due_date: newProj.start_date,
+            status: 'unpaid',
+            amount_received: 0,
+            remaining_balance: budgetVal
+          }];
+        } else if (splitNum === 2) {
+          parts = [
+            {
+              id: generateUUID(),
+              part_number: 1,
+              label: `Part 1: Advance (${advancePct}%)`,
+              percentage: advancePct,
+              configured_amount: advanceAmt,
+              due_date: newProj.start_date,
+              status: 'unpaid',
+              amount_received: 0,
+              remaining_balance: advanceAmt
+            },
+            {
+              id: generateUUID(),
+              part_number: 2,
+              label: `Part 2: Balance (${100 - advancePct}%)`,
+              percentage: 100 - advancePct,
+              configured_amount: balanceAmt,
+              due_date: newProj.deadline,
+              status: 'unpaid',
+              amount_received: 0,
+              remaining_balance: balanceAmt
+            }
+          ];
+        } else {
+          const p1 = Math.round(budgetVal * 0.4);
+          const p2 = Math.round(budgetVal * 0.3);
+          const p3 = budgetVal - p1 - p2;
+          const midTime = (new Date(newProj.start_date).getTime() + new Date(newProj.deadline).getTime()) / 2;
+          parts = [
+            {
+              id: generateUUID(),
+              part_number: 1,
+              label: 'Part 1: Kickoff Advance (40%)',
+              percentage: 40,
+              configured_amount: p1,
+              due_date: newProj.start_date,
+              status: 'unpaid',
+              amount_received: 0,
+              remaining_balance: p1
+            },
+            {
+              id: generateUUID(),
+              part_number: 2,
+              label: 'Part 2: Milestone Review (30%)',
+              percentage: 30,
+              configured_amount: p2,
+              due_date: new Date(midTime).toISOString().split('T')[0],
+              status: 'unpaid',
+              amount_received: 0,
+              remaining_balance: p2
+            },
+            {
+              id: generateUUID(),
+              part_number: 3,
+              label: 'Part 3: Final Handover (30%)',
+              percentage: 30,
+              configured_amount: p3,
+              due_date: newProj.deadline,
+              status: 'unpaid',
+              amount_received: 0,
+              remaining_balance: p3
+            }
+          ];
+        }
+
+        const billingRecord = {
+          id: generateUUID(),
+          project_id: created.id,
+          project_title: created.title,
+          client_id: created.client_id || '',
+          client_name: created.client_name,
+          service_category: created.service_category,
+          scope_items: [
+            {
+              id: '1',
+              title: created.title,
+              description: created.scope || 'Core project deliverables & scope',
+              amount: budgetVal,
+              type: 'base'
+            }
+          ],
+          total_agreed_amount: budgetVal,
+          payment_split: splitNum,
+          payment_parts: parts,
+          invoice_no: `INV-DIG-${created.id.slice(0, 4).toUpperCase()}`,
+          status: 'Approved',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          approved_at: new Date().toISOString(),
+          approved_by: assignedName,
+          audit_trail: [
+            {
+              id: generateUUID(),
+              timestamp: new Date().toISOString(),
+              user: assignedName,
+              previous_value: 0,
+              updated_value: budgetVal,
+              reason: 'Project initialized with commercial terms',
+              change_type: 'scope_added',
+              details: `Initial budget ₹${budgetVal.toLocaleString('en-IN')} with ${splitNum}-part payment schedule (${newProj.payment_terms})`
+            }
+          ]
+        };
+
+        const updatedBillings = [billingRecord, ...billings.filter((b: any) => b.project_id !== created.id)];
+        localStorage.setItem('ferex_digital_centralized_billings', JSON.stringify(updatedBillings));
+        window.dispatchEvent(new Event('ferex_digital_centralized_billing_change'));
+      } catch {}
+
       setShowAddModal(false);
-      showToast(`Created project "${created.title}" at stage: ${created.status}`);
+      showToast(`✅ Created project "${created.title}" with configured payment terms.`);
       setNewProj({
         title: '',
         client_id: '',
         client_name: '',
         client_type: 'Internal',
         scope: '',
-        service_category: 'Digital Marketing & Advertising',
+        service_category: 'Digital Marketing & Performance Ads',
         budget: 500000,
-        payment_terms: 'Advance Payment',
+        payment_terms: 'Advance Payment (30% Upfront)',
+        payment_split_type: 'advance_30',
+        advance_percentage: 30,
         start_date: new Date().toISOString().split('T')[0],
         deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-        assigned_staff_name: staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Project Manager'),
-        assigned_staff_email: staffList.length > 0 ? staffList[0].email : (profile?.email || 'pm@ferex.com'),
+        assigned_staff_name: 'digital admin',
+        assigned_staff_email: 'digitaladmin@ferex.com',
         status: 'Briefing',
       });
       await loadData();
@@ -246,11 +410,37 @@ export const DigitalProjects: React.FC = () => {
   };
 
   const handleDeleteProject = async (id: string, title: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
-    await deleteDigitalProject(id);
-    if (selectedProject?.id === id) setSelectedProject(null);
-    showToast(`Removed project ${title}`);
-    await loadData();
+    if (!window.confirm(`Are you sure you want to delete "${title}"? This will permanently remove the project from the portfolio and financial ledger.`)) return;
+    try {
+      await deleteDigitalProject(id);
+
+      // Clean up linked centralized billing and payments
+      try {
+        const rawBillings = localStorage.getItem('ferex_digital_centralized_billings');
+        if (rawBillings) {
+          const billings = JSON.parse(rawBillings);
+          const filteredB = billings.filter((b: any) => b.project_id !== id && b.id !== id);
+          localStorage.setItem('ferex_digital_centralized_billings', JSON.stringify(filteredB));
+        }
+      } catch {}
+
+      try {
+        const rawTxs = localStorage.getItem('ferex_digital_payment_transactions');
+        if (rawTxs) {
+          const txs = JSON.parse(rawTxs);
+          const filteredT = txs.filter((t: any) => t.project_id !== id);
+          localStorage.setItem('ferex_digital_payment_transactions', JSON.stringify(filteredT));
+        }
+      } catch {}
+
+      if (selectedProject?.id === id) setSelectedProject(null);
+      showToast(`Project "${title}" deleted successfully.`);
+      await loadData();
+      window.dispatchEvent(new Event('ferex_digital_centralized_billing_change'));
+      window.dispatchEvent(new Event('ferex_digital_payments_change'));
+    } catch (err: any) {
+      showToast(`Error deleting project: ${err.message}`);
+    }
   };
 
   const handleConfirmReassign = async () => {
@@ -638,15 +828,14 @@ export const DigitalProjects: React.FC = () => {
                       );
                     })()}
 
-                    {canDelete && (
-                      <button
-                        onClick={() => handleDeleteProject(p.id, p.title)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                        title="Delete Project"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                    {/* Delete Project Option (Always available on card) */}
+                    <button
+                      onClick={() => handleDeleteProject(p.id, p.title)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200 shrink-0"
+                      title="Delete Project from Portfolio"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </Card>
               );
@@ -736,12 +925,22 @@ export const DigitalProjects: React.FC = () => {
                   <h2 className="text-lg font-black text-slate-900 mt-1">{selectedProject.title}</h2>
                   <p className="text-xs font-semibold text-slate-500">{selectedProject.client_name}</p>
                 </div>
-                <button
-                  onClick={() => setSelectedProject(null)}
-                  className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleDeleteProject(selectedProject.id, selectedProject.title)}
+                    className="px-2.5 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg flex items-center gap-1.5 transition-colors border border-rose-200"
+                    title="Delete Project from Portfolio"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Project</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedProject(null)}
+                    className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* 6-Stage Progress Steps */}
@@ -1004,34 +1203,167 @@ export const DigitalProjects: React.FC = () => {
                   />
                 </div>
 
-                {/* Budget & Payment Terms */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                      Total Budget (₹ INR)
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={newProj.budget}
-                      onChange={(e) => setNewProj({ ...newProj, budget: Number(e.target.value) })}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    />
+                {/* ── COMMERCIAL VALUE & PAYMENT TERMS CONFIGURATION ── */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#58051E] flex items-center gap-1.5">
+                      <DollarSign className="w-3.5 h-3.5 text-[#58051E]" /> Commercial & Payment Terms Configuration
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-semibold">Single Source of Truth</span>
                   </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">
+                        Total Budget (₹ INR) *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={1000}
+                        value={newProj.budget}
+                        onChange={(e) => setNewProj({ ...newProj, budget: Number(e.target.value) })}
+                        className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-emerald-700 focus:outline-none focus:border-[#58051E]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">
+                        Payment Terms
+                      </label>
+                      <select
+                        value={newProj.payment_terms}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          let splitType: any = 'advance_30';
+                          if (val.includes('100%') || val.includes('Full')) splitType = 'full';
+                          else if (val.includes('50%')) splitType = 'advance_50';
+                          else if (val.includes('3-Stage') || val.includes('Milestone')) splitType = 'three_milestones';
+                          setNewProj({ ...newProj, payment_terms: val, payment_split_type: splitType });
+                        }}
+                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                      >
+                        <option value="Advance Payment (30% Upfront)">Advance Payment (30% Upfront)</option>
+                        <option value="Advance Payment (50% Upfront)">Advance Payment (50% Upfront)</option>
+                        <option value="3-Stage Milestone Split (40% / 30% / 30%)">3-Stage Milestone Split (40% / 30% / 30%)</option>
+                        <option value="Full Payment (100% Upfront)">Full Payment (100% Upfront)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Payment Milestone Structure Quick Selector */}
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                      Payment Terms
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1.5">
+                      Milestone Structure
                     </label>
-                    <select
-                      value={newProj.payment_terms}
-                      onChange={(e) => setNewProj({ ...newProj, payment_terms: e.target.value as any })}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    >
-                      <option value="Advance Payment">Advance Payment (30% Upfront)</option>
-                      <option value="Milestone-Based">Milestone-Based</option>
-                      <option value="Full Payment">Full Payment (100%)</option>
-                    </select>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { id: 'advance_30', label: '30% Advance', desc: '30% / 70%' },
+                        { id: 'advance_50', label: '50% Advance', desc: '50% / 50%' },
+                        { id: 'three_milestones', label: '3-Part Split', desc: '40% / 30% / 30%' },
+                        { id: 'full', label: 'Full 100%', desc: 'Single Part' },
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            let terms = 'Advance Payment (30% Upfront)';
+                            if (opt.id === 'advance_50') terms = 'Advance Payment (50% Upfront)';
+                            else if (opt.id === 'three_milestones') terms = '3-Stage Milestone Split (40% / 30% / 30%)';
+                            else if (opt.id === 'full') terms = 'Full Payment (100% Upfront)';
+                            setNewProj({
+                              ...newProj,
+                              payment_split_type: opt.id as any,
+                              payment_terms: terms,
+                              advance_percentage: opt.id === 'advance_50' ? 50 : opt.id === 'full' ? 100 : 30
+                            });
+                          }}
+                          className={`p-2 rounded-xl text-left border transition-all ${
+                            newProj.payment_split_type === opt.id
+                              ? 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="text-[11px] font-black">{opt.label}</div>
+                          <div className={`text-[9px] ${newProj.payment_split_type === opt.id ? 'text-white/70' : 'text-slate-400'}`}>
+                            {opt.desc}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Live Calculated Milestone Installment Cards */}
+                  <div className="pt-2 border-t border-slate-200/70 space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">
+                      Live Payment Installments Breakdown
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {newProj.payment_split_type === 'full' ? (
+                        <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between sm:col-span-2">
+                          <div>
+                            <span className="text-[11px] font-bold text-slate-800">Part 1: Full Payment (100%)</span>
+                            <span className="text-[10px] text-slate-400 block">Due on kickoff ({newProj.start_date})</span>
+                          </div>
+                          <span className="text-xs font-black text-emerald-700">₹{(Number(newProj.budget) || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                      ) : newProj.payment_split_type === 'three_milestones' ? (
+                        <>
+                          <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+                            <div>
+                              <span className="text-[11px] font-bold text-slate-800">Part 1: Kickoff (40%)</span>
+                              <span className="text-[10px] text-slate-400 block">Due on start ({newProj.start_date})</span>
+                            </div>
+                            <span className="text-xs font-black text-emerald-700">
+                              ₹{Math.round((Number(newProj.budget) || 0) * 0.4).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                          <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+                            <div>
+                              <span className="text-[11px] font-bold text-slate-800">Part 2: Milestone (30%)</span>
+                              <span className="text-[10px] text-slate-400 block">Due mid-cycle</span>
+                            </div>
+                            <span className="text-xs font-black text-emerald-700">
+                              ₹{Math.round((Number(newProj.budget) || 0) * 0.3).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                          <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between sm:col-span-2">
+                            <div>
+                              <span className="text-[11px] font-bold text-slate-800">Part 3: Final Handover (30%)</span>
+                              <span className="text-[10px] text-slate-400 block">Due on deadline ({newProj.deadline})</span>
+                            </div>
+                            <span className="text-xs font-black text-emerald-700">
+                              ₹{((Number(newProj.budget) || 0) - Math.round((Number(newProj.budget) || 0) * 0.4) - Math.round((Number(newProj.budget) || 0) * 0.3)).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+                            <div>
+                              <span className="text-[11px] font-bold text-slate-800">
+                                Part 1: Advance ({newProj.payment_split_type === 'advance_50' ? 50 : 30}%)
+                              </span>
+                              <span className="text-[10px] text-slate-400 block">Due on start ({newProj.start_date})</span>
+                            </div>
+                            <span className="text-xs font-black text-emerald-700">
+                              ₹{Math.round((Number(newProj.budget) || 0) * (newProj.payment_split_type === 'advance_50' ? 0.5 : 0.3)).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                          <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+                            <div>
+                              <span className="text-[11px] font-bold text-slate-800">
+                                Part 2: Balance ({newProj.payment_split_type === 'advance_50' ? 50 : 70}%)
+                              </span>
+                              <span className="text-[10px] text-slate-400 block">Due on deadline ({newProj.deadline})</span>
+                            </div>
+                            <span className="text-xs font-black text-emerald-700">
+                              ₹{((Number(newProj.budget) || 0) - Math.round((Number(newProj.budget) || 0) * (newProj.payment_split_type === 'advance_50' ? 0.5 : 0.3))).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
