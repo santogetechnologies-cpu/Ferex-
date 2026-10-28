@@ -1,65 +1,32 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FileText, Plus, X, Search, Eye, Trash2, Download, Printer,
-  DollarSign, ChevronRight, Building2, CheckCircle2, Clock,
-  AlertCircle, ChevronDown, ChevronUp, Edit2, Zap, Star,
-  Package, TrendingUp, Layers, Receipt, Send, RefreshCw, CreditCard, Shield
+  Receipt, Plus, X, Search, Eye, Trash2, Printer,
+  Building2, CheckCircle2, Clock, AlertCircle, Edit2, Zap,
+  Package, TrendingUp, Layers, Send, Shield, History, ArrowRight,
+  DollarSign, Check, ChevronDown, ChevronUp, Lock, RefreshCw, FileText
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
 import {
-  getDigitalClients,
-  getDigitalProjects,
-  getDigitalInvoices,
-  createDigitalInvoice,
-  updateDigitalInvoice,
-  updateDigitalInvoiceStatus,
-  deleteDigitalInvoice,
-} from '../../lib/api/digital';
-import { supabase } from '../../lib/supabase';
+  getCentralizedBillings,
+  updateCentralizedBillingScope,
+  type CentralizedProjectBilling,
+  type ScopeItem,
+  type PaymentPart,
+  type BillingChangeAudit
+} from '../../lib/api/digitalBilling';
+import { getDigitalClients, getDigitalProjects } from '../../lib/api/digital';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDigitalPermissions } from '../../hooks/usePermissions';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-interface ScopeItem {
-  id: string;
-  title: string;
-  description: string;
-  amount: number;
-  type: 'base' | 'extra' | 'special_charge';
-}
+// ─── PDF Scope & Invoice Generator ──────────────────────────────────────────
+function printScopeAgreementPDF(billing: CentralizedProjectBilling) {
+  const totalInr = billing.total_agreed_amount.toLocaleString('en-IN');
+  const issueDate = new Date(billing.updated_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
 
-interface PaymentInstallment {
-  id: string;
-  label: string;
-  percentage: number;
-  amount: number;
-  dueDate: string;
-  status: 'pending' | 'paid' | 'overdue';
-}
-
-interface ClientBilling {
-  clientId: string;
-  clientName: string;
-  projectId: string;
-  projectTitle: string;
-  scopeItems: ScopeItem[];
-  totalAmount: number;
-  paymentSplit: 1 | 2 | 3;
-  installments: PaymentInstallment[];
-  invoiceNo: string;
-  status: 'Draft' | 'Sent' | 'Partially Paid' | 'Paid' | 'Overdue';
-  createdAt: string;
-  notes: string;
-}
-
-// ─── PDF Generator ─────────────────────────────────────────────────────────
-function generateInvoicePDF(billing: ClientBilling) {
-  const totalInr = billing.totalAmount.toLocaleString('en-IN');
-  const invoiceDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
-
-  const scopeHtml = billing.scopeItems.map(item => `
+  const scopeHtml = billing.scope_items.map(item => `
     <tr style="border-bottom:1px solid #f1f5f9">
       <td style="padding:10px 8px;font-size:12px;color:#1e293b">
         <strong>${item.title}</strong>
@@ -67,23 +34,36 @@ function generateInvoicePDF(billing: ClientBilling) {
         ${item.type === 'extra' ? '<span style="background:#dbeafe;color:#1d4ed8;font-size:10px;padding:1px 6px;border-radius:4px;margin-left:6px">Scope Extension</span>' : ''}
         ${item.type === 'special_charge' ? '<span style="background:#fef3c7;color:#d97706;font-size:10px;padding:1px 6px;border-radius:4px;margin-left:6px">Special Charge</span>' : ''}
       </td>
-      <td style="padding:10px 8px;text-align:right;font-size:12px;font-weight:700;color:#059669">₹${item.amount.toLocaleString('en-IN')}</td>
+      <td style="padding:10px 8px;text-align:right;font-size:12px;font-weight:700;color:#059669">₹${Number(item.amount || 0).toLocaleString('en-IN')}</td>
     </tr>
   `).join('');
 
-  const installmentHtml = billing.installments.map(inst => `
+  const partsHtml = billing.payment_parts.map(part => `
     <tr style="border-bottom:1px solid #f1f5f9">
-      <td style="padding:8px;font-size:12px;color:#1e293b">${inst.label}</td>
-      <td style="padding:8px;text-align:center;font-size:12px;color:#64748b">${inst.percentage}%</td>
-      <td style="padding:8px;text-align:right;font-size:12px;font-weight:700">₹${inst.amount.toLocaleString('en-IN')}</td>
+      <td style="padding:8px;font-size:12px;color:#1e293b">${part.label}</td>
+      <td style="padding:8px;text-align:center;font-size:12px;color:#64748b">${part.percentage}%</td>
+      <td style="padding:8px;text-align:right;font-size:12px;font-weight:700">₹${part.configured_amount.toLocaleString('en-IN')}</td>
+      <td style="padding:8px;text-align:right;font-size:12px;color:#059669">₹${(part.amount_received || 0).toLocaleString('en-IN')}</td>
+      <td style="padding:8px;text-align:right;font-size:12px;font-weight:700;color:${part.remaining_balance > 0 ? '#b45309' : '#059669'}">
+        ₹${(part.remaining_balance ?? part.configured_amount).toLocaleString('en-IN')}
+      </td>
       <td style="padding:8px;text-align:center;font-size:11px">
         <span style="padding:2px 8px;border-radius:20px;font-weight:600;${
-          inst.status === 'paid' ? 'background:#d1fae5;color:#065f46' :
-          inst.status === 'overdue' ? 'background:#fee2e2;color:#991b1b' :
+          part.status === 'paid' ? 'background:#d1fae5;color:#065f46' :
+          part.status === 'partially_paid' ? 'background:#dbeafe;color:#1d4ed8' :
           'background:#fef3c7;color:#92400e'
-        }">${inst.status.charAt(0).toUpperCase() + inst.status.slice(1)}</span>
+        }">${part.status.toUpperCase()}</span>
       </td>
-      <td style="padding:8px;text-align:center;font-size:11px;color:#64748b">${inst.dueDate}</td>
+      <td style="padding:8px;text-align:center;font-size:11px;color:#64748b">${part.due_date || 'Milestone'}</td>
+    </tr>
+  `).join('');
+
+  const auditHtml = (billing.audit_trail || []).slice(0, 5).map(a => `
+    <tr style="border-bottom:1px solid #f1f5f9;font-size:11px">
+      <td style="padding:6px;color:#64748b">${new Date(a.timestamp).toLocaleDateString('en-IN')}</td>
+      <td style="padding:6px;font-weight:600;color:#1e293b">${a.user}</td>
+      <td style="padding:6px;color:#059669">₹${a.previous_value.toLocaleString('en-IN')} → ₹${a.updated_value.toLocaleString('en-IN')}</td>
+      <td style="padding:6px;color:#475569">${a.reason}</td>
     </tr>
   `).join('');
 
@@ -92,113 +72,112 @@ function generateInvoicePDF(billing: ClientBilling) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Invoice ${billing.invoiceNo} — Ferex Digital</title>
+<title>Commercial Financial Agreement — ${billing.invoice_no}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Inter', sans-serif; color: #1e293b; background: #fff; }
-  .page { max-width: 800px; margin: 0 auto; padding: 40px; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
-  .logo { font-size: 24px; font-weight: 800; color: #58051E; letter-spacing: -0.5px; }
-  .logo span { color: #94a3b8; font-size: 14px; font-weight: 500; display: block; margin-top: 2px; }
-  .invoice-meta { text-align: right; }
-  .invoice-no { font-size: 22px; font-weight: 800; color: #0f172a; }
-  .invoice-date { font-size: 12px; color: #64748b; margin-top: 4px; }
-  .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; margin-top: 8px;
-    background: ${billing.status === 'Paid' ? '#d1fae5' : billing.status === 'Partially Paid' ? '#dbeafe' : '#fef3c7'};
-    color: ${billing.status === 'Paid' ? '#065f46' : billing.status === 'Partially Paid' ? '#1d4ed8' : '#92400e'};
-  }
-  .divider { height: 2px; background: linear-gradient(to right, #58051E, #f1f5f9); margin: 24px 0; }
-  .bill-to { margin-bottom: 32px; }
-  .label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.05em; margin-bottom: 4px; }
-  .client-name { font-size: 18px; font-weight: 800; color: #0f172a; }
-  .client-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
-  table { width: 100%; border-collapse: collapse; }
-  th { background: #f8fafc; padding: 10px 8px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #94a3b8; border-bottom: 2px solid #e2e8f0; }
-  .total-row td { padding: 14px 8px; font-size: 15px; font-weight: 800; border-top: 2px solid #0f172a; }
-  .footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-  .footer-left { font-size: 11px; color: #94a3b8; }
-  .footer-right { text-align: right; font-size: 11px; color: #94a3b8; }
+  .page { max-width: 820px; margin: 0 auto; padding: 40px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; }
+  .logo { font-size: 24px; font-weight: 800; color: #58051E; }
+  .logo span { color: #94a3b8; font-size: 13px; font-weight: 500; display: block; margin-top: 2px; }
+  .meta { text-align: right; }
+  .doc-no { font-size: 20px; font-weight: 800; color: #0f172a; }
+  .divider { height: 2px; background: linear-gradient(to right, #58051E, #f1f5f9); margin: 20px 0; }
+  .label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { background: #f8fafc; padding: 8px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #94a3b8; border-bottom: 2px solid #e2e8f0; }
+  .total-box { margin-top: 16px; padding: 12px 16px; background: #ecfdf5; border-radius: 8px; border: 1px solid #a7f3d0; display: flex; justify-content: space-between; align-items: center; }
+  .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; display: flex; justify-content: space-between; }
 </style>
 </head>
 <body>
 <div class="page">
   <div class="header">
-    <div>
-      <div class="logo">FEREX<br><span>Digital Agency ERP</span></div>
-    </div>
-    <div class="invoice-meta">
-      <div class="invoice-no">${billing.invoiceNo}</div>
-      <div class="invoice-date">Issued: ${invoiceDate}</div>
-      <div class="status-badge">${billing.status}</div>
+    <div class="logo">FEREX DIGITAL ERP<br><span>Single Source of Truth • Commercial Project Financial Agreement</span></div>
+    <div class="meta">
+      <div class="doc-no">${billing.invoice_no}</div>
+      <div style="font-size:12px;color:#64748b;margin-top:4px">Approved: ${issueDate}</div>
+      <div style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:700;background:#d1fae5;color:#065f46;margin-top:6px">${billing.status.toUpperCase()}</div>
     </div>
   </div>
 
   <div class="divider"></div>
 
-  <div class="bill-to">
-    <div class="label">Bill To</div>
-    <div class="client-name">${billing.clientName}</div>
-    <div class="client-sub">Project: ${billing.projectTitle}</div>
+  <div style="display:flex;justify-content:space-between;margin-bottom:24px">
+    <div>
+      <div class="label">Client Information</div>
+      <div style="font-size:16px;font-weight:800;color:#0f172a">${billing.client_name}</div>
+      <div style="font-size:12px;color:#64748b">Project: ${billing.project_title}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="label">Financial Terms</div>
+      <div style="font-size:13px;font-weight:700;color:#0f172a">${billing.payment_split}-Part Milestone Schedule</div>
+      <div style="font-size:12px;color:#64748b">Category: ${billing.service_category || 'Software Engineering'}</div>
+    </div>
   </div>
 
-  <div style="margin-bottom:28px">
-    <div class="label" style="margin-bottom:12px">Scope of Work & Service Charges</div>
+  <div style="margin-bottom:24px">
+    <div class="label">Approved Scope of Work & Commercial Value</div>
     <table>
       <thead>
         <tr>
-          <th>Description</th>
-          <th style="text-align:right">Amount (₹)</th>
+          <th>Deliverable Scope & Component</th>
+          <th style="text-align:right">Commercial Value</th>
         </tr>
       </thead>
       <tbody>
         ${scopeHtml}
       </tbody>
-      <tfoot>
-        <tr class="total-row">
-          <td>Total Project Value</td>
-          <td style="text-align:right;color:#059669">₹${totalInr}</td>
-        </tr>
-      </tfoot>
     </table>
+    <div class="total-box">
+      <span style="font-size:13px;font-weight:700;color:#065f46">Total Agreed Commercial Value</span>
+      <span style="font-size:18px;font-weight:800;color:#065f46">₹${totalInr}</span>
+    </div>
   </div>
 
-  ${billing.installments.length > 1 ? `
-  <div style="margin-bottom:28px">
-    <div class="label" style="margin-bottom:12px">Payment Schedule (${billing.paymentSplit}-Installment Plan)</div>
+  <div style="margin-bottom:24px">
+    <div class="label">Milestone Payment Parts Breakdown</div>
     <table>
       <thead>
         <tr>
-          <th>Installment</th>
+          <th>Payment Part</th>
           <th style="text-align:center">%</th>
-          <th style="text-align:right">Amount</th>
+          <th style="text-align:right">Configured Amount</th>
+          <th style="text-align:right">Received to Date</th>
+          <th style="text-align:right">Balance</th>
           <th style="text-align:center">Status</th>
           <th style="text-align:center">Due Date</th>
         </tr>
       </thead>
       <tbody>
-        ${installmentHtml}
+        ${partsHtml}
+      </tbody>
+    </table>
+  </div>
+
+  ${billing.audit_trail && billing.audit_trail.length > 0 ? `
+  <div style="margin-bottom:24px">
+    <div class="label">Controlled Change Log & Audit Trail</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Authorized User</th>
+          <th>Value Adjustment</th>
+          <th>Reason for Modification</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${auditHtml}
       </tbody>
     </table>
   </div>
   ` : ''}
 
-  ${billing.notes ? `
-  <div style="padding:12px 16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:28px">
-    <div class="label" style="margin-bottom:4px">Terms & Notes</div>
-    <p style="font-size:12px;color:#475569">${billing.notes}</p>
-  </div>
-  ` : ''}
-
   <div class="footer">
-    <div class="footer-left">
-      Ferex Digital Agency ERP<br>
-      digital@ferex.com • www.ferex.com
-    </div>
-    <div class="footer-right">
-      Thank you for your business.<br>
-      Payments via RTGS / Bank Wire / UPI
-    </div>
+    <div>Single Source of Truth • Governed by Ferex Digital Agency Financial Controller</div>
+    <div>Generated on ${new Date().toLocaleString('en-IN')}</div>
   </div>
 </div>
 </body>
@@ -208,44 +187,30 @@ function generateInvoicePDF(billing: ClientBilling) {
   if (win) {
     win.document.write(html);
     win.document.close();
-    win.onload = () => {
-      setTimeout(() => win.print(), 500);
-    };
+    win.onload = () => setTimeout(() => win.print(), 500);
   }
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component ──────────────────────────────────────────────────────────────
 export const DigitalBilling: React.FC = () => {
   const { profile } = useAuth();
-  const [clients, setClients] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [billings, setBillings] = useState<ClientBilling[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState('');
-  const [search, setSearch] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedBilling, setSelectedBilling] = useState<ClientBilling | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showAddScopeForm, setShowAddScopeForm] = useState(false);
-  const [extraScope, setExtraScope] = useState({
-    title: '',
-    description: '',
-    amount: 0,
-    type: 'extra' as 'extra' | 'special_charge'
-  });
+  const { isAdmin } = useDigitalPermissions();
 
-  // Form state
-  const [form, setForm] = useState({
-    clientId: '',
-    projectId: '',
-    paymentSplit: 2 as 1 | 2 | 3,
-    notes: 'Payment via RTGS / Bank Wire. GST applicable as per norms.',
-    invoiceNo: `INV-DIG-${Math.floor(1000 + Math.random() * 9000)}`,
-  });
-  const [scopeItems, setScopeItems] = useState<ScopeItem[]>([
-    { id: '1', title: 'Core Project Delivery', description: 'Full project scope as agreed', amount: 0, type: 'base' }
-  ]);
+  const [billings, setBillings] = useState<CentralizedProjectBilling[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [toast, setToast] = useState('');
+
+  // Selected Billing for Detail / Audit View
+  const [selectedBilling, setSelectedBilling] = useState<CentralizedProjectBilling | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Controlled Scope & Value Modification Modal
+  const [showEditScopeModal, setShowEditScopeModal] = useState(false);
+  const [editingScopeItems, setEditingScopeItems] = useState<ScopeItem[]>([]);
+  const [editingSplit, setEditingSplit] = useState<1 | 2 | 3>(2);
+  const [changeReason, setChangeReason] = useState('');
+  const [changeType, setChangeType] = useState<'scope_added' | 'scope_modified' | 'special_charge' | 'payment_split_changed'>('scope_added');
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -255,262 +220,143 @@ export const DigitalBilling: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [clientData, projData, invData] = await Promise.all([
-        getDigitalClients(),
-        getDigitalProjects(),
-        getDigitalInvoices()
-      ]);
-      setClients(clientData || []);
-      setProjects(projData || []);
-
-      // Build billing records from invoices
-      const billingMap: ClientBilling[] = (invData || []).map((inv: any) => {
-        let parsedScope: ScopeItem[] = [];
-        let parsedInst: PaymentInstallment[] = [];
-        let split: 1 | 2 | 3 = 1;
-
-        if (inv.notes && typeof inv.notes === 'string') {
-          const scopeMatch = inv.notes.match(/SCOPE:(\[.*?\])(?:\s*\||$)/);
-          const instMatch = inv.notes.match(/INST:(\[.*?\])(?:\s*\||$)/);
-          const splitMatch = inv.notes.match(/SPLIT:([123])/);
-          if (scopeMatch) {
-            try { parsedScope = JSON.parse(scopeMatch[1]); } catch {}
-          }
-          if (instMatch) {
-            try { parsedInst = JSON.parse(instMatch[1]); } catch {}
-          }
-          if (splitMatch) {
-            split = Number(splitMatch[1]) as 1 | 2 | 3;
-          }
-        }
-
-        const scopeItems: ScopeItem[] = parsedScope.length > 0 ? parsedScope : (inv.scope_items ? JSON.parse(inv.scope_items) : [
-          { id: '1', title: (inv.notes || '').split('|')[0].trim() || 'Project Services', description: '', amount: inv.amount || 0, type: 'base' }
-        ]);
-
-        const installments: PaymentInstallment[] = parsedInst.length > 0 ? parsedInst : (inv.installments ? JSON.parse(inv.installments) : [
-          { id: '1', label: 'Full Payment', percentage: 100, amount: inv.amount || 0, dueDate: inv.due_date || '', status: inv.status === 'Paid' ? 'paid' : 'pending' }
-        ]);
-
-        return {
-          clientId: inv.client_id || '',
-          clientName: inv.client?.company_name || inv.client_name || 'Client',
-          projectId: inv.project_id || '',
-          projectTitle: inv.project?.title || inv.project_title || 'Project',
-          scopeItems,
-          totalAmount: Number(inv.amount) || 0,
-          paymentSplit: split || (installments.length as 1 | 2 | 3) || 1,
-          installments,
-          invoiceNo: inv.invoice_no || `INV-${inv.id?.slice(-4)}`,
-          status: inv.status || 'Sent',
-          createdAt: inv.created_at || '',
-          notes: typeof inv.notes === 'string' ? inv.notes : '',
-        };
-      });
-      setBillings(billingMap);
-      setInvoices(invData || []);
+      const data = await getCentralizedBillings();
+      setBillings(data);
+      if (selectedBilling) {
+        const fresh = data.find(b => b.id === selectedBilling.id);
+        if (fresh) setSelectedBilling(fresh);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedBilling]);
 
   useEffect(() => {
     loadData();
 
-    const channel = supabase
-      .channel('realtime_billing')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_invoices' }, () => loadData())
-      .subscribe();
+    const handleSync = () => loadData();
+    window.addEventListener('ferex_digital_centralized_billing_change', handleSync);
+    window.addEventListener('ferex_digital_projects_change', handleSync);
+    window.addEventListener('ferex_digital_payments_change', handleSync);
 
-    window.addEventListener('ferex_digital_invoices_change', loadData);
     return () => {
-      supabase.removeChannel(channel);
-      window.removeEventListener('ferex_digital_invoices_change', loadData);
+      window.removeEventListener('ferex_digital_centralized_billing_change', handleSync);
+      window.removeEventListener('ferex_digital_projects_change', handleSync);
+      window.removeEventListener('ferex_digital_payments_change', handleSync);
     };
   }, [loadData]);
 
-  const totalAmount = scopeItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-
-  const computeInstallments = (total: number, split: 1 | 2 | 3): PaymentInstallment[] => {
-    const now = new Date();
-    if (split === 1) {
-      return [{
-        id: '1', label: 'Full Payment', percentage: 100, amount: total,
-        dueDate: new Date(now.getTime() + 7 * 86400000).toISOString().split('T')[0], status: 'pending'
-      }];
-    } else if (split === 2) {
-      return [
-        { id: '1', label: 'Advance (1st Installment)', percentage: 50, amount: Math.round(total * 0.5),
-          dueDate: new Date(now.getTime() + 3 * 86400000).toISOString().split('T')[0], status: 'pending' },
-        { id: '2', label: 'Balance (2nd Installment)', percentage: 50, amount: total - Math.round(total * 0.5),
-          dueDate: new Date(now.getTime() + 30 * 86400000).toISOString().split('T')[0], status: 'pending' }
-      ];
-    } else {
-      const first = Math.round(total * 0.4);
-      const second = Math.round(total * 0.3);
-      const third = total - first - second;
-      return [
-        { id: '1', label: '1st Installment (40%)', percentage: 40, amount: first,
-          dueDate: new Date(now.getTime() + 3 * 86400000).toISOString().split('T')[0], status: 'pending' },
-        { id: '2', label: '2nd Installment (30%)', percentage: 30, amount: second,
-          dueDate: new Date(now.getTime() + 20 * 86400000).toISOString().split('T')[0], status: 'pending' },
-        { id: '3', label: '3rd Installment (30%)', percentage: 30, amount: third,
-          dueDate: new Date(now.getTime() + 45 * 86400000).toISOString().split('T')[0], status: 'pending' }
-      ];
-    }
+  const openControlledEdit = (billing: CentralizedProjectBilling) => {
+    setSelectedBilling(billing);
+    setEditingScopeItems([...billing.scope_items]);
+    setEditingSplit(billing.payment_split as 1 | 2 | 3);
+    setChangeReason('');
+    setChangeType('scope_added');
+    setShowEditScopeModal(true);
   };
 
-  const handleCreateBilling = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.clientId || totalAmount <= 0) {
-      showToast('Please select a client and add at least one scope item with an amount.');
+  const addScopeItemRow = (type: 'base' | 'extra' | 'special_charge') => {
+    setEditingScopeItems(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        title: type === 'extra' ? 'Scope Extension' : type === 'special_charge' ? 'Special Charge' : 'Core Deliverable',
+        description: '',
+        amount: 0,
+        type
+      }
+    ]);
+  };
+
+  const updateScopeItemRow = (id: string, updates: Partial<ScopeItem>) => {
+    setEditingScopeItems(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+  };
+
+  const removeScopeItemRow = (id: string) => {
+    if (editingScopeItems.length <= 1) {
+      showToast('Project must have at least one scope item');
       return;
     }
-    const selectedClient = clients.find(c => c.id === form.clientId);
-    const selectedProject = projects.find(p => p.id === form.projectId);
-    const installments = computeInstallments(totalAmount, form.paymentSplit);
-
-    const inv = await createDigitalInvoice({
-      client_id: form.clientId,
-      client_name: selectedClient?.company_name || 'Client',
-      project_id: form.projectId || undefined,
-      invoice_no: form.invoiceNo,
-      amount: totalAmount,
-      tax_amount: 0,
-      due_date: installments[0].dueDate,
-      status: 'Sent',
-      notes: `${form.notes || ''} | SCOPE:${JSON.stringify(scopeItems)} | INST:${JSON.stringify(installments)} | SPLIT:${form.paymentSplit}`,
-    });
-
-    showToast(`✅ Invoice ${form.invoiceNo} created for ${selectedClient?.company_name}`);
-    setShowCreateModal(false);
-    setScopeItems([{ id: '1', title: 'Core Project Delivery', description: 'Full project scope as agreed', amount: 0, type: 'base' }]);
-    setForm({ clientId: '', projectId: '', paymentSplit: 2, notes: 'Payment via RTGS / Bank Wire. GST applicable as per norms.', invoiceNo: `INV-DIG-${Math.floor(1000 + Math.random() * 9000)}` });
-    await loadData();
+    setEditingScopeItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const handleDeleteBilling = async (invoiceNo: string) => {
-    if (!confirm('Delete this billing record?')) return;
-    const inv = invoices.find(i => i.invoice_no === invoiceNo);
-    if (inv) {
-      await deleteDigitalInvoice(inv.id);
-      showToast('Billing record deleted');
-      await loadData();
-    }
-  };
-
-  const handleMarkPaid = async (invoiceNo: string) => {
-    const inv = invoices.find(i => i.invoice_no === invoiceNo);
-    if (inv) {
-      await updateDigitalInvoiceStatus(inv.id, 'Paid');
-      showToast('Invoice marked as Paid');
-      await loadData();
-    }
-  };
-
-  const addScopeItem = (type: 'base' | 'extra' | 'special_charge') => {
-    setScopeItems(prev => [...prev, {
-      id: Date.now().toString(),
-      title: type === 'extra' ? 'Scope Extension' : type === 'special_charge' ? 'Special Charge' : 'Service Item',
-      description: '',
-      amount: 0,
-      type
-    }]);
-  };
-
-  const updateScopeItem = (id: string, updates: Partial<ScopeItem>) => {
-    setScopeItems(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
-  };
-
-  const removeScopeItem = (id: string) => {
-    if (scopeItems.length <= 1) return;
-    setScopeItems(prev => prev.filter(item => item.id !== id));
-  };
-
-  const handleAddScopeToExisting = async (e: React.FormEvent) => {
+  const handleSaveControlledUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedBilling || !extraScope.title.trim() || Number(extraScope.amount) <= 0) {
-      showToast('Please provide a title and valid amount');
+    if (!selectedBilling) return;
+
+    if (!changeReason.trim()) {
+      showToast('Controlled Update requires a documented Reason for Change');
       return;
     }
 
-    const inv = invoices.find(i => i.invoice_no === selectedBilling.invoiceNo);
-    if (!inv) return;
+    const newTotal = editingScopeItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    if (newTotal <= 0) {
+      showToast('Total project value must be greater than zero');
+      return;
+    }
 
-    const newItem: ScopeItem = {
-      id: Date.now().toString(),
-      title: extraScope.title.trim(),
-      description: extraScope.description.trim(),
-      amount: Number(extraScope.amount),
-      type: extraScope.type
-    };
+    try {
+      const updated = await updateCentralizedBillingScope({
+        billingId: selectedBilling.id,
+        newScopeItems: editingScopeItems,
+        newPaymentSplit: editingSplit,
+        reason: changeReason.trim(),
+        userName: profile?.full_name || profile?.email || 'Digital Admin',
+        userEmail: profile?.email || '',
+        changeType
+      });
 
-    const newScopeItems = [...selectedBilling.scopeItems, newItem];
-    const newTotal = selectedBilling.totalAmount + newItem.amount;
-    const newInstallments = computeInstallments(newTotal, selectedBilling.paymentSplit);
-
-    const baseNotes = selectedBilling.notes.split('| SCOPE:')[0].trim();
-    const updatedNotes = `${baseNotes} | SCOPE:${JSON.stringify(newScopeItems)} | INST:${JSON.stringify(newInstallments)} | SPLIT:${selectedBilling.paymentSplit}`;
-
-    await updateDigitalInvoice(inv.id, {
-      amount: newTotal,
-      tax_amount: Math.round(newTotal * 0.18),
-      notes: updatedNotes
-    });
-
-    const updatedBilling: ClientBilling = {
-      ...selectedBilling,
-      scopeItems: newScopeItems,
-      totalAmount: newTotal,
-      installments: newInstallments,
-      notes: updatedNotes
-    };
-
-    setSelectedBilling(updatedBilling);
-    setExtraScope({ title: '', description: '', amount: 0, type: 'extra' });
-    setShowAddScopeForm(false);
-    showToast(`✅ Added ${extraScope.type === 'extra' ? 'Scope Extension' : 'Special Charge'} (₹${newItem.amount.toLocaleString('en-IN')}) to ${selectedBilling.invoiceNo}`);
-    await loadData();
+      setSelectedBilling(updated);
+      setShowEditScopeModal(false);
+      showToast(`✅ Single Source of Truth updated. Commercial value: ₹${newTotal.toLocaleString('en-IN')}`);
+      await loadData();
+    } catch (err: any) {
+      showToast(`Error updating billing: ${err.message}`);
+    }
   };
 
   const filteredBillings = billings.filter(b =>
-    b.clientName.toLowerCase().includes(search.toLowerCase()) ||
-    b.invoiceNo.toLowerCase().includes(search.toLowerCase()) ||
-    b.projectTitle.toLowerCase().includes(search.toLowerCase())
+    b.client_name.toLowerCase().includes(search.toLowerCase()) ||
+    b.project_title.toLowerCase().includes(search.toLowerCase()) ||
+    b.invoice_no.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalRevenue = billings.reduce((sum, b) => sum + b.totalAmount, 0);
-  const paidRevenue = billings.filter(b => b.status === 'Paid').reduce((sum, b) => sum + b.totalAmount, 0);
-  const pendingRevenue = billings.filter(b => b.status !== 'Paid').reduce((sum, b) => sum + b.totalAmount, 0);
+  const totalCommercialValue = billings.reduce((sum, b) => sum + b.total_agreed_amount, 0);
+  const totalCollected = billings.reduce((sum, b) => {
+    return sum + b.payment_parts.reduce((pSum, p) => pSum + (p.amount_received || 0), 0);
+  }, 0);
+  const totalOutstanding = Math.max(0, totalCommercialValue - totalCollected);
 
   return (
     <div className="space-y-6 text-left antialiased">
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
-      {/* Header */}
+      {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-[#58051E]" /> Centralised Digital Billing
-          </h1>
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-xl bg-[#58051E]/10 text-[#58051E]">
+              <Shield className="w-5 h-5 text-[#58051E]" />
+            </span>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">
+              Single Source of Truth: Centralised Billing
+            </h1>
+          </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Ferex Digital ERP • Per-client scope definitions, payment installment splits, special charges & PDF invoicing.
+            Ferex Digital ERP • Primary financial authority defining scope, commercial value, milestones & controlled change management.
           </p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowCreateModal(true)}>
-          <Plus className="w-4 h-4 mr-1.5" /> Create Invoice
-        </Button>
       </div>
 
-      {/* Stats */}
+      {/* Financial Health Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: 'Total Billed', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: TrendingUp, color: 'text-slate-700', bg: 'bg-slate-50' },
-          { label: 'Collected', value: `₹${paidRevenue.toLocaleString('en-IN')}`, icon: CheckCircle2, color: 'text-emerald-700', bg: 'bg-emerald-50' },
-          { label: 'Pending', value: `₹${pendingRevenue.toLocaleString('en-IN')}`, icon: Clock, color: 'text-amber-700', bg: 'bg-amber-50' },
+          { label: 'Total Agreed Commercial Value', value: `₹${totalCommercialValue.toLocaleString('en-IN')}`, icon: TrendingUp, color: 'text-slate-800', bg: 'bg-slate-50' },
+          { label: 'Total Actual Money Collected', value: `₹${totalCollected.toLocaleString('en-IN')}`, icon: CheckCircle2, color: 'text-emerald-700', bg: 'bg-emerald-50' },
+          { label: 'Total Outstanding Balance', value: `₹${totalOutstanding.toLocaleString('en-IN')}`, icon: Clock, color: 'text-amber-700', bg: 'bg-amber-50' },
         ].map(stat => (
           <Card key={stat.label} className="p-4 border border-slate-200/70 shadow-xs flex items-center gap-3">
-            <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center`}>
+            <div className={`w-11 h-11 ${stat.bg} rounded-xl flex items-center justify-center`}>
               <stat.icon className={`w-5 h-5 ${stat.color}`} />
             </div>
             <div>
@@ -521,133 +367,157 @@ export const DigitalBilling: React.FC = () => {
         ))}
       </div>
 
-      {/* Search & Filter */}
-      <Card className="p-3 border border-slate-200/70 flex items-center gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search client, invoice no, project..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
-          />
+      {/* Search & Info Banner */}
+      <div className="space-y-3">
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs font-semibold text-amber-800">
+          <Lock className="w-4 h-4 shrink-0 text-amber-600" />
+          <span>
+            <strong>Primary Financial Authority:</strong> Projects configured here automatically govern Payment Ledgers, Invoices, Client Portals, and Financial Reports. No repeated data entry required.
+          </span>
         </div>
-        <span className="text-xs font-bold text-slate-400 whitespace-nowrap">{filteredBillings.length} invoices</span>
-      </Card>
 
-      {/* Billing List */}
+        <Card className="p-3 border border-slate-200/70 flex items-center justify-between gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by client, project title, or reference ID..."
+              className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            />
+          </div>
+          <span className="text-xs font-bold text-slate-400 whitespace-nowrap">{filteredBillings.length} Configured Projects</span>
+        </Card>
+      </div>
+
+      {/* Configured Projects List */}
       {loading ? (
         <div className="py-16 flex justify-center"><div className="w-8 h-8 border-3 border-[#58051E] border-t-transparent rounded-full animate-spin" /></div>
       ) : filteredBillings.length === 0 ? (
         <Card className="p-12 text-center border-dashed border-2 border-slate-200">
           <Receipt className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-          <p className="text-xs font-bold text-slate-500">No billing records yet. Create your first invoice.</p>
+          <p className="text-xs font-bold text-slate-500">No project billing definitions configured yet.</p>
         </Card>
       ) : (
         <div className="space-y-3">
           {filteredBillings.map((b) => {
-            const paidCount = b.installments.filter(i => i.status === 'paid').length;
-            const progressPct = b.installments.length > 0 ? Math.round((paidCount / b.installments.length) * 100) : 0;
+            const received = b.payment_parts.reduce((sum, p) => sum + (p.amount_received || 0), 0);
+            const balance = Math.max(0, b.total_agreed_amount - received);
+            const progress = b.total_agreed_amount > 0 ? Math.min(100, Math.round((received / b.total_agreed_amount) * 100)) : 0;
+
             return (
-              <Card key={b.invoiceNo} className="p-5 border border-slate-200/70 shadow-xs hover:border-slate-300 transition-all">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <Card key={b.id} className="p-5 border border-slate-200/70 shadow-xs hover:border-slate-300 transition-all">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  {/* Left: Project & Commercial Value */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-xs font-black text-[#58051E]">{b.invoiceNo}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                        b.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        b.status === 'Partially Paid' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                        b.status === 'Overdue' ? 'bg-red-50 text-red-700 border-red-200' :
-                        'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>{b.status}</span>
-                      <span className="text-[10px] text-slate-400 font-semibold">{b.paymentSplit}-installment plan</span>
+                      <span className="text-xs font-black text-[#58051E]">{b.invoice_no}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        {b.status}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-semibold">{b.payment_split}-Part Milestone Schedule</span>
+                      {b.audit_trail && b.audit_trail.length > 1 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                          <History className="w-3 h-3" /> {b.audit_trail.length} Revisions
+                        </span>
+                      )}
                     </div>
-                    <p className="text-sm font-black text-slate-900">{b.clientName}</p>
-                    <p className="text-xs text-slate-500 truncate">{b.projectTitle}</p>
-                    <div className="flex items-center gap-3 mt-2">
-                      <span className="text-base font-black text-emerald-700">₹{b.totalAmount.toLocaleString('en-IN')}</span>
-                      <span className="text-[10px] text-slate-400">{b.scopeItems.length} scope item{b.scopeItems.length !== 1 ? 's' : ''}</span>
-                      {b.scopeItems.some(s => s.type === 'extra') && (
-                        <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded font-bold">+Scope Ext.</span>
-                      )}
-                      {b.scopeItems.some(s => s.type === 'special_charge') && (
-                        <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-bold">+Special</span>
-                      )}
+                    <p className="text-sm font-black text-slate-900">{b.project_title}</p>
+                    <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400" /> {b.client_name}
+                    </p>
+
+                    <div className="flex items-center gap-4 mt-3 flex-wrap">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Agreed Value</span>
+                        <span className="text-sm font-black text-slate-900">₹{b.total_agreed_amount.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Actual Collected</span>
+                        <span className="text-sm font-black text-emerald-700">₹{received.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Balance Due</span>
+                        <span className="text-sm font-black text-amber-700">₹{balance.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Scope Items</span>
+                        <span className="text-xs font-bold text-slate-600">{b.scope_items.length} Deliverable{b.scope_items.length !== 1 ? 's' : ''}</span>
+                      </div>
                     </div>
                   </div>
 
+                  {/* Right: Actions */}
                   <div className="flex items-center gap-2 shrink-0">
-                    <button
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs font-bold border-slate-200"
                       onClick={() => { setSelectedBilling(b); setShowDetailModal(true); }}
-                      className="p-2 text-slate-400 hover:text-[#58051E] hover:bg-[#58051E]/5 rounded-lg transition-colors"
-                      title="View Details"
                     >
-                      <Eye className="w-4 h-4" />
-                    </button>
+                      <Eye className="w-3.5 h-3.5 mr-1" /> View Definition
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold"
+                      onClick={() => openControlledEdit(b)}
+                    >
+                      <Edit2 className="w-3.5 h-3.5 mr-1" /> Controlled Update
+                    </Button>
                     <button
-                      onClick={() => generateInvoicePDF(b)}
+                      onClick={() => printScopeAgreementPDF(b)}
                       className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Print / Download PDF"
+                      title="Print Commercial Agreement PDF"
                     >
                       <Printer className="w-4 h-4" />
-                    </button>
-                    {b.status !== 'Paid' && (
-                      <button
-                        onClick={() => handleMarkPaid(b.invoiceNo)}
-                        className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                        title="Mark as Paid"
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleDeleteBilling(b.invoiceNo)}
-                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* Payment Progress Bar */}
-                {b.installments.length > 1 && (
-                  <div className="mt-3 pt-3 border-t border-slate-100">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mb-1.5">
-                      <span>Payment Progress ({paidCount}/{b.installments.length} installments)</span>
-                      <span>{progressPct}%</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                        style={{ width: `${progressPct}%` }}
-                      />
-                    </div>
-                    <div className="flex gap-2 mt-2 flex-wrap">
-                      {b.installments.map(inst => (
-                        <span key={inst.id} className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          inst.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
-                          inst.status === 'overdue' ? 'bg-red-100 text-red-700' :
-                          'bg-slate-100 text-slate-500'
-                        }`}>
-                          {inst.label}: ₹{inst.amount.toLocaleString('en-IN')}
-                        </span>
-                      ))}
-                    </div>
+                {/* Milestones Progress Bar */}
+                <div className="mt-4 pt-3 border-t border-slate-100">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mb-1.5">
+                    <span>Milestone Payment Progress</span>
+                    <span className="text-slate-700 font-extrabold">{progress}% Settled</span>
                   </div>
-                )}
+                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <div className="flex gap-2 mt-2.5 flex-wrap">
+                    {b.payment_parts.map(part => (
+                      <span
+                        key={part.id}
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border ${
+                          part.status === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          part.status === 'partially_paid' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          'bg-slate-50 text-slate-600 border-slate-200'
+                        }`}
+                      >
+                        {part.label}: ₹{part.configured_amount.toLocaleString('en-IN')}
+                        {part.amount_received > 0 && part.status !== 'paid' && (
+                          <span className="ml-1 text-[9px] text-blue-600 font-extrabold">
+                            (₹{part.amount_received.toLocaleString('en-IN')} recvd)
+                          </span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </Card>
             );
           })}
         </div>
       )}
 
-      {/* ── CREATE INVOICE MODAL ── */}
+      {/* ── CONTROLLED SCOPE & VALUE UPDATE MODAL ── */}
       <AnimatePresence>
-        {showCreateModal && (
+        {showEditScopeModal && selectedBilling && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setShowCreateModal(false)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setShowEditScopeModal(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -655,118 +525,90 @@ export const DigitalBilling: React.FC = () => {
               className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[92vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-[#58051E]" /> Create Client Invoice
-                </h3>
-                <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-[#58051E]" /> Controlled Scope & Commercial Value Update
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Modifying: <strong>{selectedBilling.project_title}</strong> ({selectedBilling.client_name})
+                  </p>
+                </div>
+                <button onClick={() => setShowEditScopeModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
 
-              <form onSubmit={handleCreateBilling} className="space-y-5">
-                {/* Client + Project */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Client *</label>
-                    <select required value={form.clientId} onChange={e => setForm({ ...form, clientId: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                      <option value="">-- Select Client --</option>
-                      {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Linked Project</label>
-                    <select value={form.projectId} onChange={e => setForm({ ...form, projectId: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                      <option value="">-- No Project --</option>
-                      {projects.filter(p => !form.clientId || p.client_id === form.clientId).map(p => (
-                        <option key={p.id} value={p.id}>{p.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Invoice Number</label>
-                    <input type="text" value={form.invoiceNo} onChange={e => setForm({ ...form, invoiceNo: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Payment Split</label>
-                    <div className="flex gap-2">
-                      {([1, 2, 3] as const).map(n => (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => setForm({ ...form, paymentSplit: n })}
-                          className={`flex-1 h-9 rounded-xl text-xs font-black border transition-all ${form.paymentSplit === n ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-[#58051E]'}`}
-                        >
-                          {n === 1 ? 'Full' : `${n}-Part`}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              <form onSubmit={handleSaveControlledUpdate} className="space-y-4">
+                {/* Notice */}
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800">
+                  <strong>Audited Financial Process:</strong> Any changes will be recorded in the immutable audit trail with your identity, previous vs new value, and documented justification.
                 </div>
 
                 {/* Scope Items */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-[10px] font-extrabold text-slate-400 uppercase">Scope & Charges *</label>
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase">Deliverables & Scope Breakdown *</label>
                     <div className="flex gap-1.5">
-                      <button type="button" onClick={() => addScopeItem('base')} className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center gap-1">
-                        <Package className="w-3 h-3" /> Add Item
+                      <button type="button" onClick={() => addScopeItemRow('base')} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-1">
+                        <Package className="w-3 h-3" /> Base Item
                       </button>
-                      <button type="button" onClick={() => addScopeItem('extra')} className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center gap-1">
-                        <Layers className="w-3 h-3" /> Scope Ext.
+                      <button type="button" onClick={() => addScopeItemRow('extra')} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 flex items-center gap-1">
+                        <Layers className="w-3 h-3" /> Scope Extension
                       </button>
-                      <button type="button" onClick={() => addScopeItem('special_charge')} className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 flex items-center gap-1">
-                        <Zap className="w-3 h-3" /> Special
+                      <button type="button" onClick={() => addScopeItemRow('special_charge')} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 flex items-center gap-1">
+                        <Zap className="w-3 h-3" /> Special Charge
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    {scopeItems.map((item, idx) => (
-                      <div key={item.id} className={`p-3 rounded-xl border ${
-                        item.type === 'extra' ? 'bg-blue-50/50 border-blue-200' :
-                        item.type === 'special_charge' ? 'bg-amber-50/50 border-amber-200' :
-                        'bg-slate-50 border-slate-200'
-                      }`}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {editingScopeItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`p-3 rounded-xl border ${
+                          item.type === 'extra' ? 'bg-blue-50/40 border-blue-200' :
+                          item.type === 'special_charge' ? 'bg-amber-50/40 border-amber-200' :
+                          'bg-slate-50 border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
                             item.type === 'extra' ? 'bg-blue-100 text-blue-700' :
                             item.type === 'special_charge' ? 'bg-amber-100 text-amber-700' :
-                            'bg-slate-200 text-slate-600'
+                            'bg-slate-200 text-slate-700'
                           }`}>
-                            {item.type === 'extra' ? 'Scope Extension' : item.type === 'special_charge' ? 'Special Charge' : 'Base Item'}
+                            {item.type === 'extra' ? 'Scope Extension' : item.type === 'special_charge' ? 'Special Charge' : 'Base Deliverable'}
                           </span>
-                          {scopeItems.length > 1 && (
-                            <button type="button" onClick={() => removeScopeItem(item.id)} className="ml-auto p-0.5 text-slate-400 hover:text-red-500">
+                          {editingScopeItems.length > 1 && (
+                            <button type="button" onClick={() => removeScopeItemRow(item.id)} className="p-0.5 text-slate-400 hover:text-red-500">
                               <X className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
+
                         <div className="grid grid-cols-3 gap-2">
                           <div className="col-span-2">
                             <input
                               type="text"
                               value={item.title}
-                              onChange={e => updateScopeItem(item.id, { title: e.target.value })}
-                              placeholder="Item title / description"
-                              className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold mb-1.5"
+                              onChange={e => updateScopeItemRow(item.id, { title: e.target.value })}
+                              placeholder="Deliverable title"
+                              className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold mb-1"
                             />
                             <input
                               type="text"
                               value={item.description}
-                              onChange={e => updateScopeItem(item.id, { description: e.target.value })}
-                              placeholder="Detailed description (optional)"
-                              className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-500"
+                              onChange={e => updateScopeItemRow(item.id, { description: e.target.value })}
+                              placeholder="Scope specifications (optional)"
+                              className="w-full h-7 px-2.5 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-500"
                             />
                           </div>
                           <div>
-                            <label className="block text-[9px] font-bold uppercase text-slate-400 mb-1">Amount (₹)</label>
+                            <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">Value (₹)</label>
                             <input
                               type="number"
-                              value={item.amount}
-                              onChange={e => updateScopeItem(item.id, { amount: Number(e.target.value) })}
-                              className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-emerald-700"
                               min={0}
+                              value={item.amount || ''}
+                              onChange={e => updateScopeItemRow(item.id, { amount: Number(e.target.value) })}
+                              className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-emerald-700"
                             />
                           </div>
                         </div>
@@ -774,37 +616,70 @@ export const DigitalBilling: React.FC = () => {
                     ))}
                   </div>
 
-                  {/* Total */}
-                  <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-800">Total Invoice Amount</span>
-                    <span className="text-lg font-black text-emerald-700">₹{totalAmount.toLocaleString('en-IN')}</span>
+                  {/* Summary Comparison */}
+                  {(() => {
+                    const newTotal = editingScopeItems.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+                    const diff = newTotal - selectedBilling.total_agreed_amount;
+                    return (
+                      <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-slate-400 block">Commercial Comparison</span>
+                          <span className="text-xs font-bold text-slate-600">
+                            Previous: ₹{selectedBilling.total_agreed_amount.toLocaleString('en-IN')} → New: ₹{newTotal.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        <span className={`text-xs font-extrabold px-2 py-1 rounded-lg ${
+                          diff > 0 ? 'bg-emerald-100 text-emerald-800' :
+                          diff < 0 ? 'bg-amber-100 text-amber-800' :
+                          'bg-slate-200 text-slate-700'
+                        }`}>
+                          {diff > 0 ? `+₹${diff.toLocaleString('en-IN')}` : diff < 0 ? `-₹${Math.abs(diff).toLocaleString('en-IN')}` : 'No Change'}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Milestone Split */}
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Payment Milestone Structure</label>
+                  <div className="flex gap-2">
+                    {([1, 2, 3] as const).map(n => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setEditingSplit(n)}
+                        className={`flex-1 h-9 rounded-xl text-xs font-black border transition-all ${
+                          editingSplit === n ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-slate-50 text-slate-600 border-slate-200'
+                        }`}
+                      >
+                        {n === 1 ? '1 Part (100% Full)' : n === 2 ? '2 Parts (50% / 50%)' : '3 Parts (40% / 30% / 30%)'}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Payment schedule preview */}
-                {totalAmount > 0 && (
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                    <p className="text-[10px] font-bold uppercase text-slate-400 mb-2">Payment Schedule Preview</p>
-                    <div className="space-y-1.5">
-                      {computeInstallments(totalAmount, form.paymentSplit).map(inst => (
-                        <div key={inst.id} className="flex items-center justify-between text-xs">
-                          <span className="font-semibold text-slate-700">{inst.label}</span>
-                          <span className="font-black text-slate-900">₹{inst.amount.toLocaleString('en-IN')}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
+                {/* Documented Reason for Change (Mandatory) */}
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Terms & Notes</label>
-                  <textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">
+                    Documented Reason for Modification * (Required for Audit Trail)
+                  </label>
+                  <textarea
+                    rows={2}
+                    required
+                    value={changeReason}
+                    onChange={e => setChangeReason(e.target.value)}
+                    placeholder="e.g. Scope extension approved by client: Added 3 additional landing pages and payment term split."
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                  />
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">
-                    <Send className="w-3.5 h-3.5 mr-1.5" /> Create & Send Invoice
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setShowEditScopeModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs bg-[#58051E] hover:bg-[#430316]">
+                    Apply Controlled Update
                   </Button>
                 </div>
               </form>
@@ -813,7 +688,7 @@ export const DigitalBilling: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* ── BILLING DETAIL MODAL ── */}
+      {/* ── DEFINITION & AUDIT DETAIL MODAL ── */}
       <AnimatePresence>
         {showDetailModal && selectedBilling && (
           <>
@@ -822,159 +697,90 @@ export const DigitalBilling: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto"
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">{selectedBilling.invoiceNo}</h3>
-                  <p className="text-xs text-slate-500">{selectedBilling.clientName} • {selectedBilling.projectTitle}</p>
+                  <h3 className="text-sm font-black text-slate-900">{selectedBilling.project_title}</h3>
+                  <p className="text-xs text-slate-500">{selectedBilling.client_name} • {selectedBilling.invoice_no}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => generateInvoicePDF(selectedBilling)} className="p-2 rounded-lg bg-[#58051E]/10 text-[#58051E] hover:bg-[#58051E]/20 transition-colors" title="Print PDF">
+                  <button onClick={() => printScopeAgreementPDF(selectedBilling)} className="p-2 rounded-lg bg-[#58051E]/10 text-[#58051E]" title="Print Commercial Agreement">
                     <Printer className="w-4 h-4" />
                   </button>
                   <button onClick={() => setShowDetailModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
                 </div>
               </div>
 
-              {/* Scope */}
+              {/* Scope Breakdown */}
               <div className="mb-4">
-                <p className="text-[10px] font-bold uppercase text-slate-400 mb-2">Scope of Work</p>
-                <div className="space-y-2">
-                  {selectedBilling.scopeItems.map(item => (
-                    <div key={item.id} className={`flex items-start justify-between p-3 rounded-xl border ${
-                      item.type === 'extra' ? 'bg-blue-50/50 border-blue-100' :
-                      item.type === 'special_charge' ? 'bg-amber-50/50 border-amber-100' :
-                      'bg-slate-50 border-slate-100'
-                    }`}>
+                <p className="text-[10px] font-bold uppercase text-slate-400 mb-2">Approved Scope & Commercial Deliverables</p>
+                <div className="space-y-1.5">
+                  {selectedBilling.scope_items.map(item => (
+                    <div key={item.id} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                       <div>
                         <p className="text-xs font-bold text-slate-800">{item.title}</p>
-                        {item.description && <p className="text-[11px] text-slate-500 mt-0.5">{item.description}</p>}
+                        {item.description && <p className="text-[10px] text-slate-500">{item.description}</p>}
                         {item.type !== 'base' && (
-                          <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded mt-1 inline-block ${
+                          <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${
                             item.type === 'extra' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
                           }`}>
                             {item.type === 'extra' ? 'Scope Extension' : 'Special Charge'}
                           </span>
                         )}
                       </div>
-                      <span className="text-sm font-black text-emerald-700 shrink-0 ml-3">₹{item.amount.toLocaleString('en-IN')}</span>
+                      <span className="text-xs font-black text-emerald-700">₹{Number(item.amount || 0).toLocaleString('en-IN')}</span>
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-200">
-                  <span className="text-xs font-bold text-slate-700">Total</span>
-                  <span className="text-base font-black text-emerald-700">₹{selectedBilling.totalAmount.toLocaleString('en-IN')}</span>
-                </div>
-
-                {/* Add Scope Extension or Special Charge to existing work */}
-                <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase text-slate-500">Extend Scope / Special Charge</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddScopeForm(!showAddScopeForm)}
-                      className="text-[10px] font-bold px-2 py-1 bg-[#58051E] text-white rounded-lg hover:bg-[#430316] flex items-center gap-1"
-                    >
-                      <Plus className="w-3 h-3" /> {showAddScopeForm ? 'Cancel' : 'Add Scope / Charge'}
-                    </button>
-                  </div>
-
-                  {showAddScopeForm && (
-                    <form onSubmit={handleAddScopeToExisting} className="mt-3 pt-3 border-t border-slate-200 space-y-2">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setExtraScope({ ...extraScope, type: 'extra' })}
-                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg border ${
-                            extraScope.type === 'extra' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'
-                          }`}
-                        >
-                          Scope Extension
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setExtraScope({ ...extraScope, type: 'special_charge' })}
-                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg border ${
-                            extraScope.type === 'special_charge' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-600 border-slate-200'
-                          }`}
-                        >
-                          Special Charge
-                        </button>
-                      </div>
-
-                      <div>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Title (e.g. Additional 5 Landing Pages, Priority SLA)"
-                          value={extraScope.title}
-                          onChange={e => setExtraScope({ ...extraScope, title: e.target.value })}
-                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                        />
-                      </div>
-                      <div>
-                        <input
-                          type="text"
-                          placeholder="Description / Reason (optional)"
-                          value={extraScope.description}
-                          onChange={e => setExtraScope({ ...extraScope, description: e.target.value })}
-                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-600"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="number"
-                          required
-                          min={1}
-                          placeholder="Amount (₹)"
-                          value={extraScope.amount || ''}
-                          onChange={e => setExtraScope({ ...extraScope, amount: Number(e.target.value) })}
-                          className="flex-1 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-emerald-700"
-                        />
-                        <Button type="submit" size="sm" className="h-8 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700">
-                          Apply to Work
-                        </Button>
-                      </div>
-                    </form>
-                  )}
-                </div>
               </div>
 
-              {/* Installments */}
-              <div>
-                <p className="text-[10px] font-bold uppercase text-slate-400 mb-2">Payment Schedule ({selectedBilling.paymentSplit}-Installment)</p>
-                <div className="space-y-2">
-                  {selectedBilling.installments.map(inst => (
-                    <div key={inst.id} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+              {/* Payment Parts */}
+              <div className="mb-4">
+                <p className="text-[10px] font-bold uppercase text-slate-400 mb-2">Configured Payment Parts ({selectedBilling.payment_split}-Part Structure)</p>
+                <div className="space-y-1.5">
+                  {selectedBilling.payment_parts.map(p => (
+                    <div key={p.id} className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
                       <div>
-                        <p className="text-xs font-bold text-slate-800">{inst.label}</p>
-                        <p className="text-[10px] text-slate-400">Due: {inst.dueDate}</p>
+                        <p className="font-bold text-slate-800">{p.label}</p>
+                        <p className="text-[10px] text-slate-400">Due: {p.due_date || 'Milestone'}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-black text-slate-800">₹{inst.amount.toLocaleString('en-IN')}</p>
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                          inst.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
-                          inst.status === 'overdue' ? 'bg-red-100 text-red-700' :
+                        <p className="font-black text-slate-900">₹{p.configured_amount.toLocaleString('en-IN')}</p>
+                        <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                          p.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
+                          p.status === 'partially_paid' ? 'bg-blue-100 text-blue-700' :
                           'bg-amber-100 text-amber-700'
-                        }`}>{inst.status}</span>
+                        }`}>{p.status.toUpperCase()}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {selectedBilling.notes && (
-                <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Notes</p>
-                  <p className="text-xs text-slate-600">{selectedBilling.notes.split('|')[0]}</p>
+              {/* Controlled Audit Trail */}
+              <div>
+                <p className="text-[10px] font-bold uppercase text-slate-400 mb-2 flex items-center gap-1.5">
+                  <History className="w-3.5 h-3.5 text-slate-500" /> Controlled Change Audit History
+                </p>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {(selectedBilling.audit_trail || []).map(a => (
+                    <div key={a.id} className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/60 text-xs">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mb-1">
+                        <span>{new Date(a.timestamp).toLocaleString('en-IN')} • By {a.user}</span>
+                        <span className="text-emerald-700 font-extrabold">₹{a.previous_value.toLocaleString('en-IN')} → ₹{a.updated_value.toLocaleString('en-IN')}</span>
+                      </div>
+                      <p className="font-semibold text-slate-800">{a.reason}</p>
+                      {a.details && <p className="text-[10px] text-slate-500 mt-0.5">{a.details}</p>}
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
 
               <div className="flex gap-2 mt-5">
                 <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => setShowDetailModal(false)}>Close</Button>
-                <Button size="sm" className="flex-1 text-xs bg-[#58051E] hover:bg-[#430316]" onClick={() => generateInvoicePDF(selectedBilling)}>
-                  <Printer className="w-3.5 h-3.5 mr-1.5" /> Download PDF
+                <Button size="sm" className="flex-1 text-xs bg-[#58051E] hover:bg-[#430316]" onClick={() => { setShowDetailModal(false); openControlledEdit(selectedBilling); }}>
+                  <Edit2 className="w-3.5 h-3.5 mr-1" /> Controlled Update
                 </Button>
               </div>
             </motion.div>
