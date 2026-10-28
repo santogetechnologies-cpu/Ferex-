@@ -57,7 +57,9 @@ export const DigitalMeetings: React.FC = () => {
     meeting_type: 'Discovery Call',
     meeting_url: 'https://meet.google.com/fer-dig-rev',
     agenda: '',
-    notes: ''
+    notes: '',
+    digital_manager_name: 'digital manager',
+    digital_manager_email: 'digitalmanager@ferex.com'
   });
 
   const loadData = async () => {
@@ -117,7 +119,7 @@ export const DigitalMeetings: React.FC = () => {
         meeting_type: newMtg.meeting_type,
         meeting_url: newMtg.meeting_url,
         agenda: newMtg.agenda,
-        notes: newMtg.notes,
+        notes: `${newMtg.notes || ''}${newMtg.digital_manager_name ? `\n[Digital Manager: ${newMtg.digital_manager_name} <${newMtg.digital_manager_email}>]` : ''}`,
         status: 'Scheduled'
       });
 
@@ -136,7 +138,9 @@ export const DigitalMeetings: React.FC = () => {
         meeting_type: 'Discovery Call',
         meeting_url: 'https://meet.google.com/fer-dig-rev',
         agenda: '',
-        notes: ''
+        notes: '',
+        digital_manager_name: 'digital manager',
+        digital_manager_email: 'digitalmanager@ferex.com'
       });
     } catch (err: any) {
       showToast(`Database Error: ${err.message}`);
@@ -305,6 +309,12 @@ export const DigitalMeetings: React.FC = () => {
                     <User className="w-3.5 h-3.5 text-slate-400" />
                     <span>Host: {m.host_staff_name || 'Digital Staff'}</span>
                   </div>
+                  {m.notes && m.notes.includes('[Digital Manager:') && (
+                    <div className="flex items-center gap-1.5 text-[#58051E] font-semibold">
+                      <Globe2 className="w-3.5 h-3.5 text-[#58051E]" />
+                      <span>Mgr: {m.notes.match(/\[Digital Manager: ([^\]]+)\]/)?.[1] || 'Digital Manager'}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -455,6 +465,34 @@ export const DigitalMeetings: React.FC = () => {
                     placeholder="https://meet.google.com/..."
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white"
                   />
+                </div>
+
+                {/* Digital Manager Field */}
+                <div className="p-3 bg-[#58051E]/5 border border-[#58051E]/20 rounded-xl">
+                  <label className="block text-[10px] font-bold uppercase text-[#58051E] mb-2">📌 Assign Digital Manager (sees meeting link)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[9px] font-bold uppercase text-slate-400 mb-1">Manager Name</label>
+                      <input
+                        type="text"
+                        value={newMtg.digital_manager_name}
+                        onChange={(e) => setNewMtg({ ...newMtg, digital_manager_name: e.target.value })}
+                        placeholder="e.g. digital manager"
+                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold uppercase text-slate-400 mb-1">Manager Email</label>
+                      <input
+                        type="email"
+                        value={newMtg.digital_manager_email}
+                        onChange={(e) => setNewMtg({ ...newMtg, digital_manager_email: e.target.value })}
+                        placeholder="digitalmanager@ferex.com"
+                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-1.5">The digital manager will see this meeting and the join link in their dashboard.</p>
                 </div>
 
                 <div>

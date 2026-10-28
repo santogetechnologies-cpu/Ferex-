@@ -129,6 +129,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     {
       title: 'Finance & Billing',
       items: [
+        { label: 'Centralised Billing', path: '/digital/billing', icon: Shield },
         { label: 'Invoices', path: '/digital/invoices', icon: FileText },
         { label: 'Payments Ledger', path: '/digital/payments', icon: CreditCard },
         { label: 'Expenses', path: '/digital/expenses', icon: DollarSign }

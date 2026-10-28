@@ -148,6 +148,7 @@ import { DigitalDeliverables } from './pages/digital/DigitalDeliverables';
 import { DigitalStaff } from './pages/digital/DigitalStaff';
 import { DigitalLoginPage } from './pages/digital/DigitalLoginPage';
 import DigitalClientPortal from './pages/digital/DigitalClientPortal';
+import { DigitalBilling } from './pages/digital/DigitalBilling';
 
 // Digital Project Manager imports (Pure Supabase Rebuild)
 import { DigitalPMLayout } from './layouts/DigitalPMLayout';
@@ -491,6 +492,8 @@ function App() {
           <Route path="/digital/finance/payments" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalPayments /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/expenses" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/finance/expenses" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/billing" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBilling /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/finance/billing" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBilling /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Team */}
           <Route path="/digital/attendance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />

@@ -34,6 +34,10 @@ export interface DigitalClientRecord {
   estimated_budget?: number;
   notes?: string;
   tags?: string[];
+  lead_stage?: string;
+  lead_source?: string;
+  website?: string;
+  priority?: string;
   // Audit
   is_deleted?: boolean;
   created_by?: string;
@@ -243,6 +247,10 @@ export async function createDigitalClient(client: {
   total_revenue?: number;
   notes?: string;
   tags?: string[];
+  lead_stage?: string;
+  lead_source?: string;
+  website?: string;
+  priority?: string;
   created_by?: string;
 }) {
   const newId = generateUUID();
@@ -262,6 +270,10 @@ export async function createDigitalClient(client: {
     estimated_budget: estimatedVal,
     notes: client.notes || '',
     tags: client.tags || [],
+    lead_stage: client.lead_stage,
+    lead_source: client.lead_source,
+    website: client.website,
+    priority: client.priority,
     is_deleted: false,
     created_by: client.created_by || '',
     updated_by: client.created_by || '',
@@ -368,6 +380,11 @@ export async function createDigitalLead(lead: {
   industry?: string;
   estimated_budget?: number;
   client_type?: 'Internal' | 'External';
+  lead_stage?: string;
+  lead_source?: string;
+  website?: string;
+  notes?: string;
+  priority?: string;
 }) {
   return createDigitalClient({
     ...lead,
@@ -1140,6 +1157,7 @@ export async function createDigitalInvoice(invoice: {
     currency: 'INR',
     status: invoice.status || 'Sent',
     due_date: invoice.due_date || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+    notes: invoice.notes || '',
     issued_at: new Date().toISOString(),
     paid_at: invoice.status === 'Paid' ? new Date().toISOString() : null,
     created_at: new Date().toISOString(),

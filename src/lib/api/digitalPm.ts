@@ -84,10 +84,11 @@ export interface DigitalPMTask {
 /**
  * Resolves current authenticated user identity for PM filtering
  */
-async function resolvePMIdentity(pm?: DigitalPMIdentity): Promise<{ id?: string; email?: string; name?: string }> {
+async function resolvePMIdentity(pm?: DigitalPMIdentity): Promise<{ id?: string; email?: string; name?: string; role?: string }> {
   let id = pm?.id;
   let email = pm?.email;
   let name = pm?.full_name || pm?.name;
+  let role = '';
 
   if (!id && !email && !name) {
     const { data: authData } = await supabase.auth.getUser();
@@ -95,17 +96,18 @@ async function resolvePMIdentity(pm?: DigitalPMIdentity): Promise<{ id?: string;
       id = authData.user.id;
       email = authData.user.email;
       name = authData.user.user_metadata?.full_name;
+      role = (authData.user.user_metadata?.role || '').toLowerCase();
     }
   }
 
-  return { id, email, name };
+  return { id, email, name, role };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. PROJECTS ASSIGNED TO PM (Integrated Supabase + Local Cache with resilient fallback)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getAssignedDigitalProjects(pm?: DigitalPMIdentity): Promise<DigitalProjectRecord[]> {
-  const { id, email, name } = await resolvePMIdentity(pm);
+  const { id, email, name, role } = await resolvePMIdentity(pm);
   const allProjects = await getDigitalProjects();
 
   const myEmail = (email || '').toLowerCase().trim();
@@ -114,6 +116,13 @@ export async function getAssignedDigitalProjects(pm?: DigitalPMIdentity): Promis
 
   // If we have absolutely no identity, return all non-deleted projects (fallback for new accounts)
   if (!myEmail && !myName && !myId) {
+    return allProjects;
+  }
+
+  // Digital manager / admin roles always see all projects
+  const isDigitalManagerRole = role === 'digital_manager' || role === 'digital_admin' || role === 'digital' ||
+    myEmail.includes('digital') || myName.includes('digital manager') || myName === 'digital manager';
+  if (isDigitalManagerRole) {
     return allProjects;
   }
 
@@ -169,28 +178,49 @@ export async function getAssignedDigitalProjects(pm?: DigitalPMIdentity): Promis
     return matched;
   }
 
-  // Check if current user is admin/central
+  // Check if current user is admin/central/digital manager
   const { data: authData } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
   const userRole = (authData?.user?.user_metadata?.role || '').toLowerCase();
-  if (userRole === 'digital_admin' || userRole === 'digital' || userRole === 'ferex_digital' || userRole === 'central' || userRole === 'super_admin' || userRole === 'superadmin') {
+  const userEmail = (authData?.user?.email || '').toLowerCase();
+  const userName = (authData?.user?.user_metadata?.full_name || '').toLowerCase();
+  if (
+    userRole === 'digital_admin' || userRole === 'digital' || userRole === 'ferex_digital' ||
+    userRole === 'central' || userRole === 'super_admin' || userRole === 'superadmin' ||
+    userRole === 'digital_manager' || userEmail.includes('digital') ||
+    userName.includes('digital manager') || userName === 'digital manager'
+  ) {
     return allProjects;
   }
 
   // If PM has no directly assigned project, return projects that are unassigned or tagged for Digital PM
-  const pmPool = allProjects.filter(p => !p.assigned_staff_name || p.assigned_staff_name === 'Unassigned' || p.assigned_staff_name.toLowerCase().includes('digital') || p.assigned_staff_name.toLowerCase().includes('pm') || p.assigned_staff_name.toLowerCase().includes('manager'));
+  const pmPool = allProjects.filter(p =>
+    !p.assigned_staff_name ||
+    p.assigned_staff_name === 'Unassigned' ||
+    p.assigned_staff_name.toLowerCase().includes('digital') ||
+    p.assigned_staff_name.toLowerCase().includes('pm') ||
+    p.assigned_staff_name.toLowerCase().includes('manager')
+  );
   if (pmPool.length > 0) {
     return pmPool;
   }
 
-  return [];
+  // Ultimate fallback: return all projects so digital manager is never locked out
+  return allProjects;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 2. TASKS ASSIGNED TO PM (Integrates digital_tasks and tasks from Supabase)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<DigitalPMTask[]> {
-  const { id, email, name } = await resolvePMIdentity(pm);
+  const { id, email, name, role } = await resolvePMIdentity(pm);
   const isValidUUID = (val?: string | null) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+  const myEmail = (email || '').toLowerCase();
+  const myName = (name || '').toLowerCase();
+
+  // Digital manager role sees ALL tasks
+  const isDigitalManager = role === 'digital_manager' || role === 'digital_admin' || role === 'digital' ||
+    myEmail.includes('digital') || myName.includes('digital manager') || myName === 'digital manager';
 
   // Build local cache fallback for resilience
   let localTasks: DigitalPMTask[] = [];
@@ -201,6 +231,21 @@ export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<D
       if (Array.isArray(parsed)) localTasks = parsed;
     }
   } catch {}
+
+  // If digital manager - return all tasks directly
+  if (isDigitalManager) {
+    try {
+      const { data: allData } = await supabase
+        .from('digital_tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (allData && allData.length > 0) {
+        try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(allData)); } catch {}
+        return allData as DigitalPMTask[];
+      }
+    } catch {}
+    return localTasks;
+  }
 
   // 1. Query digital_tasks table
   let digitalQuery = supabase
@@ -231,6 +276,7 @@ export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<D
   if (isPM) {
     dFilters.push(`assigned_to_name.ilike.%Manager%`);
     dFilters.push(`assigned_to_name.ilike.%PM%`);
+    dFilters.push(`assigned_to_name.ilike.%Digital%`);
   }
 
   if (dFilters.length > 0) {
