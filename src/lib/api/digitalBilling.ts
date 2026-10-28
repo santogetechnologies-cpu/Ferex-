@@ -212,20 +212,34 @@ export function computePaymentParts(total: number, split: 1 | 2 | 3, existingPar
 // ─── 1. Single Source of Truth for Centralized Billing ──────────────────────
 
 export async function getCentralizedBillings(): Promise<CentralizedProjectBilling[]> {
+  const projects = await getDigitalProjects();
+  const clients = await getDigitalClients();
+  const activeProjectIds = new Set(projects.map(p => p.id));
+
   let localBillings: CentralizedProjectBilling[] = [];
   try {
     const raw = localStorage.getItem('ferex_digital_centralized_billings');
     if (raw) localBillings = JSON.parse(raw);
   } catch {}
 
-  // Merge with projects to ensure every digital project is automatically reflected
-  const projects = await getDigitalProjects();
-  const clients = await getDigitalClients();
+  // If there are NO active projects at all, wipe clean immediately!
+  if (projects.length === 0) {
+    if (localBillings.length > 0) {
+      try {
+        localStorage.setItem('ferex_digital_centralized_billings', JSON.stringify([]));
+        localStorage.setItem('ferex_digital_payment_transactions', JSON.stringify([]));
+        localStorage.setItem('ferex_digital_billing_documents', JSON.stringify([]));
+      } catch {}
+    }
+    return [];
+  }
 
+  // Filter out any billing for projects that have been deleted
+  const filteredLocal = localBillings.filter(b => activeProjectIds.has(b.project_id));
   const billingMap = new Map<string, CentralizedProjectBilling>();
-  localBillings.forEach(b => billingMap.set(b.project_id, b));
+  filteredLocal.forEach(b => billingMap.set(b.project_id, b));
 
-  let needsSave = false;
+  let needsSave = filteredLocal.length !== localBillings.length;
 
   for (const proj of projects) {
     if (!billingMap.has(proj.id)) {
@@ -278,17 +292,65 @@ export async function getCentralizedBillings(): Promise<CentralizedProjectBillin
     }
   }
 
-  const all = Array.from(billingMap.values()).sort(
-    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-  );
+  const all = Array.from(billingMap.values())
+    .filter(b => activeProjectIds.has(b.project_id))
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
-  if (needsSave) {
+  if (needsSave || all.length !== localBillings.length) {
     try {
       localStorage.setItem('ferex_digital_centralized_billings', JSON.stringify(all));
     } catch {}
   }
 
   return all;
+}
+
+export async function deleteCentralizedBilling(billingId: string): Promise<boolean> {
+  let billings: CentralizedProjectBilling[] = [];
+  try {
+    const raw = localStorage.getItem('ferex_digital_centralized_billings');
+    if (raw) billings = JSON.parse(raw);
+  } catch {}
+
+  const target = billings.find(b => b.id === billingId || b.project_id === billingId);
+  const projectId = target?.project_id || billingId;
+
+  const filteredB = billings.filter(b => b.id !== billingId && b.project_id !== projectId);
+  try {
+    localStorage.setItem('ferex_digital_centralized_billings', JSON.stringify(filteredB));
+  } catch {}
+
+  // Purge transactions
+  try {
+    const rawT = localStorage.getItem('ferex_digital_payment_transactions');
+    if (rawT) {
+      const txs = JSON.parse(rawT).filter((t: any) => t.project_id !== projectId && t.billing_id !== billingId);
+      localStorage.setItem('ferex_digital_payment_transactions', JSON.stringify(txs));
+    }
+  } catch {}
+
+  // Purge documents
+  try {
+    const rawD = localStorage.getItem('ferex_digital_billing_documents');
+    if (rawD) {
+      const docs = JSON.parse(rawD).filter((d: any) => d.project_id !== projectId);
+      localStorage.setItem('ferex_digital_billing_documents', JSON.stringify(docs));
+    }
+  } catch {}
+
+  // Purge invoices
+  try {
+    const rawI = localStorage.getItem('ferex_digital_invoices');
+    if (rawI) {
+      const invs = JSON.parse(rawI).filter((i: any) => i.project_id !== projectId);
+      localStorage.setItem('ferex_digital_invoices', JSON.stringify(invs));
+    }
+  } catch {}
+
+  triggerEvent('ferex_digital_centralized_billing_change');
+  triggerEvent('ferex_digital_payments_change');
+  triggerEvent('ferex_digital_invoices_change');
+  return true;
 }
 
 export async function getCentralizedBillingByProjectId(projectId: string): Promise<CentralizedProjectBilling | null> {
@@ -390,16 +452,31 @@ export async function updateCentralizedBillingScope(params: {
 // ─── 2. Payment Ledger: Actual Payment Recording ────────────────────────────
 
 export async function getPaymentTransactions(projectId?: string): Promise<ActualPaymentTransaction[]> {
+  const projects = await getDigitalProjects();
+  const activeProjectIds = new Set(projects.map(p => p.id));
+
   let list: ActualPaymentTransaction[] = [];
   try {
     const raw = localStorage.getItem('ferex_digital_payment_transactions');
     if (raw) list = JSON.parse(raw);
   } catch {}
 
-  if (projectId && projectId !== 'All') {
-    return list.filter(t => t.project_id === projectId);
+  if (projects.length === 0) {
+    if (list.length > 0) {
+      try { localStorage.setItem('ferex_digital_payment_transactions', JSON.stringify([])); } catch {}
+    }
+    return [];
   }
-  return list;
+
+  const filtered = list.filter(t => activeProjectIds.has(t.project_id));
+  if (filtered.length !== list.length) {
+    try { localStorage.setItem('ferex_digital_payment_transactions', JSON.stringify(filtered)); } catch {}
+  }
+
+  if (projectId && projectId !== 'All') {
+    return filtered.filter(t => t.project_id === projectId);
+  }
+  return filtered;
 }
 
 export async function recordPaymentTransaction(payload: {
@@ -594,16 +671,31 @@ export async function recordPaymentTransaction(payload: {
 // ─── 3. Billing Documents & Audit Records ───────────────────────────────────
 
 export async function getBillingDocuments(projectId?: string): Promise<BillingDocument[]> {
+  const projects = await getDigitalProjects();
+  const activeProjectIds = new Set(projects.map(p => p.id));
+
   let docs: BillingDocument[] = [];
   try {
     const raw = localStorage.getItem('ferex_digital_billing_documents');
     if (raw) docs = JSON.parse(raw);
   } catch {}
 
-  if (projectId && projectId !== 'All') {
-    return docs.filter(d => d.project_id === projectId);
+  if (projects.length === 0) {
+    if (docs.length > 0) {
+      try { localStorage.setItem('ferex_digital_billing_documents', JSON.stringify([])); } catch {}
+    }
+    return [];
   }
-  return docs;
+
+  const filtered = docs.filter(d => !d.project_id || activeProjectIds.has(d.project_id));
+  if (filtered.length !== docs.length) {
+    try { localStorage.setItem('ferex_digital_billing_documents', JSON.stringify(filtered)); } catch {}
+  }
+
+  if (projectId && projectId !== 'All') {
+    return filtered.filter(d => d.project_id === projectId);
+  }
+  return filtered;
 }
 
 export async function issueCreditNote(params: {

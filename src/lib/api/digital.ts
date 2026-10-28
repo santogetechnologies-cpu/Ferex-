@@ -207,7 +207,8 @@ export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
       );
 
       for (const item of filtered) {
-        clientMap.set(item.id || item.company_name, item);
+        const local = clientMap.get(item.id || item.company_name);
+        clientMap.set(item.id || item.company_name, { ...item, ...local });
       }
     }
 
@@ -395,6 +396,67 @@ export async function createDigitalLead(lead: {
   });
 }
 
+export async function convertDigitalLead(leadId: string, projectData?: {
+  title: string;
+  service_category?: string;
+  budget?: number;
+  scope?: string;
+  payment_terms?: string;
+  start_date?: string;
+  deadline?: string;
+}) {
+  const clients = await getDigitalClients();
+  const lead = clients.find(c => c.id === leadId || c.company_name === leadId);
+  if (!lead) throw new Error('Lead record not found');
+
+  // 1. Mark client status as Active and lead_stage as Closed Won
+  const updatedClient = await updateDigitalClient(lead.id, {
+    status: 'Active',
+    lead_stage: 'Closed Won',
+    tags: Array.from(new Set([...(lead.tags || []), 'converted_lead'])),
+    updated_at: new Date().toISOString()
+  });
+
+  // 2. Also ensure local cache is updated immediately so it moves without delay
+  try {
+    const rawClients = localStorage.getItem('ferex_digital_clients');
+    if (rawClients) {
+      const parsed = JSON.parse(rawClients);
+      const updatedList = parsed.map((c: any) =>
+        (c.id === lead.id || c.company_name === lead.company_name)
+          ? { ...c, status: 'Active', lead_stage: 'Closed Won', tags: Array.from(new Set([...(c.tags || []), 'converted_lead'])) }
+          : c
+      );
+      localStorage.setItem('ferex_digital_clients', JSON.stringify(updatedList));
+    }
+  } catch {}
+
+  // 3. Create initial project
+  let project = null;
+  if (projectData) {
+    project = await createDigitalProject({
+      client_id: lead.id,
+      client_name: lead.company_name,
+      title: projectData.title || `${lead.company_name} Project Kickoff`,
+      service_category: projectData.service_category || lead.industry || 'Web & App Development',
+      budget: Number(projectData.budget || lead.estimated_budget || 0),
+      progress: 5,
+      status: 'Briefing',
+      scope: projectData.scope || lead.notes || '',
+      payment_terms: (projectData.payment_terms || 'Milestone-Based') as any,
+      start_date: projectData.start_date || new Date().toISOString().split('T')[0],
+      deadline: projectData.deadline || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+    });
+  }
+
+  triggerLocalSync('ferex_digital_clients_change');
+  triggerLocalSync('ferex_digital_projects_change');
+  triggerLocalSync('ferex_digital_centralized_billing_change');
+  triggerLocalSync('ferex_digital_invoices_change');
+
+  return { client: updatedClient, project };
+}
+
 
 
 export async function getDigitalProjects(filters?: {
@@ -406,6 +468,17 @@ export async function getDigitalProjects(filters?: {
   clientId?: string;
   search?: string;
 }): Promise<DigitalProjectRecord[]> {
+  let deletedProjectIds = new Set<string>();
+  try {
+    const rawDel = localStorage.getItem('ferex_digital_deleted_project_ids');
+    if (rawDel) {
+      const parsed = JSON.parse(rawDel);
+      if (Array.isArray(parsed)) {
+        deletedProjectIds = new Set(parsed);
+      }
+    }
+  } catch {}
+
   let dbProjects: DigitalProjectRecord[] = [];
 
   // 1. Try Supabase first - direct select without relational fail-points
@@ -416,7 +489,7 @@ export async function getDigitalProjects(filters?: {
       .order('created_at', { ascending: false });
 
     if (!error && Array.isArray(data) && data.length > 0) {
-      dbProjects = data.filter((p: any) => !p.is_deleted);
+      dbProjects = data.filter((p: any) => !p.is_deleted && !deletedProjectIds.has(p.id));
     }
   } catch (err) {
     console.warn('[DigitalAPI] Error fetching digital projects from database:', err);
@@ -429,19 +502,23 @@ export async function getDigitalProjects(filters?: {
     if (local) {
       const parsed = JSON.parse(local);
       if (Array.isArray(parsed)) {
-        localProjects = parsed.filter((p: any) => !p.is_deleted);
+        localProjects = parsed.filter((p: any) => !p.is_deleted && !deletedProjectIds.has(p.id));
       }
     }
   } catch {}
 
   // 3. Merge both sources by ID, preferring fresh database state with cached metadata
   const map = new Map<string, DigitalProjectRecord>();
-  localProjects.forEach(p => map.set(p.id, p));
-  dbProjects.forEach(p => map.set(p.id, { ...map.get(p.id), ...p }));
+  localProjects.forEach(p => {
+    if (!deletedProjectIds.has(p.id)) map.set(p.id, p);
+  });
+  dbProjects.forEach(p => {
+    if (!deletedProjectIds.has(p.id)) map.set(p.id, { ...map.get(p.id), ...p });
+  });
 
-  let projects = Array.from(map.values()).sort(
-    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-  );
+  let projects = Array.from(map.values())
+    .filter(p => !deletedProjectIds.has(p.id))
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
   try {
     localStorage.setItem('ferex_digital_projects', JSON.stringify(projects));
@@ -487,6 +564,8 @@ export async function createDigitalProject(project: {
   description?: string;
   service_category?: string;
   budget?: number;
+  advance_amount?: number;
+  balance_amount?: number;
   progress?: number;
   start_date?: string;
   deadline?: string;
@@ -506,8 +585,12 @@ export async function createDigitalProject(project: {
 
   const totalBudget = Number(project.budget) || 0;
   const paymentTerms = project.payment_terms || 'Advance Payment';
-  const advanceAmount = paymentTerms === 'Full Payment' ? totalBudget : Math.round(totalBudget * 0.3);
-  const balanceAmount = totalBudget - advanceAmount;
+  const advanceAmount = project.advance_amount !== undefined
+    ? Number(project.advance_amount)
+    : (paymentTerms === 'Full Payment' ? totalBudget : Math.round(totalBudget * 0.3));
+  const balanceAmount = project.balance_amount !== undefined
+    ? Number(project.balance_amount)
+    : (totalBudget - advanceAmount);
   const currentStage: DigitalProjectStage = project.status || 'Briefing';
   const assignedStaff = project.assigned_staff_name || 'Digital Manager';
   const assignedEmail = project.assigned_staff_email || (assignedStaff.toLowerCase().includes('director') ? 'digital@ferex.com' : 'digimanager@ferex.com');
@@ -550,6 +633,16 @@ export async function createDigitalProject(project: {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
+
+  // Remove from deletedProjectIds if present
+  try {
+    const rawDel = localStorage.getItem('ferex_digital_deleted_project_ids');
+    if (rawDel) {
+      const parsed: string[] = JSON.parse(rawDel);
+      const filtered = parsed.filter(id => id !== payload.id);
+      localStorage.setItem('ferex_digital_deleted_project_ids', JSON.stringify(filtered));
+    }
+  } catch {}
 
   const current = await getDigitalProjects();
   const updated = [payload, ...current.filter((p: any) => p.id !== payload.id)];
@@ -840,11 +933,86 @@ export async function updateDigitalProject(id: string, updates: any) {
 }
 
 export async function deleteDigitalProject(id: string) {
-  const current = await getDigitalProjects();
-  const updated = current.filter((p: any) => p.id !== id);
-  try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
+  // 1. Record in deleted IDs to prevent resurrection from Supabase or cache
+  try {
+    const rawDel = localStorage.getItem('ferex_digital_deleted_project_ids') || '[]';
+    const deletedIds: string[] = JSON.parse(rawDel);
+    if (!deletedIds.includes(id)) {
+      deletedIds.push(id);
+      localStorage.setItem('ferex_digital_deleted_project_ids', JSON.stringify(deletedIds));
+    }
+  } catch {}
+
+  // 2. Remove from local projects
+  try {
+    const rawProjs = localStorage.getItem('ferex_digital_projects') || '[]';
+    const projs = JSON.parse(rawProjs).filter((p: any) => p.id !== id);
+    localStorage.setItem('ferex_digital_projects', JSON.stringify(projs));
+  } catch {}
+
+  // 3. Purge linked Centralized Billings
+  try {
+    const rawBillings = localStorage.getItem('ferex_digital_centralized_billings') || '[]';
+    const billings = JSON.parse(rawBillings).filter((b: any) => b.project_id !== id && b.id !== id);
+    localStorage.setItem('ferex_digital_centralized_billings', JSON.stringify(billings));
+  } catch {}
+
+  // 4. Purge linked Payment Transactions
+  try {
+    const rawTxs = localStorage.getItem('ferex_digital_payment_transactions') || '[]';
+    const txs = JSON.parse(rawTxs).filter((t: any) => t.project_id !== id);
+    localStorage.setItem('ferex_digital_payment_transactions', JSON.stringify(txs));
+  } catch {}
+
+  // 5. Purge linked Billing Documents
+  try {
+    const rawDocs = localStorage.getItem('ferex_digital_billing_documents') || '[]';
+    const docs = JSON.parse(rawDocs).filter((d: any) => d.project_id !== id);
+    localStorage.setItem('ferex_digital_billing_documents', JSON.stringify(docs));
+  } catch {}
+
+  // 6. Purge linked Invoices
+  try {
+    const rawInvs = localStorage.getItem('ferex_digital_invoices') || '[]';
+    const invs = JSON.parse(rawInvs).filter((i: any) => i.project_id !== id);
+    localStorage.setItem('ferex_digital_invoices', JSON.stringify(invs));
+  } catch {}
+
+  // 7. Supabase DB delete
   try { await supabase.from('digital_projects').delete().eq('id', id); } catch {}
+  try { await supabase.from('digital_invoices').delete().eq('project_id', id); } catch {}
+
+  // 8. Fire events across all modules in realtime
   triggerLocalSync('ferex_digital_projects_change');
+  triggerLocalSync('ferex_digital_centralized_billing_change');
+  triggerLocalSync('ferex_digital_payments_change');
+  triggerLocalSync('ferex_digital_invoices_change');
+  return true;
+}
+
+export async function deleteAllDigitalProjects() {
+  try {
+    const current = await getDigitalProjects();
+    const ids = current.map((p: any) => p.id);
+    const rawDel = localStorage.getItem('ferex_digital_deleted_project_ids') || '[]';
+    const existing = JSON.parse(rawDel);
+    const combined = Array.from(new Set([...existing, ...ids]));
+    localStorage.setItem('ferex_digital_deleted_project_ids', JSON.stringify(combined));
+  } catch {}
+
+  localStorage.setItem('ferex_digital_projects', JSON.stringify([]));
+  localStorage.setItem('ferex_digital_centralized_billings', JSON.stringify([]));
+  localStorage.setItem('ferex_digital_payment_transactions', JSON.stringify([]));
+  localStorage.setItem('ferex_digital_billing_documents', JSON.stringify([]));
+  localStorage.setItem('ferex_digital_invoices', JSON.stringify([]));
+
+  try { await supabase.from('digital_projects').delete().neq('id', '00000000-0000-0000-0000-000000000000'); } catch {}
+  try { await supabase.from('digital_invoices').delete().neq('id', '00000000-0000-0000-0000-000000000000'); } catch {}
+
+  triggerLocalSync('ferex_digital_projects_change');
+  triggerLocalSync('ferex_digital_centralized_billing_change');
+  triggerLocalSync('ferex_digital_payments_change');
+  triggerLocalSync('ferex_digital_invoices_change');
   return true;
 }
 
@@ -1091,40 +1259,147 @@ export async function updateDigitalSprint(id: string, updates: any) {
   return updated.find((s: any) => s.id === id) || { id, ...updates };
 }
 
-// ─── Digital Invoices ───────────────────────────────────────────────────────
+// ─── Digital Invoices: Automatic Single Source of Truth Synchronization ────
 export async function getDigitalInvoices(clientId?: string) {
+  // 1. Get currently active projects
+  const activeProjects = await getDigitalProjects();
+  const activeProjectIds = new Set(activeProjects.map(p => p.id));
+
+  // 2. Read centralized billings for automatic single source of truth sync
+  let centralizedBillings: any[] = [];
   try {
-    let query = supabase.from('digital_invoices').select('*, client:digital_clients(*), project:digital_projects(*)').order('created_at', { ascending: false });
-    if (clientId) {
-      query = query.eq('client_id', clientId);
+    const rawB = localStorage.getItem('ferex_digital_centralized_billings');
+    if (rawB) centralizedBillings = JSON.parse(rawB);
+  } catch {}
+
+  // 3. Read existing invoices
+  let existingInvoices: any[] = [];
+  try {
+    const local = localStorage.getItem('ferex_digital_invoices');
+    if (local !== null) {
+      existingInvoices = JSON.parse(local);
     }
-    const { data, error } = await query;
-    if (!error && data) {
-      try { localStorage.setItem('ferex_digital_invoices', JSON.stringify(data)); } catch {}
-      if (clientId) return data.filter((i: any) => i.client_id === clientId);
-      return data;
+  } catch {}
+
+  // If there are NO active projects at all, purge all project invoices
+  if (activeProjects.length === 0) {
+    const remainingStandalone = existingInvoices.filter((i: any) => !i.project_id);
+    try {
+      localStorage.setItem('ferex_digital_invoices', JSON.stringify(remainingStandalone));
+    } catch {}
+    if (clientId) return remainingStandalone.filter((i: any) => i.client_id === clientId);
+    return remainingStandalone;
+  }
+
+  // Filter out any invoices tied to deleted projects
+  existingInvoices = existingInvoices.filter((i: any) => !i.project_id || activeProjectIds.has(i.project_id));
+
+  // Map existing invoices by project_id
+  const projectInvoiceMap = new Map<string, any>();
+  existingInvoices.forEach(inv => {
+    if (inv.project_id) projectInvoiceMap.set(inv.project_id, inv);
+  });
+
+  const syncedInvoices: any[] = [];
+  const multiMap: Record<string, any> = {};
+  try {
+    const rawMulti = localStorage.getItem('ferex_digital_multi_invoices');
+    if (rawMulti) Object.assign(multiMap, JSON.parse(rawMulti));
+  } catch {}
+
+  // 4. Automatically generate or update invoices for every active project from Centralized Billing
+  for (const proj of activeProjects) {
+    const billing = centralizedBillings.find((b: any) => b.project_id === proj.id);
+    const existing = projectInvoiceMap.get(proj.id);
+
+    const baseAmount = billing ? Number(billing.total_agreed_amount) : Number(proj.budget || 0);
+    const taxAmount = Math.round(baseAmount * 0.18);
+    const totalAmount = baseAmount + taxAmount;
+    const invNo = billing?.invoice_no || existing?.invoice_no || `INV-DIG-${proj.id.slice(0, 4).toUpperCase()}`;
+
+    // Compute status and payments automatically from payment parts
+    const parts = billing?.payment_parts || [];
+    const amountReceived = parts.reduce((sum: number, p: any) => sum + Number(p.amount_received || 0), 0);
+    const balanceRemaining = Math.max(0, baseAmount - amountReceived);
+
+    let status = 'Sent';
+    if (amountReceived >= baseAmount && baseAmount > 0) {
+      status = 'Paid';
+    } else if (amountReceived > 0) {
+      status = 'Partially Paid';
+    } else if (existing?.status === 'Draft') {
+      status = 'Draft';
     }
 
-    const local = localStorage.getItem('ferex_digital_invoices');
-    if (local !== null) {
-      try {
-        const parsed = JSON.parse(local);
-        if (clientId) return parsed.filter((i: any) => i.client_id === clientId);
-        return parsed;
-      } catch {}
-    }
-    return [];
-  } catch {
-    const local = localStorage.getItem('ferex_digital_invoices');
-    if (local !== null) {
-      try {
-        const parsed = JSON.parse(local);
-        if (clientId) return parsed.filter((i: any) => i.client_id === clientId);
-        return parsed;
-      } catch {}
-    }
-    return [];
+    const items = billing?.scope_items && billing.scope_items.length > 0
+      ? billing.scope_items.map((s: any) => ({
+          projectId: proj.id,
+          projectTitle: proj.title,
+          description: s.title + (s.description ? ` (${s.description})` : ''),
+          amount: Number(s.amount || 0)
+        }))
+      : [
+          {
+            projectId: proj.id,
+            projectTitle: proj.title,
+            description: proj.scope || proj.description || 'Core digital deliverables and scope milestone',
+            amount: baseAmount
+          }
+        ];
+
+    const invoiceId = existing?.id || (billing?.id ? `inv-${billing.id}` : generateUUID());
+
+    const syncedInvoice = {
+      id: invoiceId,
+      client_id: proj.client_id || billing?.client_id || existing?.client_id || '',
+      client: {
+        id: proj.client_id || billing?.client_id,
+        company_name: proj.client_name || billing?.client_name || 'Enterprise Client'
+      },
+      client_name: proj.client_name || billing?.client_name || 'Enterprise Client',
+      project_id: proj.id,
+      project: { id: proj.id, title: proj.title },
+      invoice_no: invNo,
+      amount: baseAmount,
+      tax_amount: taxAmount,
+      total_amount: totalAmount,
+      amount_received: amountReceived,
+      balance_due: balanceRemaining,
+      currency: 'INR',
+      status: status,
+      due_date: parts[0]?.due_date || existing?.due_date || proj.deadline || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+      notes: billing?.notes || existing?.notes || `Automatic commercial billing invoice for ${proj.title}`,
+      items: items,
+      payment_parts: parts,
+      service_category: proj.service_category || billing?.service_category,
+      is_auto_synced: true,
+      issued_at: billing?.approved_at || existing?.issued_at || proj.created_at || new Date().toISOString(),
+      paid_at: status === 'Paid' ? (existing?.paid_at || new Date().toISOString()) : null,
+      created_at: existing?.created_at || proj.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    syncedInvoices.push(syncedInvoice);
+    multiMap[invoiceId] = items;
   }
+
+  // Retain any standalone manual multi-project invoices (not tied to a single project)
+  for (const inv of existingInvoices) {
+    if (!inv.project_id && !syncedInvoices.some(s => s.id === inv.id)) {
+      syncedInvoices.push(inv);
+    }
+  }
+
+  // Persist synced invoices
+  try {
+    localStorage.setItem('ferex_digital_invoices', JSON.stringify(syncedInvoices));
+    localStorage.setItem('ferex_digital_multi_invoices', JSON.stringify(multiMap));
+  } catch {}
+
+  if (clientId) {
+    return syncedInvoices.filter((i: any) => i.client_id === clientId);
+  }
+  return syncedInvoices;
 }
 
 export async function createDigitalInvoice(invoice: {

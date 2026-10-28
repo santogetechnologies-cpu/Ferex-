@@ -12,6 +12,7 @@ import { ToastNotification } from '../../components/ToastNotification';
 import {
   getCentralizedBillings,
   updateCentralizedBillingScope,
+  deleteCentralizedBilling,
   type CentralizedProjectBilling,
   type ScopeItem,
   type PaymentPart,
@@ -194,7 +195,7 @@ function printScopeAgreementPDF(billing: CentralizedProjectBilling) {
 // ─── Component ──────────────────────────────────────────────────────────────
 export const DigitalBilling: React.FC = () => {
   const { profile } = useAuth();
-  const { isAdmin } = useDigitalPermissions();
+  const { isAdmin, canDelete } = useDigitalPermissions();
 
   const [billings, setBillings] = useState<CentralizedProjectBilling[]>([]);
   const [loading, setLoading] = useState(true);
@@ -312,6 +313,22 @@ export const DigitalBilling: React.FC = () => {
       await loadData();
     } catch (err: any) {
       showToast(`Error updating billing: ${err.message}`);
+    }
+  };
+
+  const handleDeleteBilling = async (billingId: string, title: string) => {
+    if (!window.confirm(`Delete billing configuration for "${title}"? This will permanently remove its financial definitions, payment ledgers, and auto-generated invoices.`)) return;
+    try {
+      await deleteCentralizedBilling(billingId);
+      showToast(`Billing configuration for "${title}" deleted.`);
+      if (selectedBilling?.id === billingId) {
+        setSelectedBilling(null);
+        setShowDetailModal(false);
+        setShowEditScopeModal(false);
+      }
+      await loadData();
+    } catch (err: any) {
+      showToast(`Error deleting billing: ${err.message}`);
     }
   };
 
@@ -472,6 +489,15 @@ export const DigitalBilling: React.FC = () => {
                     >
                       <Printer className="w-4 h-4" />
                     </button>
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDeleteBilling(b.id, b.project_title)}
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete Centralized Billing Definition"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -708,6 +734,15 @@ export const DigitalBilling: React.FC = () => {
                   <button onClick={() => printScopeAgreementPDF(selectedBilling)} className="p-2 rounded-lg bg-[#58051E]/10 text-[#58051E]" title="Print Commercial Agreement">
                     <Printer className="w-4 h-4" />
                   </button>
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDeleteBilling(selectedBilling.id, selectedBilling.project_title)}
+                      className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"
+                      title="Delete Centralized Billing Definition"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                   <button onClick={() => setShowDetailModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
                 </div>
               </div>

@@ -8,7 +8,7 @@ import {
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
-import { getDigitalLeads, createDigitalLead, updateDigitalClient, deleteDigitalClient, createDigitalProject } from '../../lib/api/digital';
+import { getDigitalLeads, createDigitalLead, updateDigitalClient, deleteDigitalClient, createDigitalProject, convertDigitalLead } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 
 const DEFAULT_CATEGORIES = [
@@ -190,25 +190,26 @@ export const DigitalLeads: React.FC = () => {
     e.preventDefault();
     if (!convertLead) return;
 
-    await updateDigitalClient(convertLead.id, { status: 'Active' });
-    await createDigitalProject({
-      client_id: convertLead.id,
-      client_name: convertLead.company,
-      title: convertForm.projectTitle || `${convertLead.company} Project Kickoff`,
-      service_category: convertForm.serviceCategory || convertLead.service,
-      budget: convertLead.valueNum || 0,
-      progress: 5,
-      status: 'Briefing',
-      scope: convertForm.projectScope,
-      payment_terms: convertForm.paymentTerms as any,
-      start_date: convertForm.startDate,
-      deadline: convertForm.deadline,
-    });
+    try {
+      await convertDigitalLead(convertLead.id, {
+        title: convertForm.projectTitle || `${convertLead.company} Project Kickoff`,
+        service_category: convertForm.serviceCategory || convertLead.service,
+        budget: convertLead.valueNum || 0,
+        scope: convertForm.projectScope,
+        payment_terms: convertForm.paymentTerms,
+        start_date: convertForm.startDate,
+        deadline: convertForm.deadline,
+      });
 
-    setShowConvertModal(false);
-    setConvertLead(null);
-    showToast(`✅ ${convertLead.company} converted to Active Client & project created!`);
-    await loadData();
+      const companyName = convertLead.company;
+      setLeads(prev => prev.filter(l => l.id !== convertLead.id));
+      setShowConvertModal(false);
+      setConvertLead(null);
+      showToast(`✅ "${companyName}" converted to Active Client & moved to Clients Directory!`);
+      await loadData();
+    } catch (err: any) {
+      showToast(`Conversion failed: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleUpdateStage = async (lead: any, newStage: string) => {

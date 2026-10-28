@@ -117,7 +117,8 @@ export const DigitalProjects: React.FC = () => {
             name: 'digital admin',
             email: 'digitaladmin@ferex.com',
             role: 'digital_admin',
-            roleLabel: 'Digital Agency Director'
+            roleLabel: 'Digital Agency Director',
+            division: 'digital'
           },
           ...staff
         ];
