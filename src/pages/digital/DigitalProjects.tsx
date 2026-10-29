@@ -81,6 +81,21 @@ export const DigitalProjects: React.FC = () => {
     status: 'Briefing' as DigitalProjectStage,
   });
 
+  // Custom milestone parts for project creation
+  const [customMilestoneParts, setCustomMilestoneParts] = useState([
+    { label: 'Advance', percentage: 40 },
+    { label: 'Milestone', percentage: 30 },
+    { label: 'Final', percentage: 30 },
+  ]);
+
+  // Scope Cost Breakdown (component-level specification separate from payment milestones)
+  const [showProjBreakdown, setShowProjBreakdown] = useState(false);
+  const [projBreakdown, setProjBreakdown] = useState<Array<{ id: string; component: string; amount: number }>>([
+    { id: '1', component: 'UI/UX Design', amount: 0 },
+    { id: '2', component: 'Frontend Development', amount: 0 },
+    { id: '3', component: 'Backend & API', amount: 0 },
+  ]);
+
   // New Deliverable Form State
   const [newDeliv, setNewDeliv] = useState({
     title: '',
@@ -182,16 +197,19 @@ export const DigitalProjects: React.FC = () => {
     const assignedStaffId = matchedStaff?.id || (matchedStaff as any)?.user_id || undefined;
 
     const budgetVal = Number(newProj.budget) || 0;
+    const isCustom = newProj.payment_split_type === 'custom_advance';
     const advancePct =
       newProj.payment_split_type === 'advance_30' ? 30 :
       newProj.payment_split_type === 'advance_50' ? 50 :
       newProj.payment_split_type === 'three_milestones' ? 40 :
       newProj.payment_split_type === 'full' ? 100 :
+      isCustom ? (customMilestoneParts[0]?.percentage || 30) :
       newProj.advance_percentage;
 
     const advanceAmt = Math.round(budgetVal * (advancePct / 100));
     const balanceAmt = Math.max(0, budgetVal - advanceAmt);
-    const splitNum: 1 | 2 | 3 = newProj.payment_split_type === 'full' ? 1 : newProj.payment_split_type === 'three_milestones' ? 3 : 2;
+    const splitNum: 1 | 2 | 3 = newProj.payment_split_type === 'full' ? 1 : newProj.payment_split_type === 'three_milestones' ? 3 :
+      isCustom ? (customMilestoneParts.length === 1 ? 1 : customMilestoneParts.length >= 3 ? 3 : 2) : 2;
 
     try {
       const created = await createDigitalProject({
@@ -220,7 +238,28 @@ export const DigitalProjects: React.FC = () => {
         const billings: any[] = rawBillings ? JSON.parse(rawBillings) : [];
 
         let parts: any[] = [];
-        if (splitNum === 1) {
+        const midTime = (new Date(newProj.start_date).getTime() + new Date(newProj.deadline).getTime()) / 2;
+
+        if (isCustom && customMilestoneParts.length > 0) {
+          // Build custom milestone parts from user-defined percentages
+          parts = customMilestoneParts.map((cp, i) => {
+            const amt = i === customMilestoneParts.length - 1
+              ? budgetVal - customMilestoneParts.slice(0, -1).reduce((s, p) => s + Math.round(budgetVal * (p.percentage / 100)), 0)
+              : Math.round(budgetVal * (cp.percentage / 100));
+            const due = i === 0 ? newProj.start_date : i === customMilestoneParts.length - 1 ? newProj.deadline : new Date(midTime).toISOString().split('T')[0];
+            return {
+              id: generateUUID(),
+              part_number: i + 1,
+              label: `Part ${i + 1}: ${cp.label} (${cp.percentage}%)`,
+              percentage: cp.percentage,
+              configured_amount: amt,
+              due_date: due,
+              status: 'unpaid',
+              amount_received: 0,
+              remaining_balance: amt
+            };
+          });
+        } else if (splitNum === 1) {
           parts = [{
             id: generateUUID(),
             part_number: 1,
@@ -261,7 +300,6 @@ export const DigitalProjects: React.FC = () => {
           const p1 = Math.round(budgetVal * 0.4);
           const p2 = Math.round(budgetVal * 0.3);
           const p3 = budgetVal - p1 - p2;
-          const midTime = (new Date(newProj.start_date).getTime() + new Date(newProj.deadline).getTime()) / 2;
           parts = [
             {
               id: generateUUID(),
@@ -316,7 +354,10 @@ export const DigitalProjects: React.FC = () => {
             }
           ],
           total_agreed_amount: budgetVal,
-          payment_split: splitNum,
+          payment_split: isCustom ? (parts.length === 1 ? 1 : parts.length >= 3 ? 3 : 2) : splitNum,
+          milestone_split_type: isCustom ? 'custom' : newProj.payment_split_type,
+          custom_milestone_parts: isCustom ? customMilestoneParts : undefined,
+          scope_breakdown: showProjBreakdown && projBreakdown.length > 0 ? projBreakdown : undefined,
           payment_parts: parts,
           invoice_no: `INV-DIG-${created.id.slice(0, 4).toUpperCase()}`,
           status: 'Approved',
@@ -333,7 +374,7 @@ export const DigitalProjects: React.FC = () => {
               updated_value: budgetVal,
               reason: 'Project initialized with commercial terms',
               change_type: 'scope_added',
-              details: `Initial budget ₹${budgetVal.toLocaleString('en-IN')} with ${splitNum}-part payment schedule (${newProj.payment_terms})`
+              details: `Initial budget ₹${budgetVal.toLocaleString('en-IN')} with ${parts.length}-part payment schedule (${newProj.payment_terms})`
             }
           ]
         };
@@ -362,6 +403,17 @@ export const DigitalProjects: React.FC = () => {
         assigned_staff_email: 'digitaladmin@ferex.com',
         status: 'Briefing',
       });
+      setCustomMilestoneParts([
+        { label: 'Advance', percentage: 40 },
+        { label: 'Milestone', percentage: 30 },
+        { label: 'Final', percentage: 30 },
+      ]);
+      setShowProjBreakdown(false);
+      setProjBreakdown([
+        { id: '1', component: 'UI/UX Design', amount: 0 },
+        { id: '2', component: 'Frontend Development', amount: 0 },
+        { id: '3', component: 'Backend & API', amount: 0 },
+      ]);
       await loadData();
     } catch (err: any) {
       showToast(`Error creating project: ${err.message || 'Database error'}`);
@@ -1009,6 +1061,22 @@ export const DigitalProjects: React.FC = () => {
                 </div>
               </div>
 
+              {/* Commercial Value & Payment Terms */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-[#58051E]" /> Commercial Value & Milestone Schedule
+                  </h4>
+                  <span className="text-xs font-black text-emerald-700">₹{(Number(selectedProject.budget) || 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                  <span>Payment Terms: <strong className="text-slate-800">{selectedProject.payment_terms || 'Advance Payment'}</strong></span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-200 text-slate-700 uppercase font-bold">
+                    {selectedProject.payment_split_type || 'standard'}
+                  </span>
+                </div>
+              </div>
+
               {/* Attached Deliverables Hub */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -1257,12 +1325,13 @@ export const DigitalProjects: React.FC = () => {
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1.5">
                       Milestone Structure
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {[
                         { id: 'advance_30', label: '30% Advance', desc: '30% / 70%' },
                         { id: 'advance_50', label: '50% Advance', desc: '50% / 50%' },
                         { id: 'three_milestones', label: '3-Part Split', desc: '40% / 30% / 30%' },
                         { id: 'full', label: 'Full 100%', desc: 'Single Part' },
+                        { id: 'custom_advance', label: 'Custom', desc: 'Define your %' },
                       ].map(opt => (
                         <button
                           key={opt.id}
@@ -1272,6 +1341,7 @@ export const DigitalProjects: React.FC = () => {
                             if (opt.id === 'advance_50') terms = 'Advance Payment (50% Upfront)';
                             else if (opt.id === 'three_milestones') terms = '3-Stage Milestone Split (40% / 30% / 30%)';
                             else if (opt.id === 'full') terms = 'Full Payment (100% Upfront)';
+                            else if (opt.id === 'custom_advance') terms = 'Custom Milestone Split';
                             setNewProj({
                               ...newProj,
                               payment_split_type: opt.id as any,
@@ -1292,6 +1362,59 @@ export const DigitalProjects: React.FC = () => {
                         </button>
                       ))}
                     </div>
+
+                    {/* Custom Milestone Part Editor */}
+                    {newProj.payment_split_type === 'custom_advance' && (
+                      <div className="mt-2 p-3 bg-violet-50 border border-violet-200 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-bold text-violet-700 uppercase">Custom Milestone Parts</p>
+                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-lg ${
+                            Math.abs(customMilestoneParts.reduce((s,p) => s + Number(p.percentage||0), 0) - 100) <= 1
+                              ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            Total: {customMilestoneParts.reduce((s,p) => s + Number(p.percentage||0), 0)}%
+                          </span>
+                        </div>
+                        {customMilestoneParts.map((cp, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={cp.label}
+                              onChange={e => setCustomMilestoneParts(prev => prev.map((p, i) => i === idx ? { ...p, label: e.target.value } : p))}
+                              placeholder={`Part ${idx+1} label`}
+                              className="flex-1 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                            />
+                            <input
+                              type="number"
+                              min={1}
+                              max={99}
+                              value={cp.percentage || ''}
+                              onChange={e => setCustomMilestoneParts(prev => prev.map((p, i) => i === idx ? { ...p, percentage: Number(e.target.value) } : p))}
+                              placeholder="%"
+                              className="w-16 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 text-center"
+                            />
+                            {customMilestoneParts.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => setCustomMilestoneParts(prev => prev.filter((_, i) => i !== idx))}
+                                className="p-1 text-slate-400 hover:text-red-500"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        {customMilestoneParts.length < 5 && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomMilestoneParts(prev => [...prev, { label: `Part ${prev.length+1}`, percentage: 0 }])}
+                            className="text-[10px] font-bold px-2 py-1 rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200"
+                          >
+                            + Add Part
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Live Calculated Milestone Installment Cards */}
@@ -1338,6 +1461,18 @@ export const DigitalProjects: React.FC = () => {
                             </span>
                           </div>
                         </>
+                      ) : newProj.payment_split_type === 'custom_advance' ? (
+                        customMilestoneParts.map((cp, i) => (
+                          <div key={i} className="p-2.5 bg-white rounded-xl border border-violet-200 flex items-center justify-between">
+                            <div>
+                              <span className="text-[11px] font-bold text-slate-800">Part {i+1}: {cp.label} ({cp.percentage}%)</span>
+                              <span className="text-[10px] text-slate-400 block">{i === 0 ? `Due on start (${newProj.start_date})` : i === customMilestoneParts.length - 1 ? `Due on deadline (${newProj.deadline})` : 'Mid-cycle milestone'}</span>
+                            </div>
+                            <span className="text-xs font-black text-violet-700">
+                              ₹{Math.round((Number(newProj.budget) || 0) * (cp.percentage / 100)).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                        ))
                       ) : (
                         <>
                           <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
@@ -1365,6 +1500,68 @@ export const DigitalProjects: React.FC = () => {
                         </>
                       )}
                     </div>
+                  </div>
+
+                  {/* Scope Cost Breakdown Section */}
+                  <div className="pt-2 border-t border-slate-200/70">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">
+                        Cost Breakdown by Component <span className="text-slate-300 font-normal">(Optional Deliverable Breakdown)</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowProjBreakdown(v => !v)}
+                        className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      >
+                        {showProjBreakdown ? 'Hide Breakdown' : '+ Add Component Breakdown'}
+                      </button>
+                    </div>
+
+                    {showProjBreakdown && (
+                      <div className="space-y-2 p-3 bg-blue-50/50 rounded-xl border border-blue-200">
+                        <p className="text-[10px] text-blue-700 font-medium">
+                          Specify deliverable component values (e.g. Design ₹3k, Frontend ₹4k, Backend ₹3k). Independent of milestone payment terms.
+                        </p>
+                        {projBreakdown.map((item, idx) => (
+                          <div key={item.id} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={item.component}
+                              onChange={e => setProjBreakdown(prev => prev.map((b, i) => i === idx ? { ...b, component: e.target.value } : b))}
+                              placeholder="Component (e.g. Design)"
+                              className="flex-1 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                            />
+                            <input
+                              type="number"
+                              min={0}
+                              value={item.amount || ''}
+                              onChange={e => setProjBreakdown(prev => prev.map((b, i) => i === idx ? { ...b, amount: Number(e.target.value) } : b))}
+                              placeholder="₹ Amount"
+                              className="w-28 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-emerald-700"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setProjBreakdown(prev => prev.filter((_, i) => i !== idx))}
+                              className="p-1 text-slate-400 hover:text-red-500"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setProjBreakdown(prev => [...prev, { id: Date.now().toString(), component: '', amount: 0 }])}
+                            className="text-[10px] font-bold px-2 py-1 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
+                          >
+                            + Add Component
+                          </button>
+                          <span className="text-[11px] font-bold text-slate-600">
+                            Total Breakdown: ₹{projBreakdown.reduce((sum, b) => sum + Number(b.amount || 0), 0).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

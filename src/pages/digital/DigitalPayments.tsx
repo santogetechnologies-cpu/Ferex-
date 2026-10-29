@@ -270,7 +270,7 @@ export const DigitalPayments: React.FC = () => {
     const balance = targetPart ? (targetPart.remaining_balance ?? targetPart.configured_amount) : 0;
 
     setPaymentMethodRows([
-      { id: '1', method: 'UPI', amount: balance > 0 ? balance : 10000, reference_no: '', date: new Date().toISOString().split('T')[0] }
+      { id: '1', method: 'UPI', amount: balance > 0 ? balance : 0, reference_no: '', date: new Date().toISOString().split('T')[0] }
     ]);
     setPaymentDate(new Date().toISOString().split('T')[0]);
     setDocumentType('Payment Receipt');
@@ -966,10 +966,13 @@ export const DigitalPayments: React.FC = () => {
                       onChange={e => {
                         const newPId = e.target.value;
                         const matched = billings.find(b => b.project_id === newPId);
+                        const firstPart = matched?.payment_parts[0];
+                        const newBalance = firstPart ? (firstPart.remaining_balance ?? firstPart.configured_amount) : 0;
                         setRecordingTarget({
                           projectId: newPId,
-                          partId: matched?.payment_parts[0]?.id || ''
+                          partId: firstPart?.id || ''
                         });
+                        setPaymentMethodRows([{ id: '1', method: 'UPI', amount: newBalance > 0 ? newBalance : 0, reference_no: '', date: new Date().toISOString().split('T')[0] }]);
                       }}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
                     >
@@ -984,7 +987,13 @@ export const DigitalPayments: React.FC = () => {
                     <select
                       required
                       value={recordingTarget.partId}
-                      onChange={e => setRecordingTarget(prev => ({ ...prev, partId: e.target.value }))}
+                      onChange={e => {
+                        const newPartId = e.target.value;
+                        const part = selectedModalBilling?.payment_parts.find(p => p.id === newPartId);
+                        const newBalance = part ? (part.remaining_balance ?? part.configured_amount) : 0;
+                        setRecordingTarget(prev => ({ ...prev, partId: newPartId }));
+                        setPaymentMethodRows([{ id: '1', method: 'UPI', amount: newBalance > 0 ? newBalance : 0, reference_no: '', date: new Date().toISOString().split('T')[0] }]);
+                      }}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
                     >
                       {selectedModalBilling?.payment_parts.map(p => (
@@ -998,22 +1007,50 @@ export const DigitalPayments: React.FC = () => {
 
                 {/* Target Part Context Card */}
                 {selectedModalPart && (
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Milestone Target</span>
-                      <span className="font-extrabold text-slate-800">{selectedModalPart.label}</span>
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Milestone Target</span>
+                        <span className="font-extrabold text-slate-800">{selectedModalPart.label}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Configured</span>
+                        <span className="font-extrabold text-slate-900">₹{selectedModalPart.configured_amount.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Previously Received</span>
+                        <span className="font-extrabold text-emerald-700">₹{(selectedModalPart.amount_received || 0).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Remaining Due</span>
+                        <span className="font-extrabold text-amber-700">₹{(selectedModalPart.remaining_balance ?? selectedModalPart.configured_amount).toLocaleString('en-IN')}</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Configured</span>
-                      <span className="font-extrabold text-slate-900">₹{selectedModalPart.configured_amount.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Previously Received</span>
-                      <span className="font-extrabold text-emerald-700">₹{(selectedModalPart.amount_received || 0).toLocaleString('en-IN')}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Remaining Due</span>
-                      <span className="font-extrabold text-amber-700">₹{(selectedModalPart.remaining_balance ?? selectedModalPart.configured_amount).toLocaleString('en-IN')}</span>
+                    {/* Quick fill buttons */}
+                    <div className="mt-2 pt-2 border-t border-slate-200 flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Quick Fill:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const remaining = selectedModalPart.remaining_balance ?? selectedModalPart.configured_amount;
+                          setPaymentMethodRows([{ ...paymentMethodRows[0], amount: remaining }]);
+                        }}
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300"
+                      >
+                        Pay Full Remaining (₹{(selectedModalPart.remaining_balance ?? selectedModalPart.configured_amount).toLocaleString('en-IN')})
+                      </button>
+                      {(selectedModalPart.remaining_balance ?? selectedModalPart.configured_amount) > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const half = Math.round((selectedModalPart.remaining_balance ?? selectedModalPart.configured_amount) / 2);
+                            setPaymentMethodRows([{ ...paymentMethodRows[0], amount: half }]);
+                          }}
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-blue-100 text-blue-800 hover:bg-blue-200 border border-blue-300"
+                        >
+                          Pay 50% of Remaining
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1136,14 +1173,37 @@ export const DigitalPayments: React.FC = () => {
                   </div>
 
                   {/* Total Validation Preview */}
-                  <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-emerald-800 block">Total Transaction Amount</span>
-                      <span className="text-[11px] text-emerald-700 font-medium">
-                        {paymentMethodRows.length} payment method{paymentMethodRows.length !== 1 ? 's' : ''} combined
-                      </span>
+                  <div className="mt-3 space-y-2">
+                    <div className={`p-3 rounded-xl flex items-center justify-between border ${
+                      selectedModalPart && totalPaymentInModal > (selectedModalPart.remaining_balance ?? selectedModalPart.configured_amount)
+                        ? 'bg-red-50 border-red-200'
+                        : 'bg-emerald-50 border-emerald-200'
+                    }`}>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-emerald-800 block">Total Transaction Amount</span>
+                        <span className="text-[11px] text-emerald-700 font-medium">
+                          {paymentMethodRows.length} payment method{paymentMethodRows.length !== 1 ? 's' : ''} combined
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {selectedModalPart && totalPaymentInModal < (selectedModalPart.remaining_balance ?? selectedModalPart.configured_amount) && totalPaymentInModal > 0 && (
+                          <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                            PARTIAL PAYMENT
+                          </span>
+                        )}
+                        <span className="text-base font-black text-emerald-800">₹{totalPaymentInModal.toLocaleString('en-IN')}</span>
+                      </div>
                     </div>
-                    <span className="text-base font-black text-emerald-800">₹{totalPaymentInModal.toLocaleString('en-IN')}</span>
+                    {selectedModalPart && totalPaymentInModal > (selectedModalPart.remaining_balance ?? selectedModalPart.configured_amount) && (
+                      <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700">
+                        <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                        <span className="font-semibold">
+                          ⚠ Overpayment warning: Amount entered (₹{totalPaymentInModal.toLocaleString('en-IN')}) exceeds
+                          remaining due (₹{(selectedModalPart.remaining_balance ?? selectedModalPart.configured_amount).toLocaleString('en-IN')}).
+                          Excess of ₹{(totalPaymentInModal - (selectedModalPart.remaining_balance ?? selectedModalPart.configured_amount)).toLocaleString('en-IN')} will be logged — issue a Credit Note if needed.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

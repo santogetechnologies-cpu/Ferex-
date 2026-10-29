@@ -15,13 +15,22 @@ export interface ScopeItem {
 export interface PaymentPart {
   id: string;
   part_number: number;
-  label: string; // e.g. "Part 1: 50% Advance", "Part 2: 50% Completion"
+  label: string; // e.g. "Part 1: 30% Advance", "Part 2: 70% Balance"
   percentage: number;
   configured_amount: number;
   due_date: string;
   status: 'unpaid' | 'partially_paid' | 'paid' | 'overdue';
   amount_received: number;
   remaining_balance: number;
+}
+
+// Milestone split type definitions
+export type MilestoneSplitType = 'advance_30' | 'advance_50' | 'three_milestones' | 'full' | 'custom';
+
+export interface MilestoneStructure {
+  type: MilestoneSplitType;
+  label: string;
+  parts: Array<{ label: string; percentage: number; }>;
 }
 
 export interface BillingChangeAudit {
@@ -36,6 +45,13 @@ export interface BillingChangeAudit {
   details: string;
 }
 
+export interface ScopeBreakdownItem {
+  id: string;
+  component: string; // e.g. "UI/UX Design", "Frontend Development", "Backend API"
+  description?: string;
+  amount: number;
+}
+
 export interface CentralizedProjectBilling {
   id: string;
   project_id: string;
@@ -44,8 +60,12 @@ export interface CentralizedProjectBilling {
   client_name: string;
   service_category?: string;
   scope_items: ScopeItem[];
+  scope_breakdown?: ScopeBreakdownItem[]; // Cost breakdown by component (design, frontend, backend etc.)
   total_agreed_amount: number;
   payment_split: 1 | 2 | 3;
+  milestone_split_type?: MilestoneSplitType; // tracks which preset was used
+  advance_percentage?: number; // for 2-part splits (e.g. 30 or 50)
+  custom_milestone_parts?: Array<{ label: string; percentage: number }>; // for custom milestone type
   payment_parts: PaymentPart[];
   invoice_no: string;
   status: 'Draft' | 'Approved' | 'In Progress' | 'Completed';
@@ -120,8 +140,50 @@ function triggerEvent(eventName: string) {
   }
 }
 
-export function computePaymentParts(total: number, split: 1 | 2 | 3, existingParts?: PaymentPart[]): PaymentPart[] {
+/**
+ * Compute payment parts based on milestone structure type and advance percentage.
+ * Supports: full (100%), advance_30 (30/70), advance_50 (50/50), three_milestones (40/30/30), custom
+ */
+export function computePaymentParts(
+  total: number,
+  split: 1 | 2 | 3,
+  existingParts?: PaymentPart[],
+  options?: {
+    milestoneType?: MilestoneSplitType;
+    advancePercentage?: number;
+    /** For custom milestone: array of { label, percentage } summing to 100 */
+    customParts?: Array<{ label: string; percentage: number }>;
+  }
+): PaymentPart[] {
   const now = new Date();
+  const milestoneType = options?.milestoneType;
+  const advancePct = options?.advancePercentage;
+
+  // ── Custom milestone: user-defined percentage split ──────────────────────────
+  if (milestoneType === 'custom' && options?.customParts && options.customParts.length > 0) {
+    const parts = options.customParts;
+    return parts.map((cp, i) => {
+      const amt = Math.round(total * (cp.percentage / 100));
+      const received = existingParts?.[i]?.amount_received || 0;
+      const daysOffset = i === 0 ? 3 : i === parts.length - 1 ? 45 : 20 + i * 10;
+      return {
+        id: existingParts?.[i]?.id || generateUUID(),
+        part_number: i + 1,
+        label: `Part ${i + 1}: ${cp.label} (${cp.percentage}%)`,
+        percentage: cp.percentage,
+        configured_amount: i === parts.length - 1
+          ? total - parts.slice(0, -1).reduce((s, p2) => s + Math.round(total * (p2.percentage / 100)), 0)
+          : amt,
+        due_date: existingParts?.[i]?.due_date || new Date(now.getTime() + daysOffset * 86400000).toISOString().split('T')[0],
+        amount_received: received,
+        remaining_balance: Math.max(0, (i === parts.length - 1
+          ? total - parts.slice(0, -1).reduce((s, p2) => s + Math.round(total * (p2.percentage / 100)), 0)
+          : amt) - received),
+        status: received >= amt ? 'paid' : received > 0 ? 'partially_paid' : 'unpaid' as const
+      };
+    });
+  }
+
   if (split === 1) {
     const existingReceived = existingParts?.[0]?.amount_received || 0;
     return [{
@@ -136,16 +198,27 @@ export function computePaymentParts(total: number, split: 1 | 2 | 3, existingPar
       status: existingReceived >= total ? 'paid' : existingReceived > 0 ? 'partially_paid' : 'unpaid'
     }];
   } else if (split === 2) {
-    const p1 = Math.round(total * 0.5);
+    // Determine advance percentage: 30% or 50% based on type
+    let pct1 = 50; // default
+    if (milestoneType === 'advance_30' || advancePct === 30) pct1 = 30;
+    else if (milestoneType === 'advance_50' || advancePct === 50) pct1 = 50;
+    else if (advancePct && advancePct > 0 && advancePct < 100) pct1 = advancePct;
+
+    const pct2 = 100 - pct1;
+    const p1 = Math.round(total * (pct1 / 100));
     const p2 = total - p1;
     const r1 = existingParts?.[0]?.amount_received || 0;
     const r2 = existingParts?.[1]?.amount_received || 0;
+
+    const advLabel = milestoneType === 'advance_30' ? '30% Advance' : milestoneType === 'advance_50' ? '50% Advance' : `${pct1}% Advance`;
+    const balLabel = `${pct2}% Balance`;
+
     return [
       {
         id: existingParts?.[0]?.id || generateUUID(),
         part_number: 1,
-        label: 'Part 1: Advance (50%)',
-        percentage: 50,
+        label: `Part 1: ${advLabel}`,
+        percentage: pct1,
         configured_amount: p1,
         due_date: existingParts?.[0]?.due_date || new Date(now.getTime() + 3 * 86400000).toISOString().split('T')[0],
         amount_received: r1,
@@ -155,8 +228,8 @@ export function computePaymentParts(total: number, split: 1 | 2 | 3, existingPar
       {
         id: existingParts?.[1]?.id || generateUUID(),
         part_number: 2,
-        label: 'Part 2: Completion (50%)',
-        percentage: 50,
+        label: `Part 2: ${balLabel}`,
+        percentage: pct2,
         configured_amount: p2,
         due_date: existingParts?.[1]?.due_date || new Date(now.getTime() + 30 * 86400000).toISOString().split('T')[0],
         amount_received: r2,
@@ -165,6 +238,7 @@ export function computePaymentParts(total: number, split: 1 | 2 | 3, existingPar
       }
     ];
   } else {
+    // 3-part split: always 40% / 30% / 30%
     const p1 = Math.round(total * 0.4);
     const p2 = Math.round(total * 0.3);
     const p3 = total - p1 - p2;
@@ -186,7 +260,7 @@ export function computePaymentParts(total: number, split: 1 | 2 | 3, existingPar
       {
         id: existingParts?.[1]?.id || generateUUID(),
         part_number: 2,
-        label: 'Part 2: Milestone Alpha (30%)',
+        label: 'Part 2: Milestone Review (30%)',
         percentage: 30,
         configured_amount: p2,
         due_date: existingParts?.[1]?.due_date || new Date(now.getTime() + 20 * 86400000).toISOString().split('T')[0],
@@ -246,8 +320,11 @@ export async function getCentralizedBillings(): Promise<CentralizedProjectBillin
       // Bootstrap from project definition so other modules don't need re-entry
       const client = clients.find(c => c.id === proj.client_id) || { company_name: proj.client_name || 'Client' };
       const budget = Number(proj.budget || 0);
-      const splitTerms: 1 | 2 | 3 = proj.payment_terms === 'Full Payment' ? 1 : 2;
-      const initialParts = computePaymentParts(budget, splitTerms);
+      const splitTerms: 1 | 2 | 3 = proj.payment_split_type === 'full' || proj.payment_terms === 'Full Payment' ? 1 :
+        proj.payment_split_type === 'three_milestones' ? 3 : 2;
+      const milestoneType = (proj.payment_split_type || 'advance_50') as MilestoneSplitType;
+      const advancePct = proj.advance_percentage || (proj.payment_split_type === 'advance_30' ? 30 : 50);
+      const initialParts = computePaymentParts(budget, splitTerms, undefined, { milestoneType, advancePercentage: advancePct });
 
       const bootstrapped: CentralizedProjectBilling = {
         id: generateUUID(),
@@ -267,6 +344,8 @@ export async function getCentralizedBillings(): Promise<CentralizedProjectBillin
         ],
         total_agreed_amount: budget,
         payment_split: splitTerms,
+        milestone_split_type: milestoneType,
+        advance_percentage: advancePct,
         payment_parts: initialParts,
         invoice_no: `INV-DIG-${proj.id.slice(0, 4).toUpperCase()}`,
         status: 'Approved',
@@ -365,6 +444,11 @@ export async function updateCentralizedBillingScope(params: {
   billingId: string;
   newScopeItems: ScopeItem[];
   newPaymentSplit?: 1 | 2 | 3;
+  newMilestoneSplitType?: MilestoneSplitType;
+  newAdvancePercentage?: number;
+  newScopeBreakdown?: ScopeBreakdownItem[];
+  /** For custom milestone: user-defined percentage split parts */
+  newCustomParts?: Array<{ label: string; percentage: number }>;
   reason: string;
   userName: string;
   userEmail?: string;
@@ -379,9 +463,15 @@ export async function updateCentralizedBillingScope(params: {
   const prevValue = existing.total_agreed_amount;
   const newTotal = params.newScopeItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const split = params.newPaymentSplit || existing.payment_split;
+  const milestoneType = params.newMilestoneSplitType || existing.milestone_split_type;
+  const advancePct = params.newAdvancePercentage ?? existing.advance_percentage;
 
   // Re-compute payment parts while retaining already received money
-  const updatedParts = computePaymentParts(newTotal, split, existing.payment_parts);
+  const updatedParts = computePaymentParts(newTotal, split, existing.payment_parts, {
+    milestoneType,
+    advancePercentage: advancePct,
+    customParts: params.newCustomParts
+  });
 
   const auditEntry: BillingChangeAudit = {
     id: generateUUID(),
@@ -398,8 +488,12 @@ export async function updateCentralizedBillingScope(params: {
   const updated: CentralizedProjectBilling = {
     ...existing,
     scope_items: params.newScopeItems,
+    scope_breakdown: params.newScopeBreakdown !== undefined ? params.newScopeBreakdown : existing.scope_breakdown,
+    custom_milestone_parts: params.newCustomParts !== undefined ? params.newCustomParts : existing.custom_milestone_parts,
     total_agreed_amount: newTotal,
     payment_split: split,
+    milestone_split_type: milestoneType,
+    advance_percentage: advancePct,
     payment_parts: updatedParts,
     status: 'Approved',
     updated_at: new Date().toISOString(),
@@ -423,6 +517,8 @@ export async function updateCentralizedBillingScope(params: {
             ...p,
             budget: newTotal,
             payment_terms: (split === 1 ? 'Full Payment' : split === 2 ? 'Advance Payment' : 'Milestone-Based') as any,
+            payment_split_type: milestoneType || (split === 1 ? 'full' : split === 3 ? 'three_milestones' : 'advance_50'),
+            advance_percentage: advancePct,
             advance_amount: updatedParts[0]?.configured_amount || Math.round(newTotal * 0.5),
             balance_amount: newTotal - (updatedParts[0]?.configured_amount || Math.round(newTotal * 0.5)),
             updated_at: new Date().toISOString()

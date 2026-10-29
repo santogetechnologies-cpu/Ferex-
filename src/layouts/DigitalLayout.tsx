@@ -34,7 +34,7 @@ interface NavSection {
   items: NavItem[];
 }
 
-const DIGITAL_ADMIN_ROLES = ['digital_admin', 'ferex_digital', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+const DIGITAL_ADMIN_ROLES = ['digital_admin', 'digital_manager', 'project_manager', 'digimanager', 'pm', 'ferex_digital', 'digital', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
 
 export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
@@ -47,7 +47,9 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   const isAdmin = DIGITAL_ADMIN_ROLES.includes(userRole);
   const isStaff = !isAdmin;
 
-  const roleLabel = isAdmin ? 'Digital Director' : 'Project Manager';
+  const roleLabel = isAdmin
+    ? (userRole.toLowerCase().includes('manager') || userRole.toLowerCase() === 'pm' ? 'Digital Manager' : 'Digital Director')
+    : 'Project Specialist';
   const initials = userName
     ? userName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
     : (isAdmin ? 'FD' : 'PM');

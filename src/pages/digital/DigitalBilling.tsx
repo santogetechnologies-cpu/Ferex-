@@ -15,8 +15,10 @@ import {
   deleteCentralizedBilling,
   type CentralizedProjectBilling,
   type ScopeItem,
+  type ScopeBreakdownItem,
   type PaymentPart,
-  type BillingChangeAudit
+  type BillingChangeAudit,
+  type MilestoneSplitType
 } from '../../lib/api/digitalBilling';
 import { getDigitalClients, getDigitalProjects } from '../../lib/api/digital';
 import { useAuth } from '../../contexts/AuthContext';
@@ -209,7 +211,15 @@ export const DigitalBilling: React.FC = () => {
   // Controlled Scope & Value Modification Modal
   const [showEditScopeModal, setShowEditScopeModal] = useState(false);
   const [editingScopeItems, setEditingScopeItems] = useState<ScopeItem[]>([]);
+  const [editingScopeBreakdown, setEditingScopeBreakdown] = useState<Array<{id:string;component:string;description:string;amount:number}>>([]);
+  const [showBreakdownSection, setShowBreakdownSection] = useState(false);
   const [editingSplit, setEditingSplit] = useState<1 | 2 | 3>(2);
+  const [editingMilestoneType, setEditingMilestoneType] = useState<'full' | 'advance_30' | 'advance_50' | 'three_milestones' | 'custom'>('advance_50');
+  const [editingCustomParts, setEditingCustomParts] = useState<Array<{label:string;percentage:number}>>([
+    { label: 'Advance', percentage: 40 },
+    { label: 'Milestone', percentage: 30 },
+    { label: 'Final', percentage: 30 },
+  ]);
   const [changeReason, setChangeReason] = useState('');
   const [changeType, setChangeType] = useState<'scope_added' | 'scope_modified' | 'special_charge' | 'payment_split_changed'>('scope_added');
 
@@ -250,7 +260,15 @@ export const DigitalBilling: React.FC = () => {
   const openControlledEdit = (billing: CentralizedProjectBilling) => {
     setSelectedBilling(billing);
     setEditingScopeItems([...billing.scope_items]);
+    setEditingScopeBreakdown(billing.scope_breakdown ? [...billing.scope_breakdown] : []);
+    setShowBreakdownSection(!!(billing.scope_breakdown && billing.scope_breakdown.length > 0));
+    const mType = billing.milestone_split_type || (billing.payment_split === 1 ? 'full' : billing.payment_split === 3 ? 'three_milestones' : 'advance_50');
+    setEditingMilestoneType(mType as any);
     setEditingSplit(billing.payment_split as 1 | 2 | 3);
+    // Restore custom parts if any
+    if (mType === 'custom' && billing.custom_milestone_parts && billing.custom_milestone_parts.length > 0) {
+      setEditingCustomParts(billing.custom_milestone_parts);
+    }
     setChangeReason('');
     setChangeType('scope_added');
     setShowEditScopeModal(true);
@@ -296,11 +314,29 @@ export const DigitalBilling: React.FC = () => {
       return;
     }
 
+    // Validate custom milestone percentages
+    if (editingMilestoneType === 'custom') {
+      const totalPct = editingCustomParts.reduce((s, p) => s + Number(p.percentage || 0), 0);
+      if (Math.abs(totalPct - 100) > 1) {
+        showToast(`Custom milestone percentages must sum to 100% (currently ${totalPct}%)`);
+        return;
+      }
+    }
+
+    // Determine split number for custom type
+    const effectiveSplit: 1 | 2 | 3 = editingMilestoneType === 'custom'
+      ? (editingCustomParts.length === 1 ? 1 : editingCustomParts.length === 2 ? 2 : 3)
+      : editingSplit;
+
     try {
       const updated = await updateCentralizedBillingScope({
         billingId: selectedBilling.id,
         newScopeItems: editingScopeItems,
-        newPaymentSplit: editingSplit,
+        newPaymentSplit: effectiveSplit,
+        newMilestoneSplitType: editingMilestoneType as MilestoneSplitType,
+        newAdvancePercentage: editingMilestoneType === 'advance_30' ? 30 : editingMilestoneType === 'advance_50' ? 50 : undefined,
+        newScopeBreakdown: editingScopeBreakdown,
+        newCustomParts: editingMilestoneType === 'custom' ? editingCustomParts : undefined,
         reason: changeReason.trim(),
         userName: profile?.full_name || profile?.email || 'Digital Admin',
         userEmail: profile?.email || '',
@@ -669,20 +705,189 @@ export const DigitalBilling: React.FC = () => {
                 {/* Milestone Split */}
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Payment Milestone Structure</label>
-                  <div className="flex gap-2">
-                    {([1, 2, 3] as const).map(n => (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {([
+                      { id: 'advance_30', label: '30% Advance', desc: '30% / 70%', split: 2 as const },
+                      { id: 'advance_50', label: '50% Advance', desc: '50% / 50%', split: 2 as const },
+                      { id: 'three_milestones', label: '3-Part Split', desc: '40% / 30% / 30%', split: 3 as const },
+                      { id: 'full', label: '100% Full', desc: 'Single Payment', split: 1 as const },
+                      { id: 'custom', label: 'Custom', desc: 'Define your own %', split: 2 as const },
+                    ] as const).map(opt => (
                       <button
-                        key={n}
+                        key={opt.id}
                         type="button"
-                        onClick={() => setEditingSplit(n)}
-                        className={`flex-1 h-9 rounded-xl text-xs font-black border transition-all ${
-                          editingSplit === n ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-slate-50 text-slate-600 border-slate-200'
+                        onClick={() => {
+                          setEditingMilestoneType(opt.id as any);
+                          setEditingSplit(opt.id === 'custom' ? (editingCustomParts.length === 1 ? 1 : editingCustomParts.length === 3 ? 3 : 2) : opt.split);
+                        }}
+                        className={`p-2.5 rounded-xl text-left border transition-all ${
+                          editingMilestoneType === opt.id
+                            ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300'
                         }`}
                       >
-                        {n === 1 ? '1 Part (100% Full)' : n === 2 ? '2 Parts (50% / 50%)' : '3 Parts (40% / 30% / 30%)'}
+                        <div className="text-[11px] font-black">{opt.label}</div>
+                        <div className={`text-[9px] mt-0.5 ${editingMilestoneType === opt.id ? 'text-white/70' : 'text-slate-400'}`}>{opt.desc}</div>
                       </button>
                     ))}
                   </div>
+
+                  {/* Custom Milestone Part Editor */}
+                  {editingMilestoneType === 'custom' && (
+                    <div className="mt-3 p-3 bg-violet-50 border border-violet-200 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-bold text-violet-700 uppercase">Custom Milestone Parts</p>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-lg ${
+                          Math.abs(editingCustomParts.reduce((s,p) => s + Number(p.percentage||0), 0) - 100) <= 1
+                            ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          Total: {editingCustomParts.reduce((s,p) => s + Number(p.percentage||0), 0)}%
+                        </span>
+                      </div>
+                      {editingCustomParts.map((cp, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={cp.label}
+                            onChange={e => setEditingCustomParts(prev => prev.map((p, i) => i === idx ? { ...p, label: e.target.value } : p))}
+                            placeholder={`Part ${idx+1} label`}
+                            className="flex-1 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                          />
+                          <input
+                            type="number"
+                            min={1}
+                            max={99}
+                            value={cp.percentage || ''}
+                            onChange={e => setEditingCustomParts(prev => prev.map((p, i) => i === idx ? { ...p, percentage: Number(e.target.value) } : p))}
+                            placeholder="%"
+                            className="w-16 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 text-center"
+                          />
+                          {editingCustomParts.length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingCustomParts(prev => prev.filter((_, i) => i !== idx))}
+                              className="p-1 text-slate-400 hover:text-red-500"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {editingCustomParts.length < 5 && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingCustomParts(prev => [...prev, { label: `Part ${prev.length+1}`, percentage: 0 }])}
+                          className="text-[10px] font-bold px-2 py-1 rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200"
+                        >
+                          + Add Part
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Live milestone preview */}
+                  {selectedBilling && (() => {
+                    const total = editingScopeItems.reduce((s, i) => s + Number(i.amount || 0), 0);
+                    const previews: Array<{label:string;pct:number;amount:number}> = editingMilestoneType === 'full'
+                      ? [{ label: 'Full Payment', pct: 100, amount: total }]
+                      : editingMilestoneType === 'advance_30'
+                      ? [
+                          { label: 'Part 1: Advance (30%)', pct: 30, amount: Math.round(total * 0.3) },
+                          { label: 'Part 2: Balance (70%)', pct: 70, amount: total - Math.round(total * 0.3) }
+                        ]
+                      : editingMilestoneType === 'advance_50'
+                      ? [
+                          { label: 'Part 1: Advance (50%)', pct: 50, amount: Math.round(total * 0.5) },
+                          { label: 'Part 2: Balance (50%)', pct: 50, amount: total - Math.round(total * 0.5) }
+                        ]
+                      : editingMilestoneType === 'custom'
+                      ? editingCustomParts.map((cp, i) => ({
+                          label: `Part ${i+1}: ${cp.label} (${cp.percentage}%)`,
+                          pct: cp.percentage,
+                          amount: Math.round(total * (cp.percentage / 100))
+                        }))
+                      : [
+                          { label: 'Part 1: Kickoff (40%)', pct: 40, amount: Math.round(total * 0.4) },
+                          { label: 'Part 2: Milestone (30%)', pct: 30, amount: Math.round(total * 0.3) },
+                          { label: 'Part 3: Handover (30%)', pct: 30, amount: total - Math.round(total * 0.4) - Math.round(total * 0.3) }
+                        ];
+                    return (
+                      <div className="mt-2 space-y-1">
+                        {previews.map((p, i) => (
+                          <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+                            <span className="font-semibold text-slate-700">{p.label}</span>
+                            <span className="font-black text-emerald-700">₹{p.amount.toLocaleString('en-IN')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Scope Breakdown Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase">
+                      Cost Breakdown by Component <span className="text-slate-300 font-normal">(Optional)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowBreakdownSection(v => !v);
+                        if (!showBreakdownSection && editingScopeBreakdown.length === 0) {
+                          setEditingScopeBreakdown([
+                            { id: '1', component: 'UI/UX Design', description: '', amount: 0 },
+                            { id: '2', component: 'Frontend Development', description: '', amount: 0 },
+                            { id: '3', component: 'Backend / API', description: '', amount: 0 },
+                          ]);
+                        }
+                      }}
+                      className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    >
+                      {showBreakdownSection ? 'Hide Breakdown' : '+ Add Cost Breakdown'}
+                    </button>
+                  </div>
+
+                  {showBreakdownSection && (
+                    <div className="space-y-2 p-3 bg-blue-50/40 rounded-xl border border-blue-200">
+                      <p className="text-[10px] text-blue-700 font-semibold mb-1">
+                        Specify how the total project value is split across components (e.g. design, frontend, backend). This is separate from payment milestones.
+                      </p>
+                      {editingScopeBreakdown.map((item, idx) => (
+                        <div key={item.id} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={item.component}
+                            onChange={e => setEditingScopeBreakdown(prev => prev.map((b, i) => i === idx ? { ...b, component: e.target.value } : b))}
+                            placeholder="Component (e.g. Frontend Dev)"
+                            className="flex-1 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            value={item.amount || ''}
+                            onChange={e => setEditingScopeBreakdown(prev => prev.map((b, i) => i === idx ? { ...b, amount: Number(e.target.value) } : b))}
+                            placeholder="Amount ₹"
+                            className="w-28 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-emerald-700"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setEditingScopeBreakdown(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-1 text-slate-400 hover:text-red-500"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEditingScopeBreakdown(prev => [...prev, { id: Date.now().toString(), component: '', description: '', amount: 0 }])}
+                        className="text-[10px] font-bold px-2 py-1 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      >
+                        + Add Component
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Documented Reason for Change (Mandatory) */}
@@ -782,6 +987,9 @@ export const DigitalBilling: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-black text-slate-900">₹{p.configured_amount.toLocaleString('en-IN')}</p>
+                        {(p.amount_received || 0) > 0 && (
+                          <p className="text-[9px] text-emerald-600 font-bold">Rcvd: ₹{(p.amount_received||0).toLocaleString('en-IN')}</p>
+                        )}
                         <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
                           p.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
                           p.status === 'partially_paid' ? 'bg-blue-100 text-blue-700' :
@@ -792,6 +1000,27 @@ export const DigitalBilling: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Cost Breakdown by Component (if configured) */}
+              {selectedBilling.scope_breakdown && selectedBilling.scope_breakdown.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[10px] font-bold uppercase text-slate-400 mb-2">Cost Breakdown by Component</p>
+                  <div className="space-y-1.5">
+                    {selectedBilling.scope_breakdown.map(bd => (
+                      <div key={bd.id} className="flex items-center justify-between p-2 bg-blue-50 rounded-lg border border-blue-100 text-xs">
+                        <span className="font-semibold text-slate-700">{bd.component}</span>
+                        <span className="font-black text-blue-700">₹{Number(bd.amount||0).toLocaleString('en-IN')}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between p-2 bg-blue-100 rounded-lg border border-blue-200 text-xs">
+                      <span className="font-extrabold text-blue-900">Total Components</span>
+                      <span className="font-black text-blue-900">
+                        ₹{selectedBilling.scope_breakdown.reduce((s,b) => s + Number(b.amount||0), 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Controlled Audit Trail */}
               <div>
