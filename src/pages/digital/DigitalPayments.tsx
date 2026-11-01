@@ -226,8 +226,6 @@ export const DigitalPayments: React.FC = () => {
           setExpandedParts(prev => ({ [bData[0].payment_parts[0].id]: true, ...prev }));
         }
       }
-    } catch (error: any) {
-      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }

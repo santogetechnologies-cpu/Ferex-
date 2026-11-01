@@ -1,4 +1,3 @@
-import {getDigitalProjects,getDigitalStaffMembers} from '../../lib/api/digital';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -23,7 +22,6 @@ export const CentralTasks: React.FC = () => {
   const [reassigningTask, setReassigningTask] = useState<Task | null>(null);
   const [reassignStaffName, setReassignStaffName] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [digitalProjects,setDigitalProjects]=useState<any[]>([]);
   const [staffList, setStaffList] = useState<DivisionStaffMember[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,8 +29,7 @@ export const CentralTasks: React.FC = () => {
     title: '',
     description: '',
     division: 'Education',
-    project_id: '',
-    assignee: '',
+    assignee: 'Admissions Lead',
     priority: 'High' as 'High' | 'Medium' | 'Low',
     dueDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
   });
@@ -45,17 +42,14 @@ export const CentralTasks: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [tasksData, allStaff, digitalStaff] = await Promise.all([
+      const [tasksData, staffData] = await Promise.all([
         getTasks(),
-        getDivisionStaff('all'),
-        getDigitalStaffMembers()
+        getDivisionStaff('all')
       ]);
-      const staffData=[...allStaff.filter(s=>s.division!=='digital'),...digitalStaff];
-      setDigitalProjects(await getDigitalProjects());
       setTasks(tasksData || []);
-      setStaffList((staffData || []).filter(s=>/^[0-9a-f-]{36}$/i.test(s.id)));
-      if (staffData && staffData.some(s=>/^[0-9a-f-]{36}$/i.test(s.id)) && !newTask.assignee) {
-        setNewTask(prev => ({ ...prev, assignee: staffData.find(s=>/^[0-9a-f-]{36}$/i.test(s.id))!.name }));
+      setStaffList(staffData || []);
+      if (staffData && staffData.length > 0 && !newTask.assignee) {
+        setNewTask(prev => ({ ...prev, assignee: staffData[0].name }));
       }
     } catch (err: any) {
       console.warn('[CentralTasks load error]:', err);
@@ -124,7 +118,6 @@ export const CentralTasks: React.FC = () => {
         priority: newTask.priority,
         due_date: newTask.dueDate,
         category: newTask.division,
-        project_id: newTask.division === 'Digital' ? newTask.project_id : undefined,
         created_by: 'Central Admin',
       });
 
@@ -134,7 +127,6 @@ export const CentralTasks: React.FC = () => {
         title: '',
         description: '',
         division: 'Education',
-    project_id: '',
         assignee: staffList[0]?.name || 'Admissions Lead',
         priority: 'High',
         dueDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
@@ -494,7 +486,6 @@ export const CentralTasks: React.FC = () => {
                   </div>
                 </div>
 
-                {newTask.division==='Digital'&&<label>Digital project (optional)<select className="w-full border rounded p-2" value={newTask.project_id} onChange={e=>setNewTask({...newTask,project_id:e.target.value})}><option value="">Standalone directive</option>{digitalProjects.map(p=><option key={p.id} value={p.id}>{p.title}</option>)}</select></label>}
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
                   <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Dispatch Task</Button>

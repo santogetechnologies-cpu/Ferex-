@@ -38,9 +38,6 @@ const ROLE_ROUTES: Record<string, string> = {
   staff: '/staff/dashboard',
   counselor: '/staff/dashboard',
   digital: '/digital/dashboard',
-  digital_staff: '/digital/dashboard',
-  designer: '/digital/dashboard',
-  developer: '/digital/dashboard',
   digital_admin: '/digital/dashboard',
   ferex_digital: '/digital/dashboard',
   digital_client: '/digital/client-portal',
@@ -134,12 +131,103 @@ export function isSuperAdmin(role?: string | null, email?: string | null): boole
     }
   }
 
+  if (email) {
+    const cleanEmail = email.toLowerCase().trim();
+
+    // Explicitly non-super emails
+    if (
+      cleanEmail.includes('ferexedu') ||
+      cleanEmail.includes('eduadmin') ||
+      cleanEmail.includes('education_admin') ||
+      cleanEmail.includes('ferextrade') ||
+      cleanEmail.includes('ferexglobal') ||
+      cleanEmail.includes('globaltrade') ||
+      cleanEmail.includes('tradeadmin') ||
+      cleanEmail.includes('trade_admin') ||
+      cleanEmail.includes('trade@') ||
+      cleanEmail.includes('ferexrimi') ||
+      cleanEmail.includes('rimiadmin') ||
+      cleanEmail.includes('rimi_admin') ||
+      cleanEmail.includes('rimi@') ||
+      cleanEmail.includes('ferexdigital') ||
+      cleanEmail.includes('digitaladmin') ||
+      cleanEmail.includes('digital_admin') ||
+      cleanEmail.includes('digital@') ||
+      cleanEmail.includes('digimanager') ||
+      cleanEmail.includes('counselor')
+    ) {
+      return false;
+    }
+
+    // Explicitly super emails
+    if (
+      cleanEmail.includes('superadmin') ||
+      cleanEmail.includes('super_admin') ||
+      cleanEmail.includes('super-admin') ||
+      cleanEmail.includes('ferexadmin') ||
+      cleanEmail.includes('central') ||
+      cleanEmail === 'admin@ferex.com' ||
+      cleanEmail === 'admin@ferexventures.com' ||
+      cleanEmail === 'admin@santoge.com'
+    ) {
+      return true;
+    }
+  }
+
   // Do NOT default to superadmin — unknown roles are NOT super admin
   return false;
 }
 
 export function normalizeRole(role?: string | null, email?: string | null): string {
   if (isSuperAdmin(role, email)) return 'superadmin';
+  if (email) {
+    const cleanEmail = email.toLowerCase().trim();
+    if (
+      cleanEmail.includes('ferextrade') ||
+      cleanEmail.includes('ferexglobal') ||
+      cleanEmail.includes('globaltrade') ||
+      cleanEmail.includes('tradeadmin') ||
+      cleanEmail.includes('trade_admin') ||
+      cleanEmail.includes('trade@')
+    ) {
+      return 'trade_admin';
+    }
+    if (
+      cleanEmail.includes('project_manager') ||
+      cleanEmail.includes('digitalpm') ||
+      cleanEmail.includes('pm@ferex.com') ||
+      cleanEmail.includes('digimanager')
+    ) {
+      return 'project_manager';
+    }
+    if (
+      cleanEmail.includes('ferexdigital') ||
+      cleanEmail.includes('digitaladmin') ||
+      cleanEmail.includes('digital_admin') ||
+      cleanEmail.includes('digital@')
+    ) {
+      return 'digital_admin';
+    }
+    if (
+      cleanEmail.includes('ferexrimi') ||
+      cleanEmail.includes('rimiadmin') ||
+      cleanEmail.includes('rimi_admin') ||
+      cleanEmail.includes('rimi@')
+    ) {
+      return 'rimi_admin';
+    }
+    if (
+      cleanEmail.includes('ferexedu') ||
+      cleanEmail.includes('eduadmin') ||
+      cleanEmail.includes('education_admin') ||
+      cleanEmail.includes('education@')
+    ) {
+      return 'education_admin';
+    }
+    if (cleanEmail.includes('counselor') || cleanEmail.includes('staff')) {
+      return 'staff';
+    }
+  }
   if (!role) return 'student';
   const clean = role.toLowerCase().trim().replace(/[\s-]+/g, '_');
   if (clean === 'pm' || clean === 'digital_pm' || clean === 'digital_project_manager' || clean === 'digital_manager' || clean === 'digimanager') {

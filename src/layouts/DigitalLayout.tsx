@@ -1,4 +1,3 @@
-import { useDigitalPermissions } from '../hooks/usePermissions';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,12 +39,12 @@ const DIGITAL_ADMIN_ROLES = ['digital_admin', 'digital_manager', 'project_manage
 export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
 
   const userRole = profile?.role || '';
   const userName = profile?.full_name || '';
   const userEmail = profile?.email || 'digital@ferex.com';
-  const { isAdmin } = useDigitalPermissions();
+  const isAdmin = DIGITAL_ADMIN_ROLES.includes(userRole);
   const isStaff = !isAdmin;
 
   const roleLabel = isAdmin
@@ -65,10 +64,9 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   const [liveNotifs, setLiveNotifs] = useState<any[]>([]);
 
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
-    return profile?.avatar_url || null;
+    return localStorage.getItem('ferex_digital_profile_photo') || null;
   });
 
-  useEffect(()=>setProfilePhoto(profile?.avatar_url||null),[profile?.avatar_url]);
   const loadNotifs = async () => {
     try {
       const notifs = await getDigitalNotifications();
@@ -187,9 +185,11 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
 
   const navSections = isAdmin ? adminNavSections : staffNavSections;
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/digital/login', { replace: true });
+  const handleLogout = () => {
+    showToastMsg('Signing out from Ferex Digital...');
+    setTimeout(() => {
+      navigate('/');
+    }, 500);
   };
 
   const activeItem = navSections.flatMap(s => s.items).find(i => i.path === location.pathname);

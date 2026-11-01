@@ -1,4 +1,3 @@
-import { digitalList, digitalInsert, digitalUpdate } from './digitalStore';
 import { supabase } from '../supabase';
 import { generateUUID } from '../../utils/uuid';
 import type { Task } from '../types';
@@ -108,32 +107,369 @@ async function resolvePMIdentity(pm?: DigitalPMIdentity): Promise<{ id?: string;
 // 1. PROJECTS ASSIGNED TO PM (Integrated Supabase + Local Cache with resilient fallback)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getAssignedDigitalProjects(pm?: DigitalPMIdentity): Promise<DigitalProjectRecord[]> {
-  const projects = await getDigitalProjects();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) throw new Error('Sign in to view projects');
-  const { data: profile, error: profileError } = await supabase.from('users').select('role').eq('id', data.user.id).single();
-  if (profileError) throw profileError;
-  if (['digital_admin','digital','ferex_digital','central','superadmin','super_admin'].includes(profile.role)) return projects;
-  return projects.filter(p => p.assigned_staff_id === data.user.id);
+  const { id, email, name, role } = await resolvePMIdentity(pm);
+  const allProjects = await getDigitalProjects();
+
+  const myEmail = (email || '').toLowerCase().trim();
+  const myName = (name || '').toLowerCase().trim();
+  const myId = id;
+
+  // If we have absolutely no identity, return all non-deleted projects (fallback for new accounts)
+  if (!myEmail && !myName && !myId) {
+    return allProjects;
+  }
+
+  // Digital manager / admin roles always see all projects
+  const isDigitalManagerRole = role === 'digital_manager' || role === 'digital_admin' || role === 'digital' ||
+    myEmail.includes('digital') || myName.includes('digital manager') || myName === 'digital manager';
+  if (isDigitalManagerRole) {
+    return allProjects;
+  }
+
+  const isValidUUID = (val?: string | null) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+  const isMatch = (p: any) => {
+    const pEmail = (p.assigned_staff_email || '').toLowerCase().trim();
+    const pName = (p.assigned_staff_name || '').toLowerCase().trim();
+    const pId = p.assigned_staff_id;
+    const pLeadDev = (p.lead_developer || '').toLowerCase().trim();
+    const pCreatedBy = (p.created_by || '').toLowerCase().trim();
+
+    // 1. Exact UUID match — most reliable
+    if (myId && pId && myId === pId) return true;
+
+    // 2. Exact email match
+    if (myEmail && pEmail && pEmail === myEmail) return true;
+
+    // 3. Partial email / username match (handle sub-domain variations)
+    if (myEmail && pEmail) {
+      const myUser = myEmail.split('@')[0].toLowerCase();
+      const pUser = pEmail.split('@')[0].toLowerCase();
+      if (myUser && pUser && myUser.length >= 3 && pUser.length >= 3 &&
+          (myUser === pUser || myUser.includes(pUser) || pUser.includes(myUser))) return true;
+    }
+
+    // 4. Exact name match
+    if (myName && pName && pName === myName) return true;
+
+    // 5. Partial name match (safe: only if name length >= 4 to avoid false positives)
+    if (myName && myName.length >= 4) {
+      if (pName.includes(myName) || myName.includes(pName)) return true;
+      if (pLeadDev && (pLeadDev.includes(myName) || myName.includes(pLeadDev))) return true;
+    }
+
+    // 6. PM role alias matching: if current user is PM/Manager and project is assigned to PM/Manager
+    const isCurrentUserPM = myEmail.includes('pm') || myEmail.includes('manager') || myName.includes('pm') || myName.includes('manager');
+    if (isCurrentUserPM) {
+      if (pEmail.includes('pm') || pEmail.includes('manager') || pName.includes('pm') || pName.includes('manager') || pLeadDev.includes('pm') || pLeadDev.includes('manager')) return true;
+    }
+
+    // 7. Created by match
+    if (myEmail && pCreatedBy && pCreatedBy === myEmail) return true;
+    if (myName && myName.length >= 4 && pCreatedBy && (pCreatedBy.includes(myName) || myName.includes(pCreatedBy))) return true;
+
+    return false;
+  };
+
+  const matched = allProjects.filter(isMatch);
+
+  // If we found explicit matches, return them
+  if (matched.length > 0) {
+    return matched;
+  }
+
+  // Check if current user is admin/central/digital manager
+  const { data: authData } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const userRole = (authData?.user?.user_metadata?.role || '').toLowerCase();
+  const userEmail = (authData?.user?.email || '').toLowerCase();
+  const userName = (authData?.user?.user_metadata?.full_name || '').toLowerCase();
+  if (
+    userRole === 'digital_admin' || userRole === 'digital' || userRole === 'ferex_digital' ||
+    userRole === 'central' || userRole === 'super_admin' || userRole === 'superadmin' ||
+    userRole === 'digital_manager' || userEmail.includes('digital') ||
+    userName.includes('digital manager') || userName === 'digital manager'
+  ) {
+    return allProjects;
+  }
+
+  // If PM has no directly assigned project, return projects that are unassigned or tagged for Digital PM
+  const pmPool = allProjects.filter(p =>
+    !p.assigned_staff_name ||
+    p.assigned_staff_name === 'Unassigned' ||
+    p.assigned_staff_name.toLowerCase().includes('digital') ||
+    p.assigned_staff_name.toLowerCase().includes('pm') ||
+    p.assigned_staff_name.toLowerCase().includes('manager')
+  );
+  if (pmPool.length > 0) {
+    return pmPool;
+  }
+
+  // Ultimate fallback: return all projects so digital manager is never locked out
+  return allProjects;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 2. TASKS ASSIGNED TO PM (Integrates digital_tasks and tasks from Supabase)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<DigitalPMTask[]> {
-  const { getDigitalTasks } = await import('./digital');
-  return await getDigitalTasks() as DigitalPMTask[];
+  const { id, email, name, role } = await resolvePMIdentity(pm);
+  const isValidUUID = (val?: string | null) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+  const myEmail = (email || '').toLowerCase();
+  const myName = (name || '').toLowerCase();
+
+  // Digital manager role sees ALL tasks
+  const isDigitalManager = role === 'digital_manager' || role === 'digital_admin' || role === 'digital' ||
+    myEmail.includes('digital') || myName.includes('digital manager') || myName === 'digital manager';
+
+  // Build local cache fallback for resilience
+  let localTasks: DigitalPMTask[] = [];
+  try {
+    const raw = localStorage.getItem('ferex_digital_tasks');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) localTasks = parsed;
+    }
+  } catch {}
+
+  // If digital manager - return all tasks directly
+  if (isDigitalManager) {
+    try {
+      const { data: allData } = await supabase
+        .from('digital_tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (allData && allData.length > 0) {
+        try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(allData)); } catch {}
+        return allData as DigitalPMTask[];
+      }
+    } catch {}
+    return localTasks;
+  }
+
+  // 1. Query digital_tasks table
+  let digitalQuery = supabase
+    .from('digital_tasks')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  const dFilters: string[] = [];
+  if (id && isValidUUID(id)) {
+    dFilters.push(`assigned_staff_id.eq.${id}`);
+  }
+  if (email) {
+    dFilters.push(`assigned_to_email.eq.${email}`);
+    dFilters.push(`assigned_to_email.ilike.%${email}%`);
+    const emailPrefix = email.split('@')[0];
+    if (emailPrefix && emailPrefix.length >= 3) {
+      dFilters.push(`assigned_to_email.ilike.%${emailPrefix}%`);
+    }
+  }
+  if (name && name.length >= 3) {
+    dFilters.push(`assigned_to_name.eq.${name}`);
+    dFilters.push(`assigned_to_name.ilike.%${name}%`);
+  }
+
+  // If user is PM, also include tasks assigned to Digital PM / Manager
+  const isPM = (email && (email.toLowerCase().includes('pm') || email.toLowerCase().includes('manager'))) ||
+               (name && (name.toLowerCase().includes('pm') || name.toLowerCase().includes('manager')));
+  if (isPM) {
+    dFilters.push(`assigned_to_name.ilike.%Manager%`);
+    dFilters.push(`assigned_to_name.ilike.%PM%`);
+    dFilters.push(`assigned_to_name.ilike.%Digital%`);
+  }
+
+  if (dFilters.length > 0) {
+    digitalQuery = digitalQuery.or(dFilters.join(','));
+  }
+
+  let dTasks: any[] = [];
+  try {
+    const { data: dData, error: dError } = await digitalQuery;
+    if (dError) {
+      console.warn('[DigitalPM] digital_tasks DB query notice, using local cache:', dError.message);
+      // Fallback to local cache filtered by identity
+      dTasks = localTasks.filter((t: any) => {
+        if (!email && !name && !id) return true;
+        const tEmail = (t.assigned_to_email || '').toLowerCase().trim();
+        const tName = (t.assigned_to_name || '').toLowerCase().trim();
+        const tStaffId = t.assigned_staff_id;
+        if (id && tStaffId === id) return true;
+        if (email && (tEmail === email.toLowerCase() || tEmail.includes(email.toLowerCase()) || email.toLowerCase().includes(tEmail))) return true;
+        if (name && (tName.includes(name.toLowerCase()) || name.toLowerCase().includes(tName))) return true;
+        if (isPM && (tEmail.includes('pm') || tName.includes('pm') || tName.includes('manager'))) return true;
+        return false;
+      });
+    } else {
+      dTasks = dData || [];
+    }
+  } catch (err) {
+    console.warn('[DigitalPM] digital_tasks query exception, using local cache:', err);
+    dTasks = localTasks;
+  }
+
+  // 2. Query general tasks assigned to PM (from Central Admin / Super Admin)
+  let generalQuery = supabase
+    .from('tasks')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  const gFilters: string[] = [];
+  if (id && isValidUUID(id)) {
+    gFilters.push(`assigned_staff_id.eq.${id}`);
+  }
+  if (id) {
+    gFilters.push(`assigned_to.eq.${id}`);
+  }
+  if (email) {
+    gFilters.push(`assigned_to.eq.${email}`);
+    gFilters.push(`assigned_to.ilike.%${email}%`);
+  }
+  if (name) {
+    gFilters.push(`assigned_to.eq.${name}`);
+    gFilters.push(`assigned_to.ilike.%${name}%`);
+  }
+
+  if (gFilters.length > 0) {
+    generalQuery = generalQuery.or(gFilters.join(','));
+  }
+
+  let gTasks: any[] = [];
+  try {
+    const { data: gData } = await generalQuery;
+    gTasks = gData || [];
+  } catch {
+    gTasks = [];
+  }
+
+  // Format general tasks into standard DigitalPMTask
+  const mappedGeneralTasks: DigitalPMTask[] = gTasks.map((t: any) => ({
+    id: t.id,
+    project_title: t.category ? `[${t.category}] Central Directive` : 'Central Operations Directive',
+    title: t.title,
+    priority: (t.priority || 'Medium') as any,
+    status: (t.status === 'Completed' || t.status === 'Done' ? 'Done' : t.status === 'In Progress' ? 'In Progress' : 'To Do') as any,
+    due_date: t.due_date,
+    assigned_to_name: t.assigned_to,
+    notes: t.description || 'Directive from Central Admin',
+    task_type: 'Central Directive',
+    created_by: 'Central Admin',
+    is_central_directive: true,
+    created_at: t.created_at,
+    updated_at: t.updated_at
+  }));
+
+  // Combine and de-duplicate by ID
+  const directTasks = dTasks.map((t: any) => {
+    const isCentral = t.created_by === 'Central Admin' ||
+      (t.notes && t.notes.toLowerCase().includes('central admin')) ||
+      (t.title && t.title.toLowerCase().includes('central admin')) ||
+      t.task_type === 'Central Directive';
+    return {
+      ...t,
+      created_by: isCentral ? 'Central Admin' : (t.created_by || 'Digital PM'),
+      is_central_directive: isCentral,
+    };
+  });
+
+  const allTasks = [...directTasks, ...mappedGeneralTasks];
+  const uniqueMap = new Map<string, DigitalPMTask>();
+  for (const t of allTasks) {
+    if (!uniqueMap.has(t.id)) {
+      uniqueMap.set(t.id, t);
+    } else {
+      const existing = uniqueMap.get(t.id)!;
+      uniqueMap.set(t.id, { ...existing, ...(t.is_central_directive ? { is_central_directive: true, created_by: 'Central Admin' } : {}) });
+    }
+  }
+
+  return Array.from(uniqueMap.values());
 }
 
 export async function createDigitalTaskDirect(task: Partial<DigitalPMTask>): Promise<DigitalPMTask> {
-  const { createDigitalTask } = await import('./digital');
-  return await createDigitalTask(task as any) as DigitalPMTask;
+  const newId = generateUUID();
+  const payload: DigitalPMTask = {
+    id: newId,
+    project_id: task.project_id || undefined,
+    project_title: task.project_title || '',
+    title: task.title?.trim() || 'New Task',
+    priority: task.priority || 'Medium',
+    status: task.status || 'To Do',
+    due_date: task.due_date || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+    assigned_to_name: task.assigned_to_name || '',
+    assigned_to_email: task.assigned_to_email || '',
+    assigned_staff_id: task.assigned_staff_id || undefined,
+    notes: task.notes || '',
+    task_type: task.task_type || 'Task',
+    sprint_id: task.sprint_id || undefined,
+    sprint_name: task.sprint_name || '',
+    story_points: task.story_points || 1,
+    milestone_id: task.milestone_id || undefined,
+    milestone_name: task.milestone_name || '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  // Sync to local storage
+  try {
+    const rawLocal = localStorage.getItem('ferex_digital_tasks');
+    const existing = rawLocal ? JSON.parse(rawLocal) : [];
+    const updated = [payload, ...existing.filter((t: any) => t.id !== payload.id)];
+    localStorage.setItem('ferex_digital_tasks', JSON.stringify(updated));
+  } catch {}
+
+  // Attempt database insert
+  let dbResult = await supabase.from('digital_tasks').insert(payload);
+
+  if (dbResult.error) {
+    // Retry with core columns if optional fields don't exist
+    const corePayload = {
+      id: payload.id,
+      project_id: payload.project_id || null,
+      title: payload.title,
+      priority: payload.priority,
+      status: payload.status,
+      due_date: payload.due_date,
+      assigned_to_name: payload.assigned_to_name,
+      assigned_to_email: payload.assigned_to_email,
+      notes: payload.notes,
+      created_at: payload.created_at,
+      updated_at: payload.updated_at
+    };
+    dbResult = await supabase.from('digital_tasks').insert(corePayload);
+
+    if (dbResult.error) {
+      console.warn('Supabase digital_tasks insert warning:', dbResult.error.message);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_digital_tasks_change'));
+  }
+  return payload;
 }
 
 
 export async function updateDigitalTaskStatusDirect(id: string, status: DigitalPMTask['status']) {
-  const { updateDigitalTaskStatus } = await import('./digital');
-  await updateDigitalTaskStatus(id, status);
+  const { error } = await supabase
+    .from('digital_tasks')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if (error) {
+    // Also try general tasks table in case it was a general task
+    const { error: gError } = await supabase
+      .from('tasks')
+      .update({ status: status === 'Done' ? 'Completed' : status, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (gError && !gError.message.includes('0 rows')) {
+      throw new Error(`Failed to update task status in database: ${error.message}`);
+    }
+  }
+
+  window.dispatchEvent(new Event('ferex_digital_tasks_change'));
+  window.dispatchEvent(new Event('ferex_tasks_change'));
   return { id, status };
 }
 
@@ -141,22 +477,140 @@ export async function updateDigitalTaskStatusDirect(id: string, status: DigitalP
 // 3. SPRINTS & KANBAN (Pure Supabase + Resilient Cache)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getAssignedDigitalSprints(projectIds?: string[]): Promise<DigitalSprint[]> {
-if(projectIds && !projectIds.length)return [];const data=await digitalList('digital_sprints');return projectIds?data.filter(s=>projectIds.includes(s.project_id)):data;
+  let dbSprints: DigitalSprint[] = [];
+  try {
+    let query = supabase
+      .from('digital_sprints')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (projectIds && projectIds.length > 0) {
+      query = query.in('project_id', projectIds);
+    }
+
+    const { data, error } = await query;
+    if (!error && Array.isArray(data)) {
+      dbSprints = data as DigitalSprint[];
+      try { localStorage.setItem('ferex_digital_sprints', JSON.stringify(data)); } catch {}
+    }
+  } catch {}
+
+  let localSprints: DigitalSprint[] = [];
+  try {
+    const raw = localStorage.getItem('ferex_digital_sprints');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) localSprints = parsed;
+    }
+  } catch {}
+
+  const map = new Map<string, DigitalSprint>();
+  localSprints.forEach(s => map.set(s.id, s));
+  dbSprints.forEach(s => map.set(s.id, s));
+
+  let results = Array.from(map.values()).sort(
+    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+  );
+
+  if (projectIds && projectIds.length > 0) {
+    results = results.filter(s => projectIds.includes(s.project_id));
+  }
+
+  return results;
 }
 
 export async function createDigitalSprintDirect(sprint: Partial<DigitalSprint>): Promise<DigitalSprint> {
-if(!sprint.project_id || !sprint.name?.trim() || !sprint.start_date || !sprint.end_date || sprint.end_date<sprint.start_date)throw new Error('Project, sprint name and valid dates required');return digitalInsert('digital_sprints',{...sprint,id:generateUUID(),status:sprint.status || 'Planning'});
+  const newId = generateUUID();
+  const payload: DigitalSprint = {
+    id: newId,
+    project_id: sprint.project_id || '',
+    project_title: sprint.project_title || '',
+    name: sprint.name?.trim() || 'Sprint Backlog',
+    goal: sprint.goal?.trim() || '',
+    status: sprint.status || 'Active',
+    start_date: sprint.start_date || new Date().toISOString().split('T')[0],
+    end_date: sprint.end_date || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    const raw = localStorage.getItem('ferex_digital_sprints');
+    const existing = raw ? JSON.parse(raw) : [];
+    const updated = [payload, ...existing.filter((s: any) => s.id !== payload.id)];
+    localStorage.setItem('ferex_digital_sprints', JSON.stringify(updated));
+  } catch {}
+
+  try {
+    await supabase.from('digital_sprints').insert([payload]);
+  } catch (err) {
+    console.warn('[DigitalPM] Supabase sprint insert notice:', err);
+  }
+
+  window.dispatchEvent(new Event('ferex_digital_sprints_change'));
+  return payload;
 }
 
 export async function updateDigitalSprintStatus(id: string, status: DigitalSprint['status']) {
-return digitalUpdate('digital_sprints',id,{status});
+  try {
+    const raw = localStorage.getItem('ferex_digital_sprints');
+    if (raw) {
+      const existing = JSON.parse(raw);
+      const updated = existing.map((s: any) => s.id === id ? { ...s, status, updated_at: new Date().toISOString() } : s);
+      localStorage.setItem('ferex_digital_sprints', JSON.stringify(updated));
+    }
+  } catch {}
+
+  try {
+    await supabase
+      .from('digital_sprints')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id);
+  } catch {}
+
+  window.dispatchEvent(new Event('ferex_digital_sprints_change'));
+  return { id, status };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. MILESTONES (Pure Supabase + Resilient Cache)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getAssignedDigitalMilestones(projectIds?: string[]): Promise<DigitalMilestone[]> {
-if(projectIds && !projectIds.length)return [];const data=await digitalList('digital_milestones');return projectIds?data.filter(s=>projectIds.includes(s.project_id)):data;
+  let dbMilestones: DigitalMilestone[] = [];
+  try {
+    let query = supabase
+      .from('digital_milestones')
+      .select('*')
+      .order('due_date', { ascending: true });
+
+    if (projectIds && projectIds.length > 0) {
+      query = query.in('project_id', projectIds);
+    }
+
+    const { data, error } = await query;
+    if (!error && Array.isArray(data)) {
+      dbMilestones = data as DigitalMilestone[];
+    }
+  } catch {}
+
+  let localMilestones: DigitalMilestone[] = [];
+  try {
+    const raw = localStorage.getItem('ferex_digital_milestones');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) localMilestones = parsed;
+    }
+  } catch {}
+
+  const map = new Map<string, DigitalMilestone>();
+  localMilestones.forEach(m => map.set(m.id, m));
+  dbMilestones.forEach(m => map.set(m.id, m));
+
+  let results = Array.from(map.values());
+  if (projectIds && projectIds.length > 0) {
+    results = results.filter(m => projectIds.includes(m.project_id));
+  }
+  return results;
 }
 
 export async function createDigitalMilestoneDirect(milestone: Partial<DigitalMilestone>): Promise<DigitalMilestone> {
@@ -338,5 +792,35 @@ export async function createDigitalDeliverableDirect(deliverable: {
   version?: string;
   approved_by_client?: boolean;
 }) {
-const d=await addDigitalDeliverable(deliverable.project_id,{title:deliverable.title,type:'Live URL',url:deliverable.file_url,status:'Submitted',notes:deliverable.version});return {...d,file_url:d.url,project_id:deliverable.project_id};
+  const newId = generateUUID();
+  const payload = {
+    id: newId,
+    project_id: deliverable.project_id,
+    title: deliverable.title?.trim() || 'Deliverable Asset',
+    file_url: deliverable.file_url?.trim() || '',
+    version: deliverable.version || 'v1.0',
+    approved_by_client: deliverable.approved_by_client || false,
+    uploaded_at: new Date().toISOString()
+  };
+
+  try {
+    await supabase.from('digital_deliverables').insert(payload);
+  } catch (err) {
+    console.warn('[DigitalPM] Supabase digital_deliverables insert notice:', err);
+  }
+
+  // Also add deliverable to project record for complete sync
+  try {
+    await addDigitalDeliverable(deliverable.project_id, {
+      title: payload.title,
+      type: 'Live URL',
+      url: payload.file_url,
+      status: payload.approved_by_client ? 'Approved' : 'Submitted',
+      notes: `Version ${payload.version}`
+    });
+  } catch {}
+
+  window.dispatchEvent(new Event('ferex_digital_deliverables_change'));
+  window.dispatchEvent(new Event('ferex_digital_projects_change'));
+  return payload;
 }

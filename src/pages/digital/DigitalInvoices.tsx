@@ -334,8 +334,6 @@ export const DigitalInvoices: React.FC = () => {
       setClients(clientData || []);
       setAllProjects(projData || []);
       setInvoices(invData || []);
-    } catch (error: any) {
-      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }
@@ -398,7 +396,7 @@ export const DigitalInvoices: React.FC = () => {
   const totalTaxAmount = Math.round(totalInvoiceAmount * 0.18);
   const grandTotal = totalInvoiceAmount + totalTaxAmount;
 
-  const handleAddMultiInvoice = async (e: React.FormEvent) => { try {
+  const handleAddMultiInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newInvClient || invoiceItems.length === 0) return;
 
@@ -424,17 +422,15 @@ export const DigitalInvoices: React.FC = () => {
       { projectId: '', projectTitle: 'Core Platform Architecture & UI', description: 'Sprint 1 & Sprint 2 deliverable milestones', amount: 150000 }
     ]);
     await loadData();
+  };
 
-} catch(error: any) { setToast(error.message || 'Operation failed'); } };
-
-  const handleTogglePaid = async (inv: any) => { try {
+  const handleTogglePaid = async (inv: any) => {
     if (!isAdmin && !isCentral) return;
     const nextStatus = inv.status === 'Paid' ? 'Sent' : 'Paid';
     await updateDigitalInvoiceStatus(inv.id, nextStatus);
     setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: nextStatus } : i));
     showToast(`Invoice ${inv.invoice_no || inv.id} marked as ${nextStatus}`);
-
-} catch(error: any) { setToast(error.message || 'Operation failed'); } };
+  };
 
   const handleDelete = async (id: string) => {
     if (!canDelete) return;

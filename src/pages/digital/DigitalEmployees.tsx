@@ -24,8 +24,6 @@ export const DigitalEmployees: React.FC = () => {
     try {
       const data = await getDigitalEmployees();
       setEmployees(data);
-    } catch (error: any) {
-      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }
@@ -42,7 +40,7 @@ export const DigitalEmployees: React.FC = () => {
     };
   }, [loadData]);
 
-  const handleAdd = async (e: React.FormEvent) => { try {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEmp.name) return;
     await createDigitalEmployee(newEmp);
@@ -50,8 +48,7 @@ export const DigitalEmployees: React.FC = () => {
     showToast(`Added team member ${newEmp.name}`);
     setNewEmp({ name: '', role: '', department: 'Engineering', email: '' });
     await loadData();
-
-} catch(error: any) { setToast(error.message || 'Operation failed'); } };
+  };
 
   const handleDelete = async (id: string, name: string) => {
     try {

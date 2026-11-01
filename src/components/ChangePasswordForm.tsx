@@ -26,7 +26,7 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
+  
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -69,8 +69,49 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
     setLoading(true);
 
     try {
-      const result=await updatePassword(newPassword);
-      if(result.error)throw new Error(result.error);
+      // 1. Try Supabase Auth client update
+      let authSuccess = false;
+      const res = await updatePassword(newPassword);
+      if (!res.error) {
+        authSuccess = true;
+      } else {
+        // Direct Supabase updateUser fallback
+        const { error: directErr } = await supabase.auth.updateUser({ password: newPassword });
+        if (!directErr) {
+          authSuccess = true;
+        } else {
+          // 2. Admin API fallback if available
+          const admin = await getAdminSupabaseClient();
+          const targetId = user?.id || profile?.id;
+          if (admin && targetId) {
+            const { error: adminErr } = await admin.auth.admin.updateUserById(targetId, { password: newPassword });
+            if (!adminErr) {
+              authSuccess = true;
+            } else {
+              throw new Error(adminErr.message || directErr.message || res.error);
+            }
+          } else {
+            throw new Error(directErr.message || res.error);
+          }
+        }
+      }
+
+      // 3. Update local credential cache if user was provisioned via staff registry
+      const userEmail = profile?.email || user?.email;
+      if (userEmail) {
+        const localKey = `ferex_admin_cred_${userEmail.toLowerCase()}`;
+        const localCred = localStorage.getItem(localKey);
+        if (localCred) {
+          try {
+            const parsed = JSON.parse(localCred);
+            parsed.password = newPassword;
+            parsed.require_password_reset = false;
+            parsed.updated_at = new Date().toISOString();
+            localStorage.setItem(localKey, JSON.stringify(parsed));
+          } catch {}
+        }
+      }
+
       // 4. Update public.users record timestamp if logged in
       if (user?.id) {
         try {

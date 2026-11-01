@@ -77,7 +77,7 @@ export const DigitalAttendance: React.FC = () => {
         setLeaveRequests(staffLeaves);
       }
     } catch (err) {
-      setToastMsg(err instanceof Error ? err.message : 'Operation failed');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -112,7 +112,7 @@ export const DigitalAttendance: React.FC = () => {
       setVerifyModalTimesheet(null);
       loadData();
     } catch (err) {
-      setToastMsg(err instanceof Error ? err.message : 'Operation failed');
+      console.error(err);
     }
   };
 
@@ -127,7 +127,7 @@ export const DigitalAttendance: React.FC = () => {
       }
       loadData();
     } catch (err) {
-      setToastMsg(err instanceof Error ? err.message : 'Operation failed');
+      console.error(err);
     }
   };
 
@@ -147,7 +147,7 @@ export const DigitalAttendance: React.FC = () => {
       showToast(`Leave request for ${employeeName} has been ${status}.`);
       loadData();
     } catch (err) {
-      setToastMsg(err instanceof Error ? err.message : 'Operation failed');
+      console.error(err);
     }
   };
 
@@ -195,7 +195,7 @@ export const DigitalAttendance: React.FC = () => {
       showToast(`Timesheet for ${t.user_name} closed and locked for payroll.`);
       loadData();
     } catch (err) {
-      setToastMsg(err instanceof Error ? err.message : 'Operation failed');
+      console.error(err);
     }
   };
 

@@ -44,7 +44,7 @@ export const DigitalTasks: React.FC = () => {
   const [newTask, setNewTask] = useState({
     title: '',
     project_id: '',
-    assigned_to: profile?.id || '',
+    assigned_to: profile?.full_name || 'Digital Project Manager',
     assigned_to_email: profile?.email || 'pm@ferex.com',
     priority: 'Medium',
     due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
@@ -76,12 +76,10 @@ export const DigitalTasks: React.FC = () => {
       if (staffData && staffData.length > 0 && !newTask.assigned_to) {
         setNewTask(prev => ({
           ...prev,
-          assigned_to: isStaff ? (profile?.id || staffData[0].id) : staffData[0].id,
+          assigned_to: isStaff ? (profile?.full_name || staffData[0].name) : staffData[0].name,
           assigned_to_email: isStaff ? (profile?.email || staffData[0].email) : staffData[0].email
         }));
       }
-    } catch (error: any) {
-      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }
@@ -110,7 +108,7 @@ export const DigitalTasks: React.FC = () => {
     };
   }, [loadData]);
 
-  const handleAdd = async (e: React.FormEvent) => { try {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
@@ -125,8 +123,8 @@ export const DigitalTasks: React.FC = () => {
     }
 
     const selectedProj = projects.find(p => p.id === newTask.project_id);
-    const assignedName = staffList.find(s=>s.id===newTask.assigned_to)?.name || newTask.assigned_to || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Staff'));
-    const matchedStaff = staffList.find(s => s.id === newTask.assigned_to || s.name === assignedName);
+    const assignedName = newTask.assigned_to || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Staff'));
+    const matchedStaff = staffList.find(s => s.name === assignedName);
     const assignedEmail = matchedStaff?.email || newTask.assigned_to_email || profile?.email || 'pm@ferex.com';
 
     const created = await createDigitalTask({
@@ -148,14 +146,13 @@ export const DigitalTasks: React.FC = () => {
     setNewTask({
       title: '',
       project_id: '',
-      assigned_to: profile?.id || staffList[0]?.id || '',
+      assigned_to: profile?.full_name || (staffList.length > 0 ? staffList[0].name : 'Digital Project Manager'),
       assigned_to_email: profile?.email || (staffList.length > 0 ? staffList[0].email : 'pm@ferex.com'),
       priority: taskPriorities[0] || 'Medium',
       due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
       notes: ''
     });
-
-} catch(error: any) { setToast(error.message || 'Operation failed'); } };
+  };
 
   const handleToggleStatus = async (task: any) => {
     try {
@@ -286,7 +283,7 @@ export const DigitalTasks: React.FC = () => {
                 <option value="All">All Assigned Staff</option>
                 <option value="ME">Assigned to Me</option>
                 {staffList.map((s: any) => (
-                  <option key={s.id || s.email} value={s.id}>{s.name}</option>
+                  <option key={s.id || s.email} value={s.name}>{s.name}</option>
                 ))}
               </select>
             )}
@@ -591,7 +588,7 @@ export const DigitalTasks: React.FC = () => {
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     >
                       {staffList.map((s: any) => (
-                        <option key={s.id || s.email} value={s.id}>
+                        <option key={s.id || s.email} value={s.name}>
                           {s.name} ({s.roleLabel || s.role || 'Staff'}) · {s.email}
                         </option>
                       ))}

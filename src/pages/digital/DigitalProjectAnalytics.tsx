@@ -29,8 +29,6 @@ export const DigitalProjectAnalytics: React.FC = () => {
       setProjects(projData || []);
       setTasks(taskData || []);
       setEmployees(empData || []);
-    } catch (error: any) {
-      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }

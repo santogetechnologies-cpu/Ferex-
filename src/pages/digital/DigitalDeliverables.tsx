@@ -19,7 +19,6 @@ import {
   type DigitalDeliverable
 } from '../../lib/api/digital';
 import { getMasters } from '../../lib/api/masters';
-import { supabase } from '../../lib/supabase';
 
 interface EnrichedDeliverable extends DigitalDeliverable {
   project_id: string;
@@ -74,8 +73,6 @@ export const DigitalDeliverables: React.FC = () => {
         'Design Files', 'Figma Link', 'Google Drive', 'Website URL',
         'Final Assets', 'Video Reel', 'PDF / Document', 'GitHub / Code'
       ]);
-    } catch (error: any) {
-      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }
@@ -371,12 +368,6 @@ export const DigitalDeliverables: React.FC = () => {
                     Open Asset <ExternalLink className="w-3.5 h-3.5" />
                   </a>
 
-                  {isAdmin && (
-                    <button className="text-xs font-bold text-emerald-700" onClick={async()=>{
-                      const {error}=await supabase.rpc('digital_review_deliverable',{p_project:deliv.project_id,p_deliverable:deliv.id,p_status:deliv.status==='Approved'?'Submitted':'Approved'});
-                      if(error){showToastMsg(error.message);return;}await loadData();
-                    }}>{deliv.status==='Approved'?'Reopen review':'Approve'}</button>
-                  )}
                   {isAdmin && (
                     <button
                       onClick={() => handleDeleteDeliverable(deliv.project_id, deliv.id)}

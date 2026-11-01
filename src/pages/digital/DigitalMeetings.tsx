@@ -1,4 +1,3 @@
-import { meetingTimestamp } from '../../lib/digitalTime';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -56,7 +55,7 @@ export const DigitalMeetings: React.FC = () => {
     date_display: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     platform: 'Google Meet' as 'Google Meet' | 'Zoom' | 'Microsoft Teams' | 'In-Person',
     meeting_type: 'Discovery Call',
-    meeting_url: '',
+    meeting_url: 'https://meet.google.com/fer-dig-rev',
     agenda: '',
     notes: '',
     digital_manager_name: 'digital manager',
@@ -115,7 +114,7 @@ export const DigitalMeetings: React.FC = () => {
         host_staff_email: newMtg.host_staff_email || profile?.email || 'digital@ferex.com',
         time_display: newMtg.time_display,
         date_display: newMtg.date_display,
-        scheduled_at: meetingTimestamp(newMtg.date_display, newMtg.time_display),
+        scheduled_at: `${newMtg.date_display}T12:00:00.000Z`,
         platform: newMtg.platform,
         meeting_type: newMtg.meeting_type,
         meeting_url: newMtg.meeting_url,

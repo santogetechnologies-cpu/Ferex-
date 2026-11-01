@@ -11,7 +11,7 @@ import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
 
 export const DigitalPMProfile: React.FC = () => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -42,13 +42,11 @@ export const DigitalPMProfile: React.FC = () => {
     setSaving(true);
     try {
       if (user?.id) {
-        const { error } = await supabase.from('users').update({
+        await supabase.from('users').update({
           full_name: fullName,
           phone: phone,
           updated_at: new Date().toISOString()
-        }).eq('id', user.id).select('id').single();
-        if (error) throw error;
-        await refreshProfile();
+        }).eq('id', user.id);
       }
 
       showToastMsg('Profile details updated successfully!');

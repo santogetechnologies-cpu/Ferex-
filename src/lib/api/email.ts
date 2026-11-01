@@ -57,7 +57,7 @@ export async function getActiveResendConfig(division: 'education' | 'trade' | 'r
 
   // Check environment variables as secondary source
   if (!apiKey) {
-    apiKey = ''; // Provider credentials belong in server function secrets.
+    apiKey = (import.meta.env.VITE_RESEND_API_KEY as string) || '';
   }
 
   let formattedFrom = `${senderName} <${senderEmail}>`;

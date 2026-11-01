@@ -63,8 +63,6 @@ export const DigitalStaff: React.FC = () => {
       ]);
       setStaffList(staffData || []);
       setProjects(projData || []);
-    } catch (error: any) {
-      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }

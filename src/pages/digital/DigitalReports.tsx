@@ -50,8 +50,6 @@ export const DigitalReports: React.FC = () => {
       setClients(clientData || []);
       setEmployees(empData || []);
       setAssets(assetData || []);
-    } catch (error: any) {
-      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }
