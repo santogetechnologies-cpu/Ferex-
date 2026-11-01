@@ -668,7 +668,17 @@ export async function assignDigitalProject(
 }
 
 export async function reassignDigitalProject(projectId: string, leadName: string, staffEmail?: string, staffId?: string): Promise<boolean> {
-  const isValidUUID = (id?: string | null) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const isRealUUID = (id?: string | null) =>
+    typeof id === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) &&
+    !id.startsWith('11111111') &&
+    !id.startsWith('22222222') &&
+    !id.startsWith('33333333') &&
+    !id.startsWith('44444444');
+
+  const resolvedStaffId = isRealUUID(staffId) ? staffId : null;
+  const resolvedEmail = staffEmail || `${leadName.toLowerCase().replace(/\s+/g, '.')}@ferex.com`;
+
   // Update local cache
   try {
     const current = await getDigitalProjects();
@@ -676,34 +686,48 @@ export async function reassignDigitalProject(projectId: string, leadName: string
       ...p,
       lead_developer: leadName,
       assigned_staff_name: leadName,
-      assigned_staff_email: staffEmail || `${leadName.toLowerCase().replace(/\s+/g, '.')}@ferex.com`,
-      assigned_staff_id: isValidUUID(staffId) ? staffId : p.assigned_staff_id,
+      assigned_staff_email: resolvedEmail,
+      assigned_staff_id: resolvedStaffId || p.assigned_staff_id,
       updated_at: new Date().toISOString()
     } : p);
     try { localStorage.setItem('ferex_digital_projects', JSON.stringify(updated)); } catch {}
   } catch {}
 
   try {
+    const updatePayload: any = {
+      lead_developer: leadName,
+      assigned_staff_name: leadName,
+      assigned_staff_email: resolvedEmail,
+      updated_at: new Date().toISOString()
+    };
+    if (resolvedStaffId) {
+      updatePayload.assigned_staff_id = resolvedStaffId;
+    }
+
     const { error } = await supabase
       .from('digital_projects')
-      .update({
-        lead_developer: leadName,
-        assigned_staff_name: leadName,
-        assigned_staff_email: staffEmail || `${leadName.toLowerCase().replace(/\s+/g, '.')}@ferex.com`,
-        assigned_staff_id: isValidUUID(staffId) ? staffId : null,
-        updated_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('id', projectId);
 
     if (error) {
-      console.warn('[DigitalAPI] Could not update supabase digital_projects:', error);
+      console.warn('[DigitalAPI] Update error with assigned_staff_id, retrying with assigned_staff_id: null:', error);
+      await supabase
+        .from('digital_projects')
+        .update({
+          lead_developer: leadName,
+          assigned_staff_name: leadName,
+          assigned_staff_email: resolvedEmail,
+          assigned_staff_id: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', projectId);
     }
     triggerLocalSync('ferex_digital_projects_change');
     return true;
   } catch (err) {
     console.error('[DigitalAPI] Error reassigning digital project:', err);
     triggerLocalSync('ferex_digital_projects_change');
-    return true; // Return true since local cache was updated
+    return true;
   }
 }
 
@@ -1058,10 +1082,20 @@ export async function createDigitalTask(task: {
   assigned_staff_id?: string;
   notes?: string;
 }) {
+  const isRealUUID = (id?: string | null) =>
+    typeof id === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) &&
+    !id.startsWith('11111111') &&
+    !id.startsWith('22222222') &&
+    !id.startsWith('33333333') &&
+    !id.startsWith('44444444');
+
   const isValidUUID = (id?: string | null) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const projects = await getDigitalProjects();
   const projectObj = projects.find((p: any) => p.id === task.project_id);
   const projTitle = task.project_title || projectObj?.title || 'Sprint Project';
+
+  const safeStaffId = isRealUUID(task.assigned_staff_id) ? task.assigned_staff_id : null;
 
   const payload = {
     id: generateUUID(),
@@ -1074,7 +1108,7 @@ export async function createDigitalTask(task: {
     due_date: task.due_date || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
     assigned_to_name: task.assigned_to_name || 'Digital Project Manager',
     assigned_to_email: task.assigned_to_email || 'pm@ferex.com',
-    assigned_staff_id: isValidUUID(task.assigned_staff_id) ? task.assigned_staff_id : null,
+    assigned_staff_id: safeStaffId,
     notes: task.notes || '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -1085,25 +1119,48 @@ export async function createDigitalTask(task: {
   try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(updated)); } catch {}
   try {
     const { project, ...dbPayload } = payload as any;
-    await supabase.from('digital_tasks').insert(dbPayload);
-  } catch {}
+    const { error } = await supabase.from('digital_tasks').insert(dbPayload);
+    if (error) {
+      console.warn('[DigitalTasks] Insert error, retrying with assigned_staff_id: null:', error);
+      await supabase.from('digital_tasks').insert({ ...dbPayload, assigned_staff_id: null });
+    }
+  } catch (err) {
+    console.warn('[DigitalTasks] Insert exception:', err);
+  }
   triggerLocalSync('ferex_digital_tasks_change');
   return payload;
 }
 
 export async function updateDigitalTask(id: string, updates: any) {
+  const isRealUUID = (uId?: string | null) =>
+    typeof uId === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uId) &&
+    !uId.startsWith('11111111') &&
+    !uId.startsWith('22222222') &&
+    !uId.startsWith('33333333') &&
+    !uId.startsWith('44444444');
+
+  const safeUpdates = { ...updates };
+  if ('assigned_staff_id' in safeUpdates && !isRealUUID(safeUpdates.assigned_staff_id)) {
+    safeUpdates.assigned_staff_id = null;
+  }
+
   const current = await getDigitalTasks();
-  const updated = current.map((t: any) => t.id === id ? { ...t, ...updates, updated_at: new Date().toISOString() } : t);
+  const updated = current.map((t: any) => t.id === id ? { ...t, ...safeUpdates, updated_at: new Date().toISOString() } : t);
   try { localStorage.setItem('ferex_digital_tasks', JSON.stringify(updated)); } catch {}
   try {
-    const { project, ...dbUpdates } = updates;
-    await Promise.allSettled([
-      supabase.from('digital_tasks').update({ ...dbUpdates, updated_at: new Date().toISOString() }).eq('id', id),
-      supabase.from('tasks').update({
-        ...(updates.status ? { status: updates.status === 'Done' ? 'Completed' : updates.status } : {}),
+    const { project, ...dbUpdates } = safeUpdates;
+    const res = await supabase.from('digital_tasks').update({ ...dbUpdates, updated_at: new Date().toISOString() }).eq('id', id);
+    if (res.error) {
+      console.warn('[DigitalTasks] Update error, retrying without assigned_staff_id:', res.error);
+      await supabase.from('digital_tasks').update({ ...dbUpdates, assigned_staff_id: null, updated_at: new Date().toISOString() }).eq('id', id);
+    }
+    if (updates.status) {
+      await supabase.from('tasks').update({
+        status: updates.status === 'Done' ? 'Completed' : updates.status,
         updated_at: new Date().toISOString()
-      }).eq('id', id)
-    ]);
+      }).eq('id', id);
+    }
   } catch {}
   triggerLocalSync('ferex_digital_tasks_change');
   triggerLocalSync('ferex_tasks_change');

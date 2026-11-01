@@ -397,6 +397,7 @@ export const DigitalProjects: React.FC = () => {
         scope: '',
         service_category: 'Digital Marketing & Performance Ads',
         budget: 500000,
+        currency: 'INR',
         payment_terms: 'Advance Payment (30% Upfront)',
         payment_split_type: 'advance_30',
         advance_percentage: 30,

@@ -10,7 +10,7 @@ import { ToastNotification } from '../../components/ToastNotification';
 import {
   getDigitalTasks,
   createDigitalTask,
-  updateDigitalTaskStatus,
+  updateDigitalTask, updateDigitalTaskStatus,
   deleteDigitalTask,
   getDigitalProjects,
   getDigitalStaffMembers
@@ -36,6 +36,8 @@ export const DigitalTasks: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
   const [formError, setFormError] = useState('');
+  const [reassignTask, setReassignTask] = useState<any | null>(null);
+  const [reassignStaffName, setReassignStaffName] = useState<string>('');
 
   // Pagination
   const [pageSize, setPageSize] = useState<number>(12);
@@ -124,7 +126,7 @@ export const DigitalTasks: React.FC = () => {
 
     const selectedProj = projects.find(p => p.id === newTask.project_id);
     const assignedName = newTask.assigned_to || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Staff'));
-    const matchedStaff = staffList.find(s => s.name === assignedName);
+    const matchedStaff = staffList.find(s => s.name === assignedName || s.email === newTask.assigned_to_email);
     const assignedEmail = matchedStaff?.email || newTask.assigned_to_email || profile?.email || 'pm@ferex.com';
 
     const created = await createDigitalTask({
@@ -420,6 +422,18 @@ export const DigitalTasks: React.FC = () => {
                     >
                       {isDone ? 'Reopen Task' : t.status === 'In Progress' ? 'Mark Done' : 'Start Task'}
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs font-bold text-slate-700 hover:text-[#58051E] hover:border-[#58051E]"
+                      onClick={() => {
+                        setReassignTask(t);
+                        setReassignStaffName(t.assigned_to_name || '');
+                      }}
+                      title="Reassign Task"
+                    >
+                      <User className="w-3.5 h-3.5 mr-1" /> Reassign
+                    </Button>
                     {canDelete && (
                       <button
                         onClick={() => handleDelete(t.id)}
@@ -618,6 +632,103 @@ export const DigitalTasks: React.FC = () => {
                   </Button>
                 </div>
               </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Reassign Task Modal ── */}
+      <AnimatePresence>
+        {reassignTask && (
+          <>
+            <div
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 transition-opacity"
+              onClick={() => setReassignTask(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: '-50%', x: '-50%' }}
+              animate={{ opacity: 1, scale: 1, y: '-50%', x: '-50%' }}
+              exit={{ opacity: 0, scale: 0.95, y: '-50%', x: '-50%' }}
+              className="fixed top-1/2 left-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 p-6 space-y-4"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#58051E]/10 flex items-center justify-center">
+                    <User className="w-4 h-4 text-[#58051E]" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Reassign Sprint Task</h3>
+                    <p className="text-xs text-slate-500 truncate max-w-xs">{reassignTask.title}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setReassignTask(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="text-xs text-slate-600">
+                  Select a Digital Project Manager or Staff member to reassign this sprint task to. It will immediately reflect in real time.
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
+                    Select Digital Manager / Staff Member *
+                  </label>
+                  <select
+                    value={reassignStaffName}
+                    onChange={(e) => setReassignStaffName(e.target.value)}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  >
+                    <option value="">-- Choose Staff Member --</option>
+                    {staffList.map((s: any) => (
+                      <option key={s.id || s.email} value={s.name}>
+                        {s.name} ({s.roleLabel || s.role || 'Staff'}) · {s.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="pt-2 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs font-bold"
+                    onClick={() => setReassignTask(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={!reassignStaffName}
+                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
+                    onClick={async () => {
+                      const matched = staffList.find(s => s.name === reassignStaffName || s.email === reassignStaffName);
+                      const staffEmail = matched?.email || `${reassignStaffName.toLowerCase().replace(/[^a-z]/g, '')}@ferex.com`;
+                      await updateDigitalTask(reassignTask.id, {
+                        assigned_to_name: reassignStaffName,
+                        assigned_to_email: staffEmail,
+                        assigned_staff_id: matched?.id
+                      });
+                      setTasks(prev => prev.map(t => t.id === reassignTask.id ? {
+                        ...t,
+                        assigned_to_name: reassignStaffName,
+                        assigned_to_email: staffEmail,
+                        assigned_staff_id: matched?.id
+                      } : t));
+                      showToast(`Task reassigned to ${reassignStaffName}`);
+                      setReassignTask(null);
+                    }}
+                  >
+                    Confirm Reassign
+                  </Button>
+                </div>
+              </div>
             </motion.div>
           </>
         )}

@@ -125,53 +125,119 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
     const admin = await getAdminSupabaseClient();
     const client = admin || supabase;
 
-    let query = client
-      .from('users')
-      .select('id, email, full_name, role, department, phone, avatar_url, created_at')
-      .neq('role', 'student')
-      .order('created_at', { ascending: false });
+    let dbMembers: DivisionStaffMember[] = [];
 
-    const { data, error } = await query;
-    if (!error && Array.isArray(data) && data.length > 0) {
-      const mapped: DivisionStaffMember[] = data
-        .filter(u => u && u.email)
-        .map(u => {
-          const role = (u.role || 'staff').toLowerCase().trim();
-          const roleLabel = ROLE_DISPLAY_NAMES[role] || role.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
-          return {
-            id: u.id,
-            name: u.full_name || u.email.split('@')[0],
-            email: u.email.toLowerCase().trim(),
-            role,
-            roleLabel,
-            division: getDivisionFromRole(role, u.department),
-            department: u.department || 'Operations',
-            phone: u.phone || '',
-            avatar_url: u.avatar_url || '',
-          };
-        });
-
-      let result = mapped;
-      if (division !== 'all') {
-        result = mapped.filter(s => matchDivision(s, division));
-      }
-
-      // Merge with default staff so standard roles like Digital Manager are always selectable
-      const defaults = division === 'all'
-        ? Object.values(DEFAULT_DIVISION_STAFF).flat()
-        : (DEFAULT_DIVISION_STAFF[division] || []);
-
-      const map = new Map<string, DivisionStaffMember>();
-      defaults.forEach(d => map.set(d.email.toLowerCase(), d));
-      result.forEach(r => map.set(r.email.toLowerCase(), r));
-      const combined = Array.from(map.values());
-
+    // 1. Try digital_staff_directory RPC for digital
+    if (division === 'digital' || division === 'all') {
       try {
-        localStorage.setItem(`${LOCAL_STORAGE_KEY}_${division}`, JSON.stringify(combined));
-      } catch {}
-
-      return combined;
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('digital_staff_directory');
+        if (!rpcErr && Array.isArray(rpcData) && rpcData.length > 0) {
+          const rpcMembers = rpcData.map((u: any) => {
+            const role = (u.role || 'project_manager').toLowerCase().trim();
+            const roleLabel = ROLE_DISPLAY_NAMES[role] || role.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+            return {
+              id: u.id,
+              name: u.name || u.full_name || u.email?.split('@')[0] || 'Digital Staff',
+              email: (u.email || '').toLowerCase().trim(),
+              role,
+              roleLabel,
+              division: 'digital',
+              department: 'Digital Operations',
+              phone: '',
+              avatar_url: '',
+            };
+          });
+          dbMembers.push(...rpcMembers);
+        }
+      } catch (e) {
+        console.warn('[getDivisionStaff] RPC digital_staff_directory notice:', e);
+      }
     }
+
+    // 2. Query users table
+    try {
+      let query = client
+        .from('users')
+        .select('id, email, full_name, role, department, phone, avatar_url, created_at')
+        .neq('role', 'student')
+        .order('created_at', { ascending: false });
+
+      const { data, error } = await query;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const mapped: DivisionStaffMember[] = data
+          .filter(u => u && u.email)
+          .map(u => {
+            const role = (u.role || 'staff').toLowerCase().trim();
+            const roleLabel = ROLE_DISPLAY_NAMES[role] || role.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+            return {
+              id: u.id,
+              name: u.full_name || u.email.split('@')[0],
+              email: u.email.toLowerCase().trim(),
+              role,
+              roleLabel,
+              division: getDivisionFromRole(role, u.department),
+              department: u.department || 'Operations',
+              phone: u.phone || '',
+              avatar_url: u.avatar_url || '',
+            };
+          });
+        dbMembers.push(...mapped);
+      }
+    } catch (e) {
+      console.warn('[getDivisionStaff] Users table query notice:', e);
+    }
+
+    // 3. Current authenticated user check
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const cu = sessionData?.session?.user;
+      if (cu && cu.email) {
+        const userRole = (cu.user_metadata?.role || cu.app_metadata?.role || '').toLowerCase();
+        const fullName = cu.user_metadata?.full_name || cu.email.split('@')[0];
+        if (userRole.includes('digital') || userRole.includes('pm') || userRole.includes('central') || userRole.includes('admin') || userRole.includes('manager')) {
+          dbMembers.push({
+            id: cu.id,
+            name: fullName,
+            email: cu.email.toLowerCase().trim(),
+            role: userRole || 'digital_manager',
+            roleLabel: ROLE_DISPLAY_NAMES[userRole] || 'Digital Manager',
+            division: 'digital',
+            department: 'Digital Agency HQ',
+          });
+        }
+      }
+    } catch {}
+
+    // Deduplicate DB members by email
+    const dedupedMap = new Map<string, DivisionStaffMember>();
+    dbMembers.forEach(m => {
+      if (m.email) {
+        dedupedMap.set(m.email.toLowerCase(), m);
+      }
+    });
+    const uniqueDbMembers = Array.from(dedupedMap.values());
+
+    let result = uniqueDbMembers;
+    if (division !== 'all') {
+      result = uniqueDbMembers.filter(s => matchDivision(s, division));
+    }
+
+    // Merge with default staff so standard roles like Digital Manager are always selectable
+    const defaults = division === 'all'
+      ? Object.values(DEFAULT_DIVISION_STAFF).flat()
+      : (DEFAULT_DIVISION_STAFF[division] || []);
+
+    const map = new Map<string, DivisionStaffMember>();
+    defaults.forEach(d => map.set(d.email.toLowerCase(), d));
+    // If a default staff member exists in real database, the real DB row with real UUID overwrites the mock UUID!
+    result.forEach(r => map.set(r.email.toLowerCase(), r));
+    const combined = Array.from(map.values());
+
+    try {
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_${division}`, JSON.stringify(combined));
+    } catch {}
+
+    return combined;
   } catch (err) {
     console.warn('[getDivisionStaff] DB notice:', err);
   }
@@ -213,7 +279,7 @@ export function getDivisionFromRole(role: string, department?: string): string {
   const r = role.toLowerCase();
   if (r.includes('trade') || r.includes('logistics') || dept.includes('trade')) return 'trade';
   if (r.includes('rimi') || r.includes('operations_manager') || dept.includes('rimi') || dept.includes('frozen')) return 'rimi';
-  if (r.includes('digital') || r.includes('project_manager') || dept.includes('digital')) return 'digital';
+  if (r.includes('digital') || r.includes('project_manager') || r.includes('pm') || r.includes('manager') || dept.includes('digital')) return 'digital';
   if (r.includes('education') || r.includes('counselor') || dept.includes('education')) return 'education';
   return 'central';
 }
@@ -231,7 +297,25 @@ function matchDivision(staff: DivisionStaffMember, division: string): boolean {
     return (r.includes('rimi') || r.includes('operations') || r.includes('warehouse') || dept.includes('rimi') || dept.includes('frozen') || email.includes('rimi')) && !r.includes('digital') && !r.includes('trade') && !r.includes('education');
   }
   if (division === 'digital') {
-    return (r.includes('digital') || r.includes('project_manager') || dept.includes('digital') || email.includes('digital')) && !r.includes('rimi') && !r.includes('trade') && !r.includes('education');
+    const digitalRoles = [
+      'digital', 'digital_admin', 'ferex_digital', 'digital_director',
+      'project_manager', 'digital_manager', 'pm', 'digimanager',
+      'digital_staff', 'designer', 'developer', 'lead_developer', 'creative',
+      'central', 'superadmin', 'super_admin', 'admin'
+    ];
+    return (
+      digitalRoles.includes(r) ||
+      r.includes('digital') ||
+      r.includes('project_manager') ||
+      r.includes('manager') ||
+      dept.includes('digital') ||
+      dept.includes('creative') ||
+      dept.includes('tech') ||
+      email.includes('digital') ||
+      email.includes('pm@') ||
+      email.includes('creative@') ||
+      email.includes('manager')
+    ) && !r.includes('rimi') && !r.includes('trade') && !r.includes('education');
   }
   if (division === 'education') {
     return (r.includes('education') || r.includes('counselor') || r.includes('admissions') || dept.includes('education') || email.includes('edu') || email.includes('counselor')) && !r.includes('rimi') && !r.includes('digital') && !r.includes('trade');
