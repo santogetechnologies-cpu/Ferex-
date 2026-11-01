@@ -592,7 +592,7 @@ export const DigitalClients: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">GSTIN / Corporate Tax ID (Optional)</label>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Tax ID / VAT / NIP (Poland) / Corporate Reg No (Optional)</label>
                     <input
                       type="text"
                       value={newClient.tax_id}

@@ -28,6 +28,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
 import { getMasters } from '../../lib/api/masters';
+import { DIGITAL_CURRENCIES, formatDigitalCurrency, getCurrencySymbol } from '../../lib/digitalCurrency';
 
 const DEFAULT_STAGES: DigitalProjectStage[] = ['Briefing', 'In Progress', 'Review', 'Revisions', 'Delivered', 'Closed'];
 
@@ -71,6 +72,7 @@ export const DigitalProjects: React.FC = () => {
     scope: '',
     service_category: 'Digital Marketing & Performance Ads',
     budget: 500000,
+    currency: 'INR' as string,
     payment_terms: 'Advance Payment (30% Upfront)' as string,
     payment_split_type: 'advance_30' as 'advance_30' | 'advance_50' | 'three_milestones' | 'full' | 'custom_advance',
     advance_percentage: 30,
@@ -354,6 +356,7 @@ export const DigitalProjects: React.FC = () => {
             }
           ],
           total_agreed_amount: budgetVal,
+          currency: newProj.currency || 'INR',
           payment_split: isCustom ? (parts.length === 1 ? 1 : parts.length >= 3 ? 3 : 2) : splitNum,
           milestone_split_type: isCustom ? 'custom' : newProj.payment_split_type,
           custom_milestone_parts: isCustom ? customMilestoneParts : undefined,
@@ -1067,7 +1070,7 @@ export const DigitalProjects: React.FC = () => {
                   <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                     <DollarSign className="w-3.5 h-3.5 text-[#58051E]" /> Commercial Value & Milestone Schedule
                   </h4>
-                  <span className="text-xs font-black text-emerald-700">₹{(Number(selectedProject.budget) || 0).toLocaleString('en-IN')}</span>
+                  <span className="text-xs font-black text-emerald-700">{formatDigitalCurrency(selectedProject.budget, selectedProject.currency)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
                   <span>Payment Terms: <strong className="text-slate-800">{selectedProject.payment_terms || 'Advance Payment'}</strong></span>
@@ -1281,15 +1284,32 @@ export const DigitalProjects: React.FC = () => {
                     <span className="text-[10px] text-slate-400 font-semibold">Single Source of Truth</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">
-                        Total Budget (₹ INR) *
+                        Currency (Global / Poland)
+                      </label>
+                      <select
+                        value={newProj.currency}
+                        onChange={(e) => setNewProj({ ...newProj, currency: e.target.value })}
+                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                      >
+                        {DIGITAL_CURRENCIES.map(c => (
+                          <option key={c.code} value={c.code}>
+                            {c.flag} {c.code} ({c.symbol}) — {c.country}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">
+                        Total Budget ({getCurrencySymbol(newProj.currency)}) *
                       </label>
                       <input
                         type="number"
                         required
-                        min={1000}
+                        min={1}
                         value={newProj.budget}
                         onChange={(e) => setNewProj({ ...newProj, budget: Number(e.target.value) })}
                         className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-emerald-700 focus:outline-none focus:border-[#58051E]"

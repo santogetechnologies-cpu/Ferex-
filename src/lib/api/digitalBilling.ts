@@ -59,6 +59,7 @@ export interface CentralizedProjectBilling {
   client_id: string;
   client_name: string;
   service_category?: string;
+  currency?: string;
   scope_items: ScopeItem[];
   scope_breakdown?: ScopeBreakdownItem[]; // Cost breakdown by component (design, frontend, backend etc.)
   total_agreed_amount: number;
@@ -354,6 +355,7 @@ export async function getCentralizedBillings(): Promise<CentralizedProjectBillin
         client_id: proj.client_id || '',
         client_name: proj.client_name || client.company_name,
         service_category: proj.service_category,
+        currency: proj.currency || 'INR',
         scope_items: [
           {
             id: '1',
@@ -580,11 +582,11 @@ export async function updateCentralizedBillingScope(params: {
       }, { onConflict: 'project_id' });
     } catch {}
 
-    // Also update invoice if one exists
+    // Also update invoice if one exists (Zero GST for Digital)
     try {
       await supabase.from('digital_invoices').update({
         amount: newTotal,
-        tax_amount: Math.round(newTotal * 0.18),
+        tax_amount: 0,
         status: updated.status === 'Completed' ? 'Paid' : 'Sent'
       }).eq('project_id', updated.project_id);
     } catch {}
@@ -804,7 +806,7 @@ export async function recordPaymentTransaction(payload: {
     part_number: targetPart.part_number,
     transaction_id: transaction.id,
     amount: totalFromMethods,
-    tax_amount: docType === 'Tax Invoice' ? Math.round(totalFromMethods * 0.18) : 0,
+    tax_amount: 0,
     total_settled: totalFromMethods,
     payment_methods: payload.payment_methods,
     issued_date: payload.payment_date,
@@ -843,7 +845,7 @@ export async function recordPaymentTransaction(payload: {
       project_id: payload.project_id || null,
       invoice_no: receiptNo,
       amount: totalFromMethods,
-      tax_amount: docType === 'Tax Invoice' ? Math.round(totalFromMethods * 0.18) : 0,
+      tax_amount: 0,
       status: 'Paid',
       currency: 'INR',
       paid_at: new Date(payload.payment_date).toISOString(),

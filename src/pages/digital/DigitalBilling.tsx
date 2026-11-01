@@ -10,6 +10,7 @@ import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
 import { supabase } from '../../lib/supabase';
+import { DIGITAL_CURRENCIES, formatDigitalCurrency, getCurrencySymbol } from '../../lib/digitalCurrency';
 import {
   getCentralizedBillings,
   updateCentralizedBillingScope,
@@ -27,7 +28,8 @@ import { useDigitalPermissions } from '../../hooks/usePermissions';
 
 // ─── PDF Scope & Invoice Generator ──────────────────────────────────────────
 function printScopeAgreementPDF(billing: CentralizedProjectBilling) {
-  const totalInr = billing.total_agreed_amount.toLocaleString('en-IN');
+  const cur = billing.currency || 'INR';
+  const totalInr = formatDigitalCurrency(billing.total_agreed_amount, cur);
   const issueDate = new Date(billing.updated_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
 
   const scopeHtml = billing.scope_items.map(item => `

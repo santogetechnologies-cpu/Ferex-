@@ -10,6 +10,7 @@ import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
 import { supabase } from '../../lib/supabase';
+import { DIGITAL_PAYMENT_METHODS, formatDigitalCurrency, getCurrencySymbol } from '../../lib/digitalCurrency';
 import {
   getCentralizedBillings,
   getPaymentTransactions,
@@ -25,16 +26,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
 
-const PAYMENT_METHODS = [
-  'UPI',
-  'Bank Transfer',
-  'Cash',
-  'Cheque',
-  'Credit/Debit Card',
-  'Payment Gateway',
-  'RTGS / NEFT',
-  'Other'
-] as const;
+const PAYMENT_METHODS = DIGITAL_PAYMENT_METHODS;
 
 // ─── Receipt PDF Generator ──────────────────────────────────────────────────
 function printReceiptPDF(receipt: BillingDocument, transaction?: ActualPaymentTransaction) {

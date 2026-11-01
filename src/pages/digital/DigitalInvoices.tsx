@@ -22,12 +22,14 @@ import { UnifiedPaymentModal } from '../../components/UnifiedPaymentModal';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
+import { DIGITAL_CURRENCIES, formatDigitalCurrency, getCurrencySymbol } from '../../lib/digitalCurrency';
 
 // ─── Print Official B2B Invoice PDF ─────────────────────────────────────────
 function printOfficialInvoicePDF(inv: any) {
   const baseAmt = Number(inv.amount || 0);
-  const taxAmt = Number(inv.tax_amount || Math.round(baseAmt * 0.18));
-  const total = baseAmt + taxAmt;
+  const taxAmt = 0; // Ferex Digital: No GST (0% Tax-Exempt for Digital services)
+  const total = baseAmt;
+  const currencyCode = inv.currency || 'INR';
   const rcvd = Number(inv.amount_received !== undefined ? inv.amount_received : (inv.status === 'Paid' ? baseAmt : 0));
   const balance = Number(inv.balance_due !== undefined ? inv.balance_due : (inv.status === 'Paid' ? 0 : baseAmt));
   const items = inv.items || [];
@@ -49,7 +51,7 @@ function printOfficialInvoicePDF(inv: any) {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>B2B Tax Invoice — ${inv.invoice_no}</title>
+  <title>B2B Commercial Invoice — ${inv.invoice_no}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
     body { font-family: 'Inter', sans-serif; color: #1e293b; background: #fff; margin: 0; padding: 40px; }
@@ -67,7 +69,7 @@ function printOfficialInvoicePDF(inv: any) {
 <body>
 <div class="page">
   <div class="header">
-    <div class="logo">FEREX DIGITAL ERP<br><span>Official Agency B2B Tax Invoice</span></div>
+    <div class="logo">FEREX DIGITAL ERP<br><span>Official Agency B2B Commercial Invoice (Zero-Rated / No GST)</span></div>
     <div style="text-align: right;">
       <div class="doc-no">${inv.invoice_no}</div>
       <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Issued: ${new Date(inv.issued_at || inv.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
@@ -119,16 +121,16 @@ function printOfficialInvoicePDF(inv: any) {
 
     <div style="margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 12px; font-size: 12px;">
       <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-        <span>Taxable Service Fee:</span>
-        <span style="font-weight: 700;">₹${baseAmt.toLocaleString('en-IN')}</span>
+        <span>Contracted Service Value:</span>
+        <span style="font-weight: 700;">${formatDigitalCurrency(baseAmt, currencyCode)}</span>
       </div>
       <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-        <span>CGST + SGST (18%):</span>
-        <span style="font-weight: 700;">₹${taxAmt.toLocaleString('en-IN')}</span>
+        <span>Tax / GST:</span>
+        <span style="font-weight: 700; color: #059669;">0% (Zero-Rated / No GST)</span>
       </div>
       <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; font-weight: 800; border-top: 1px solid #e2e8f0;">
-        <span>Total Invoiced (INR):</span>
-        <span style="color: #58051E;">₹${total.toLocaleString('en-IN')}</span>
+        <span>Total Invoiced (${currencyCode}):</span>
+        <span style="color: #58051E;">${formatDigitalCurrency(total, currencyCode)}</span>
       </div>
       ${rcvd > 0 ? `
       <div style="display: flex; justify-content: space-between; padding: 4px 0; color: #059669;">
@@ -228,7 +230,7 @@ function printClientMultiProjectLedgerPDF(clientSummary: {
     <div class="meta">
       <div><strong>Date:</strong> ${dateStr}</div>
       <div><strong>Account:</strong> ${clientSummary.clientName}</div>
-      <div><strong>Currency:</strong> INR (₹)</div>
+      <div><strong>Currency:</strong> Multi-Currency (PLN, USD, EUR, GBP, INR)</div>
     </div>
   </div>
 
@@ -238,7 +240,7 @@ function printClientMultiProjectLedgerPDF(clientSummary: {
       <div class="kpi-val">₹${clientSummary.totalAgreed.toLocaleString('en-IN')}</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">GST Invoiced (18%)</div>
+      <div class="kpi-label">Tax / GST (Digital)</div>
       <div class="kpi-val">₹${clientSummary.totalTax.toLocaleString('en-IN')}</div>
     </div>
     <div class="kpi-card">
@@ -393,8 +395,8 @@ export const DigitalInvoices: React.FC = () => {
   };
 
   const totalInvoiceAmount = invoiceItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-  const totalTaxAmount = Math.round(totalInvoiceAmount * 0.18);
-  const grandTotal = totalInvoiceAmount + totalTaxAmount;
+  const totalTaxAmount = 0; // Ferex Digital: Zero GST
+  const grandTotal = totalInvoiceAmount;
 
   const handleAddMultiInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -743,9 +745,9 @@ export const DigitalInvoices: React.FC = () => {
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
                         <th className="py-3.5 px-4">Invoice # & Client Account</th>
-                        <th className="py-3.5 px-4">Taxable Fee (₹)</th>
-                        <th className="py-3.5 px-4">GST (18%)</th>
-                        <th className="py-3.5 px-4">Total Amount (₹)</th>
+                        <th className="py-3.5 px-4">Net Amount</th>
+                        <th className="py-3.5 px-4">Tax / GST</th>
+                        <th className="py-3.5 px-4">Total Amount</th>
                         <th className="py-3.5 px-4">Collected (₹)</th>
                         <th className="py-3.5 px-4">Balance (₹)</th>
                         <th className="py-3.5 px-4">Due Date</th>
@@ -757,8 +759,8 @@ export const DigitalInvoices: React.FC = () => {
                       {paginated.map((inv) => {
                         const items = inv.items || getDigitalInvoiceItems(inv.id);
                         const baseAmt = Number(inv.amount || 0);
-                        const taxAmt = Number(inv.tax_amount || Math.round(baseAmt * 0.18));
-                        const total = baseAmt + taxAmt;
+                        const taxAmt = 0; // No GST for Digital
+                        const total = baseAmt;
                         const rcvd = Number(inv.amount_received !== undefined ? inv.amount_received : (inv.status === 'Paid' ? baseAmt : 0));
                         const bal = Number(inv.balance_due !== undefined ? inv.balance_due : (inv.status === 'Paid' ? 0 : baseAmt));
 
@@ -981,7 +983,7 @@ export const DigitalInvoices: React.FC = () => {
                     </div>
 
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">GST Invoiced (18%)</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Tax Status (Digital)</span>
                       <span className="text-sm font-black text-slate-700 mt-0.5 block">
                         ₹{client.totalTax.toLocaleString('en-IN')}
                       </span>

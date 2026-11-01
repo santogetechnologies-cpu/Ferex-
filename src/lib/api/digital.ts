@@ -93,6 +93,8 @@ export interface DigitalProjectRecord {
   deliverables: DigitalDeliverable[];
   payment_split_type?: 'advance_30' | 'advance_50' | 'three_milestones' | 'full' | 'custom' | string;
   advance_percentage?: number;
+  currency?: string;
+  country?: string;
   created_at: string;
   updated_at: string;
   client?: any;
@@ -493,6 +495,8 @@ export async function createDigitalProject(project: {
   status?: DigitalProjectStage;
   deliverables?: DigitalDeliverable[];
   created_by?: string;
+  currency?: string;
+  country?: string;
 }): Promise<DigitalProjectRecord> {
   const isValidUUID = (id?: string | null) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const clients = await getDigitalClients();
@@ -538,6 +542,8 @@ export async function createDigitalProject(project: {
     lead_developer: assignedStaff,
     created_by: project.created_by || assignedStaff || 'Digital Admin',
     budget: totalBudget,
+    currency: project.currency || 'INR',
+    country: project.country || '',
     progress: Number(project.progress) || 0,
     payment_terms: paymentTerms as any,
     payment_status: 'Pending',
@@ -1229,8 +1235,8 @@ export async function getDigitalInvoices(clientId?: string) {
     const existing = projectInvoiceMap.get(proj.id);
 
     const baseAmount = billing ? Number(billing.total_agreed_amount) : Number(proj.budget || 0);
-    const taxAmount = Math.round(baseAmount * 0.18);
-    const totalAmount = baseAmount + taxAmount;
+    const taxAmount = 0; // Ferex Digital: Zero GST / Tax-Exempt
+    const totalAmount = baseAmount;
     const invNo = billing?.invoice_no || existing?.invoice_no || `INV-DIG-${proj.id.slice(0, 4).toUpperCase()}`;
 
     // Compute status and payments automatically from payment parts
@@ -1281,7 +1287,7 @@ export async function getDigitalInvoices(clientId?: string) {
       total_amount: totalAmount,
       amount_received: amountReceived,
       balance_due: balanceRemaining,
-      currency: 'INR',
+      currency: proj.currency || billing?.currency || 'INR',
       status: status,
       due_date: parts[0]?.due_date || existing?.due_date || proj.deadline || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
       notes: billing?.notes || existing?.notes || `Automatic commercial billing invoice for ${proj.title}`,
@@ -1335,7 +1341,7 @@ export async function createDigitalInvoice(invoice: {
 
   const invNo = invoice.invoice_no || `INV-DIG-${Math.floor(1000 + Math.random() * 9000)}`;
   const amt = Number(invoice.amount) || 0;
-  const taxAmt = invoice.tax_amount !== undefined ? Number(invoice.tax_amount) : Math.round(amt * 0.18);
+  const taxAmt = 0; // Ferex Digital: Zero GST
 
   const payload = {
     id: generateUUID(),
@@ -1344,8 +1350,8 @@ export async function createDigitalInvoice(invoice: {
     project_id: invoice.project_id || null,
     invoice_no: invNo,
     amount: amt,
-    tax_amount: taxAmt,
-    currency: 'INR',
+    tax_amount: 0,
+    currency: (invoice as any).currency || 'INR',
     status: invoice.status || 'Sent',
     due_date: invoice.due_date || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
     notes: invoice.notes || '',
@@ -1877,7 +1883,7 @@ export async function createDigitalMultiProjectInvoice(payload: {
   notes?: string;
 }) {
   const totalAmount = payload.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-  const taxAmount = Math.round(totalAmount * 0.18);
+  const taxAmount = 0; // Ferex Digital: Zero GST
   const invNo = payload.invoice_no || `INV-DIG-${Math.floor(1000 + Math.random() * 9000)}`;
 
   const invoiceRecord = {
@@ -1886,8 +1892,8 @@ export async function createDigitalMultiProjectInvoice(payload: {
     project_id: payload.items[0]?.projectId || null,
     invoice_no: invNo,
     amount: totalAmount,
-    tax_amount: taxAmount,
-    currency: 'INR',
+    tax_amount: 0,
+    currency: (payload as any).currency || 'INR',
     status: 'Sent',
     due_date: payload.due_date || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
     issued_at: new Date().toISOString(),
