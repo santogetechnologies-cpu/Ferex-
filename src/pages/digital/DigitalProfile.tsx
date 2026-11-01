@@ -1,3 +1,5 @@
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Camera, CheckCircle2, Save } from 'lucide-react';
@@ -7,6 +9,7 @@ import { ToastNotification } from '../../components/ToastNotification';
 import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 
 export const DigitalProfile: React.FC = () => {
+  const { profile: account, user, refreshProfile } = useAuth();
   const [profile, setProfile] = useState({
     name: 'Digital Admin',
     email: 'digital@ferex.com',
@@ -17,16 +20,14 @@ export const DigitalProfile: React.FC = () => {
   const [avatar, setAvatar] = useState<string>('');
   const [toast, setToast] = useState('');
 
-  useEffect(() => {
-    const savedAvatar = localStorage.getItem('ferex_digital_avatar');
-    if (savedAvatar) setAvatar(savedAvatar);
-  }, []);
+  useEffect(() => { if (account) { setProfile({ name: account.full_name, email: account.email, phone: account.phone || '', role: account.role }); setAvatar(account.avatar_url || ''); } }, [account]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 1024 * 1024) { showToast('Use a JPG, PNG or WebP under 1 MB'); return; }
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
@@ -38,10 +39,13 @@ export const DigitalProfile: React.FC = () => {
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    showToast('Profile details updated!');
-  };
+  const handleSave = async (e: React.FormEvent) => { try {
+    e.preventDefault(); if (!user || !profile.name.trim()) return;
+    const { error } = await supabase.from('users').update({ full_name: profile.name.trim(), phone: profile.phone, avatar_url: avatar }).eq('id', user.id).select('id').single();
+    if (error) { showToast(error.message); return; }
+    await refreshProfile(); showToast('Profile details saved');
+
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -95,7 +99,7 @@ export const DigitalProfile: React.FC = () => {
           </div>
           <div>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Email</label>
-            <input type="email" value={profile.email} onChange={e => setProfile({...profile, email: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
+            <input type="email" readOnly value={profile.email} onChange={e => setProfile({...profile, email: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
           <div>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Role</label>

@@ -7,7 +7,10 @@
     "dev": "vite --host",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:seed": "node --env-file=.env.test --experimental-strip-types scripts/seed.ts",
+    "test:e2e": "playwright test",
+    "test:auth": "node --env-file=.env.test --experimental-strip-types tests/global-setup.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.2",
@@ -23,6 +26,7 @@
     "three": "^0.186.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",

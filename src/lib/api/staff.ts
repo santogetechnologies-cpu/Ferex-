@@ -241,7 +241,7 @@ function matchDivision(staff: DivisionStaffMember, division: string): boolean {
 
 export const getTradeStaff = () => getDivisionStaff('trade');
 export const getRimiStaff = () => getDivisionStaff('rimi');
-export const getDigitalStaff = () => getDivisionStaff('digital');
+export const getDigitalStaff = async () => { const {getDigitalStaffMembers}=await import('./digital');return getDigitalStaffMembers(); };
 export const getEducationStaff = () => getDivisionStaff('education');
 
 export async function createDivisionStaff(staff: {
@@ -252,6 +252,12 @@ export async function createDivisionStaff(staff: {
   department?: string;
   phone?: string;
 }): Promise<DivisionStaffMember> {
+  if(staff.division==='digital'){
+    const {data,error}=await supabase.functions.invoke('provision-digital-user',{body:{email:staff.email,full_name:staff.name,role:staff.role,phone:staff.phone}});
+    if(error||data?.error)throw new Error(data?.error||error?.message);
+    window.dispatchEvent(new Event('ferex_staff_users_change'));
+    return {id:data.user.id,name:staff.name,email:staff.email,role:staff.role,roleLabel:staff.role,division:'digital'};
+  }
   const newId = generateUUID();
   const roleLabel = ROLE_DISPLAY_NAMES[staff.role] || (staff.role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
   const email = staff.email.toLowerCase().trim();

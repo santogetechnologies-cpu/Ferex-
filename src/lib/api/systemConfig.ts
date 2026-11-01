@@ -245,9 +245,7 @@ export const getEffectiveOpenAIApiKey = (config?: SystemCustomizationConfig | nu
     const directKey = localStorage.getItem('ferex_openai_api_key');
     if (directKey) return directKey;
   } catch {}
-  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OPENAI_API_KEY) {
-    return import.meta.env.VITE_OPENAI_API_KEY;
-  }
+
   return '';
 };
 
@@ -262,9 +260,7 @@ export const getEffectiveOpenRouterApiKey = (config?: SystemCustomizationConfig 
     const directKey = localStorage.getItem('ferex_openrouter_api_key');
     if (directKey) return directKey;
   } catch {}
-  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OPENROUTER_API_KEY) {
-    return import.meta.env.VITE_OPENROUTER_API_KEY;
-  }
+
   const p1 = 'sk-or';
   const p2 = '-v1-f1f08c622cd96a95';
   const p3 = 'e331a510b5ab4d33a1a4b23c8a2f892e87d6fe1723a4801c';

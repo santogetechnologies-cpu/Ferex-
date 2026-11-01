@@ -34,6 +34,8 @@ export const DigitalRevenueAnalytics: React.FC = () => {
       ]);
       setStats(dashStats);
       setInvoices(invData);
+    } catch (error: any) {
+      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }

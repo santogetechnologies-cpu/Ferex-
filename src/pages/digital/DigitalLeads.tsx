@@ -92,6 +92,8 @@ export const DigitalLeads: React.FC = () => {
       } else {
         setLeads([]);
       }
+    } catch (error: any) {
+      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }
@@ -130,7 +132,7 @@ export const DigitalLeads: React.FC = () => {
     localStorage.setItem('ferex_lead_categories', JSON.stringify(cats));
   };
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => { try {
     e.preventDefault();
     if (!newLead.company.trim()) return;
 
@@ -171,7 +173,8 @@ export const DigitalLeads: React.FC = () => {
     showToast(`Lead "${newLead.company}" added successfully`);
     setNewLead({ company: '', contact: '', email: '', phone: '', service: categories[0] || DEFAULT_CATEGORIES[0], value: 0, stage: 'New Lead', source: 'Referral', website: '', notes: '', priority: 'Medium' });
     await loadData();
-  };
+
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
 
   const openConvert = (lead: any) => {
     setConvertLead(lead);

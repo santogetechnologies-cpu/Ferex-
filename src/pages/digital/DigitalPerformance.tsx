@@ -60,6 +60,8 @@ export const DigitalPerformance: React.FC = () => {
       } else {
         setEmployees(defaultPerformance);
       }
+    } catch (error: any) {
+      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }
@@ -83,7 +85,7 @@ export const DigitalPerformance: React.FC = () => {
     };
   }, [loadData]);
 
-  const handleAddReview = async (e: React.FormEvent) => {
+  const handleAddReview = async (e: React.FormEvent) => { try {
     e.preventDefault();
     if (!reviewForm.name) return;
 
@@ -141,7 +143,8 @@ export const DigitalPerformance: React.FC = () => {
       kpiScore: 95,
       feedback: 'Consistently delivers clean code ahead of sprint deadlines.'
     });
-  };
+
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
 
   const filteredEmployees = employees.filter(e =>
     e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

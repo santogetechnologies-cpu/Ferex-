@@ -1,3 +1,4 @@
+import { getDigitalStaffMembers } from '../../../lib/api/digital';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -20,6 +21,8 @@ import {
 export const DigitalPMTasks: React.FC = () => {
   const { user, profile } = useAuth();
 
+  const [staff, setStaff] = useState<any[]>([]);
+  const [assignee, setAssignee] = useState('');
   const [tasks, setTasks] = useState<DigitalPMTask[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +63,7 @@ export const DigitalPMTasks: React.FC = () => {
         getAssignedDigitalTasks(pmIdentity),
         getAssignedDigitalProjects(pmIdentity)
       ]);
+      setStaff(await getDigitalStaffMembers());
       setTasks(tList || []);
       setProjects(pList || []);
     } catch (err: any) {
@@ -117,9 +121,9 @@ export const DigitalPMTasks: React.FC = () => {
         due_date: newTask.due_date,
         notes: newTask.notes,
         task_type: newTask.task_type,
-        assigned_to_name: profile?.full_name || 'Project Manager',
-        assigned_to_email: profile?.email || user?.email || '',
-        assigned_staff_id: user?.id
+        assigned_to_name: staff.find(s => s.id === assignee)?.name || profile?.full_name || 'Project Manager',
+        assigned_to_email: staff.find(s => s.id === assignee)?.email || profile?.email || user?.email || '',
+        assigned_staff_id: assignee || user?.id
       });
 
       setTasks(prev => [created, ...prev.filter(t => t.id !== created.id)]);
@@ -358,7 +362,7 @@ export const DigitalPMTasks: React.FC = () => {
                       onChange={(e) => setNewTask({ ...newTask, project_id: e.target.value })}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white"
                     >
-                      <option value="">General Task (No Project)</option>
+                      <option value="">Select project</option>
                       {projects.map((p) => (
                         <option key={p.id} value={p.id}>{p.title}</option>
                       ))}
@@ -407,6 +411,7 @@ export const DigitalPMTasks: React.FC = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-bold">Assignee<select className="w-full border rounded p-2 mb-3" value={assignee} onChange={e=>setAssignee(e.target.value)}><option value="">Assign to me</option>{staff.map(s=><option key={s.id} value={s.id}>{s.name} ({s.email})</option>)}</select></label>
                   <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Technical Notes / Specs</label>
                   <textarea
                     rows={3}

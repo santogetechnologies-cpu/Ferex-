@@ -145,65 +145,11 @@ export const DEFAULT_DIGITAL_CONFIG: DigitalCustomizationConfig = {
 const STORAGE_KEY = 'ferex_digital_customization_config';
 
 export const getDigitalConfig = async (): Promise<DigitalCustomizationConfig> => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.branding) {
-        return {
-          ...DEFAULT_DIGITAL_CONFIG,
-          ...parsed,
-          branding: { ...DEFAULT_DIGITAL_CONFIG.branding, ...(parsed.branding || {}) },
-          client_policies: { ...DEFAULT_DIGITAL_CONFIG.client_policies, ...(parsed.client_policies || {}) },
-          delivery_rules: { ...DEFAULT_DIGITAL_CONFIG.delivery_rules, ...(parsed.delivery_rules || {}) },
-          broadcast: { ...DEFAULT_DIGITAL_CONFIG.broadcast, ...(parsed.broadcast || {}) },
-          services: Array.isArray(parsed.services) ? parsed.services : DEFAULT_DIGITAL_CONFIG.services
-        };
-      }
-    }
-  } catch (e) {
-    console.warn('Could not read digital config from storage:', e);
-  }
-
-  // Fallback to Supabase if configured
-  try {
-    const { data } = await supabase
-      .from('system_config')
-      .select('config')
-      .eq('id', 'ferex-digital-config-v1')
-      .maybeSingle();
-
-    if (data && data.config) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.config));
-      return data.config;
-    }
-  } catch (err) {}
-
-  return DEFAULT_DIGITAL_CONFIG;
+const {data,error}=await supabase.from('system_config').select('value').eq('key','ferex-digital-config-v1').maybeSingle();if(error)throw error;return data?.value?{...DEFAULT_DIGITAL_CONFIG,...data.value}:DEFAULT_DIGITAL_CONFIG;
 };
 
 export const saveDigitalConfig = async (config: DigitalCustomizationConfig): Promise<DigitalCustomizationConfig> => {
-  const updated: DigitalCustomizationConfig = {
-    ...config,
-    updated_at: new Date().toISOString()
-  };
-
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('ferex_digital_config_change', { detail: updated }));
-  } catch (e) {
-    console.error('Error saving digital config:', e);
-  }
-
-  try {
-    await supabase.from('system_config').upsert({
-      id: updated.id || 'ferex-digital-config-v1',
-      config: updated,
-      updated_at: updated.updated_at
-    });
-  } catch (err) {}
-
-  return updated;
+const updated={...config,updated_at:new Date().toISOString()};const {error}=await supabase.from('system_config').upsert({key:'ferex-digital-config-v1',value:updated,updated_at:updated.updated_at},{onConflict:'key'});if(error)throw error;window.dispatchEvent(new CustomEvent('ferex_digital_config_change',{detail:updated}));return updated;
 };
 
 export const resetDigitalConfig = async (): Promise<DigitalCustomizationConfig> => {

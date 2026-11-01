@@ -29,3 +29,9 @@ enable_signup = true
 
 [analytics]
 enabled = false
+
+[functions.send-digital-document]
+verify_jwt = true
+
+[functions.provision-digital-user]
+verify_jwt = true

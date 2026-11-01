@@ -1,3 +1,4 @@
+import { DigitalCommerceSettings } from './DigitalCommerceSettings';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, CheckCircle2, Save, Lock } from 'lucide-react';
@@ -8,7 +9,7 @@ import { getMasters, createMaster, deleteMaster } from '../../lib/api/masters';
 import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 import { useAuth } from '../../contexts/AuthContext';
 
-const DIGITAL_ADMIN_ROLES = ['digital_admin', 'ferex_digital', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+const DIGITAL_ADMIN_ROLES = ['digital_admin', 'digital', 'ferex_digital', 'central', 'super_admin', 'superadmin'];
 
 type DigitalTab = 'branding' | 'client_policies' | 'delivery' | 'broadcast' | 'services' | 'masters' | 'security';
 
@@ -61,6 +62,7 @@ export const DigitalSettings: React.FC = () => {
       </div>
 
       <Card className="p-6 border border-slate-200/70 shadow-xs max-w-2xl">
+        <DigitalCommerceSettings />
         <ChangePasswordForm
           title="Digital Admin Password"
           subtitle="Update your administrator credentials for FEREX Digital"

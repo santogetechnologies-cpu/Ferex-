@@ -1,3 +1,4 @@
+import { money } from '../../lib/digitalCommerce';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -76,8 +77,8 @@ export const DigitalProjects: React.FC = () => {
     advance_percentage: 30,
     start_date: new Date().toISOString().split('T')[0],
     deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    assigned_staff_name: 'digital admin',
-    assigned_staff_email: 'digitaladmin@ferex.com',
+    assigned_staff_name: '',
+    assigned_staff_email: '',
     status: 'Briefing' as DigitalProjectStage,
   });
 
@@ -123,25 +124,13 @@ export const DigitalProjects: React.FC = () => {
       setClients(clientData || []);
       setProjects(projData || []);
 
-      let staff = realStaff || [];
-      const hasDigitalAdmin = staff.some(s => s.name.toLowerCase().includes('digital admin') || s.email.toLowerCase().includes('digitaladmin'));
-      if (!hasDigitalAdmin) {
-        staff = [
-          {
-            id: 'staff-digital-admin',
-            name: 'digital admin',
-            email: 'digitaladmin@ferex.com',
-            role: 'digital_admin',
-            roleLabel: 'Digital Agency Director',
-            division: 'digital'
-          },
-          ...staff
-        ];
-      }
+      const staff = realStaff || [];
       setStaffList(staff);
 
       if (masterStages && masterStages.length > 0) setStages(masterStages);
       if (categories && categories.length > 0) setServiceCategories(categories);
+    } catch (error: any) {
+      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }
@@ -191,8 +180,8 @@ export const DigitalProjects: React.FC = () => {
     const clientName = selectedClient?.company_name || selectedClient?.name || newProj.client_name || 'Enterprise Client';
     const clientType = selectedClient?.client_type || newProj.client_type || 'External';
 
-    const assignedName = newProj.assigned_staff_name || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Project Manager'));
-    const matchedStaff = staffList.find(s => s.name === assignedName);
+    const matchedStaff = staffList.find(s=>s.id===newProj.assigned_staff_name || s.name===newProj.assigned_staff_name) || staffList[0];
+    const assignedName = matchedStaff?.name || '';
     const assignedEmail = matchedStaff?.email || newProj.assigned_staff_email || 'pm@ferex.com';
     const assignedStaffId = matchedStaff?.id || (matchedStaff as any)?.user_id || undefined;
 
@@ -221,6 +210,10 @@ export const DigitalProjects: React.FC = () => {
         description: newProj.scope,
         service_category: newProj.service_category,
         budget: budgetVal,
+        currency: selectedClient?.currency || 'INR',
+        country: selectedClient?.country || '',
+        payment_split_type: newProj.payment_split_type,
+        advance_percentage: advancePct,
         payment_terms: newProj.payment_terms as any,
         advance_amount: advanceAmt,
         balance_amount: balanceAmt,
@@ -232,160 +225,8 @@ export const DigitalProjects: React.FC = () => {
         status: newProj.status,
       });
 
-      // Directly initialize the Single Source of Truth in Centralized Billing with configured payment parts
-      try {
-        const rawBillings = localStorage.getItem('ferex_digital_centralized_billings');
-        const billings: any[] = rawBillings ? JSON.parse(rawBillings) : [];
-
-        let parts: any[] = [];
-        const midTime = (new Date(newProj.start_date).getTime() + new Date(newProj.deadline).getTime()) / 2;
-
-        if (isCustom && customMilestoneParts.length > 0) {
-          // Build custom milestone parts from user-defined percentages
-          parts = customMilestoneParts.map((cp, i) => {
-            const amt = i === customMilestoneParts.length - 1
-              ? budgetVal - customMilestoneParts.slice(0, -1).reduce((s, p) => s + Math.round(budgetVal * (p.percentage / 100)), 0)
-              : Math.round(budgetVal * (cp.percentage / 100));
-            const due = i === 0 ? newProj.start_date : i === customMilestoneParts.length - 1 ? newProj.deadline : new Date(midTime).toISOString().split('T')[0];
-            return {
-              id: generateUUID(),
-              part_number: i + 1,
-              label: `Part ${i + 1}: ${cp.label} (${cp.percentage}%)`,
-              percentage: cp.percentage,
-              configured_amount: amt,
-              due_date: due,
-              status: 'unpaid',
-              amount_received: 0,
-              remaining_balance: amt
-            };
-          });
-        } else if (splitNum === 1) {
-          parts = [{
-            id: generateUUID(),
-            part_number: 1,
-            label: 'Full Payment (100%)',
-            percentage: 100,
-            configured_amount: budgetVal,
-            due_date: newProj.start_date,
-            status: 'unpaid',
-            amount_received: 0,
-            remaining_balance: budgetVal
-          }];
-        } else if (splitNum === 2) {
-          parts = [
-            {
-              id: generateUUID(),
-              part_number: 1,
-              label: `Part 1: Advance (${advancePct}%)`,
-              percentage: advancePct,
-              configured_amount: advanceAmt,
-              due_date: newProj.start_date,
-              status: 'unpaid',
-              amount_received: 0,
-              remaining_balance: advanceAmt
-            },
-            {
-              id: generateUUID(),
-              part_number: 2,
-              label: `Part 2: Balance (${100 - advancePct}%)`,
-              percentage: 100 - advancePct,
-              configured_amount: balanceAmt,
-              due_date: newProj.deadline,
-              status: 'unpaid',
-              amount_received: 0,
-              remaining_balance: balanceAmt
-            }
-          ];
-        } else {
-          const p1 = Math.round(budgetVal * 0.4);
-          const p2 = Math.round(budgetVal * 0.3);
-          const p3 = budgetVal - p1 - p2;
-          parts = [
-            {
-              id: generateUUID(),
-              part_number: 1,
-              label: 'Part 1: Kickoff Advance (40%)',
-              percentage: 40,
-              configured_amount: p1,
-              due_date: newProj.start_date,
-              status: 'unpaid',
-              amount_received: 0,
-              remaining_balance: p1
-            },
-            {
-              id: generateUUID(),
-              part_number: 2,
-              label: 'Part 2: Milestone Review (30%)',
-              percentage: 30,
-              configured_amount: p2,
-              due_date: new Date(midTime).toISOString().split('T')[0],
-              status: 'unpaid',
-              amount_received: 0,
-              remaining_balance: p2
-            },
-            {
-              id: generateUUID(),
-              part_number: 3,
-              label: 'Part 3: Final Handover (30%)',
-              percentage: 30,
-              configured_amount: p3,
-              due_date: newProj.deadline,
-              status: 'unpaid',
-              amount_received: 0,
-              remaining_balance: p3
-            }
-          ];
-        }
-
-        const billingRecord = {
-          id: generateUUID(),
-          project_id: created.id,
-          project_title: created.title,
-          client_id: created.client_id || '',
-          client_name: created.client_name,
-          service_category: created.service_category,
-          scope_items: [
-            {
-              id: '1',
-              title: created.title,
-              description: created.scope || 'Core project deliverables & scope',
-              amount: budgetVal,
-              type: 'base'
-            }
-          ],
-          total_agreed_amount: budgetVal,
-          payment_split: isCustom ? (parts.length === 1 ? 1 : parts.length >= 3 ? 3 : 2) : splitNum,
-          milestone_split_type: isCustom ? 'custom' : newProj.payment_split_type,
-          custom_milestone_parts: isCustom ? customMilestoneParts : undefined,
-          scope_breakdown: showProjBreakdown && projBreakdown.length > 0 ? projBreakdown : undefined,
-          payment_parts: parts,
-          invoice_no: `INV-DIG-${created.id.slice(0, 4).toUpperCase()}`,
-          status: 'Approved',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          approved_at: new Date().toISOString(),
-          approved_by: assignedName,
-          audit_trail: [
-            {
-              id: generateUUID(),
-              timestamp: new Date().toISOString(),
-              user: assignedName,
-              previous_value: 0,
-              updated_value: budgetVal,
-              reason: 'Project initialized with commercial terms',
-              change_type: 'scope_added',
-              details: `Initial budget ₹${budgetVal.toLocaleString('en-IN')} with ${parts.length}-part payment schedule (${newProj.payment_terms})`
-            }
-          ]
-        };
-
-        const updatedBillings = [billingRecord, ...billings.filter((b: any) => b.project_id !== created.id)];
-        localStorage.setItem('ferex_digital_centralized_billings', JSON.stringify(updatedBillings));
-        window.dispatchEvent(new Event('ferex_digital_centralized_billing_change'));
-      } catch {}
-
       setShowAddModal(false);
-      showToast(`✅ Created project "${created.title}" with configured payment terms.`);
+      showToast(`✅ Created project "${created.title}" — configure services, taxes and payment terms in Centralised Billing.`);
       setNewProj({
         title: '',
         client_id: '',
@@ -399,8 +240,8 @@ export const DigitalProjects: React.FC = () => {
         advance_percentage: 30,
         start_date: new Date().toISOString().split('T')[0],
         deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-        assigned_staff_name: 'digital admin',
-        assigned_staff_email: 'digitaladmin@ferex.com',
+        assigned_staff_name: '',
+        assigned_staff_email: '',
         status: 'Briefing',
       });
       setCustomMilestoneParts([
@@ -420,7 +261,7 @@ export const DigitalProjects: React.FC = () => {
     }
   };
 
-  const handleAdvanceStage = async (project: DigitalProjectRecord) => {
+  const handleAdvanceStage = async (project: DigitalProjectRecord) => { try {
     const currentIndex = stages.indexOf(project.status);
     if (currentIndex < stages.length - 1) {
       const nextStage = stages[currentIndex + 1];
@@ -435,9 +276,10 @@ export const DigitalProjects: React.FC = () => {
         await loadData();
       }
     }
-  };
 
-  const handleAddDeliverable = async (e: React.FormEvent) => {
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
+
+  const handleAddDeliverable = async (e: React.FormEvent) => { try {
     e.preventDefault();
     if (!selectedProject || !newDeliv.title.trim() || !newDeliv.url.trim()) return;
 
@@ -453,41 +295,24 @@ export const DigitalProjects: React.FC = () => {
     setNewDeliv({ title: '', type: 'Figma', url: '', notes: '', status: 'Submitted' });
     showToast('Deliverable attached to project!');
     await loadData();
-  };
 
-  const handleDeleteDeliverable = async (delivId: string) => {
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
+
+  const handleDeleteDeliverable = async (delivId: string) => { try {
     if (!selectedProject) return;
     await deleteDigitalDeliverable(selectedProject.id, delivId);
     showToast('Deliverable removed');
     await loadData();
-  };
+
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
 
   const handleDeleteProject = async (id: string, title: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${title}"? This will permanently remove the project from the portfolio and financial ledger.`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${title}"? The project will be archived; financial records are retained.`)) return;
     try {
       await deleteDigitalProject(id);
 
-      // Clean up linked centralized billing and payments
-      try {
-        const rawBillings = localStorage.getItem('ferex_digital_centralized_billings');
-        if (rawBillings) {
-          const billings = JSON.parse(rawBillings);
-          const filteredB = billings.filter((b: any) => b.project_id !== id && b.id !== id);
-          localStorage.setItem('ferex_digital_centralized_billings', JSON.stringify(filteredB));
-        }
-      } catch {}
-
-      try {
-        const rawTxs = localStorage.getItem('ferex_digital_payment_transactions');
-        if (rawTxs) {
-          const txs = JSON.parse(rawTxs);
-          const filteredT = txs.filter((t: any) => t.project_id !== id);
-          localStorage.setItem('ferex_digital_payment_transactions', JSON.stringify(filteredT));
-        }
-      } catch {}
-
       if (selectedProject?.id === id) setSelectedProject(null);
-      showToast(`Project "${title}" deleted successfully.`);
+      showToast(`Project "${title}" archived successfully.`);
       await loadData();
       window.dispatchEvent(new Event('ferex_digital_centralized_billing_change'));
       window.dispatchEvent(new Event('ferex_digital_payments_change'));
@@ -499,8 +324,8 @@ export const DigitalProjects: React.FC = () => {
   const handleConfirmReassign = async () => {
     if (!reassignProject || !reassignStaffName) return;
     try {
-      const staffMember = staffList.find(s => s.name === reassignStaffName || s.email === reassignStaffName);
-      await reassignDigitalProject(reassignProject.id, reassignStaffName, staffMember?.email, staffMember?.id);
+      const staffMember = staffList.find(s => s.id === reassignStaffName || s.name === reassignStaffName || s.email === reassignStaffName);
+      await reassignDigitalProject(reassignProject.id, staffMember?.name || reassignStaffName, staffMember?.email, staffMember?.id);
       showToast(`Reassigned "${reassignProject.title}" to ${reassignStaffName}`);
       setReassignProject(null);
       await loadData();
@@ -719,15 +544,16 @@ export const DigitalProjects: React.FC = () => {
                           autoFocus
                           value={editingTitleVal}
                           onChange={(e) => setEditingTitleVal(e.target.value)}
-                          onBlur={async () => {
+                          onBlur={async () => { try {
                             if (editingTitleVal.trim() && editingTitleVal !== p.title) {
                               await updateDigitalProject(p.id, { title: editingTitleVal.trim() });
                               showToast(`Project title updated to "${editingTitleVal.trim()}"`);
                               await loadData();
                             }
                             setEditingTitleId(null);
-                          }}
-                          onKeyDown={async (e) => {
+
+} catch(error: any) { setToast(error.message || 'Operation failed'); } }}
+                          onKeyDown={async (e) => { try {
                             if (e.key === 'Enter') {
                               if (editingTitleVal.trim() && editingTitleVal !== p.title) {
                                 await updateDigitalProject(p.id, { title: editingTitleVal.trim() });
@@ -738,7 +564,8 @@ export const DigitalProjects: React.FC = () => {
                             } else if (e.key === 'Escape') {
                               setEditingTitleId(null);
                             }
-                          }}
+
+} catch(error: any) { setToast(error.message || 'Operation failed'); } }}
                           className="w-full text-base font-black text-slate-900 border border-[#58051E] rounded px-2 py-0.5 focus:outline-hidden"
                         />
                       ) : (
@@ -1010,14 +837,15 @@ export const DigitalProjects: React.FC = () => {
                     return (
                       <button
                         key={st}
-                        onClick={async () => {
+                        onClick={async () => { try {
                           const updated = await advanceDigitalProjectStage(
                             selectedProject.id,
                             st,
                             profile?.full_name || 'Admin'
                           );
                           if (updated) setSelectedProject(updated);
-                        }}
+
+} catch(error: any) { setToast(error.message || 'Operation failed'); } }}
                         className={`p-2 rounded-xl text-left border text-xs transition-all ${
                           isCurrent
                             ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
@@ -1067,7 +895,7 @@ export const DigitalProjects: React.FC = () => {
                   <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                     <DollarSign className="w-3.5 h-3.5 text-[#58051E]" /> Commercial Value & Milestone Schedule
                   </h4>
-                  <span className="text-xs font-black text-emerald-700">₹{(Number(selectedProject.budget) || 0).toLocaleString('en-IN')}</span>
+                  <span className="text-xs font-black text-emerald-700">{money(Number(selectedProject.budget)||0,selectedProject.currency||'INR')}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
                   <span>Payment Terms: <strong className="text-slate-800">{selectedProject.payment_terms || 'Advance Payment'}</strong></span>
@@ -1272,299 +1100,7 @@ export const DigitalProjects: React.FC = () => {
                   />
                 </div>
 
-                {/* ── COMMERCIAL VALUE & PAYMENT TERMS CONFIGURATION ── */}
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#58051E] flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 text-[#58051E]" /> Commercial & Payment Terms Configuration
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-semibold">Single Source of Truth</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">
-                        Total Budget (₹ INR) *
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        min={1000}
-                        value={newProj.budget}
-                        onChange={(e) => setNewProj({ ...newProj, budget: Number(e.target.value) })}
-                        className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-emerald-700 focus:outline-none focus:border-[#58051E]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">
-                        Payment Terms
-                      </label>
-                      <select
-                        value={newProj.payment_terms}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          let splitType: any = 'advance_30';
-                          if (val.includes('100%') || val.includes('Full')) splitType = 'full';
-                          else if (val.includes('50%')) splitType = 'advance_50';
-                          else if (val.includes('3-Stage') || val.includes('Milestone')) splitType = 'three_milestones';
-                          setNewProj({ ...newProj, payment_terms: val, payment_split_type: splitType });
-                        }}
-                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
-                      >
-                        <option value="Advance Payment (30% Upfront)">Advance Payment (30% Upfront)</option>
-                        <option value="Advance Payment (50% Upfront)">Advance Payment (50% Upfront)</option>
-                        <option value="3-Stage Milestone Split (40% / 30% / 30%)">3-Stage Milestone Split (40% / 30% / 30%)</option>
-                        <option value="Full Payment (100% Upfront)">Full Payment (100% Upfront)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Payment Milestone Structure Quick Selector */}
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1.5">
-                      Milestone Structure
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {[
-                        { id: 'advance_30', label: '30% Advance', desc: '30% / 70%' },
-                        { id: 'advance_50', label: '50% Advance', desc: '50% / 50%' },
-                        { id: 'three_milestones', label: '3-Part Split', desc: '40% / 30% / 30%' },
-                        { id: 'full', label: 'Full 100%', desc: 'Single Part' },
-                        { id: 'custom_advance', label: 'Custom', desc: 'Define your %' },
-                      ].map(opt => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => {
-                            let terms = 'Advance Payment (30% Upfront)';
-                            if (opt.id === 'advance_50') terms = 'Advance Payment (50% Upfront)';
-                            else if (opt.id === 'three_milestones') terms = '3-Stage Milestone Split (40% / 30% / 30%)';
-                            else if (opt.id === 'full') terms = 'Full Payment (100% Upfront)';
-                            else if (opt.id === 'custom_advance') terms = 'Custom Milestone Split';
-                            setNewProj({
-                              ...newProj,
-                              payment_split_type: opt.id as any,
-                              payment_terms: terms,
-                              advance_percentage: opt.id === 'advance_50' ? 50 : opt.id === 'full' ? 100 : 30
-                            });
-                          }}
-                          className={`p-2 rounded-xl text-left border transition-all ${
-                            newProj.payment_split_type === opt.id
-                              ? 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
-                              : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <div className="text-[11px] font-black">{opt.label}</div>
-                          <div className={`text-[9px] ${newProj.payment_split_type === opt.id ? 'text-white/70' : 'text-slate-400'}`}>
-                            {opt.desc}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Custom Milestone Part Editor */}
-                    {newProj.payment_split_type === 'custom_advance' && (
-                      <div className="mt-2 p-3 bg-violet-50 border border-violet-200 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between">
-                          <p className="text-[10px] font-bold text-violet-700 uppercase">Custom Milestone Parts</p>
-                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-lg ${
-                            Math.abs(customMilestoneParts.reduce((s,p) => s + Number(p.percentage||0), 0) - 100) <= 1
-                              ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                          }`}>
-                            Total: {customMilestoneParts.reduce((s,p) => s + Number(p.percentage||0), 0)}%
-                          </span>
-                        </div>
-                        {customMilestoneParts.map((cp, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={cp.label}
-                              onChange={e => setCustomMilestoneParts(prev => prev.map((p, i) => i === idx ? { ...p, label: e.target.value } : p))}
-                              placeholder={`Part ${idx+1} label`}
-                              className="flex-1 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                            />
-                            <input
-                              type="number"
-                              min={1}
-                              max={99}
-                              value={cp.percentage || ''}
-                              onChange={e => setCustomMilestoneParts(prev => prev.map((p, i) => i === idx ? { ...p, percentage: Number(e.target.value) } : p))}
-                              placeholder="%"
-                              className="w-16 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 text-center"
-                            />
-                            {customMilestoneParts.length > 2 && (
-                              <button
-                                type="button"
-                                onClick={() => setCustomMilestoneParts(prev => prev.filter((_, i) => i !== idx))}
-                                className="p-1 text-slate-400 hover:text-red-500"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                        {customMilestoneParts.length < 5 && (
-                          <button
-                            type="button"
-                            onClick={() => setCustomMilestoneParts(prev => [...prev, { label: `Part ${prev.length+1}`, percentage: 0 }])}
-                            className="text-[10px] font-bold px-2 py-1 rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200"
-                          >
-                            + Add Part
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Live Calculated Milestone Installment Cards */}
-                  <div className="pt-2 border-t border-slate-200/70 space-y-1.5">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">
-                      Live Payment Installments Breakdown
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {newProj.payment_split_type === 'full' ? (
-                        <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between sm:col-span-2">
-                          <div>
-                            <span className="text-[11px] font-bold text-slate-800">Part 1: Full Payment (100%)</span>
-                            <span className="text-[10px] text-slate-400 block">Due on kickoff ({newProj.start_date})</span>
-                          </div>
-                          <span className="text-xs font-black text-emerald-700">₹{(Number(newProj.budget) || 0).toLocaleString('en-IN')}</span>
-                        </div>
-                      ) : newProj.payment_split_type === 'three_milestones' ? (
-                        <>
-                          <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
-                            <div>
-                              <span className="text-[11px] font-bold text-slate-800">Part 1: Kickoff (40%)</span>
-                              <span className="text-[10px] text-slate-400 block">Due on start ({newProj.start_date})</span>
-                            </div>
-                            <span className="text-xs font-black text-emerald-700">
-                              ₹{Math.round((Number(newProj.budget) || 0) * 0.4).toLocaleString('en-IN')}
-                            </span>
-                          </div>
-                          <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
-                            <div>
-                              <span className="text-[11px] font-bold text-slate-800">Part 2: Milestone (30%)</span>
-                              <span className="text-[10px] text-slate-400 block">Due mid-cycle</span>
-                            </div>
-                            <span className="text-xs font-black text-emerald-700">
-                              ₹{Math.round((Number(newProj.budget) || 0) * 0.3).toLocaleString('en-IN')}
-                            </span>
-                          </div>
-                          <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between sm:col-span-2">
-                            <div>
-                              <span className="text-[11px] font-bold text-slate-800">Part 3: Final Handover (30%)</span>
-                              <span className="text-[10px] text-slate-400 block">Due on deadline ({newProj.deadline})</span>
-                            </div>
-                            <span className="text-xs font-black text-emerald-700">
-                              ₹{((Number(newProj.budget) || 0) - Math.round((Number(newProj.budget) || 0) * 0.4) - Math.round((Number(newProj.budget) || 0) * 0.3)).toLocaleString('en-IN')}
-                            </span>
-                          </div>
-                        </>
-                      ) : newProj.payment_split_type === 'custom_advance' ? (
-                        customMilestoneParts.map((cp, i) => (
-                          <div key={i} className="p-2.5 bg-white rounded-xl border border-violet-200 flex items-center justify-between">
-                            <div>
-                              <span className="text-[11px] font-bold text-slate-800">Part {i+1}: {cp.label} ({cp.percentage}%)</span>
-                              <span className="text-[10px] text-slate-400 block">{i === 0 ? `Due on start (${newProj.start_date})` : i === customMilestoneParts.length - 1 ? `Due on deadline (${newProj.deadline})` : 'Mid-cycle milestone'}</span>
-                            </div>
-                            <span className="text-xs font-black text-violet-700">
-                              ₹{Math.round((Number(newProj.budget) || 0) * (cp.percentage / 100)).toLocaleString('en-IN')}
-                            </span>
-                          </div>
-                        ))
-                      ) : (
-                        <>
-                          <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
-                            <div>
-                              <span className="text-[11px] font-bold text-slate-800">
-                                Part 1: Advance ({newProj.payment_split_type === 'advance_50' ? 50 : 30}%)
-                              </span>
-                              <span className="text-[10px] text-slate-400 block">Due on start ({newProj.start_date})</span>
-                            </div>
-                            <span className="text-xs font-black text-emerald-700">
-                              ₹{Math.round((Number(newProj.budget) || 0) * (newProj.payment_split_type === 'advance_50' ? 0.5 : 0.3)).toLocaleString('en-IN')}
-                            </span>
-                          </div>
-                          <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
-                            <div>
-                              <span className="text-[11px] font-bold text-slate-800">
-                                Part 2: Balance ({newProj.payment_split_type === 'advance_50' ? 50 : 70}%)
-                              </span>
-                              <span className="text-[10px] text-slate-400 block">Due on deadline ({newProj.deadline})</span>
-                            </div>
-                            <span className="text-xs font-black text-emerald-700">
-                              ₹{((Number(newProj.budget) || 0) - Math.round((Number(newProj.budget) || 0) * (newProj.payment_split_type === 'advance_50' ? 0.5 : 0.3))).toLocaleString('en-IN')}
-                            </span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Scope Cost Breakdown Section */}
-                  <div className="pt-2 border-t border-slate-200/70">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">
-                        Cost Breakdown by Component <span className="text-slate-300 font-normal">(Optional Deliverable Breakdown)</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowProjBreakdown(v => !v)}
-                        className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200"
-                      >
-                        {showProjBreakdown ? 'Hide Breakdown' : '+ Add Component Breakdown'}
-                      </button>
-                    </div>
-
-                    {showProjBreakdown && (
-                      <div className="space-y-2 p-3 bg-blue-50/50 rounded-xl border border-blue-200">
-                        <p className="text-[10px] text-blue-700 font-medium">
-                          Specify deliverable component values (e.g. Design ₹3k, Frontend ₹4k, Backend ₹3k). Independent of milestone payment terms.
-                        </p>
-                        {projBreakdown.map((item, idx) => (
-                          <div key={item.id} className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={item.component}
-                              onChange={e => setProjBreakdown(prev => prev.map((b, i) => i === idx ? { ...b, component: e.target.value } : b))}
-                              placeholder="Component (e.g. Design)"
-                              className="flex-1 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                            />
-                            <input
-                              type="number"
-                              min={0}
-                              value={item.amount || ''}
-                              onChange={e => setProjBreakdown(prev => prev.map((b, i) => i === idx ? { ...b, amount: Number(e.target.value) } : b))}
-                              placeholder="₹ Amount"
-                              className="w-28 h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-emerald-700"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setProjBreakdown(prev => prev.filter((_, i) => i !== idx))}
-                              className="p-1 text-slate-400 hover:text-red-500"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                        <div className="flex items-center justify-between pt-1">
-                          <button
-                            type="button"
-                            onClick={() => setProjBreakdown(prev => [...prev, { id: Date.now().toString(), component: '', amount: 0 }])}
-                            className="text-[10px] font-bold px-2 py-1 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
-                          >
-                            + Add Component
-                          </button>
-                          <span className="text-[11px] font-bold text-slate-600">
-                            Total Breakdown: ₹{projBreakdown.reduce((sum, b) => sum + Number(b.amount || 0), 0).toLocaleString('en-IN')}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
+                <label className="block text-sm font-bold">Estimated budget (client currency)<input className="w-full border rounded p-2" required min="0" step="any" type="number" value={newProj.budget} onChange={e=>setNewProj({...newProj,budget:Number(e.target.value)})}/></label><p className="text-sm text-slate-600">Configure service prices, taxes, payment terms and proposals in Centralised Billing after creating the project.</p>
                 {/* Dates & Assigned Staff */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -1599,7 +1135,7 @@ export const DigitalProjects: React.FC = () => {
                     value={newProj.assigned_staff_name}
                     onChange={(e) => {
                       const name = e.target.value;
-                      const matched = staffList.find(s => s.name === name);
+                      const matched = staffList.find(s => s.id === name || s.name === name);
                       setNewProj({
                         ...newProj,
                         assigned_staff_name: name,
@@ -1609,7 +1145,7 @@ export const DigitalProjects: React.FC = () => {
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                   >
                     {staffList.map((s: any) => (
-                      <option key={s.id || s.email} value={s.name}>
+                      <option key={s.id || s.email} value={s.id}>
                         {s.name} ({s.roleLabel || s.role || 'Project Lead'})
                       </option>
                     ))}
@@ -1814,7 +1350,7 @@ export const DigitalProjects: React.FC = () => {
                   >
                     <option value="">-- Choose Staff Member --</option>
                     {staffList.map((s: any) => (
-                      <option key={s.id || s.email} value={s.name}>
+                      <option key={s.id || s.email} value={s.id}>
                         {s.name} ({s.roleLabel || s.role || 'Project Lead'}) - {s.email}
                       </option>
                     ))}

@@ -1,0 +1,51 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';
+const runtime=process.env.FEREX_PGLITE_PATH||path.join(process.env.TEMP,'ferex-audit-runtime/node_modules/@electric-sql/pglite/dist/index.js');
+const {PGlite}=await import(pathToFileURL(runtime));
+const db=new PGlite();
+const s=JSON.parse(fs.readFileSync('.local-backups/digital-predeploy-schema.json','utf8'));
+try {
+ await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS; CREATE SCHEMA auth;
+ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+ CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT coalesce(nullif(current_setting('request.jwt.claim.role',true),''),'service_role') $$;
+ CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT jsonb_build_object('email',current_setting('request.jwt.claim.email',true)) $$;
+ CREATE TABLE auth.users(id uuid PRIMARY KEY,email text,raw_user_meta_data jsonb DEFAULT '{}',raw_app_meta_data jsonb DEFAULT '{}');`);
+ for(const t of s.tables) await db.exec(t.ddl);
+ for(const ddl of s.constraints) await db.exec(ddl);
+ for(const ddl of s.functions) await db.exec(ddl);
+ for(const ddl of s.policies) await db.exec(ddl);
+ for(const ddl of s.triggers||[]) await db.exec(ddl);
+ for(const t of s.tables) if(t.rls) await db.exec(`ALTER TABLE public.${t.name} ENABLE ROW LEVEL SECURITY`);
+ await db.exec('GRANT USAGE ON SCHEMA public,auth TO anon,authenticated,service_role; GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated,service_role');
+ for(const file of fs.readdirSync('supabase/migrations').filter(f=>f.startsWith('20261101')).sort()) {
+  await db.exec(fs.readFileSync('supabase/migrations/'+file,'utf8')); console.log('PASS live schema migration',file);
+ }
+ const admin='81000000-0000-4000-8000-000000000001',pm='81000000-0000-4000-8000-000000000002',orphan='81000000-0000-4000-8000-000000000003';
+ await db.query(`INSERT INTO public.users(id,email,full_name,role) VALUES($1,'deploy-admin@example.test','Admin','digital_admin'),($2,'deploy-pm@example.test','Manager','project_manager'),($3,'orphan@example.test','Orphan','project_manager')`,[admin,pm,orphan]);
+ await db.query('INSERT INTO auth.users(id,email) SELECT id,email FROM public.users WHERE id IN ($1,$2)',[admin,pm]);
+ const login=async(id,email)=>{await db.exec('RESET ROLE');await db.query("SELECT set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claim.email',$2,false),set_config('request.jwt.claim.role','authenticated',false)",[id,email]);await db.exec('SET ROLE authenticated');};
+ await login(admin,'deploy-admin@example.test');
+ assert.equal((await db.query('SELECT * FROM public.digital_staff_directory()')).rows.length,2);
+ const lead=(await db.query("INSERT INTO public.digital_clients(company_name,contact_person,email,status) VALUES('Test client','Client','client@example.test','Lead') RETURNING id")).rows[0].id;
+ const project=(await db.query('SELECT public.digital_convert_lead($1,$2::jsonb) AS r',[lead,{title:'Test international project',service_category:'Web & App Development',budget:200}])).rows[0].r.project;
+ const body={project_id:project.id,project_title:project.title,client_name:'Test client',client_email:'client@example.test',country:'AE',currency:'USD',lines:[{id:'web',title:'Web',amount:100,tax_rate:5,tax_label:'VAT'},{id:'support',title:'Support',amount:100,tax_rate:0,tax_label:'No tax'}],parts:[{id:'advance',label:'Advance',percentage:40,due_date:'2026-11-01',service_ids:['web','support']},{id:'delivery',label:'Delivery',percentage:60,due_date:'2026-12-01',service_ids:['web','support']}]};
+ const contract=(await db.query('SELECT to_jsonb(public.digital_save_contract(NULL,0,$1::jsonb)) AS c',[body])).rows[0].c;
+ assert.equal(contract.body.total,205);
+ const payment='82000000-0000-4000-8000-000000000001';
+ await db.query("SELECT public.digital_collect_payment($1,'advance',10,'Bank','TEST-ONLY',current_date,$2)",[contract.id,payment]);
+ await db.query("SELECT public.digital_refund_payment($1,4,'Test refund',gen_random_uuid())",[payment]);
+ assert.equal((await db.query('SELECT body FROM public.digital_contracts WHERE id=$1',[contract.id])).rows[0].body.parts[0].received,6);
+ await assert.rejects(()=>db.query("INSERT INTO public.tasks(title,category,assigned_staff_id) VALUES('Invalid assignee','Digital',$1)",[orphan]),/registered login/);
+ const directive=(await db.query("INSERT INTO public.tasks(title,category,assigned_staff_id,project_id,due_date) VALUES('Test directive','Digital',$1,$2,'2026-12-01') RETURNING id",[pm,project.id])).rows[0].id;
+ await login(pm,'deploy-pm@example.test');
+ await db.query("UPDATE public.digital_tasks SET status='Done' WHERE id=$1",[directive]);
+ const sheet=(await db.query("SELECT to_jsonb(public.ferex_clock_in('digital',NULL)) AS s")).rows[0].s;
+ await db.query("SELECT public.ferex_clock_out($1,'Verified live schema compatibility')",[sheet.id]);
+ await assert.rejects(()=>db.query("UPDATE public.users SET role='superadmin' WHERE id=$1",[pm]),/role/);
+ await db.exec('RESET ROLE');
+ assert.equal((await db.query('SELECT status FROM public.tasks WHERE id=$1',[directive])).rows[0].status,'Completed');
+ console.log('PASS live schema runtime: registered assignees, lead conversion, mixed-tax contract, partial payment, refund, Central task sync, attendance and role guard');
+ console.log('Live schema preflight passed');
+} finally {await db.close();}

@@ -1,3 +1,4 @@
+import { money } from '../../lib/digitalCommerce';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Search, Plus, Edit3, Trash2, X, CheckCircle2, Mail, Phone, FolderKanban, FileText, CheckSquare, Eye, Lock, Globe, DollarSign, Building2, MapPin } from 'lucide-react';
@@ -52,7 +53,7 @@ export const DigitalClients: React.FC = () => {
   const [clientInvoices, setClientInvoices] = useState<any[]>([]);
 
   const [clientTypeFilter, setClientTypeFilter] = useState<'All' | 'Internal' | 'External'>('All');
-  
+
   // Detailed Add Client Form State
   const [newClient, setNewClient] = useState({
     company_name: '',
@@ -61,7 +62,9 @@ export const DigitalClients: React.FC = () => {
     email: '',
     phone: '',
     industry: 'Fintech & Banking',
-    city: 'Mumbai',
+    city: '',
+    country: '',
+    currency: 'INR',
     website: '',
     tax_id: '',
     estimated_budget: 250000,
@@ -89,17 +92,21 @@ export const DigitalClients: React.FC = () => {
           contact: d.contact_person || 'Point of Contact',
           email: d.email || 'client@company.com',
           phone: d.phone || '+91 98000 00000',
-          city: d.city || 'Mumbai',
+          city: d.city || '',
+          country: d.country || '',
+          currency: d.currency || 'INR',
           type: d.industry || 'Digital Services',
           client_type: d.client_type || (d.company_name?.toLowerCase().includes('ferex') || d.company_name?.toLowerCase().includes('rimi') ? 'Internal' : 'External'),
           status: d.status || 'Active',
-          spent: `₹${Number(d.total_revenue || 0).toLocaleString('en-IN')}`,
+          spent: money(Number(d.total_revenue || 0),d.currency || 'INR'),
           notes: d.notes || '',
           isConvertedLead: d.tags?.includes('converted_lead') || d.lead_stage === 'Closed Won',
         })));
       } else {
         setClients([]);
       }
+    } catch (error: any) {
+      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }
@@ -150,9 +157,15 @@ export const DigitalClients: React.FC = () => {
         phone: newClient.phone.trim(),
         industry: newClient.industry,
         city: newClient.city.trim(),
+        country: newClient.country,
+        currency: newClient.currency,
+        tax_id: newClient.tax_id,
+        website: newClient.website,
+        estimated_budget: newClient.estimated_budget,
+        contract_value: newClient.contract_value,
         client_type: newClient.client_type,
         status: newClient.status,
-        notes: newClient.notes.trim() ? `${newClient.notes} | Website: ${newClient.website} | Tax ID: ${newClient.tax_id} | Initial Est Budget: ₹${newClient.estimated_budget} | Contract: ₹${newClient.contract_value}` : ''
+        notes: newClient.notes.trim()
       });
 
       setShowAddModal(false);
@@ -164,7 +177,9 @@ export const DigitalClients: React.FC = () => {
         email: '',
         phone: '',
         industry: 'Fintech & Banking',
-        city: 'Mumbai',
+        city: '',
+    country: '',
+    currency: 'INR',
         website: '',
         tax_id: '',
         estimated_budget: 250000,
@@ -546,10 +561,11 @@ export const DigitalClients: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-3"><label>Country (ISO code)<input className="w-full border rounded p-2" required minLength={2} maxLength={2} value={newClient.country} onChange={e=>setNewClient({...newClient,country:e.target.value.toUpperCase()})}/></label><label>Currency (ISO code)<input className="w-full border rounded p-2" required minLength={3} maxLength={3} value={newClient.currency} onChange={e=>setNewClient({...newClient,currency:e.target.value.toUpperCase()})}/></label></div>
                 {/* Commercials: Estimated Budget & Initial Contract Value */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Estimated Initial Project Budget (₹ INR)</label>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Estimated Initial Project Budget (client currency)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
@@ -562,7 +578,7 @@ export const DigitalClients: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Annual Contract Value (₹ INR)</label>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Annual Contract Value (client currency)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
@@ -717,7 +733,7 @@ export const DigitalClients: React.FC = () => {
                         <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1.5">
                           <div className="flex justify-between font-bold text-slate-900">
                             <span>{p.title}</span>
-                            <span className="text-[#58051E]">₹{Number(p.budget || 0).toLocaleString('en-IN')}</span>
+                            <span className="text-[#58051E]">{money(Number(p.budget||0),p.currency||'INR')}</span>
                           </div>
                           <div className="flex justify-between text-[11px] text-slate-500">
                             <span>Category: {p.service_category}</span>
@@ -764,7 +780,7 @@ export const DigitalClients: React.FC = () => {
                             <span className="text-[10px] text-slate-400">Due: {inv.due_date || 'Net 15'}</span>
                           </div>
                           <div className="text-right">
-                            <span className="font-black text-slate-900 block">₹{Number(inv.amount || 0).toLocaleString('en-IN')}</span>
+                            <span className="font-black text-slate-900 block">{money(Number(inv.amount||0),inv.currency||'INR')}</span>
                             <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${inv.status === 'Paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{inv.status}</span>
                           </div>
                         </div>

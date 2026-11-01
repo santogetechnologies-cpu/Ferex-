@@ -57,6 +57,8 @@ export const DigitalMobileApps: React.FC = () => {
       ];
       setAppReleases(initialReleases);
       localStorage.setItem('ferex_digital_app_releases', JSON.stringify(initialReleases));
+    } catch (error: any) {
+      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }

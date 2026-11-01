@@ -60,6 +60,8 @@ export const DigitalMarketing: React.FC = () => {
       ];
       setCampaigns(initialCampaigns);
       localStorage.setItem('ferex_digital_marketing_campaigns', JSON.stringify(initialCampaigns));
+    } catch (error: any) {
+      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }

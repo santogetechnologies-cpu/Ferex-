@@ -75,7 +75,8 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
       .eq('id', userId)
       .maybeSingle();
 
-    if (!error && data) {
+    if (error) throw error;
+    if (data) {
       const isSuper = isSuperAdmin(data.role, email || data.email);
       return {
         ...data,
@@ -108,8 +109,8 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
     }
 
     return null;
-  } catch {
-    return null;
+  } catch (error) {
+    throw error;
   }
 }
 
@@ -124,8 +125,8 @@ async function ensureProfile(user: User): Promise<UserProfile> {
   }
 
   // Use the role from user metadata (set during student registration or staff provisioning), fallback to 'superadmin' for direct auth users
-  const metaRole = user.user_metadata?.role;
-  const isSuper = isSuperAdmin(metaRole, user.email) || !metaRole || metaRole === 'superadmin' || metaRole === 'super_admin';
+  const metaRole = 'student';
+  const isSuper = false;
   const role = isSuper ? 'superadmin' : metaRole;
   const fullName = user.user_metadata?.full_name || user.user_metadata?.name || (isSuper ? 'Central Super Admin' : (user.email?.split('@')[0] || 'User'));
 
@@ -166,71 +167,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(currentUser);
 
     if (currentUser) {
-      const metaRole = currentUser.user_metadata?.role;
-      const isSuper = isSuperAdmin(metaRole, currentUser.email) || !metaRole || metaRole === 'superadmin' || metaRole === 'super_admin';
+      const metaRole = 'student';
+      const isSuper = false;
       const defaultRole = isSuper ? 'superadmin' : metaRole;
 
       try {
-        const prof = await Promise.race([
-          ensureProfile(currentUser),
-          new Promise<UserProfile>((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  id: currentUser.id,
-                  email: currentUser.email || '',
-                  full_name: currentUser.user_metadata?.full_name || (isSuper ? 'Central Super Admin' : (currentUser.email?.split('@')[0] || 'User')),
-                  role: defaultRole,
-                  created_at: new Date().toISOString(),
-                }),
-              2000
-            )
-          ),
-        ]);
+        const prof = await ensureProfile(currentUser);
         setProfile(prof);
       } catch {
-        setProfile({
-          id: currentUser.id,
-          email: currentUser.email || '',
-          full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || (isSuper ? 'Central Super Admin' : 'Student User'),
-          role: defaultRole,
-          created_at: new Date().toISOString(),
-        });
+        setProfile(null);
       }
     } else {
-      // Fallback check: If Supabase session is null, check local user store
-      const localSavedUser = (() => {
-        try {
-          const raw = localStorage.getItem('ferex_user');
-          return raw ? JSON.parse(raw) : null;
-        } catch {
-          return null;
-        }
-      })();
-
-      if (localSavedUser && localSavedUser.id) {
-        const isSuper = isSuperAdmin(localSavedUser.role, localSavedUser.email);
-        const resolvedRole = isSuper ? 'superadmin' : (localSavedUser.role || 'student');
-
-        setProfile({
-          id: localSavedUser.id,
-          email: localSavedUser.email || (isSuper ? 'admin@ferex.com' : 'user@ferex.com'),
-          full_name: localSavedUser.fullName || localSavedUser.full_name || (isSuper ? 'Central Super Admin' : 'Student User'),
-          role: resolvedRole,
-          created_at: new Date().toISOString(),
-        });
-        setUser({
-          id: localSavedUser.id,
-          email: localSavedUser.email || (isSuper ? 'admin@ferex.com' : 'user@ferex.com'),
-          user_metadata: {
-            full_name: localSavedUser.fullName || localSavedUser.full_name || (isSuper ? 'Central Super Admin' : 'Student User'),
-            role: resolvedRole,
-          }
-        } as any);
-      } else {
-        setProfile(null);
-        setUser(null);
-      }
+      setProfile(null);
+      setUser(null);
     }
     setLoading(false);
   }, []);
@@ -268,66 +217,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const cleanEmail = email.trim();
       const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-      
-      if (error) {
-        // Check if user was provisioned locally or in custom registry
-        const localRegistryKey = `ferex_admin_cred_${cleanEmail.toLowerCase()}`;
-        const localCred = localStorage.getItem(localRegistryKey);
-        if (localCred) {
-          try {
-            const parsed = JSON.parse(localCred);
-            if (parsed.password === password) {
-              const localId = parsed.id || `staff-${cleanEmail.replace(/[^a-z0-9]/g, '')}`;
-              const localName = parsed.fullName || parsed.full_name || cleanEmail.split('@')[0];
-              const localRole = parsed.role || 'counselor';
-              const localUserObj = {
-                id: localId,
-                email: cleanEmail,
-                user_metadata: {
-                  full_name: localName,
-                  role: localRole,
-                }
-              } as any;
-              const localProfileObj: UserProfile = {
-                id: localId,
-                email: cleanEmail,
-                full_name: localName,
-                role: localRole,
-                department: parsed.department || 'Admissions',
-                phone: parsed.phone || '',
-                created_at: parsed.created_at || new Date().toISOString(),
-                must_change_password: !!parsed.require_password_reset,
-                permissions: parsed.permissions || []
-              };
 
-              localStorage.setItem('ferex_user', JSON.stringify({
-                id: localId,
-                email: cleanEmail,
-                role: localRole,
-                full_name: localName
-              }));
-
-              setUser(localUserObj);
-              setProfile(localProfileObj);
-
-              // Best-effort background sign up / sync with Supabase
-              supabase.auth.signUp({
-                email: cleanEmail,
-                password: password,
-                options: {
-                  data: {
-                    full_name: localName,
-                    role: localRole,
-                  }
-                }
-              }).catch(() => {});
-
-              return {};
-            }
-          } catch {}
-        }
-        return { error: error.message };
-      }
+      if (error) return { error: error.message };
 
       if (data.session) {
         await loadUserData(data.session);
@@ -374,85 +265,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     extra?: { department?: string; phone?: string; permissions?: any[] }
   ) => {
     try {
-      const cleanEmail = email.trim();
-      const credRecord = {
-        email: cleanEmail,
-        password: password,
-        fullName: fullName,
-        role: role,
-        department: extra?.department || (role.includes('counselor') ? 'Admissions & Counseling' : role.includes('digital') ? 'Digital Technology' : 'Enterprise HQ'),
-        phone: extra?.phone || '',
-        permissions: extra?.permissions || [],
-        created_at: new Date().toISOString(),
-      };
-      localStorage.setItem(`ferex_admin_cred_${cleanEmail.toLowerCase()}`, JSON.stringify(credRecord));
-
-      // 1. Attempt to register in Supabase Auth
-      try {
-        await supabase.auth.signUp({
-          email: cleanEmail,
-          password: password,
-          options: {
-            data: {
-              full_name: fullName,
-              role: role,
-              department: credRecord.department,
-              phone: credRecord.phone,
-            }
-          }
-        });
-      } catch {}
-
-      // 2. Authoritatively Update / Insert in public.users table
-      try {
-        const admin = await getAdminSupabaseClient();
-        const client = admin || supabase;
-
-        const { data: existingUser } = await client
-          .from('users')
-          .select('id')
-          .ilike('email', cleanEmail)
-          .maybeSingle();
-
-        if (existingUser?.id) {
-          await client
-            .from('users')
-            .update({
-              role: role,
-              full_name: fullName,
-              department: credRecord.department,
-              phone: credRecord.phone,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existingUser.id);
-        } else {
-          const newUuid = (typeof crypto !== 'undefined' && crypto.randomUUID)
-            ? crypto.randomUUID()
-            : 'a0000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0');
-
-          await client
-            .from('users')
-            .insert({
-              id: newUuid,
-              email: cleanEmail,
-              full_name: fullName,
-              role: role,
-              department: credRecord.department,
-              phone: credRecord.phone,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
-        }
-      } catch (dbErr) {
-        console.error('Database update error in provisionDivisionAdmin:', dbErr);
-      }
-
-      // Trigger event for immediate live UI refresh across all tabs and hooks
-      window.dispatchEvent(new CustomEvent('ferex_admin_created', { detail: credRecord }));
-      window.dispatchEvent(new Event('ferex_staff_change'));
-      window.dispatchEvent(new Event('storage'));
-
-      return { user: credRecord };
+      const {data,error}=await supabase.functions.invoke('provision-digital-user',{body:{email:email.trim(),full_name:fullName,role,department:extra?.department,phone:extra?.phone}});
+      if(error || data?.error)return {error:data?.error || error?.message};
+      return {user:data.user};
     } catch (err: any) {
       return { error: err?.message || 'Failed to provision division admin or staff' };
     }
@@ -463,7 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await supabase.auth.signOut();
     } catch {}
     try {
-      const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('ferex_session_'));
+      const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('ferex_') || k.startsWith('sb-'));
       keysToRemove.forEach(k => localStorage.removeItem(k));
     } catch {}
     setUser(null);

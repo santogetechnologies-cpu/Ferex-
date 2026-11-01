@@ -237,6 +237,8 @@ export const DigitalBilling: React.FC = () => {
         const fresh = data.find(b => b.id === selectedBilling.id);
         if (fresh) setSelectedBilling(fresh);
       }
+    } catch (error: any) {
+      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }
@@ -260,7 +262,7 @@ export const DigitalBilling: React.FC = () => {
   const openControlledEdit = (billing: CentralizedProjectBilling) => {
     setSelectedBilling(billing);
     setEditingScopeItems([...billing.scope_items]);
-    setEditingScopeBreakdown(billing.scope_breakdown ? [...billing.scope_breakdown] : []);
+    setEditingScopeBreakdown((billing.scope_breakdown || []).map(item => ({ ...item, description: item.description || '' })));
     setShowBreakdownSection(!!(billing.scope_breakdown && billing.scope_breakdown.length > 0));
     const mType = billing.milestone_split_type || (billing.payment_split === 1 ? 'full' : billing.payment_split === 3 ? 'three_milestones' : 'advance_50');
     setEditingMilestoneType(mType as any);

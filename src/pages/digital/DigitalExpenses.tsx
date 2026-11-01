@@ -1,3 +1,4 @@
+import { money } from '../../lib/digitalCommerce';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -40,6 +41,7 @@ export const DigitalExpenses: React.FC = () => {
   const [newExp, setNewExp] = useState({
     title: '',
     category: 'Cloud Infrastructure',
+    currency: 'INR',
     amount: 45000,
     vendor: 'Amazon Web Services',
     date: new Date().toISOString().split('T')[0]
@@ -74,6 +76,8 @@ export const DigitalExpenses: React.FC = () => {
       setExpenses(expData || []);
       setAssets(assetData || []);
       setAssetSummary(sumData);
+    } catch (error: any) {
+      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }
@@ -94,23 +98,25 @@ export const DigitalExpenses: React.FC = () => {
     };
   }, [loadData]);
 
-  const handleAddExpense = async (e: React.FormEvent) => {
+  const handleAddExpense = async (e: React.FormEvent) => { try {
     e.preventDefault();
     if (!newExp.title) return;
     await createDigitalExpense({
       title: newExp.title,
       category: newExp.category,
       amount: Number(newExp.amount),
+      currency: newExp.currency,
       vendor: newExp.vendor,
       date: newExp.date
     });
     setShowAddExpenseModal(false);
     showToast(`Logged operating expense: ₹${Number(newExp.amount).toLocaleString('en-IN')}`);
-    setNewExp({ title: '', category: 'Cloud Infrastructure', amount: 45000, vendor: 'Amazon Web Services', date: new Date().toISOString().split('T')[0] });
+    setNewExp({ title: '', category: 'Cloud Infrastructure', currency: 'INR', amount: 45000, vendor: 'Amazon Web Services', date: new Date().toISOString().split('T')[0] });
     await loadData();
-  };
 
-  const handleAddAsset = async (e: React.FormEvent) => {
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
+
+  const handleAddAsset = async (e: React.FormEvent) => { try {
     e.preventDefault();
     if (!newAsset.name) return;
     await createDigitalAsset(newAsset);
@@ -128,7 +134,8 @@ export const DigitalExpenses: React.FC = () => {
       license_seats: 10
     });
     await loadData();
-  };
+
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
 
   const handleDeleteExpense = async (id: string) => {
     try {
@@ -151,12 +158,13 @@ export const DigitalExpenses: React.FC = () => {
     }
   };
 
-  const handleRenewAsset = async (asset: DigitalAsset) => {
+  const handleRenewAsset = async (asset: DigitalAsset) => { try {
     const nextDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
     await updateDigitalAsset(asset.id, { status: 'Auto-Renewed', renewal_date: nextDate });
     showToast(`Auto-renewed subscription for ${asset.name}`);
     await loadData();
-  };
+
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
 
   const totalOperatingSpend = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
@@ -204,7 +212,7 @@ export const DigitalExpenses: React.FC = () => {
         <Card className="p-4 border border-slate-200/80 bg-white">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Operating Spend</span>
           <div className="text-2xl font-black text-slate-900 mt-1">
-            ₹{totalOperatingSpend.toLocaleString('en-IN')}
+            {Object.entries(expenses.reduce((all: Record<string,number>,exp)=>{const code=exp.currency||'INR';all[code]=(all[code]||0)+Number(exp.amount);return all;},{})).map(([code,total])=>money(total,code)).join(' / ')||'No expenses'}
           </div>
           <span className="text-[10px] font-semibold text-slate-500 mt-0.5 block">{expenses.length} Total Expense Vouchers</span>
         </Card>
@@ -292,7 +300,7 @@ export const DigitalExpenses: React.FC = () => {
                       <th className="py-3.5 px-4">Category</th>
                       <th className="py-3.5 px-4">Vendor / Supplier</th>
                       <th className="py-3.5 px-4">Date</th>
-                      <th className="py-3.5 px-4">Amount (₹)</th>
+                      <th className="py-3.5 px-4">Amount</th>
                       <th className="py-3.5 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -310,7 +318,7 @@ export const DigitalExpenses: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 font-bold text-slate-800">{exp.vendor}</td>
                         <td className="py-3.5 px-4 font-semibold text-slate-500">{exp.date}</td>
-                        <td className="py-3.5 px-4 font-black text-[#58051E]">₹{Number(exp.amount).toLocaleString('en-IN')}</td>
+                        <td className="py-3.5 px-4 font-black text-[#58051E]">{money(Number(exp.amount),exp.currency||'INR')}</td>
                         <td className="py-3.5 px-4 text-right">
                           <button
                             onClick={() => handleDeleteExpense(exp.id)}
@@ -426,7 +434,8 @@ export const DigitalExpenses: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Amount (INR ₹)</label>
+                    <label className="block text-sm">Currency<input required minLength={3} maxLength={3} className="w-full border rounded p-2" value={newExp.currency} onChange={e=>setNewExp({...newExp,currency:e.target.value.toUpperCase()})}/></label>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Amount (selected currency)</label>
                     <input type="number" required value={newExp.amount} onChange={(e) => setNewExp({ ...newExp, amount: Number(e.target.value) })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                   </div>
                 </div>

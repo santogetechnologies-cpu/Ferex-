@@ -69,6 +69,8 @@ export const DigitalNotifications: React.FC = () => {
           created_at: n.created_at || new Date().toISOString(),
         })));
       }
+    } catch (error: any) {
+      setToast(error.message || 'Unable to load data');
     } finally {
       setLoading(false);
     }
@@ -93,27 +95,30 @@ export const DigitalNotifications: React.FC = () => {
     };
   }, [loadData]);
 
-  const handleMarkAllRead = async () => {
+  const handleMarkAllRead = async () => { try {
     await markAllDigitalNotificationsRead();
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     showToast('All notifications marked as read');
-  };
 
-  const handleMarkRead = async (id: string, e?: React.MouseEvent) => {
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
+
+  const handleMarkRead = async (id: string, e?: React.MouseEvent) => { try {
     if (e) e.stopPropagation();
     await markDigitalNotificationRead(id);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     showToast('Notification marked as read');
-  };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => { try {
     e.stopPropagation();
     await deleteDigitalNotification(id);
     setNotifications(prev => prev.filter(n => n.id !== id));
     showToast('Notification dismissed');
-  };
 
-  const handleCreateAlert = async (e: React.FormEvent) => {
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
+
+  const handleCreateAlert = async (e: React.FormEvent) => { try {
     e.preventDefault();
     if (!newAlertForm.title.trim()) return;
 
@@ -134,7 +139,8 @@ export const DigitalNotifications: React.FC = () => {
       link: '/digital/projects'
     });
     await loadData();
-  };
+
+} catch(error: any) { setToast(error.message || 'Operation failed'); } };
 
   const unreadCount = useMemo(() => notifications.filter(n => !n.is_read).length, [notifications]);
 
