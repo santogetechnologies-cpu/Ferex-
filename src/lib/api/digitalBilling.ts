@@ -325,6 +325,27 @@ export async function getCentralizedBillings(): Promise<CentralizedProjectBillin
       const milestoneType = (proj.payment_split_type || 'advance_50') as MilestoneSplitType;
       const advancePct = proj.advance_percentage || (proj.payment_split_type === 'advance_30' ? 30 : 50);
       const initialParts = computePaymentParts(budget, splitTerms, undefined, { milestoneType, advancePercentage: advancePct });
+      // Restore actual payments recorded in Supabase projects table
+      const advPaid = Number(proj.advance_paid || 0);
+      const balPaid = Number(proj.balance_paid || 0);
+      if (proj.payment_status === 'Paid') {
+        initialParts.forEach(p => {
+          p.amount_received = p.configured_amount;
+          p.remaining_balance = 0;
+          p.status = 'paid';
+        });
+      } else if (advPaid > 0 || balPaid > 0) {
+        if (initialParts[0] && advPaid > 0) {
+          initialParts[0].amount_received = advPaid;
+          initialParts[0].remaining_balance = Math.max(0, initialParts[0].configured_amount - advPaid);
+          initialParts[0].status = advPaid >= initialParts[0].configured_amount ? 'paid' : 'partially_paid';
+        }
+        if (initialParts[1] && balPaid > 0) {
+          initialParts[1].amount_received = balPaid;
+          initialParts[1].remaining_balance = Math.max(0, initialParts[1].configured_amount - balPaid);
+          initialParts[1].status = balPaid >= initialParts[1].configured_amount ? 'paid' : 'partially_paid';
+        }
+      }
 
       const bootstrapped: CentralizedProjectBilling = {
         id: generateUUID(),
@@ -530,13 +551,46 @@ export async function updateCentralizedBillingScope(params: {
     }
   } catch {}
 
-  // Update Supabase if available
+  // Update Supabase digital_projects table
   try {
     await supabase.from('digital_projects').update({
       budget: newTotal,
+      payment_split_type: milestoneType,
+      advance_percentage: advancePct,
+      advance_amount: updatedParts[0]?.configured_amount || Math.round(newTotal * 0.5),
+      balance_amount: newTotal - (updatedParts[0]?.configured_amount || Math.round(newTotal * 0.5)),
+      scope: params.newScopeItems.map(i => `${i.title} (₹${Number(i.amount).toLocaleString('en-IN')})`).join('; '),
       updated_at: new Date().toISOString()
     }).eq('id', updated.project_id);
-  } catch {}
+
+    // Upsert into digital_contracts if available
+    try {
+      await supabase.from('digital_contracts').upsert({
+        project_id: updated.project_id,
+        body: {
+          lines: params.newScopeItems,
+          parts: updatedParts,
+          breakdown: params.newScopeBreakdown,
+          custom_parts: params.newCustomParts,
+          subtotal: newTotal,
+          total: newTotal,
+          audit_trail: updated.audit_trail
+        },
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'project_id' });
+    } catch {}
+
+    // Also update invoice if one exists
+    try {
+      await supabase.from('digital_invoices').update({
+        amount: newTotal,
+        tax_amount: Math.round(newTotal * 0.18),
+        status: updated.status === 'Completed' ? 'Paid' : 'Sent'
+      }).eq('project_id', updated.project_id);
+    } catch {}
+  } catch (err) {
+    console.warn('[DigitalBilling] Database sync notice:', err);
+  }
 
   triggerEvent('ferex_digital_centralized_billing_change');
   triggerEvent('ferex_digital_projects_change');
@@ -562,6 +616,56 @@ export async function getPaymentTransactions(projectId?: string): Promise<Actual
       try { localStorage.setItem('ferex_digital_payment_transactions', JSON.stringify([])); } catch {}
     }
     return [];
+  }
+
+  // Also recover transactions from Supabase projects table where payments were recorded
+  for (const proj of projects) {
+    const adv = Number(proj.advance_paid || 0);
+    const bal = Number(proj.balance_paid || 0);
+    if (adv > 0 && !list.some(t => t.project_id === proj.id && t.part_number === 1)) {
+      list.push({
+        id: `tx-adv-${proj.id}`,
+        project_id: proj.id,
+        project_title: proj.title,
+        client_id: proj.client_id || '',
+        client_name: proj.client_name || 'Client',
+        billing_id: `b-${proj.id}`,
+        payment_part_id: `part-1-${proj.id}`,
+        payment_part_label: `Part 1: Advance (${proj.advance_percentage || 50}%)`,
+        part_number: 1,
+        total_amount: adv,
+        payment_methods: [{ id: '1', method: 'Bank Transfer', amount: adv, date: proj.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0], reference_no: `BANK-${proj.id.slice(0, 6).toUpperCase()}` }],
+        payment_date: proj.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        receipt_number: `REC-DIG-${proj.id.slice(0, 4).toUpperCase()}-1`,
+        document_type: 'Payment Receipt',
+        recorded_by: 'Digital Accounts Lead',
+        status: 'Received',
+        notes: 'Instalment payment recorded',
+        created_at: proj.updated_at || new Date().toISOString()
+      });
+    }
+    if (bal > 0 && !list.some(t => t.project_id === proj.id && t.part_number === 2)) {
+      list.push({
+        id: `tx-bal-${proj.id}`,
+        project_id: proj.id,
+        project_title: proj.title,
+        client_id: proj.client_id || '',
+        client_name: proj.client_name || 'Client',
+        billing_id: `b-${proj.id}`,
+        payment_part_id: `part-2-${proj.id}`,
+        payment_part_label: `Part 2: Balance (${100 - (proj.advance_percentage || 50)}%)`,
+        part_number: 2,
+        total_amount: bal,
+        payment_methods: [{ id: '2', method: 'Bank Transfer', amount: bal, date: proj.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0], reference_no: `BANK-${proj.id.slice(0, 6).toUpperCase()}-2` }],
+        payment_date: proj.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        receipt_number: `REC-DIG-${proj.id.slice(0, 4).toUpperCase()}-2`,
+        document_type: 'Payment Receipt',
+        recorded_by: 'Digital Accounts Lead',
+        status: 'Received',
+        notes: 'Final balance settlement recorded',
+        created_at: proj.updated_at || new Date().toISOString()
+      });
+    }
   }
 
   const filtered = list.filter(t => activeProjectIds.has(t.project_id));
@@ -717,22 +821,54 @@ export async function recordPaymentTransaction(payload: {
     localStorage.setItem('ferex_digital_billing_documents', JSON.stringify([billingDoc, ...docs]));
   } catch {}
 
-  // Sync to database if digital_payments table exists
+  // Sync payment and invoice to Supabase database
   try {
-    for (const m of payload.payment_methods) {
-      await supabase.from('digital_payments').insert([{
-        client_id: payload.client_id,
-        invoice_no: receiptNo,
-        amount: m.amount,
-        payment_method: m.method,
-        payment_gateway: m.method,
-        transaction_ref: m.reference_no || receiptNo,
-        receipt_number: receiptNo,
-        status: 'Paid',
-        payment_date: payload.payment_date,
-      }]);
+    // 1. Update project payment status and amounts in Supabase
+    const isFullyPaid = overallRemaining <= 0;
+    const updateProjectPayload: Record<string, any> = {
+      payment_status: isFullyPaid ? 'Paid' : 'Partially Paid',
+      updated_at: new Date().toISOString()
+    };
+    if (targetPart.part_number === 1) {
+      updateProjectPayload.advance_paid = newPartReceived;
+    } else {
+      updateProjectPayload.balance_paid = newPartReceived;
     }
-  } catch {}
+    await supabase.from('digital_projects').update(updateProjectPayload).eq('id', payload.project_id);
+
+    // 2. Insert into digital_invoices
+    await supabase.from('digital_invoices').upsert({
+      id: generateUUID(),
+      client_id: payload.client_id || null,
+      project_id: payload.project_id || null,
+      invoice_no: receiptNo,
+      amount: totalFromMethods,
+      tax_amount: docType === 'Tax Invoice' ? Math.round(totalFromMethods * 0.18) : 0,
+      status: 'Paid',
+      currency: 'INR',
+      paid_at: new Date(payload.payment_date).toISOString(),
+      created_at: new Date().toISOString()
+    }, { onConflict: 'invoice_no' });
+
+    // 3. Insert into digital_payments / digital_collections if available
+    try {
+      for (const m of payload.payment_methods) {
+        await supabase.from('digital_payments').insert([{
+          client_id: payload.client_id,
+          invoice_no: receiptNo,
+          amount: m.amount,
+          payment_method: m.method,
+          payment_gateway: m.method,
+          transaction_ref: m.reference_no || receiptNo,
+          receipt_number: receiptNo,
+          status: 'Paid',
+          payment_date: payload.payment_date,
+        }]);
+      }
+    } catch {}
+  } catch (err) {
+    console.warn('[DigitalBilling] Payment database persistence notice:', err);
+  }
 
   // Sync project progress / payment status
   try {
@@ -781,6 +917,58 @@ export async function getBillingDocuments(projectId?: string): Promise<BillingDo
       try { localStorage.setItem('ferex_digital_billing_documents', JSON.stringify([])); } catch {}
     }
     return [];
+  }
+
+  // Also recover documents from Supabase projects table where payments were recorded
+  for (const proj of projects) {
+    const adv = Number(proj.advance_paid || 0);
+    const bal = Number(proj.balance_paid || 0);
+    if (adv > 0 && !docs.some(d => d.project_id === proj.id && d.part_number === 1)) {
+      docs.push({
+        id: `doc-adv-${proj.id}`,
+        doc_number: `REC-DIG-${proj.id.slice(0, 4).toUpperCase()}-1`,
+        doc_type: 'Payment Receipt',
+        project_id: proj.id,
+        project_title: proj.title,
+        client_id: proj.client_id || '',
+        client_name: proj.client_name || 'Client',
+        payment_part_label: `Part 1: Advance (${proj.advance_percentage || 50}%)`,
+        part_number: 1,
+        amount: adv,
+        tax_amount: 0,
+        total_settled: adv,
+        payment_methods: [{ id: '1', method: 'Bank Transfer', amount: adv, date: proj.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0], reference_no: `BANK-${proj.id.slice(0, 6).toUpperCase()}` }],
+        issued_date: proj.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        status: 'Settled',
+        balance_remaining: Math.max(0, Number(proj.budget || 0) - adv - bal),
+        notes: 'Official payment receipt',
+        created_at: proj.updated_at || new Date().toISOString(),
+        created_by: 'Digital Accounts Lead'
+      });
+    }
+    if (bal > 0 && !docs.some(d => d.project_id === proj.id && d.part_number === 2)) {
+      docs.push({
+        id: `doc-bal-${proj.id}`,
+        doc_number: `REC-DIG-${proj.id.slice(0, 4).toUpperCase()}-2`,
+        doc_type: 'Payment Receipt',
+        project_id: proj.id,
+        project_title: proj.title,
+        client_id: proj.client_id || '',
+        client_name: proj.client_name || 'Client',
+        payment_part_label: `Part 2: Balance (${100 - (proj.advance_percentage || 50)}%)`,
+        part_number: 2,
+        amount: bal,
+        tax_amount: 0,
+        total_settled: bal,
+        payment_methods: [{ id: '2', method: 'Bank Transfer', amount: bal, date: proj.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0], reference_no: `BANK-${proj.id.slice(0, 6).toUpperCase()}-2` }],
+        issued_date: proj.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        status: 'Settled',
+        balance_remaining: 0,
+        notes: 'Official payment receipt',
+        created_at: proj.updated_at || new Date().toISOString(),
+        created_by: 'Digital Accounts Lead'
+      });
+    }
   }
 
   const filtered = docs.filter(d => !d.project_id || activeProjectIds.has(d.project_id));

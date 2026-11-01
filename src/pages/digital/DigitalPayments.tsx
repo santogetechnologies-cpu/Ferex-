@@ -9,6 +9,7 @@ import {
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
+import { supabase } from '../../lib/supabase';
 import {
   getCentralizedBillings,
   getPaymentTransactions,
@@ -234,12 +235,23 @@ export const DigitalPayments: React.FC = () => {
   useEffect(() => {
     loadData();
 
+    const channel = supabase
+      .channel('realtime_digital_payments_feed')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_projects' }, () => {
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_invoices' }, () => {
+        loadData();
+      })
+      .subscribe();
+
     const handleSync = () => loadData();
     window.addEventListener('ferex_digital_payments_change', handleSync);
     window.addEventListener('ferex_digital_centralized_billing_change', handleSync);
     window.addEventListener('ferex_digital_projects_change', handleSync);
 
     return () => {
+      supabase.removeChannel(channel);
       window.removeEventListener('ferex_digital_payments_change', handleSync);
       window.removeEventListener('ferex_digital_centralized_billing_change', handleSync);
       window.removeEventListener('ferex_digital_projects_change', handleSync);

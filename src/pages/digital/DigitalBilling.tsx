@@ -9,6 +9,7 @@ import {
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
+import { supabase } from '../../lib/supabase';
 import {
   getCentralizedBillings,
   updateCentralizedBillingScope,
@@ -211,7 +212,7 @@ export const DigitalBilling: React.FC = () => {
   // Controlled Scope & Value Modification Modal
   const [showEditScopeModal, setShowEditScopeModal] = useState(false);
   const [editingScopeItems, setEditingScopeItems] = useState<ScopeItem[]>([]);
-  const [editingScopeBreakdown, setEditingScopeBreakdown] = useState<Array<{id:string;component:string;description:string;amount:number}>>([]);
+  const [editingScopeBreakdown, setEditingScopeBreakdown] = useState<ScopeBreakdownItem[]>([]);
   const [showBreakdownSection, setShowBreakdownSection] = useState(false);
   const [editingSplit, setEditingSplit] = useState<1 | 2 | 3>(2);
   const [editingMilestoneType, setEditingMilestoneType] = useState<'full' | 'advance_30' | 'advance_50' | 'three_milestones' | 'custom'>('advance_50');
@@ -245,12 +246,23 @@ export const DigitalBilling: React.FC = () => {
   useEffect(() => {
     loadData();
 
+    const channel = supabase
+      .channel('realtime_digital_billing_feed')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_projects' }, () => {
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_invoices' }, () => {
+        loadData();
+      })
+      .subscribe();
+
     const handleSync = () => loadData();
     window.addEventListener('ferex_digital_centralized_billing_change', handleSync);
     window.addEventListener('ferex_digital_projects_change', handleSync);
     window.addEventListener('ferex_digital_payments_change', handleSync);
 
     return () => {
+      supabase.removeChannel(channel);
       window.removeEventListener('ferex_digital_centralized_billing_change', handleSync);
       window.removeEventListener('ferex_digital_projects_change', handleSync);
       window.removeEventListener('ferex_digital_payments_change', handleSync);

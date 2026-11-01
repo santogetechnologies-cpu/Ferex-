@@ -91,6 +91,8 @@ export interface DigitalProjectRecord {
   balance_amount: number;
   balance_paid: number;
   deliverables: DigitalDeliverable[];
+  payment_split_type?: 'advance_30' | 'advance_50' | 'three_milestones' | 'full' | 'custom' | string;
+  advance_percentage?: number;
   created_at: string;
   updated_at: string;
   client?: any;
@@ -116,122 +118,36 @@ function addDeletedClientId(id: string) {
 export async function getDigitalClients(): Promise<DigitalClientRecord[]> {
   const deletedIds = getDeletedClientIds();
 
-  const officialInternalSubsidiaries: DigitalClientRecord[] = [
-    {
-      id: '00000000-0000-0000-0000-000000000001',
-      company_name: 'FEREX Global Education',
-      contact_person: 'Admissions Director',
-      email: 'education@ferex.com',
-      phone: '+91 98190 11001',
-      industry: 'Global Education & Admissions',
-      status: 'Active',
-      total_revenue: 0,
-      client_type: 'Internal',
-      created_at: '2026-09-01T00:00:00.000Z',
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: '00000000-0000-0000-0000-000000000002',
-      company_name: 'FEREX Global Trade',
-      contact_person: 'Trade Logistics Lead',
-      email: 'trade@ferex.com',
-      phone: '+91 98190 11002',
-      industry: 'International Trade & Commodities',
-      status: 'Active',
-      total_revenue: 0,
-      client_type: 'Internal',
-      created_at: '2026-09-01T00:00:00.000Z',
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: '00000000-0000-0000-0000-000000000003',
-      company_name: 'Rimi Frozen Foods Distribution',
-      contact_person: 'Operations Director',
-      email: 'rimi@ferex.com',
-      phone: '+91 98190 11003',
-      industry: 'Cold Chain Logistics & Distribution',
-      status: 'Active',
-      total_revenue: 0,
-      client_type: 'Internal',
-      created_at: '2026-09-01T00:00:00.000Z',
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: '00000000-0000-0000-0000-000000000004',
-      company_name: 'FEREX Corporate / Central HQ',
-      contact_person: 'Executive Super Admin',
-      email: 'admin@ferex.com',
-      phone: '+91 98190 11000',
-      industry: 'Corporate Holding & Strategy',
-      status: 'Active',
-      total_revenue: 0,
-      client_type: 'Internal',
-      created_at: '2026-09-01T00:00:00.000Z',
-      updated_at: new Date().toISOString()
-    }
-  ];
-
   try {
-    const local = localStorage.getItem('ferex_digital_clients');
-    const localClients: DigitalClientRecord[] = local ? JSON.parse(local) : [];
-
     const { data, error } = await supabase
       .from('digital_clients')
       .select('*')
       .order('created_at', { ascending: false });
 
-    const clientMap = new Map<string, DigitalClientRecord>();
-
-    // 1. Seed official internal subsidiaries (skip deleted)
-    for (const sub of officialInternalSubsidiaries) {
-      if (!deletedIds.has(sub.id) && !deletedIds.has(sub.company_name) && !sub.is_deleted) {
-        clientMap.set(sub.id || sub.company_name, sub);
-      }
-    }
-
-    // 2. Add local clients (preserves newly added leads before/during db sync)
-    for (const item of localClients) {
-      if (item && !item.is_deleted && !deletedIds.has(item.id) && !deletedIds.has(item.company_name)) {
-        clientMap.set(item.id || item.company_name, item);
-      }
-    }
-
-    // 3. Merge Supabase clients
-    if (!error && Array.isArray(data) && data.length > 0) {
-      const filtered = data.filter((c: any) => 
+    if (!error && Array.isArray(data)) {
+      const activeClients = data.filter((c: any) => 
         !c.is_deleted && 
         !deletedIds.has(c.id) &&
         !deletedIds.has(c.company_name) &&
         !c.company_name?.toLowerCase().includes('c tech') && 
         !c.company_name?.toLowerCase().includes('santoge digital')
       );
-
-      for (const item of filtered) {
-        const local = clientMap.get(item.id || item.company_name);
-        clientMap.set(item.id || item.company_name, { ...item, ...local });
-      }
+      try { localStorage.setItem('ferex_digital_clients', JSON.stringify(activeClients)); } catch {}
+      return activeClients;
     }
-
-    // Final safety check to remove any deleted clients from map
-    for (const [key, item] of Array.from(clientMap.entries())) {
-      if (item.is_deleted || deletedIds.has(item.id) || deletedIds.has(item.company_name)) {
-        clientMap.delete(key);
-      }
-    }
-
-    const merged = Array.from(clientMap.values());
-    try { localStorage.setItem('ferex_digital_clients', JSON.stringify(merged)); } catch {}
-    return merged;
-  } catch {
-    try {
-      const local = localStorage.getItem('ferex_digital_clients');
-      if (local) {
-        const parsed: DigitalClientRecord[] = JSON.parse(local);
-        return parsed.filter(c => !c.is_deleted && !deletedIds.has(c.id) && !deletedIds.has(c.company_name));
-      }
-    } catch {}
-    return officialInternalSubsidiaries.filter(s => !s.is_deleted && !deletedIds.has(s.id) && !deletedIds.has(s.company_name));
+  } catch (err) {
+    console.warn('[DigitalAPI] Error fetching digital clients from database:', err);
   }
+
+  try {
+    const local = localStorage.getItem('ferex_digital_clients');
+    if (local) {
+      const parsed: DigitalClientRecord[] = JSON.parse(local);
+      return parsed.filter(c => !c.is_deleted && !deletedIds.has(c.id) && !deletedIds.has(c.company_name));
+    }
+  } catch {}
+
+  return [];
 }
 
 export async function createDigitalClient(client: {
