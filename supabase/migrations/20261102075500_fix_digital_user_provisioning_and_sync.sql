@@ -146,3 +146,4 @@ SET status = 'deleted'
 WHERE lower(email) IN ('pm@ferex.com', 'digital@ferex.com', 'digimanager@ferex.com', 'creative@ferex.com', 'accounts@ferex.com');
 
 COMMIT;
+
