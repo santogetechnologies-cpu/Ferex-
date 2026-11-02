@@ -133,7 +133,7 @@ export const DigitalPMDashboard: React.FC = () => {
       subtext: `${tasks.filter(t => t.status === 'Done').length} completed`,
       icon: CheckSquare,
       color: 'text-emerald-700 bg-emerald-50/80',
-      path: '/digital/pm/tasks'
+      path: '/digital/pm/sprints'
     },
     {
       label: 'Client Tickets',
@@ -193,7 +193,7 @@ export const DigitalPMDashboard: React.FC = () => {
         <div className="flex items-center gap-2 shrink-0">
           <Button
             size="sm"
-            onClick={() => navigate('/digital/pm/tasks')}
+            onClick={() => navigate('/digital/pm/sprints')}
             leftIcon={<Plus className="w-3.5 h-3.5" />}
           >
             Create Task
@@ -257,7 +257,7 @@ export const DigitalPMDashboard: React.FC = () => {
               <Button
                 variant="ghost"
                 size="xs"
-                onClick={() => navigate('/digital/pm/tasks')}
+                onClick={() => navigate('/digital/pm/sprints')}
                 rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
               >
                 View All Tasks

@@ -21,7 +21,6 @@ const pmNavItems = [
   { name: 'Dashboard', path: '/digital/pm/dashboard', icon: LayoutDashboard },
   { name: 'My Attendance', path: '/digital/pm/attendance', icon: Clock },
   { name: 'My Projects', path: '/digital/pm/projects', icon: FolderKanban },
-  { name: 'My Tasks', path: '/digital/pm/tasks', icon: CheckSquare },
   { name: 'Client Tickets', path: '/digital/pm/tickets', icon: Headphones },
   { name: 'Sprint Board', path: '/digital/pm/sprints', icon: Layers },
   { name: 'Milestones', path: '/digital/pm/milestones', icon: Target },
@@ -142,7 +141,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
             const Icon = item.icon;
 
             let badge: string | null = null;
-            if (item.name === 'My Tasks' && pendingTasksCount > 0) {
+            if (item.name === 'Sprint Board' && pendingTasksCount > 0) {
               badge = String(pendingTasksCount);
             } else if (item.name === 'Client Tickets' && openTicketsCount > 0) {
               badge = String(openTicketsCount);

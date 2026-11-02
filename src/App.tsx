@@ -507,7 +507,7 @@ function App() {
           <Route path="/digital/pm" element={<Navigate to="/digital/pm/dashboard" replace />} />
           <Route path="/digital/pm/dashboard" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMDashboard /></DigitalPMLayout></ProtectedRoute>} />
           <Route path="/digital/pm/projects" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMProjects /></DigitalPMLayout></ProtectedRoute>} />
-          <Route path="/digital/pm/tasks" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMTasks /></DigitalPMLayout></ProtectedRoute>} />
+          <Route path="/digital/pm/tasks" element={<Navigate to="/digital/pm/sprints" replace />} />
           <Route path="/digital/pm/tickets" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMTickets /></DigitalPMLayout></ProtectedRoute>} />
           <Route path="/digital/pm/sprints" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMSprints /></DigitalPMLayout></ProtectedRoute>} />
           <Route path="/digital/pm/milestones" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMMilestones /></DigitalPMLayout></ProtectedRoute>} />

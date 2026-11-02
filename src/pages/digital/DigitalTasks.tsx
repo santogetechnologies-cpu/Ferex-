@@ -350,9 +350,17 @@ export const DigitalTasks: React.FC = () => {
                     {/* Priority & Status Controls */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {(t.is_central_directive || t.created_by === 'Central Admin' || t.task_type === 'Central Directive' || (t.notes && t.notes.toLowerCase().includes('central admin'))) && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
-                            <ShieldCheck className="w-3 h-3" /> Central Directive
+                        {(t.is_central_directive || t.created_by === 'Central Admin' || t.task_type === 'Central Directive' || (t.notes && t.notes.toLowerCase().includes('central admin'))) ? (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1 shadow-2xs">
+                            <ShieldCheck className="w-3 h-3" /> Central Admin Directive
+                          </span>
+                        ) : (t.created_by && (t.created_by === profile?.full_name || t.created_by === profile?.email || t.created_by === 'Me')) ? (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1 shadow-2xs">
+                            <User className="w-3 h-3" /> Created by Me
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1 shadow-2xs">
+                            <ShieldCheck className="w-3 h-3" /> Digital Admin
                           </span>
                         )}
                         <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${getPriorityStyle(t.priority)}`}>

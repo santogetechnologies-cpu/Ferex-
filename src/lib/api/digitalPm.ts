@@ -364,11 +364,12 @@ export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<D
     const isCentral = t.created_by === 'Central Admin' ||
       (t.notes && t.notes.toLowerCase().includes('central admin')) ||
       (t.title && t.title.toLowerCase().includes('central admin')) ||
-      t.task_type === 'Central Directive';
+      t.task_type === 'Central Directive' ||
+      t.central_task_id;
     return {
       ...t,
-      created_by: isCentral ? 'Central Admin' : (t.created_by || 'Digital PM'),
-      is_central_directive: isCentral,
+      created_by: isCentral ? 'Central Admin' : (t.created_by || 'Digital Admin'),
+      is_central_directive: !!isCentral,
     };
   });
 
@@ -386,6 +387,77 @@ export async function getAssignedDigitalTasks(pm?: DigitalPMIdentity): Promise<D
   return Array.from(uniqueMap.values());
 }
 
+
+export interface TaskOriginInfo {
+  type: 'me' | 'digital_admin' | 'central_admin';
+  label: string;
+  creatorName?: string;
+}
+
+export function getTaskOrigin(
+  task: DigitalPMTask,
+  currentUserId?: string,
+  currentUserEmail?: string,
+  currentUserName?: string
+): TaskOriginInfo {
+  const cBy = (task.created_by || '').trim();
+  const cByLower = cBy.toLowerCase();
+  const myEmail = (currentUserEmail || '').toLowerCase().trim();
+  const myName = (currentUserName || '').toLowerCase().trim();
+  const myId = (currentUserId || '').trim();
+
+  // 1. Central Admin Directive
+  if (
+    task.is_central_directive ||
+    task.task_type === 'Central Directive' ||
+    (task as any).central_task_id ||
+    cByLower === 'central admin' ||
+    cByLower === 'central' ||
+    cByLower === 'superadmin' ||
+    cByLower.includes('central directive') ||
+    (task.project_title && task.project_title.toLowerCase().includes('central directive'))
+  ) {
+    return {
+      type: 'central_admin',
+      label: 'Central Admin',
+      creatorName: 'Central Operations HQ'
+    };
+  }
+
+  // 2. Created by Me (Self / Current Staff / PM)
+  if (
+    (myId && (cBy === myId || (task as any).created_by_id === myId)) ||
+    (myEmail && (cByLower === myEmail || cByLower.includes(myEmail))) ||
+    (myName && (cByLower === myName || cByLower === 'me' || cByLower === 'self' || cByLower.includes(myName)))
+  ) {
+    return {
+      type: 'me',
+      label: 'Created by Me',
+      creatorName: currentUserName || 'Me'
+    };
+  }
+
+  // 3. Digital Admin (Agency Director)
+  if (
+    cByLower.includes('admin') ||
+    cByLower.includes('director') ||
+    cByLower.includes('digital') ||
+    !cBy
+  ) {
+    return {
+      type: 'digital_admin',
+      label: 'Digital Admin',
+      creatorName: cBy || 'Digital Director'
+    };
+  }
+
+  return {
+    type: 'digital_admin',
+    label: cBy ? `By ${cBy}` : 'Digital Admin',
+    creatorName: cBy || 'Digital Admin'
+  };
+}
+
 export async function createDigitalTaskDirect(task: Partial<DigitalPMTask>): Promise<DigitalPMTask> {
   const newId = generateUUID();
   const payload: DigitalPMTask = {
@@ -401,6 +473,7 @@ export async function createDigitalTaskDirect(task: Partial<DigitalPMTask>): Pro
     assigned_staff_id: task.assigned_staff_id || undefined,
     notes: task.notes || '',
     task_type: task.task_type || 'Task',
+    created_by: task.created_by || 'Me',
     sprint_id: task.sprint_id || undefined,
     sprint_name: task.sprint_name || '',
     story_points: task.story_points || 1,
@@ -433,6 +506,7 @@ export async function createDigitalTaskDirect(task: Partial<DigitalPMTask>): Pro
       assigned_to_name: payload.assigned_to_name,
       assigned_to_email: payload.assigned_to_email,
       notes: payload.notes,
+      created_by: payload.created_by,
       created_at: payload.created_at,
       updated_at: payload.updated_at
     };
