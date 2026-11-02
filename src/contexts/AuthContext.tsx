@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { isSuperAdmin } from '../lib/roleRouter';
+import { saveCustomStaffMember, ROLE_DISPLAY_NAMES, getDivisionFromRole } from '../lib/api/staff';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -450,6 +451,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Trigger event for immediate live UI refresh across all tabs and hooks
       window.dispatchEvent(new CustomEvent('ferex_admin_created', { detail: credRecord }));
       window.dispatchEvent(new Event('ferex_staff_change'));
+      window.dispatchEvent(new Event('ferex_staff_users_change'));
+      window.dispatchEvent(new Event('ferex_digital_tasks_change'));
+      window.dispatchEvent(new Event('ferex_digital_projects_change'));
+      try {
+        saveCustomStaffMember({
+          id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'user_' + Date.now(),
+          name: fullName,
+          email: cleanEmail,
+          role: role,
+          roleLabel: ROLE_DISPLAY_NAMES[role] || role,
+          division: getDivisionFromRole(role, credRecord.department),
+          department: credRecord.department,
+          phone: credRecord.phone,
+        });
+      } catch {}
       window.dispatchEvent(new Event('storage'));
 
       return { user: credRecord };

@@ -193,9 +193,9 @@ export const DigitalProjects: React.FC = () => {
     const clientName = selectedClient?.company_name || selectedClient?.name || newProj.client_name || 'Enterprise Client';
     const clientType = selectedClient?.client_type || newProj.client_type || 'External';
 
-    const assignedName = newProj.assigned_staff_name || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Project Manager'));
+    const assignedName = newProj.assigned_staff_name || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Staff'));
     const matchedStaff = staffList.find(s => s.name === assignedName);
-    const assignedEmail = matchedStaff?.email || newProj.assigned_staff_email || 'pm@ferex.com';
+    const assignedEmail = matchedStaff?.email || newProj.assigned_staff_email || profile?.email || '';
     const assignedStaffId = matchedStaff?.id || (matchedStaff as any)?.user_id || undefined;
 
     const budgetVal = Number(newProj.budget) || 0;
@@ -1614,7 +1614,7 @@ export const DigitalProjects: React.FC = () => {
 
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                    Assigned Staff Lead
+                    Assigned Account Manager / Project Lead *
                   </label>
                   <select
                     value={newProj.assigned_staff_name}
@@ -1631,7 +1631,7 @@ export const DigitalProjects: React.FC = () => {
                   >
                     {staffList.map((s: any) => (
                       <option key={s.id || s.email} value={s.name}>
-                        {s.name} ({s.roleLabel || s.role || 'Project Lead'})
+                        {s.name} ({s.roleLabel || s.role || 'Account Manager'}) · {s.email}
                       </option>
                     ))}
                   </select>
@@ -1826,7 +1826,7 @@ export const DigitalProjects: React.FC = () => {
 
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                    Select Digital Manager / Lead *
+                    Select Account Manager / Project Lead *
                   </label>
                   <select
                     value={reassignStaffName}

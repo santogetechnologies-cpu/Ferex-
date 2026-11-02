@@ -1,3 +1,4 @@
+import { markStaffDeleted, deleteDivisionStaff } from '../../lib/api/staff';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -44,6 +45,8 @@ const DIVISION_CONFIG: Record<string, { label: string; route: string; icon: any;
   digital_admin: { label: 'Ferex Digital Admin', route: '/digital/dashboard', icon: Monitor, badgeColor: 'text-emerald-700 bg-emerald-50 border-emerald-200', category: 'Ferex Digital' },
   digital: { label: 'Ferex Digital Admin', route: '/digital/dashboard', icon: Monitor, badgeColor: 'text-emerald-700 bg-emerald-50 border-emerald-200', category: 'Ferex Digital' },
   project_manager: { label: 'Digital Project Manager', route: '/digital/dashboard', icon: Briefcase, badgeColor: 'text-teal-700 bg-teal-50 border-teal-200', category: 'Ferex Digital (Staff)' },
+  account_manager: { label: 'Digital Account Manager', route: '/digital/dashboard', icon: Briefcase, badgeColor: 'text-cyan-700 bg-cyan-50 border-cyan-200', category: 'Ferex Digital (Staff)' },
+  digital_manager: { label: 'Digital Operations Manager', route: '/digital/dashboard', icon: Monitor, badgeColor: 'text-emerald-700 bg-emerald-50 border-emerald-200', category: 'Ferex Digital (Staff)' },
   trade_admin: { label: 'Global Trade Admin', route: '/trade/dashboard', icon: Globe, badgeColor: 'text-indigo-700 bg-indigo-50 border-indigo-200', category: 'Global Trade' },
   trade: { label: 'Global Trade Admin', route: '/trade/dashboard', icon: Globe, badgeColor: 'text-indigo-700 bg-indigo-50 border-indigo-200', category: 'Global Trade' },
   logistics_officer: { label: 'Trade Logistics Officer', route: '/trade/dashboard', icon: Truck, badgeColor: 'text-blue-700 bg-blue-50 border-blue-200', category: 'Global Trade (Staff)' },
@@ -318,12 +321,15 @@ export const RolesUsers: React.FC = () => {
   // ─── Delete User ─────────────────────────────────────────────────────────────
 
   const handleDelete = async (id: string, emailToDelete: string) => {
-    if (!window.confirm(`Remove login access for ${emailToDelete}?`)) return;
+    if (!window.confirm(`Remove login access for ${emailToDelete}? This will also remove them from all project and task assignment options.`)) return;
     try {
-      await supabase.from('users').delete().eq('id', id);
+      markStaffDeleted(emailToDelete);
+      markStaffDeleted(id);
+      await deleteDivisionStaff(emailToDelete || id);
       setAdminList(prev => prev.filter(a => a.id !== id));
       showToastMsg(`Login for ${emailToDelete} removed.`);
       window.dispatchEvent(new Event('ferex_staff_change'));
+      window.dispatchEvent(new Event('ferex_staff_users_change'));
       loadAdmins();
     } catch (err: any) {
       showToastMsg(`Failed to delete: ${err.message || 'Error'}`);
@@ -344,7 +350,7 @@ export const RolesUsers: React.FC = () => {
       (divisionFilter === 'Education' && (a.role === 'education_admin' || a.role === 'education' || a.role === 'admin' || a.role === 'counselor' || a.role === 'staff')) ||
       (divisionFilter === 'Trade' && (a.role === 'trade' || a.role === 'trade_admin' || a.role === 'logistics_officer')) ||
       (divisionFilter === 'Rimi' && (a.role === 'rimi' || a.role === 'rimi_admin' || a.role === 'operations_manager')) ||
-      (divisionFilter === 'Digital' && (a.role === 'digital' || a.role === 'digital_admin' || a.role === 'project_manager')) ||
+      (divisionFilter === 'Digital' && ['digital', 'digital_admin', 'ferex_digital', 'project_manager', 'digital_manager', 'account_manager', 'accountmanager', 'digital_account_manager', 'digital_staff', 'designer', 'developer'].includes(a.role)) ||
       (divisionFilter === 'SuperAdmin' && (a.role === 'superadmin' || a.role === 'central' || a.role === 'super_admin'));
 
     const matchesSearch =
@@ -394,7 +400,9 @@ export const RolesUsers: React.FC = () => {
       groupColor: 'text-emerald-800 bg-emerald-50 border-emerald-200',
       activeRing: 'ring-emerald-600',
       options: [
+        { role: 'account_manager', label: 'Digital Account Manager', desc: 'Client account onboarding, relationship & project commercial lead', icon: Briefcase, color: 'border-cyan-300 text-cyan-900 bg-cyan-50/60' },
         { role: 'project_manager', label: 'Digital Project Manager', desc: 'Sprint lead, client tickets & milestones', icon: Briefcase, color: 'border-teal-300 text-teal-900 bg-teal-50/60' },
+        { role: 'digital_manager', label: 'Digital Operations Manager', desc: 'Agency workflow, deliverable approvals & staff assignments', icon: Monitor, color: 'border-emerald-300 text-emerald-900 bg-emerald-50/60' },
         { role: 'digital_admin', label: 'Ferex Digital Admin', desc: 'Full Digital agency admin & retainers', icon: Monitor, color: 'border-emerald-300 text-emerald-900 bg-emerald-50/60' },
       ],
     },

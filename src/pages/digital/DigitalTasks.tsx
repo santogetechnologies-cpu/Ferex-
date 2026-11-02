@@ -46,8 +46,8 @@ export const DigitalTasks: React.FC = () => {
   const [newTask, setNewTask] = useState({
     title: '',
     project_id: '',
-    assigned_to: profile?.full_name || 'Digital Project Manager',
-    assigned_to_email: profile?.email || 'pm@ferex.com',
+    assigned_to: profile?.full_name || '',
+    assigned_to_email: profile?.email || '',
     priority: 'Medium',
     due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
     notes: ''
@@ -127,7 +127,7 @@ export const DigitalTasks: React.FC = () => {
     const selectedProj = projects.find(p => p.id === newTask.project_id);
     const assignedName = newTask.assigned_to || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Staff'));
     const matchedStaff = staffList.find(s => s.name === assignedName || s.email === newTask.assigned_to_email);
-    const assignedEmail = matchedStaff?.email || newTask.assigned_to_email || profile?.email || 'pm@ferex.com';
+    const assignedEmail = matchedStaff?.email || newTask.assigned_to_email || profile?.email || '';
 
     const created = await createDigitalTask({
       title: newTask.title,
@@ -148,8 +148,8 @@ export const DigitalTasks: React.FC = () => {
     setNewTask({
       title: '',
       project_id: '',
-      assigned_to: profile?.full_name || (staffList.length > 0 ? staffList[0].name : 'Digital Project Manager'),
-      assigned_to_email: profile?.email || (staffList.length > 0 ? staffList[0].email : 'pm@ferex.com'),
+      assigned_to: profile?.full_name || (staffList.length > 0 ? staffList[0].name : ''),
+      assigned_to_email: profile?.email || (staffList.length > 0 ? staffList[0].email : ''),
       priority: taskPriorities[0] || 'Medium',
       due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
       notes: ''
@@ -578,13 +578,13 @@ export const DigitalTasks: React.FC = () => {
 
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                    Assign Staff Member *
+                    Assign Staff Member (Account Manager / PM / Engineer) *
                   </label>
                   {isStaff ? (
                     <input
                       type="text"
                       disabled
-                      value={`${profile?.full_name || 'My Desk'} (${profile?.email || 'pm@ferex.com'})`}
+                      value={`${profile?.full_name || 'My Desk'} (${profile?.email || 'staff'})`}
                       className="w-full h-10 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 cursor-not-allowed"
                     />
                   ) : (
@@ -676,7 +676,7 @@ export const DigitalTasks: React.FC = () => {
 
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">
-                    Select Digital Manager / Staff Member *
+                    Select Assignee (Account Manager / PM / Engineer) *
                   </label>
                   <select
                     value={reassignStaffName}

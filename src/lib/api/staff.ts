@@ -15,6 +15,24 @@ export interface DivisionStaffMember {
 }
 
 export const ROLE_DISPLAY_NAMES: Record<string, string> = {
+  account_manager: 'Digital Account Manager',
+  digital_account_manager: 'Digital Account Manager',
+  accountmanager: 'Digital Account Manager',
+  account_executive: 'Digital Account Executive',
+  client_manager: 'Client Relationship Manager',
+  digital_manager: 'Digital Operations Manager',
+  project_manager: 'Digital Project Manager',
+  pm: 'Digital Project Manager',
+  digimanager: 'Digital Manager',
+  digital_admin: 'Digital Agency Director',
+  digital: 'Digital Agency Director',
+  ferex_digital: 'Digital Agency Director',
+  digital_director: 'Digital Agency Director',
+  digital_staff: 'Digital Specialist',
+  designer: 'UI/UX Designer',
+  developer: 'Software Engineer',
+  lead_developer: 'Lead Engineer',
+  creative: 'Creative Lead',
   trade_admin: 'Trade Director',
   trade: 'Trade Director',
   global_trade: 'Trade Director',
@@ -23,10 +41,6 @@ export const ROLE_DISPLAY_NAMES: Record<string, string> = {
   rimi: 'Rimi Distribution Director',
   rimi_frozen: 'Rimi Distribution Director',
   operations_manager: 'Warehouse & Operations Manager',
-  digital_admin: 'Digital Agency Director',
-  digital: 'Digital Agency Director',
-  ferex_digital: 'Digital Agency Director',
-  project_manager: 'Digital Project Manager',
   education_admin: 'Education Admissions Lead',
   education: 'Education Admissions Lead',
   admin: 'Executive Admin',
@@ -37,49 +51,75 @@ export const ROLE_DISPLAY_NAMES: Record<string, string> = {
   central: 'Central Super Admin',
 };
 
-const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
-  digital: [
-    {
-      id: '11111111-1111-4111-a111-111111111001',
-      name: 'Digital Project Manager',
-      email: 'pm@ferex.com',
-      role: 'project_manager',
-      roleLabel: 'Digital Project Manager',
-      division: 'digital',
-      department: 'Digital Project Management',
-      phone: '+91 98190 20001'
-    },
-    {
-      id: '11111111-1111-4111-a111-111111111002',
-      name: 'Ferex Digital Director',
-      email: 'digital@ferex.com',
-      role: 'digital_admin',
-      roleLabel: 'Digital Agency Director',
-      division: 'digital',
-      department: 'Digital Agency HQ',
-      phone: '+91 98190 20002'
-    },
-    {
-      id: '11111111-1111-4111-a111-111111111003',
-      name: 'Digital Manager',
-      email: 'digimanager@ferex.com',
-      role: 'project_manager',
-      roleLabel: 'Digital Project Manager',
-      division: 'digital',
-      department: 'Digital Operations',
-      phone: '+91 98190 20003'
-    },
-    {
-      id: '11111111-1111-4111-a111-111111111004',
-      name: 'Lead Creative Designer',
-      email: 'creative@ferex.com',
-      role: 'digital_staff',
-      roleLabel: 'Creative & UI/UX Lead',
-      division: 'digital',
-      department: 'Creative & Design',
-      phone: '+91 98190 20004'
+export const DELETED_STAFF_STORAGE_KEY = 'ferex_deleted_staff_list';
+export const CUSTOM_STAFF_STORAGE_KEY = 'ferex_custom_staff_members';
+
+export const LEGACY_MOCK_EMAILS = new Set([
+  'pm@ferex.com',
+  'digital@ferex.com',
+  'digimanager@ferex.com',
+  'creative@ferex.com',
+  'accounts@ferex.com',
+]);
+
+export function getDeletedStaffList(): string[] {
+  try {
+    if (typeof localStorage === 'undefined') return [];
+    const raw = localStorage.getItem(DELETED_STAFF_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.map((x: string) => String(x).toLowerCase().trim());
     }
-  ],
+  } catch {}
+  return [];
+}
+
+export function markStaffDeleted(idOrEmail: string): void {
+  try {
+    if (typeof localStorage === 'undefined' || !idOrEmail) return;
+    const current = getDeletedStaffList();
+    const val = idOrEmail.toLowerCase().trim();
+    if (!current.includes(val)) {
+      current.push(val);
+      localStorage.setItem(DELETED_STAFF_STORAGE_KEY, JSON.stringify(current));
+    }
+  } catch {}
+}
+
+export function isStaffDeleted(idOrEmail?: string): boolean {
+  if (!idOrEmail) return false;
+  const val = idOrEmail.toLowerCase().trim();
+  if (LEGACY_MOCK_EMAILS.has(val)) return true;
+  const deleted = getDeletedStaffList();
+  return deleted.includes(val);
+}
+
+export function getCustomStaffMembers(): DivisionStaffMember[] {
+  try {
+    if (typeof localStorage === 'undefined') return [];
+    const raw = localStorage.getItem(CUSTOM_STAFF_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter(m => !isStaffDeleted(m.email) && !isStaffDeleted(m.id));
+    }
+  } catch {}
+  return [];
+}
+
+export function saveCustomStaffMember(member: DivisionStaffMember): void {
+  try {
+    if (typeof localStorage === 'undefined' || !member) return;
+    if (isStaffDeleted(member.email) || isStaffDeleted(member.id)) return;
+    const current = getCustomStaffMembers().filter(
+      m => m.email.toLowerCase() !== member.email.toLowerCase() && m.id !== member.id
+    );
+    current.unshift(member);
+    localStorage.setItem(CUSTOM_STAFF_STORAGE_KEY, JSON.stringify(current));
+  } catch {}
+}
+
+const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
+  digital: [],
   trade: [
     {
       id: '22222222-2222-4222-a222-222222222001',
@@ -121,6 +161,13 @@ const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
 const LOCAL_STORAGE_KEY = 'ferex_staff_registry_cache';
 
 export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 'education' | 'all' = 'all'): Promise<DivisionStaffMember[]> {
+  const deletedList = getDeletedStaffList();
+  const isDeleted = (m: { id?: string; email?: string }) => {
+    const email = (m.email || '').toLowerCase().trim();
+    const id = (m.id || '').toLowerCase().trim();
+    return (email && deletedList.includes(email)) || (id && deletedList.includes(id));
+  };
+
   try {
     const admin = await getAdminSupabaseClient();
     const client = admin || supabase;
@@ -132,21 +179,23 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
       try {
         const { data: rpcData, error: rpcErr } = await supabase.rpc('digital_staff_directory');
         if (!rpcErr && Array.isArray(rpcData) && rpcData.length > 0) {
-          const rpcMembers = rpcData.map((u: any) => {
-            const role = (u.role || 'project_manager').toLowerCase().trim();
-            const roleLabel = ROLE_DISPLAY_NAMES[role] || role.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
-            return {
-              id: u.id,
-              name: u.name || u.full_name || u.email?.split('@')[0] || 'Digital Staff',
-              email: (u.email || '').toLowerCase().trim(),
-              role,
-              roleLabel,
-              division: 'digital',
-              department: 'Digital Operations',
-              phone: '',
-              avatar_url: '',
-            };
-          });
+          const rpcMembers = rpcData
+            .filter((u: any) => !isDeleted(u))
+            .map((u: any) => {
+              const role = (u.role || 'project_manager').toLowerCase().trim();
+              const roleLabel = ROLE_DISPLAY_NAMES[role] || role.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+              return {
+                id: u.id,
+                name: u.name || u.full_name || u.email?.split('@')[0] || 'Digital Staff',
+                email: (u.email || '').toLowerCase().trim(),
+                role,
+                roleLabel,
+                division: 'digital',
+                department: 'Digital Operations',
+                phone: '',
+                avatar_url: '',
+              };
+            });
           dbMembers.push(...rpcMembers);
         }
       } catch (e) {
@@ -158,14 +207,14 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
     try {
       let query = client
         .from('users')
-        .select('id, email, full_name, role, department, phone, avatar_url, created_at')
+        .select('id, email, full_name, role, department, phone, avatar_url, status, created_at')
         .neq('role', 'student')
         .order('created_at', { ascending: false });
 
       const { data, error } = await query;
       if (!error && Array.isArray(data) && data.length > 0) {
         const mapped: DivisionStaffMember[] = data
-          .filter(u => u && u.email)
+          .filter(u => u && u.email && !isDeleted(u) && u.status !== 'inactive' && u.status !== 'deleted')
           .map(u => {
             const role = (u.role || 'staff').toLowerCase().trim();
             const roleLabel = ROLE_DISPLAY_NAMES[role] || role.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
@@ -191,10 +240,17 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const cu = sessionData?.session?.user;
-      if (cu && cu.email) {
+      if (cu && cu.email && !isDeleted({ email: cu.email, id: cu.id })) {
         const userRole = (cu.user_metadata?.role || cu.app_metadata?.role || '').toLowerCase();
         const fullName = cu.user_metadata?.full_name || cu.email.split('@')[0];
-        if (userRole.includes('digital') || userRole.includes('pm') || userRole.includes('central') || userRole.includes('admin') || userRole.includes('manager')) {
+        if (
+          userRole.includes('digital') ||
+          userRole.includes('pm') ||
+          userRole.includes('account') ||
+          userRole.includes('central') ||
+          userRole.includes('admin') ||
+          userRole.includes('manager')
+        ) {
           dbMembers.push({
             id: cu.id,
             name: fullName,
@@ -208,10 +264,20 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
       }
     } catch {}
 
-    // Deduplicate DB members by email
+    // 4. Custom staff members saved in local store
+    try {
+      const customStaff = getCustomStaffMembers();
+      customStaff.forEach(cs => {
+        if (!isDeleted(cs)) {
+          dbMembers.push(cs);
+        }
+      });
+    } catch {}
+
+    // Deduplicate DB & custom members by email
     const dedupedMap = new Map<string, DivisionStaffMember>();
     dbMembers.forEach(m => {
-      if (m.email) {
+      if (m.email && !isDeleted(m)) {
         dedupedMap.set(m.email.toLowerCase(), m);
       }
     });
@@ -222,16 +288,22 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
       result = uniqueDbMembers.filter(s => matchDivision(s, division));
     }
 
-    // Merge with default staff so standard roles like Digital Manager are always selectable
-    const defaults = division === 'all'
+    // Merge with default staff ONLY if they are NOT in deletedList
+    const defaults = (division === 'all'
       ? Object.values(DEFAULT_DIVISION_STAFF).flat()
-      : (DEFAULT_DIVISION_STAFF[division] || []);
+      : (DEFAULT_DIVISION_STAFF[division] || [])
+    ).filter(d => !isDeleted(d));
 
     const map = new Map<string, DivisionStaffMember>();
     defaults.forEach(d => map.set(d.email.toLowerCase(), d));
-    // If a default staff member exists in real database, the real DB row with real UUID overwrites the mock UUID!
-    result.forEach(r => map.set(r.email.toLowerCase(), r));
-    const combined = Array.from(map.values());
+    // Real DB and custom accounts override defaults with real UUIDs and details
+    result.forEach(r => {
+      if (!isDeleted(r)) {
+        map.set(r.email.toLowerCase(), r);
+      }
+    });
+
+    const combined = Array.from(map.values()).filter(m => !isDeleted(m));
 
     try {
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_${division}`, JSON.stringify(combined));
@@ -247,29 +319,42 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
     const cached = localStorage.getItem(`${LOCAL_STORAGE_KEY}_${division}`);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.filter((m: any) => !isDeleted(m));
+      }
     }
   } catch {}
 
-  const defaults = division === 'all'
+  const defaults = (division === 'all'
     ? Object.values(DEFAULT_DIVISION_STAFF).flat()
-    : (DEFAULT_DIVISION_STAFF[division] || []);
+    : (DEFAULT_DIVISION_STAFF[division] || [])
+  ).filter(d => !isDeleted(d));
 
   return defaults;
 }
 
 export function getDivisionStaffSync(division: 'trade' | 'rimi' | 'digital' | 'education' | 'all' = 'all'): DivisionStaffMember[] {
+  const deletedList = getDeletedStaffList();
+  const isDeleted = (m: { id?: string; email?: string }) => {
+    const email = (m.email || '').toLowerCase().trim();
+    const id = (m.id || '').toLowerCase().trim();
+    return (email && deletedList.includes(email)) || (id && deletedList.includes(id));
+  };
+
   try {
     const cached = localStorage.getItem(`${LOCAL_STORAGE_KEY}_${division}`);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.filter((m: any) => !isDeleted(m));
+      }
     }
   } catch {}
 
-  const defaults = division === 'all'
+  const defaults = (division === 'all'
     ? Object.values(DEFAULT_DIVISION_STAFF).flat()
-    : (DEFAULT_DIVISION_STAFF[division] || []);
+    : (DEFAULT_DIVISION_STAFF[division] || [])
+  ).filter(d => !isDeleted(d));
 
   return defaults;
 }
@@ -279,7 +364,19 @@ export function getDivisionFromRole(role: string, department?: string): string {
   const r = role.toLowerCase();
   if (r.includes('trade') || r.includes('logistics') || dept.includes('trade')) return 'trade';
   if (r.includes('rimi') || r.includes('operations_manager') || dept.includes('rimi') || dept.includes('frozen')) return 'rimi';
-  if (r.includes('digital') || r.includes('project_manager') || r.includes('pm') || r.includes('manager') || dept.includes('digital')) return 'digital';
+  if (
+    r.includes('digital') ||
+    r.includes('project_manager') ||
+    r.includes('pm') ||
+    r.includes('account_manager') ||
+    r.includes('accountmanager') ||
+    r.includes('account_executive') ||
+    r.includes('client_manager') ||
+    r.includes('manager') ||
+    dept.includes('digital') ||
+    dept.includes('creative') ||
+    dept.includes('tech')
+  ) return 'digital';
   if (r.includes('education') || r.includes('counselor') || dept.includes('education')) return 'education';
   return 'central';
 }
@@ -300,6 +397,7 @@ function matchDivision(staff: DivisionStaffMember, division: string): boolean {
     const digitalRoles = [
       'digital', 'digital_admin', 'ferex_digital', 'digital_director',
       'project_manager', 'digital_manager', 'pm', 'digimanager',
+      'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager',
       'digital_staff', 'designer', 'developer', 'lead_developer', 'creative',
       'central', 'superadmin', 'super_admin', 'admin'
     ];
@@ -307,12 +405,17 @@ function matchDivision(staff: DivisionStaffMember, division: string): boolean {
       digitalRoles.includes(r) ||
       r.includes('digital') ||
       r.includes('project_manager') ||
+      r.includes('account_manager') ||
+      r.includes('accountmanager') ||
+      r.includes('account') ||
       r.includes('manager') ||
       dept.includes('digital') ||
       dept.includes('creative') ||
       dept.includes('tech') ||
       email.includes('digital') ||
       email.includes('pm@') ||
+      email.includes('accounts@') ||
+      email.includes('account') ||
       email.includes('creative@') ||
       email.includes('manager')
     ) && !r.includes('rimi') && !r.includes('trade') && !r.includes('education');
@@ -351,25 +454,46 @@ export async function createDivisionStaff(staff: {
     phone: staff.phone || '',
   };
 
-  const admin = await getAdminSupabaseClient();
-  const client = admin || supabase;
+  // Remove from deleted list if it was previously marked deleted
+  try {
+    const deleted = getDeletedStaffList().filter(x => x !== email && x !== newId);
+    localStorage.setItem(DELETED_STAFF_STORAGE_KEY, JSON.stringify(deleted));
+  } catch {}
 
-  const { error } = await client.from('users').upsert({
-    id: newStaff.id,
-    email: newStaff.email,
-    full_name: newStaff.name,
-    role: newStaff.role,
-    department: newStaff.department,
-    phone: newStaff.phone,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'email' });
+  // Save in custom staff store
+  saveCustomStaffMember(newStaff);
 
-  if (error) {
-    throw new Error(`Failed to save staff member: ${error.message}`);
+  // Update cache immediately
+  try {
+    const key = `${LOCAL_STORAGE_KEY}_${staff.division}`;
+    const raw = localStorage.getItem(key);
+    const current = raw ? JSON.parse(raw) : [];
+    const updated = [newStaff, ...current.filter((m: any) => m.email?.toLowerCase() !== email)];
+    localStorage.setItem(key, JSON.stringify(updated));
+  } catch {}
+
+  // Also persist to Supabase
+  try {
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    await client.from('users').upsert({
+      id: newStaff.id,
+      email: newStaff.email,
+      full_name: newStaff.name,
+      role: newStaff.role,
+      department: newStaff.department,
+      phone: newStaff.phone,
+      status: 'active',
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'email' });
+  } catch (err) {
+    console.warn('[createDivisionStaff] Supabase upsert note:', err);
   }
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('ferex_staff_users_change'));
+    window.dispatchEvent(new Event('ferex_digital_tasks_change'));
+    window.dispatchEvent(new Event('ferex_digital_projects_change'));
   }
 
   return newStaff;
@@ -377,26 +501,50 @@ export async function createDivisionStaff(staff: {
 
 export async function deleteDivisionStaff(idOrEmail: string): Promise<boolean> {
   const target = idOrEmail.toLowerCase().trim();
-  const admin = await getAdminSupabaseClient();
-  const client = admin || supabase;
+  markStaffDeleted(target);
 
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target);
-  let delError = null;
+  // Remove from custom staff store
+  try {
+    const custom = getCustomStaffMembers().filter(
+      m => m.email.toLowerCase() !== target && m.id.toLowerCase() !== target
+    );
+    localStorage.setItem(CUSTOM_STAFF_STORAGE_KEY, JSON.stringify(custom));
+  } catch {}
 
-  if (isUuid) {
-    const { error } = await client.from('users').delete().eq('id', target);
-    delError = error;
-  } else {
-    const { error } = await client.from('users').delete().eq('email', target);
-    delError = error;
+  // Remove from all cached registries
+  const divisions = ['digital', 'trade', 'rimi', 'education', 'all'];
+  for (const d of divisions) {
+    try {
+      const key = `${LOCAL_STORAGE_KEY}_${d}`;
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter((m: any) => m.email?.toLowerCase() !== target && m.id?.toLowerCase() !== target);
+          localStorage.setItem(key, JSON.stringify(filtered));
+        }
+      }
+    } catch {}
   }
 
-  if (delError) {
-    throw new Error(`Failed to delete staff member: ${delError.message}`);
+  // Attempt Supabase deletion or status update
+  try {
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target);
+    if (isUuid) {
+      await client.from('users').update({ status: 'deleted', updated_at: new Date().toISOString() }).eq('id', target);
+    } else {
+      await client.from('users').update({ status: 'deleted', updated_at: new Date().toISOString() }).eq('email', target);
+    }
+  } catch (e) {
+    console.warn('[deleteDivisionStaff] Supabase update note:', e);
   }
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('ferex_staff_users_change'));
+    window.dispatchEvent(new Event('ferex_digital_tasks_change'));
+    window.dispatchEvent(new Event('ferex_digital_projects_change'));
   }
   return true;
 }
@@ -407,37 +555,9 @@ export async function getStaffAssignedStudents(staffName?: string) {
     if (staffName) {
       query = query.or(`assigned_counselor.ilike.%${staffName}%,assigned_counselor.eq.${staffName}`);
     }
-    const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) return [];
-    return data ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function getStaffTasks(staffName?: string) {
-  try {
-    let query = supabase.from('tasks').select('*');
-    if (staffName) {
-      query = query.ilike('assigned_to', `%${staffName}%`);
-    }
-    const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) return [];
-    return data ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function getStaffMeetings(counselorName?: string) {
-  try {
-    let query = supabase.from('meetings').select('*');
-    if (counselorName) {
-      query = query.ilike('advisor_name', `%${counselorName}%`);
-    }
-    const { data, error } = await query.order('scheduled_date', { ascending: true });
-    if (error) return [];
-    return data ?? [];
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   } catch {
     return [];
   }

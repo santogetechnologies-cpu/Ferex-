@@ -35,7 +35,7 @@ await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_ro
  CREATE POLICY legacy_salaries ON public.employee_salaries FOR ALL USING(true) WITH CHECK(true);
  CREATE POLICY legacy_timesheet ON public.attendance_timesheets FOR ALL USING(true) WITH CHECK(true);
 `);
-for(const name of fs.readdirSync('supabase/migrations').filter(n=>n.startsWith('20261101')).sort()){
+for(const name of fs.readdirSync('supabase/migrations').filter(n=>n.startsWith('202611')).sort()){
  try{await db.exec(fs.readFileSync('supabase/migrations/'+name,'utf8'));console.log('Applied',name);}catch(e){console.error('Migration failed',name,e.message);throw e;}
 }
 const admin='10000000-0000-4000-8000-000000000001',pm='10000000-0000-4000-8000-000000000002',other='10000000-0000-4000-8000-000000000003',client='10000000-0000-4000-8000-000000000004',project='20000000-0000-4000-8000-000000000001',second='20000000-0000-4000-8000-000000000002',clientId='30000000-0000-4000-8000-000000000001';

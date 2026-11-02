@@ -1,3 +1,5 @@
+import { DigitalBusinessInsights } from './pages/digital/DigitalBusinessInsights';
+import { DigitalCommerce } from './pages/digital/DigitalCommerce';
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -147,7 +149,7 @@ import { DigitalSettings } from './pages/digital/DigitalSettings';
 import { DigitalDeliverables } from './pages/digital/DigitalDeliverables';
 import { DigitalStaff } from './pages/digital/DigitalStaff';
 import { DigitalLoginPage } from './pages/digital/DigitalLoginPage';
-import DigitalClientPortal from './pages/digital/DigitalClientPortal';
+import DigitalClientPortal from './pages/digital/DigitalClientWorkspace';
 import { DigitalBilling } from './pages/digital/DigitalBilling';
 
 // Digital Project Manager imports (Pure Supabase Rebuild)
@@ -174,7 +176,7 @@ import { StaffDocuments } from './pages/staff/StaffDocuments';
 import { StaffTickets } from './pages/staff/StaffTickets';
 import { StaffProfile } from './pages/staff/StaffProfile';
 
-import { autoSeedAllDataToSupabase } from './lib/api/supabaseAutoSeeder';
+
 
 import { normalizeRole, getDashboardRoute, isSuperAdmin } from './lib/roleRouter';
 
@@ -184,7 +186,7 @@ const AppInitializer: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
-    autoSeedAllDataToSupabase().catch(() => {});
+    // Production navigation must never seed or delete business records.
 
     if (location.pathname === '/' || location.pathname === '') {
       navigate('/', { replace: true });
@@ -198,8 +200,8 @@ const ADMIN_ROLES = ['admin', 'education_admin', 'education'];
 const CENTRAL_ROLES = ['central', 'super_admin', 'superadmin'];
 const TRADE_ROLES = ['trade', 'trade_admin', 'global_trade', 'logistics_officer'];
 const RIMI_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen', 'operations_manager', 'rimi_staff'];
-const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'digital_manager', 'project_manager', 'digimanager', 'pm', 'digital_staff'];
-const PM_ROLES = ['project_manager', 'digital_manager', 'digimanager', 'pm', 'digital_pm', 'digital_admin', 'digital'];
+const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'digital_director', 'digital_manager', 'project_manager', 'digimanager', 'pm', 'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager', 'digital_staff', 'designer', 'developer'];
+const PM_ROLES = ['project_manager', 'digital_manager', 'digimanager', 'pm', 'digital_pm', 'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager', 'digital_admin', 'digital'];
 const STAFF_ROLES = ['staff', 'counselor', 'admin', 'education_admin'];
 
 // Guards portal routes — redirects to login if not authenticated, or to proper portal if role mismatched
@@ -213,7 +215,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
     return () => clearTimeout(timer);
   }, []);
 
-  if (loading && !authTimeout) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
@@ -224,30 +226,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
     );
   }
 
-  // Check active user in session, Supabase auth, or local storage
-  const localSavedUser = (() => {
-    try {
-      const raw = localStorage.getItem('ferex_user');
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  })();
-
-  const effectiveUser = user || (session?.user ?? null) || (localSavedUser ? { id: localSavedUser.id, email: localSavedUser.email } : null);
-
-  if (!session && !effectiveUser) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Authoritative role from profile, user metadata, or local fallback
-  const rawRole =
-    profile?.role ||
-    user?.user_metadata?.role ||
-    user?.role ||
-    localSavedUser?.role;
-
-  const userEmail = effectiveUser?.email || profile?.email || localSavedUser?.email || '';
+  const effectiveUser = user || session?.user;
+  if (!session || !effectiveUser) return <Navigate to={location.pathname.startsWith('/digital') ? '/digital/login' : '/login'} replace />;
+  if (!profile) return <div role="alert" className="p-8 text-center">Your account profile could not be loaded. <button className="underline" onClick={()=>window.location.reload()}>Retry</button></div>;
+  const rawRole = profile.role;
+  const userEmail = effectiveUser?.email || profile?.email || '';
   const isSuper = isSuperAdmin(rawRole, userEmail);
   const currentRole = isSuper ? 'superadmin' : normalizeRole(rawRole || 'student', userEmail);
 
@@ -471,9 +454,9 @@ function App() {
           <Route path="/digital/projects" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProjects /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/tasks" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalTasks /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/deliverables" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalDeliverables /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/staff" element={<Navigate to="/central/roles-users" replace />} />
+          <Route path="/digital/staff" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalStaff /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/meetings" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMeetings /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/emails" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><CentralEmailLogs defaultDivision="digital" /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/emails" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalCommerce view="emails" /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Services - Redirect to Projects */}
           <Route path="/digital/services" element={<Navigate to="/digital/projects" replace />} />
@@ -486,13 +469,13 @@ function App() {
           <Route path="/digital/branding" element={<Navigate to="/digital/projects" replace />} />
 
           {/* Digital Finance */}
-          <Route path="/digital/invoices" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalInvoices /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/invoices" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalCommerce view="invoices" /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/finance/invoices" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalInvoices /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/payments" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalPayments /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/payments" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalCommerce view="payments" /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/finance/payments" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalPayments /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/expenses" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/finance/expenses" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/billing" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBilling /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/billing" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalCommerce view="billing" /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/finance/billing" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBilling /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital Team */}
@@ -507,13 +490,13 @@ function App() {
           <Route path="/digital/team/performance" element={<Navigate to="/central/roles-users" replace />} />
 
           {/* Digital Analytics & Performance (Pure Supabase Telemetry) */}
-          <Route path="/digital/analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/reports" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/analytics/reports" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/revenue-analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/analytics/revenue" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/project-analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/analytics/project" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAnalytics /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBusinessInsights /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/reports" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBusinessInsights /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics/reports" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBusinessInsights /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/revenue-analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBusinessInsights /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics/revenue" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBusinessInsights /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/project-analytics" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBusinessInsights /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/analytics/project" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBusinessInsights /></DigitalLayout></ProtectedRoute>} />
 
           {/* Digital System */}
           <Route path="/digital/notifications" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalNotifications /></DigitalLayout></ProtectedRoute>} />

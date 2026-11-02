@@ -39,7 +39,7 @@ export const DigitalStaff: React.FC = () => {
   // Form: Add Staff
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffEmail, setNewStaffEmail] = useState('');
-  const [newStaffRole, setNewStaffRole] = useState('digital_staff');
+  const [newStaffRole, setNewStaffRole] = useState('account_manager');
   const [newStaffDept, setNewStaffDept] = useState('Product Engineering & Design');
   const [newStaffPhone, setNewStaffPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -128,12 +128,13 @@ export const DigitalStaff: React.FC = () => {
 
   // Handle Remove Staff
   const handleDeleteStaff = async (member: DivisionStaffMember) => {
-    if (!window.confirm(`Are you sure you want to deactivate and remove ${member.name} from Digital staff?`)) {
+    if (!window.confirm(`Are you sure you want to remove ${member.name} (${member.email}) from Digital staff? This will immediately remove them from all project and task assignment options.`)) {
       return;
     }
     try {
-      await deleteDivisionStaff(member.email);
-      showToastMsg(`${member.name} removed from active roster.`);
+      await deleteDivisionStaff(member.email || member.id);
+      setStaffList(prev => prev.filter(s => s.id !== member.id && s.email.toLowerCase() !== member.email.toLowerCase()));
+      showToastMsg(`${member.name} permanently removed from roster.`);
       await loadData();
     } catch {
       showToastMsg('Failed to remove staff member.');
@@ -426,8 +427,13 @@ export const DigitalStaff: React.FC = () => {
                       onChange={e => setNewStaffRole(e.target.value)}
                       className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-cyan-500 bg-white"
                     >
-                      <option value="digital_staff">Digital Staff / PM</option>
-                      <option value="digital_admin">Digital Admin (Full Access)</option>
+                      <option value="account_manager">Digital Account Manager (Client Onboarding & Commercials)</option>
+                      <option value="project_manager">Digital Project Manager (Sprints & Delivery)</option>
+                      <option value="digital_manager">Digital Operations Manager (Workflow & Approvals)</option>
+                      <option value="designer">UI/UX Designer & Creative Lead</option>
+                      <option value="developer">Software Engineer / Technical Lead</option>
+                      <option value="digital_staff">Digital Staff Specialist</option>
+                      <option value="digital_admin">Digital Admin (Full Agency Access)</option>
                     </select>
                   </div>
 
