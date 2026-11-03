@@ -12,6 +12,7 @@ import { createNawaRecord } from '../../lib/api/nawa';
 import { getStudents } from '../../lib/api/students';
 import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../../lib/api/documentRequirements';
 import { ToastNotification } from '../../components/ToastNotification';
+import { useAuth } from '../../contexts/AuthContext';
 
 type DocStatus = 'Submitted' | 'Under Review' | 'Approved' | 'Rejected';
 
@@ -46,7 +47,14 @@ const normalizeDocStatus = (rawStatus: string, rawNotes?: string): DocStatus => 
   return 'Submitted';
 };
 
-export const AdminDocumentReview: React.FC = () => {
+export interface AdminDocumentReviewProps {
+  isStaff?: boolean;
+}
+
+export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaff = false }) => {
+  const { profile, user } = useAuth();
+  const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
+  const counselorName = (profile?.full_name || '').toLowerCase().trim();
   const { documents: dbDocs, changeStatus } = useDocuments();
   const [docs, setDocs] = useState<DocItem[]>([]);
   const { applications: allApps } = useApplications();
@@ -91,11 +99,11 @@ export const AdminDocumentReview: React.FC = () => {
   }, [refreshStudentsMap]);
 
   const getStudentCountry = React.useCallback((studentId?: string) => {
-    if (!studentId) return 'ind';
+    if (!studentId) return 'Poland';
     const app = allApps.find(a => a.student_id === studentId);
     const country = app?.universities?.country || (app as any)?.country;
     if (country && country.toLowerCase().trim() !== 'not set') return country.trim();
-    return localStorage.getItem('ferex_student_target_country') || 'ind';
+    return localStorage.getItem('ferex_student_target_country') || 'Poland';
   }, [allApps]);
 
   const getDossierForStudent = React.useCallback((studentId: string, studentDocs: DocItem[]) => {

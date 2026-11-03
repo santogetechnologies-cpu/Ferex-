@@ -24,6 +24,9 @@ import type { NawaRecord } from '../lib/api/nawa';
 import { getDocumentRequirements, calculateDossierStatus } from '../lib/api/documentRequirements';
 import { isRealApplication } from '../lib/api/applications';
 import { isAgreementSigned } from '../lib/api/agreement';
+import { getJourneyStages } from '../lib/api/journey';
+import { listDirectPayments } from '../lib/api/payments';
+import { supabase } from '../lib/supabase';
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -73,6 +76,29 @@ export const StudentDashboard: React.FC = () => {
   }, [user?.id, user?.email]);
 
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+  const [dbStages, setDbStages] = React.useState<any[]>([]);
+  const [directPayments, setDirectPayments] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    const loadWf = () => {
+      getJourneyStages(user.id).then(setDbStages).catch(() => {});
+      listDirectPayments(user.id).then(setDirectPayments).catch(() => {});
+    };
+    loadWf();
+    window.addEventListener('ferex_payment_change', loadWf);
+    window.addEventListener('ferex_direct_payment_change', loadWf);
+    const ch = supabase.channel('student-dash-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'education_workflow_progress', filter: `student_id=eq.${user.id}` }, loadWf)
+      .subscribe();
+    return () => {
+      window.removeEventListener('ferex_payment_change', loadWf);
+      window.removeEventListener('ferex_direct_payment_change', loadWf);
+      void supabase.removeChannel(ch);
+    };
+  }, [user?.id]);
+
+  const isStageDone = (n: number) => dbStages.some(s => s.stage_number === n && s.status === 'Completed');
   const approvedDocs = documents.filter(d => (d.status as string) === 'Approved' || (d.status as string) === 'Verified').length;
   const paidSum = payments.filter(p => (p.status as string) === 'Paid' || (p.status as string) === 'Verified' || (p.status as string) === 'Completed').reduce((acc, p) => acc + Number(p.amount || 0), 0);
   const upcomingMeeting = meetings.find(m => (m.status as string) === 'Scheduled' || (m.status as string) === 'Confirmed') || null;
@@ -111,7 +137,8 @@ export const StudentDashboard: React.FC = () => {
   };
 
   const inst1Paid = registrationSettled(feeConfig, payments, targetCountry);
-  const inst2Paid = payments.some(p => checkPaymentStage(p, 2) && ((p.status as string) === 'Paid' || (p.status as string) === 'Verified'));
+  const hasDirectTuition = directPayments.some(d => d.fee_category === 'university_tuition' && ['Verified', 'Pending Verification'].includes(d.verification_status));
+  const inst2Paid = isStageDone(8) || hasDirectTuition || payments.some(p => (checkPaymentStage(p, 2) || p.fee_id === 'tuition' || p.fee_id === 'visa-fee') && ((p.status as string) === 'Paid' || (p.status as string) === 'Verified'));
   const inst3Paid = payments.some(p => checkPaymentStage(p, 3) && ((p.status as string) === 'Paid' || (p.status as string) === 'Verified'));
 
   const realApplications = applications.filter(isRealApplication);
@@ -171,29 +198,29 @@ export const StudentDashboard: React.FC = () => {
   const isAgreementDone = useStudentAgreement(user?.id);
 
   const checklistItems = [
-    { title: '1. Lead Inquiry & Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },
+    { title: '1. Lead Inquiry & Student Profile Registration', isDone: isProfileDone || isStageDone(1), path: '/student/profile', tag: (isProfileDone || isStageDone(1)) ? 'Completed' : 'Pending' },
     {
       title: '2. Student Service Agreement (Legal Execution)',
-      isDone: isAgreementDone,
+      isDone: isAgreementDone || isStageDone(2),
       path: '/student/agreement',
       tag: isAgreementDone ? 'Signed' : 'Signature Required'
     },
-    { title: `3. Advanced Registration Fee Payment`, isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
+    { title: `3. Advanced Registration Fee Payment`, isDone: inst1Paid || isStageDone(3), path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
     {
       title: '4. Required Academic Documents',
-      isDone: dossierStatus.isComplete,
+      isDone: dossierStatus.isComplete || isStageDone(4),
       path: '/student/documents',
       tag: dossierStatus.isComplete
         ? (approvedDocsCount === documents.length && documents.length > 0 ? 'Verified' : 'Submitted')
         : `Incomplete (${dossierStatus.uploadedMandatoryCount}/${dossierStatus.mandatoryCount || 2})`
     },
-    { title: `5. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isLegalizationApproved, path: '/student/documents', tag: isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Pending' },
-    { title: '6. University Selection & Course Application', isDone: isUniSelected, path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Pending Selection' },
-    { title: '7. Official Admission Offer Issued & Accepted', isDone: isOfferAccepted, path: '/student/offers', tag: isOfferAccepted ? 'Accepted' : hasOffer ? 'Offer Released' : 'Pending' },
-    { title: '8. University Tuition Deposit & Visa Documents Clearance', isDone: inst2Paid, path: '/student/payments', tag: inst2Paid ? `Cleared (${visaRecord?.status_label || 'Visa Ready'})` : 'Due' },
-    { title: '9. Final Acceptance Letter from University', isDone: isFinalAcceptanceIssued, path: '/student/offers', tag: isFinalAcceptanceIssued ? 'Released' : inst2Paid ? 'Awaiting Release' : 'Pending Deposit' },
-    { title: '10. VFS Embassy Visa Application Filed', isDone: isVisaFiled, path: '/student/visa-tracker', tag: isVisaFiled ? 'Filed' : 'Pending' },
-    { title: '11. Embassy Visa Decision (Approved / Rejected)', isDone: isVisaApproved, isRejected: isVisaRejected, path: '/student/visa-tracker', tag: isVisaApproved ? 'Approved' : isVisaRejected ? 'Rejected' : 'Review' },
+    { title: `5. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isLegalizationApproved || isStageDone(5), path: '/student/documents', tag: isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Pending' },
+    { title: '6. University Selection & Course Application', isDone: isUniSelected || isStageDone(6), path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Pending Selection' },
+    { title: '7. Official Admission Offer Issued & Accepted', isDone: isOfferAccepted || isStageDone(7), path: '/student/offers', tag: isOfferAccepted ? 'Accepted' : hasOffer ? 'Offer Released' : 'Pending' },
+    { title: '8. University Tuition Deposit & Visa Documents Clearance', isDone: inst2Paid || isStageDone(8), path: '/student/payments', tag: inst2Paid ? `Cleared (${visaRecord?.status_label || 'Visa Ready'})` : 'Due' },
+    { title: '9. Final Acceptance Letter from University', isDone: isFinalAcceptanceIssued || isStageDone(9), path: '/student/offers', tag: isFinalAcceptanceIssued ? 'Released' : inst2Paid ? 'Awaiting Release' : 'Pending Deposit' },
+    { title: '10. VFS Embassy Visa Application Filed', isDone: isVisaFiled || isStageDone(10), path: '/student/visa-tracker', tag: isVisaFiled ? 'Filed' : 'Pending' },
+    { title: '11. Embassy Visa Decision (Approved / Rejected)', isDone: isVisaApproved || isStageDone(11), isRejected: isVisaRejected, path: '/student/visa-tracker', tag: isVisaApproved ? 'Approved' : isVisaRejected ? 'Rejected' : 'Review' },
     { title: `12. Service Charge & Consular Clearance`, isDone: inst3Paid, path: '/student/payments', tag: inst3Paid ? 'Paid' : 'Due' },
     { title: '13. Post Travel & Campus Arrival', isDone: inst3Paid && isVisaApproved, path: '/student/pre-departure', tag: inst3Paid && isVisaApproved ? 'Arrival Ready' : 'Final Milestone' },
   ];

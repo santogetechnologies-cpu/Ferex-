@@ -50,7 +50,11 @@ const CANNED_RESPONSES = [
   { title: 'University Offer Delayed', text: 'Your application is currently under review by the university admissions desk. Standard processing takes 7-14 business days. We will notify you immediately when they release the offer letter.' }
 ];
 
-export const AdminSupportTickets: React.FC = () => {
+export interface AdminSupportTicketsProps {
+  isStaff?: boolean;
+}
+
+export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaff = false }) => {
   const { user, profile } = useAuth();
   const { tickets: dbTickets, reply: sendReplyApi, changeStatus, assignTicket, newTicket, loading, refresh } = useTickets();
   const [tickets, setTickets] = useState<Ticket[]>([]);

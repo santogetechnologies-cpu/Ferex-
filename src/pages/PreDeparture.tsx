@@ -58,7 +58,7 @@ export const PreDeparture: React.FC = () => {
             (r.student_name && r.student_name.toLowerCase().trim() === myEmail)
           )) ||
           (myName && r.student_name && r.student_name.toLowerCase().trim() === myName)
-        ) || (recs.length > 0 ? recs[0] : null);
+        ) || null;
 
         if (found) {
           setDepRecord(found);

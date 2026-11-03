@@ -19,6 +19,9 @@ import { useMeetings } from '../hooks/useMeetings';
 import { usePayments } from '../hooks/usePayments';
 import { isRealApplication } from '../lib/api/applications';
 import { isAgreementSigned } from '../lib/api/agreement';
+import { getJourneyStages } from '../lib/api/journey';
+import { listDirectPayments } from '../lib/api/payments';
+import { supabase } from '../lib/supabase';
 
 export const JourneyTracker: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +37,29 @@ export const JourneyTracker: React.FC = () => {
   const [activeTracker, setActiveTracker] = useState<'university' | 'visa' | 'travel'>('university');
 
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+  const [dbStages, setDbStages] = useState<any[]>([]);
+  const [directPayments, setDirectPayments] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const loadWorkflow = () => {
+      getJourneyStages(user.id).then(setDbStages).catch(() => {});
+      listDirectPayments(user.id).then(setDirectPayments).catch(() => {});
+    };
+    loadWorkflow();
+    window.addEventListener('ferex_payment_change', loadWorkflow);
+    window.addEventListener('ferex_direct_payment_change', loadWorkflow);
+    const ch = supabase.channel('student-journey-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'education_workflow_progress', filter: `student_id=eq.${user.id}` }, loadWorkflow)
+      .subscribe();
+    return () => {
+      window.removeEventListener('ferex_payment_change', loadWorkflow);
+      window.removeEventListener('ferex_direct_payment_change', loadWorkflow);
+      void supabase.removeChannel(ch);
+    };
+  }, [user?.id]);
+
+  const isStageDone = (n: number) => dbStages.some(s => s.stage_number === n && s.status === 'Completed');
   const isProfileDone = Boolean(profile?.full_name);
 
   // Agreement and Registration states
@@ -88,7 +114,7 @@ export const JourneyTracker: React.FC = () => {
       id: 'u1',
       num: 1,
       title: 'Lead Inquiry',
-      status: isProfileDone ? 'completed' : 'current',
+      status: (isProfileDone || isStageDone(1)) ? 'completed' : 'current',
       desc: 'Student profile created and initial academic inquiry logged.',
       actionLabel: isProfileDone ? 'View Profile' : 'Complete Profile',
       actionRoute: '/student/profile',
@@ -97,7 +123,7 @@ export const JourneyTracker: React.FC = () => {
       id: 'u2',
       num: 2,
       title: 'Student Service Agreement',
-      status: isAgreementDone ? 'completed' : (isProfileDone ? 'current' : 'upcoming'),
+      status: (isAgreementDone || isStageDone(2)) ? 'completed' : (isProfileDone ? 'current' : 'upcoming'),
       desc: 'Official service agreement between student and Ferex Education (under Ferex Ventures Pvt Ltd) executed with 13 clauses.',
       actionLabel: isAgreementDone ? 'View Agreement' : 'Sign Agreement',
       actionRoute: '/student/agreement',
@@ -106,7 +132,7 @@ export const JourneyTracker: React.FC = () => {
       id: 'u3',
       num: 3,
       title: 'Advanced Registration Fee',
-      status: isRegPaid ? 'completed' : (isAgreementDone ? 'current' : 'upcoming'),
+      status: (isRegPaid || isStageDone(3)) ? 'completed' : (isAgreementDone ? 'current' : 'upcoming'),
       desc: 'Initial intake deposit & compliance seat reservation.',
       actionLabel: isRegPaid ? 'View Invoice' : 'Pay Registration',
       actionRoute: '/student/payments',
@@ -115,7 +141,7 @@ export const JourneyTracker: React.FC = () => {
       id: 'u4',
       num: 4,
       title: 'Academic Counselling',
-      status: hasCompletedMeeting ? 'completed' : (hasScheduledMeeting ? 'in_progress' : (isRegPaid ? 'current' : 'upcoming')),
+      status: (hasCompletedMeeting || isStageDone(4)) ? 'completed' : (hasScheduledMeeting ? 'in_progress' : (isRegPaid ? 'current' : 'upcoming')),
       desc: 'One-on-one session with dedicated European education counsellor.',
       actionLabel: hasCompletedMeeting ? 'View Notes' : (hasScheduledMeeting ? 'View Session' : 'Schedule Session'),
       actionRoute: '/student/meetings',
@@ -124,7 +150,7 @@ export const JourneyTracker: React.FC = () => {
       id: 'u5',
       num: 5,
       title: 'University Shortlisting',
-      status: activeApp ? 'completed' : (isProfileDone ? 'current' : 'upcoming'),
+      status: (activeApp || isStageDone(6)) ? 'completed' : (isProfileDone ? 'current' : 'upcoming'),
       desc: 'Target universities and accredited degree programs selected.',
       actionLabel: activeApp ? 'View Shortlist' : 'Select University',
       actionRoute: '/student/select-university',
@@ -151,7 +177,7 @@ export const JourneyTracker: React.FC = () => {
       id: 'u8',
       num: 8,
       title: 'University Review',
-      status: hasOffer ? 'completed' : (activeApp ? 'current' : 'upcoming'),
+      status: (hasOffer || isStageDone(7)) ? 'completed' : (activeApp ? 'current' : 'upcoming'),
       desc: 'Admissions Committee evaluating academic qualifications.',
       actionLabel: 'Check Status',
       actionRoute: '/student/applications',
@@ -169,7 +195,7 @@ export const JourneyTracker: React.FC = () => {
       id: 'u10',
       num: 10,
       title: 'Admission Confirmation',
-      status: isOfferAccepted ? 'completed' : (hasOffer ? 'current' : 'upcoming'),
+      status: (isOfferAccepted || isStageDone(8) || isStageDone(9)) ? 'completed' : (hasOffer ? 'current' : 'upcoming'),
       desc: 'Offer accepted, initial fee settled & Final Acceptance issued.',
       actionLabel: isOfferAccepted ? 'Download Acceptance' : 'Accept & Confirm',
       actionRoute: '/student/offers',

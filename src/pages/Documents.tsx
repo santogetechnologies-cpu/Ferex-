@@ -43,7 +43,7 @@ export const Documents: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [configuredReqs, setConfiguredReqs] = useState<DocumentRequirement[]>([]);
   const [selectedCountryOverride, setSelectedCountryOverride] = useState<string>(() => {
-    return localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country') || 'ind';
+    return localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country') || 'Poland';
   });
 
   // Target country resolution - dynamically bound to selected destination university & country
@@ -77,11 +77,11 @@ export const Documents: React.FC = () => {
     const localTarget = localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country');
     if (localTarget && !isInvalid(localTarget)) return localTarget.trim();
 
-    return 'ind';
+    return 'Poland';
   }, [selectedCountryOverride, profile, applications]);
 
   const loadRequirements = React.useCallback(() => {
-    const c = targetCountry || 'ind';
+    const c = targetCountry || 'Poland';
     getDocumentRequirements(c).then(setConfiguredReqs);
   }, [targetCountry]);
 

@@ -2,11 +2,17 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar as CalendarIcon, Video, Search, Trash2, CalendarCheck, AlertTriangle, X, Plus, Mic, MicOff, VideoOff, PhoneOff, Activity, CheckCircle2, List, BarChart3, ChevronLeft, ChevronRight, Clock, User, MapPin, Laptop } from 'lucide-react';
 import { Card } from '../../components/Card';
+import { useAuth } from '../../contexts/AuthContext';
 import { useMeetings } from '../../hooks/useMeetings';
 import { computeEndTime } from '../../lib/api/meetings';
 import { getStudents, getStaffMembers } from '../../lib/api/students';
 
-export const AdminMeetings: React.FC = () => {
+export interface AdminMeetingsProps {
+  isStaff?: boolean;
+}
+
+export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false }) => {
+  const { profile, user } = useAuth();
   const { meetings: dbMeetings, changeStatus, deleteCall, loading, addMeeting } = useMeetings();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -197,7 +203,7 @@ export const AdminMeetings: React.FC = () => {
       subject: m.subject || (m as any).title || 'Advisory Session',
       studentId: m.student_id,
       studentName: studentObj?.full_name || (m as any).student_name || (m as any).users?.full_name || 'Enrolled Student',
-      studentEmail: studentObj?.email || (m as any).student_email || (m as any).users?.email || 'student@ferex.com',
+      studentEmail: studentObj?.email || (m as any).student_email || (m as any).users?.email || '',
       dateKey: isoDateStr,
       date: new Date(rawDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
       time: `${m.start_time || '10:00 AM'} - ${m.end_time || computeEndTime(m.start_time || '10:00 AM')}`,

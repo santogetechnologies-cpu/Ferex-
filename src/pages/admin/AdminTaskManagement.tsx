@@ -35,7 +35,7 @@ interface Task {
   createdBy?: string;
 }
 
-const STAFF = ['Riya Shah', 'Arjun Pillai', 'Education Team', 'Meena Iyer', 'Kabir Nair'];
+const DEFAULT_STAFF = ['Admissions Desk', 'Education Team', 'Senior Counselor'];
 
 const PRIORITY_BADGES: Record<Priority, { label: string; style: string }> = {
   High: { label: 'High', style: 'bg-red-50 text-red-700 border-red-200/80' },
@@ -697,7 +697,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Assignee</label>
                     <select value={editTask.assignee} onChange={e => setEditTask({ ...editTask, assignee: e.target.value })} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900">
-                      {STAFF.map(s => <option key={s}>{s}</option>)}
+                      {staffList.map(s => <option key={s}>{s}</option>)}
                     </select>
                   </div>
                   <div>

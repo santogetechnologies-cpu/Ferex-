@@ -6,6 +6,7 @@ import { useApplications } from '../../hooks/useApplications';
 import { uploadOfferPdfToSupabase } from '../../lib/api/applications';
 import { updateNawaStep } from '../../lib/api/nawa';
 import { ToastNotification } from '../../components/ToastNotification';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const COUNTRY_AUTHORITIES: Record<string, { acronym: string; name: string; flag: string }> = {
   'Poland': { acronym: 'Legalization', name: 'Polish Ministry of Science & Legalization', flag: 'PL' },
@@ -72,9 +73,13 @@ const STATUS_COLORS: Record<AppStatus, string> = {
 
 export interface AdminApplicationsProps {
   initialFilter?: string;
+  isStaff?: boolean;
 }
 
-export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFilter }) => {
+export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFilter, isStaff = false }) => {
+  const { profile, user } = useAuth();
+  const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
+  const counselorName = (profile?.full_name || '').toLowerCase().trim();
   const [searchParams] = useSearchParams();
   const queryParam = searchParams.get('filter') || searchParams.get('tab');
   const resolvedFilter = queryParam === 'offers' || queryParam === 'offer' ? 'Offer Issued' : (queryParam || initialFilter || 'All');
@@ -96,7 +101,12 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
   useEffect(() => {
     const realDbApps = (dbApps || []).filter(a => {
       const sName = (a.student_name || (a.users as any)?.full_name || '').toLowerCase().trim();
-      return sName !== 'rahul sharma' && a.university_name !== 'Pending University Selection';
+      if (a.university_name === 'Pending University Selection') return false;
+      if (isStaff && (counselorEmail || counselorName)) {
+        const appCounselor = ((a as any).counselor || '').toLowerCase().trim();
+        return !appCounselor || appCounselor === counselorEmail || appCounselor === counselorName || appCounselor === 'unassigned';
+      }
+      return true;
     });
 
     const mapped = realDbApps.map(a => {

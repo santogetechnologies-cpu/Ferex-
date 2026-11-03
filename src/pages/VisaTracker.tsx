@@ -13,6 +13,7 @@ import { useVisa } from '../hooks/useVisa';
 import { useApplications } from '../hooks/useApplications';
 import { usePayments } from '../hooks/usePayments';
 import { useDocuments } from '../hooks/useDocuments';
+import { listDirectPayments } from '../lib/api/payments';
 import { canAccessPage, checkPaymentStage as checkPayment } from '../lib/paymentUnlock';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -25,6 +26,13 @@ export const VisaTracker: React.FC = () => {
   const { documents, loading: docsLoading } = useDocuments(user?.id);
 
   const [reappealLoading, setReappealLoading] = useState(false);
+  const [directPayments, setDirectPayments] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (user?.id) {
+      listDirectPayments(user.id).then(setDirectPayments).catch(() => {});
+    }
+  }, [user?.id]);
   const [toastMsg, setToastMsg] = useState('');
 
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
@@ -43,7 +51,8 @@ export const VisaTracker: React.FC = () => {
     return false;
   };
 
-  const inst2Paid = payments.some(p => checkPaymentStage(p, 2) && (p.status === 'Paid' || p.status === 'Verified'));
+  const hasDirectTuition = directPayments.some(d => d.fee_category === 'university_tuition' && ['Verified', 'Pending Verification'].includes(d.verification_status));
+  const inst2Paid = hasDirectTuition || payments.some(p => (checkPaymentStage(p, 2) || p.fee_id === 'tuition' || p.fee_id === 'visa-fee') && (p.status === 'Paid' || p.status === 'Verified'));
 
   const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || '';
   const payment2Status = checkPayment(payments, 2, targetCountry);
@@ -73,7 +82,7 @@ export const VisaTracker: React.FC = () => {
       (r.student_name && r.student_name.toLowerCase().trim() === myEmail)
     )) ||
     (myName && r.student_name && r.student_name.toLowerCase().trim() === myName)
-  ) || (records.length > 0 ? records[0] : null);
+  ) || null;
 
   const initialPendingRecord = {
     id: user?.id || 'vfs-pending',

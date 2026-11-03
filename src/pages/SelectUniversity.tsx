@@ -1,5 +1,6 @@
 import { saveEducationCountry } from '../lib/api/educationBilling';
 import { educationFees, resolveEducationFee, money, registrationSettled } from '../lib/educationBilling';
+import { formatFeeEURandINR } from './admin/AdminUniversities';
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Search, MapPin, Award, Sparkles, Heart, X, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight, Lock, AlertCircle, GraduationCap, Building2 } from 'lucide-react';
@@ -391,9 +392,9 @@ export const SelectUniversity: React.FC = () => {
               <div>
                 {/* Campus Image Banner */}
                 <div className="h-36 relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950">
-                  {uni.image_url ? (
+                  {(uni.banner_image_url || uni.image_url) ? (
                     <img
-                      src={uni.image_url}
+                      src={uni.banner_image_url || uni.image_url}
                       alt={uni.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-85"
                     />
@@ -404,6 +405,11 @@ export const SelectUniversity: React.FC = () => {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
+                  {uni.logo_url && (
+                    <div className="absolute bottom-2.5 left-3 w-8 h-8 rounded-lg bg-white p-1 shadow-md border border-slate-100 flex items-center justify-center overflow-hidden z-10">
+                      <img src={uni.logo_url} alt="" className="w-full h-full object-contain" />
+                    </div>
+                  )}
                   {/* Floating Badges */}
                   <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#58051E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/30 shadow-xs">
                     {uni.badge || wf?.authority_acronym || 'Accredited'}
@@ -443,7 +449,7 @@ export const SelectUniversity: React.FC = () => {
                   <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1 text-xs font-semibold">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Tuition Fee:</span>
-                      <span className="font-bold text-[#58051E]">{uni.tuition_range || uni.university_fee}</span>
+                      <span className="font-bold text-[#58051E]">{formatFeeEURandINR(uni.tuition_range || uni.university_fee)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Procedure:</span>
