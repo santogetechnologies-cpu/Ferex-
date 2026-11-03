@@ -204,7 +204,7 @@ export async function updateVisaStatus(
       // Auto advance journey stage 12 (Visa Outcome)
       try {
         const stages = await getJourneyStages(upsertPayload.student_id);
-        const visaStage = stages.find(s => s.stage_number === 4 || s.stage_number === 8 || s.stage_name?.toLowerCase().includes('visa'));
+        const visaStage = stages.find(s => s.stage_number === 10);
         if (visaStage && isApproved && visaStage.status !== 'Completed') {
           await updateJourneyStageStatus(visaStage.id, 'Completed');
         }

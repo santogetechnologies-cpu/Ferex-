@@ -1,3 +1,6 @@
+import { useStudentAgreement } from '../hooks/useStudentAgreement';
+import { useFeeConfig } from '../hooks/useFeeConfig';
+import { registrationSettled } from '../lib/educationBilling';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -25,6 +28,7 @@ export const JourneyTracker: React.FC = () => {
   const { records: visaRecords } = useVisa(user?.id);
   const { meetings } = useMeetings(user?.id);
   const { payments } = usePayments(user?.id);
+  const { config: feeConfig } = useFeeConfig();
 
   // Active tracker tab: 'university', 'visa', 'travel'
   const [activeTracker, setActiveTracker] = useState<'university' | 'visa' | 'travel'>('university');
@@ -33,12 +37,8 @@ export const JourneyTracker: React.FC = () => {
   const isProfileDone = Boolean(profile?.full_name);
 
   // Agreement and Registration states
-  const isAgreementDone = isAgreementSigned(user?.id || profile?.id || '');
-  const isRegPaid = payments.some(p => {
-    const text = (String(p.title || '') + ' ' + String(p.description || '')).toLowerCase();
-    return (text.includes('registration') || text.includes('advance') || (p as any).stage_number === 1) &&
-      (p.status === 'Paid' || p.status === 'Verified');
-  });
+  const isAgreementDone = useStudentAgreement(user?.id);
+  const isRegPaid = registrationSettled(feeConfig, payments, applications[0]?.universities?.country);
 
   // Meeting verification states for Counselling stage
   const hasCompletedMeeting = meetings.some(m =>

@@ -255,7 +255,7 @@ export const AdminSupportTickets: React.FC = () => {
     showToast('Student email copied to clipboard.');
   };
 
-  const useCannedResponse = (text: string) => {
+  const applyCannedResponse = (text: string) => {
     setReplyText(text);
   };
 
@@ -494,7 +494,7 @@ export const AdminSupportTickets: React.FC = () => {
                             {CANNED_RESPONSES.map((r, idx) => (
                               <button
                                 key={idx}
-                                onClick={() => useCannedResponse(r.text)}
+                                onClick={() => applyCannedResponse(r.text)}
                                 className="h-7 px-3 bg-slate-50 border border-slate-200 hover:border-[#58051E]/30 text-slate-600 hover:text-[#58051E] hover:bg-[#58051E]/5 text-[9px] font-black rounded-lg transition-all whitespace-nowrap cursor-pointer"
                               >
                                 {r.title}

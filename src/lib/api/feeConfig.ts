@@ -1,3 +1,4 @@
+import type { EducationFee } from '../educationBilling';
 import { supabase } from '../supabase';
 import { getAdminSupabaseClient } from '../adminAuthClient';
 
@@ -42,6 +43,7 @@ export interface CustomPaymentItem {
 }
 
 export interface SystemFeeConfig {
+  education_fees?: EducationFee[];
   // ── Ferex Payment 1: Registration Fee ─────────────────────────────────────
   advance_registration_fee_enabled: boolean;
   advance_registration_fee_amount: number;

@@ -34,6 +34,10 @@ export const TradeSettings: React.FC = () => {
   const [toast, setToast] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  React.useEffect(() => {
+    setForm(config);
+  }, [config]);
+
   // ── Admin-only guard ──────────────────────────────────────────
   if (!isAdmin) {
     return (
@@ -53,10 +57,6 @@ export const TradeSettings: React.FC = () => {
       </div>
     );
   }
-
-  React.useEffect(() => {
-    setForm(config);
-  }, [config]);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);

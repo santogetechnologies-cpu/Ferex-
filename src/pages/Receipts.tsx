@@ -1,3 +1,5 @@
+import { formatAccountingTotals } from '../lib/accountingPdf';
+import { money } from '../lib/educationBilling';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileCheck, Download, Sparkles, Search } from 'lucide-react';
@@ -10,7 +12,7 @@ import type { Receipt } from '../lib/types';
 
 export const Receipts: React.FC = () => {
   const { user, profile } = useAuth();
-  const { payments, receipts: dbReceipts } = usePayments(user?.id);
+  const { payments, receipts: dbReceipts, error: billingError } = usePayments(user?.id);
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState('');
 
@@ -35,7 +37,7 @@ export const Receipts: React.FC = () => {
         created_at: p.created_at || new Date().toISOString(),
       }))
   ].filter((r, idx, self) =>
-    idx === self.findIndex(t => t.id === r.id || t.receipt_no === r.receipt_no)
+    idx === self.findIndex(t => t.id === r.id || (r.payment_id && t.payment_id === r.payment_id) || t.receipt_no === r.receipt_no)
   )) as any[];
 
   const showToast = (msg: string) => {
@@ -71,6 +73,7 @@ export const Receipts: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left relative min-h-[500px]">
+      {billingError && <p role="alert" className="p-3 bg-red-50 text-red-800">{billingError}</p>}
       <ToastNotification message={toastMessage} onClose={() => setToastMessage('')} />
 
       {/* Header */}
@@ -89,7 +92,7 @@ export const Receipts: React.FC = () => {
         {totalReceived > 0 && (
           <div className="px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-center shrink-0">
             <p className="text-[9.5px] font-extrabold uppercase text-emerald-700">Total Received</p>
-            <p className="text-sm font-black text-emerald-900">INR {totalReceived.toLocaleString('en-IN')}</p>
+            <p className="text-sm font-black text-emerald-900">{formatAccountingTotals(receipts)}</p>
           </div>
         )}
       </div>
@@ -132,7 +135,7 @@ export const Receipts: React.FC = () => {
 
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 mb-3 flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-500">Amount Received:</span>
-                  <span className="text-sm font-black text-emerald-700">INR {Number(rec.amount || 0).toLocaleString('en-IN')}</span>
+                  <span className="text-sm font-black text-emerald-700">{money(Number(rec.amount || 0), rec.currency || 'INR')}</span>
                 </div>
 
                 {rec.payment_method && (

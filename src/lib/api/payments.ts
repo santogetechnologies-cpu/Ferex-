@@ -1,3 +1,5 @@
+import { accountingPdf } from '../accountingPdf';
+import { listEducationPayments } from './educationBilling';
 import { supabase } from '../supabase';
 import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { Payment, Invoice, Receipt, CreditNote } from '../types';
@@ -7,109 +9,18 @@ import { logActivity } from './activity';
 
 import { getDeletedStudentIds } from './students';
 
-const PAYMENTS_CATALOG_ID = 'ferex_payments_catalog';
-
-async function fetchPaymentsCatalog(): Promise<Payment[]> {
-  try {
-    const admin = await getAdminSupabaseClient();
-    const { data } = await admin
-      .from('system_config')
-      .select('value')
-      .eq('key', PAYMENTS_CATALOG_ID)
-      .maybeSingle();
-    if (data?.value && Array.isArray(data.value)) {
-      return data.value;
-    }
-  } catch {}
-  try {
-    const raw = localStorage.getItem('ferex_payments_cloud_catalog');
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return [];
-}
-
-async function syncPaymentToCloudCatalog(payment: Payment) {
-  try {
-    const current = await fetchPaymentsCatalog();
-    const filtered = current.filter(p => p.id !== payment.id);
-    const updated = [payment, ...filtered];
-    try {
-      localStorage.setItem('ferex_payments_cloud_catalog', JSON.stringify(updated));
-    } catch {}
-    const admin = await getAdminSupabaseClient();
-    await admin.from('system_config').upsert({
-      key: PAYMENTS_CATALOG_ID,
-      value: updated,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
-  } catch (e) {
-    console.warn('[syncPaymentToCloudCatalog notice]:', e);
-  }
-}
+async function fetchPaymentsCatalog(): Promise<Payment[]> { return listEducationPayments(); }
+async function syncPaymentToCloudCatalog(_payment: Payment) { window.dispatchEvent(new Event('ferex_payment_change')); }
 
 // ─── PAYMENTS ─────────────────────────────────────────────────────────────────
 
-export async function getPayments(studentId?: string) {
-  try {
-    if (!studentId) {
-      return [];
-    }
-    const deletedIds = getDeletedStudentIds();
-    if (deletedIds.includes(studentId.toLowerCase())) {
-      return [];
-    }
-
-    let query = supabase
-      .from('payments')
-      .select('id, student_id, amount, payment_type, status, title, description, created_at, receipt_url, payment_method, ref_no, utr_number, reviewer_notes')
-      .eq('student_id', studentId)
-      .order('created_at', { ascending: false });
-
-    const { data, error } = await query;
-    const dbPayments = (data ?? []) as unknown as Payment[];
-    const cloudCatalog = await fetchPaymentsCatalog();
-    const studentCloud = cloudCatalog.filter(p => p.student_id === studentId);
-
-    const dbIds = new Set(dbPayments.map(p => p.id));
-    const merged = [...dbPayments, ...studentCloud.filter(p => !dbIds.has(p.id))];
-    return merged;
-  } catch (err) {
-    return [];
-  }
+export async function getPayments(studentId?: string): Promise<Payment[]> {
+  return listEducationPayments(studentId);
 }
 
 export async function getAllPaymentsForAdmin(): Promise<Payment[]> {
   const deletedIds = getDeletedStudentIds();
-  try {
-    const admin = await getAdminSupabaseClient();
-    const { data, error } = await admin
-      .from('payments')
-      .select('id, student_id, student_name, amount, payment_type, status, title, description, created_at, receipt_url, payment_method, ref_no, utr_number, reviewer_notes')
-      .order('created_at', { ascending: false });
-
-    const dbPayments = (data ?? []) as unknown as Payment[];
-    const cloudCatalog = await fetchPaymentsCatalog();
-    const dbIds = new Set(dbPayments.map(p => p.id));
-    const merged = [...dbPayments, ...cloudCatalog.filter(p => !dbIds.has(p.id))];
-
-    // Filter out payments belonging to deleted students or orphan null-student mock payments
-    return merged.filter(p => {
-      const sId = (p.student_id || '').toLowerCase();
-      const sName = (p.student_name || '').toLowerCase();
-      if (!p.student_id && (!p.student_name || p.student_name === 'Student')) return false;
-      if (sId && deletedIds.includes(sId)) return false;
-      if (deletedIds.some((d: string) => sId === d || (d.includes('@') && sName.includes(d.split('@')[0])))) return false;
-      return true;
-    });
-  } catch {
-    const catalog = await fetchPaymentsCatalog();
-    return catalog.filter(p => {
-      const sId = (p.student_id || '').toLowerCase();
-      if (!p.student_id && (!p.student_name || p.student_name === 'Student')) return false;
-      if (sId && deletedIds.includes(sId)) return false;
-      return true;
-    });
-  }
+  return (await listEducationPayments()).filter(p => !deletedIds.includes((p.student_id || '').toLowerCase()));
 }
 
 export async function createPayment(payload: {
@@ -126,6 +37,7 @@ export async function createPayment(payload: {
     student_id: payload.student_id || null,
     student_name: payload.student_name || 'Student',
     title: payload.title,
+    ref_no: `FEREX-${newId}`,
     description: payload.title,
     amount: payload.amount,
     currency: payload.currency || 'INR',
@@ -136,8 +48,9 @@ export async function createPayment(payload: {
 
   try {
     const admin = await getAdminSupabaseClient();
-    await admin.from('payments').insert(paymentObj);
-  } catch {}
+    const { error } = await admin.from('payments').insert(paymentObj);
+    if (error) throw error;
+  } catch (error) { throw error; }
 
   await syncPaymentToCloudCatalog(paymentObj as unknown as Payment);
   return paymentObj as unknown as Payment;
@@ -186,8 +99,9 @@ export async function createAndCompletePayment(payload: {
 
   try {
     const admin = await getAdminSupabaseClient();
-    await admin.from('payments').insert(insertData);
-  } catch {}
+    const { error } = await admin.from('payments').insert(insertData);
+    if (error) throw error;
+  } catch (error) { throw error; }
 
   await syncPaymentToCloudCatalog(insertData as unknown as Payment);
   window.dispatchEvent(new Event('ferex_payment_change'));
@@ -195,24 +109,10 @@ export async function createAndCompletePayment(payload: {
 }
 
 export async function markPaymentPaid(id: string, method?: string) {
-  try {
-    const admin = await getAdminSupabaseClient();
-    await admin.from('payments').update({
-      status: 'Paid',
-      paid_at: new Date().toISOString(),
-      payment_method: method || 'UPI / Card',
-    }).eq('id', id);
-  } catch {}
-
-  const catalog = await fetchPaymentsCatalog();
-  const existing = catalog.find(p => p.id === id);
-  if (existing) {
-    existing.status = 'Paid';
-    existing.paid_at = new Date().toISOString();
-    await syncPaymentToCloudCatalog(existing);
-  }
-
-  return { id, status: 'Paid' } as unknown as Partial<Payment>;
+  const { data, error } = await supabase.from('payments').update({ status: 'Paid', paid_at: new Date().toISOString() }).eq('id', id).select().single();
+  if (error) throw error;
+  window.dispatchEvent(new Event('ferex_payment_change'));
+  return data as Payment;
 }
 
 export async function submitPaymentProof(payload: {
@@ -252,7 +152,7 @@ export async function submitPaymentProof(payload: {
 
   try {
     const admin = await getAdminSupabaseClient();
-    await admin.from('payments').insert({
+    const { error } = await admin.from('payments').insert({
       id: newId,
       student_name: payload.student_name || 'Student',
       student_id: rawStudentId,
@@ -268,7 +168,8 @@ export async function submitPaymentProof(payload: {
       receipt_url: payload.receipt_url || '',
       created_at: new Date().toISOString()
     });
-  } catch (err) {}
+    if (error) throw error;
+  } catch (error) { throw error; }
 
   await syncPaymentToCloudCatalog(resultPayment);
 
@@ -306,115 +207,22 @@ export function createValidInvoicePdfBlob(payment: {
   payment_method?: string;
   utr_number?: string;
   paid_at?: string;
+  tax_rate_percent?: number;
 }): Blob {
-  const student = (payment.student_name || 'Student').replace(/[()\\]/g, '');
-  const title = (payment.title || payment.payment_type || 'Registration Fee - Overseas Education Consultancy Services').replace(/[()\\]/g, '');
-  const invNo = payment.invoice_no || `FE/2026-27/${Math.floor(1000 + Math.random() * 9000)}`;
-  const totalAmt = Number(payment.amount) || 1500;
-  const taxable = (totalAmt / 1.18).toFixed(2);
-  const cgst = ((totalAmt - Number(taxable)) / 2).toFixed(2);
-  const sgst = ((totalAmt - Number(taxable)) - Number(cgst)).toFixed(2);
-  const today = payment.paid_at ? new Date(payment.paid_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
-  const method = (payment.payment_method || 'Bank Transfer / UPI').replace(/[()\\]/g, '');
-
-  const pdfSource = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<<
-  /Type /Page
-  /Parent 2 0 R
-  /Resources <<
-    /Font <<
-      /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
-      /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
-    >>
-  >>
-  /MediaBox [0 0 612 792]
-  /Contents 4 0 R
->>
-endobj
-4 0 obj
-<< /Length 1100 >>
-stream
-BT
-/F1 18 Tf
-50 730 Td
-(FEREX) Tj
-/F2 9 Tf
-0 -15 Td
-(Tel: +91 95448 85077, +44 78678 67779 | Email: ferexventuresoffice@gmail.com) Tj
-0 -12 Td
-(Addr: 12/640 Thachukuzhi, Companipady Road, Nellikuzhy PO, Kothamangalam, Kerala - 686 691) Tj
-0 -15 Td
-(--------------------------------------------------------------------------------) Tj
-/F1 16 Tf
-210 -25 Td
-(TAX INVOICE) Tj
-/F1 10 Tf
--40 -15 Td
-(GSTIN: 32AAGCF8602A1Z8 | PAN: AAGCF8602A) Tj
-/F2 10 Tf
--170 -25 Td
-(INVOICE TO:) Tj
-/F1 11 Tf
-0 -15 Td
-(${student}) Tj
-/F2 10 Tf
-0 -12 Td
-(Student - Ferex Education) Tj
-/F2 10 Tf
-300 +42 Td
-(INVOICE DETAILS:) Tj
-0 -15 Td
-(Invoice No: ${invNo}) Tj
-0 -14 Td
-(Invoice Date: ${today}) Tj
-0 -14 Td
-(Place of Supply: Kerala) Tj
--300 -30 Td
-(--------------------------------------------------------------------------------) Tj
-/F1 10 Tf
-0 -20 Td
-(# | Description | SAC Code | Amount (INR)) Tj
-/F2 10 Tf
-0 -16 Td
-(1 | ${title} | 9983 | INR ${totalAmt.toFixed(2)}) Tj
-0 -25 Td
-(Taxable Base Value: INR ${taxable}) Tj
-0 -14 Td
-(CGST @ 9.0%: INR ${cgst}) Tj
-0 -14 Td
-(SGST @ 9.0%: INR ${sgst}) Tj
-/F1 12 Tf
-0 -18 Td
-(Total Amount Paid (Payment + 18% GST): INR ${totalAmt.toFixed(2)}) Tj
-/F2 10 Tf
-0 -30 Td
-(STATUS: PAID IN FULL | Mode: ${method}) Tj
-0 -40 Td
-(This is an authentic computer-generated invoice under Indian GST SAC 9983.) Tj
-ET
-endstream
-endobj
-xref
-0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000305 00000 n 
-trailer
-<< /Size 5 /Root 1 0 R >>
-startxref
-1460
-%%EOF`;
-
-  return new Blob([pdfSource], { type: 'application/pdf' });
+  const amount = Number(payment.amount) || 0;
+  const currency = payment.currency || 'INR';
+  const rate = Number(payment.tax_rate_percent ?? 0);
+  const base = amount / (1 + rate / 100);
+  return accountingPdf('FEREX EDUCATION - INVOICE', [
+    `Invoice: ${payment.invoice_no || 'Unassigned'}`,
+    `Student: ${payment.student_name || 'Student'}`,
+    `Description: ${payment.title || payment.payment_type || 'Education fee'}`,
+    `Total paid: ${currency} ${amount.toFixed(2)}`,
+    ...(payment.tax_rate_percent !== undefined ? [`Included tax rate: ${rate}%`, `Taxable base: ${currency} ${base.toFixed(2)}`, `Included tax: ${currency} ${(amount - base).toFixed(2)}`] : []),
+    `Payment method: ${payment.payment_method || 'Not specified'}`,
+    `Reference: ${payment.utr_number || ''}`,
+    `Date: ${payment.paid_at || ''}`,
+  ]);
 }
 
 export async function verifyPayment(id: string, reviewerNotes?: string): Promise<Payment> {
@@ -438,17 +246,7 @@ export async function verifyPayment(id: string, reviewerNotes?: string): Promise
     }
   } catch (e) {}
 
-  if (!updatedPayment) {
-    const catalog = await fetchPaymentsCatalog();
-    const existing = catalog.find(p => p.id === id);
-    updatedPayment = {
-      ...(existing || { id, amount: 15000, title: 'Fee Payment', student_name: 'Student' }),
-      id,
-      status: 'Paid',
-      paid_at: paidAt,
-      reviewer_notes: reviewerNotes || 'Verified & Approved by Admin'
-    } as unknown as Payment;
-  }
+  if (!updatedPayment) throw new Error('Payment verification was not saved. Refresh the ledger and check your permissions.');
 
   await syncPaymentToCloudCatalog(updatedPayment);
 
@@ -554,16 +352,7 @@ export async function rejectPayment(id: string, reviewerNotes: string): Promise<
     }
   } catch (e) {}
 
-  if (!updatedPayment) {
-    const catalog = await fetchPaymentsCatalog();
-    const existing = catalog.find(p => p.id === id);
-    updatedPayment = {
-      ...(existing || { id, amount: 0, title: 'Payment', student_name: 'Student' }),
-      id,
-      status: 'Rejected',
-      reviewer_notes: reviewerNotes
-    } as unknown as Payment;
-  }
+  if (!updatedPayment) throw new Error('Payment rejection was not saved. Refresh the ledger and check your permissions.');
 
   await syncPaymentToCloudCatalog(updatedPayment);
   return updatedPayment;
@@ -571,41 +360,18 @@ export async function rejectPayment(id: string, reviewerNotes: string): Promise<
 
 // ─── INVOICES ─────────────────────────────────────────────────────────────────
 
-export async function getInvoices(studentId?: string) {
-  try {
-    if (!studentId) {
-      return [];
-    }
-    const admin = await getAdminSupabaseClient();
-    const { data, error } = await admin
-      .from('invoices')
-      .select('*')
-      .eq('student_id', studentId);
-    if (error || !data) return [];
-    return data as Invoice[];
-  } catch (err) {
-    return [];
+async function readStudentDocuments<T>(table: string, studentId?: string): Promise<T[]> {
+  if (!studentId) return [];
+  const rows: T[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await supabase.from(table).select('*').eq('student_id', studentId).order('id').range(offset, offset + 999);
+    if (error) throw error;
+    rows.push(...(data || []) as T[]);
+    if (!data || data.length < 1000) return rows;
   }
 }
-
-// ─── RECEIPTS ─────────────────────────────────────────────────────────────────
-
-export async function getReceipts(studentId?: string) {
-  try {
-    if (!studentId) {
-      return [];
-    }
-    const admin = await getAdminSupabaseClient();
-    const { data, error } = await admin
-      .from('receipts')
-      .select('*')
-      .eq('student_id', studentId);
-    if (error || !data) return [];
-    return data as Receipt[];
-  } catch (err) {
-    return [];
-  }
-}
+export async function getInvoices(studentId?: string) { return readStudentDocuments<Invoice>('invoices', studentId); }
+export async function getReceipts(studentId?: string) { return readStudentDocuments<Receipt>('receipts', studentId); }
 
 // ─── ADMIN — fetch all payments (no student filter) ──────────────────────────
 export async function getAllPaymentsAdmin(): Promise<Payment[]> {
@@ -635,29 +401,8 @@ export async function getPaymentStats(): Promise<{
 }
 
 // ─── ADMIN — delete payment record ───────────────────────────────────────────
-export async function deletePaymentRecord(paymentId: string): Promise<boolean> {
-  try {
-    const admin = await getAdminSupabaseClient();
-    await admin.from('payments').delete().eq('id', paymentId);
-    
-    // Purge from cloud catalog
-    const catalog = await fetchPaymentsCatalog();
-    const updated = catalog.filter(p => p.id !== paymentId);
-    try {
-      localStorage.setItem('ferex_payments_cloud_catalog', JSON.stringify(updated));
-    } catch {}
-    await admin.from('system_config').upsert({
-      key: PAYMENTS_CATALOG_ID,
-      value: updated,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
-
-    window.dispatchEvent(new Event('ferex_payment_change'));
-    return true;
-  } catch (err) {
-    console.warn('[deletePaymentRecord Error]:', err);
-    return false;
-  }
+export async function deletePaymentRecord(_paymentId: string): Promise<boolean> {
+  throw new Error('Payment history cannot be deleted. Record a documented refund or correction.');
 }
 
 // ─── ADMIN — issue refund & auto-generate credit note ────────────────────────
@@ -734,148 +479,30 @@ export function createReceiptPdfBlob(receipt: {
   description?: string;
   issued_at?: string;
 }): Blob {
-  const recNo = receipt.receipt_no || `REC-${Math.floor(100000 + Math.random() * 900000)}`;
-  const student = (receipt.student_name || 'Student').replace(/[()\\]/g, '');
-  const amt = Number(receipt.amount) || 0;
-  const desc = (receipt.description || 'Payment Receipt').replace(/[()\\]/g, '');
-  const method = (receipt.payment_method || 'UPI / Bank Transfer').replace(/[()\\]/g, '');
-  const date = receipt.issued_at
-    ? new Date(receipt.issued_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-    : new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
-
-  const src = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /MediaBox [0 0 612 792] /Contents 4 0 R >>
-endobj
-4 0 obj
-<< /Length 600 >>
-stream
-BT
-/F1 16 Tf
-50 740 Td
-(FEREX PAYMENT RECEIPT) Tj
-/F2 9 Tf
-0 -22 Td
-(This is an official payment receipt issued by FEREX Global Admissions.) Tj
-/F1 10 Tf
-0 -30 Td
-(Receipt No: ${recNo}) Tj
-0 -18 Td
-(Date: ${date}) Tj
-0 -18 Td
-(Student: ${student}) Tj
-0 -18 Td
-(Description: ${desc}) Tj
-0 -18 Td
-(Payment Method: ${method}) Tj
-/F1 12 Tf
-0 -28 Td
-(Amount Received: INR ${amt.toLocaleString('en-IN')}) Tj
-/F2 9 Tf
-0 -40 Td
-(Status: PAID AND CLEARED) Tj
-0 -15 Td
-(Ferex European Higher Education | receipts@ferex.edu) Tj
-ET
-endstream
-endobj
-xref
-0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000280 00000 n 
-trailer
-<< /Size 5 /Root 1 0 R >>
-startxref
-960
-%%EOF`;
-  return new Blob([src], { type: 'application/pdf' });
+  return accountingPdf('FEREX EDUCATION - PAYMENT RECEIPT', [
+    `Receipt: ${receipt.receipt_no || 'Unassigned'}`, `Student: ${receipt.student_name || 'Student'}`,
+    `Amount received: ${receipt.currency || 'INR'} ${(Number(receipt.amount) || 0).toFixed(2)}`,
+    `Description: ${receipt.description || 'Education payment'}`, `Method: ${receipt.payment_method || ''}`, `Date: ${receipt.issued_at || ''}`,
+  ]);
 }
 
-// ─── PDF — Credit Note for Refunds ───────────────────────────────────────────
 export function createCreditNotePdfBlob(cn: {
   credit_note_no?: string;
   student_name?: string;
   original_amount?: number;
   refund_amount?: number;
   reason?: string;
+  currency?: string;
   issued_at?: string;
 }): Blob {
-  const cnNo = cn.credit_note_no || `CN-${Math.floor(100000 + Math.random() * 900000)}`;
-  const student = (cn.student_name || 'Student').replace(/[()\\]/g, '');
-  const origAmt = Number(cn.original_amount) || 0;
-  const refAmt = Number(cn.refund_amount) || 0;
-  const reason = (cn.reason || 'Admin-issued refund').replace(/[()\\]/g, '');
-  const date = cn.issued_at
-    ? new Date(cn.issued_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-    : new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
-
-  const src = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /MediaBox [0 0 612 792] /Contents 4 0 R >>
-endobj
-4 0 obj
-<< /Length 650 >>
-stream
-BT
-/F1 16 Tf
-50 740 Td
-(FEREX CREDIT NOTE) Tj
-/F2 9 Tf
-0 -22 Td
-(This document confirms an official refund issued by FEREX Global Admissions.) Tj
-/F1 10 Tf
-0 -30 Td
-(Credit Note No: ${cnNo}) Tj
-0 -18 Td
-(Date Issued: ${date}) Tj
-0 -18 Td
-(Student: ${student}) Tj
-0 -18 Td
-(Original Payment Amount: INR ${origAmt.toLocaleString('en-IN')}) Tj
-/F1 12 Tf
-0 -22 Td
-(Refund Amount: INR ${refAmt.toLocaleString('en-IN')}) Tj
-/F2 10 Tf
-0 -22 Td
-(Reason: ${reason}) Tj
-0 -30 Td
-(This credit note nullifies the corresponding payment to the extent of the refund.) Tj
-0 -15 Td
-(Ferex European Higher Education | finance@ferex.edu) Tj
-ET
-endstream
-endobj
-xref
-0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000280 00000 n 
-trailer
-<< /Size 5 /Root 1 0 R >>
-startxref
-1010
-%%EOF`;
-  return new Blob([src], { type: 'application/pdf' });
+  return accountingPdf('FEREX EDUCATION - CREDIT NOTE', [
+    `Credit note: ${cn.credit_note_no || 'Unassigned'}`, `Student: ${cn.student_name || 'Student'}`,
+    `Original amount: ${cn.currency || 'INR'} ${(Number(cn.original_amount) || 0).toFixed(2)}`,
+    `Refund: ${cn.currency || 'INR'} ${(Number(cn.refund_amount) || 0).toFixed(2)}`,
+    `Reason: ${cn.reason || ''}`, `Date: ${cn.issued_at || ''}`,
+  ]);
 }
 
-// ─── CREDIT NOTES ─────────────────────────────────────────────────────────────
 export async function getCreditNotes(studentId?: string): Promise<CreditNote[]> {
   try {
     if (!studentId) return [];

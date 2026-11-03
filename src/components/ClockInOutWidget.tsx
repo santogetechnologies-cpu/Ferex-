@@ -38,10 +38,6 @@ export const ClockInOutWidget: React.FC<ClockInOutWidgetProps> = ({
   const isSuper = userRole === 'superadmin' || userEmail.toLowerCase().includes('centraladmin') || divisionOverride === 'central';
 
   // Central Super Admin does not clock in
-  if (isSuper) {
-    return null;
-  }
-
   const currentDivision = (() => {
     if (divisionOverride && divisionOverride !== 'education') {
       return divisionOverride;
@@ -57,7 +53,7 @@ export const ClockInOutWidget: React.FC<ClockInOutWidgetProps> = ({
   const userId = user?.id || profile?.id || 'usr-temp';
 
   const loadStatus = async () => {
-    if (!userEmail) return;
+    if (!userEmail || isSuper) return;
     try {
       const active = await getActiveClockIn(userEmail);
       setActiveSession(active);
@@ -101,6 +97,8 @@ export const ClockInOutWidget: React.FC<ClockInOutWidgetProps> = ({
 
     return () => clearInterval(interval);
   }, [activeSession]);
+
+  if (isSuper) return null;
 
   const showToast = (msg: string) => {
     setSuccessToast(msg);

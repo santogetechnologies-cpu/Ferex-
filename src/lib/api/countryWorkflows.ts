@@ -512,22 +512,19 @@ export function getCountryWorkflows(): CountryWorkflowConfig[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.filter(w => w.country?.toLowerCase().trim() !== 'india' && !w.id?.includes('india'));
+        return parsed;
       }
     }
   } catch (e) {
     console.error('Error loading country workflows:', e);
   }
-  return DEFAULT_COUNTRY_WORKFLOWS.filter(w => w.country?.toLowerCase().trim() !== 'india');
+  return DEFAULT_COUNTRY_WORKFLOWS;
 }
 
 export function getWorkflowForCountry(countryName?: string): CountryWorkflowConfig | null {
   if (!countryName || !countryName.trim()) return null;
   const cName = countryName.trim();
   const norm = cName.toLowerCase();
-  if (norm === 'india' || norm === 'ind') {
-    return null;
-  }
 
   const workflows = getCountryWorkflows();
   const matched = workflows.find(

@@ -210,13 +210,7 @@ export const CentralAdmins: React.FC = () => {
         const cfg = DIVISION_CONFIG[cleanRole] || DIVISION_CONFIG.superadmin;
 
         // Check if there are cached credentials saved locally by Super Admin for password quick copy
-        let savedPass: string | undefined = undefined;
-        try {
-          const localCred = localStorage.getItem(`ferex_admin_cred_${(u.email || '').toLowerCase()}`);
-          if (localCred) {
-            savedPass = JSON.parse(localCred).password;
-          }
-        } catch {}
+
 
         list.push({
           id: u.id,
@@ -228,7 +222,6 @@ export const CentralAdmins: React.FC = () => {
           divisionLabel: cfg.label,
           targetRoute: cfg.route,
           status: 'Active',
-          password: savedPass,
           created_at: u.created_at || new Date().toISOString(),
           initials: (u.full_name || u.email || 'AD').slice(0, 2).toUpperCase(),
         });
@@ -280,8 +273,8 @@ export const CentralAdmins: React.FC = () => {
       setFormError('Please provide a valid email address.');
       return;
     }
-    if (!password || password.length < 6) {
-      setFormError('Password must be at least 6 characters long.');
+    if (!password || password.length < 8) {
+      setFormError('Password must be at least 8 characters long.');
       return;
     }
 
@@ -325,9 +318,9 @@ export const CentralAdmins: React.FC = () => {
   };
 
   const copyCredentials = (adm: AdminAccount) => {
-    const text = `Email: ${adm.email}\nPassword: ${adm.password || 'Configured in Supabase Auth'}\nRole: ${adm.divisionLabel}\nPortal: ${window.location.origin}/login`;
+    const text = `Email: ${adm.email}\nRole: ${adm.divisionLabel}\nPortal: ${window.location.origin}/login`;
     navigator.clipboard.writeText(text);
-    showToastMsg('Login credentials copied to clipboard!');
+    showToastMsg('Login details copied to clipboard!');
   };
 
   const filteredAdmins = adminList.filter(a => {
@@ -586,7 +579,7 @@ export const CentralAdmins: React.FC = () => {
                     label="Login Password"
                     type="password"
                     showPasswordToggle={true}
-                    placeholder="Minimum 6 characters"
+                    placeholder="Minimum 8 characters"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required

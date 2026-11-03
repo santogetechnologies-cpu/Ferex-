@@ -35,3 +35,9 @@ verify_jwt = true
 
 [functions.provision-digital-user]
 verify_jwt = true
+
+[functions.provision-user]
+verify_jwt = true
+
+[functions.verify-payment]
+verify_jwt = false

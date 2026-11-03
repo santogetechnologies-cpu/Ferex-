@@ -14,13 +14,16 @@ const MASTER_STORAGE_KEY = 'ferex_custom_universities';
 export async function getUniversities(): Promise<University[]> {
   // ── Primary: Supabase DB (always authoritative) ──────────────────────────
   try {
-    const { data, error } = await supabase
-      .from('universities')
-      .select('*')
-      .eq('is_active', true)
-      .order('ranking', { ascending: true });
+    const data: any[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const { data: page, error } = await supabase.from('universities').select('*').eq('is_active', true)
+        .order('ranking', { ascending: true }).order('id').range(offset, offset + 999);
+      if (error) throw error;
+      data.push(...(page || []));
+      if (!page || page.length < 1000) break;
+    }
 
-    if (!error && Array.isArray(data)) {
+    if (Array.isArray(data)) {
       // DB is reachable — cache it and return
       try {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
@@ -69,7 +72,7 @@ export async function createUniversity(payload: {
   course_programs?: CourseProgram[];
   installments?: PaymentInstallment[];
   semesters?: CourseSemester[];
-}): Promise<University> {
+}, notify = true): Promise<University> {
   const newId = generateUUID();
   const trimmedName = payload.name.trim();
   const targetCountry = payload.country.trim();
@@ -177,14 +180,16 @@ export async function createUniversity(payload: {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(MASTER_STORAGE_KEY);
     const existing: University[] = raw ? JSON.parse(raw) : [];
-    const updated = [fullObject, ...existing.filter(u => u.id !== newId && u.name.toLowerCase().trim() !== trimmedName.toLowerCase())];
+    const updated = [fullObject, ...existing.filter(u => u.id !== newId)];
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
     localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(updated));
   } catch {}
 
+  if (notify) {
   window.dispatchEvent(new Event('ferex_universities_change'));
   window.dispatchEvent(new Event('ferex_university_change'));
   window.dispatchEvent(new Event('storage'));
+  }
   return fullObject;
 }
 

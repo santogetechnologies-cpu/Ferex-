@@ -9,6 +9,7 @@ export interface InvoiceData {
   invoice_no: string;
   student_name: string;
   amount: number;
+  tax_rate_percent?: number;
   currency?: string;
   description?: string;
   date?: string;
@@ -78,12 +79,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
   if (!isOpen || !invoice) return null;
 
   const totalAmount = Number(invoice.amount) || 0;
-  const taxableAmount = Number((totalAmount / 1.18).toFixed(2));
+  const taxRate = Number(invoice.tax_rate_percent ?? config.invoice_settings?.tax_rate_percent ?? 0);
+  const halfTaxRate = taxRate / 2;
+  const taxableAmount = Number((totalAmount / (1 + taxRate / 100)).toFixed(2));
   const cgstAmount = Number(((totalAmount - taxableAmount) / 2).toFixed(2));
   const sgstAmount = Number((totalAmount - taxableAmount - cgstAmount).toFixed(2));
   const totalGstAmount = Number((cgstAmount + sgstAmount).toFixed(2));
 
-  const amountWords = numberToWordsINR(totalAmount);
+  const amountWords = (invoice.currency || 'INR') === 'INR' ? numberToWordsINR(totalAmount) : `${invoice.currency} ${totalAmount.toFixed(2)}`;
   const currencySymbol = (invoice.currency || config.advance_registration_fee_currency || 'INR') === 'EUR' ? '€' : ((invoice.currency || config.advance_registration_fee_currency) === 'USD' ? '$' : '₹');
   const currencyCode = invoice.currency || config.advance_registration_fee_currency || 'INR';
 
@@ -111,11 +114,12 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
       return;
     }
 
+    const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;' }[c]!));
     const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>TAX_INVOICE_${invoice.invoice_no}</title>
+  <title>TAX_INVOICE_${escapeHtml(invoice.invoice_no)}</title>
   <style>
     @page { size: A4; margin: 12mm; }
     * { box-sizing: border-box; }
@@ -295,28 +299,28 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
       <div class="company-info">
         <p><strong>Tel:</strong> +91 95448 85077, +44 78678 67779</p>
         <p><strong>Email:</strong> ferexventuresoffice@gmail.com</p>
-        <p>${companyAddress}</p>
-        <p><strong>GSTIN:</strong> ${companyGstin} | <strong>PAN:</strong> ${companyPan}</p>
+        <p>${escapeHtml(companyAddress)}</p>
+        <p><strong>GSTIN:</strong> ${escapeHtml(companyGstin)} | <strong>PAN:</strong> ${escapeHtml(companyPan)}</p>
       </div>
     </div>
 
     <div class="title-banner">
       <h1 class="invoice-title">TAX INVOICE</h1>
-      <div class="gst-tag">GSTIN: ${companyGstin} • 18% Total GST (CGST 9% + SGST 9%)</div>
+      <div class="gst-tag">GSTIN: ${escapeHtml(companyGstin)} • ${taxRate}% Total Tax (Central ${halfTaxRate}% + State ${halfTaxRate}%)</div>
     </div>
 
     <div class="details-grid">
       <div class="info-col">
         <h4>Billed To (Student Candidate)</h4>
-        <p><strong>${invoice.student_name}</strong></p>
+        <p><strong>${escapeHtml(invoice.student_name)}</strong></p>
         <p>Student — Ferex European Higher Education</p>
-        <p>Place of Supply: <strong>${placeOfSupply}</strong></p>
+        <p>Place of Supply: <strong>${escapeHtml(placeOfSupply)}</strong></p>
       </div>
       <div class="info-col" style="text-align: right;">
         <h4>Invoice Reference</h4>
-        <p><strong>Invoice No:</strong> ${invoice.invoice_no}</p>
+        <p><strong>Invoice No:</strong> ${escapeHtml(invoice.invoice_no)}</p>
         <p><strong>Invoice Date:</strong> ${formattedDate}</p>
-        <p><strong>GST SAC Code:</strong> ${sacCode}</p>
+        <p><strong>GST SAC Code:</strong> ${escapeHtml(sacCode)}</p>
       </div>
     </div>
 
@@ -327,8 +331,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
           <th>Service Description</th>
           <th class="text-center" style="width: 70px;">SAC Code</th>
           <th class="text-right" style="width: 95px;">Taxable (${currencyCode})</th>
-          <th class="text-right" style="width: 85px;">CGST (9%)</th>
-          <th class="text-right" style="width: 85px;">SGST (9%)</th>
+          <th class="text-right" style="width: 85px;">Central tax (${halfTaxRate}%)</th>
+          <th class="text-right" style="width: 85px;">State tax (${halfTaxRate}%)</th>
           <th class="text-right" style="width: 105px;">Total (${currencyCode})</th>
         </tr>
       </thead>
@@ -336,10 +340,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
         <tr>
           <td class="text-center">1</td>
           <td>
-            <strong>${invoice.description || 'Overseas Higher Education Advisory & Admission Processing Services'}</strong>
+            <strong>${escapeHtml(invoice.description || 'Education fee')}</strong>
             ${invoice.course_destination ? `<br><span style="color:#64748b; font-size:10px;">Destination: ${invoice.course_destination}</span>` : ''}
           </td>
-          <td class="text-center font-mono">${sacCode}</td>
+          <td class="text-center font-mono">${escapeHtml(sacCode)}</td>
           <td class="text-right font-mono">${currencySymbol}${taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           <td class="text-right font-mono text-emerald-800">${currencySymbol}${cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           <td class="text-right font-mono text-emerald-800">${currencySymbol}${sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -353,7 +357,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
         <strong>Amount Chargeable (in words):</strong><br>
         <span style="color: #0f172a; font-weight: bold; line-height: 1.5;">${amountWords}</span>
         <div style="margin-top: 8px; font-size: 10px; color: #64748b;">
-          Applicable GST Rate: <strong>18.00%</strong> (Central Tax: 9.00% + State Tax: 9.00%)
+          Applicable GST Rate: <strong>${taxRate}%</strong> (Central Tax: ${halfTaxRate}% + State Tax: ${halfTaxRate}%)
         </div>
       </div>
       <div class="summary-box">
@@ -362,15 +366,15 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
           <span class="font-mono">${currencySymbol}${taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
         <div class="summary-row">
-          <span>Central GST (CGST @ 9%)</span>
+          <span>Central GST (CGST @ ${halfTaxRate}%)</span>
           <span class="font-mono">${currencySymbol}${cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
         <div class="summary-row">
-          <span>State GST (SGST @ 9%)</span>
+          <span>State GST (SGST @ ${halfTaxRate}%)</span>
           <span class="font-mono">${currencySymbol}${sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
         <div class="summary-row" style="color: #15803d; font-weight: bold;">
-          <span>Total GST (18%)</span>
+          <span>Total tax (${taxRate}%)</span>
           <span class="font-mono">${currencySymbol}${totalGstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
         <div class="summary-row total">
@@ -384,12 +388,12 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
       <div>
         <strong>PAYMENT RECEIVED & SETTLED IN FULL</strong><br>
-        <span style="font-size: 10.5px; color: #15803d;">Settled via ${invoice.payment_method || 'Online Bank Wire / Payment Gateway'}${invoice.utr_number ? ` • Ref/UTR: ${invoice.utr_number}` : ''} on ${formattedDate}</span>
+        <span style="font-size: 10.5px; color: #15803d;">Settled via ${escapeHtml(invoice.payment_method || 'Bank transfer / UPI')}${invoice.utr_number ? ` • Ref/UTR: ${escapeHtml(invoice.utr_number)}` : ''} on ${formattedDate}</span>
       </div>
     </div>
 
     <div class="footer-note">
-      ${termsText}<br />
+      ${escapeHtml(termsText)}<br />
       This is an authentic computer-generated official tax receipt from FEREX. No physical signature is required.
     </div>
     <div class="footer-bar"></div>
@@ -483,7 +487,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
                 TAX INVOICE
               </h1>
               <p className="text-[11px] font-bold text-[#58051E]">
-                GSTIN: {companyGstin} • 18% Total GST (CGST 9% + SGST 9%) • SAC {sacCode}
+                GSTIN: {companyGstin} • {taxRate}% Total tax (Central {halfTaxRate}% + State {halfTaxRate}%) • SAC {sacCode}
               </p>
             </div>
 
@@ -536,8 +540,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
                     <th className="py-2.5 px-3 border-r border-[#6d0228]">Service Description</th>
                     <th className="py-2.5 px-3 text-center w-20 border-r border-[#6d0228]">SAC</th>
                     <th className="py-2.5 px-3 text-right w-24 border-r border-[#6d0228]">Taxable ({currencyCode})</th>
-                    <th className="py-2.5 px-3 text-right w-20 border-r border-[#6d0228]">CGST (9%)</th>
-                    <th className="py-2.5 px-3 text-right w-20 border-r border-[#6d0228]">SGST (9%)</th>
+                    <th className="py-2.5 px-3 text-right w-20 border-r border-[#6d0228]">Central tax ({halfTaxRate}%)</th>
+                    <th className="py-2.5 px-3 text-right w-20 border-r border-[#6d0228]">State tax ({halfTaxRate}%)</th>
                     <th className="py-2.5 px-3 text-right w-24">Total ({currencyCode})</th>
                   </tr>
                 </thead>
@@ -577,7 +581,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
                   <span className="font-bold text-slate-900 text-xs mt-0.5 block">{amountWords}</span>
                 </p>
                 <div className="pt-2 border-t border-slate-200/70 text-[10.5px] text-slate-500">
-                  Tax Summary: <strong>18% Total GST</strong> (Central Tax 9% + State Tax 9%) • GSTIN: <strong>{companyGstin}</strong>
+                  Tax Summary: <strong>{taxRate}% Total tax</strong> (Central Tax {halfTaxRate}% + State Tax {halfTaxRate}%) • GSTIN: <strong>{companyGstin}</strong>
                 </div>
               </div>
 
@@ -588,15 +592,15 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
                   <span className="font-mono">{currencySymbol}{taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
-                  <span>Central GST (CGST @ 9%):</span>
+                  <span>Central GST (CGST @ {halfTaxRate}%):</span>
                   <span className="font-mono text-emerald-700">+{currencySymbol}{cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
-                  <span>State GST (SGST @ 9%):</span>
+                  <span>State GST (SGST @ {halfTaxRate}%):</span>
                   <span className="font-mono text-emerald-700">+{currencySymbol}{sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between text-emerald-800 font-bold border-t border-slate-200/80 pt-1">
-                  <span>Total GST Amount (18%):</span>
+                  <span>Total Tax Amount ({taxRate}%):</span>
                   <span className="font-mono">{currencySymbol}{totalGstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between text-base font-black text-[#58051E] pt-1.5 border-t border-slate-300">

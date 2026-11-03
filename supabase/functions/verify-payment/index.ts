@@ -1,82 +1,42 @@
-// Supabase Edge Function: verify-payment
-// Securely verifies Razorpay HMAC-SHA256 and Stripe Webhook Signatures,
-// updating payment records, invoices, and receipts atomically.
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { verifyPaymentSignature } from '../_shared/payment-signature.ts';
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature, x-razorpay-signature",
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
+const headers = { 'Content-Type': 'application/json' };
+const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+serve(async req => {
+  if (req.method !== 'POST') return response({ error: 'POST required' }, 405);
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const signature = req.headers.get("x-razorpay-signature") || req.headers.get("stripe-signature");
-    const bodyText = await req.text();
-
-    if (!signature) {
-      return new Response(JSON.stringify({ error: "Missing signature header" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const payload = JSON.parse(bodyText);
-    const eventType = payload.event || payload.type;
-    const paymentId = payload.payload?.payment?.entity?.id || payload.data?.object?.id || payload.payment_id;
-    const orderId = payload.payload?.payment?.entity?.order_id || payload.order_id;
-    const amount = payload.payload?.payment?.entity?.amount ? payload.payload.payment.entity.amount / 100 : payload.amount;
-
-    if (eventType === "payment.captured" || eventType === "payment_intent.succeeded" || payload.status === "success") {
-      // Update payment record in Supabase
-      const { data: paymentRecord, error: updateError } = await supabase
-        .from("payments")
-        .update({
-          status: "Paid",
-          paid_at: new Date().toISOString(),
-          payment_method: payload.payload?.payment?.entity?.method || "UPI / Gateway",
-        })
-        .or(`ref_no.eq.${orderId},id.eq.${paymentId}`)
-        .select()
-        .maybeSingle();
-
-      if (updateError) {
-        console.error("Database update error:", updateError);
-      }
-
-      // Record in activity log
-      await supabase.from("activity_log").insert({
-        action: "Payment Verified via Gateway Webhook",
-        entity_type: "payment",
-        entity_id: paymentRecord?.id || paymentId,
-        details: { amount, orderId, paymentId },
-        created_at: new Date().toISOString(),
-      });
-
-      return new Response(JSON.stringify({ success: true, verified: true }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(JSON.stringify({ received: true }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const stripeSignature = req.headers.get('stripe-signature');
+    const razorpaySignature = req.headers.get('x-razorpay-signature');
+    if ((!stripeSignature && !razorpaySignature) || (stripeSignature && razorpaySignature)) return response({ error: 'One provider signature is required' }, 400);
+    const provider = stripeSignature ? 'stripe' : 'razorpay';
+    const secret = Deno.env.get(provider === 'stripe' ? 'STRIPE_WEBHOOK_SECRET' : 'RAZORPAY_WEBHOOK_SECRET');
+    if (!secret) return response({ error: 'Webhook verification is not configured' }, 503);
+    const body = await req.text();
+    if (!await verifyPaymentSignature({ body, header: (stripeSignature || razorpaySignature)!, secret, provider })) return response({ error: 'Invalid webhook signature' }, 401);
+    const payload = JSON.parse(body);
+    if ((provider === 'stripe' && payload.type !== 'payment_intent.succeeded') || (provider === 'razorpay' && payload.event !== 'payment.captured')) return response({ received: true });
+    const entity = provider === 'stripe' ? payload.data?.object : payload.payload?.payment?.entity;
+    const internalId = entity?.metadata?.ferex_payment_id || entity?.notes?.ferex_payment_id;
+    const reference = entity?.order_id || entity?.metadata?.ferex_payment_ref;
+    if (!internalId && !reference) return response({ error: 'No Ferex payment reference' }, 400);
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    let query = supabase.from('payments').select('*');
+    query = internalId ? query.eq('id', internalId) : query.eq('ref_no', reference);
+    const { data: payment, error } = await query.maybeSingle();
+    if (error) throw error;
+    if (!payment) return response({ error: 'Payment not found' }, 404);
+    const received = Number(entity.amount_received ?? entity.amount);
+    if (received !== Math.round(Number(payment.amount) * 100) || String(entity.currency).toUpperCase() !== payment.currency) return response({ error: 'Payment amount or currency mismatch' }, 400);
+    if (['Paid', 'Verified'].includes(payment.status)) return response({ verified: true });
+    if (!['Pending', 'Pending Verification'].includes(payment.status)) return response({ error: 'Payment is not awaiting settlement' }, 409);
+    const { data: settled, error: updateError } = await supabase.from('payments').update({ status: 'Paid', paid_at: new Date().toISOString() }).eq('id', payment.id).in('status', ['Pending', 'Pending Verification']).select('id');
+    if (updateError) throw updateError;
+    if (!settled?.length) return response({ error: 'Payment was changed concurrently' }, 409);
+    return response({ verified: true });
+  } catch (error) {
+    console.error('Payment verification failed:', error);
+    return response({ error: 'Payment verification failed' }, 500);
   }
 });

@@ -207,35 +207,8 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
       if (!viewStudent?.id) return;
       try {
         setLoadingStages(true);
-        const { supabase } = await import('../../lib/supabase');
-
-        const { data: existing } = await supabase
-          .from('journey_stages')
-          .select('*')
-          .eq('student_id', viewStudent.id)
-          .order('stage_number', { ascending: true });
-
-        const REQUIRED_STAGES = [
-          { stage_number: 1, stage_name: 'Application Submitted', status: 'In Progress', notes: 'Initial submission of visa & university application files.' },
-          { stage_number: 2, stage_name: 'Document Legalization', status: 'Pending',     notes: 'Verification of eligibility and consular/legalization audit.' },
-          { stage_number: 3, stage_name: 'Decision',              status: 'Pending',     notes: 'University admissions and visa officer eligibility decision.' },
-          { stage_number: 4, stage_name: 'Visa Outcome',          status: 'Pending',     notes: 'Passport stamping and visa grant status.' },
-        ];
-
-        const existingNums = new Set((existing || []).map((s: any) => s.stage_number));
-        const missing = REQUIRED_STAGES.filter(r => !existingNums.has(r.stage_number));
-        if (missing.length > 0) {
-          const toInsert = missing.map(m => ({ ...m, student_id: viewStudent.id }));
-          await supabase.from('journey_stages').insert(toInsert);
-        }
-
-        const { data: final } = await supabase
-          .from('journey_stages')
-          .select('*')
-          .eq('student_id', viewStudent.id)
-          .order('stage_number', { ascending: true });
-
-        setStudentStages((final || []) as any[]);
+        const { ensureJourneyStages } = await import('../../lib/api/journey');
+        setStudentStages(await ensureJourneyStages(viewStudent.id));
       } catch (err) {
         console.error(err);
       } finally {

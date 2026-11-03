@@ -1,3 +1,4 @@
+import { Receipts } from './pages/Receipts';
 import { DigitalBusinessInsights } from './pages/digital/DigitalBusinessInsights';
 import { DigitalCommerce } from './pages/digital/DigitalCommerce';
 import React, { useEffect } from 'react';
@@ -307,6 +308,7 @@ function App() {
             <Route path="/student/offers" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><OfferLetters /></StudentLayout></ProtectedRoute>} />
             <Route path="/student/documents" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Documents /></StudentLayout></ProtectedRoute>} />
             <Route path="/student/payments" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Payments /></StudentLayout></ProtectedRoute>} />
+          <Route path="/student/receipts" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Receipts /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/invoices" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Invoices /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/meetings" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Meetings /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/chat" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Chat /></StudentLayout></ProtectedRoute>} />
@@ -355,6 +357,7 @@ function App() {
           <Route path="/central/dashboard" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralDashboard /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/ai-copilot" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><EnterpriseAIPage role="central_admin" portalName="Central Super Admin HQ" /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/ai-assistant" element={<Navigate to="/central/ai-copilot" replace />} />
+          <Route path="/central/education-billing" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><AdminPaymentControl /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/finance" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/payments" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/reports" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralReports /></CentralLayout></ProtectedRoute>} />

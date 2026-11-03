@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 /**
  * Cross-Role Synchronization Event System
  * 
@@ -288,15 +289,10 @@ export function useSyncEvent(
   eventType: SyncEventType | SyncEventType[],
   listener: SyncEventListener
 ): void {
-  if (typeof window === 'undefined') return;
-
-  const eventTypes = Array.isArray(eventType) ? eventType : [eventType];
-
-  React.useEffect(() => {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const eventTypes = Array.isArray(eventType) ? eventType : [eventType];
     const unsubscribe = subscribeMultipleSyncEvents(eventTypes, listener);
     return unsubscribe;
-  }, [eventTypes, listener]);
+  }, [eventType, listener]);
 }
-
-// Import React for hook (conditional)
-const React = typeof window !== 'undefined' && (window as any).React;

@@ -32,6 +32,7 @@ export const ServiceAgreement: React.FC = () => {
   const [agreeAll, setAgreeAll] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   // Drawing Canvas Ref
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -50,7 +51,7 @@ export const ServiceAgreement: React.FC = () => {
       fetchStudentAgreement(studentId, studentEmail).then((res) => {
         setAgreement(res);
         setLoading(false);
-      });
+      }).catch(error => { setLoadError(error.message); setLoading(false); });
     } else {
       setLoading(false);
     }
@@ -104,9 +105,9 @@ export const ServiceAgreement: React.FC = () => {
     setHasDrawn(false);
   };
 
-  const regAmount = feeConfig.advance_registration_fee_amount || 1500;
-  const docVisaAmount = feeConfig.visa_documents_fee_amount || 15000;
-  const serviceAmount = feeConfig.service_charge_amount || feeConfig.agency_fee_amount || 25000;
+  const regAmount = feeConfig.advance_registration_fee_enabled ? (feeConfig.advance_registration_fee_amount ?? 0) : 0;
+  const docVisaAmount = feeConfig.visa_documents_fee_enabled ? (feeConfig.visa_documents_fee_amount ?? 0) : 0;
+  const serviceAmount = feeConfig.separate_agency_fee_enabled ? (feeConfig.agency_fee_amount ?? 0) : 0;
 
   const handleSignAgreement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,6 +156,7 @@ export const ServiceAgreement: React.FC = () => {
       version: '2026.1',
     };
 
+    try {
     const saved = await saveStudentAgreement(agreementRecord);
     setAgreement(saved);
     setIsSubmitting(false);
@@ -165,6 +167,8 @@ export const ServiceAgreement: React.FC = () => {
       // Auto navigate to advanced registration or dashboard
       navigate('/student/payments');
     }, 2500);
+    } catch (error) { setLoadError(`Agreement was not saved: ${(error as Error).message}`); }
+    finally { setIsSubmitting(false); }
   };
 
   const handlePrint = () => {
@@ -173,8 +177,10 @@ export const ServiceAgreement: React.FC = () => {
 
   const isSigned = Boolean(agreement && agreement.status === 'Signed');
 
+  if (loadError) return <div role="alert" className="p-4 bg-red-50 text-red-800">{loadError} <button className="underline" onClick={() => window.location.reload()}>Retry</button></div>;
+
   if (loading) {
-    return (
+  return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#570229] border-t-transparent rounded-full animate-spin" />
       </div>

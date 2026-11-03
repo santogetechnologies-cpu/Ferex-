@@ -1,3 +1,6 @@
+import { useStudentAgreement } from '../hooks/useStudentAgreement';
+import { useFeeConfig } from '../hooks/useFeeConfig';
+import { registrationSettled } from '../lib/educationBilling';
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -26,6 +29,7 @@ export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { config } = useSystemConfig();
+  const { config: feeConfig } = useFeeConfig();
 
   const { applications } = useApplications(user?.id);
   const { documents } = useDocuments(user?.id);
@@ -106,7 +110,7 @@ export const StudentDashboard: React.FC = () => {
     return false;
   };
 
-  const inst1Paid = payments.some(p => checkPaymentStage(p, 1) && ((p.status as string) === 'Paid' || (p.status as string) === 'Verified'));
+  const inst1Paid = registrationSettled(feeConfig, payments, targetCountry);
   const inst2Paid = payments.some(p => checkPaymentStage(p, 2) && ((p.status as string) === 'Paid' || (p.status as string) === 'Verified'));
   const inst3Paid = payments.some(p => checkPaymentStage(p, 3) && ((p.status as string) === 'Paid' || (p.status as string) === 'Verified'));
 
@@ -164,22 +168,7 @@ export const StudentDashboard: React.FC = () => {
   const isLegalizationInReview = applications.some(a => String(a.status || '') === 'Legalization Reviewed' || String(a.status || '') === 'Legalization Review');
 
   // Service Agreement Status
-  const [isAgreementDone, setIsAgreementDone] = React.useState<boolean>(() => {
-    return isAgreementSigned(user?.id || profile?.id || '');
-  });
-
-  React.useEffect(() => {
-    const updateAgreement = () => {
-      setIsAgreementDone(isAgreementSigned(user?.id || profile?.id || ''));
-    };
-    updateAgreement();
-    window.addEventListener('ferex_agreement_change', updateAgreement);
-    window.addEventListener('storage', updateAgreement);
-    return () => {
-      window.removeEventListener('ferex_agreement_change', updateAgreement);
-      window.removeEventListener('storage', updateAgreement);
-    };
-  }, [user?.id, profile?.id]);
+  const isAgreementDone = useStudentAgreement(user?.id);
 
   const checklistItems = [
     { title: '1. Lead Inquiry & Student Profile Registration', isDone: isProfileDone, path: '/student/profile', tag: isProfileDone ? 'Completed' : 'Pending' },

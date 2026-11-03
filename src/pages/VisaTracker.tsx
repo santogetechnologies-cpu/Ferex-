@@ -215,7 +215,7 @@ export const VisaTracker: React.FC = () => {
                 )}
                 {hasOfferAccepted && !inst2Paid && (
                   <Button size="xs" onClick={() => navigate('/student/payments')} rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
-                    Settle 2nd Installment
+                    View configured fees
                   </Button>
                 )}
               </div>

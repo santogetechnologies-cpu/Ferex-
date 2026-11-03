@@ -1,3 +1,4 @@
+import { UniversityBulkUpload } from '../../components/UniversityBulkUpload';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -275,7 +276,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
       ['Poland', 'Germany', 'United Kingdom', 'France', 'Canada', 'Switzerland', 'Czech Republic'].forEach(c => set.add(c));
     }
 
-    return Array.from(set).filter(c => c && c.toLowerCase().trim() !== 'india').sort();
+    return Array.from(set).filter(Boolean).sort();
   }, [countryList, universities, country]);
 
   const showToast = (msg: string) => {
@@ -594,14 +595,11 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
         nawa_required: nawaRequired,
         programs: parsedPrograms.length > 0 ? parsedPrograms : ['Computer Science', 'Business Management'],
         intakes: selectedIntakes.length > 0 ? selectedIntakes : ['October 2026', 'February 2027'],
-        tuition_fee_enabled: tuitionFeeEnabled,
+        tuition_fee_enabled: true,
         university_fee: universityFee,
-        vfs_fee: vfsFee,
-        agency_fee: agencyFee,
-        agency_fee_description: agencyFeeDescription,
-        installments_enabled: installmentsEnabled,
+        installments_enabled: false,
         course_programs: courseProgramsList,
-        installments: installmentsEnabled ? installmentsList : [],
+        installments: [],
         semesters: semestersList,
       };
 
@@ -717,6 +715,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
           </button>
           {!isStaff && (
             <>
+              <UniversityBulkUpload onComplete={() => Promise.all([refresh(), refreshDestinations()])} />
               <button
                 onClick={handleOpenAddCountry}
                 className="flex items-center gap-1.5 h-9.5 px-3.5 bg-slate-900 rounded-xl text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
@@ -1188,7 +1187,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                   <h3 className="text-base font-black text-slate-900">
                     {editingId ? 'Edit University Details & Programs' : 'Add New Partner University'}
                   </h3>
-                  <p className="text-xs text-slate-400">Configure university profile, course programs, and fee milestones</p>
+                  <p className="text-xs text-slate-400">Configure university profile and course programs</p>
                 </div>
                 <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5" /></button>
               </div>
@@ -1198,8 +1197,6 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                 {[
                   { id: 'general', label: '1. General Info' },
                   { id: 'courses', label: `2. Course Programs (${courseProgramsList.length})` },
-                  { id: 'fees', label: '3. University & Agency Fees' },
-                  { id: 'installments', label: `4. Tuition Installments (${installmentsEnabled ? installmentsList.length : 'Direct'})` },
                 ].map(t => (
                   <button
                     key={t.id}
@@ -1468,236 +1465,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                   </div>
                 )}
 
-                {activeFormTab === 'fees' && (
-                  <div className="space-y-4">
-                    {/* Direct University Tuition Fee Toggle */}
-                    <div
-                      onClick={() => setTuitionFeeEnabled(!tuitionFeeEnabled)}
-                      className="p-4 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer transition-all select-none"
-                    >
-                      <div className="pr-4">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <h4 className="text-xs font-black text-slate-900">Direct University Tuition Fee</h4>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${tuitionFeeEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}>
-                            {tuitionFeeEnabled ? 'Fee Enabled in Student Bill' : 'Waived / Direct with University'}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 font-medium">
-                          When enabled, annual tuition fee is calculated in the student portal payment schedule and summary bills. Turn off if students handle tuition privately or fee is waived.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setTuitionFeeEnabled(!tuitionFeeEnabled);
-                        }}
-                        className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 shrink-0 ${
-                          tuitionFeeEnabled ? 'bg-[#58051E]' : 'bg-slate-300'
-                        }`}
-                      >
-                        <div
-                          className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                            tuitionFeeEnabled ? 'translate-x-6' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
-                          University Tuition Fee {tuitionFeeEnabled ? '' : '(Disabled in Billing)'}
-                        </label>
-                        <input
-                          type="text"
-                          value={universityFee}
-                          disabled={!tuitionFeeEnabled}
-                          onChange={(e) => setUniversityFee(e.target.value)}
-                          placeholder="€3,200 / yr"
-                          className={`w-full h-9.5 px-3 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none ${
-                            tuitionFeeEnabled ? 'bg-slate-50' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                          }`}
-                        />
-                        <p className="text-[10px] font-semibold text-slate-400 mt-1">{formatFeeEURandINR(universityFee)}</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">VFS / Visa Gov Fee</label>
-                        <input
-                          type="text"
-                          value={vfsFee}
-                          onChange={(e) => setVfsFee(e.target.value)}
-                          placeholder="₹15,000"
-                          className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
-                        />
-                        <p className="text-[10px] font-semibold text-slate-400 mt-1">{formatFeeEURandINR(vfsFee)}</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Separate Agency Processing Fee</label>
-                        <input
-                          type="text"
-                          value={agencyFee}
-                          onChange={(e) => setAgencyFee(e.target.value)}
-                          placeholder="₹25,000"
-                          className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
-                        />
-                        <p className="text-[10px] font-semibold text-slate-400 mt-1">{formatFeeEURandINR(agencyFee)}</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
-                        Agency Processing Service Scope & Deliverables
-                      </label>
-                      <input
-                        type="text"
-                        value={agencyFeeDescription}
-                        onChange={(e) => setAgencyFeeDescription(e.target.value)}
-                        placeholder="e.g. FEREX Comprehensive Admissions Processing & Visa Filing Support"
-                        className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
-                      />
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        Specific agency service description visible to students applying to this institution.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Monthly Living Cost Estimate</label>
-                      <input
-                        type="text"
-                        value={livingCostMonthly}
-                        onChange={(e) => setLivingCostMonthly(e.target.value)}
-                        placeholder="€350 - €500 / mo"
-                        className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {activeFormTab === 'installments' && (
-                  <div className="space-y-4">
-                    {/* Customizable Toggle: Enable / Disable Tuition Installments */}
-                    <div
-                      onClick={toggleInstallmentsEnabled}
-                      className="p-4 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer transition-all select-none"
-                    >
-                      <div className="pr-4">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <h4 className="text-xs font-black text-slate-900">Enable Tuition Installments via Platform</h4>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${installmentsEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}>
-                            {installmentsEnabled ? 'Milestone Schedule Active' : 'Direct to University'}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 font-medium">
-                          Turn off if students pay tuition directly to the university. Students will not be required to submit portal installment proofs.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleInstallmentsEnabled();
-                        }}
-                        className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 shrink-0 ${
-                          installmentsEnabled ? 'bg-[#58051E]' : 'bg-slate-300'
-                        }`}
-                      >
-                        <div
-                          className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                            installmentsEnabled ? 'translate-x-6' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    {installmentsEnabled ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold text-slate-700">Tuition Installments & Verification Schedule</p>
-                          <button
-                            type="button"
-                            onClick={handleAddInstallment}
-                            className="px-3 py-1.5 bg-[#58051E] text-white text-xs font-bold rounded-lg hover:bg-[#430316] flex items-center gap-1 cursor-pointer"
-                          >
-                            <Plus className="w-3.5 h-3.5" /> Add Milestone
-                          </button>
-                        </div>
-
-                        <div className="space-y-2.5">
-                          {installmentsList.length === 0 ? (
-                            <div className="p-6 text-center text-xs font-semibold text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                              No installment milestones defined. Click "Add Milestone" above to create tuition stages.
-                            </div>
-                          ) : (
-                            installmentsList.map((inst, index) => (
-                              <div key={inst.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-extrabold text-slate-400 uppercase">Installment #{index + 1}</span>
-                                  <button type="button" onClick={() => handleRemoveInstallment(index)} className="text-slate-400 hover:text-red-600">
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="text-[9.5px] font-bold text-slate-400 uppercase block mb-0.5">Stage Title</label>
-                                    <input
-                                      type="text"
-                                      value={inst.title}
-                                      onChange={(e) => handleUpdateInstallment(index, 'title', e.target.value)}
-                                      placeholder="e.g. Initial Tuition Deposit"
-                                      className="w-full h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-[9.5px] font-bold text-slate-400 uppercase block mb-0.5">Amount / Percentage</label>
-                                    <input
-                                      type="text"
-                                      value={inst.amount}
-                                      onChange={(e) => handleUpdateInstallment(index, 'amount', e.target.value)}
-                                      placeholder="e.g. €1,500 or 50%"
-                                      className="w-full h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="text-[9.5px] font-bold text-slate-400 uppercase block mb-0.5">Verification Schedule Trigger</label>
-                                    <input
-                                      type="text"
-                                      value={inst.due_stage}
-                                      onChange={(e) => handleUpdateInstallment(index, 'due_stage', e.target.value)}
-                                      placeholder="e.g. On Offer Letter Approval"
-                                      className="w-full h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-[9.5px] font-bold text-slate-400 uppercase block mb-0.5">Verification Requirement</label>
-                                    <input
-                                      type="text"
-                                      value={inst.verification_requirement || ''}
-                                      onChange={(e) => handleUpdateInstallment(index, 'verification_requirement', e.target.value)}
-                                      placeholder="e.g. SWIFT Transfer Receipt Upload"
-                                      className="w-full h-8.5 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-6 text-center text-xs font-semibold text-slate-500 bg-amber-50/60 border border-amber-200 rounded-xl space-y-1">
-                        <p className="font-bold text-amber-900">Direct Institutional Payment Configured</p>
-                        <p className="text-[11px] text-amber-800">
-                          Students will pay tuition fees directly to the destination university bank account. No platform tuition installments will be enforced.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <p className="text-sm p-3 bg-blue-50 rounded-xl">University fees are paid directly by the student to the university. Configure Ferex fees in Payment &amp; Billing Control Console.</p>
 
               </form>
 
@@ -1756,8 +1524,6 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
               <div className="space-y-3 text-xs">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
                   <div className="flex justify-between"><span>Annual Tuition:</span><span className="font-bold text-[#58051E]">{formatFeeEURandINR(viewUniversity.university_fee || viewUniversity.tuition_range)}</span></div>
-                  <div className="flex justify-between"><span>VFS Govt Fee:</span><span className="font-bold text-slate-800">{viewUniversity.vfs_fee || '₹15,000'}</span></div>
-                  <div className="flex justify-between"><span>Agency Fee:</span><span className="font-bold text-slate-800">{viewUniversity.agency_fee || '₹25,000'}</span></div>
                 </div>
 
                 <div>

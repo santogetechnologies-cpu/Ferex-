@@ -1,3 +1,4 @@
+import { useUniversities } from '../../hooks/useUniversities';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -16,8 +17,29 @@ import type { UserProfile, CountryWorkflowConfig, WorkflowStageConfig, WorkflowD
 import { ToastNotification } from '../../components/ToastNotification';
 
 export const AdminNawaTracker: React.FC = () => {
-  const { workflows, saveWorkflow, removeWorkflow, getWorkflowForCountry } = useCountryWorkflows();
+  const { workflows: savedWorkflows, saveWorkflow, removeWorkflow, getWorkflowForCountry } = useCountryWorkflows();
   const { destinations: destinationList, addDestination } = useDestinations();
+
+  const { universities } = useUniversities();
+  const workflows = React.useMemo(() => {
+    const result = [...savedWorkflows];
+    const names = new Set(result.map(w => w.country.trim().toLowerCase()));
+    for (const country of [...destinationList.map(d => d.name), ...universities.map(u => u.country)]) {
+      const key = country.trim().toLowerCase();
+      if (!key || names.has(key)) continue;
+      names.add(key);
+      result.push({
+        id: `wf-${key.replace(/\s+/g, '-')}`, country: country.trim(),
+        authority_name: 'Awaiting configuration', authority_acronym: 'Setup required',
+        authority_badge: 'Workflow setup required',
+        authority_description: 'Configure the authority, legalization stages, document checklist and visa procedures for this destination.',
+        authority_fee: '', estimated_processing_days: '', is_active: false,
+        stages: [], checklist_documents: [],
+        visa_procedures: { visa_type: '', financial_proof_req: '', insurance_req: '', appointment_channel: '', interview_required: false, notes: '' }
+      });
+    }
+    return result.sort((a, b) => a.country.localeCompare(b.country));
+  }, [savedWorkflows, destinationList, universities]);
 
   // Active Main View Tab: 'tracking' (Student Queue) vs 'workflows' (Country Configuration)
   const [activeTab, setActiveTab] = useState<'tracking' | 'workflows'>('tracking');
@@ -71,12 +93,12 @@ export const AdminNawaTracker: React.FC = () => {
   const configuredCountries = React.useMemo(() => {
     const set = new Set<string>();
     destinationList.forEach(d => {
-      if (d?.name && d.name.trim().toLowerCase() !== 'india') {
+      if (d?.name) {
         set.add(d.name.trim());
       }
     });
     workflows.forEach(w => {
-      if (w?.country && w.country.trim().toLowerCase() !== 'india') {
+      if (w?.country) {
         set.add(w.country.trim());
       }
     });
@@ -112,7 +134,7 @@ export const AdminNawaTracker: React.FC = () => {
 
   const handleOpenAddModal = () => {
     setSelectedStudentId(students[0]?.id || '');
-    setSelectedTargetCountry(workflows[0]?.country || 'Poland');
+    setSelectedTargetCountry(workflows.find(w => w.is_active && w.stages.length > 0)?.country || '');
     setNawaRefNo('');
     setDocumentType('Academic Diploma & Transcripts');
     setNotes('');
@@ -130,6 +152,7 @@ export const AdminNawaTracker: React.FC = () => {
       setIsSubmitting(true);
       const studentObj = students.find(s => s.id === selectedStudentId);
       const targetWorkflow = getWorkflowForCountry(selectedTargetCountry);
+      if (!targetWorkflow?.is_active || !targetWorkflow.stages.length || !savedWorkflows.some(w => w.country === selectedTargetCountry)) { showToast('Configure this country workflow before adding students.'); return; }
       const refPrefix = targetWorkflow?.authority_acronym ? targetWorkflow.authority_acronym.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4) : 'AUTH';
       const autoRef = nawaRefNo.trim() || `${refPrefix}/${selectedTargetCountry.slice(0, 3).toUpperCase()}/2026/${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -428,7 +451,7 @@ export const AdminNawaTracker: React.FC = () => {
                 className="h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
               >
                 <option value="All">All Countries</option>
-                {workflows.map(w => (
+                {workflows.filter(w => w.is_active && w.stages.length > 0).map(w => (
                   <option key={w.id} value={w.country}>{w.country} ({w.authority_acronym})</option>
                 ))}
               </select>
@@ -652,7 +675,7 @@ export const AdminNawaTracker: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Stages:</span>
-                      <span className="font-bold text-[#58051E]">{wf.stages?.length || 5} Step Flow</span>
+                      <span className="font-bold text-[#58051E]">{wf.stages?.length || 0} Step Flow</span>
                     </div>
                   </div>
 
@@ -741,7 +764,7 @@ export const AdminNawaTracker: React.FC = () => {
                       onChange={(e) => setSelectedTargetCountry(e.target.value)}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
                     >
-                      {workflows.map(w => (
+                      {workflows.filter(w => w.is_active && w.stages.length > 0).map(w => (
                         <option key={w.id} value={w.country}>{w.country} ({w.authority_acronym})</option>
                       ))}
                     </select>

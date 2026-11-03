@@ -235,11 +235,7 @@ export const RolesUsers: React.FC = () => {
 
         const cfg = DIVISION_CONFIG[cleanRole] || DIVISION_CONFIG.superadmin;
 
-        let savedPass: string | undefined = undefined;
-        try {
-          const localCred = localStorage.getItem(`ferex_admin_cred_${(u.email || '').toLowerCase()}`);
-          if (localCred) savedPass = JSON.parse(localCred).password;
-        } catch {}
+
 
         list.push({
           id: u.id,
@@ -251,7 +247,6 @@ export const RolesUsers: React.FC = () => {
           divisionLabel: cfg.label,
           targetRoute: cfg.route,
           status: 'Active',
-          password: savedPass,
           created_at: u.created_at || new Date().toISOString(),
           initials: (u.full_name || u.email || 'AD').slice(0, 2).toUpperCase(),
         });
@@ -300,7 +295,7 @@ export const RolesUsers: React.FC = () => {
 
     if (!fullName.trim()) { setFormError('Full name is required.'); return; }
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) { setFormError('Please provide a valid email address.'); return; }
-    if (!password || password.length < 6) { setFormError('Password must be at least 6 characters long.'); return; }
+    if (!password || password.length < 8) { setFormError('Password must be at least 8 characters long.'); return; }
 
     setIsSubmitting(true);
     const departmentName = DIVISION_CONFIG[selectedRole]?.category || 'Enterprise';
@@ -337,9 +332,9 @@ export const RolesUsers: React.FC = () => {
   };
 
   const copyCredentials = (adm: AdminAccount) => {
-    const text = `Email: ${adm.email}\nPassword: ${adm.password || 'Configured in Supabase Auth'}\nRole: ${adm.divisionLabel}\nPortal: ${window.location.origin}/login`;
+    const text = `Email: ${adm.email}\nRole: ${adm.divisionLabel}\nPortal: ${window.location.origin}/login`;
     navigator.clipboard.writeText(text);
-    showToastMsg('Login credentials copied to clipboard!');
+    showToastMsg('Login details copied to clipboard!');
   };
 
   // ─── Filtered Users ──────────────────────────────────────────────────────────
@@ -727,7 +722,7 @@ export const RolesUsers: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Input label="Login Email Address" type="email" placeholder="e.g. arun@ferex.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                  <Input label="Login Password" type="password" showPasswordToggle={true} placeholder="Minimum 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <Input label="Login Password" type="password" showPasswordToggle={true} placeholder="Minimum 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 </div>
 
                 {/* Role Selector */}

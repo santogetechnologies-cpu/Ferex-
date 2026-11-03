@@ -86,10 +86,6 @@ export const AppSwitcher: React.FC = () => {
   const userEmail = profile?.email || user?.email;
   const isSuper = isSuperAdmin(rawRole, userEmail);
 
-  if (!isSuper) {
-    return null;
-  }
-
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -101,6 +97,8 @@ export const AppSwitcher: React.FC = () => {
     }
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isOpen]);
+
+  if (!isSuper) return null;
 
   // Determine which app is currently active
   const activeApp = FEREX_APPS.find(app =>

@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+import { listEducationPayments } from '../../lib/api/educationBilling';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -25,7 +27,7 @@ interface TransactionItem {
   amountFormatted: string;
   method: string;
   date: string;
-  status: 'Verified' | 'Pending' | 'Settled';
+  status: string;
   statusBadge: string;
   refNo: string;
 }
@@ -43,7 +45,7 @@ export const CentralPayments: React.FC = () => {
     setLoading(true);
     try {
       const [eduRes, tradeData, rimiData, digData] = await Promise.all([
-        supabase.from('payments').select('*').order('created_at', { ascending: false }).limit(10),
+        listEducationPayments().then(data => ({ data })),
         getTradePayments(),
         getRimiSalesOrders(),
         getDigitalInvoices()
@@ -61,15 +63,15 @@ export const CentralPayments: React.FC = () => {
             divisionBadge: 'bg-rose-50 text-rose-700 border-rose-200',
             divisionIcon: GraduationCap,
             client: p.student_name || p.user_id || 'Student Applicant',
-            description: p.purpose || 'Tuition / Processing Fee Wire',
+            description: p.title || p.description || 'Education payment',
             amount: amt,
-            currency: 'INR',
-            amountFormatted: `₹${amt.toLocaleString('en-IN')}`,
+            currency: p.currency || 'INR',
+            amountFormatted: new Intl.NumberFormat('en-IN', { style: 'currency', currency: p.currency || 'INR' }).format(amt),
             method: p.payment_method || 'Bank Wire',
             date: p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Recent',
-            status: p.status === 'Paid' ? 'Verified' : 'Pending',
-            statusBadge: p.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
-            refNo: p.receipt_number || p.reference_number || `FER-EDU-${p.id?.slice(0, 6)}`,
+            status: p.status,
+            statusBadge: ['Paid', 'Verified'].includes(p.status) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
+            refNo: p.ref_no || p.utr_number || `FER-EDU-${p.id?.slice(0, 6)}`,
           });
         });
       }
@@ -86,7 +88,7 @@ export const CentralPayments: React.FC = () => {
             divisionIcon: Globe,
             client: t.beneficiary || t.partner_entity || 'Global Port & Trade Logistics',
             description: t.description || `Letter of Credit / Freight Wire (${t.payment_type || 'LC MT700'})`,
-            amount: isEur ? amt * 90 : amt,
+            amount: amt,
             currency: isEur ? 'EUR' : 'INR',
             amountFormatted: isEur ? `€${amt.toLocaleString()} (~₹${Math.round(amt * 90).toLocaleString('en-IN')})` : `₹${amt.toLocaleString('en-IN')}`,
             method: t.payment_type || 'SWIFT Wire',
@@ -171,38 +173,6 @@ export const CentralPayments: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleVerify = (id: string, ref: string) => {
-    setTransactions(prev =>
-      prev.map(t => (t.id === id ? { ...t, status: 'Verified', statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200' } : t))
-    );
-    showToastMsg(`Settlement Reference ${ref} Verified & Cleared`);
-  };
-
-  const handleDeleteTransaction = async (t: TransactionItem) => {
-    setIsDeleting(true);
-    try {
-      if (t.division === 'Education') {
-        await deletePaymentRecord(t.id);
-        await supabase.from('payments').delete().eq('id', t.id);
-      } else if (t.division === 'Trade') {
-        await supabase.from('trade_payments').delete().eq('id', t.id);
-      } else if (t.division === 'Rimi') {
-        await supabase.from('rimi_sales_orders').delete().eq('id', t.id);
-      } else if (t.division === 'Digital') {
-        await supabase.from('digital_invoices').delete().eq('id', t.id);
-      }
-
-      setTransactions(prev => prev.filter(x => x.id !== t.id));
-      setDeleteModalItem(null);
-      showToastMsg(`Transaction record ${t.refNo} permanently deleted from ledger.`);
-      window.dispatchEvent(new Event('ferex_payment_change'));
-    } catch (err: any) {
-      showToastMsg(`Error deleting transaction: ${err?.message || 'Failed'}`);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const handleExportLedger = () => {
     const csvContent =
       'data:text/csv;charset=utf-8,' +
@@ -235,20 +205,18 @@ export const CentralPayments: React.FC = () => {
     });
   }, [transactions, searchQuery, selectedDivision]);
 
-  const totalInflow = useMemo(() => {
-    return transactions.reduce((s, t) => s + t.amount, 0);
-  }, [transactions]);
-
-  const verifiedInflow = useMemo(() => {
-    return transactions.filter(t => t.status === 'Verified' || t.status === 'Settled').reduce((s, t) => s + t.amount, 0);
-  }, [transactions]);
-
-  const pendingInflow = useMemo(() => {
-    return transactions.filter(t => t.status === 'Pending').reduce((s, t) => s + t.amount, 0);
-  }, [transactions]);
+  const currencySummary = (predicate: (t: TransactionItem) => boolean) => {
+    const totals: Record<string, number> = {};
+    filteredTxns.filter(predicate).forEach(t => { totals[t.currency] = (totals[t.currency] || 0) + t.amount; });
+    return Object.entries(totals).map(([currency, amount]) => new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(amount)).join(' · ') || '—';
+  };
+  const totalInflow = currencySummary(() => true);
+  const verifiedInflow = currencySummary(t => ['Paid', 'Verified', 'Settled'].includes(t.status));
+  const pendingInflow = currencySummary(t => ['Pending', 'Pending Verification'].includes(t.status));
 
   return (
     <div className="space-y-6 text-left antialiased">
+      <Link to="/central/education-billing" className="inline-block rounded-xl bg-[#58051E] px-4 py-2 text-white text-sm">Education billing &amp; fee configuration</Link>
       {/* Toast Notification */}
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
@@ -264,7 +232,7 @@ export const CentralPayments: React.FC = () => {
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Unified multi-currency settlement clearing house for Education tuition wires, Trade Letters of Credit, Rimi FMCG distribution, and Digital contracts.
+            Consolidated payment ledger for Education, Trade, Rimi and Digital.
           </p>
         </div>
 
@@ -286,7 +254,7 @@ export const CentralPayments: React.FC = () => {
             Total Combined Inflow
           </span>
           <div className="text-2xl font-black text-slate-900">
-            ₹{totalInflow.toLocaleString('en-IN')}
+            {totalInflow}
           </div>
           <span className="text-[10px] font-bold text-emerald-600 mt-2 block flex items-center gap-1">
             <TrendingUp className="w-3 h-3" /> Live Multi-Subsidiary Aggregate
@@ -298,10 +266,10 @@ export const CentralPayments: React.FC = () => {
             Verified & Cleared
           </span>
           <div className="text-2xl font-black text-emerald-700">
-            ₹{verifiedInflow.toLocaleString('en-IN')}
+            {verifiedInflow}
           </div>
           <span className="text-[10px] font-bold text-slate-400 mt-2 block">
-            {totalInflow > 0 ? Math.round((verifiedInflow / totalInflow) * 100) : 100}% Settlement Rate
+            Verified receipts by currency
           </span>
         </Card>
 
@@ -310,7 +278,7 @@ export const CentralPayments: React.FC = () => {
             Pending Clearance
           </span>
           <div className="text-2xl font-black text-amber-700">
-            ₹{pendingInflow.toLocaleString('en-IN')}
+            {pendingInflow}
           </div>
           <span className="text-[10px] font-bold text-amber-600 mt-2 block">
             Requires Executive Review
@@ -325,7 +293,7 @@ export const CentralPayments: React.FC = () => {
             INR • EUR • USD
           </div>
           <span className="text-[10px] font-bold text-slate-400 mt-2 block">
-            Real-time FX Parity
+            Original transaction currencies
           </span>
         </Card>
       </div>
@@ -422,25 +390,7 @@ export const CentralPayments: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {t.status === 'Pending' ? (
-                          <button
-                            onClick={() => handleVerify(t.id, t.refNo)}
-                            className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer"
-                          >
-                            Verify Wire
-                          </button>
-                        ) : (
-                          <span className="text-[10.5px] font-extrabold text-emerald-700 flex items-center gap-1">
-                            <Check className="w-3.5 h-3.5" /> Cleared
-                          </span>
-                        )}
-                        <button
-                          onClick={() => setDeleteModalItem(t)}
-                          title="Delete Record from Ledger"
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {t.division === 'Education' ? <Link className="text-xs underline text-[#58051E]" to="/central/education-billing">Manage education payment</Link> : <span className="text-xs text-slate-500">Managed in source division</span>}
                       </div>
                     </td>
                   </tr>
@@ -456,67 +406,7 @@ export const CentralPayments: React.FC = () => {
           </table>
         </div>
       </Card>
-      {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {deleteModalItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 text-left"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-                  <Trash2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-900">Delete Treasury Record</h3>
-                  <p className="text-xs text-slate-500 font-medium">This transaction will be permanently removed from the central treasury ledger.</p>
-                </div>
-              </div>
 
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1.5 mb-5">
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-semibold">Division:</span>
-                  <span className="font-extrabold text-slate-900">{deleteModalItem.division}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-semibold">Client / Entity:</span>
-                  <span className="font-extrabold text-slate-900">{deleteModalItem.client}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-semibold">Reference:</span>
-                  <span className="font-mono font-bold text-slate-900">{deleteModalItem.refNo}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-semibold">Amount:</span>
-                  <span className="font-black text-slate-900">{deleteModalItem.amountFormatted}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setDeleteModalItem(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={isDeleting}
-                  onClick={() => handleDeleteTransaction(deleteModalItem)}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  {isDeleting ? 'Deleting...' : 'Confirm Delete'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

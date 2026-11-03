@@ -1,3 +1,4 @@
+import { UniversityBulkUpload } from '../../components/UniversityBulkUpload';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GraduationCap, Search, Plus, MapPin, Trash2, X, CheckCircle2, Star } from 'lucide-react';
@@ -7,7 +8,7 @@ import { ToastNotification } from '../../components/ToastNotification';
 import { useUniversities } from '../../hooks/useUniversities';
 
 export const CentralEducation: React.FC = () => {
-  const { universities, loading, addUniversity, removeUniversity } = useUniversities();
+  const { universities, loading, refresh, addUniversity, removeUniversity } = useUniversities();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [countryFilter, setCountryFilter] = useState('All');
@@ -89,6 +90,8 @@ export const CentralEducation: React.FC = () => {
         </Button>
       </div>
 
+      <UniversityBulkUpload onComplete={() => refresh()} />
+
       {/* Filter & Search Bar */}
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="relative w-full md:w-80">
@@ -103,7 +106,7 @@ export const CentralEducation: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto">
-          {['All', 'Poland', 'Germany', 'Netherlands'].map((c) => (
+          {['All', ...Array.from(new Set(universities.map(u => u.country))).sort()].map((c) => (
             <button
               key={c}
               onClick={() => setCountryFilter(c)}

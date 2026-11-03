@@ -1,3 +1,5 @@
+import { saveEducationCountry } from '../lib/api/educationBilling';
+import { educationFees, resolveEducationFee, money, registrationSettled } from '../lib/educationBilling';
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Search, MapPin, Award, Sparkles, Heart, X, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight, Lock, AlertCircle, GraduationCap, Building2 } from 'lucide-react';
@@ -11,7 +13,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { Card } from '../components/Card';
-import { UnifiedPaymentModal } from '../components/UnifiedPaymentModal';
 import { canAccessPage, checkPaymentStage } from '../lib/paymentUnlock';
 import { sendStudentApplicationEmail } from '../lib/api/email';
 
@@ -53,7 +54,7 @@ export const SelectUniversity: React.FC = () => {
     
     // Add destinations from registry (strictly foreign destinations, ignore India)
     destinations.forEach(d => {
-      if (d.name && d.name.trim().toLowerCase() !== 'india') {
+      if (d.name) {
         const key = d.name.trim().toLowerCase();
         const flag = d.flag && d.flag !== 'EU' && d.flag !== '🌍' ? d.flag : COUNTRY_FLAGS[d.name.trim()] || '🌍';
         destMap.set(key, {
@@ -68,7 +69,7 @@ export const SelectUniversity: React.FC = () => {
 
     // Add any countries from universities not already in destinations
     universities.forEach(u => {
-      if (u.country && u.country.trim().toLowerCase() !== 'india') {
+      if (u.country) {
         const key = u.country.trim().toLowerCase();
         if (!destMap.has(key)) {
           const flag = COUNTRY_FLAGS[u.country.trim()] || '🌍';
@@ -107,11 +108,7 @@ export const SelectUniversity: React.FC = () => {
   const hasMandatoryDocs = (hasPassport && hasMarksheets) || documents.length >= 2;
 
   // Check if Advanced Registration Fee is paid
-  const inst1Paid = payments.some(p => {
-    const desc = (String(p.description || '') + ' ' + String(p.title || '') + ' ' + String(p.payment_type || '')).toLowerCase();
-    const isStage1 = desc.includes('1st') || desc.includes('1') || desc.includes('registration') || desc.includes('advance') || (p as any).stage_number === 1;
-    return isStage1 && (p.status === 'Paid' || p.status === 'Verified');
-  });
+  const inst1Paid = registrationSettled(config, payments, selectedCountry === 'All' ? undefined : selectedCountry);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [savedUnis, setSavedUnis] = useState<string[]>([]);
@@ -149,6 +146,7 @@ export const SelectUniversity: React.FC = () => {
   const handleCountrySelect = (c: string) => {
     setSelectedCountry(c);
     if (c !== 'All') {
+      if (user?.id) void saveEducationCountry(user.id, c).catch(error => setSuccessToast(`Country selection could not be saved: ${error.message}`));
       localStorage.setItem('ferex_student_target_country', c);
       window.dispatchEvent(new Event('ferex_country_change'));
     }
@@ -195,6 +193,7 @@ export const SelectUniversity: React.FC = () => {
 
       // Save target country & selected course for Documents and Counselor flows
       if (applyUni.country) {
+        void saveEducationCountry(user.id, applyUni.country).catch(() => {});
         localStorage.setItem('ferex_student_target_country', applyUni.country);
       }
       localStorage.setItem('ferex_student_selected_uni', JSON.stringify({
@@ -245,10 +244,10 @@ export const SelectUniversity: React.FC = () => {
     const names = new Set<string>();
     names.add('All');
     availableDestinations.forEach(d => {
-      if (d.country.toLowerCase().trim() !== 'india') names.add(d.country);
+      names.add(d.country);
     });
     universities.forEach(u => {
-      if (u?.country && u.country.toLowerCase().trim() !== 'india') names.add(u.country.trim());
+      if (u?.country) names.add(u.country.trim());
     });
     return Array.from(names);
   }, [availableDestinations, universities]);
@@ -534,18 +533,7 @@ export const SelectUniversity: React.FC = () => {
                         <span className="text-slate-500">University Tuition:</span>
                         <span className="font-bold text-[#6A1B2E]">{drawerUni.university_fee || drawerUni.tuition_range || '€3,500 / yr'}</span>
                       </div>
-                      {drawerUni.agency_fee && (
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-500">Agency Processing Fee:</span>
-                          <span className="font-bold text-slate-800">{drawerUni.agency_fee}</span>
-                        </div>
-                      )}
-                      {drawerUni.vfs_fee && (
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-500">VFS / Visa Gov Fee:</span>
-                          <span className="font-bold text-slate-800">{drawerUni.vfs_fee}</span>
-                        </div>
-                      )}
+                      {educationFees(config).filter(f => f.enabled).map(f => resolveEducationFee(f, drawerUni.country)).map(f => <div key={f.id} className="flex justify-between text-xs"><span>{f.title}:</span><span className="font-bold">{money(f.amount, f.currency)}</span></div>)}
                       {drawerUni.living_cost_monthly && (
                         <div className="flex justify-between items-center text-xs">
                           <span className="text-slate-500">Est. Living Cost:</span>
@@ -554,26 +542,7 @@ export const SelectUniversity: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Dynamic Tuition Installments */}
-                    {drawerUni.installments_enabled && drawerUni.installments && drawerUni.installments.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Tuition Installments Schedule</h4>
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Tranche Milestones</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          {drawerUni.installments.map((inst: any, idx: number) => (
-                            <div key={inst.id || idx} className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg flex items-center justify-between text-xs">
-                              <div>
-                                <span className="font-bold text-slate-800 block">{inst.title || inst.name || `Stage ${idx + 1}`}</span>
-                                <span className="text-[10px] text-slate-400 font-medium block">{inst.due_stage || inst.due_trigger || 'On Offer Letter'}</span>
-                              </div>
-                              <span className="font-black text-[#6A1B2E] bg-white px-2 py-1 rounded border border-slate-200">{inst.amount}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <p className="text-xs p-3 bg-blue-50 rounded-lg">Tuition is paid directly to the university. See Payments &amp; billing for the configured Ferex fees.</p>
 
                     <div>
                       <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-2">Degree Programs</h4>

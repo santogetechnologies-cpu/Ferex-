@@ -28,12 +28,16 @@ const LOCAL_STORAGE_KEY = 'ferex_destinations_registry';
 export async function getDestinations(): Promise<DestinationItem[]> {
   // ── Primary: Supabase DB ─────────────────────────────────────────────────
   try {
-    const { data, error } = await supabase
-      .from('destinations')
-      .select('*')
-      .order('name', { ascending: true });
+    const data: any[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const { data: page, error } = await supabase.from('destinations').select('*')
+        .order('name', { ascending: true }).order('id').range(offset, offset + 999);
+      if (error) throw error;
+      data.push(...(page || []));
+      if (!page || page.length < 1000) break;
+    }
 
-    if (!error && Array.isArray(data)) {
+    if (Array.isArray(data)) {
       try { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data)); } catch {}
       return data as DestinationItem[];
     }

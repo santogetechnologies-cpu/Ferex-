@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test:seed": "node --env-file=.env.test --experimental-strip-types scripts/seed.ts",
     "test:e2e": "playwright test",
-    "test:auth": "node --env-file=.env.test --experimental-strip-types tests/global-setup.ts"
+    "test:auth": "node --env-file=.env.test --experimental-strip-types tests/global-setup.ts",
+    "test:billing": "node --experimental-strip-types --test tests/education-billing.test.ts tests/education-billing-db.test.ts tests/payment-signature.test.ts tests/accounting-pdf.test.ts tests/role-access.test.ts tests/university-import.test.ts",
+    "test:billing:e2e": "playwright test --config playwright.education.config.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.2",
@@ -26,6 +28,7 @@
     "three": "^0.186.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.14",
     "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",

@@ -1,3 +1,5 @@
+import { formatAccountingTotals } from '../lib/accountingPdf';
+import { money } from '../lib/educationBilling';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileSpreadsheet, Download, Sparkles, Search, CheckCircle2, RotateCcw, FileText, Eye } from 'lucide-react';
@@ -11,7 +13,7 @@ import { InvoiceModal, type InvoiceData } from '../components/InvoiceModal';
 
 export const Invoices: React.FC = () => {
   const { user, profile } = useAuth();
-  const { invoices: dbInvoices, payments } = usePayments(user?.id);
+  const { invoices: dbInvoices, payments, error: billingError } = usePayments(user?.id);
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'invoices' | 'credits'>('invoices');
@@ -59,6 +61,7 @@ export const Invoices: React.FC = () => {
         description: p.title || p.description || (p.payment_type ? `${p.payment_type} Clearance` : 'Registration Fee & Legalization Audit Deposit'),
         amount: Number(p.amount),
         currency: p.currency || 'INR',
+        tax_rate_percent: p.tax_rate_percent,
         status: 'Paid' as const,
         due_date: p.created_at,
         issued_at: p.paid_at || p.created_at || new Date().toISOString(),
@@ -71,7 +74,7 @@ export const Invoices: React.FC = () => {
         student_name: p.student_name || studentName,
       } as any))
   ].filter((inv, index, self) =>
-    index === self.findIndex(t => t.id === inv.id || t.invoice_no === inv.invoice_no)
+    index === self.findIndex(t => t.id === inv.id || (inv.payment_id && t.payment_id === inv.payment_id) || t.invoice_no === inv.invoice_no)
   )) as Invoice[];
 
   const showToast = (msg: string) => {
@@ -84,6 +87,7 @@ export const Invoices: React.FC = () => {
       invoice_no: inv.invoice_no || inv.id,
       student_name: inv.student_name || studentName,
       amount: Number(inv.amount) || 0,
+      tax_rate_percent: inv.tax_rate_percent,
       currency: inv.currency || 'INR',
       title: inv.description || 'Installment Payment Clearance',
       payment_type: inv.payment_type,
@@ -133,6 +137,7 @@ export const Invoices: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left relative min-h-[500px]">
+      {billingError && <p role="alert" className="p-3 bg-red-50 text-red-800">{billingError}</p>}
       <ToastNotification message={toastMessage} onClose={() => setToastMessage('')} />
 
       {/* Header */}
@@ -152,7 +157,7 @@ export const Invoices: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
             <p className="text-[9.5px] font-extrabold uppercase text-emerald-700">Total Invoiced</p>
-            <p className="text-sm font-black text-emerald-900">INR {totalPaid.toLocaleString('en-IN')}</p>
+            <p className="text-sm font-black text-emerald-900">{formatAccountingTotals(invoices)}</p>
           </div>
           {totalRefunded > 0 && (
             <div className="px-4 py-2 bg-violet-50 border border-violet-200 rounded-xl text-center">
@@ -230,7 +235,7 @@ export const Invoices: React.FC = () => {
                   {/* Amount */}
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between mb-3">
                     <span className="text-xs font-bold text-slate-500">Amount Paid:</span>
-                    <span className="text-base font-black text-slate-900">INR {Number(inv.amount || 0).toLocaleString('en-IN')}</span>
+                    <span className="text-base font-black text-slate-900">{money(Number(inv.amount || 0), inv.currency || 'INR')}</span>
                   </div>
 
                   {/* UTR / Method */}
@@ -248,6 +253,7 @@ export const Invoices: React.FC = () => {
                       invoice_no: inv.invoice_no || inv.id,
                       student_name: (inv as any).student_name || studentName,
                       amount: Number(inv.amount) || 0,
+      tax_rate_percent: inv.tax_rate_percent,
                       currency: inv.currency || 'INR',
                       description: inv.description || 'Registration Fee – Overseas Education Consultancy Services (Study in Poland)',
                       date: inv.issued_at || (inv as any).created_at || new Date().toISOString(),

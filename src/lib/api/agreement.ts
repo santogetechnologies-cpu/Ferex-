@@ -50,11 +50,12 @@ export function isAgreementSigned(studentId: string): boolean {
 }
 
 export async function fetchStudentAgreement(studentId: string, email?: string): Promise<ServiceAgreementData | null> {
-  const local = getLocalAgreement(studentId);
-  if (local && local.status === 'Signed') {
-    return local;
+  const { data: signed, error: signedError } = await supabase.from('education_service_agreements').select('body').eq('student_id', studentId).maybeSingle();
+  if (signedError) throw signedError;
+  if (signed?.body) {
+    localStorage.setItem(`${STORAGE_PREFIX}${studentId}`, JSON.stringify(signed.body));
+    return signed.body as ServiceAgreementData;
   }
-
   try {
     const admin = await getAdminSupabaseClient();
     const client = admin || supabase;
@@ -91,67 +92,28 @@ export async function fetchStudentAgreement(studentId: string, email?: string): 
     console.warn('Could not fetch agreement from remote db, using local:', err);
   }
 
-  return local;
+  return null;
 }
 
 export async function saveStudentAgreement(agreement: ServiceAgreementData): Promise<ServiceAgreementData> {
-  const key = `${STORAGE_PREFIX}${agreement.student_id}`;
-  try {
-    localStorage.setItem(key, JSON.stringify(agreement));
-    if (agreement.student_email) {
-      localStorage.setItem(`ferex_agreement_signed_${agreement.student_email.toLowerCase()}`, 'true');
-    }
-    window.dispatchEvent(new CustomEvent('ferex_agreement_change', { detail: agreement }));
-    window.dispatchEvent(new Event('storage'));
-  } catch (err) {
-    console.error('Failed to save agreement locally:', err);
+  const { data: existing, error: readError } = await supabase.from('education_service_agreements').select('body').eq('student_id', agreement.student_id).maybeSingle();
+  if (readError) throw readError;
+  const saved = existing?.body || agreement;
+  if (!existing) {
+    const { error } = await supabase.from('education_service_agreements').insert({ student_id: agreement.student_id, body: agreement });
+    if (error) throw error;
   }
-
-  // Persist to remote Supabase in background
-  (async () => {
-    try {
-      const admin = await getAdminSupabaseClient();
-      const client = admin || supabase;
-      const now = new Date().toISOString();
-
-      await client.from('system_config').upsert([
-        {
-          key: `agreement_${agreement.student_id}`,
-          value: agreement,
-          updated_at: now,
-        },
-        ...(agreement.student_email
-          ? [
-              {
-                key: `agreement_email_${agreement.student_email.toLowerCase().trim()}`,
-                value: agreement,
-                updated_at: now,
-              },
-            ]
-          : []),
-      ], { onConflict: 'key' });
-
-      // Update public.users agreement timestamp flag if exists
-      try {
-        await client
-          .from('users')
-          .update({
-            agreement_signed_at: agreement.signed_at,
-            agreement_status: 'Signed',
-          })
-          .eq('id', agreement.student_id);
-      } catch {}
-    } catch (remoteErr) {
-      console.warn('Notice saving agreement remotely:', remoteErr);
-    }
-  })();
-
-  return agreement;
+  localStorage.setItem(`${STORAGE_PREFIX}${agreement.student_id}`, JSON.stringify(saved));
+  window.dispatchEvent(new CustomEvent('ferex_agreement_change', { detail: saved }));
+  return saved as ServiceAgreementData;
 }
 
 export async function getAllSignedAgreementsAdmin(): Promise<ServiceAgreementData[]> {
   const results: ServiceAgreementData[] = [];
   const visitedIds = new Set<string>();
+  const { data, error } = await supabase.from('education_service_agreements').select('body');
+  if (error) throw error;
+  for (const row of data || []) { results.push(row.body as ServiceAgreementData); visitedIds.add(row.body.student_id); }
 
   // Gather from localStorage
   try {

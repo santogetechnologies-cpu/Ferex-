@@ -138,6 +138,7 @@ export interface StudentDocument {
 }
 
 export interface Payment {
+  tax_rate_percent?: number;
   id: string;
   student_id: string;
   student_name?: string;
@@ -170,6 +171,7 @@ export interface Payment {
 }
 
 export interface Invoice {
+  tax_rate_percent?: number;
   id: string;
   student_id: string;
   payment_id: string | null;

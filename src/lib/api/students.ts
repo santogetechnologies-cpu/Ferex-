@@ -1,3 +1,4 @@
+import { provisionAccount } from './provisionAccount';
 import { supabase } from '../supabase';
 import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { UserProfile } from '../types';
@@ -147,44 +148,7 @@ export async function createStudent(payload: {
   destination_country?: string;
   country?: string;
 }): Promise<UserProfile> {
-  const newId = generateUUID();
-  const destCountry = payload.target_country || payload.destination_country || payload.country || 'Poland';
-  const insertData = {
-    id: newId,
-    email: payload.email.toLowerCase().trim(),
-    full_name: payload.full_name.trim(),
-    phone: payload.phone?.trim() || '',
-    country: destCountry,
-    role: 'student',
-    assigned_counselor: payload.assigned_counselor && payload.assigned_counselor !== 'Admin'
-      ? payload.assigned_counselor
-      : getDefaultCounselorForCountry(destCountry),
-    must_change_password: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  if (typeof localStorage !== 'undefined') {
-    try {
-      localStorage.setItem(`ferex_student_target_country_${newId}`, destCountry);
-      localStorage.setItem(`ferex_student_country_${newId}`, destCountry);
-    } catch {}
-  }
-
-  const admin = await getAdminSupabaseClient();
-  const client = admin || supabase;
-
-  const { data, error } = await client
-    .from('users')
-    .insert(insertData)
-    .select();
-
-  if (error || !data || data.length === 0) {
-    throw new Error(`Failed to create student: ${error?.message || 'Database error'}`);
-  }
-
-  window.dispatchEvent(new Event('ferex_students_change'));
-  return data[0] as UserProfile;
+  return provisionAccount({ ...payload, country: payload.target_country || payload.destination_country || payload.country, role: 'student' });
 }
 
 // ─── Create a new staff member profile in public.users & credentials ──────────
@@ -198,77 +162,8 @@ export async function createStaffMember(payload: {
   desk?: string;
   permissions?: { label: string; enabled: boolean }[];
 }): Promise<UserProfile> {
-  const newId = generateUUID();
-  const cleanEmail = payload.email.trim().toLowerCase();
-  const rawRole = (payload.role || 'counselor').toLowerCase().trim();
-  const cleanRole = rawRole.replace(/\s+/g, '_');
-  const cleanPassword = payload.password?.trim() || 'ferex2026!';
-  const deptString = payload.desk 
-    ? (payload.department?.includes(':') ? payload.department : `Admissions:${payload.desk}`)
-    : (payload.department || 'Admissions:General');
-
-  const profileObj: UserProfile = {
-    id: newId,
-    email: cleanEmail,
-    full_name: payload.full_name.trim(),
-    phone: payload.phone?.trim() || '',
-    role: cleanRole,
-    avatar_url: '',
-    department: deptString,
-    permissions: payload.permissions || [
-      { label: 'View Students', enabled: true },
-      { label: 'Edit Applications', enabled: true },
-      { label: 'Approve Documents', enabled: true },
-      { label: 'Manage Payments', enabled: false },
-      { label: 'View Reports', enabled: true },
-      { label: 'Manage Staff', enabled: false },
-    ],
-    must_change_password: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  // 1. Store login credentials for admin portal instant login
-  try {
-    const credRecord = {
-      id: newId,
-      email: cleanEmail,
-      password: cleanPassword,
-      fullName: payload.full_name.trim(),
-      role: cleanRole,
-      department: deptString,
-      phone: payload.phone?.trim() || '',
-      permissions: profileObj.permissions,
-      created_at: new Date().toISOString(),
-    };
-    localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify(credRecord));
-  } catch {}
-
-  // 2. Insert into Supabase public.users
-  const admin = await getAdminSupabaseClient();
-  const client = admin || supabase;
-  const { error } = await client.from('users').upsert(profileObj);
-  if (error) {
-    throw new Error(`Failed to create staff member: ${error.message}`);
-  }
-
-  // 3. Attempt to register with Supabase Auth in background
-  supabase.auth.signUp({
-    email: cleanEmail,
-    password: cleanPassword,
-    options: {
-      data: {
-        full_name: payload.full_name.trim(),
-        role: cleanRole,
-      }
-    }
-  }).catch(() => {});
-
-  // 4. Broadcast events
-  window.dispatchEvent(new Event('ferex_staff_change'));
-  window.dispatchEvent(new Event('ferex_students_change'));
-
-  return profileObj;
+  const department = payload.desk ? `${payload.department || 'Admissions'}:${payload.desk}` : payload.department || 'Admissions';
+  return provisionAccount({ email: payload.email.trim(), full_name: payload.full_name.trim(), role: payload.role, password: payload.password, department, phone: payload.phone, permissions: payload.permissions });
 }
 
 // ─── Update student profile fields ────────────────────────────────────────────
