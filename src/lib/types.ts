@@ -57,6 +57,7 @@ export interface University {
   city: string;
   logo_url: string;
   image_url?: string;
+  banner_image_url?: string;
   badge?: string;
   category?: string;
   description?: string;
@@ -68,6 +69,15 @@ export interface University {
   intakes?: string[];
   university_fee?: string;
   tuition_fee_enabled?: boolean;
+  tuition_fee_currency?: string;
+  tuition_fee_min?: number;
+  tuition_fee_max?: number;
+  tuition_fee_pln?: number;
+  tuition_fee_eur?: number;
+  tuition_fee_usd?: number;
+  tuition_fee_inr?: number;
+  scholarship_percentage_max?: number;
+  direct_payment_instructions?: string;
   vfs_fee?: string;
   agency_fee?: string;
   agency_fee_description?: string;
@@ -166,6 +176,14 @@ export interface Payment {
   reviewer_notes?: string;
   reminder_sent_at?: string | null;
   created_at: string;
+  is_direct_payment?: boolean;
+  direct_recipient_institution?: string;
+  direct_proof_url?: string;
+  discount_amount?: number;
+  discount_reason?: string;
+  scholarship_percentage?: number;
+  scholarship_provider?: string;
+  exchange_rate_to_inr?: number;
   // joined
   users?: UserProfile;
 }

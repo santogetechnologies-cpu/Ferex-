@@ -56,3 +56,17 @@ test('university fees stay direct and fee configuration rejects invalid amounts'
   assert.throws(() => validateEducationFees([{ ...fee, countryAmounts: { Canada: -1 } }]));
   assert.doesNotThrow(() => validateEducationFees([{ ...fee, title: 'University tuition', recipient: 'direct_third_party' }]));
 });
+
+test('student discount overrides reduce the payable fee and resolve properly', () => {
+  const overrides = {
+    registration: { custom_amount: 1000, discount_amount: 500, discount_reason: 'Merit Scholarship' }
+  };
+  const resolved = resolveEducationFee(fee, undefined, overrides);
+  assert.equal(resolved.amount, 1000);
+  assert.match(resolved.description, /Merit Scholarship/);
+});
+
+test('multi-currency fee validation supports PLN and GBP', () => {
+  assert.doesNotThrow(() => validateEducationFees([{ ...fee, currency: 'PLN' }]));
+  assert.doesNotThrow(() => validateEducationFees([{ ...fee, currency: 'GBP' }]));
+});

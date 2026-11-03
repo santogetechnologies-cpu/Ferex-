@@ -6,17 +6,22 @@ export interface EducationFee {
   title: string;
   enabled: boolean;
   amount: number;
-  currency: 'INR' | 'EUR' | 'USD';
+  currency: 'INR' | 'EUR' | 'USD' | 'GBP' | 'PLN';
   recipient: 'ferex' | 'direct_third_party';
   timing: 'before' | 'after';
   stage: number;
   description: string;
   countryAmounts?: Record<string, number>;
   tax_rate_percent?: number;
+  is_direct_payment?: boolean;
+  direct_recipient_institution?: string;
 }
 
 export const educationStages = ['Lead inquiry', 'Service agreement', 'Advanced registration', 'Document review', 'Country legalization', 'University application', 'Offer letter', 'University tuition', 'Visa application', 'Visa decision', 'Pre-departure', 'Enrollment'];
-export const money = (value: number, currency = 'INR') => new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(value);
+export const money = (value: number, currency = 'INR') => {
+  if (currency === 'PLN') return `${new Intl.NumberFormat('pl-PL', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value)} PLN`;
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(value);
+};
 export const cents = (value: number) => Math.round(value * 100);
 const numericFee = (value: unknown) => Number(String(value ?? '0').replace(/[^\d.]/g, '')) || 0;
 
@@ -33,7 +38,21 @@ export function educationFees(config: SystemFeeConfig): EducationFee[] {
   ];
 }
 
-export function resolveEducationFee(fee: EducationFee, country?: string): EducationFee {
+export function resolveEducationFee(
+  fee: EducationFee,
+  country?: string,
+  overrides?: Record<string, { custom_amount: number; discount_amount: number; discount_reason?: string }>
+): EducationFee {
+  const studentOverride = overrides?.[fee.id];
+  if (studentOverride) {
+    return {
+      ...fee,
+      amount: studentOverride.custom_amount,
+      description: studentOverride.discount_amount > 0
+        ? `${fee.description || fee.title} (Discount: ${money(studentOverride.discount_amount, fee.currency)}${studentOverride.discount_reason ? ` - ${studentOverride.discount_reason}` : ''})`
+        : fee.description
+    };
+  }
   const override = Object.entries(fee.countryAmounts || {}).find(([name]) => name.trim().toLowerCase() === country?.trim().toLowerCase());
   return { ...fee, amount: override ? override[1] : fee.amount };
 }
@@ -86,7 +105,7 @@ export function validatePaymentParts(parts: PaymentPart[], expected: number) {
 export function validateEducationFees(fees: EducationFee[]) {
   if (new Set(fees.map(f => f.id)).size !== fees.length) throw new Error('Fee identifiers must be unique.');
   for (const fee of fees) {
-    if (!fee.id.trim() || !fee.title.trim() || !Number.isFinite(fee.amount) || fee.amount < 0 || !Number.isInteger(fee.stage) || fee.stage < 1 || fee.stage > 12 || !['INR', 'EUR', 'USD'].includes(fee.currency) || !['before', 'after'].includes(fee.timing) || !['ferex', 'direct_third_party'].includes(fee.recipient)) throw new Error('Each fee needs a name, a non-negative amount, currency, recipient and workflow stage.');
+    if (!fee.id.trim() || !fee.title.trim() || !Number.isFinite(fee.amount) || fee.amount < 0 || !Number.isInteger(fee.stage) || fee.stage < 1 || fee.stage > 12 || !['INR', 'EUR', 'USD', 'GBP', 'PLN'].includes(fee.currency) || !['before', 'after'].includes(fee.timing) || !['ferex', 'direct_third_party'].includes(fee.recipient)) throw new Error('Each fee needs a name, a non-negative amount, currency, recipient and workflow stage.');
     if (Object.values(fee.countryAmounts || {}).some(n => !Number.isFinite(n) || n < 0)) throw new Error('Country fees must be zero or a positive amount.');
     if (fee.tax_rate_percent !== undefined && (!Number.isFinite(fee.tax_rate_percent) || fee.tax_rate_percent < 0 || fee.tax_rate_percent > 100)) throw new Error('Tax rate must be between zero and 100 percent.');
     if (/university|tuition/i.test(fee.title) && fee.recipient !== 'direct_third_party') throw new Error('University and tuition fees must be paid directly to the institution.');

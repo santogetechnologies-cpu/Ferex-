@@ -188,6 +188,43 @@ export function useDigitalPermissions(): DigitalPermissions {
   };
 }
 
+// ─── Education Permissions ───────────────────────────────────────────────────
+
+export interface EducationPermissions {
+  isCentral: boolean;
+  isAdmin: boolean;
+  isStaff: boolean;
+  isStudent: boolean;
+  canManageUniversities: boolean;
+  canConfigureFees: boolean;
+  canRecordPayments: boolean;
+  canVerifyPayments: boolean;
+  canViewStudentBilling: boolean;
+  canApplyDiscounts: boolean;
+}
+
+export function useEducationPermissions(): EducationPermissions {
+  const { profile } = useAuth();
+  const role = (profile?.role || '').toLowerCase();
+  const isCentral = ['central', 'super_admin', 'superadmin'].includes(role);
+  const isAdmin = ['admin', 'education_admin', 'education'].includes(role) || isCentral;
+  const isStaff = ['staff', 'counselor'].includes(role);
+  const isStudent = role === 'student';
+
+  return {
+    isCentral,
+    isAdmin,
+    isStaff,
+    isStudent,
+    canManageUniversities: isAdmin,
+    canConfigureFees: isAdmin,
+    canRecordPayments: isAdmin,
+    canVerifyPayments: isAdmin,
+    canViewStudentBilling: isAdmin || isStaff,
+    canApplyDiscounts: isAdmin,
+  };
+}
+
 // ─── Utility: get current user id for filtering ───────────────────────────────
 export function useCurrentUserId(): string {
   const { profile } = useAuth();

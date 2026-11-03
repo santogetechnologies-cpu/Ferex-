@@ -17,20 +17,28 @@ import { ToastNotification } from '../../components/ToastNotification';
 export function formatFeeEURandINR(feeStr?: string): string {
   if (!feeStr || feeStr === 'N/A' || feeStr === '—') return '—';
   const str = String(feeStr).trim();
-  if (str.includes('~') && (str.includes('₹') || str.includes('€') || str.includes('$') || str.includes('£'))) return str;
+  if (str.includes('~') && (str.includes('₹') || str.includes('€') || str.includes('$') || str.includes('£') || str.includes('PLN') || str.includes('zł'))) return str;
 
-  // Handle fee range like "€3,200 - €4,500 / yr"
+  // Handle fee range like "€3,200 - €4,500 / yr" or "12,000 - 18,000 PLN / yr"
   const rangeMatch = str.match(/([€$£₹]?)\s*([\d,]+)\s*[-–]\s*([€$£₹]?)\s*([\d,]+)(.*)/);
   if (rangeMatch) {
-    const sym = rangeMatch[1] || rangeMatch[3] || '€';
+    const sym = rangeMatch[1] || rangeMatch[3] || '';
     const low = parseInt(rangeMatch[2].replace(/,/g, ''), 10);
     const high = parseInt(rangeMatch[4].replace(/,/g, ''), 10);
     const suffix = rangeMatch[5] || '';
     if (!isNaN(low) && !isNaN(high)) {
-      if (sym === '€' || str.toLowerCase().includes('eur')) {
+      if (str.toLowerCase().includes('pln') || str.includes('zł') || sym === 'zł') {
+        const inrLow = Math.round(low * 21);
+        const inrHigh = Math.round(high * 21);
+        const eurLow = Math.round(low / 4.3);
+        const eurHigh = Math.round(high / 4.3);
+        return `${low.toLocaleString('en-US')} - ${high.toLocaleString('en-US')} PLN${suffix} (~€${eurLow.toLocaleString('en-US')} - €${eurHigh.toLocaleString('en-US')} | ~₹${inrLow.toLocaleString('en-IN')} - ₹${inrHigh.toLocaleString('en-IN')})`;
+      } else if (sym === '€' || str.toLowerCase().includes('eur')) {
         const inrLow = Math.round(low * 90);
         const inrHigh = Math.round(high * 90);
-        return `€${low.toLocaleString('en-US')} - €${high.toLocaleString('en-US')}${suffix} (~₹${inrLow.toLocaleString('en-IN')} - ₹${inrHigh.toLocaleString('en-IN')}${suffix})`;
+        const plnLow = Math.round(low * 4.3);
+        const plnHigh = Math.round(high * 4.3);
+        return `€${low.toLocaleString('en-US')} - €${high.toLocaleString('en-US')}${suffix} (~₹${inrLow.toLocaleString('en-IN')} - ₹${inrHigh.toLocaleString('en-IN')} | ~${plnLow.toLocaleString()} - ${plnHigh.toLocaleString()} PLN)`;
       } else if (sym === '₹' || str.toLowerCase().includes('inr')) {
         const eurLow = Math.round(low / 90);
         const eurHigh = Math.round(high / 90);
@@ -53,9 +61,14 @@ export function formatFeeEURandINR(feeStr?: string): string {
   const hasMo = str.toLowerCase().includes('/ mo') || str.toLowerCase().includes('per month') || str.toLowerCase().includes('/mo');
   const suffix = hasYr ? ' / yr' : hasMo ? ' / mo' : '';
 
-  if (str.includes('€') || str.toLowerCase().includes('eur')) {
+  if (str.toLowerCase().includes('pln') || str.includes('zł') || str.toLowerCase().includes('zloty')) {
+    const inrVal = Math.round(num * 21);
+    const eurVal = Math.round(num / 4.3);
+    return `${num.toLocaleString('en-US')} PLN${suffix} (~€${eurVal.toLocaleString('en-US')} | ~₹${inrVal.toLocaleString('en-IN')})`;
+  } else if (str.includes('€') || str.toLowerCase().includes('eur')) {
     const inrVal = Math.round(num * 90);
-    return `€${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix})`;
+    const plnVal = Math.round(num * 4.3);
+    return `€${num.toLocaleString('en-US')}${suffix} (~₹${inrVal.toLocaleString('en-IN')}${suffix} | ~${plnVal.toLocaleString()} PLN)`;
   } else if (str.includes('₹') || str.toLowerCase().includes('inr') || (!str.includes('€') && !str.includes('$') && !str.includes('£') && num > 1000 && !hasYr)) {
     const eurVal = Math.round(num / 90);
     return `₹${num.toLocaleString('en-IN')}${suffix} (~€${eurVal.toLocaleString('en-US')}${suffix})`;
@@ -148,6 +161,8 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
   const [badge, setBadge] = useState('Top Choice');
   const [category, setCategory] = useState('Engineering');
   const [imageUrl, setImageUrl] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [directPaymentInstructions, setDirectPaymentInstructions] = useState('');
   const [description, setDescription] = useState('');
   const [rating, setRating] = useState('4.8');
   const [ranking, setRanking] = useState('100');
@@ -469,6 +484,8 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
     setBadge('Top Choice');
     setCategory('Engineering');
     setImageUrl('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80');
+    setLogoUrl('');
+    setDirectPaymentInstructions('');
     setDescription('');
     setRanking('100');
     setRating('4.8');
@@ -506,7 +523,9 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
     setCountry(u.country);
     setBadge(u.badge || 'Top Choice');
     setCategory(u.category || 'Engineering');
-    setImageUrl(u.image_url || ''); // No default image URL
+    setImageUrl(u.banner_image_url || u.image_url || '');
+    setLogoUrl(u.logo_url || '');
+    setDirectPaymentInstructions(u.direct_payment_instructions || '');
     setDescription(u.description || '');
     setRanking(String(u.ranking || 100));
     setRating(String(u.rating || 4.8));
@@ -586,7 +605,10 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
         city: city.trim() || 'Capital Campus',
         badge: badge.trim() || 'Top Choice',
         category: category.trim() || 'Engineering',
-        image_url: imageUrl.trim() || '', // NO DEFAULT IMAGE - Admin must upload
+        image_url: imageUrl.trim() || '',
+        banner_image_url: imageUrl.trim() || '',
+        logo_url: logoUrl.trim() || '',
+        direct_payment_instructions: directPaymentInstructions.trim() || '',
         description: description.trim() || `${name} offers accredited degree programs with global post-study work opportunities.`,
         rating: parseFloat(rating) || 4.8,
         ranking: parseInt(ranking) || 100,
@@ -825,11 +847,12 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                     <div>
                       {/* Card Image Banner */}
                       <div className="h-32 relative overflow-hidden bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900">
-                        {u.image_url ? (
+                        {(u.banner_image_url || u.image_url) ? (
                           <img
-                            src={u.image_url}
+                            src={u.banner_image_url || u.image_url}
                             alt={u.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
+                            onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-slate-400">
@@ -841,6 +864,12 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                         <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#58051E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/40 shadow-xs">
                           {u.badge || 'Top Choice'}
                         </span>
+
+                        {u.logo_url && (
+                          <div className="absolute top-2.5 left-2.5 w-8 h-8 rounded-xl bg-white p-1 border border-slate-200/80 shadow-md">
+                            <img src={u.logo_url} alt="" className="w-full h-full object-contain rounded-lg" onError={e => { (e.target as HTMLElement).style.display = 'none'; }} />
+                          </div>
+                        )}
 
                         <div className="absolute bottom-2 left-3 text-white">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300 bg-black/40 px-2 py-0.5 rounded">
@@ -1396,6 +1425,28 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                           />
                         </div>
                       )}
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">University Logo URL</label>
+                      <input
+                        type="url"
+                        value={logoUrl}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        placeholder="https://example.com/logo.png"
+                        className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Direct Student Tuition Payment Instructions (Flywire / Bank Wire)</label>
+                      <textarea
+                        rows={2}
+                        value={directPaymentInstructions}
+                        onChange={(e) => setDirectPaymentInstructions(e.target.value)}
+                        placeholder="Official IBAN / Flywire portal code for students to pay direct tuition..."
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                      />
                     </div>
 
                     <div>

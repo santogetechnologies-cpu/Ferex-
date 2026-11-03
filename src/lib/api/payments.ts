@@ -517,3 +517,165 @@ export async function getCreditNotes(studentId?: string): Promise<CreditNote[]> 
     return [];
   }
 }
+
+// ─── STUDENT FEE OVERRIDES & SCHOLARSHIPS ───────────────────────────────────
+
+export interface StudentFeeOverride {
+  id?: string;
+  student_id: string;
+  fee_id: string;
+  custom_amount: number;
+  currency: string;
+  discount_amount: number;
+  discount_reason?: string;
+  notes?: string;
+  approved_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export async function getStudentFeeOverrides(studentId: string): Promise<Record<string, StudentFeeOverride>> {
+  if (!studentId) return {};
+  try {
+    const { data, error } = await supabase
+      .from('education_student_fee_overrides')
+      .select('*')
+      .eq('student_id', studentId);
+    if (error || !data) return {};
+    const map: Record<string, StudentFeeOverride> = {};
+    for (const row of data) {
+      map[row.fee_id] = row;
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+export async function saveStudentFeeOverride(payload: {
+  student_id: string;
+  fee_id: string;
+  custom_amount: number;
+  currency?: string;
+  discount_amount: number;
+  discount_reason?: string;
+  notes?: string;
+}): Promise<StudentFeeOverride> {
+  const admin = await getAdminSupabaseClient();
+  const record = {
+    student_id: payload.student_id,
+    fee_id: payload.fee_id,
+    custom_amount: Number(payload.custom_amount) || 0,
+    currency: payload.currency || 'INR',
+    discount_amount: Number(payload.discount_amount) || 0,
+    discount_reason: payload.discount_reason || 'Merit Waiver',
+    notes: payload.notes || '',
+    updated_at: new Date().toISOString()
+  };
+
+  const { data, error } = await admin
+    .from('education_student_fee_overrides')
+    .upsert([record], { onConflict: 'student_id,fee_id' })
+    .select('*')
+    .single();
+
+  if (error) throw new Error(`Failed to save fee discount: ${error.message}`);
+  window.dispatchEvent(new Event('ferex_payment_change'));
+  window.dispatchEvent(new Event('ferex_fee_config_change'));
+  return data as StudentFeeOverride;
+}
+
+// ─── DIRECT UNIVERSITY & GOVERNMENT (VFS) PAYMENT SUBMISSIONS ──────────────
+
+export interface DirectPaymentRecord {
+  id: string;
+  student_id: string;
+  student_name: string;
+  application_id?: string;
+  university_id?: string;
+  fee_category: 'university_tuition' | 'vfs_visa_fee' | 'university_application' | 'embassy_legalization' | 'other_direct' | string;
+  institution_name: string;
+  amount_paid: number;
+  currency: string;
+  payment_method: string;
+  transaction_ref: string;
+  payment_date: string;
+  receipt_url: string;
+  verification_status: 'Pending Verification' | 'Verified' | 'Rejected';
+  verified_by?: string;
+  verified_at?: string;
+  reviewer_notes?: string;
+  created_at: string;
+}
+
+export async function submitDirectPaymentProof(payload: {
+  studentId: string;
+  studentName: string;
+  applicationId?: string;
+  universityId?: string;
+  feeCategory: string;
+  institutionName: string;
+  amountPaid: number;
+  currency: string;
+  paymentMethod?: string;
+  transactionRef: string;
+  paymentDate: string;
+  receiptUrl: string;
+}): Promise<DirectPaymentRecord> {
+  const row = {
+    student_id: payload.studentId,
+    student_name: payload.studentName,
+    application_id: payload.applicationId || null,
+    university_id: payload.universityId || null,
+    fee_category: payload.feeCategory,
+    institution_name: payload.institutionName,
+    amount_paid: payload.amountPaid,
+    currency: payload.currency || 'EUR',
+    payment_method: payload.paymentMethod || 'International Wire / Flywire',
+    transaction_ref: payload.transactionRef.trim(),
+    payment_date: payload.paymentDate,
+    receipt_url: payload.receiptUrl,
+    verification_status: 'Pending Verification'
+  };
+
+  const { data, error } = await supabase
+    .from('education_direct_payments')
+    .insert([row])
+    .select('*')
+    .single();
+
+  if (error) throw new Error(`Failed to submit direct payment proof: ${error.message}`);
+  window.dispatchEvent(new Event('ferex_direct_payment_change'));
+  return data as DirectPaymentRecord;
+}
+
+export async function listDirectPayments(studentId?: string): Promise<DirectPaymentRecord[]> {
+  try {
+    let query = supabase
+      .from('education_direct_payments')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (studentId) query = query.eq('student_id', studentId);
+    const { data, error } = await query;
+    if (error || !data) return [];
+    return data as DirectPaymentRecord[];
+  } catch {
+    return [];
+  }
+}
+
+export async function reviewDirectPayment(id: string, approve: boolean, notes: string): Promise<void> {
+  const admin = await getAdminSupabaseClient();
+  const { error } = await admin
+    .from('education_direct_payments')
+    .update({
+      verification_status: approve ? 'Verified' : 'Rejected',
+      reviewer_notes: notes.trim() || (approve ? 'Verified by finance admin' : 'Receipt could not be verified'),
+      verified_at: new Date().toISOString()
+    })
+    .eq('id', id);
+
+  if (error) throw new Error(`Failed to review direct payment: ${error.message}`);
+  window.dispatchEvent(new Event('ferex_direct_payment_change'));
+  window.dispatchEvent(new Event('ferex_journey_unlock'));
+}

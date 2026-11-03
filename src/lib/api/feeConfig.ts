@@ -16,7 +16,7 @@ export interface UniversityServiceFeeOverride {
   university_name: string;
   service_charge_amount: number;
   visa_documents_amount?: number;
-  currency: 'INR' | 'EUR' | 'USD';
+  currency: 'INR' | 'EUR' | 'USD' | 'GBP' | 'PLN';
   notes?: string;
 }
 
@@ -24,7 +24,7 @@ export interface CustomPaymentItem {
   id: string;
   title: string;
   amount: number;
-  currency: 'INR' | 'EUR' | 'USD';
+  currency: 'INR' | 'EUR' | 'USD' | 'GBP' | 'PLN';
   gst_enabled: boolean;
   trigger_stage:
     | 'before_reg'
@@ -47,14 +47,14 @@ export interface SystemFeeConfig {
   // ── Ferex Payment 1: Registration Fee ─────────────────────────────────────
   advance_registration_fee_enabled: boolean;
   advance_registration_fee_amount: number;
-  advance_registration_fee_currency: 'INR' | 'EUR' | 'USD';
+  advance_registration_fee_currency: 'INR' | 'EUR' | 'USD' | 'GBP' | 'PLN';
   gst_enabled_registration_fee: boolean;
   registration_fee_tax_type: string;
 
   // ── Ferex Payment 2: Cost for Documents for Visa (Pay after the offer letter) ──
   visa_documents_fee_enabled: boolean;
   visa_documents_fee_amount: number;
-  visa_documents_fee_currency: 'INR' | 'EUR' | 'USD';
+  visa_documents_fee_currency: 'INR' | 'EUR' | 'USD' | 'GBP' | 'PLN';
   gst_enabled_visa_documents_fee: boolean;
   visa_documents_fee_tax_type: string;
   visa_documents_fee_trigger: string; // "Pay after the offer letter"
@@ -62,7 +62,7 @@ export interface SystemFeeConfig {
   // ── Ferex Payment 3: Service Charge (After visa) ──────────────────────────
   service_charge_enabled: boolean;
   service_charge_amount: number;
-  service_charge_currency: 'INR' | 'EUR' | 'USD';
+  service_charge_currency: 'INR' | 'EUR' | 'USD' | 'GBP' | 'PLN';
   gst_enabled_service_charge: boolean;
   service_charge_tax_type: string;
   service_charge_trigger: string; // "Pay after visa"

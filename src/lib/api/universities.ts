@@ -53,6 +53,7 @@ export async function createUniversity(payload: {
   city?: string;
   logo_url?: string;
   image_url?: string;
+  banner_image_url?: string;
   badge?: string;
   category?: string;
   description?: string;
@@ -63,6 +64,15 @@ export async function createUniversity(payload: {
   intakes?: string[];
   university_fee?: string;
   tuition_fee_enabled?: boolean;
+  tuition_fee_currency?: string;
+  tuition_fee_min?: number;
+  tuition_fee_max?: number;
+  tuition_fee_pln?: number;
+  tuition_fee_eur?: number;
+  tuition_fee_usd?: number;
+  tuition_fee_inr?: number;
+  scholarship_percentage_max?: number;
+  direct_payment_instructions?: string;
   vfs_fee?: string;
   agency_fee?: string;
   agency_fee_description?: string;
@@ -80,13 +90,16 @@ export async function createUniversity(payload: {
   if (!trimmedName) throw new Error('University name is required.');
   if (!targetCountry) throw new Error('Country is required.');
 
+  const bannerImg = payload.banner_image_url || payload.image_url || '';
+
   const fullObject: University = {
     id: newId,
     name: trimmedName,
     country: targetCountry,
     city: payload.city?.trim() || '',
     logo_url: payload.logo_url || '',
-    image_url: payload.image_url || '',
+    image_url: bannerImg,
+    banner_image_url: bannerImg,
     badge: payload.badge || 'Accredited Partner',
     category: payload.category || 'Higher Education',
     description: payload.description || '',
@@ -98,6 +111,15 @@ export async function createUniversity(payload: {
     intakes: payload.intakes && payload.intakes.length > 0 ? payload.intakes : [],
     university_fee: payload.university_fee || payload.tuition_range || '',
     tuition_fee_enabled: Boolean(payload.tuition_fee_enabled),
+    tuition_fee_currency: payload.tuition_fee_currency || (targetCountry.toLowerCase().includes('poland') ? 'PLN' : 'EUR'),
+    tuition_fee_min: payload.tuition_fee_min,
+    tuition_fee_max: payload.tuition_fee_max,
+    tuition_fee_pln: payload.tuition_fee_pln,
+    tuition_fee_eur: payload.tuition_fee_eur,
+    tuition_fee_usd: payload.tuition_fee_usd,
+    tuition_fee_inr: payload.tuition_fee_inr,
+    scholarship_percentage_max: payload.scholarship_percentage_max,
+    direct_payment_instructions: payload.direct_payment_instructions,
     vfs_fee: payload.vfs_fee || '',
     agency_fee: payload.agency_fee || '',
     agency_fee_description: payload.agency_fee_description,
@@ -116,6 +138,7 @@ export async function createUniversity(payload: {
     city: fullObject.city,
     logo_url: fullObject.logo_url,
     image_url: fullObject.image_url,
+    banner_image_url: fullObject.banner_image_url,
     badge: fullObject.badge,
     category: fullObject.category,
     description: fullObject.description,
@@ -126,6 +149,15 @@ export async function createUniversity(payload: {
     intakes: fullObject.intakes,
     university_fee: fullObject.university_fee,
     tuition_fee_enabled: fullObject.tuition_fee_enabled,
+    tuition_fee_currency: fullObject.tuition_fee_currency,
+    tuition_fee_min: fullObject.tuition_fee_min,
+    tuition_fee_max: fullObject.tuition_fee_max,
+    tuition_fee_pln: fullObject.tuition_fee_pln,
+    tuition_fee_eur: fullObject.tuition_fee_eur,
+    tuition_fee_usd: fullObject.tuition_fee_usd,
+    tuition_fee_inr: fullObject.tuition_fee_inr,
+    scholarship_percentage_max: fullObject.scholarship_percentage_max,
+    direct_payment_instructions: fullObject.direct_payment_instructions,
     vfs_fee: fullObject.vfs_fee,
     agency_fee: fullObject.agency_fee,
     agency_fee_description: fullObject.agency_fee_description,
@@ -196,8 +228,10 @@ export async function createUniversity(payload: {
 export async function updateUniversity(id: string, payload: Partial<University>): Promise<University | null> {
   const dbPayload: any = {};
   const allowedCols = [
-    'name', 'country', 'city', 'logo_url', 'image_url', 'badge', 'category', 'description',
+    'name', 'country', 'city', 'logo_url', 'image_url', 'banner_image_url', 'badge', 'category', 'description',
     'ranking', 'rating', 'programs', 'tuition_range', 'intakes', 'university_fee', 'tuition_fee_enabled',
+    'tuition_fee_currency', 'tuition_fee_min', 'tuition_fee_max', 'tuition_fee_pln', 'tuition_fee_eur',
+    'tuition_fee_usd', 'tuition_fee_inr', 'scholarship_percentage_max', 'direct_payment_instructions',
     'vfs_fee', 'agency_fee', 'agency_fee_description', 'living_cost_monthly', 'nawa_required',
     'installments_enabled', 'course_programs', 'installments', 'semesters', 'is_active'
   ];

@@ -1,20 +1,28 @@
 export function formatFeeEURandINR(feeStr?: string | number): string {
   if (feeStr === undefined || feeStr === null || feeStr === '' || feeStr === 'N/A' || feeStr === '—') return '—';
   const str = String(feeStr).trim();
-  if (str.includes('~') && (str.includes('₹') || str.includes('€') || str.includes('$') || str.includes('£'))) return str;
+  if (str.includes('~') && (str.includes('₹') || str.includes('€') || str.includes('$') || str.includes('£') || str.includes('PLN') || str.includes('zł'))) return str;
 
-  // Handle fee range like "€3,200 - €4,500 / yr"
+  // Handle fee range like "€3,200 - €4,500 / yr" or "12,000 - 18,000 PLN / yr"
   const rangeMatch = str.match(/([€$£₹]?)\s*([\d,]+)\s*[-–]\s*([€$£₹]?)\s*([\d,]+)(.*)/);
   if (rangeMatch) {
-    const sym = rangeMatch[1] || rangeMatch[3] || '€';
+    const sym = rangeMatch[1] || rangeMatch[3] || '';
     const low = parseInt(rangeMatch[2].replace(/,/g, ''), 10);
     const high = parseInt(rangeMatch[4].replace(/,/g, ''), 10);
     const suffix = rangeMatch[5] || '';
     if (!isNaN(low) && !isNaN(high)) {
-      if (sym === '€' || str.toLowerCase().includes('eur')) {
+      if (str.toLowerCase().includes('pln') || str.includes('zł') || sym === 'zł') {
+        const inrLow = Math.round(low * 21);
+        const inrHigh = Math.round(high * 21);
+        const eurLow = Math.round(low / 4.3);
+        const eurHigh = Math.round(high / 4.3);
+        return `${low.toLocaleString('en-US')} - ${high.toLocaleString('en-US')} PLN${suffix} (~€${eurLow.toLocaleString('en-US')} - €${eurHigh.toLocaleString('en-US')} | ~₹${inrLow.toLocaleString('en-IN')} - ₹${inrHigh.toLocaleString('en-IN')})`;
+      } else if (sym === '€' || str.toLowerCase().includes('eur')) {
         const inrLow = Math.round(low * 90);
         const inrHigh = Math.round(high * 90);
-        return `€${low.toLocaleString('en-US')} - €${high.toLocaleString('en-US')}${suffix} (~₹${inrLow.toLocaleString('en-IN')} - ₹${inrHigh.toLocaleString('en-IN')}${suffix})`;
+        const plnLow = Math.round(low * 4.3);
+        const plnHigh = Math.round(high * 4.3);
+        return `€${low.toLocaleString('en-US')} - €${high.toLocaleString('en-US')}${suffix} (~₹${inrLow.toLocaleString('en-IN')} - ₹${inrHigh.toLocaleString('en-IN')} | ~${plnLow.toLocaleString()} - ${plnHigh.toLocaleString()} PLN)`;
       } else if (sym === '₹' || str.toLowerCase().includes('inr')) {
         const eurLow = Math.round(low / 90);
         const eurHigh = Math.round(high / 90);
@@ -37,9 +45,15 @@ export function formatFeeEURandINR(feeStr?: string | number): string {
   const hasMo = str.toLowerCase().includes('/ mo') || str.toLowerCase().includes('per month') || str.toLowerCase().includes('/mo');
   const suffix = hasYr ? ' / yr' : hasMo ? ' / mo' : '';
 
+  if (str.toLowerCase().includes('pln') || str.includes('zł') || str.toLowerCase().includes('zloty')) {
+    const inr = Math.round(num * 21);
+    const eur = Math.round(num / 4.3);
+    return `${num.toLocaleString('en-US')} PLN${suffix} (~€${eur.toLocaleString('en-US')} | ~₹${inr.toLocaleString('en-IN')})`;
+  }
   if (str.includes('€') || str.toLowerCase().includes('eur')) {
     const inr = Math.round(num * 90);
-    return `€${num.toLocaleString('en-US')}${suffix} (~₹${inr.toLocaleString('en-IN')}${suffix})`;
+    const pln = Math.round(num * 4.3);
+    return `€${num.toLocaleString('en-US')}${suffix} (~₹${inr.toLocaleString('en-IN')}${suffix} | ~${pln.toLocaleString()} PLN)`;
   }
   if (str.includes('₹') || str.toLowerCase().includes('inr')) {
     const eur = Math.round(num / 90);
@@ -65,6 +79,9 @@ export function parseFeeToINR(feeStr?: string | number): number {
   if (!match) return 0;
   const num = parseInt(match[0], 10);
   if (isNaN(num)) return 0;
+  if (str.toLowerCase().includes('pln') || str.includes('zł') || str.toLowerCase().includes('zloty')) {
+    return num * 21;
+  }
   if (str.includes('€') || str.toLowerCase().includes('eur')) {
     return num * 90;
   }

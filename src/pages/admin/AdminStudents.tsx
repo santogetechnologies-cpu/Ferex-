@@ -201,6 +201,12 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
 
   const [studentStages, setStudentStages] = useState<any[]>([]);
   const [loadingStages, setLoadingStages] = useState(false);
+  const [studentBillingSummary, setStudentBillingSummary] = useState<{
+    registrationPaid: boolean;
+    tuitionStatus: string;
+    visaStatus: string;
+    discounts: Array<{ fee_id: string; discount: number; reason: string }>;
+  } | null>(null);
 
   useEffect(() => {
     const loadStages = async () => {
@@ -209,6 +215,30 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         setLoadingStages(true);
         const { ensureJourneyStages } = await import('../../lib/api/journey');
         setStudentStages(await ensureJourneyStages(viewStudent.id));
+
+        const { listEducationPayments } = await import('../../lib/api/educationBilling');
+        const { listDirectPayments, getStudentFeeOverrides } = await import('../../lib/api/payments');
+        const [payments, direct, overrides] = await Promise.all([
+          listEducationPayments(viewStudent.id).catch(() => []),
+          listDirectPayments(viewStudent.id).catch(() => []),
+          getStudentFeeOverrides(viewStudent.id).catch(() => ({}))
+        ]);
+        const reg = payments.some(p => p.fee_id === 'registration' && ['Paid', 'Verified'].includes(p.status));
+        const tuitionPayment = direct.find(d => d.fee_category === 'university_tuition');
+        const visaPayment = direct.find(d => d.fee_category === 'vfs_visa_fee');
+        const tuitionStatus = tuitionPayment ? tuitionPayment.verification_status : 'Not Uploaded';
+        const visaStatus = visaPayment ? visaPayment.verification_status : 'Not Uploaded';
+        const discounts = Object.entries(overrides).map(([k, v]) => ({
+          fee_id: k,
+          discount: v.discount_amount,
+          reason: v.discount_reason
+        })).filter(d => d.discount > 0);
+        setStudentBillingSummary({
+          registrationPaid: reg,
+          tuitionStatus,
+          visaStatus,
+          discounts
+        });
       } catch (err) {
         console.error(err);
       } finally {
@@ -795,6 +825,65 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                     </div>
                   );
                 })()}
+
+                {/* Billing & Fee Clearance Status Card */}
+                {studentBillingSummary && (
+                  <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/50 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider block text-blue-900 flex items-center gap-1.5">
+                        <Receipt className="w-3.5 h-3.5 text-blue-700" />
+                        Fee Clearance & Direct Payment Status
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                        studentBillingSummary.registrationPaid && studentBillingSummary.tuitionStatus === 'Verified'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {studentBillingSummary.registrationPaid && studentBillingSummary.tuitionStatus === 'Verified' ? 'Fees Cleared' : 'Action Needed'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-xs">
+                      <div className="p-2.5 bg-white rounded-lg border border-blue-100 space-y-1">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">Registration Fee</div>
+                        <div className={`font-black flex items-center gap-1 ${studentBillingSummary.registrationPaid ? 'text-emerald-700' : 'text-amber-700'}`}>
+                          {studentBillingSummary.registrationPaid ? '✓ Settled' : '⏳ Unsettled'}
+                        </div>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-blue-100 space-y-1">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">Tuition Fee Wire</div>
+                        <div className={`font-black flex items-center gap-1 ${
+                          studentBillingSummary.tuitionStatus === 'Verified' ? 'text-emerald-700' :
+                          studentBillingSummary.tuitionStatus === 'Pending Verification' ? 'text-blue-700' : 'text-slate-600'
+                        }`}>
+                          {studentBillingSummary.tuitionStatus === 'Verified' ? '✓ Verified' :
+                           studentBillingSummary.tuitionStatus === 'Pending Verification' ? '⏳ Under Review' : '○ Not Uploaded'}
+                        </div>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-blue-100 space-y-1">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">VFS / Visa Gov Fee</div>
+                        <div className={`font-black flex items-center gap-1 ${
+                          studentBillingSummary.visaStatus === 'Verified' ? 'text-emerald-700' :
+                          studentBillingSummary.visaStatus === 'Pending Verification' ? 'text-blue-700' : 'text-slate-600'
+                        }`}>
+                          {studentBillingSummary.visaStatus === 'Verified' ? '✓ Verified' :
+                           studentBillingSummary.visaStatus === 'Pending Verification' ? '⏳ Under Review' : '○ Not Uploaded'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {studentBillingSummary.discounts.length > 0 && (
+                      <div className="pt-1 flex flex-wrap gap-1.5 items-center">
+                        <span className="text-[10px] font-bold text-slate-500">Applied Scholarships:</span>
+                        {studentBillingSummary.discounts.map(d => (
+                          <span key={d.fee_id} className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                            {d.reason || 'Scholarship'} (-₹{d.discount.toLocaleString('en-IN')})
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Stepper with Confirm buttons */}
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">

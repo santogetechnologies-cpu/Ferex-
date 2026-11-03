@@ -36,6 +36,7 @@ before(async () => {
   `);
   await db.exec(readFileSync('supabase/migrations/20261102120000_education_billing_integrity.sql', 'utf8'));
   await db.exec(readFileSync('supabase/migrations/20261103100000_education_access_integrity.sql', 'utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261103150000_education_multicurrency_discounts_direct_fees.sql', 'utf8'));
   await asUser(admin);
   const fee = (id: string, amount: number, more = {}) => ({ id, title: id === 'registration' ? 'Advanced Registration Fee' : 'Additional fee', enabled: true, amount, currency: 'INR', recipient: 'ferex', stage: 1, timing: 'before', ...more });
   await db.query(`INSERT INTO system_config(key,value) VALUES ('fee_config',$1),('payment_gateways',$2)`, [JSON.stringify({ education_fees: [fee('registration', 1500, { countryAmounts: { Canada: 2000 } }), fee('late', 100, { stage: 10, timing: 'after' }), fee('direct', 100, { recipient: 'direct_third_party' })], payment_gateways: { phonepe_upi_enabled: true } }), JSON.stringify({ upi: { enabled: true }, divisions: { education: { allowUpi: true } } })]);
@@ -94,4 +95,15 @@ test('students can sign only their own agreement and cannot overwrite it', async
 test('a student cannot self-approve admission and visa milestones', async () => {
   await asUser(student);
   await assert.rejects(db.exec(`UPDATE applications SET status='Visa Approved' WHERE id='${application}'`));
+});
+
+test('admin can configure fees in PLN (Polish Zloty) and GBP without trigger rejection', async () => {
+  await asUser(admin);
+  const plnFee = {
+    education_fees: [
+      { id: 'poland_tuition', title: 'Warsaw Registration', enabled: true, amount: 1500, currency: 'PLN', recipient: 'ferex', stage: 3, timing: 'before', tax_rate_percent: 0 },
+      { id: 'uk_admin', title: 'London Fee', enabled: true, amount: 250, currency: 'GBP', recipient: 'ferex', stage: 3, timing: 'before', tax_rate_percent: 0 }
+    ]
+  };
+  await assert.doesNotReject(db.query(`UPDATE system_config SET value=$1 WHERE key='fee_config'`, [JSON.stringify(plnFee)]));
 });
