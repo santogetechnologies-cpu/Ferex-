@@ -85,12 +85,13 @@ export const CentralEducation: React.FC = () => {
             Super Admin Console • Global partner university network, tuition rates, and enrollment quotas.
           </p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
-          <Plus className="w-4 h-4 mr-1.5" /> Add Partner University
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <UniversityBulkUpload onComplete={() => refresh()} />
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+            <Plus className="w-4 h-4 mr-1.5" /> Add Partner University
+          </Button>
+        </div>
       </div>
-
-      <UniversityBulkUpload onComplete={() => refresh()} />
 
       {/* Filter & Search Bar */}
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
