@@ -151,7 +151,7 @@ export const ServiceAgreement: React.FC = () => {
       registration_fee: regAmount,
       application_fee: docVisaAmount,
       visa_fee: serviceAmount,
-      currency: 'INR',
+      currency: feeConfig.education_fees?.[0]?.currency || 'INR',
       status: 'Signed',
       version: '2026.1',
     };
@@ -159,6 +159,16 @@ export const ServiceAgreement: React.FC = () => {
     try {
     const saved = await saveStudentAgreement(agreementRecord);
     setAgreement(saved);
+    try {
+      const { getJourneyStages, updateJourneyStageStatus } = await import('../lib/api/journey');
+      const stages = await getJourneyStages(studentId);
+      const s2 = stages.find(s => s.stage_number === 2);
+      if (s2 && s2.status !== 'Completed') {
+        await updateJourneyStageStatus(s2.id, 'Completed', '13-Clause Service Agreement digitally executed by student.');
+      }
+    } catch (stageErr) {
+      console.warn('Auto-advance Stage 2 notice:', stageErr);
+    }
     setIsSubmitting(false);
     setSuccessToast(true);
 

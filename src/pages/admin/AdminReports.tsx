@@ -7,6 +7,7 @@ import { useDocuments } from '../../hooks/useDocuments';
 import { usePayments } from '../../hooks/usePayments';
 import { useUniversities } from '../../hooks/useUniversities';
 import { ToastNotification } from '../../components/ToastNotification';
+import { formatAccountingTotals } from '../../lib/accountingPdf';
 
 const BarChart: React.FC<{ data: number[]; labels: string[]; color: string; unit?: string }> = ({ data, labels, color, unit = '' }) => {
   const max = Math.max(...data, 1);
@@ -38,9 +39,9 @@ export const AdminReports: React.FC = () => {
   const { payments } = usePayments();
   const { universities } = useUniversities();
 
-  const totalPaidRevenue = payments
-    .filter(p => p.status === 'Paid')
-    .reduce((sum, p) => sum + Number(p.amount), 0);
+  const verifiedPayments = payments.filter(p => ['Paid', 'Verified'].includes(p.status));
+  const revenueTotals = formatAccountingTotals(verifiedPayments.map(p => ({ amount: Number(p.amount), currency: p.currency || 'INR' })));
+  const totalPaidRevenue = verifiedPayments.filter(p => (p.currency || 'INR') === 'INR').reduce((sum, p) => sum + Number(p.amount), 0);
 
   // Dynamic doc status count
   const docTotal = documents.length || 1;
@@ -55,9 +56,17 @@ export const AdminReports: React.FC = () => {
   ];
 
   // Dynamic country breakdown
-  const countryData = [
-    { country: 'India', count: students.length, pct: students.length > 0 ? 100 : 0 },
-  ];
+  const countryCounts: Record<string, number> = {};
+  applications.forEach(a => {
+    const c = a.universities?.country || (a as any).country || 'Poland';
+    if (c && c !== 'Global' && c !== 'India') {
+      countryCounts[c] = (countryCounts[c] || 0) + 1;
+    }
+  });
+  const totalApps = Object.values(countryCounts).reduce((a, b) => a + b, 0) || 1;
+  const countryData = Object.entries(countryCounts).length > 0
+    ? Object.entries(countryCounts).map(([country, count]) => ({ country, count, pct: Math.round((count / totalApps) * 100) }))
+    : [{ country: 'Poland', count: students.length, pct: 100 }];
 
   const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
   const appData = [0, 0, 0, 0, 0, 0, 0, applications.length];

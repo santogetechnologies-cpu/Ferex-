@@ -4,13 +4,25 @@ import { Card } from '../../components/Card';
 import { ToastNotification } from '../../components/ToastNotification';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
+import { useAuth } from '../../contexts/AuthContext';
 import { getVisaRecords } from '../../lib/api/visa';
 import { getAllPaymentsAdmin } from '../../lib/api/payments';
 import { getPreDepartureRecords, savePreDepartureRecord } from '../../lib/api/preDeparture';
 import type { PreDepartureRecord } from '../../lib/api/preDeparture';
 
-export const AdminPreDeparture: React.FC = () => {
-  const { students: dbStudents } = useStudents();
+export interface AdminPreDepartureProps {
+  isStaff?: boolean;
+}
+
+export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = false }) => {
+  const { user, profile } = useAuth();
+  const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
+  const counselorName = (profile?.full_name || '').toLowerCase().trim();
+  const { students: allStudents } = useStudents();
+  const dbStudents = isStaff ? allStudents.filter(s => {
+    const ac = (s.assigned_counselor || '').toLowerCase().trim();
+    return !ac || ac === counselorEmail || ac === counselorName;
+  }) : allStudents;
   const { applications: dbApps } = useApplications();
 
   const [search, setSearch] = useState('');

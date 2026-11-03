@@ -188,7 +188,7 @@ export async function createMeeting(payload: {
     created_at: new Date().toISOString(),
     users: {
       full_name: resolvedStudentName || 'Student',
-      email: resolvedStudentEmail || 'student@ferex.com'
+      email: resolvedStudentEmail || ''
     }
   };
 

@@ -1,7 +1,7 @@
 import { useStudentAgreement } from '../hooks/useStudentAgreement';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { registrationSettled } from '../lib/educationBilling';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Compass, CheckCircle2, ArrowRight, ShieldCheck,

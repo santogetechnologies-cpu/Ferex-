@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText } from 'lucide-react';
+import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
 import { useDocuments } from '../../hooks/useDocuments';
@@ -231,7 +231,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         const discounts = Object.entries(overrides).map(([k, v]) => ({
           fee_id: k,
           discount: v.discount_amount,
-          reason: v.discount_reason
+          reason: v.discount_reason || ''
         })).filter(d => d.discount > 0);
         setStudentBillingSummary({
           registrationPaid: reg,

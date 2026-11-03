@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
   Headphones, GraduationCap, Bell, LogOut, Menu, X, ChevronRight,
-  Search, Building2, ShieldCheck, Calendar, Plane, FileText, Clock
+  Search, Building2, ShieldCheck, Calendar, Plane, FileText, Clock, MessageSquare
 } from 'lucide-react';
 import { Logo } from '../Logo';
 import { useAuth } from '../../contexts/AuthContext';
@@ -27,6 +27,7 @@ const baseStaffMenuItems = [
   { name: 'VFS Visa Tracker', path: '/staff/visa-tracker', icon: ShieldCheck },
   { name: 'Pre-Departure', path: '/staff/pre-departure', icon: Plane },
   { name: 'Support Tickets', path: '/staff/support', icon: Headphones },
+  { name: 'Advisory Chat', path: '/staff/chat', icon: MessageSquare },
   { name: 'Meetings & Planner', path: '/staff/meetings', icon: Calendar },
   { name: 'Notifications', path: '/staff/notifications', icon: Bell },
 ];

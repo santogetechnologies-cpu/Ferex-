@@ -44,32 +44,7 @@ export function useUniversities() {
     };
   }, [fetchUniversities]);
 
-  const addUniversity = async (payload: {
-    name: string;
-    country: string;
-    city?: string;
-    logo_url?: string;
-    image_url?: string;
-    badge?: string;
-    category?: string;
-    description?: string;
-    ranking?: number;
-    rating?: number;
-    programs?: string[];
-    tuition_range?: string;
-    intakes?: string[];
-    university_fee?: string;
-    tuition_fee_enabled?: boolean;
-    agency_fee?: string;
-    agency_fee_description?: string;
-    vfs_fee?: string;
-    living_cost_monthly?: string;
-    nawa_required?: boolean;
-    installments_enabled?: boolean;
-    course_programs?: CourseProgram[];
-    installments?: PaymentInstallment[];
-    semesters?: CourseSemester[];
-  }) => {
+  const addUniversity = async (payload: Parameters<typeof createUniversity>[0]) => {
     const created = await createUniversity(payload);
     setUniversities(prev => [created, ...prev.filter(u => u.id !== created.id)]);
     return created;

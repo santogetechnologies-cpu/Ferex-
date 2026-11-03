@@ -697,7 +697,11 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Assignee</label>
                     <select value={editTask.assignee} onChange={e => setEditTask({ ...editTask, assignee: e.target.value })} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900">
-                      {staffList.map(s => <option key={s}>{s}</option>)}
+                      {staffUsers.map((s: any) => (
+                        <option key={s.id} value={s.full_name || s.email}>
+                          {s.full_name || s.email?.split('@')[0]}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>

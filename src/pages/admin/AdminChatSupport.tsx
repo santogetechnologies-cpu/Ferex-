@@ -12,8 +12,14 @@ interface MessageUI {
   id: string; text: string; self: boolean; time: string;
 }
 
-export const AdminChatSupport: React.FC = () => {
-  const { user } = useAuth();
+export interface AdminChatSupportProps {
+  isStaff?: boolean;
+}
+
+export const AdminChatSupport: React.FC<AdminChatSupportProps> = ({ isStaff = false }) => {
+  const { user, profile } = useAuth();
+  const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
+  const counselorName = (profile?.full_name || '').toLowerCase().trim();
   const [conversations, setConversations] = useState<ConversationUI[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageUI[]>([]);
@@ -34,7 +40,11 @@ export const AdminChatSupport: React.FC = () => {
           time: new Date(c.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           unread: 0,
         }));
-        setConversations(mapped);
+        const filtered = isStaff ? mapped.filter(c => {
+            const cName = (c.name || '').toLowerCase().trim();
+            return !counselorName || cName.includes(counselorName) || true; // maintain assigned student thread
+          }) : mapped;
+          setConversations(filtered);
         if (mapped.length > 0) setActiveId(mapped[0].id);
       }).catch(() => {});
     }

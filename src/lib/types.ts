@@ -152,6 +152,7 @@ export interface Payment {
   id: string;
   student_id: string;
   student_name?: string;
+  fee_id?: string;
   business?: string;                // e.g. 'FEREX EU Admissions'
   ref_no: string;
   transaction_id?: string;          // gateway/bank transaction reference

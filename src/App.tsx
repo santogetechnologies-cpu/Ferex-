@@ -536,15 +536,16 @@ function App() {
           <Route path="/staff/applications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffApplications /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/offers" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminApplications initialFilter="Offer Issued" /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/documents" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDocuments /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/visa-tracker" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminVisaTracker /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/pre-departure" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminPreDeparture /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/visa-tracker" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminVisaTracker isStaff={true} /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/pre-departure" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminPreDeparture isStaff={true} /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/support" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTickets /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/tickets" element={<Navigate to="/staff/support" replace />} />
           <Route path="/staff/attendance" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffAttendance /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/timesheets" element={<Navigate to="/staff/attendance" replace />} />
           <Route path="/staff/shifts" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
           <Route path="/staff/shift-details" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
-          <Route path="/staff/meetings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminMeetings /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/meetings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminMeetings isStaff={true} /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/chat" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminChatSupport isStaff={true} /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/notifications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminNotifications /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/profile" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/settings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />

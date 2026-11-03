@@ -43,8 +43,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
   };
   const { tasks: assignedTasks } = useTasks(isStaff ? counselorIdentity : undefined);
 
-  const { students: dbStudents } = useStudents();
-  const { applications: dbApps } = useApplications();
+  const { students: allStudents } = useStudents();
+  const { applications: allApps } = useApplications();
+  const cEmail = (profile?.email || user?.email || '').toLowerCase().trim();
+  const cName = (profile?.full_name || '').toLowerCase().trim();
+  const dbStudents = isStaff ? allStudents.filter(s => {
+    const ac = (s.assigned_counselor || '').toLowerCase().trim();
+    return ac === cEmail || ac === cName;
+  }) : allStudents;
+  const studentIds = new Set(dbStudents.map(s => s.id));
+  const dbApps = isStaff ? allApps.filter(a => studentIds.has(a.student_id)) : allApps;
 
   const [statCards, setStatCards] = useState([
     { label: 'Total Students', value: '0', change: 'Live from DB', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: isStaff ? '/staff/students' : '/admin/students' },
@@ -66,7 +74,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
       icon: CreditCard,
       color: 'text-[#58051E] bg-[#58051E]/8',
       trend: 'up',
-      path: '/admin/payments'
+      path: '/admin/payment-control'
     }]),
     { label: 'Open Tickets', value: '0', change: 'Support Queue', icon: Headphones, color: 'text-red-600 bg-red-50/80', trend: 'down', path: isStaff ? '/staff/support' : '/admin/support' },
   ]);

@@ -1521,7 +1521,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                       currency: directCurrency,
                       transactionRef: directTxRef.trim(),
                       paymentDate: directDate,
-                      receiptFileUrl: directReceiptUrl.trim()
+                      receiptUrl: directReceiptUrl.trim()
                     });
                     setDirectUploadFee(null);
                     setMessage('Direct payment proof submitted successfully.');

@@ -7,11 +7,23 @@ import { useStudents } from '../../hooks/useStudents';
 import { getApplications, updateApplicationStatus } from '../../lib/api/applications';
 import { useVisa } from '../../hooks/useVisa';
 import { useApplications } from '../../hooks/useApplications';
+import { useAuth } from '../../contexts/AuthContext';
 import { generateUUID } from '../../utils/uuid';
 import { ToastNotification } from '../../components/ToastNotification';
 
-export const AdminVisaTracker: React.FC = () => {
-  const { students } = useStudents();
+export interface AdminVisaTrackerProps {
+  isStaff?: boolean;
+}
+
+export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = false }) => {
+  const { user, profile } = useAuth();
+  const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
+  const counselorName = (profile?.full_name || '').toLowerCase().trim();
+  const { students: allStudents } = useStudents();
+  const students = isStaff ? allStudents.filter(s => {
+    const ac = (s.assigned_counselor || '').toLowerCase().trim();
+    return !ac || ac === counselorEmail || ac === counselorName;
+  }) : allStudents;
   const { records, refresh, saveVisaUpdate } = useVisa();
   const { applications } = useApplications();
 
