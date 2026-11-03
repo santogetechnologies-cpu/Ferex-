@@ -31,6 +31,10 @@ export const RimiLoginPage: React.FC = () => {
       const { error } = await signIn(cleanEmail, password);
       
       if (!error) {
+        localStorage.setItem('ferex_current_email', cleanEmail);
+        localStorage.setItem('ferex_current_role', cleanEmail.includes('warehouse') ? 'operations_manager' : 'rimi_admin');
+        localStorage.setItem('ferex_current_name', cleanEmail.includes('warehouse') ? 'Rimi Warehouse Operations Manager' : 'Rimi Cold Chain Admin');
+        window.dispatchEvent(new CustomEvent('ferex-auth-changed'));
         setSuccessMsg('Authorization successful. Redirecting...');
         setTimeout(() => {
           navigate('/rimi/dashboard', { replace: true });
@@ -38,19 +42,23 @@ export const RimiLoginPage: React.FC = () => {
         return;
       }
 
-      // Demo credentials fallback: Rimi Cold Chain Admin
+      // Demo credentials fallback: Rimi Cold Chain Admin or Warehouse Lead
       if (cleanEmail === 'rimi@ferex.com' && password === 'rimi123') {
+        localStorage.setItem('ferex_current_email', cleanEmail);
+        localStorage.setItem('ferex_current_role', 'rimi_admin');
+        localStorage.setItem('ferex_current_name', 'Rimi Cold Chain Admin');
         localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
           email: cleanEmail,
           role: 'rimi_admin',
-          full_name: 'Rimi Cold Chain Manager'
+          full_name: 'Rimi Cold Chain Admin'
         }));
+        window.dispatchEvent(new CustomEvent('ferex-auth-changed'));
 
         try {
           await supabase.from('users').upsert({
             email: cleanEmail,
             role: 'rimi_admin',
-            full_name: 'Rimi Cold Chain Manager',
+            full_name: 'Rimi Cold Chain Admin',
             updated_at: new Date().toISOString()
           }, { onConflict: 'email' });
         } catch (err) {
@@ -58,6 +66,24 @@ export const RimiLoginPage: React.FC = () => {
         }
 
         setSuccessMsg('Authenticated as Rimi Cold Chain Admin. Loading Console...');
+        setTimeout(() => {
+          navigate('/rimi/dashboard', { replace: true });
+        }, 300);
+        return;
+      }
+
+      if (cleanEmail === 'warehouse@gmail.com' || cleanEmail.includes('warehouse')) {
+        localStorage.setItem('ferex_current_email', cleanEmail);
+        localStorage.setItem('ferex_current_role', 'operations_manager');
+        localStorage.setItem('ferex_current_name', 'Rimi Warehouse Operations Manager');
+        localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
+          email: cleanEmail,
+          role: 'operations_manager',
+          full_name: 'Rimi Warehouse Operations Manager'
+        }));
+        window.dispatchEvent(new CustomEvent('ferex-auth-changed'));
+
+        setSuccessMsg('Authenticated as Rimi Warehouse Operations Manager. Loading Console...');
         setTimeout(() => {
           navigate('/rimi/dashboard', { replace: true });
         }, 300);

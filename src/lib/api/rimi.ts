@@ -1034,7 +1034,6 @@ export async function getRimiSalesOrders(filters?: {
 
     let merged = Array.from(map.values()).sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
     if (filters?.customerId) {
-      merged = merged.filter(o => o.customer_id === filters.customerId);
     }
     if (filters?.status && filters.status !== 'All') {
       merged = merged.filter(o => o.order_status === filters.status);
@@ -1045,6 +1044,9 @@ export async function getRimiSalesOrders(filters?: {
     return getLocalRimiSalesOrders();
   }
 }
+
+// In-flight mutex to prevent duplicate sales order creation on rapid multi-clicks
+const recentCreatedOrders = new Map<string, { order: RimiSalesOrderRecord; time: number }>();
 
 export async function createRimiSalesOrder(order: {
   customer_id: string;
@@ -1065,6 +1067,15 @@ export async function createRimiSalesOrder(order: {
     unit?: string;
   }>;
 }): Promise<RimiSalesOrderRecord> {
+  // Idempotency / rapid debounce check: prevent identical creation within 4 seconds
+  const itemsKey = (order.items || []).map(i => `${i.product_id}_${i.quantity}_${i.unit_price}`).sort().join('|');
+  const dedupeKey = `${order.customer_id}:${itemsKey}`;
+  const now = Date.now();
+  const cached = recentCreatedOrders.get(dedupeKey);
+  if (cached && (now - cached.time) < 4000) {
+    return cached.order;
+  }
+
   const orderId = generateUUID();
   const orderNo = `SO-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
 
@@ -1240,6 +1251,7 @@ export async function createRimiSalesOrder(order: {
     }).catch(() => {});
   }
 
+  recentCreatedOrders.set(dedupeKey, { order: payload, time: Date.now() });
   triggerLocalSync('ferex_rimi_orders_change');
   return payload;
 }
@@ -1247,10 +1259,22 @@ export async function createRimiSalesOrder(order: {
 export async function updateRimiSalesOrderStatus(orderId: string, status: RimiSalesOrderRecord['order_status']): Promise<void> {
   const localOrders = getLocalRimiSalesOrders();
   let found = false;
+  let targetOrder: RimiSalesOrderRecord | undefined;
   const nowIso = new Date().toISOString();
   const updatedOrders = localOrders.map(o => {
     if (o.id === orderId) {
       found = true;
+      targetOrder = o;
+      if (status === 'Cancelled') {
+        return {
+          ...o,
+          order_status: status,
+          paid_amount: 0,
+          balance_amount: 0,
+          payment_status: 'Unpaid' as const,
+          updated_at: nowIso
+        };
+      }
       return { ...o, order_status: status, updated_at: nowIso };
     }
     return o;
@@ -1259,10 +1283,33 @@ export async function updateRimiSalesOrderStatus(orderId: string, status: RimiSa
     saveLocalRimiSalesOrders(updatedOrders);
   }
 
+  // If order is cancelled, revoke and purge all payment collection records linked to this order
+  if (status === 'Cancelled') {
+    try {
+      const localPayments = getLocalRimiPayments();
+      const orderNo = targetOrder?.order_no;
+      const filteredPayments = localPayments.filter(p => p.order_id !== orderId && (!orderNo || p.order_no !== orderNo));
+      saveLocalRimiPayments(filteredPayments);
+      triggerLocalSync('ferex_rimi_payments_change');
+    } catch {}
+
+    try {
+      await supabase.from('rimi_payments').delete().or(`order_id.eq.${orderId}${targetOrder?.order_no ? `,order_no.eq.${targetOrder.order_no}` : ''}`);
+    } catch (payDelErr) {
+      console.warn('[RimiAPI] Supabase payment purge warning for cancelled order:', payDelErr);
+    }
+  }
+
   try {
+    const dbUpdatePayload: any = { order_status: status, updated_at: nowIso };
+    if (status === 'Cancelled') {
+      dbUpdatePayload.paid_amount = 0;
+      dbUpdatePayload.balance_amount = 0;
+      dbUpdatePayload.payment_status = 'Unpaid';
+    }
     const { error } = await supabase
       .from('rimi_sales_orders')
-      .update({ order_status: status, updated_at: nowIso })
+      .update(dbUpdatePayload)
       .eq('id', orderId);
     if (error) {
       console.warn('[RimiAPI] Supabase sales order status update error:', error.message);
@@ -1352,6 +1399,17 @@ export async function getRimiPayments(filters?: { customerId?: string; orderId?:
     payments.forEach((p: RimiPaymentRecord) => map.set(p.id, { ...map.get(p.id), ...p }));
 
     let merged = Array.from(map.values()).sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
+
+    // Never return payments associated with cancelled sales orders
+    const localOrders = getLocalRimiSalesOrders();
+    const cancelledOrderIds = new Set(localOrders.filter(o => o.order_status === 'Cancelled').map(o => o.id));
+    const cancelledOrderNos = new Set(localOrders.filter(o => o.order_status === 'Cancelled').map(o => o.order_no));
+    merged = merged.filter((p: RimiPaymentRecord) => {
+      if (p.order_id && cancelledOrderIds.has(p.order_id)) return false;
+      if (p.order_no && cancelledOrderNos.has(p.order_no)) return false;
+      return true;
+    });
+
     if (filters?.customerId) {
       merged = merged.filter((p: RimiPaymentRecord) => p.customer_id === filters.customerId);
     }

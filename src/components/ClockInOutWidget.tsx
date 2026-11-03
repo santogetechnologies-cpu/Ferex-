@@ -33,8 +33,19 @@ export const ClockInOutWidget: React.FC<ClockInOutWidgetProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [successToast, setSuccessToast] = useState('');
 
-  const userRole = profile?.role || 'staff';
-  const userEmail = user?.email || profile?.email || 'staff@ferex.com';
+  const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_email') : null;
+  const storedRole = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_role') : null;
+  const storedName = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_name') : null;
+
+  const defaultEmail = divisionOverride === 'rimi' ? 'rimi@ferex.com' : 'staff@ferex.com';
+  const userEmail = (user?.email || profile?.email || storedEmail || defaultEmail).trim().toLowerCase();
+
+  const userRole = profile?.role || storedRole || (
+    userEmail.includes('rimi') ? 'rimi_admin' :
+    userEmail.includes('warehouse') ? 'operations_manager' :
+    'staff'
+  );
+
   const isSuper = userRole === 'superadmin' || userEmail.toLowerCase().includes('centraladmin') || divisionOverride === 'central';
 
   // Central Super Admin does not clock in
@@ -43,13 +54,18 @@ export const ClockInOutWidget: React.FC<ClockInOutWidgetProps> = ({
       return divisionOverride;
     }
     const inferred = inferDivision(
-      profile?.role,
+      userRole,
       profile?.department,
-      user?.email || profile?.email
+      userEmail
     );
     return inferred || divisionOverride || 'education';
   })();
-  const userName = profile?.full_name || user?.email?.split('@')[0] || 'Team Member';
+
+  const userName = profile?.full_name || storedName || (
+    userRole === 'rimi_admin' ? 'Rimi Cold Chain Admin' :
+    userRole === 'operations_manager' ? 'Rimi Warehouse Operations Manager' :
+    (user?.email?.split('@')[0] || 'Team Member')
+  );
   const userId = user?.id || profile?.id || 'usr-temp';
 
   const loadStatus = async () => {

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingCart, Search, Plus, Trash2, X, CheckCircle2,
   Truck, DollarSign, Package, User, MapPin, Eye,
-  Clock, CheckSquare, FileText, ChevronRight, AlertTriangle
+  Clock, CheckSquare, FileText, ChevronRight, AlertTriangle, RefreshCw
 } from 'lucide-react';
 
 import { Card } from '../../components/Card';
@@ -47,6 +47,7 @@ export const RimiSalesOrders: React.FC = () => {
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<RimiSalesOrderRecord | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
@@ -159,8 +160,10 @@ export const RimiSalesOrders: React.FC = () => {
 
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingOrder) return;
     if (!selectedCustomer || orderItems.length === 0) return;
 
+    setIsSubmittingOrder(true);
     try {
       const cust = customers.find(c => c.id === selectedCustomer);
       await createRimiSalesOrder({
@@ -180,6 +183,19 @@ export const RimiSalesOrders: React.FC = () => {
       await loadData();
     } catch (err: any) {
       showToast(`Error creating order: ${err.message || 'Database error'}`);
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  };
+
+  const handleCancelOrderFromPaymentModal = async (orderId: string) => {
+    try {
+      await handleUpdateStatus(orderId, 'Cancelled');
+      setShowPaymentModal(false);
+      showToast('Order cancelled and all payment collections revoked.');
+      await loadData();
+    } catch (err: any) {
+      showToast(`Error cancelling order: ${err.message || 'Database error'}`);
     }
   };
 
@@ -527,8 +543,30 @@ export const RimiSalesOrders: React.FC = () => {
                 </div>
 
                 <div className="pt-2 flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Confirm Order & Dispatch Truck</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs font-bold"
+                    disabled={isSubmittingOrder}
+                    onClick={() => setShowAddModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isSubmittingOrder || !selectedCustomer || orderItems.length === 0}
+                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmittingOrder ? (
+                      <span className="flex items-center justify-center gap-1.5">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Confirming & Dispatching...
+                      </span>
+                    ) : (
+                      'Confirm Order & Dispatch Truck'
+                    )}
+                  </Button>
                 </div>
               </form>
             </motion.div>
@@ -576,9 +614,24 @@ export const RimiSalesOrders: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="pt-3 flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowPaymentModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white">Save & Post to Ledger</Button>
+                <div className="pt-3 flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowPaymentModal(false)}>
+                      Close
+                    </Button>
+                    <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white">
+                      Save & Post to Ledger
+                    </Button>
+                  </div>
+                  {selectedOrder.order_status !== 'Cancelled' && (
+                    <button
+                      type="button"
+                      onClick={() => handleCancelOrderFromPaymentModal(selectedOrder.id)}
+                      className="w-full py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-600" /> Cancel Sales Order & Revoke Collections
+                    </button>
+                  )}
                 </div>
               </form>
             </motion.div>

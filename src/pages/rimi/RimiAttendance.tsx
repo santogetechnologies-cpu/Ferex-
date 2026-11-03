@@ -52,8 +52,9 @@ export const RimiAttendance: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
+  const storedName = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_name') : null;
   const adminId = user?.id || profile?.id || 'rimi-admin';
-  const adminName = profile?.full_name || 'Rimi Logistics Admin';
+  const adminName = profile?.full_name || storedName || 'Rimi Cold Chain Admin';
 
   const loadData = async () => {
     setLoading(true);

@@ -8,6 +8,7 @@ import {
   getRimiPayments,
   createRimiPayment,
   getRimiCustomers,
+  getRimiSalesOrders,
   type RimiPaymentRecord,
   type RimiCustomerRecord
 } from '../../lib/api/rimi';
@@ -45,11 +46,19 @@ export const RimiCollections: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [payList, custList] = await Promise.all([
+      const [payList, custList, orderList] = await Promise.all([
         getRimiPayments(),
-        getRimiCustomers()
+        getRimiCustomers(),
+        getRimiSalesOrders()
       ]);
-      setPayments(payList);
+      const cancelledOrderIds = new Set(orderList.filter(o => o.order_status === 'Cancelled').map(o => o.id));
+      const cancelledOrderNos = new Set(orderList.filter(o => o.order_status === 'Cancelled').map(o => o.order_no));
+      const validPayments = payList.filter(p => {
+        if (p.order_id && cancelledOrderIds.has(p.order_id)) return false;
+        if (p.order_no && cancelledOrderNos.has(p.order_no)) return false;
+        return true;
+      });
+      setPayments(validPayments);
       setCustomers(custList);
 
       if (custList.length > 0 && !newPayment.customer_id) {
@@ -70,14 +79,17 @@ export const RimiCollections: React.FC = () => {
     const channel = supabase
       .channel('realtime_rimi_payments_page')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_payments' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_sales_orders' }, () => loadData())
       .subscribe();
 
     const handleSync = () => loadData();
     window.addEventListener('ferex_rimi_payments_change', handleSync);
+    window.addEventListener('ferex_rimi_orders_change', handleSync);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_rimi_payments_change', handleSync);
+      window.removeEventListener('ferex_rimi_orders_change', handleSync);
     };
   }, [loadData]);
 

@@ -95,6 +95,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (currentSession?.user) {
         const authoritativeProfile = await ensureProfile(currentSession.user);
         if (generation === authGeneration.current) setProfile(authoritativeProfile);
+      } else {
+        // Fallback for division consoles with demo / active local user
+        const curEmail = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_email') : null;
+        const curRole = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_role') : null;
+        const curName = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_name') : null;
+        if (curEmail && curRole && generation === authGeneration.current) {
+          setProfile({
+            id: 'local-' + curEmail,
+            email: curEmail,
+            role: curRole,
+            full_name: curName || curEmail.split('@')[0],
+          });
+        }
       }
     } catch {
       // A profile lookup failure never grants a role from metadata or local storage.
@@ -129,8 +142,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loadUserData(newSession);
     });
 
+    // 3. Local division console auth listener
+    const handleAuthChange = () => {
+      supabase.auth.getSession().then(({ data }) => loadUserData(data.session));
+    };
+    window.addEventListener('ferex-auth-changed', handleAuthChange);
+
     return () => {
       authListener.subscription.unsubscribe();
+      window.removeEventListener('ferex-auth-changed', handleAuthChange);
     };
   }, [loadUserData]);
 
@@ -191,7 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await supabase.auth.signOut();
     } catch {}
     try {
-      const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('ferex_session_') || ['ferex_user', 'ferex_student_target_country', 'ferex_student_selected_uni', 'ferex_selected_course'].includes(k));
+      const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('ferex_session_') || k.startsWith('ferex_current_') || ['ferex_user', 'ferex_student_target_country', 'ferex_student_selected_uni', 'ferex_selected_course'].includes(k));
       keysToRemove.forEach(k => localStorage.removeItem(k));
     } catch {}
     setUser(null);

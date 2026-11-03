@@ -213,16 +213,18 @@ export const inferDivision = (
   }
   if (
     r.includes('rimi') ||
+    r.includes('warehouse') ||
     d.includes('rimi') ||
     d.includes('frozen') ||
-    em.includes('rimi')
+    em.includes('rimi') ||
+    em.includes('warehouse')
   ) {
     return 'rimi';
   }
   if (
     r.includes('trade') ||
     r.includes('logistics') ||
-    r === 'operations_manager' ||
+    (r === 'operations_manager' && !em.includes('warehouse') && !d.includes('rimi')) ||
     d.includes('trade') ||
     em.includes('trade') ||
     em.includes('tlo@')
@@ -364,8 +366,24 @@ export const getShifts = async (
         half_day_threshold_hours: 4.0,
         full_day_threshold_hours: 8.0,
         target_type: 'division',
-        assigned_staff_emails: ['rimi@ferex.com', 'logistics@ferex.com'],
-        assigned_roles: ['logistics_officer', 'staff', 'rimi_admin'],
+        assigned_staff_emails: ['rimi@ferex.com', 'logistics@ferex.com', 'ferexrimi@santoge.com'],
+        assigned_roles: ['rimi_admin', 'logistics_officer', 'staff'],
+        is_active: true,
+      },
+      {
+        id: '55555555-5555-5555-5555-555555555009',
+        name: 'Rimi Warehouse Operations Shift',
+        division: 'rimi',
+        start_time: '08:00:00',
+        end_time: '17:00:00',
+        grace_period_mins: 15,
+        half_day_hours: 4.0,
+        full_day_hours: 8.0,
+        half_day_threshold_hours: 4.0,
+        full_day_threshold_hours: 8.0,
+        target_type: 'division',
+        assigned_staff_emails: ['warehouse@gmail.com'],
+        assigned_roles: ['operations_manager'],
         is_active: true,
       },
       {
@@ -582,7 +600,9 @@ export const getEnterpriseStaff = async (): Promise<StaffMember[]> => {
   const defaults: StaffMember[] = [
     { email: 'counselor@ferex.com', name: 'Education Counselor', role: 'counselor', division: 'education' },
     { email: 'education@ferex.com', name: 'Admissions Lead Counselor', role: 'education_admin', division: 'education' },
-    { email: 'rimi@ferex.com', name: 'Rimi Cold Chain Logistics Lead', role: 'logistics_officer', division: 'rimi' },
+    { email: 'rimi@ferex.com', name: 'Rimi Cold Chain Admin', role: 'rimi_admin', division: 'rimi' },
+    { email: 'ferexrimi@santoge.com', name: 'Rimi Cold Chain Admin', role: 'rimi_admin', division: 'rimi' },
+    { email: 'warehouse@gmail.com', name: 'Rimi Warehouse Operations Manager', role: 'operations_manager', division: 'rimi' },
     { email: 'trade@ferex.com', name: 'Global Trade Operations Director', role: 'operations_manager', division: 'trade' },
     { email: 'digital@ferex.com', name: 'Ferex Digital Director', role: 'digital_admin', division: 'digital' },
     { email: 'digimanager@ferex.com', name: 'Digital Delivery Manager', role: 'digital_manager', division: 'digital' },
@@ -687,12 +707,29 @@ export const clockIn = async (params: {
         (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
       );
 
+  // Strict identity normalization: Admin clock-in must never leak or assign to Operation Manager
+  const emLower = (params.userEmail || '').trim().toLowerCase();
+  let resolvedRole = params.userRole;
+  let resolvedName = params.userName;
+
+  if (emLower.includes('rimi') || resolvedRole === 'rimi_admin') {
+    resolvedRole = 'rimi_admin';
+    if (!resolvedName || resolvedName === 'Team Member' || resolvedName === 'Operations Manager' || resolvedName === 'Rimi Operations Lead') {
+      resolvedName = 'Rimi Cold Chain Admin';
+    }
+  } else if (emLower.includes('warehouse') || resolvedRole === 'operations_manager') {
+    resolvedRole = 'operations_manager';
+    if (!resolvedName || resolvedName === 'Team Member') {
+      resolvedName = 'Rimi Warehouse Operations Manager';
+    }
+  }
+
   const newRecord: AttendanceTimesheet = {
     id: recordId,
     user_id: params.userId,
-    user_email: params.userEmail,
-    user_name: params.userName,
-    user_role: params.userRole,
+    user_email: emLower,
+    user_name: resolvedName,
+    user_role: resolvedRole,
     division: params.division,
     shift_id: params.shiftId || null,
     shift_name: params.shiftName || 'Standard Shift',
@@ -716,9 +753,9 @@ export const clockIn = async (params: {
   try {
     const dbPayload: any = {
       id: recordId,
-      user_name: params.userName,
-      user_email: params.userEmail,
-      user_role: params.userRole,
+      user_name: resolvedName,
+      user_email: emLower,
+      user_role: resolvedRole,
       division: params.division,
       shift_name: params.shiftName || 'Standard Shift',
       work_date: today,
