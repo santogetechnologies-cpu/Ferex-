@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DollarSign, Search, CheckCircle2, Plus, Trash2, X, Eye, Receipt, FileText, Printer, Building2, Check } from 'lucide-react';
+import { DollarSign, Search, CheckCircle2, Plus, Trash2, X, Eye, Receipt, FileText, Printer, Building2, Check, Calendar, CalendarRange, Filter, BarChart2, ChevronRight } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
@@ -15,7 +15,9 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead'];
+
+type DateFilterType = 'All' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly' | 'Custom';
 
 export const RimiCollections: React.FC = () => {
   const { profile } = useAuth();
@@ -28,6 +30,12 @@ export const RimiCollections: React.FC = () => {
   const [customers, setCustomers] = useState<RimiCustomerRecord[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<RimiPaymentRecord | null>(null);
+
+  // Date-based filters & Summary State
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('All');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [showMonthlySummary, setShowMonthlySummary] = useState(false);
 
   const [newPayment, setNewPayment] = useState({
     customer_id: '',
@@ -122,17 +130,77 @@ export const RimiCollections: React.FC = () => {
     }
   };
 
-  const filteredPayments = payments.filter(p => {
-    const s = searchQuery.toLowerCase();
-    return (
+  const isPaymentInDateRange = useCallback((p: RimiPaymentRecord) => {
+    if (dateFilter === 'All') return true;
+    const rawDate = p.payment_date || p.created_at;
+    if (!rawDate) return false;
+    const pDate = new Date(rawDate);
+    pDate.setHours(0, 0, 0, 0);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (dateFilter === 'Daily') {
+      return pDate.getTime() === today.getTime();
+    }
+    if (dateFilter === 'Weekly') {
+      const oneWeekAgo = new Date(today);
+      oneWeekAgo.setDate(today.getDate() - 7);
+      return pDate >= oneWeekAgo && pDate <= today;
+    }
+    if (dateFilter === 'Monthly') {
+      return pDate.getFullYear() === today.getFullYear() && pDate.getMonth() === today.getMonth();
+    }
+    if (dateFilter === 'Yearly') {
+      return pDate.getFullYear() === today.getFullYear();
+    }
+    if (dateFilter === 'Custom') {
+      if (!customStartDate && !customEndDate) return true;
+      const start = customStartDate ? new Date(customStartDate) : new Date('2020-01-01');
+      start.setHours(0, 0, 0, 0);
+      const end = customEndDate ? new Date(customEndDate) : new Date('2099-12-31');
+      end.setHours(23, 59, 59, 999);
+      return pDate >= start && pDate <= end;
+    }
+    return true;
+  }, [dateFilter, customStartDate, customEndDate]);
+
+  const periodFilteredPayments = useMemo(() => {
+    return payments.filter(isPaymentInDateRange);
+  }, [payments, isPaymentInDateRange]);
+
+  const filteredPayments = useMemo(() => {
+    const s = searchQuery.toLowerCase().trim();
+    if (!s) return periodFilteredPayments;
+    return periodFilteredPayments.filter(p =>
       p.payment_no.toLowerCase().includes(s) ||
       p.customer_name.toLowerCase().includes(s) ||
       (p.reference_no && p.reference_no.toLowerCase().includes(s)) ||
       p.payment_method.toLowerCase().includes(s)
     );
-  });
+  }, [periodFilteredPayments, searchQuery]);
 
-  const totalCollected = payments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  const periodTotal = useMemo(() => {
+    return periodFilteredPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  }, [periodFilteredPayments]);
+
+  const totalCollected = useMemo(() => {
+    return payments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  }, [payments]);
+
+  const monthlySummary = useMemo(() => {
+    const map = new Map<string, { monthKey: string; monthLabel: string; total: number; count: number; date: Date }>();
+    for (const p of payments) {
+      const d = new Date(p.payment_date || p.created_at);
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthLabel = d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      const current = map.get(monthKey) || { monthKey, monthLabel, total: 0, count: 0, date: new Date(d.getFullYear(), d.getMonth(), 1) };
+      current.total += Number(p.amount || 0);
+      current.count += 1;
+      map.set(monthKey, current);
+    }
+    return Array.from(map.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [payments]);
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -148,10 +216,15 @@ export const RimiCollections: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-black text-emerald-800">
-            Total Realized: ₹{totalCollected.toLocaleString('en-IN')}
-          </div>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowMonthlySummary(true)}
+            className="text-xs font-bold border-slate-200 text-slate-700 hover:border-[#58051E] hover:text-[#58051E] flex items-center gap-1.5"
+          >
+            <BarChart2 className="w-4 h-4 text-[#58051E]" /> Monthly Payment Summary
+          </Button>
           <Button
             size="sm"
             onClick={() => setShowAddModal(true)}
@@ -162,18 +235,128 @@ export const RimiCollections: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <Card className="p-4 border border-slate-200/80 shadow-xs">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search payment reference no, customer business name..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
-          />
+      {/* Summary KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <Card className="p-4 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-xs">
+          <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider block">
+            {dateFilter === 'All' ? 'Total Realized Collections' : `Period Realized (${dateFilter})`}
+          </span>
+          <div className="flex items-baseline justify-between mt-1">
+            <span className="text-2xl font-black text-emerald-900">₹{periodTotal.toLocaleString('en-IN')}</span>
+            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
+              {periodFilteredPayments.length} records
+            </span>
+          </div>
+          <span className="text-[10px] font-semibold text-emerald-600 block mt-1">
+            {dateFilter === 'All' ? 'All-time uncancelled receipts' : `Collections matching ${dateFilter} date range`}
+          </span>
+        </Card>
+
+        <Card className="p-4 bg-slate-50 border border-slate-200 shadow-xs">
+          <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider block">All-Time Cumulative Collections</span>
+          <div className="flex items-baseline justify-between mt-1">
+            <span className="text-2xl font-black text-slate-900">₹{totalCollected.toLocaleString('en-IN')}</span>
+            <span className="text-[11px] font-bold text-slate-600 bg-slate-200/60 px-2 py-0.5 rounded-full">
+              {payments.length} total
+            </span>
+          </div>
+          <span className="text-[10px] font-semibold text-slate-400 block mt-1">Lifetime gross realized settlements</span>
+        </Card>
+
+        <Card className="p-4 bg-slate-50 border border-slate-200 shadow-xs flex flex-col justify-between">
+          <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider block">Active Date Scope</span>
+          <div className="mt-1 flex items-center gap-1.5">
+            <Calendar className="w-4 h-4 text-[#58051E]" />
+            <span className="text-sm font-black text-slate-800">
+              {dateFilter === 'Custom' ? (customStartDate && customEndDate ? `${customStartDate} to ${customEndDate}` : 'Custom Date Range') : dateFilter}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowMonthlySummary(true)}
+            className="text-[11px] font-bold text-[#58051E] hover:underline text-left mt-2 flex items-center gap-1 cursor-pointer"
+          >
+            <span>View Month-by-Month Analytics</span>
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        </Card>
+      </div>
+
+      {/* Date Filter & Search Bar */}
+      <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Date Filter Buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] font-black uppercase text-slate-400 mr-1 flex items-center gap-1">
+              <Filter className="w-3 h-3" /> Period:
+            </span>
+            {(['All', 'Daily', 'Weekly', 'Monthly', 'Yearly', 'Custom'] as DateFilterType[]).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setDateFilter(tab)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  dateFilter === tab
+                    ? 'bg-[#58051E] text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                }`}
+              >
+                {tab === 'Daily' ? 'Daily (Today)' : tab === 'Weekly' ? 'Weekly (7 Days)' : tab === 'Monthly' ? 'Monthly' : tab === 'Yearly' ? 'Yearly' : tab === 'Custom' ? 'Custom Date Range' : 'All Time'}
+              </button>
+            ))}
+          </div>
+
+          {/* Quick Search Input */}
+          <div className="relative min-w-[260px] flex-1 lg:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search reference no, customer..."
+              className="w-full h-8.5 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+            />
+          </div>
         </div>
+
+        {/* Custom Date Range Pickers (shown when Custom is active) */}
+        {dateFilter === 'Custom' && (
+          <div className="pt-2 border-t border-slate-100 flex items-center gap-3 flex-wrap bg-slate-50/80 p-3 rounded-xl text-xs">
+            <span className="text-[10px] font-black uppercase text-slate-500 flex items-center gap-1">
+              <CalendarRange className="w-3.5 h-3.5 text-[#58051E]" /> Custom Range:
+            </span>
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase">From:</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase">To:</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900"
+              />
+            </div>
+            {(customStartDate || customEndDate) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomStartDate('');
+                  setCustomEndDate('');
+                }}
+                className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer ml-auto"
+              >
+                Clear Dates
+              </button>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Collections Table */}
@@ -444,6 +627,108 @@ export const RimiCollections: React.FC = () => {
                 </div>
               </div>
             </div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Monthly Payment Summary Drawer */}
+      <AnimatePresence>
+        {showMonthlySummary && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900 z-40" onClick={() => setShowMonthlySummary(false)} />
+            <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-md bg-white z-50 shadow-2xl p-6 overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <BarChart2 className="w-4 h-4 text-[#58051E]" /> Monthly Payment Summary
+                  </h3>
+                  <span className="text-[10px] font-bold text-slate-500">
+                    Gross realized collection analytics grouped by calendar month
+                  </span>
+                </div>
+                <button onClick={() => setShowMonthlySummary(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Monthly Summary Cards */}
+              <div className="space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-emerald-50 border border-emerald-200/80 rounded-2xl">
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase block">Total Realized</span>
+                    <span className="text-lg font-black text-emerald-950 mt-0.5 block">₹{totalCollected.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Active Months</span>
+                    <span className="text-lg font-black text-slate-900 mt-0.5 block">{monthlySummary.length} Months</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 pt-2">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">Month-by-Month Breakdown</h4>
+                  {monthlySummary.length === 0 ? (
+                    <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-2xl">No collection history available</div>
+                  ) : (
+                    monthlySummary.map((m) => {
+                      const maxMonthTotal = Math.max(...monthlySummary.map(x => x.total), 1);
+                      const percentOfMax = Math.min(100, Math.round((m.total / maxMonthTotal) * 100));
+
+                      return (
+                        <div key={m.monthKey} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70 space-y-2 hover:bg-slate-100/60 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-black text-slate-900 block text-xs">{m.monthLabel}</span>
+                              <span className="text-[10px] text-slate-500 font-semibold">{m.count} transaction{m.count > 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-black text-emerald-700 text-sm block">₹{m.total.toLocaleString('en-IN')}</span>
+                              <span className="text-[9px] text-slate-400 font-bold">Avg: ₹{Math.round(m.total / m.count).toLocaleString('en-IN')}</span>
+                            </div>
+                          </div>
+
+                          {/* Progress indicator */}
+                          <div className="w-full bg-slate-200/70 h-1.5 rounded-full overflow-hidden">
+                            <div className="bg-[#58051E] h-full rounded-full transition-all" style={{ width: `${percentOfMax}%` }} />
+                          </div>
+
+                          <div className="pt-1 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const year = m.date.getFullYear();
+                                const month = m.date.getMonth();
+                                const startStr = new Date(year, month, 1).toISOString().split('T')[0];
+                                const endStr = new Date(year, month + 1, 0).toISOString().split('T')[0];
+                                setDateFilter('Custom');
+                                setCustomStartDate(startStr);
+                                setCustomEndDate(endStr);
+                                setShowMonthlySummary(false);
+                                showToastMsg(`Filtered records to ${m.monthLabel}`);
+                              }}
+                              className="text-[10px] font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>Filter list to this month</span>
+                              <ChevronRight className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="pt-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs font-bold"
+                    onClick={() => setShowMonthlySummary(false)}
+                  >
+                    Close Summary
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
           </>
         )}
       </AnimatePresence>

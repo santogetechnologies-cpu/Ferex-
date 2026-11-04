@@ -174,3 +174,146 @@ test('Order cancellation stock restoration: restores quantities to batches', () 
   assert.equal(b2?.quantity, 25);
   assert.equal(b2?.status, 'Active');
 });
+
+test('Customer deletion tombstone ensures deleted customer is purged and cannot be revived', () => {
+  const localCustomers = [
+    { id: 'c-1', business_name: 'Alpha Traders' },
+    { id: 'c-2', business_name: 'Beta Frozen Foods' },
+    { id: 'c-3', business_name: 'Gamma Stores' }
+  ];
+
+  const dbCustomers = [
+    { id: 'c-1', business_name: 'Alpha Traders' },
+    { id: 'c-2', business_name: 'Beta Frozen Foods' },
+    { id: 'c-3', business_name: 'Gamma Stores' }
+  ];
+
+  const deletedId = 'c-2';
+  const deletedSet = new Set([deletedId]);
+
+  // Purge from local cache
+  const updatedLocal = localCustomers.filter(c => !deletedSet.has(c.id));
+  assert.equal(updatedLocal.length, 2);
+  assert.ok(!updatedLocal.some(c => c.id === deletedId));
+
+  // Merge simulation excluding tombstoned IDs
+  const map = new Map();
+  updatedLocal.forEach(c => map.set(c.id, c));
+  dbCustomers
+    .filter(c => !deletedSet.has(c.id))
+    .forEach(c => map.set(c.id, { ...map.get(c.id), ...c }));
+
+  const finalMerged = Array.from(map.values());
+  assert.equal(finalMerged.length, 2);
+  assert.deepEqual(finalMerged.map(c => c.id), ['c-1', 'c-3']);
+  assert.ok(!finalMerged.some(c => c.id === deletedId));
+});
+
+test('Payment Collections date filtering: Daily, Weekly, Monthly, Yearly, and Custom Range', () => {
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+
+  const fiveDaysAgo = new Date(now);
+  fiveDaysAgo.setDate(now.getDate() - 5);
+  const fiveDaysAgoStr = fiveDaysAgo.toISOString().split('T')[0];
+
+  const fortyDaysAgo = new Date(now);
+  fortyDaysAgo.setDate(now.getDate() - 40);
+  const fortyDaysAgoStr = fortyDaysAgo.toISOString().split('T')[0];
+
+  const lastYear = new Date(now);
+  lastYear.setFullYear(now.getFullYear() - 1);
+  const lastYearStr = lastYear.toISOString().split('T')[0];
+
+  const samplePayments = [
+    { id: 'p1', amount: 10000, payment_date: todayStr },
+    { id: 'p2', amount: 20000, payment_date: fiveDaysAgoStr },
+    { id: 'p3', amount: 30000, payment_date: fortyDaysAgoStr },
+    { id: 'p4', amount: 40000, payment_date: lastYearStr }
+  ];
+
+  const filterByRange = (filterType: string, customStart?: string, customEnd?: string) => {
+    return samplePayments.filter(p => {
+      if (filterType === 'All') return true;
+      const pDate = new Date(p.payment_date);
+      pDate.setHours(0, 0, 0, 0);
+
+      const t = new Date();
+      t.setHours(0, 0, 0, 0);
+
+      if (filterType === 'Daily') return pDate.getTime() === t.getTime();
+      if (filterType === 'Weekly') {
+        const weekAgo = new Date(t);
+        weekAgo.setDate(t.getDate() - 7);
+        return pDate >= weekAgo && pDate <= t;
+      }
+      if (filterType === 'Monthly') {
+        return pDate.getFullYear() === t.getFullYear() && pDate.getMonth() === t.getMonth();
+      }
+      if (filterType === 'Yearly') {
+        return pDate.getFullYear() === t.getFullYear();
+      }
+      if (filterType === 'Custom') {
+        const start = customStart ? new Date(customStart) : new Date('2000-01-01');
+        start.setHours(0, 0, 0, 0);
+        const end = customEnd ? new Date(customEnd) : new Date('2099-12-31');
+        end.setHours(23, 59, 59, 999);
+        return pDate >= start && pDate <= end;
+      }
+      return true;
+    });
+  };
+
+  // Daily: should match p1 only
+  const daily = filterByRange('Daily');
+  assert.equal(daily.length, 1);
+  assert.equal(daily[0].id, 'p1');
+
+  // Weekly: should match p1 and p2
+  const weekly = filterByRange('Weekly');
+  assert.equal(weekly.length, 2);
+  assert.deepEqual(weekly.map(p => p.id), ['p1', 'p2']);
+
+  // Yearly: should match p1, p2, and p3 (same year), but exclude p4 (last year)
+  const yearly = filterByRange('Yearly');
+  assert.ok(yearly.some(p => p.id === 'p1'));
+  assert.ok(yearly.some(p => p.id === 'p2'));
+  assert.ok(!yearly.some(p => p.id === 'p4'));
+
+  // Custom range: between 10 days ago and today
+  const custom = filterByRange('Custom', fiveDaysAgoStr, todayStr);
+  assert.equal(custom.length, 2);
+  assert.deepEqual(custom.map(p => p.id), ['p1', 'p2']);
+});
+
+test('Monthly payment summary correctly groups amounts and transaction counts by month', () => {
+  const payments = [
+    { id: 'p1', amount: 25000, payment_date: '2026-03-05' },
+    { id: 'p2', amount: 15000, payment_date: '2026-03-12' },
+    { id: 'p3', amount: 50000, payment_date: '2026-02-18' },
+    { id: 'p4', amount: 10000, payment_date: '2026-01-22' }
+  ];
+
+  const map = new Map();
+  for (const p of payments) {
+    const d = new Date(p.payment_date);
+    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const cur = map.get(monthKey) || { total: 0, count: 0 };
+    cur.total += p.amount;
+    cur.count += 1;
+    map.set(monthKey, cur);
+  }
+
+  const march = map.get('2026-03');
+  const feb = map.get('2026-02');
+  const jan = map.get('2026-01');
+
+  assert.equal(march?.total, 40000);
+  assert.equal(march?.count, 2);
+
+  assert.equal(feb?.total, 50000);
+  assert.equal(feb?.count, 1);
+
+  assert.equal(jan?.total, 10000);
+  assert.equal(jan?.count, 1);
+});

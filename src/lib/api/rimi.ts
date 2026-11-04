@@ -295,6 +295,28 @@ export function saveLocalRimiCustomers(customers: RimiCustomerRecord[]): void {
   } catch {}
 }
 
+const RIMI_DELETED_CUSTOMERS_STORAGE_KEY = 'ferex_rimi_deleted_customer_ids';
+
+export function getDeletedRimiCustomerIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(RIMI_DELETED_CUSTOMERS_STORAGE_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set();
+}
+
+export function addDeletedRimiCustomerId(id: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const set = getDeletedRimiCustomerIds();
+    set.add(id);
+    localStorage.setItem(RIMI_DELETED_CUSTOMERS_STORAGE_KEY, JSON.stringify(Array.from(set)));
+  } catch {}
+}
 
 export async function getRimiCustomers(filters?: {
   staffEmail?: string;
@@ -330,19 +352,30 @@ export async function getRimiCustomers(filters?: {
       }
     } catch {}
 
-    // Merge Supabase records with local storage cache
-    const local = getLocalRimiCustomers();
+    const deletedIds = getDeletedRimiCustomerIds();
+
+    // Merge Supabase records with local storage cache (excluding deleted accounts)
+    const local = getLocalRimiCustomers().filter(c => !deletedIds.has(c.id));
     const map = new Map<string, RimiCustomerRecord>();
     local.forEach(c => map.set(c.id, c));
-    supabaseCustomers.forEach(c => map.set(c.id, { ...map.get(c.id), ...c }));
+    supabaseCustomers
+      .filter(c => !deletedIds.has(c.id))
+      .forEach(c => {
+        const localCust = map.get(c.id);
+        if (localCust && localCust.updated_at && c.updated_at) {
+          if (new Date(localCust.updated_at).getTime() > new Date(c.updated_at).getTime()) {
+            map.set(c.id, { ...c, ...localCust });
+            return;
+          }
+        }
+        map.set(c.id, { ...localCust, ...c });
+      });
 
     let result = Array.from(map.values()).sort(
       (a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
     );
 
-    if (result.length > 0 && local.length === 0) {
-      saveLocalRimiCustomers(result);
-    }
+    saveLocalRimiCustomers(result);
 
     if (filters?.customerType && filters.customerType !== 'All') {
       result = result.filter(c => c.customer_type === filters.customerType);
@@ -507,8 +540,23 @@ export async function updateRimiCustomerStage(
 }
 
 export async function deleteRimiCustomer(id: string): Promise<boolean> {
-  const { error } = await supabase.from('rimi_customers').delete().eq('id', id);
-  if (error) throw error;
+  // 1. Record tombstone so deleted customer is never revived
+  addDeletedRimiCustomerId(id);
+
+  // 2. Remove from local storage cache immediately
+  const local = getLocalRimiCustomers();
+  const filtered = local.filter(c => c.id !== id);
+  saveLocalRimiCustomers(filtered);
+
+  // 3. Delete from Supabase
+  try {
+    const { error } = await supabase.from('rimi_customers').delete().eq('id', id);
+    if (error) console.warn('[RimiAPI] Supabase delete customer warning:', error.message);
+  } catch (err) {
+    console.warn('[RimiAPI] Supabase delete customer network warning:', err);
+  }
+
+  // 4. Trigger cross-component sync
   triggerLocalSync('ferex_rimi_customers_change');
   return true;
 }
@@ -517,19 +565,62 @@ export async function deleteRimiCustomer(id: string): Promise<boolean> {
 // 3. CUSTOMER ACTIVITY TIMELINE API
 // ─────────────────────────────────────────────────────────────────────────────
 
+const RIMI_ACTIVITIES_STORAGE_KEY = 'ferex_rimi_customer_activities_cache';
+
+export function getLocalRimiActivities(): RimiCustomerActivityRecord[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(RIMI_ACTIVITIES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+export function saveLocalRimiActivities(activities: RimiCustomerActivityRecord[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(RIMI_ACTIVITIES_STORAGE_KEY, JSON.stringify(activities));
+  } catch {}
+}
+
 export async function getRimiCustomerActivities(customerId: string): Promise<RimiCustomerActivityRecord[]> {
   try {
-    const { data, error } = await supabase
-      .from('rimi_customer_activity')
-      .select('*')
-      .eq('customer_id', customerId)
-      .order('created_at', { ascending: false });
+    let dbActivities: RimiCustomerActivityRecord[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('rimi_customer_activity')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return (data || []) as RimiCustomerActivityRecord[];
+      if (!error && Array.isArray(data)) {
+        dbActivities = data as RimiCustomerActivityRecord[];
+      }
+    } catch {}
+
+    const localAll = getLocalRimiActivities();
+    const localScoped = localAll.filter(a => a.customer_id === customerId);
+
+    const map = new Map<string, RimiCustomerActivityRecord>();
+    localScoped.forEach(a => map.set(a.id, a));
+    dbActivities.forEach(a => map.set(a.id, { ...map.get(a.id), ...a }));
+
+    const merged = Array.from(map.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    if (merged.length > 0) {
+      const otherActivities = localAll.filter(a => a.customer_id !== customerId);
+      saveLocalRimiActivities([...merged, ...otherActivities]);
+    }
+
+    return merged;
   } catch (err) {
     console.error('Error in getRimiCustomerActivities:', err);
-    return [];
+    return getLocalRimiActivities().filter(a => a.customer_id === customerId);
   }
 }
 
@@ -556,8 +647,16 @@ export async function addRimiCustomerActivity(activity: {
     created_at: new Date().toISOString()
   };
 
-  const { error } = await supabase.from('rimi_customer_activity').insert(payload);
-  if (error) throw error;
+  const local = getLocalRimiActivities();
+  saveLocalRimiActivities([payload, ...local.filter(a => a.id !== payload.id)]);
+
+  try {
+    const { error } = await supabase.from('rimi_customer_activity').insert(payload);
+    if (error) console.warn('[RimiAPI] Supabase customer activity insert warning:', error.message);
+  } catch (err) {
+    console.warn('[RimiAPI] Supabase customer activity network error:', err);
+  }
+
   triggerLocalSync('ferex_rimi_activity_change');
   return payload;
 }
@@ -772,14 +871,24 @@ export async function getRimiBatches(filters?: {
       }
     } catch {}
 
-    // Merge Supabase with local storage cache
+    // Merge Supabase with local storage cache (timestamp-aware to protect recent deductions)
     const local = getLocalRimiBatches();
     const map = new Map<string, RimiInventoryBatchRecord>();
     local.forEach(b => map.set(b.id, b));
-    batchList.forEach(b => map.set(b.id, { ...map.get(b.id), ...b }));
+    batchList.forEach(b => {
+      const localBatch = map.get(b.id);
+      if (localBatch && localBatch.updated_at && b.updated_at) {
+        if (new Date(localBatch.updated_at).getTime() > new Date(b.updated_at).getTime()) {
+          // Local cache has a more recent quantity deduction or status update
+          map.set(b.id, { ...b, ...localBatch });
+          return;
+        }
+      }
+      map.set(b.id, { ...localBatch, ...b });
+    });
 
     const merged = Array.from(map.values());
-    if (merged.length > 0 && local.length === 0) {
+    if (merged.length > 0) {
       saveLocalRimiBatches(merged);
     }
 
@@ -1170,7 +1279,7 @@ export async function createRimiSalesOrder(order: {
     total_amount: totalAmount,
     paid_amount: 0,
     balance_amount: totalAmount,
-    order_status: 'Received',
+    order_status: 'Confirmed',
     payment_status: 'Unpaid',
     delivery_date: order.delivery_date || new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
     delivery_address: order.delivery_address || customer?.address || customer?.city || 'Customer Warehouse',
@@ -1237,16 +1346,30 @@ export async function createRimiSalesOrder(order: {
     const qtyToDeduct = Number(it.quantity) || 0;
     let targetBatchId = it.batch_id;
 
-    // Check local batches cache first
-    const currentBatches = getLocalRimiBatches();
+    // Load available batches across local cache or live DB
+    let currentBatches = getLocalRimiBatches();
+    if (currentBatches.length === 0) {
+      currentBatches = await getRimiBatches();
+    }
+
     let targetBatch = currentBatches.find(b => b.id === targetBatchId);
+    if (!targetBatch && it.batch_no) {
+      targetBatch = currentBatches.find(b => b.batch_no === it.batch_no);
+      if (targetBatch) targetBatchId = targetBatch.id;
+    }
     if (!targetBatch && it.product_id) {
-      targetBatch = currentBatches.find(b => b.product_id === it.product_id && b.quantity > 0);
+      targetBatch = currentBatches.find(b => b.product_id === it.product_id && Number(b.quantity) > 0);
+      if (targetBatch) targetBatchId = targetBatch.id;
+    }
+    if (!targetBatch && it.product_name) {
+      const prodName = it.product_name.toLowerCase().trim();
+      targetBatch = currentBatches.find(b => b.product_name && b.product_name.toLowerCase().trim() === prodName && Number(b.quantity) > 0);
       if (targetBatch) targetBatchId = targetBatch.id;
     }
 
-    if (targetBatchId) {
-      let currentQty = targetBatch ? Number(targetBatch.quantity) : 0;
+    if (targetBatch) {
+      targetBatchId = targetBatch.id;
+      let currentQty = Number(targetBatch.quantity) || 0;
 
       // Query live Supabase batch
       try {
@@ -1255,13 +1378,14 @@ export async function createRimiSalesOrder(order: {
           .select('quantity')
           .eq('id', targetBatchId)
           .maybeSingle();
-        if (dbBatch && dbBatch.quantity !== undefined) {
+        if (dbBatch && dbBatch.quantity !== undefined && dbBatch.quantity !== null) {
           currentQty = Number(dbBatch.quantity);
         }
       } catch {}
 
       const newQty = Math.max(0, currentQty - qtyToDeduct);
       const newStatus = newQty <= 0 ? 'Depleted' : newQty <= 20 ? 'Low Stock' : 'Active';
+      const nowIso = new Date().toISOString();
 
       // 1. Update Supabase
       try {
@@ -1270,7 +1394,7 @@ export async function createRimiSalesOrder(order: {
           .update({
             quantity: newQty,
             status: newStatus,
-            updated_at: new Date().toISOString()
+            updated_at: nowIso
           })
           .eq('id', targetBatchId);
       } catch (batchUpErr) {
@@ -1278,12 +1402,18 @@ export async function createRimiSalesOrder(order: {
       }
 
       // 2. Update local storage batch cache immediately
-      const updatedBatches = currentBatches.map(b => {
+      const latestBatches = getLocalRimiBatches();
+      let foundInLatest = false;
+      const updatedBatches = latestBatches.map(b => {
         if (b.id === targetBatchId) {
-          return { ...b, quantity: newQty, status: newStatus as any, updated_at: new Date().toISOString() };
+          foundInLatest = true;
+          return { ...b, quantity: newQty, status: newStatus as any, updated_at: nowIso };
         }
         return b;
       });
+      if (!foundInLatest) {
+        updatedBatches.push({ ...targetBatch, quantity: newQty, status: newStatus as any, updated_at: nowIso });
+      }
       saveLocalRimiBatches(updatedBatches);
       triggerLocalSync('ferex_rimi_batches_change');
 

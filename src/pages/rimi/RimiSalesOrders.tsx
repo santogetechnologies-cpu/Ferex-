@@ -97,12 +97,15 @@ export const RimiSalesOrders: React.FC = () => {
         setDeliveryAddress(active[0].address || active[0].city || '');
       }
       if (prodList.length > 0 && orderItems.length === 0) {
+        const p = prodList[0];
+        const matchBatch = batchList.find(b => b.product_id === p.id && Number(b.quantity) > 0) || batchList.find(b => b.product_id === p.id);
         setOrderItems([{
-          product_id: prodList[0].id,
-          product_name: prodList[0].name,
-          batch_id: batchList.find(b => b.product_id === prodList[0].id)?.id || '',
+          product_id: p.id,
+          product_name: p.name,
+          batch_id: matchBatch?.id || '',
+          batch_no: matchBatch?.batch_no || '',
           quantity: 50,
-          unit_price: prodList[0].unit_price
+          unit_price: p.unit_price
         }]);
       }
     } finally {
@@ -132,7 +135,7 @@ export const RimiSalesOrders: React.FC = () => {
   const handleAddItemRow = () => {
     if (products.length === 0) return;
     const p = products[0];
-    const b = batches.find(bt => bt.product_id === p.id);
+    const b = batches.find(bt => bt.product_id === p.id && Number(bt.quantity) > 0) || batches.find(bt => bt.product_id === p.id);
     setOrderItems([...orderItems, {
       product_id: p.id,
       product_name: p.name,

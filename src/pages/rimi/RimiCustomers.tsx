@@ -27,7 +27,7 @@ import {
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead'];
 
 const CUSTOMER_TYPES = ['Distributor', 'Shop / Retailer', 'Wholesaler', 'HORECA Partner'] as const;
 const PIPELINE_STAGES = ['Lead', 'Contacted', 'Sample Sent', 'Negotiation', 'Active Account', 'Suspended'] as const;
@@ -177,18 +177,20 @@ export const RimiCustomers: React.FC = () => {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!isAdmin) {
-      showToast('Restricted: Only Cold Chain Admin can remove customer records.');
-      return;
-    }
-    if (!window.confirm(`Are you sure you want to delete customer account "${name}"?`)) return;
+    if (!window.confirm(`Are you sure you want to permanently delete customer account "${name}"? This action will remove the account from the directory.`)) return;
 
     try {
+      // Optimistically remove from state immediately
+      setCustomers(prev => prev.filter(c => c.id !== id));
+      if (dossierCustomer?.id === id) {
+        setDossierCustomer(null);
+      }
       await deleteRimiCustomer(id);
-      showToast(`Deleted ${name}`);
+      showToast(`Successfully deleted customer "${name}".`);
       await loadData();
     } catch (err: any) {
       showToast(`Error deleting customer: ${err.message || 'Database error'}`);
+      await loadData();
     }
   };
 
@@ -200,8 +202,12 @@ export const RimiCustomers: React.FC = () => {
         getRimiSalesOrders({ customerId: customer.id })
       ]);
       setDossierActivities(acts || []);
-      // Strictly scope sales orders to the selected customer only
-      const scopedOrders = (orders || []).filter(o => o.customer_id === customer.id);
+      // Strictly scope sales orders to the selected customer only (dual-key matching: ID and business name)
+      const targetName = (customer.business_name || '').trim().toLowerCase();
+      const scopedOrders = (orders || []).filter(o => 
+        o.customer_id === customer.id || 
+        (targetName && o.customer_name && o.customer_name.trim().toLowerCase() === targetName)
+      );
       setDossierOrders(scopedOrders);
     } catch {
       setDossierActivities([]);
@@ -1070,6 +1076,17 @@ export const RimiCustomers: React.FC = () => {
                   >
                     <Edit3 className="w-4 h-4 text-[#58051E]" />
                     <span className="text-slate-700">Edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleDelete(dossierCustomer.id, dossierCustomer.business_name);
+                    }}
+                    className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold"
+                    title="Delete Customer Account"
+                  >
+                    <Trash2 className="w-4 h-4 text-rose-600" />
+                    <span className="text-rose-700">Delete</span>
                   </button>
                   <button onClick={() => setDossierCustomer(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-5 h-5" /></button>
                 </div>
