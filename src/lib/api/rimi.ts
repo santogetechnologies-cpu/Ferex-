@@ -1092,6 +1092,7 @@ export async function getRimiSalesOrders(filters?: {
 
     let merged = Array.from(map.values()).sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
     if (filters?.customerId) {
+      merged = merged.filter(o => o.customer_id === filters.customerId);
     }
     if (filters?.status && filters.status !== 'All') {
       merged = merged.filter(o => o.order_status === filters.status);
@@ -1099,7 +1100,14 @@ export async function getRimiSalesOrders(filters?: {
     return merged;
   } catch (err) {
     console.error('Error in getRimiSalesOrders:', err);
-    return getLocalRimiSalesOrders();
+    let localFallback = getLocalRimiSalesOrders();
+    if (filters?.customerId) {
+      localFallback = localFallback.filter(o => o.customer_id === filters.customerId);
+    }
+    if (filters?.status && filters.status !== 'All') {
+      localFallback = localFallback.filter(o => o.order_status === filters.status);
+    }
+    return localFallback;
   }
 }
 
@@ -1225,32 +1233,71 @@ export async function createRimiSalesOrder(order: {
       total_price: lineTotal
     });
 
-    // Reduce batch inventory if allocated
-    if (it.batch_id) {
-      const { data: batch } = await supabase
-        .from('rimi_inventory_batches')
-        .select('quantity')
-        .eq('id', it.batch_id)
-        .single();
+    // Reduce batch inventory across both local storage cache and Supabase
+    const qtyToDeduct = Number(it.quantity) || 0;
+    let targetBatchId = it.batch_id;
 
-      if (batch) {
-        const newQty = Math.max(0, Number(batch.quantity) - Number(it.quantity));
+    // Check local batches cache first
+    const currentBatches = getLocalRimiBatches();
+    let targetBatch = currentBatches.find(b => b.id === targetBatchId);
+    if (!targetBatch && it.product_id) {
+      targetBatch = currentBatches.find(b => b.product_id === it.product_id && b.quantity > 0);
+      if (targetBatch) targetBatchId = targetBatch.id;
+    }
+
+    if (targetBatchId) {
+      let currentQty = targetBatch ? Number(targetBatch.quantity) : 0;
+
+      // Query live Supabase batch
+      try {
+        const { data: dbBatch } = await supabase
+          .from('rimi_inventory_batches')
+          .select('quantity')
+          .eq('id', targetBatchId)
+          .maybeSingle();
+        if (dbBatch && dbBatch.quantity !== undefined) {
+          currentQty = Number(dbBatch.quantity);
+        }
+      } catch {}
+
+      const newQty = Math.max(0, currentQty - qtyToDeduct);
+      const newStatus = newQty <= 0 ? 'Depleted' : newQty <= 20 ? 'Low Stock' : 'Active';
+
+      // 1. Update Supabase
+      try {
         await supabase
           .from('rimi_inventory_batches')
-          .update({ quantity: newQty, updated_at: new Date().toISOString() })
-          .eq('id', it.batch_id);
-
-        await recordRimiStockMovement({
-          batch_id: it.batch_id,
-          product_id: it.product_id,
-          movement_type: 'Dispatch',
-          quantity_change: -Number(it.quantity),
-          resulting_quantity: newQty,
-          order_id: orderId,
-          reference_no: orderNo,
-          notes: `Dispatched for sales order ${orderNo}`
-        });
+          .update({
+            quantity: newQty,
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', targetBatchId);
+      } catch (batchUpErr) {
+        console.warn('[RimiAPI] Supabase batch stock reduction notice:', batchUpErr);
       }
+
+      // 2. Update local storage batch cache immediately
+      const updatedBatches = currentBatches.map(b => {
+        if (b.id === targetBatchId) {
+          return { ...b, quantity: newQty, status: newStatus as any, updated_at: new Date().toISOString() };
+        }
+        return b;
+      });
+      saveLocalRimiBatches(updatedBatches);
+      triggerLocalSync('ferex_rimi_batches_change');
+
+      // 3. Record Stock Movement audit record
+      await recordRimiStockMovement({
+        batch_id: targetBatchId,
+        product_id: it.product_id,
+        movement_type: 'Dispatch',
+        quantity_change: -qtyToDeduct,
+        resulting_quantity: newQty,
+        order_id: orderId,
+        reference_no: orderNo,
+        notes: `Dispatched for confirmed Sales Order ${orderNo}`
+      }).catch(() => {});
     }
   }
 
@@ -1389,7 +1436,7 @@ export async function updateRimiSalesOrderStatus(
     saveLocalRimiSalesOrders([cancelledCopy, ...localOrders.filter(o => o.id !== orderId && (!targetOrderNo || o.order_no !== targetOrderNo))]);
   }
 
-  // If order is cancelled, revoke and purge all payment collection records linked to this order
+  // If order is cancelled, revoke and purge payment records AND restore inventory batches
   if (status === 'Cancelled') {
     try {
       const localPayments = getLocalRimiPayments();
@@ -1411,6 +1458,47 @@ export async function updateRimiSalesOrderStatus(
       }
     } catch (payDelErr) {
       console.warn('[RimiAPI] Supabase payment purge warning for cancelled order:', payDelErr);
+    }
+
+    // Restore inventory quantities for items in cancelled order
+    try {
+      let orderItems: Array<{ product_id: string; batch_id?: string; quantity: number }> = (targetOrder?.items as any) || [];
+      if (orderItems.length === 0) {
+        const { data: dbItems } = await supabase
+          .from('rimi_order_items')
+          .select('product_id, batch_id, quantity')
+          .eq('order_id', orderId);
+        if (Array.isArray(dbItems)) orderItems = dbItems;
+      }
+
+      if (orderItems.length > 0) {
+        const currentBatches = getLocalRimiBatches();
+        let batchesRestored = false;
+        const updatedBatches = currentBatches.map(b => {
+          const item = orderItems.find(it => it.batch_id === b.id || (!it.batch_id && it.product_id === b.product_id));
+          if (item) {
+            batchesRestored = true;
+            const restoredQty = Number(b.quantity) + Number(item.quantity);
+            // Restore in Supabase
+            Promise.resolve(
+              supabase.from('rimi_inventory_batches').update({
+                quantity: restoredQty,
+                status: restoredQty > 20 ? 'Active' : 'Low Stock',
+                updated_at: new Date().toISOString()
+              }).eq('id', b.id)
+            ).catch(() => {});
+            return { ...b, quantity: restoredQty, status: (restoredQty > 20 ? 'Active' : 'Low Stock') as any };
+          }
+          return b;
+        });
+
+        if (batchesRestored) {
+          saveLocalRimiBatches(updatedBatches);
+          triggerLocalSync('ferex_rimi_batches_change');
+        }
+      }
+    } catch (batchRestoreErr) {
+      console.warn('[RimiAPI] Batch restore on cancellation warning:', batchRestoreErr);
     }
   }
 

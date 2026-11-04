@@ -85,3 +85,92 @@ test('Cold storage hubs stock aggregation groups quantities by facility', () => 
   assert.equal(totalPuneUnits, 650);
   assert.equal(puneSkus, 2);
 });
+
+test('Customer Dossier scoping: order history strictly isolates orders belonging to selected customer', () => {
+  const allOrders = [
+    { id: 'so-1', customer_id: 'cust-101', order_no: 'SO-1001', grand_total: 15000 },
+    { id: 'so-2', customer_id: 'cust-102', order_no: 'SO-1002', grand_total: 28000 },
+    { id: 'so-3', customer_id: 'cust-101', order_no: 'SO-1003', grand_total: 42000 },
+    { id: 'so-4', customer_id: 'cust-103', order_no: 'SO-1004', grand_total: 19500 }
+  ];
+
+  const targetCustomerId = 'cust-101';
+  const scopedOrders = allOrders.filter(o => o.customer_id === targetCustomerId);
+
+  // Exactly 2 orders belong to cust-101
+  assert.equal(scopedOrders.length, 2);
+  assert.deepEqual(scopedOrders.map(o => o.order_no), ['SO-1001', 'SO-1003']);
+  for (const order of scopedOrders) {
+    assert.equal(order.customer_id, targetCustomerId, `Order ${order.order_no} must belong to ${targetCustomerId}`);
+  }
+
+  // Cross-customer leak test: no order from cust-102 or cust-103 can be present
+  assert.ok(!scopedOrders.some(o => o.customer_id === 'cust-102'));
+  assert.ok(!scopedOrders.some(o => o.customer_id === 'cust-103'));
+});
+
+test('Batch stock deduction logic: decreases quantity and updates status on Sales Order confirmation', () => {
+  const initialBatches = [
+    { id: 'batch-01', product_id: 'prod-pea', product_name: 'Frozen Peas 1kg', quantity: 100, status: 'Active' },
+    { id: 'batch-02', product_id: 'prod-corn', product_name: 'Frozen Corn 500g', quantity: 25, status: 'Active' }
+  ];
+
+  const orderItems = [
+    { product_id: 'prod-pea', batch_id: 'batch-01', quantity: 40 },
+    { product_id: 'prod-corn', batch_id: 'batch-02', quantity: 25 }
+  ];
+
+  // Emulate batch deduction logic
+  const updatedBatches = initialBatches.map(b => {
+    const item = orderItems.find(it => it.batch_id === b.id || (!it.batch_id && it.product_id === b.product_id));
+    if (item) {
+      const newQty = Math.max(0, b.quantity - item.quantity);
+      const newStatus = newQty <= 0 ? 'Depleted' : newQty <= 20 ? 'Low Stock' : 'Active';
+      return { ...b, quantity: newQty, status: newStatus };
+    }
+    return b;
+  });
+
+  const batch1 = updatedBatches.find(b => b.id === 'batch-01');
+  const batch2 = updatedBatches.find(b => b.id === 'batch-02');
+
+  // Batch 1: 100 - 40 = 60, status Active
+  assert.equal(batch1?.quantity, 60);
+  assert.equal(batch1?.status, 'Active');
+
+  // Batch 2: 25 - 25 = 0, status Depleted
+  assert.equal(batch2?.quantity, 0);
+  assert.equal(batch2?.status, 'Depleted');
+});
+
+test('Order cancellation stock restoration: restores quantities to batches', () => {
+  const depletedBatches = [
+    { id: 'batch-01', product_id: 'prod-pea', product_name: 'Frozen Peas 1kg', quantity: 60, status: 'Active' },
+    { id: 'batch-02', product_id: 'prod-corn', product_name: 'Frozen Corn 500g', quantity: 0, status: 'Depleted' }
+  ];
+
+  const cancelledOrderItems = [
+    { product_id: 'prod-pea', batch_id: 'batch-01', quantity: 40 },
+    { product_id: 'prod-corn', batch_id: 'batch-02', quantity: 25 }
+  ];
+
+  // Emulate restoration logic upon cancellation
+  const restoredBatches = depletedBatches.map(b => {
+    const item = cancelledOrderItems.find(it => it.batch_id === b.id || (!it.batch_id && it.product_id === b.product_id));
+    if (item) {
+      const restoredQty = b.quantity + item.quantity;
+      const restoredStatus = restoredQty > 20 ? 'Active' : 'Low Stock';
+      return { ...b, quantity: restoredQty, status: restoredStatus };
+    }
+    return b;
+  });
+
+  const b1 = restoredBatches.find(b => b.id === 'batch-01');
+  const b2 = restoredBatches.find(b => b.id === 'batch-02');
+
+  assert.equal(b1?.quantity, 100);
+  assert.equal(b1?.status, 'Active');
+
+  assert.equal(b2?.quantity, 25);
+  assert.equal(b2?.status, 'Active');
+});

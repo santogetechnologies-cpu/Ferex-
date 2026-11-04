@@ -199,8 +199,10 @@ export const RimiCustomers: React.FC = () => {
         getRimiCustomerActivities(customer.id),
         getRimiSalesOrders({ customerId: customer.id })
       ]);
-      setDossierActivities(acts);
-      setDossierOrders(orders);
+      setDossierActivities(acts || []);
+      // Strictly scope sales orders to the selected customer only
+      const scopedOrders = (orders || []).filter(o => o.customer_id === customer.id);
+      setDossierOrders(scopedOrders);
     } catch {
       setDossierActivities([]);
       setDossierOrders([]);

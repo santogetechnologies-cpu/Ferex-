@@ -66,6 +66,7 @@ export const RimiSalesOrders: React.FC = () => {
     product_id: string;
     product_name: string;
     batch_id: string;
+    batch_no?: string;
     quantity: number;
     unit_price: number;
   }>>([]);
@@ -136,6 +137,7 @@ export const RimiSalesOrders: React.FC = () => {
       product_id: p.id,
       product_name: p.name,
       batch_id: b?.id || '',
+      batch_no: b?.batch_no || '',
       quantity: 50,
       unit_price: p.unit_price
     }]);
@@ -154,6 +156,13 @@ export const RimiSalesOrders: React.FC = () => {
       updated[index].product_name = p?.name || '';
       updated[index].unit_price = p?.unit_price || 200;
       updated[index].batch_id = b?.id || '';
+      (updated[index] as any).batch_no = b?.batch_no || '';
+    } else if (field === 'batch_id') {
+      const b = batches.find(bt => bt.id === val);
+      updated[index].batch_id = val;
+      if (b) {
+        (updated[index] as any).batch_no = b.batch_no;
+      }
     } else {
       (updated[index] as any)[field] = val;
     }
