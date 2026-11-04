@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingCart, Search, Plus, Trash2, X, CheckCircle2,
@@ -48,6 +48,7 @@ export const RimiSalesOrders: React.FC = () => {
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [selectedOrder, setSelectedOrder] = useState<RimiSalesOrderRecord | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
@@ -59,6 +60,8 @@ export const RimiSalesOrders: React.FC = () => {
   const [deliveryDate, setDeliveryDate] = useState(new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0]);
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
+  const activeCustomers = useMemo(() => customers.filter(c => c.pipeline_stage === 'Active Account' && c.status === 'Active'), [customers]);
+
   const [orderItems, setOrderItems] = useState<Array<{
     product_id: string;
     product_name: string;
@@ -78,7 +81,7 @@ export const RimiSalesOrders: React.FC = () => {
       const staffEmail = !isAdmin ? profile?.email : undefined;
       const [orderList, custList, prodList, batchList] = await Promise.all([
         getRimiSalesOrders(staffEmail ? { staffEmail } : undefined),
-        getRimiCustomers(staffEmail ? { staffEmail } : undefined),
+        getRimiCustomers(), // All warehouse staff need full visibility over enterprise accounts for logistics
         getRimiProducts(),
         getRimiBatches()
       ]);
@@ -87,9 +90,10 @@ export const RimiSalesOrders: React.FC = () => {
       setProducts(prodList);
       setBatches(batchList);
 
-      if (custList.length > 0 && !selectedCustomer) {
-        setSelectedCustomer(custList[0].id);
-        setDeliveryAddress(custList[0].address || custList[0].city || '');
+      const active = custList.filter(c => c.pipeline_stage === 'Active Account' && c.status === 'Active');
+      if (active.length > 0 && (!selectedCustomer || !active.some(c => c.id === selectedCustomer))) {
+        setSelectedCustomer(active[0].id);
+        setDeliveryAddress(active[0].address || active[0].city || '');
       }
       if (prodList.length > 0 && orderItems.length === 0) {
         setOrderItems([{
@@ -160,12 +164,18 @@ export const RimiSalesOrders: React.FC = () => {
 
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmittingOrder) return;
+    if (isSubmittingRef.current || isSubmittingOrder) return;
     if (!selectedCustomer || orderItems.length === 0) return;
 
+    const cust = customers.find(c => c.id === selectedCustomer);
+    if (cust && cust.pipeline_stage !== 'Active Account') {
+      showToast('Restricted: Sales orders can only be created for customers in the "Active Account" stage.');
+      return;
+    }
+
+    isSubmittingRef.current = true;
     setIsSubmittingOrder(true);
     try {
-      const cust = customers.find(c => c.id === selectedCustomer);
       await createRimiSalesOrder({
         customer_id: selectedCustomer,
         customer_name: cust?.business_name,
@@ -184,13 +194,14 @@ export const RimiSalesOrders: React.FC = () => {
     } catch (err: any) {
       showToast(`Error creating order: ${err.message || 'Database error'}`);
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmittingOrder(false);
     }
   };
 
   const handleCancelOrderFromPaymentModal = async (orderId: string) => {
     try {
-      await handleUpdateStatus(orderId, 'Cancelled');
+      await handleUpdateStatus(orderId, 'Cancelled', selectedOrder?.order_no);
       setShowPaymentModal(false);
       showToast('Order cancelled and all payment collections revoked.');
       await loadData();
@@ -199,18 +210,18 @@ export const RimiSalesOrders: React.FC = () => {
     }
   };
 
-  const handleUpdateStatus = async (orderId: string, status: RimiSalesOrderRecord['order_status']) => {
+  const handleUpdateStatus = async (orderId: string, status: RimiSalesOrderRecord['order_status'], orderNoHint?: string) => {
     try {
       // Optimistically update order status in state so UI reflects it immediately
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, order_status: status } : o));
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(prev => prev ? { ...prev, order_status: status } : null);
       }
-      await updateRimiSalesOrderStatus(orderId, status);
+      await updateRimiSalesOrderStatus(orderId, status, orderNoHint || selectedOrder?.order_no);
       showToast(`Order status updated to "${status}"`);
       await loadData();
     } catch (err: any) {
-      showToast(`Error updating status: ${err.message || 'Database error'}`);
+      showToast(`Error updating order status: ${err.message || 'Database error'}`);
     }
   };
 
@@ -439,14 +450,20 @@ export const RimiSalesOrders: React.FC = () => {
                       value={selectedCustomer}
                       onChange={(e) => {
                         setSelectedCustomer(e.target.value);
-                        const match = customers.find(c => c.id === e.target.value);
+                        const match = activeCustomers.find(c => c.id === e.target.value);
                         if (match) setDeliveryAddress(match.address || match.city || '');
                       }}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                     >
-                      {customers.map(c => (
-                        <option key={c.id} value={c.id}>[{c.customer_type}] {c.business_name} ({c.city})</option>
-                      ))}
+                      {activeCustomers.length === 0 ? (
+                        <option value="" disabled>No Active Enterprise Customers Available (All Leads / Suspended)</option>
+                      ) : (
+                        activeCustomers.map(c => (
+                          <option key={c.id} value={c.id}>
+                            [{c.customer_type}] {c.business_name} ({c.city})
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
                   <div>
@@ -557,6 +574,7 @@ export const RimiSalesOrders: React.FC = () => {
                     type="submit"
                     size="sm"
                     disabled={isSubmittingOrder || !selectedCustomer || orderItems.length === 0}
+                    style={{ pointerEvents: isSubmittingOrder ? "none" : "auto" }}
                     className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmittingOrder ? (

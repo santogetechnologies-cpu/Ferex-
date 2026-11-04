@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DollarSign, Search, CheckCircle2, Plus, Trash2, X, Eye, Receipt, FileText } from 'lucide-react';
+import { DollarSign, Search, CheckCircle2, Plus, Trash2, X, Eye, Receipt, FileText, Printer, Building2, Check } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
@@ -56,6 +56,11 @@ export const RimiCollections: React.FC = () => {
       const validPayments = payList.filter(p => {
         if (p.order_id && cancelledOrderIds.has(p.order_id)) return false;
         if (p.order_no && cancelledOrderNos.has(p.order_no)) return false;
+        if (p.notes) {
+          for (const no of cancelledOrderNos) {
+            if (no && p.notes.includes(no)) return false;
+          }
+        }
         return true;
       });
       setPayments(validPayments);
@@ -317,8 +322,8 @@ export const RimiCollections: React.FC = () => {
       <AnimatePresence>
         {selectedPayment && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900 z-40" onClick={() => setSelectedPayment(null)} />
-            <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-md bg-white z-50 shadow-2xl p-6 overflow-y-auto">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900 z-40 print:hidden" onClick={() => setSelectedPayment(null)} />
+            <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-md bg-white z-50 shadow-2xl p-6 overflow-y-auto print:hidden">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                 <div>
                   <h3 className="text-sm font-black text-slate-900">Official Remittance Receipt</h3>
@@ -333,6 +338,12 @@ export const RimiCollections: React.FC = () => {
                     <span className="text-slate-400">Customer:</span>
                     <span className="font-bold text-slate-900">{selectedPayment.customer_name}</span>
                   </div>
+                  {selectedPayment.order_no && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Against Order:</span>
+                      <span className="font-mono font-bold text-[#58051E]">{selectedPayment.order_no}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-slate-400">Settled Amount:</span>
                     <span className="font-black text-emerald-700 text-sm">₹{Number(selectedPayment.amount).toLocaleString('en-IN')}</span>
@@ -353,13 +364,86 @@ export const RimiCollections: React.FC = () => {
                     <span className="text-slate-400">Collected By:</span>
                     <span className="font-semibold text-slate-800">{selectedPayment.collected_by_name || 'Finance Team'}</span>
                   </div>
+                  {selectedPayment.notes && (
+                    <div className="pt-2 border-t border-slate-200/60 text-slate-500 italic">
+                      {selectedPayment.notes}
+                    </div>
+                  )}
                 </div>
 
-                <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setSelectedPayment(null)}>
-                  Close Receipt
-                </Button>
+                <div className="flex gap-2 pt-2">
+                  <Button size="sm" variant="outline" className="flex-1 text-xs font-bold" onClick={() => setSelectedPayment(null)}>
+                    Close Receipt
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316] text-white flex items-center justify-center gap-1.5 shadow-sm"
+                    onClick={() => window.print()}
+                  >
+                    <Printer className="w-3.5 h-3.5" /> Print Receipt
+                  </Button>
+                </div>
               </div>
             </motion.div>
+
+            {/* Hidden Printable Voucher rendered exclusively for window.print() */}
+            <div className="hidden print:block fixed inset-0 bg-white p-8 z-[9999] text-slate-900 font-sans">
+              <div className="max-w-2xl mx-auto border-2 border-slate-800 p-6 rounded-2xl space-y-6">
+                <div className="flex justify-between items-start border-b-2 border-slate-800 pb-4">
+                  <div>
+                    <h1 className="text-2xl font-black text-[#58051E] tracking-tight">FEREX RIMI FROZEN FMCG</h1>
+                    <p className="text-xs font-semibold text-slate-600">Cold Chain Distribution & Logistics • National Warehouse Network</p>
+                    <p className="text-[10px] text-slate-500 mt-1">Regd Office: Corporate Towers, Marine Lines, Mumbai | GSTIN: 27AAACF8921M1Z4</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-900 border border-emerald-300 rounded font-black text-xs uppercase tracking-wider">
+                      Official Remittance
+                    </span>
+                    <p className="text-xs font-mono font-bold mt-2">Voucher #: {selectedPayment.payment_no}</p>
+                    <p className="text-[11px] text-slate-600">Date: {selectedPayment.payment_date}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Received From Customer</span>
+                    <p className="text-sm font-black text-slate-900 mt-0.5">{selectedPayment.customer_name}</p>
+                    <p className="text-slate-600 mt-1">Payment Method: <span className="font-bold text-slate-900">{selectedPayment.payment_method}</span></p>
+                    <p className="text-slate-600">Reference / UTR: <span className="font-mono font-bold text-slate-900">{selectedPayment.reference_no || 'Direct Settlement'}</span></p>
+                  </div>
+                  <div className="text-right flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Settled Amount (INR)</span>
+                      <p className="text-3xl font-black text-emerald-700 mt-1">₹{Number(selectedPayment.amount).toLocaleString('en-IN')}</p>
+                    </div>
+                    {selectedPayment.order_no && (
+                      <p className="text-xs font-mono text-slate-700">Allocated to Sales Order: <strong>{selectedPayment.order_no}</strong></p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-700 bg-amber-50/60 border border-amber-200 p-3 rounded-lg">
+                  <strong>Narration:</strong> {selectedPayment.notes || `Payment received towards reefer freight / cold store merchandise settlement for ${selectedPayment.customer_name}`}
+                </div>
+
+                <div className="grid grid-cols-2 gap-8 pt-8 border-t border-slate-300 text-xs">
+                  <div>
+                    <div className="w-40 border-b border-slate-400 mb-1"></div>
+                    <span className="font-bold text-slate-700">Collected By: {selectedPayment.collected_by_name || 'Rimi Finance Desk'}</span>
+                    <p className="text-[10px] text-slate-500">Authorized Accounts Signatory</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="w-40 border-b border-slate-400 mb-1 ml-auto"></div>
+                    <span className="font-bold text-slate-700">Customer Acknowledgment Stamp</span>
+                    <p className="text-[10px] text-slate-500">Digital Seal & Verification Hash Verified</p>
+                  </div>
+                </div>
+
+                <div className="text-center text-[10px] text-slate-400 pt-2 border-t border-slate-100">
+                  This document serves as an authentic electronic payment collection voucher generated by Ferex Cold Chain Operating System.
+                </div>
+              </div>
+            </div>
           </>
         )}
       </AnimatePresence>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Warehouse, Search, Thermometer, MapPin, Plus, Trash2, X, CheckCircle2, Phone, Shield } from 'lucide-react';
+import { Warehouse, Search, Thermometer, MapPin, Plus, Trash2, X, CheckCircle2, Phone, Shield, Package, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -8,7 +8,9 @@ import {
   getRimiWarehouses,
   createRimiWarehouse,
   deleteRimiWarehouse,
-  type RimiWarehouseRecord
+  getRimiBatches,
+  type RimiWarehouseRecord,
+  type RimiInventoryBatchRecord
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,6 +23,9 @@ export const RimiWarehouses: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [facilities, setFacilities] = useState<RimiWarehouseRecord[]>([]);
+  const [batches, setBatches] = useState<RimiInventoryBatchRecord[]>([]);
+  const [selectedFacility, setSelectedFacility] = useState<RimiWarehouseRecord | null>(null);
+  const [hubStockSearch, setHubStockSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
@@ -38,8 +43,12 @@ export const RimiWarehouses: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getRimiWarehouses();
-      setFacilities(data);
+      const [whData, batchData] = await Promise.all([
+        getRimiWarehouses(),
+        getRimiBatches()
+      ]);
+      setFacilities(whData);
+      setBatches(batchData);
     } finally {
       setLoading(false);
     }
@@ -203,6 +212,21 @@ export const RimiWarehouses: React.FC = () => {
                     <span>Manager: {f.manager_name}</span>
                     <span className="font-semibold text-slate-700">{f.manager_phone}</span>
                   </div>
+
+                  {/* Stock Inspection Trigger */}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedFacility(f);
+                      setHubStockSearch('');
+                    }}
+                    className="w-full text-xs font-bold bg-white hover:bg-slate-50 text-slate-800 border-slate-200 hover:border-[#58051E]/40 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                  >
+                    <Package className="w-3.5 h-3.5 text-[#58051E]" />
+                    View Stored Products & Stock Details
+                  </Button>
                 </div>
 
                 {isAdmin && (
@@ -221,6 +245,187 @@ export const RimiWarehouses: React.FC = () => {
           })}
         </div>
       )}
+
+            {/* Cold Storage Hub Products & Stock Drawer */}
+      <AnimatePresence>
+        {selectedFacility && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900 z-40"
+              onClick={() => setSelectedFacility(null)}
+            />
+            <motion.div
+              initial={{ translateX: '100%' }}
+              animate={{ translateX: 0 }}
+              exit={{ translateX: '100%' }}
+              transition={{ duration: 0.25 }}
+              className="fixed top-0 right-0 h-screen w-full max-w-xl bg-white z-50 shadow-2xl p-6 overflow-y-auto space-y-5"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold text-slate-400">{selectedFacility.code}</span>
+                    <span className="text-[10px] font-mono font-black text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200 flex items-center gap-1">
+                      <Thermometer className="w-3 h-3 text-cyan-600" /> {selectedFacility.cold_room_temp_celsius}°C
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900 mt-1">{selectedFacility.name}</h3>
+                  <p className="text-xs font-semibold text-slate-500 flex items-center gap-1 mt-0.5">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400" /> {selectedFacility.city} {selectedFacility.address ? `• ${selectedFacility.address}` : ''}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedFacility(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Hub Metrics */}
+              {(() => {
+                const hubBatches = batches.filter(b =>
+                  b.warehouse_id === selectedFacility.id ||
+                  (b.warehouse_name && selectedFacility.name && b.warehouse_name.toLowerCase().includes(selectedFacility.name.toLowerCase())) ||
+                  (b.warehouse_name && selectedFacility.city && b.warehouse_name.toLowerCase().includes(selectedFacility.city.toLowerCase()))
+                );
+                const totalUnits = hubBatches.reduce((acc, b) => acc + Number(b.quantity || 0), 0);
+                const uniqueSkus = new Set(hubBatches.map(b => b.product_name || b.product_id)).size;
+
+                const filteredStock = hubBatches.filter(b => {
+                  const s = hubStockSearch.toLowerCase();
+                  return (
+                    (b.product_name && b.product_name.toLowerCase().includes(s)) ||
+                    (b.batch_no && b.batch_no.toLowerCase().includes(s)) ||
+                    (b.product_category && b.product_category.toLowerCase().includes(s))
+                  );
+                });
+
+                return (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Total Physical Stock</span>
+                        <span className="text-base font-black text-[#58051E] mt-0.5 block">{totalUnits.toLocaleString('en-IN')} Units</span>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Distinct SKUs</span>
+                        <span className="text-base font-black text-slate-900 mt-0.5 block">{uniqueSkus} Products</span>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Pallet Utilization</span>
+                        <span className="text-base font-black text-cyan-800 mt-0.5 block">{selectedFacility.utilized_pallets} / {selectedFacility.total_capacity_pallets}</span>
+                      </div>
+                    </div>
+
+                    {/* Stock Search Filter */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={hubStockSearch}
+                        onChange={(e) => setHubStockSearch(e.target.value)}
+                        placeholder="Search product name, SKU, or batch number stored here..."
+                        className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Product & Stock List */}
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                          <Package className="w-4 h-4 text-[#58051E]" /> Products Stored in this Hub ({filteredStock.length})
+                        </span>
+                        <span className="text-slate-400 font-semibold text-[11px]">Cold Chain Verified</span>
+                      </div>
+
+                      {filteredStock.length === 0 ? (
+                        <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl space-y-1.5">
+                          <p className="text-xs font-bold text-slate-600">No matching product stock found in this hub.</p>
+                          <p className="text-[11px] text-slate-400">Batches stored at other warehouses or awaiting intake delivery.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {filteredStock.map((b) => {
+                            const isExpSoon = b.status === 'Expiring Soon';
+                            const isExpired = b.status === 'Expired';
+                            const isLowStock = b.status === 'Low Stock';
+
+                            return (
+                              <div
+                                key={b.id}
+                                className="p-3.5 bg-slate-50 hover:bg-slate-100/70 rounded-xl border border-slate-200/80 transition-all space-y-2"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <h4 className="text-xs font-black text-slate-900 leading-tight">{b.product_name}</h4>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-[10px] font-mono font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                                        Batch: {b.batch_no}
+                                      </span>
+                                      {b.product_category && (
+                                        <span className="text-[10px] font-semibold text-slate-500">
+                                          Category: {b.product_category}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="text-right">
+                                    <span className="text-sm font-black text-slate-900 block">
+                                      {Number(b.quantity).toLocaleString('en-IN')} {b.unit || 'Units'}
+                                    </span>
+                                    <span className={`inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded mt-0.5 ${
+                                      isExpired
+                                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                        : isExpSoon
+                                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                        : isLowStock
+                                        ? 'bg-orange-100 text-orange-800 border border-orange-200'
+                                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    }`}>
+                                      {b.status || 'Active'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-200/60">
+                                  <span className="flex items-center gap-1 font-semibold">
+                                    <Calendar className="w-3 h-3 text-slate-400" />
+                                    Expiry: <strong className="text-slate-800">{b.expiry_date}</strong>
+                                    {b.days_to_expiry !== undefined && (
+                                      <span className="text-[10px] text-slate-400">({b.days_to_expiry} days left)</span>
+                                    )}
+                                  </span>
+                                  <span className="font-mono text-[10px] text-cyan-800 font-bold bg-cyan-50 px-1.5 py-0.5 rounded">
+                                    Temp: {b.storage_temp || selectedFacility.cold_room_temp_celsius + '°C'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      size="sm"
+                      className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316] text-white"
+                      onClick={() => setSelectedFacility(null)}
+                    >
+                      Close Hub Details
+                    </Button>
+                  </div>
+                );
+              })()}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Add Facility Modal */}
       <AnimatePresence>

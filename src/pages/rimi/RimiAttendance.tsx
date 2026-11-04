@@ -52,7 +52,12 @@ export const RimiAttendance: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
+  const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
   const storedName = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_name') : null;
+  const userRole = (profile?.role || user?.user_metadata?.role || localStorage.getItem('ferex_current_role') || '').toLowerCase().trim();
+  const userEmail = (user?.email || profile?.email || localStorage.getItem('ferex_current_email') || '').toLowerCase().trim();
+  const isAdmin = RIMI_ADMIN_ROLES.includes(userRole) || isAdminUser(userRole, userEmail);
+
   const adminId = user?.id || profile?.id || 'rimi-admin';
   const adminName = profile?.full_name || storedName || 'Rimi Cold Chain Admin';
 
@@ -61,7 +66,20 @@ export const RimiAttendance: React.FC = () => {
     try {
       if (activeTab === 'timesheets') {
         const data = await getTimesheets({ division: 'rimi' });
-        setTimesheets(data);
+        if (!isAdmin) {
+          // Warehouse staff should only be able to view their own shift details and working hours
+          const myEmail = userEmail;
+          const myName = (profile?.full_name || storedName || '').toLowerCase().trim();
+          const myId = user?.id || profile?.id;
+          const myShifts = data.filter(t =>
+            (myId && t.user_id === myId) ||
+            (myEmail && t.user_email?.toLowerCase().trim() === myEmail) ||
+            (myName && t.user_name?.toLowerCase().trim() === myName)
+          );
+          setTimesheets(myShifts);
+        } else {
+          setTimesheets(data);
+        }
       } else {
         const leaves = await getLeaveRequests({ division: 'rimi' });
         const currentAdminEmail = (user?.email || profile?.email || '').toLowerCase().trim();
@@ -256,7 +274,7 @@ export const RimiAttendance: React.FC = () => {
             <Calendar className="w-3.5 h-3.5 text-slate-500" />
             <span>Apply Leave / Perm</span>
           </button>
-          <ClockInOutWidget divisionOverride="rimi" />
+          {isAdmin && <ClockInOutWidget divisionOverride="rimi" />}
         </div>
       </div>
 
@@ -453,7 +471,7 @@ export const RimiAttendance: React.FC = () => {
                     <th className="p-3">Hours</th>
                     <th className="p-3">Shift Log & Loading Summary</th>
                     <th className="p-3">Status</th>
-                    <th className="p-3 text-right">Action</th>
+                    <th className="p-3 text-right">{isAdmin ? 'Admin Action' : 'Verification Status'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -504,14 +522,21 @@ export const RimiAttendance: React.FC = () => {
                         </td>
                         <td className="p-3 text-right">
                           <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                            {isAdminUser(t.user_role, t.user_email) ? (
+                            {t.is_superadmin_locked ? (
                               <span className="text-[10px] text-purple-700 bg-purple-50 px-2.5 py-1 rounded-md font-bold border border-purple-200 inline-flex items-center gap-1">
-                                <Lock className="w-3 h-3" />
-                                {t.is_superadmin_locked ? 'Locked by SuperAdmin' : 'Audited by SuperAdmin'}
+                                <Lock className="w-3 h-3" /> Locked
+                              </span>
+                            ) : !isAdmin ? (
+                              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-md border ${
+                                t.is_admin_verified
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : 'bg-amber-50 text-amber-800 border-amber-200'
+                              }`}>
+                                {t.is_admin_verified ? 'Verified (Audited)' : 'Pending Admin Verification'}
                               </span>
                             ) : (
                               <>
-                                {!t.is_superadmin_locked && !t.is_admin_verified && (
+                                {!t.is_admin_verified && (
                                   <button
                                     onClick={() => handleVerify(t.id, t.user_name, 8.0)}
                                     className="bg-[#58051E] hover:bg-[#430316] text-white text-[11px] font-semibold px-2 py-1 rounded-lg shadow-xs transition-all cursor-pointer inline-flex items-center gap-1"

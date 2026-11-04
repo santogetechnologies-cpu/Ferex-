@@ -276,6 +276,26 @@ export interface RimiTaskRecord {
 // 2. CRM CUSTOMERS & PIPELINE API
 // ─────────────────────────────────────────────────────────────────────────────
 
+const RIMI_CUSTOMERS_STORAGE_KEY = 'ferex_rimi_customers_cache';
+
+export function getLocalRimiCustomers(): RimiCustomerRecord[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(RIMI_CUSTOMERS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalRimiCustomers(customers: RimiCustomerRecord[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(RIMI_CUSTOMERS_STORAGE_KEY, JSON.stringify(customers));
+  } catch {}
+}
+
+
 export async function getRimiCustomers(filters?: {
   staffEmail?: string;
   customerType?: string;
@@ -302,10 +322,40 @@ export async function getRimiCustomers(filters?: {
       query = query.eq('assigned_staff_email', filters.staffEmail);
     }
 
-    const { data, error } = await query;
-    if (error) throw error;
+    let supabaseCustomers: RimiCustomerRecord[] = [];
+    try {
+      const { data, error } = await query;
+      if (!error && Array.isArray(data)) {
+        supabaseCustomers = data as RimiCustomerRecord[];
+      }
+    } catch {}
 
-    let result = (data || []) as RimiCustomerRecord[];
+    // Merge Supabase records with local storage cache
+    const local = getLocalRimiCustomers();
+    const map = new Map<string, RimiCustomerRecord>();
+    local.forEach(c => map.set(c.id, c));
+    supabaseCustomers.forEach(c => map.set(c.id, { ...map.get(c.id), ...c }));
+
+    let result = Array.from(map.values()).sort(
+      (a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
+    );
+
+    if (result.length > 0 && local.length === 0) {
+      saveLocalRimiCustomers(result);
+    }
+
+    if (filters?.customerType && filters.customerType !== 'All') {
+      result = result.filter(c => c.customer_type === filters.customerType);
+    }
+    if (filters?.territory && filters.territory !== 'All') {
+      result = result.filter(c => c.territory === filters.territory);
+    }
+    if (filters?.stage && filters.stage !== 'All') {
+      result = result.filter(c => c.pipeline_stage === filters.stage);
+    }
+    if (filters?.staffEmail) {
+      result = result.filter(c => c.assigned_staff_email === filters.staffEmail);
+    }
     if (filters?.search) {
       const s = filters.search.toLowerCase();
       result = result.filter(c =>
@@ -319,7 +369,7 @@ export async function getRimiCustomers(filters?: {
     return result;
   } catch (err) {
     console.error('Error in getRimiCustomers:', err);
-    return [];
+    return getLocalRimiCustomers();
   }
 }
 
@@ -371,8 +421,16 @@ export async function createRimiCustomer(customer: Partial<RimiCustomerRecord>):
     updated_at: new Date().toISOString()
   };
 
-  const { error } = await supabase.from('rimi_customers').insert(payload);
-  if (error) throw error;
+    // Immediately cache locally so customer appears across all views and tabs instantly
+  const localCusts = getLocalRimiCustomers();
+  saveLocalRimiCustomers([payload, ...localCusts.filter(c => c.id !== payload.id)]);
+
+  try {
+    const { error } = await supabase.from('rimi_customers').insert(payload);
+    if (error) console.warn('[RimiAPI] Supabase customer insert warning:', error.message);
+  } catch (err) {
+    console.warn('[RimiAPI] Supabase customer insert network error:', err);
+  }
 
   // Auto-log creation to customer activity timeline
   await addRimiCustomerActivity({
@@ -1047,6 +1105,7 @@ export async function getRimiSalesOrders(filters?: {
 
 // In-flight mutex to prevent duplicate sales order creation on rapid multi-clicks
 const recentCreatedOrders = new Map<string, { order: RimiSalesOrderRecord; time: number }>();
+const inFlightSalesOrders = new Map<string, Promise<RimiSalesOrderRecord>>();
 
 export async function createRimiSalesOrder(order: {
   customer_id: string;
@@ -1072,10 +1131,15 @@ export async function createRimiSalesOrder(order: {
   const dedupeKey = `${order.customer_id}:${itemsKey}`;
   const now = Date.now();
   const cached = recentCreatedOrders.get(dedupeKey);
-  if (cached && (now - cached.time) < 4000) {
+  if (cached && (now - cached.time) < 6000) {
     return cached.order;
   }
+  const inFlight = inFlightSalesOrders.get(dedupeKey);
+  if (inFlight) {
+    return inFlight;
+  }
 
+  const createPromise = (async () => {
   const orderId = generateUUID();
   const orderNo = `SO-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
 
@@ -1254,17 +1318,32 @@ export async function createRimiSalesOrder(order: {
   recentCreatedOrders.set(dedupeKey, { order: payload, time: Date.now() });
   triggerLocalSync('ferex_rimi_orders_change');
   return payload;
+  })();
+
+  inFlightSalesOrders.set(dedupeKey, createPromise);
+  try {
+    return await createPromise;
+  } finally {
+    inFlightSalesOrders.delete(dedupeKey);
+  }
 }
 
-export async function updateRimiSalesOrderStatus(orderId: string, status: RimiSalesOrderRecord['order_status']): Promise<void> {
+export async function updateRimiSalesOrderStatus(
+  orderId: string,
+  status: RimiSalesOrderRecord['order_status'],
+  orderNoHint?: string
+): Promise<void> {
   const localOrders = getLocalRimiSalesOrders();
   let found = false;
   let targetOrder: RimiSalesOrderRecord | undefined;
   const nowIso = new Date().toISOString();
+  let targetOrderNo = orderNoHint;
+
   const updatedOrders = localOrders.map(o => {
-    if (o.id === orderId) {
+    if (o.id === orderId || (targetOrderNo && o.order_no === targetOrderNo)) {
       found = true;
       targetOrder = o;
+      if (!targetOrderNo && o.order_no) targetOrderNo = o.order_no;
       if (status === 'Cancelled') {
         return {
           ...o,
@@ -1279,22 +1358,57 @@ export async function updateRimiSalesOrderStatus(orderId: string, status: RimiSa
     }
     return o;
   });
+
+  // If not found in local cache, fetch from Supabase to obtain order_no
+  if (!targetOrder) {
+    try {
+      const { data: dbOrder } = await supabase
+        .from('rimi_sales_orders')
+        .select('*')
+        .or(`id.eq.${orderId}${targetOrderNo ? `,order_no.eq.${targetOrderNo}` : ''}`)
+        .maybeSingle();
+      if (dbOrder) {
+        targetOrder = dbOrder as RimiSalesOrderRecord;
+        if (!targetOrderNo && dbOrder.order_no) targetOrderNo = dbOrder.order_no;
+      }
+    } catch {}
+  }
+
+  // Ensure local cache contains the updated cancelled order
   if (found) {
     saveLocalRimiSalesOrders(updatedOrders);
+  } else if (targetOrder) {
+    const cancelledCopy: RimiSalesOrderRecord = {
+      ...targetOrder,
+      order_status: status,
+      paid_amount: status === 'Cancelled' ? 0 : targetOrder.paid_amount,
+      balance_amount: status === 'Cancelled' ? 0 : targetOrder.balance_amount,
+      payment_status: status === 'Cancelled' ? 'Unpaid' : targetOrder.payment_status,
+      updated_at: nowIso
+    };
+    saveLocalRimiSalesOrders([cancelledCopy, ...localOrders.filter(o => o.id !== orderId && (!targetOrderNo || o.order_no !== targetOrderNo))]);
   }
 
   // If order is cancelled, revoke and purge all payment collection records linked to this order
   if (status === 'Cancelled') {
     try {
       const localPayments = getLocalRimiPayments();
-      const orderNo = targetOrder?.order_no;
-      const filteredPayments = localPayments.filter(p => p.order_id !== orderId && (!orderNo || p.order_no !== orderNo));
+      const filteredPayments = localPayments.filter(p => {
+        if (p.order_id && p.order_id === orderId) return false;
+        if (targetOrderNo && p.order_no === targetOrderNo) return false;
+        if (targetOrderNo && p.notes && p.notes.includes(targetOrderNo)) return false;
+        return true;
+      });
       saveLocalRimiPayments(filteredPayments);
       triggerLocalSync('ferex_rimi_payments_change');
     } catch {}
 
     try {
-      await supabase.from('rimi_payments').delete().or(`order_id.eq.${orderId}${targetOrder?.order_no ? `,order_no.eq.${targetOrder.order_no}` : ''}`);
+      if (targetOrderNo) {
+        await supabase.from('rimi_payments').delete().or(`order_id.eq.${orderId},order_no.eq.${targetOrderNo}`);
+      } else {
+        await supabase.from('rimi_payments').delete().eq('order_id', orderId);
+      }
     } catch (payDelErr) {
       console.warn('[RimiAPI] Supabase payment purge warning for cancelled order:', payDelErr);
     }
@@ -1318,25 +1432,8 @@ export async function updateRimiSalesOrderStatus(orderId: string, status: RimiSa
     console.warn('[RimiAPI] Supabase update exception:', dbErr);
   }
 
-  try {
-    const orders = await getRimiSalesOrders();
-    const order = orders.find(o => o.id === orderId) || updatedOrders.find(o => o.id === orderId);
-    if (order?.customer_id) {
-      const customer = await getRimiCustomerById(order.customer_id);
-      if (customer?.email) {
-        sendRimiSalesOrderEmail({
-          customerEmail: customer.email,
-          customerName: order.customer_name,
-          orderNumber: order.order_no,
-          status: status as any,
-          totalAmount: order.total_amount,
-          deliveryDate: order.delivery_date
-        }).catch(() => {});
-      }
-    }
-  } catch {}
-
   triggerLocalSync('ferex_rimi_orders_change');
+  triggerLocalSync('ferex_rimi_payments_change');
 }
 
 export async function deleteRimiSalesOrder(orderId: string): Promise<boolean> {
@@ -1404,9 +1501,28 @@ export async function getRimiPayments(filters?: { customerId?: string; orderId?:
     const localOrders = getLocalRimiSalesOrders();
     const cancelledOrderIds = new Set(localOrders.filter(o => o.order_status === 'Cancelled').map(o => o.id));
     const cancelledOrderNos = new Set(localOrders.filter(o => o.order_status === 'Cancelled').map(o => o.order_no));
+
+    try {
+      const { data: cancelledFromDb } = await supabase
+        .from('rimi_sales_orders')
+        .select('id, order_no')
+        .eq('order_status', 'Cancelled');
+      if (Array.isArray(cancelledFromDb)) {
+        cancelledFromDb.forEach((o: any) => {
+          if (o.id) cancelledOrderIds.add(o.id);
+          if (o.order_no) cancelledOrderNos.add(o.order_no);
+        });
+      }
+    } catch {}
+
     merged = merged.filter((p: RimiPaymentRecord) => {
       if (p.order_id && cancelledOrderIds.has(p.order_id)) return false;
       if (p.order_no && cancelledOrderNos.has(p.order_no)) return false;
+      if (p.notes) {
+        for (const no of cancelledOrderNos) {
+          if (no && p.notes.includes(no)) return false;
+        }
+      }
       return true;
     });
 

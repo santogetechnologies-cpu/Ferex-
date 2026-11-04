@@ -91,9 +91,9 @@ export const RimiCustomers: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const staffEmail = !isAdmin ? profile?.email : undefined;
+      // Enterprise customers are universal across Admin & Warehouse so newly added accounts reflect everywhere
       const [custList, staff] = await Promise.all([
-        getRimiCustomers(staffEmail ? { staffEmail } : undefined),
+        getRimiCustomers(),
         getRimiStaffMembers()
       ]);
       setCustomers(custList);
@@ -101,7 +101,7 @@ export const RimiCustomers: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, profile?.email]);
+  }, []);
 
   useEffect(() => {
     loadData();
