@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ShoppingCart, Search, Plus, Trash2, X, CheckCircle2,
+  ShoppingCart, Search, Plus, Trash2, Edit3, X, CheckCircle2,
   Truck, DollarSign, Package, User, MapPin, Eye,
   Clock, CheckSquare, FileText, ChevronRight, AlertTriangle, RefreshCw
 } from 'lucide-react';
@@ -14,6 +14,7 @@ import {
   getRimiSalesOrders,
   createRimiSalesOrder,
   updateRimiSalesOrderStatus,
+  updateRimiSalesOrderDetails,
   deleteRimiSalesOrder,
   getRimiCustomers,
   getRimiProducts,
@@ -26,7 +27,7 @@ import {
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead', 'warehouse_staff', 'rimi_staff'];
 
 const ORDER_STATUSES = ['Received', 'Confirmed', 'Cold Storage Picking', 'Dispatched', 'Delivered', 'Cancelled'] as const;
 
@@ -50,6 +51,7 @@ export const RimiSalesOrders: React.FC = () => {
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const isSubmittingRef = useRef(false);
   const [selectedOrder, setSelectedOrder] = useState<RimiSalesOrderRecord | null>(null);
+  const [editingOrder, setEditingOrder] = useState<RimiSalesOrderRecord | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>('Bank Transfer');
@@ -263,10 +265,10 @@ export const RimiSalesOrders: React.FC = () => {
 
   const handleDelete = async (orderId: string, orderNo: string) => {
     if (!isAdmin) {
-      showToast('Restricted: Only Admin can delete sales orders.');
+      showToast('Restricted: Authorized role required to delete sales orders.');
       return;
     }
-    if (!window.confirm(`Delete order ${orderNo}?`)) return;
+    if (!window.confirm(`Are you sure you want to delete order ${orderNo}? This will permanently remove the order record.`)) return;
 
     try {
       await deleteRimiSalesOrder(orderId);
@@ -274,6 +276,25 @@ export const RimiSalesOrders: React.FC = () => {
       await loadData();
     } catch (err: any) {
       showToast(`Error deleting order: ${err.message || 'Database error'}`);
+    }
+  };
+
+  const handleSaveOrderEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingOrder) return;
+    try {
+      await updateRimiSalesOrderDetails(editingOrder.id, {
+        delivery_date: editingOrder.delivery_date,
+        delivery_address: editingOrder.delivery_address,
+        order_status: editingOrder.order_status,
+        payment_status: editingOrder.payment_status,
+        notes: editingOrder.notes
+      });
+      setEditingOrder(null);
+      showToast(`Updated order ${editingOrder.order_no} successfully.`);
+      await loadData();
+    } catch (err: any) {
+      showToast(`Error updating order: ${err.message || 'Database error'}`);
     }
   };
 
@@ -425,21 +446,110 @@ export const RimiSalesOrders: React.FC = () => {
                   </Button>
                 </div>
 
-                {isAdmin && (
-                  <div className="flex justify-end">
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    onClick={() => setEditingOrder({ ...ord })}
+                    className="text-[11px] text-slate-500 hover:text-slate-800 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Edit3 className="w-3 h-3 text-slate-400" /> Edit Order
+                  </button>
+                  {isAdmin && (
                     <button
                       onClick={() => handleDelete(ord.id, ord.order_no)}
-                      className="text-[10px] text-slate-400 hover:text-rose-600 font-bold p-1 cursor-pointer"
+                      className="text-[11px] text-slate-400 hover:text-rose-600 font-bold p-1 cursor-pointer"
                     >
                       Delete Order
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Edit Sales Order Details Modal */}
+      <AnimatePresence>
+        {editingOrder && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setEditingOrder(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Edit Sales Order</h3>
+                  <p className="text-[10px] font-bold text-[#58051E]">{editingOrder.order_no} • {editingOrder.customer_name}</p>
+                </div>
+                <button onClick={() => setEditingOrder(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
+              </div>
+
+              <form onSubmit={handleSaveOrderEdit} className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Target Delivery Date</label>
+                    <input
+                      type="date"
+                      value={editingOrder.delivery_date || ''}
+                      onChange={(e) => setEditingOrder({ ...editingOrder, delivery_date: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Order Pipeline Status</label>
+                    <select
+                      value={editingOrder.order_status}
+                      onChange={(e) => setEditingOrder({ ...editingOrder, order_status: e.target.value as any })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    >
+                      {ORDER_STATUSES.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Delivery Destination Address</label>
+                  <input
+                    type="text"
+                    value={editingOrder.delivery_address || ''}
+                    onChange={(e) => setEditingOrder({ ...editingOrder, delivery_address: e.target.value })}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Payment Status</label>
+                  <select
+                    value={editingOrder.payment_status}
+                    onChange={(e) => setEditingOrder({ ...editingOrder, payment_status: e.target.value as any })}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                  >
+                    <option value="Unpaid">Unpaid</option>
+                    <option value="Partially Paid">Partially Paid</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Overdue">Overdue</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Order Notes / Instructions</label>
+                  <textarea
+                    rows={2}
+                    value={editingOrder.notes || ''}
+                    onChange={(e) => setEditingOrder({ ...editingOrder, notes: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div className="pt-3 flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingOrder(null)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Order Updates</Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Create Sales Order Modal */}
       <AnimatePresence>

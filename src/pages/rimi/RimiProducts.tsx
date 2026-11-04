@@ -89,7 +89,8 @@ export const RimiProducts: React.FC = () => {
     unit: 'KG',
     price: '₹450',
     temp: '-18°C',
-    minStock: 50
+    minStock: 50,
+    quantity: 100
   });
 
   const showToastMsg = (msg: string) => {
@@ -130,11 +131,12 @@ export const RimiProducts: React.FC = () => {
         unit_price: cleanPrice,
         storage_temp: newProd.temp || '-18°C',
         min_stock_alert: Number(newProd.minStock) || 50,
+        quantity: Number(newProd.quantity) || 0
       });
 
       setShowAddModal(false);
-      showToastMsg(`Added frozen SKU ${created?.sku || newSku}`);
-      setNewProd({ name: '', category: categories[0] || '', unit: 'KG', price: '₹450', temp: '-18°C', minStock: 50 });
+      showToastMsg(`Added frozen SKU ${created?.sku || newSku} (Opening Stock: ${newProd.quantity} ${newProd.unit})`);
+      setNewProd({ name: '', category: categories[0] || '', unit: 'KG', price: '₹450', temp: '-18°C', minStock: 50, quantity: 100 });
       await loadData();
     } catch (err: any) {
       console.error('[RimiProducts] Error saving product SKU:', err);
@@ -159,6 +161,9 @@ export const RimiProducts: React.FC = () => {
   };
 
   const handleDeleteProduct = async (id: string, rawId?: string) => {
+    if (!window.confirm(`Are you sure you want to delete SKU "${id}"? This action will permanently remove it.`)) {
+      return;
+    }
     try {
       await deleteRimiProduct(rawId || id);
       setProducts(prev => prev.filter(p => p.id !== id && p.rawId !== rawId));
@@ -192,7 +197,7 @@ export const RimiProducts: React.FC = () => {
             <Layers className="w-3.5 h-3.5 mr-1.5 text-[#58051E]" /> Manage Categories
           </Button>
           <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => {
-            setNewProd({ name: '', category: categories[0] || 'Frozen Seafood', unit: 'KG', price: '₹450', temp: '-18°C', minStock: 50 });
+            setNewProd({ name: '', category: categories[0] || 'Frozen Seafood', unit: 'KG', price: '₹450', temp: '-18°C', minStock: 50, quantity: 100 });
             setShowAddModal(true);
           }}>
             <Plus className="w-4 h-4 mr-1.5" /> Add Master SKU
@@ -355,9 +360,24 @@ export const RimiProducts: React.FC = () => {
                     <input type="text" required value={newProd.temp} onChange={(e) => setNewProd({ ...newProd, temp: e.target.value })} placeholder="-18°C" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Min Stock Reorder Alert (Units)</label>
-                  <input type="number" required value={newProd.minStock} onChange={(e) => setNewProd({ ...newProd, minStock: Number(e.target.value) || 50 })} placeholder="50" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Product Quantity / Opening Stock</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      required
+                      value={newProd.quantity}
+                      onChange={(e) => setNewProd({ ...newProd, quantity: Number(e.target.value) || 0 })}
+                      placeholder="e.g. 500"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Min Stock Reorder Alert</label>
+                    <input type="number" required value={newProd.minStock} onChange={(e) => setNewProd({ ...newProd, minStock: Number(e.target.value) || 50 })} placeholder="50" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
+                  </div>
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>

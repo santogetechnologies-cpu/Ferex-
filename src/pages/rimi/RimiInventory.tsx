@@ -26,7 +26,7 @@ import {
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead', 'warehouse_staff', 'rimi_staff'];
 
 export const RimiInventory: React.FC = () => {
   const { profile } = useAuth();
@@ -38,6 +38,7 @@ export const RimiInventory: React.FC = () => {
   const [movements, setMovements] = useState<RimiStockMovementRecord[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingBatch, setEditingBatch] = useState<RimiInventoryBatchRecord | null>(null);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -177,10 +178,10 @@ export const RimiInventory: React.FC = () => {
 
   const handleDelete = async (id: string, batchNo: string) => {
     if (!isAdmin) {
-      showToast('Restricted: Only Admin can delete production lot records.');
+      showToast('Restricted: Authorized role required to delete production lot records.');
       return;
     }
-    if (!window.confirm(`Are you sure you want to delete lot ${batchNo}?`)) return;
+    if (!window.confirm(`Are you sure you want to delete lot ${batchNo}? This will permanently remove it from inventory.`)) return;
 
     try {
       await deleteRimiBatch(id);
@@ -188,6 +189,25 @@ export const RimiInventory: React.FC = () => {
       await loadData();
     } catch (err: any) {
       showToast(`Error deleting batch: ${err.message || 'Database error'}`);
+    }
+  };
+
+  const handleSaveBatchEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBatch) return;
+    try {
+      await updateRimiBatch(editingBatch.id, {
+        batch_no: editingBatch.batch_no,
+        quantity: Number(editingBatch.quantity) || 0,
+        storage_temp: editingBatch.storage_temp,
+        expiry_date: editingBatch.expiry_date,
+        notes: editingBatch.notes
+      });
+      setEditingBatch(null);
+      showToast(`Batch ${editingBatch.batch_no} updated successfully.`);
+      await loadData();
+    } catch (err: any) {
+      showToast(`Error updating batch: ${err.message || 'Database error'}`);
     }
   };
 
@@ -373,6 +393,13 @@ export const RimiInventory: React.FC = () => {
                       >
                         <Clock className="w-4 h-4" />
                       </button>
+                      <button
+                        onClick={() => setEditingBatch({ ...b })}
+                        className="p-1.5 text-slate-400 hover:text-slate-700 rounded cursor-pointer"
+                        title="Edit Lot Details"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
                       {isAdmin && (
                         <button
                           onClick={() => handleDelete(b.id, b.batch_no)}
@@ -496,7 +523,87 @@ export const RimiInventory: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Movement Audit Trail Drawer */}
+      {/* Edit Batch Modal */}
+      <AnimatePresence>
+        {editingBatch && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setEditingBatch(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Edit Inventory Batch Lot</h3>
+                  <p className="text-[10px] font-bold text-[#58051E]">{editingBatch.product_name} • {editingBatch.batch_no}</p>
+                </div>
+                <button onClick={() => setEditingBatch(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
+              </div>
+
+              <form onSubmit={handleSaveBatchEdit} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Batch / Lot Code *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingBatch.batch_no}
+                      onChange={(e) => setEditingBatch({ ...editingBatch, batch_no: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Available Quantity ({editingBatch.unit || 'KG'}) *</label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      step="any"
+                      value={editingBatch.quantity}
+                      onChange={(e) => setEditingBatch({ ...editingBatch, quantity: Number(e.target.value) || 0 })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Expiry Date *</label>
+                    <input
+                      type="date"
+                      required
+                      value={editingBatch.expiry_date ? editingBatch.expiry_date.split('T')[0] : ''}
+                      onChange={(e) => setEditingBatch({ ...editingBatch, expiry_date: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Storage Temperature</label>
+                    <input
+                      type="text"
+                      value={editingBatch.storage_temp || '-18°C'}
+                      onChange={(e) => setEditingBatch({ ...editingBatch, storage_temp: e.target.value })}
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Lot Notes / Comments</label>
+                  <textarea
+                    rows={2}
+                    value={editingBatch.notes || ''}
+                    onChange={(e) => setEditingBatch({ ...editingBatch, notes: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div className="pt-3 flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingBatch(null)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Batch Updates</Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {selectedBatchHistory && (
           <>

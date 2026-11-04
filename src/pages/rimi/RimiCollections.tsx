@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DollarSign, Search, CheckCircle2, Plus, Trash2, X, Eye, Receipt, FileText, Printer, Building2, Check, Calendar, CalendarRange, Filter, BarChart2, ChevronRight } from 'lucide-react';
+import { DollarSign, Search, CheckCircle2, Plus, Trash2, Edit3, X, Eye, Receipt, FileText, Printer, Building2, Check, Calendar, CalendarRange, Filter, BarChart2, ChevronRight } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
 import {
   getRimiPayments,
   createRimiPayment,
+  updateRimiPayment,
+  deleteRimiPayment,
   getRimiCustomers,
   getRimiSalesOrders,
   type RimiPaymentRecord,
@@ -15,7 +17,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead'];
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead', 'warehouse_staff', 'rimi_staff'];
 
 type DateFilterType = 'All' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly' | 'Custom';
 
@@ -30,6 +32,7 @@ export const RimiCollections: React.FC = () => {
   const [customers, setCustomers] = useState<RimiCustomerRecord[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<RimiPaymentRecord | null>(null);
+  const [editingPayment, setEditingPayment] = useState<RimiPaymentRecord | null>(null);
 
   // Date-based filters & Summary State
   const [dateFilter, setDateFilter] = useState<DateFilterType>('All');
@@ -127,6 +130,38 @@ export const RimiCollections: React.FC = () => {
       await loadData();
     } catch (err: any) {
       showToastMsg(`Error logging payment: ${err.message || 'Database error'}`);
+    }
+  };
+
+  const handleDeletePayment = async (id: string, paymentNo: string) => {
+    if (!window.confirm(`Are you sure you want to delete remittance ${paymentNo}? This action will revert the customer ledger and restore the outstanding balance.`)) {
+      return;
+    }
+    try {
+      await deleteRimiPayment(id);
+      setPayments(prev => prev.filter(p => p.id !== id));
+      showToastMsg(`Remittance ${paymentNo} deleted & ledger reversed.`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Failed to delete payment: ${err.message || 'Error'}`);
+    }
+  };
+
+  const handleSavePaymentEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPayment) return;
+    try {
+      await updateRimiPayment(editingPayment.id, {
+        reference_no: editingPayment.reference_no,
+        payment_method: editingPayment.payment_method,
+        payment_date: editingPayment.payment_date,
+        notes: editingPayment.notes
+      });
+      setEditingPayment(null);
+      showToastMsg('Payment remittance details updated.');
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Failed to update payment: ${err.message || 'Error'}`);
     }
   };
 
@@ -404,14 +439,35 @@ export const RimiCollections: React.FC = () => {
                     <td className="p-3.5 text-slate-500 font-mono text-[11px]">{p.reference_no || 'Direct Transfer'}</td>
                     <td className="p-3.5 text-slate-500">{p.payment_date}</td>
                     <td className="p-3.5 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setSelectedPayment(p)}
-                        className="text-[11px] font-bold h-7 border-slate-200"
-                      >
-                        <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> View Receipt
-                      </Button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedPayment(p)}
+                          className="text-[11px] font-bold h-7 border-slate-200"
+                          title="View Receipt"
+                        >
+                          <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> Receipt
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingPayment(p)}
+                          className="text-[11px] font-bold h-7 border-slate-200 hover:bg-slate-50 text-slate-700"
+                          title="Edit Remittance"
+                        >
+                          <Edit3 className="w-3 h-3 text-slate-600" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeletePayment(p.id, p.payment_no)}
+                          className="text-[11px] font-bold h-7 border-red-200 text-red-600 hover:bg-red-50"
+                          title="Delete Remittance"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -494,6 +550,86 @@ export const RimiCollections: React.FC = () => {
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
                   <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save & Settle Ledger</Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Remittance Modal */}
+      <AnimatePresence>
+        {editingPayment && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setEditingPayment(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Edit Remittance Record</h3>
+                  <p className="text-[10px] font-bold text-[#58051E]">{editingPayment.payment_no} • {editingPayment.customer_name}</p>
+                </div>
+                <button onClick={() => setEditingPayment(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
+              </div>
+
+              <form onSubmit={handleSavePaymentEdit} className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Amount (₹ Locked)</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={`₹${Number(editingPayment.amount).toLocaleString('en-IN')}`}
+                    className="w-full h-10 px-3.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-600 cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Payment Mode</label>
+                    <select
+                      value={editingPayment.payment_method}
+                      onChange={(e) => setEditingPayment({ ...editingPayment, payment_method: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    >
+                      <option value="Bank Transfer">Bank Transfer (NEFT/RTGS)</option>
+                      <option value="UPI">UPI / QR Payment</option>
+                      <option value="Cheque">Commercial Cheque</option>
+                      <option value="Cash">Cash Receipt</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Reference / UTR</label>
+                    <input
+                      type="text"
+                      value={editingPayment.reference_no || ''}
+                      onChange={(e) => setEditingPayment({ ...editingPayment, reference_no: e.target.value })}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Remittance Date</label>
+                  <input
+                    type="date"
+                    value={editingPayment.payment_date || ''}
+                    onChange={(e) => setEditingPayment({ ...editingPayment, payment_date: e.target.value })}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Narration / Notes</label>
+                  <textarea
+                    rows={2}
+                    value={editingPayment.notes || ''}
+                    onChange={(e) => setEditingPayment({ ...editingPayment, notes: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div className="pt-3 flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingPayment(null)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Update Remittance</Button>
                 </div>
               </form>
             </motion.div>

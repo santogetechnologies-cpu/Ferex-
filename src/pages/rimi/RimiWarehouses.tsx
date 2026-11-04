@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Warehouse, Search, Thermometer, MapPin, Plus, Trash2, X, CheckCircle2, Phone, Shield, Package, Calendar, Clock, AlertTriangle } from 'lucide-react';
+import { Warehouse, Search, Thermometer, MapPin, Plus, Trash2, Edit3, X, CheckCircle2, Phone, Shield, Package, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -7,6 +7,7 @@ import { ToastNotification } from '../../components/ToastNotification';
 import {
   getRimiWarehouses,
   createRimiWarehouse,
+  updateRimiWarehouse,
   deleteRimiWarehouse,
   getRimiBatches,
   type RimiWarehouseRecord,
@@ -15,7 +16,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead', 'warehouse_staff', 'rimi_staff'];
 
 export const RimiWarehouses: React.FC = () => {
   const { profile } = useAuth();
@@ -25,6 +26,7 @@ export const RimiWarehouses: React.FC = () => {
   const [facilities, setFacilities] = useState<RimiWarehouseRecord[]>([]);
   const [batches, setBatches] = useState<RimiInventoryBatchRecord[]>([]);
   const [selectedFacility, setSelectedFacility] = useState<RimiWarehouseRecord | null>(null);
+  const [editingFacility, setEditingFacility] = useState<RimiWarehouseRecord | null>(null);
   const [hubStockSearch, setHubStockSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
@@ -112,6 +114,27 @@ export const RimiWarehouses: React.FC = () => {
       await loadData();
     } catch (err: any) {
       showToastMsg(`Error deleting facility: ${err.message || 'Database error'}`);
+    }
+  };
+
+  const handleSaveFacilityEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFacility) return;
+    try {
+      await updateRimiWarehouse(editingFacility.id, {
+        name: editingFacility.name,
+        city: editingFacility.city,
+        address: editingFacility.address,
+        cold_room_temp_celsius: Number(editingFacility.cold_room_temp_celsius) || -22.0,
+        total_capacity_pallets: Number(editingFacility.total_capacity_pallets) || 1000,
+        manager_name: editingFacility.manager_name,
+        manager_phone: editingFacility.manager_phone
+      });
+      setEditingFacility(null);
+      showToastMsg(`Updated facility "${editingFacility.name}"`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Error updating facility: ${err.message || 'Database error'}`);
     }
   };
 
@@ -230,7 +253,14 @@ export const RimiWarehouses: React.FC = () => {
                 </div>
 
                 {isAdmin && (
-                  <div className="pt-2 border-t border-slate-100 flex justify-end">
+                  <div className="pt-2 border-t border-slate-100 flex justify-end items-center gap-1">
+                    <button
+                      onClick={() => setEditingFacility({ ...f })}
+                      className="p-1.5 text-slate-400 hover:text-slate-700 rounded cursor-pointer"
+                      title="Edit Facility Details"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => handleDelete(f.id, f.name)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
@@ -422,6 +452,96 @@ export const RimiWarehouses: React.FC = () => {
                   </div>
                 );
               })()}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Facility Modal */}
+      <AnimatePresence>
+        {editingFacility && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setEditingFacility(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Edit Cold Storage Facility</h3>
+                  <p className="text-[10px] font-bold text-[#58051E]">{editingFacility.code} • {editingFacility.name}</p>
+                </div>
+                <button onClick={() => setEditingFacility(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
+              </div>
+
+              <form onSubmit={handleSaveFacilityEdit} className="space-y-3 text-xs">
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Facility Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingFacility.name}
+                    onChange={(e) => setEditingFacility({ ...editingFacility, name: e.target.value })}
+                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">City / Location *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingFacility.city}
+                      onChange={(e) => setEditingFacility({ ...editingFacility, city: e.target.value })}
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Cold Room Temp (°C)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editingFacility.cold_room_temp_celsius}
+                      onChange={(e) => setEditingFacility({ ...editingFacility, cold_room_temp_celsius: Number(e.target.value) })}
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Pallet Capacity</label>
+                    <input
+                      type="number"
+                      value={editingFacility.total_capacity_pallets}
+                      onChange={(e) => setEditingFacility({ ...editingFacility, total_capacity_pallets: Number(e.target.value) })}
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Facility Manager</label>
+                    <input
+                      type="text"
+                      value={editingFacility.manager_name}
+                      onChange={(e) => setEditingFacility({ ...editingFacility, manager_name: e.target.value })}
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Manager Phone</label>
+                  <input
+                    type="text"
+                    value={editingFacility.manager_phone || ''}
+                    onChange={(e) => setEditingFacility({ ...editingFacility, manager_phone: e.target.value })}
+                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div className="pt-3 flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingFacility(null)}>Cancel</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Update Facility</Button>
+                </div>
+              </form>
             </motion.div>
           </>
         )}

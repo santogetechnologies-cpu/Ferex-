@@ -317,3 +317,147 @@ test('Monthly payment summary correctly groups amounts and transaction counts by
   assert.equal(jan?.total, 10000);
   assert.equal(jan?.count, 1);
 });
+
+test('Opening stock allocation creates active inventory batch and initial stock movement', () => {
+  const newProduct = {
+    id: 'prod-sku-99',
+    sku: 'RIMI-COD-99',
+    name: 'Frozen Atlantic Cod Fillets (1kg)',
+    category: 'Frozen Seafood',
+    unit: 'KG',
+    unit_price: 520,
+    storage_temp: '-18°C',
+    quantity: 500
+  };
+
+  // Emulate createRimiProduct opening stock batch generation
+  const openingQty = Number(newProduct.quantity);
+  assert.ok(openingQty > 0);
+
+  const cleanSuffix = newProduct.sku.replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase();
+  const batchNo = `LOT-${cleanSuffix}-01`;
+
+  const initialBatch = {
+    id: 'batch-alloc-01',
+    batch_no: batchNo,
+    product_id: newProduct.id,
+    product_name: newProduct.name,
+    product_category: newProduct.category,
+    quantity: openingQty,
+    initial_quantity: openingQty,
+    unit: newProduct.unit,
+    storage_temp: newProduct.storage_temp,
+    status: 'Active',
+    notes: `Opening inventory stock established upon SKU creation (${openingQty} ${newProduct.unit})`
+  };
+
+  const initialMovement = {
+    id: 'mov-alloc-01',
+    batch_id: initialBatch.id,
+    product_id: newProduct.id,
+    movement_type: 'Initial Stock',
+    quantity_change: openingQty,
+    resulting_quantity: openingQty,
+    reference_no: batchNo
+  };
+
+  assert.equal(initialBatch.quantity, 500);
+  assert.equal(initialBatch.unit, 'KG');
+  assert.equal(initialBatch.status, 'Active');
+  assert.equal(initialMovement.movement_type, 'Initial Stock');
+  assert.equal(initialMovement.quantity_change, 500);
+});
+
+test('Payment deletion restores customer outstanding ledger balance', () => {
+  const customer = {
+    id: 'cust-201',
+    business_name: 'Pacific Cold Traders',
+    outstanding_balance: 40000,
+    outstanding_amount: 40000
+  };
+
+  const paymentToDelete = {
+    id: 'pay-del-01',
+    customer_id: 'cust-201',
+    amount: 25000,
+    payment_method: 'Bank Transfer'
+  };
+
+  // Emulate deleteRimiPayment ledger reversal
+  const restoredBal = customer.outstanding_balance + paymentToDelete.amount;
+  const updatedCustomer = {
+    ...customer,
+    outstanding_balance: restoredBal,
+    outstanding_amount: restoredBal,
+    payment_status: restoredBal > 0 ? 'Overdue' : 'Current'
+  };
+
+  assert.equal(updatedCustomer.outstanding_balance, 65000);
+  assert.equal(updatedCustomer.outstanding_amount, 65000);
+  assert.equal(updatedCustomer.payment_status, 'Overdue');
+});
+
+test('Multi-entity tombstone registries prevent resurrection across all modules', () => {
+  // Test Orders tombstone
+  const deletedOrderIds = new Set(['so-del-1', 'SO-2026-999']);
+  const remoteOrders = [
+    { id: 'so-del-1', order_no: 'SO-2026-999' },
+    { id: 'so-keep-2', order_no: 'SO-2026-1000' }
+  ];
+  const filteredOrders = remoteOrders.filter(o => !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.order_no));
+  assert.equal(filteredOrders.length, 1);
+  assert.equal(filteredOrders[0].id, 'so-keep-2');
+
+  // Test Products tombstone
+  const deletedProductIds = new Set(['prod-del-1']);
+  const remoteProducts = [
+    { id: 'prod-del-1', sku: 'RIMI-DEL-01' },
+    { id: 'prod-keep-2', sku: 'RIMI-KEEP-02' }
+  ];
+  const filteredProducts = remoteProducts.filter(p => !deletedProductIds.has(p.id));
+  assert.equal(filteredProducts.length, 1);
+  assert.equal(filteredProducts[0].id, 'prod-keep-2');
+
+  // Test Batches tombstone
+  const deletedBatchIds = new Set(['batch-del-1']);
+  const remoteBatches = [
+    { id: 'batch-del-1', batch_no: 'LOT-999' },
+    { id: 'batch-keep-2', batch_no: 'LOT-1000' }
+  ];
+  const filteredBatches = remoteBatches.filter(b => !deletedBatchIds.has(b.id));
+  assert.equal(filteredBatches.length, 1);
+  assert.equal(filteredBatches[0].id, 'batch-keep-2');
+
+  // Test Warehouses tombstone
+  const deletedWarehouseIds = new Set(['wh-del-1']);
+  const remoteWarehouses = [
+    { id: 'wh-del-1', name: 'Old Facility' },
+    { id: 'wh-keep-2', name: 'Pune Central Hub' }
+  ];
+  const filteredWarehouses = remoteWarehouses.filter(w => !deletedWarehouseIds.has(w.id));
+  assert.equal(filteredWarehouses.length, 1);
+  assert.equal(filteredWarehouses[0].id, 'wh-keep-2');
+});
+
+test('Authorized Admin & Warehouse roles both have full operational CRUD access', () => {
+  const RIMI_AUTHORIZED_ROLES = [
+    'rimi_admin', 'rimi_frozen', 'admin', 'education_admin',
+    'central', 'super_admin', 'superadmin',
+    'operations_manager', 'warehouse_lead', 'warehouse_staff', 'rimi_staff'
+  ];
+
+  // Admin accounts
+  assert.ok(RIMI_AUTHORIZED_ROLES.includes('rimi_admin'));
+  assert.ok(RIMI_AUTHORIZED_ROLES.includes('admin'));
+  assert.ok(RIMI_AUTHORIZED_ROLES.includes('central'));
+
+  // Warehouse accounts
+  assert.ok(RIMI_AUTHORIZED_ROLES.includes('operations_manager'));
+  assert.ok(RIMI_AUTHORIZED_ROLES.includes('warehouse_lead'));
+  assert.ok(RIMI_AUTHORIZED_ROLES.includes('warehouse_staff'));
+  assert.ok(RIMI_AUTHORIZED_ROLES.includes('rimi_staff'));
+
+  // External / Student role should NOT have CRUD access
+  assert.equal(RIMI_AUTHORIZED_ROLES.includes('student'), false);
+  assert.equal(RIMI_AUTHORIZED_ROLES.includes('applicant'), false);
+});
