@@ -41,7 +41,8 @@ export const StudentDashboard: React.FC = () => {
   const { records: visaRecords } = useVisa(user?.id);
   const { getWorkflowForCountry } = useCountryWorkflows();
 
-  const targetCountry = localStorage.getItem('ferex_student_target_country') || applications[0]?.universities?.country || (applications[0] as any)?.country || '';
+  const perStudentKey = user?.id ? `ferex_student_target_country_${user.id}` : 'ferex_student_target_country';
+  const targetCountry = (user?.id ? localStorage.getItem(perStudentKey) : null) || localStorage.getItem('ferex_student_target_country') || applications[0]?.universities?.country || (applications[0] as any)?.country || '';
   const targetWf = targetCountry ? getWorkflowForCountry(targetCountry) : null;
 
   const [configuredReqs, setConfiguredReqs] = React.useState<any[]>([]);
@@ -400,11 +401,11 @@ export const StudentDashboard: React.FC = () => {
           <Card className="p-5 border border-slate-200/80 shadow-subtle space-y-3.5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-sm font-bold text-slate-900">12-Stage Admission Journey</h3>
+                <h3 className="text-sm font-bold text-slate-900">{checklistItems.length}-Stage Admission Journey</h3>
                 <p className="text-xs text-slate-400 font-medium mt-0.5">Sequential milestones from inquiry to campus arrival</p>
               </div>
               <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/5 px-2.5 py-1 rounded-full uppercase border border-[#58051E]/15">
-                {completedCount} of 12 Completed
+                {completedCount} of {checklistItems.length} Completed
               </span>
             </div>
 

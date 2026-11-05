@@ -410,77 +410,58 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                       <button onClick={() => { setShowNotifications(false); navigate('/student/notifications'); }} className="text-[10px] font-bold text-[#58051E] hover:underline">View All</button>
                     </div>
                     <div className="space-y-1.5 max-h-72 overflow-y-auto">
-                      {((notifications && notifications.length > 0) ? notifications : [
-                        {
-                          id: 'pop-1',
-                          title: 'Offer Letter Available for Review',
-                          body: 'Your official conditional offer letter from Warsaw University of Technology has been uploaded.',
-                          category: 'Offer Letter',
-                          is_read: false,
-                          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-                        },
-                        {
-                          id: 'pop-2',
-                          title: 'Payment Receipt Ready',
-                          body: 'Your registration fee payment receipt and GST tax invoice are ready in Payments.',
-                          category: 'Payment',
-                          is_read: false,
-                          created_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-                        },
-                        {
-                          id: 'pop-3',
-                          title: 'VFS Visa Process Active',
-                          body: 'Document Legalization clearance & VFS Slot booking is active. View live tracking on VFS Tracker.',
-                          category: 'VFS Visa',
-                          is_read: true,
-                          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-                        },
-                      ]).slice(0, 6).map((n: any) => {
-                        const routes: Record<string, string> = {
-                          'Offer Letter': '/student/offers',
-                          'Application': '/student/journey-tracker',
-                          'Payment': '/student/payments',
-                          'VFS Visa': '/student/visa-tracker',
-                          'Counselor Session': '/student/meetings',
-                          'Document': '/student/documents',
-                          'Pre-Departure': '/student/pre-departure',
-                          'Support': '/student/support',
-                        };
-                        const targetRoute = routes[n.category] || '/student/notifications';
+                      {notifications.length === 0 ? (
+                        <div className="py-8 text-center text-xs font-semibold text-slate-400">
+                          No notifications right now.
+                        </div>
+                      ) : (
+                        notifications.slice(0, 6).map((n: any) => {
+                          const routes: Record<string, string> = {
+                            'Offer Letter': '/student/offers',
+                            'Application': '/student/journey-tracker',
+                            'Payment': '/student/payments',
+                            'VFS Visa': '/student/visa-tracker',
+                            'Counselor Session': '/student/meetings',
+                            'Document': '/student/documents',
+                            'Pre-Departure': '/student/pre-departure',
+                            'Support': '/student/support',
+                          };
+                          const targetRoute = routes[n.category] || '/student/notifications';
 
-                        return (
-                          <div
-                            key={n.id}
-                            onClick={() => {
-                              if (!n.is_read) markRead(n.id);
-                              setShowNotifications(false);
-                              navigate(targetRoute);
-                            }}
-                            className={`p-2.5 rounded-xl transition-all cursor-pointer border group ${
-                              !n.is_read ? 'bg-amber-50/60 border-amber-200/80 hover:bg-amber-100/60' : 'bg-white hover:bg-slate-50 border-slate-100'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-slate-100 text-slate-700 rounded border border-slate-200 shrink-0">
-                                  {n.category || 'Alert'}
-                                </span>
-                                <p className="text-xs font-bold text-slate-900 truncate">{n.title}</p>
+                          return (
+                            <div
+                              key={n.id}
+                              onClick={() => {
+                                if (!n.is_read) markRead(n.id);
+                                setShowNotifications(false);
+                                navigate(targetRoute);
+                              }}
+                              className={`p-2.5 rounded-xl transition-all cursor-pointer border group ${
+                                !n.is_read ? 'bg-amber-50/60 border-amber-200/80 hover:bg-amber-100/60' : 'bg-white hover:bg-slate-50 border-slate-100'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-slate-100 text-slate-700 rounded border border-slate-200 shrink-0">
+                                    {n.category || 'Alert'}
+                                  </span>
+                                  <p className="text-xs font-bold text-slate-900 truncate">{n.title}</p>
+                                </div>
+                                {!n.is_read && <span className="w-2 h-2 rounded-full bg-[#58051E] shrink-0" />}
                               </div>
-                              {!n.is_read && <span className="w-2 h-2 rounded-full bg-[#58051E] shrink-0" />}
+                              <p className="text-[10.5px] font-semibold text-slate-500 mt-1 line-clamp-2">{n.body}</p>
+                              <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-slate-100/60">
+                                <span className="text-[9px] font-bold text-slate-400">
+                                  {new Date(n.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <span className="text-[9.5px] font-extrabold text-[#58051E] group-hover:underline flex items-center gap-0.5">
+                                  Open →
+                                </span>
+                              </div>
                             </div>
-                            <p className="text-[10.5px] font-semibold text-slate-500 mt-1 line-clamp-2">{n.body}</p>
-                            <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-slate-100/60">
-                              <span className="text-[9px] font-bold text-slate-400">
-                                {new Date(n.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                              <span className="text-[9.5px] font-extrabold text-[#58051E] group-hover:underline flex items-center gap-0.5">
-                                Open →
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -539,7 +520,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                       </button>
                       <button
                         className="w-full text-left px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl flex items-center gap-2 transition-colors"
-                        onClick={() => navigate('/student/profile')}
+                        onClick={() => navigate('/student/settings')}
                       >
                         <Settings className="w-4 h-4 text-slate-400" />
                         Settings
@@ -580,11 +561,11 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
         studentContext={{
           studentName: studentDetail.name || profile?.full_name || 'Student',
           email: studentDetail.email || profile?.email || user?.email,
-          targetCountry: 'Poland / European Union',
+          targetCountry: (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || localStorage.getItem('ferex_student_target_country') || 'European Union',
           targetUniversity: 'European Partner Universities',
           program: 'Higher Education Program',
-          currentStep: 3,
-          stepTitle: 'Document Review & University Application',
+          currentStep: hasSignedAgreement ? 3 : 2,
+          stepTitle: hasSignedAgreement ? 'Document Review & University Application' : 'Service Agreement Signing',
           assignedCounselor: 'Admissions Officer',
           visaStatus: 'Document Preparation',
         }}

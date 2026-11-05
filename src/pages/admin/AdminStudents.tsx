@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
@@ -9,6 +10,8 @@ import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequir
 import type { UserProfile } from '../../lib/types';
 import { ToastNotification } from '../../components/ToastNotification';
 import { isAgreementSigned, getLocalAgreement } from '../../lib/api/agreement';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface StudentItem {
   id: string;
@@ -48,6 +51,22 @@ interface AdminStudentsProps {
 }
 
 export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false }) => {
+  const { user, profile } = useAuth();
+  const [signedStudentIds, setSignedStudentIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const loadAgreements = async () => {
+      try {
+        const { data } = await supabase.from('education_service_agreements').select('student_id');
+        if (data && Array.isArray(data)) {
+          setSignedStudentIds(new Set(data.map((d: any) => d.student_id)));
+        }
+      } catch {}
+    };
+    loadAgreements();
+    window.addEventListener('ferex_agreement_change', loadAgreements);
+    return () => window.removeEventListener('ferex_agreement_change', loadAgreements);
+  }, []);
   const { students: dbStudents, removeStudent, editStudent: updateDbStudent, addStudent } = useStudents();
   const { applications: dbApps } = useApplications();
   const [students, setStudents] = useState<StudentItem[]>([]);
@@ -70,8 +89,14 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
   const [selectedCounselorToAssign, setSelectedCounselorToAssign] = useState('');
   const [isAssigningCounselor, setIsAssigningCounselor] = useState(false);
 
+  const [searchParams] = useSearchParams();
   // Filters
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('q') || searchParams.get('search') || '');
+
+  useEffect(() => {
+    const q = searchParams.get('q') || searchParams.get('search');
+    if (q) setSearch(q);
+  }, [searchParams]);
   const [statusFilter, setStatusFilter] = useState('All');
   const [countryFilter, setCountryFilter] = useState('All');
   const [counselorFilter, setCounselorFilter] = useState('All');
@@ -490,14 +515,38 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
             onChange={(e) => { setCounselorFilter(e.target.value); setCurrentPage(1); }}
             className="w-full h-10 px-3 bg-white border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
           >
-            <option value="All">All Counselors (Roster)</option>
-            {DEFAULT_COUNSELOR_ROSTER.map((c: any) => (
-              <option key={c.id} value={c.name}>{c.name} ({c.country})</option>
-            ))}
+            <option value="All">All Counselors</option>
+            {staffMembers.length > 0 ? (
+              staffMembers.map((s: any) => {
+                const name = s.full_name || s.email;
+                return <option key={s.id} value={name}>{name}</option>;
+              })
+            ) : (
+              DEFAULT_COUNSELOR_ROSTER.map((c: any) => (
+                <option key={c.id} value={c.name}>{c.name} ({c.country})</option>
+              ))
+            )}
           </select>
         </div>
 
         <div className="sm:col-span-3 flex gap-1.5">
+          {isStaff && (
+            <button
+              type="button"
+              onClick={() => {
+                const myName = (profile?.full_name || user?.email?.split('@')[0] || '').toLowerCase();
+                setCounselorFilter(counselorFilter.toLowerCase() === myName ? 'All' : myName);
+                setCurrentPage(1);
+              }}
+              className={`h-10 px-3 rounded-xl text-xs font-bold border transition-all duration-150 shrink-0 ${
+                counselorFilter !== 'All' && counselorFilter.toLowerCase() === (profile?.full_name || user?.email?.split('@')[0] || '').toLowerCase()
+                  ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
+                  : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50'
+              }`}
+            >
+              My Students
+            </button>
+          )}
           {['All', 'Active', 'Pending'].map(f => (
             <button key={f} onClick={() => { setStatusFilter(f); setCurrentPage(1); }}
               className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all duration-150 active:scale-98 ${statusFilter === f ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm shadow-[#58051E]/20' : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'}`}>
@@ -584,7 +633,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                     })()}
                   </td>
                   <td className="px-4 py-3.5">
-                    {isAgreementSigned(s.id) ? (
+                    {(signedStudentIds.has(s.id) || isAgreementSigned(s.id)) ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Signed & Bound
                       </span>
@@ -902,20 +951,22 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Phone</label>
                   <input type="text" value={editTemp.phone} onChange={(e) => setEditTemp({ ...editTemp, phone: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none" />
                 </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Assigned Counselor (From Company Staff List) *</label>
-                  <select
-                    value={editTemp.counselor}
-                    onChange={(e) => setEditTemp({ ...editTemp, counselor: e.target.value })}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
-                  >
-                    {staffMembers.map(s => {
-                      const label = `${s.full_name || s.email} (${s.department?.split(':')[1] || s.role})`;
-                      const val = `${s.full_name || s.email} (${s.department?.split(':')[1] || 'Senior Counselor'})`;
-                      return <option key={s.id} value={val}>{label}</option>;
-                    })}
-                  </select>
-                </div>
+                {!isStaff && (
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Assigned Counselor (From Company Staff List) *</label>
+                    <select
+                      value={editTemp.counselor}
+                      onChange={(e) => setEditTemp({ ...editTemp, counselor: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
+                    >
+                      {staffMembers.map(s => {
+                        const label = `${s.full_name || s.email} (${s.department?.split(':')[1] || s.role})`;
+                        const val = `${s.full_name || s.email} (${s.department?.split(':')[1] || 'Senior Counselor'})`;
+                        return <option key={s.id} value={val}>{label}</option>;
+                      })}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-2">

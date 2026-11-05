@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
   CreditCard, Headphones, BarChart3, Crown, GraduationCap,
-  Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane, FileText, Home, Sparkles, Mail
+  Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane, FileText, Home, Sparkles, Mail, Award
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -22,21 +22,21 @@ interface AdminLayoutProps { children: React.ReactNode; }
 
 const baseMenuItems = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, badge: null, hasUpdate: false },
-  { name: 'Staff Attendance & Hours', path: '/admin/attendance', icon: Clock, badge: null, hasUpdate: false },
   { name: 'Students', path: '/admin/students', icon: Users, badge: null, hasUpdate: false },
   { name: 'Universities', path: '/admin/universities', icon: Building2, badge: null, hasUpdate: false },
-  { name: 'Status Tracker', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
   { name: 'Applications', path: '/admin/applications', icon: FileCheck, badge: null, hasUpdate: false },
-  { name: 'Offer Letters', path: '/admin/offers', icon: FileText, badge: null, hasUpdate: false },
+  { name: 'Offer Letters', path: '/admin/offers', icon: Award, badge: null, hasUpdate: false },
   { name: 'Documents Review', path: '/admin/documents', icon: FolderOpen, badge: null, hasUpdate: false },
   { name: 'Document Config', path: '/admin/document-config', icon: FileText, badge: null, hasUpdate: false },
   { name: 'Legalization & Workflows', path: '/admin/legalization', icon: FileCheck, badge: null, hasUpdate: false },
   { name: 'Payment & Billing Control', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
   { name: 'VFS Visa Tracker', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },
   { name: 'Pre-Departure', path: '/admin/pre-departure', icon: Plane, badge: null, hasUpdate: false },
+  { name: 'Status Tracker', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
   { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
-  { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },
+  { name: 'Staff Attendance & Hours', path: '/admin/attendance', icon: Clock, badge: null, hasUpdate: false },
   { name: 'Meetings & Planner', path: '/admin/meetings', icon: Calendar, badge: null, hasUpdate: false },
+  { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },
   { name: 'Email Delivery Logs', path: '/admin/emails', icon: Mail, badge: null, hasUpdate: false },
   { name: 'Settings', path: '/admin/settings', icon: Settings, badge: null, hasUpdate: false },
 ];
@@ -298,16 +298,24 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             )}
 
             {/* Search Input */}
-            <div className="relative hidden md:block">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchQuery.trim()) {
+                  navigate(`/admin/students?q=${encodeURIComponent(searchQuery.trim())}`);
+                }
+              }}
+              className="relative hidden md:block"
+            >
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search resources, students..."
+                placeholder="Search students, CRM... (Enter)"
                 className="h-9 w-60 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40 focus:ring-4 focus:ring-[#58051E]/5 transition-all"
               />
-            </div>
+            </form>
 
             {/* Shift Clock-In Widget */}
             <ClockInOutWidget compact divisionOverride="education" />

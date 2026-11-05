@@ -103,7 +103,8 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
     const app = allApps.find(a => a.student_id === studentId);
     const country = app?.universities?.country || (app as any)?.country;
     if (country && country.toLowerCase().trim() !== 'not set') return country.trim();
-    return localStorage.getItem('ferex_student_target_country') || 'Poland';
+    const perStudentKey = studentId ? `ferex_student_target_country_${studentId}` : 'ferex_student_target_country';
+    return (studentId ? localStorage.getItem(perStudentKey) : null) || localStorage.getItem('ferex_student_target_country') || 'Poland';
   }, [allApps]);
 
   const getDossierForStudent = React.useCallback((studentId: string, studentDocs: DocItem[]) => {
@@ -142,12 +143,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
           comment: d.reviewer_notes || '',
           fileUrl: d.file_url,
         };
-      }).filter(d => {
-        const sName = d.studentName.toLowerCase();
-        if (sName.includes('jishi') || sName.includes('ajay') || sName.includes('navaneeth') || sName === 'rahul sharma') return false;
-        if (d.studentId === 'f1ccbfe4-caa9-4f9c-b92c-e4f139e7b496') return false;
-        return true;
-      });
+      }).filter(d => Boolean(d.studentId && d.studentName));
       setDocs(mapped);
     } else {
       setDocs([]);

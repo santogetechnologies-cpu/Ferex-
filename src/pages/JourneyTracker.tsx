@@ -311,7 +311,7 @@ export const JourneyTracker: React.FC = () => {
       id: 't4',
       num: 4,
       title: 'Travel Insurance',
-      status: 'completed',
+      status: isVisaApproved ? 'completed' : 'upcoming',
       desc: 'European health and emergency repatriation coverage active.',
       actionLabel: 'Policy Certificate',
       actionRoute: '/student/documents',
