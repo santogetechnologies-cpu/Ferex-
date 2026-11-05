@@ -56,13 +56,13 @@ export const Documents: React.FC = () => {
     }
 
     try {
-      const storedCourse = localStorage.getItem('ferex_selected_course');
+      const storedCourse = (user?.id ? localStorage.getItem(`ferex_selected_course_${user.id}`) : null) || localStorage.getItem('ferex_selected_course');
       if (storedCourse) {
         const parsed = JSON.parse(storedCourse);
         if (parsed?.country && !isInvalid(parsed.country)) return parsed.country.trim();
         if (parsed?.university?.country && !isInvalid(parsed.university.country)) return parsed.university.country.trim();
       }
-      const storedUni = localStorage.getItem('ferex_student_selected_uni');
+      const storedUni = (user?.id ? localStorage.getItem(`ferex_student_selected_uni_${user.id}`) : null) || localStorage.getItem('ferex_student_selected_uni');
       if (storedUni) {
         const parsed = JSON.parse(storedUni);
         if (parsed?.country && !isInvalid(parsed.country)) return parsed.country.trim();

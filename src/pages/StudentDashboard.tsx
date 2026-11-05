@@ -42,7 +42,7 @@ export const StudentDashboard: React.FC = () => {
   const { getWorkflowForCountry } = useCountryWorkflows();
 
   const perStudentKey = user?.id ? `ferex_student_target_country_${user.id}` : 'ferex_student_target_country';
-  const targetCountry = (user?.id ? localStorage.getItem(perStudentKey) : null) || localStorage.getItem('ferex_student_target_country') || applications[0]?.universities?.country || (applications[0] as any)?.country || '';
+  const targetCountry = (user?.id ? localStorage.getItem(perStudentKey) : null) || applications[0]?.universities?.country || (applications[0] as any)?.country || (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || '';
   const targetWf = targetCountry ? getWorkflowForCountry(targetCountry) : null;
 
   const [configuredReqs, setConfiguredReqs] = React.useState<any[]>([]);
@@ -534,8 +534,8 @@ export const StudentDashboard: React.FC = () => {
               const rawCounselor = (profile as any)?.assigned_counselor?.trim();
               const hasRealCounselor = rawCounselor && 
                 rawCounselor !== 'Admin' && 
-                !rawCounselor.toLowerCase().includes('desk counselor') &&
-                !rawCounselor.toLowerCase().startsWith('admissions counselor');
+                rawCounselor !== '--' && 
+                !rawCounselor.toLowerCase().includes('desk counselor');
 
               if (!hasRealCounselor) {
                 return (

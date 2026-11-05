@@ -106,7 +106,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
     const country = app?.universities?.country || (app as any)?.country;
     if (country && country.toLowerCase().trim() !== 'not set') return country.trim();
     const perStudentKey = studentId ? `ferex_student_target_country_${studentId}` : 'ferex_student_target_country';
-    return (studentId ? localStorage.getItem(perStudentKey) : null) || localStorage.getItem('ferex_student_target_country') || 'Poland';
+    return (studentId ? localStorage.getItem(perStudentKey) : null) || 'Poland';
   }, [allApps]);
 
   const getDossierForStudent = React.useCallback((studentId: string, studentDocs: DocItem[]) => {

@@ -33,6 +33,7 @@ export const ServiceAgreement: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [formError, setFormError] = useState('');
 
   // Drawing Canvas Ref
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -111,25 +112,26 @@ export const ServiceAgreement: React.FC = () => {
 
   const handleSignAgreement = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
     if (!studentName.trim()) {
-      alert('Please enter your full legal student name.');
+      setFormError('Please enter your full legal student name.');
       return;
     }
     if (!agreeAll) {
-      alert('Please accept and agree to all clauses and terms of the service agreement.');
+      setFormError('Please accept and agree to all clauses and terms of the service agreement.');
       return;
     }
 
     let signatureData = '';
     if (signatureType === 'drawn') {
       if (!hasDrawn || !canvasRef.current) {
-        alert('Please draw your digital signature on the canvas.');
+        setFormError('Please draw your digital signature on the canvas.');
         return;
       }
       signatureData = canvasRef.current.toDataURL('image/png');
     } else {
       if (!typedSignature.trim()) {
-        alert('Please type your legal signature name.');
+        setFormError('Please type your legal signature name.');
         return;
       }
       signatureData = typedSignature.trim();
@@ -622,6 +624,13 @@ export const ServiceAgreement: React.FC = () => {
                   </label>
                 </div>
               </div>
+
+              {formError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{formError}</span>
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button

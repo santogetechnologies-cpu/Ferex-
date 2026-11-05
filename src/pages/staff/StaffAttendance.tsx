@@ -41,7 +41,7 @@ export const StaffAttendance: React.FC = () => {
       if (activeTab === 'timesheets') {
         const data = await getTimesheets({ userEmail });
         setMyTimesheets(data);
-      } else {
+      } else if (activeTab === 'leaves') {
         const leaves = await getLeaveRequests({ userEmail });
         setMyLeaves(leaves);
       }
