@@ -21,6 +21,7 @@ import { isRealApplication } from '../lib/api/applications';
 import { isAgreementSigned } from '../lib/api/agreement';
 import { getJourneyStages } from '../lib/api/journey';
 import { listDirectPayments } from '../lib/api/payments';
+import { getPreDepartureRecords, type PreDepartureRecord } from '../lib/api/preDeparture';
 import { supabase } from '../lib/supabase';
 
 export const JourneyTracker: React.FC = () => {
@@ -39,6 +40,29 @@ export const JourneyTracker: React.FC = () => {
   const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
   const [dbStages, setDbStages] = useState<any[]>([]);
   const [directPayments, setDirectPayments] = useState<any[]>([]);
+  const [depRecord, setDepRecord] = useState<PreDepartureRecord | null>(null);
+
+  useEffect(() => {
+    const fetchDep = async () => {
+      try {
+        const recs = await getPreDepartureRecords();
+        const myId = user?.id?.toLowerCase().trim();
+        const myEmail = user?.email?.toLowerCase().trim();
+        const found = recs.find(r =>
+          (myId && (r.student_id?.toLowerCase().trim() === myId || r.id?.toLowerCase().trim() === myId)) ||
+          (myEmail && (r.student_email?.toLowerCase().trim() === myEmail || r.student_id?.toLowerCase().trim() === myEmail))
+        );
+        if (found) setDepRecord(found);
+      } catch {}
+    };
+    fetchDep();
+    window.addEventListener('ferex_predeparture_change', fetchDep);
+    window.addEventListener('ferex_pre_departure_change', fetchDep);
+    return () => {
+      window.removeEventListener('ferex_predeparture_change', fetchDep);
+      window.removeEventListener('ferex_pre_departure_change', fetchDep);
+    };
+  }, [user?.id, user?.email]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -150,7 +174,7 @@ export const JourneyTracker: React.FC = () => {
       id: 'u5',
       num: 5,
       title: 'University Shortlisting',
-      status: (activeApp || isStageDone(6)) ? 'completed' : (isProfileDone ? 'current' : 'upcoming'),
+      status: (activeApp || isStageDone(5)) ? 'completed' : (isProfileDone ? 'current' : 'upcoming'),
       desc: 'Target universities and accredited degree programs selected.',
       actionLabel: activeApp ? 'View Shortlist' : 'Select University',
       actionRoute: '/student/select-university',
@@ -177,7 +201,7 @@ export const JourneyTracker: React.FC = () => {
       id: 'u8',
       num: 8,
       title: 'University Review',
-      status: (hasOffer || isStageDone(7)) ? 'completed' : (activeApp ? 'current' : 'upcoming'),
+      status: (hasOffer || isStageDone(8)) ? 'completed' : (activeApp ? 'current' : 'upcoming'),
       desc: 'Admissions Committee evaluating academic qualifications.',
       actionLabel: 'Check Status',
       actionRoute: '/student/applications',
@@ -195,7 +219,7 @@ export const JourneyTracker: React.FC = () => {
       id: 'u10',
       num: 10,
       title: 'Admission Confirmation',
-      status: (isOfferAccepted || isStageDone(8) || isStageDone(9)) ? 'completed' : (hasOffer ? 'current' : 'upcoming'),
+      status: (isOfferAccepted || isStageDone(10)) ? 'completed' : (hasOffer ? 'current' : 'upcoming'),
       desc: 'Offer accepted, initial fee settled & Final Acceptance issued.',
       actionLabel: isOfferAccepted ? 'Download Acceptance' : 'Accept & Confirm',
       actionRoute: '/student/offers',
@@ -293,7 +317,7 @@ export const JourneyTracker: React.FC = () => {
       id: 't2',
       num: 2,
       title: 'Flight Itinerary',
-      status: isVisaApproved ? 'completed' : 'upcoming',
+      status: (depRecord?.flight_no && !depRecord.flight_no.toLowerCase().includes('awaiting') && !depRecord.flight_no.toLowerCase().includes('pending')) ? 'completed' : (isVisaApproved ? 'current' : 'upcoming'),
       desc: 'Flight reservations locked and travel itinerary submitted.',
       actionLabel: 'Flight Details',
       actionRoute: '/student/pre-departure',
@@ -302,7 +326,7 @@ export const JourneyTracker: React.FC = () => {
       id: 't3',
       num: 3,
       title: 'Accommodation Allotment',
-      status: isVisaApproved ? 'completed' : 'upcoming',
+      status: (depRecord?.dorm_name && !depRecord.dorm_name.toLowerCase().includes('pending')) ? 'completed' : (isVisaApproved ? 'current' : 'upcoming'),
       desc: 'Campus dormitory room or verified student residence secured.',
       actionLabel: 'Dorm Allotment',
       actionRoute: '/student/pre-departure',
@@ -311,7 +335,7 @@ export const JourneyTracker: React.FC = () => {
       id: 't4',
       num: 4,
       title: 'Travel Insurance',
-      status: isVisaApproved ? 'completed' : 'upcoming',
+      status: depRecord?.insurance_purchased ? 'completed' : (isVisaApproved ? 'current' : 'upcoming'),
       desc: 'European health and emergency repatriation coverage active.',
       actionLabel: 'Policy Certificate',
       actionRoute: '/student/documents',
@@ -320,7 +344,7 @@ export const JourneyTracker: React.FC = () => {
       id: 't5',
       num: 5,
       title: 'Airport Concierge',
-      status: isVisaApproved ? 'completed' : 'upcoming',
+      status: (depRecord?.pickup_driver && !depRecord.pickup_driver.toLowerCase().includes('assigned upon')) ? 'completed' : (isVisaApproved ? 'current' : 'upcoming'),
       desc: 'Dedicated arrival welfare representative and transfer arranged.',
       actionLabel: 'Pickup Contacts',
       actionRoute: '/student/pre-departure',
@@ -329,7 +353,7 @@ export const JourneyTracker: React.FC = () => {
       id: 't6',
       num: 6,
       title: 'Transit & Flight',
-      status: isVisaApproved ? 'in_progress' : 'upcoming',
+      status: (depRecord?.forex_card_ready || depRecord?.clearance_status === 'Departed') ? 'completed' : ((depRecord?.flight_no && !depRecord.flight_no.toLowerCase().includes('awaiting')) ? 'in_progress' : (isVisaApproved ? 'current' : 'upcoming')),
       desc: 'Boarding check-in, international transit, and immigration clearance.',
       actionLabel: 'Travel Guide',
       actionRoute: '/student/pre-departure',
@@ -338,7 +362,7 @@ export const JourneyTracker: React.FC = () => {
       id: 't7',
       num: 7,
       title: 'Arrival Confirmation',
-      status: 'upcoming',
+      status: depRecord?.clearance_status === 'Departed' ? 'completed' : ((depRecord?.flight_no && !depRecord.flight_no.toLowerCase().includes('awaiting')) ? 'current' : 'upcoming'),
       desc: 'Touchdown confirmed, airport rendezvous and dorm check-in.',
       actionLabel: 'Arrival Checklist',
       actionRoute: '/student/pre-departure',
