@@ -186,7 +186,7 @@ export const VisaTracker: React.FC = () => {
           variant="outline" 
           size="sm" 
           className="border-white/20 text-white hover:bg-white/10 text-xs shrink-0"
-          onClick={() => navigate('/student/journey')}
+          onClick={() => navigate('/student/journey-tracker')}
         >
           View Full Lifecycle
         </Button>
@@ -264,7 +264,7 @@ export const VisaTracker: React.FC = () => {
           </div>
           <Button
             size="sm"
-            onClick={() => navigate('/student/predeparture')}
+            onClick={() => navigate('/student/pre-departure')}
             rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
           >
             Pre-Departure Plan

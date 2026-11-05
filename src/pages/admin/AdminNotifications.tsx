@@ -25,7 +25,7 @@ interface NotificationItem {
 const CATEGORY_MAP: Record<string, { icon: React.FC<{ className?: string }>; route: string; color: string; label: string }> = {
   Documents: { icon: FolderOpen, route: '/admin/documents', color: 'bg-blue-50 text-blue-700 border-blue-200', label: 'Documents Review' },
   Applications: { icon: GraduationCap, route: '/admin/applications', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'University Applications' },
-  Payments: { icon: CreditCard, route: '/admin/payments', color: 'bg-purple-50 text-purple-700 border-purple-200', label: 'Fee Payments' },
+  Payments: { icon: CreditCard, route: '/admin/payment-control', color: 'bg-purple-50 text-purple-700 border-purple-200', label: 'Fee Payments' },
   Visa: { icon: ShieldCheck, route: '/admin/visa-tracker', color: 'bg-amber-50 text-amber-700 border-amber-200', label: 'VFS Visa Tracker' },
   Legalization: { icon: FileText, route: '/admin/legalization', color: 'bg-teal-50 text-teal-700 border-teal-200', label: 'Document Legalization' },
   Tasks: { icon: ClipboardCheck, route: '/admin/tasks', color: 'bg-indigo-50 text-indigo-700 border-indigo-200', label: 'Task Management' },

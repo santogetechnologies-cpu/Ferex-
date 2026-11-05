@@ -599,7 +599,7 @@ export const StudentDashboard: React.FC = () => {
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2 pt-1">
-                    <Button size="xs" variant="outline" className="h-8" onClick={() => navigate('/student/meetings')} icon={<MessageSquare className="w-3.5 h-3.5" />}>
+                    <Button size="xs" variant="outline" className="h-8" onClick={() => navigate('/student/chat')} icon={<MessageSquare className="w-3.5 h-3.5" />}>
                       Chat / Notes
                     </Button>
                     <Button size="xs" className="h-8" onClick={() => navigate('/student/meetings')} icon={<Calendar className="w-3.5 h-3.5" />}>

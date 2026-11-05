@@ -303,6 +303,7 @@ function App() {
             <Route path="/student/dashboard" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><StudentDashboard /></StudentLayout></ProtectedRoute>} />
             <Route path="/student/agreement" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><ServiceAgreement /></StudentLayout></ProtectedRoute>} />
             <Route path="/student/journey-tracker" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><JourneyTracker /></StudentLayout></ProtectedRoute>} />
+            <Route path="/student/journey" element={<Navigate to="/student/journey-tracker" replace />} />
             <Route path="/student/select-university" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><SelectUniversity /></StudentLayout></ProtectedRoute>} />
             <Route path="/student/applications" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><UniversityApplications /></StudentLayout></ProtectedRoute>} />
             <Route path="/student/offers" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><OfferLetters /></StudentLayout></ProtectedRoute>} />
@@ -318,6 +319,7 @@ function App() {
           <Route path="/student/settings" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><MyProfile defaultTab="Account & Security" /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/visa-tracker" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><VisaTracker /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/pre-departure" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><PreDeparture /></StudentLayout></ProtectedRoute>} />
+          <Route path="/student/predeparture" element={<Navigate to="/student/pre-departure" replace />} />
           <Route path="/student/housing" element={<Navigate to="/student/dashboard" replace />} />
 
           {/* ── Admin Routes ── */}
