@@ -201,9 +201,9 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
 
       // Two-way synchronization with Country Workflows & Legalization Queue (nawa_records)
       if (targetApp && targetApp.studentId) {
-        const isApproved = newStatus === 'NAWA Approved' || newStatus === 'Approved';
-        const isSubmitted = newStatus === 'NAWA Submitted';
-        const isReview = newStatus === 'NAWA Review';
+        const isApproved = ['NAWA Approved', 'Approved', 'Legalization Cleared'].includes(newStatus);
+        const isSubmitted = ['NAWA Submitted', 'Legalization Lodged'].includes(newStatus);
+        const isReview = ['NAWA Review', 'Legalization Reviewed'].includes(newStatus);
 
         if (isApproved || isSubmitted || isReview) {
           const stepNum = isApproved ? 3 : (isSubmitted ? 2 : 1);

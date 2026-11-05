@@ -49,7 +49,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
   const cName = (profile?.full_name || '').toLowerCase().trim();
   const dbStudents = isStaff ? allStudents.filter(s => {
     const ac = (s.assigned_counselor || '').toLowerCase().trim();
-    return ac === cEmail || ac === cName;
+    return Boolean(ac && ((cEmail && ac.includes(cEmail)) || (cName && ac.includes(cName))));
   }) : allStudents;
   const studentIds = new Set(dbStudents.map(s => s.id));
   const dbApps = isStaff ? allApps.filter(a => studentIds.has(a.student_id)) : allApps;
@@ -85,10 +85,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
         if (!stats) return;
         const pendingAmount = Number(stats.pendingPaymentsAmount) || 0;
         const pendingCount = Number(stats.pendingPaymentsCount) || 0;
+        const studentCount = isStaff ? dbStudents.length : (stats.totalStudents ?? 0);
+        const activeAppsCount = isStaff ? dbApps.filter(a => a.status !== 'Draft' && a.status !== 'Rejected' && a.status !== 'Withdrawn').length : (stats.activeApplications ?? 0);
+        const pendingAppsCount = isStaff ? dbApps.filter(a => a.status === 'Submitted' || a.status === 'Under Review').length : (stats.pendingApplications ?? 0);
         setStatCards([
-          { label: 'Total Students', value: String(stats.totalStudents ?? 0), change: 'Live from DB', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: isStaff ? '/staff/students' : '/admin/students' },
-          { label: 'Active Applications', value: String(stats.activeApplications ?? 0), change: 'Live from DB', icon: FileCheck, color: 'text-violet-600 bg-violet-50/80', trend: 'up', path: isStaff ? '/staff/applications' : '/admin/applications' },
-          { label: 'Pending Applications', value: String(stats.pendingApplications ?? 0), change: 'Review Needed', icon: Clock3, color: 'text-amber-700 bg-amber-50/80', trend: 'down', path: isStaff ? '/staff/applications' : '/admin/applications' },
+          { label: isStaff ? 'My Assigned Students' : 'Total Students', value: String(studentCount), change: isStaff ? 'My Portfolio' : 'Live from DB', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: isStaff ? '/staff/students' : '/admin/students' },
+          { label: isStaff ? 'My Active Applications' : 'Active Applications', value: String(activeAppsCount), change: isStaff ? 'Portfolio Queue' : 'Live from DB', icon: FileCheck, color: 'text-violet-600 bg-violet-50/80', trend: 'up', path: isStaff ? '/staff/applications' : '/admin/applications' },
+          { label: isStaff ? 'Applications Under Review' : 'Pending Applications', value: String(pendingAppsCount), change: 'Review Needed', icon: Clock3, color: 'text-amber-700 bg-amber-50/80', trend: 'down', path: isStaff ? '/staff/applications' : '/admin/applications' },
           { label: 'Pending Documents', value: String(stats.pendingDocuments ?? 0), change: 'Verification Queue', icon: FolderOpen, color: 'text-orange-600 bg-orange-50/80', trend: 'down', path: isStaff ? '/staff/documents' : '/admin/documents' },
           ...(isStaff ? [{
             label: 'Assigned Tasks',

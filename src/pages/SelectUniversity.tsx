@@ -1,6 +1,6 @@
 import { saveEducationCountry } from '../lib/api/educationBilling';
 import { educationFees, resolveEducationFee, money, registrationSettled } from '../lib/educationBilling';
-import { formatFeeEURandINR } from './admin/AdminUniversities';
+import { formatFeeEURandINR } from './Payments';
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Search, MapPin, Award, Sparkles, Heart, X, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight, Lock, AlertCircle, GraduationCap, Building2 } from 'lucide-react';
@@ -197,18 +197,24 @@ export const SelectUniversity: React.FC = () => {
         void saveEducationCountry(user.id, applyUni.country).catch(() => {});
         localStorage.setItem('ferex_student_target_country', applyUni.country);
       }
-      localStorage.setItem('ferex_student_selected_uni', JSON.stringify({
+      const scopedUniKey = user?.id ? `ferex_student_selected_uni_${user.id}` : 'ferex_student_selected_uni';
+      const scopedCourseKey = user?.id ? `ferex_selected_course_${user.id}` : 'ferex_selected_course';
+      const uniPayload = JSON.stringify({
         id: applyUni.id,
         name: applyUni.name,
         country: applyUni.country,
         city: applyUni.city
-      }));
-      localStorage.setItem('ferex_selected_course', JSON.stringify({
+      });
+      const coursePayload = JSON.stringify({
         university_id: applyUni.id,
         university_name: applyUni.name,
         country: applyUni.country,
         program: `${degreeLevel} - ${selectedCourse || 'Higher Studies'}`
-      }));
+      });
+      localStorage.setItem(scopedUniKey, uniPayload);
+      localStorage.setItem(scopedCourseKey, coursePayload);
+      localStorage.setItem('ferex_student_selected_uni', uniPayload);
+      localStorage.setItem('ferex_selected_course', coursePayload);
       window.dispatchEvent(new Event('ferex_country_change'));
       window.dispatchEvent(new Event('ferex_application_change'));
 

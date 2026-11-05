@@ -16,7 +16,8 @@ export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false })
   const { meetings: dbMeetings, changeStatus, deleteCall, loading, addMeeting } = useMeetings();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [advisorFilter, setAdvisorFilter] = useState('All');
+  const counselorName = profile?.full_name || '';
+  const [advisorFilter, setAdvisorFilter] = useState(() => (isStaff && counselorName) ? counselorName : 'All');
   const [toastMessage, setToastMessage] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -106,7 +107,10 @@ export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false })
         const names = staff.map(s => s.full_name || (s.email ? s.email.split('@')[0] : 'Advisor')).filter(Boolean);
         const uniqueNames = Array.from(new Set(names));
         setCounselorsList(uniqueNames);
-        if (uniqueNames.length > 0 && !bookAdvisor) setBookAdvisor(uniqueNames[0]);
+        if (uniqueNames.length > 0 && !bookAdvisor) {
+          const match = isStaff && counselorName ? uniqueNames.find(n => n.toLowerCase().includes(counselorName.toLowerCase())) : null;
+          setBookAdvisor(match || uniqueNames[0]);
+        }
       } else {
         const defaults = ['Sarah Jenkins', 'David Wilson', 'Senior Admissions Counselor', 'Academic Advisor'];
         setCounselorsList(defaults);

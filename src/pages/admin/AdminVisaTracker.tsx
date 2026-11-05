@@ -20,9 +20,10 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
   const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
   const counselorName = (profile?.full_name || '').toLowerCase().trim();
   const { students: allStudents } = useStudents();
-  const students = isStaff ? allStudents.filter(s => {
+  const [showAllForStaff, setShowAllForStaff] = useState(false);
+  const students = (isStaff && !showAllForStaff) ? allStudents.filter(s => {
     const ac = (s.assigned_counselor || '').toLowerCase().trim();
-    return !ac || ac === counselorEmail || ac === counselorName;
+    return Boolean(ac && ((counselorEmail && ac.includes(counselorEmail)) || (counselorName && ac.includes(counselorName))));
   }) : allStudents;
   const { records, refresh, saveVisaUpdate } = useVisa();
   const { applications } = useApplications();
@@ -453,6 +454,19 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
         </div>
 
         <div className="flex items-center gap-2">
+            {isStaff && (
+              <button
+                type="button"
+                onClick={() => setShowAllForStaff(prev => !prev)}
+                className={`px-3 py-1 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                  showAllForStaff
+                    ? 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    : 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
+                }`}
+              >
+                {showAllForStaff ? 'Showing: All Students' : 'Showing: My Assigned Students'}
+              </button>
+            )}
           <button
             onClick={() => refresh()}
             className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500 transition-colors cursor-pointer"

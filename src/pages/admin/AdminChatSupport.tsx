@@ -42,7 +42,7 @@ export const AdminChatSupport: React.FC<AdminChatSupportProps> = ({ isStaff = fa
         }));
         const filtered = isStaff ? mapped.filter(c => {
             const cName = (c.name || '').toLowerCase().trim();
-            return !counselorName || cName.includes(counselorName) || true; // maintain assigned student thread
+            return !counselorName || cName.includes(counselorName) || c.role === 'Education Support';
           }) : mapped;
           setConversations(filtered);
         if (mapped.length > 0) setActiveId(mapped[0].id);

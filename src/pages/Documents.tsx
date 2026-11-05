@@ -43,7 +43,8 @@ export const Documents: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [configuredReqs, setConfiguredReqs] = useState<DocumentRequirement[]>([]);
   const [selectedCountryOverride, setSelectedCountryOverride] = useState<string>(() => {
-    return localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country') || 'Poland';
+    const perKey = user?.id ? `ferex_student_target_country_${user.id}` : 'ferex_student_target_country';
+    return (user?.id ? localStorage.getItem(perKey) : null) || localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country') || 'Poland';
   });
 
   // Target country resolution - dynamically bound to selected destination university & country

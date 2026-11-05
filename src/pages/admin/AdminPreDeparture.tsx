@@ -19,9 +19,10 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
   const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
   const counselorName = (profile?.full_name || '').toLowerCase().trim();
   const { students: allStudents } = useStudents();
-  const dbStudents = isStaff ? allStudents.filter(s => {
+  const [showAllForStaff, setShowAllForStaff] = useState(false);
+  const dbStudents = (isStaff && !showAllForStaff) ? allStudents.filter(s => {
     const ac = (s.assigned_counselor || '').toLowerCase().trim();
-    return !ac || ac === counselorEmail || ac === counselorName;
+    return Boolean(ac && ((counselorEmail && ac.includes(counselorEmail)) || (counselorName && ac.includes(counselorName))));
   }) : allStudents;
   const { applications: dbApps } = useApplications();
 
