@@ -20,8 +20,7 @@ export const Meetings: React.FC = () => {
     rawAssigned &&
     rawAssigned !== 'Admin' &&
     rawAssigned !== '--' &&
-    !rawAssigned.toLowerCase().includes('desk counselor') &&
-    !rawAssigned.toLowerCase().startsWith('admissions counselor')
+    !rawAssigned.toLowerCase().includes('desk counselor')
   );
   const assignedCounselorName = hasAssignedCounselor ? rawAssigned : null;
 

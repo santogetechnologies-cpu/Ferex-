@@ -110,7 +110,7 @@ export const AdminReports: React.FC = () => {
         {[
           { label: 'Total Students', value: String(students.length), change: 'Live DB', icon: Users, bg: 'bg-blue-50 text-blue-600' },
           { label: 'Applications', value: String(applications.length), change: 'Live DB', icon: FileText, bg: 'bg-violet-50 text-violet-600' },
-          { label: 'Revenue', value: `₹${totalPaidRevenue.toLocaleString()}`, change: 'Live DB', icon: TrendingUp, bg: 'bg-emerald-50 text-emerald-600' },
+          { label: 'Revenue', value: revenueTotals || `₹${totalPaidRevenue.toLocaleString()}`, change: 'Live DB', icon: TrendingUp, bg: 'bg-emerald-50 text-emerald-600' },
           { label: 'Universities', value: String(universities.length), change: 'Live DB', icon: Globe, bg: 'bg-amber-50 text-amber-600' },
         ].map(({ label, value, change, icon: Icon, bg }) => (
           <div key={label} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">

@@ -11,7 +11,10 @@ import { Button } from '../components/Button';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
 import { updateStudent } from '../lib/api/students';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useDocuments } from '../hooks/useDocuments';
+import { useApplications } from '../hooks/useApplications';
 import { ChangePasswordForm } from '../components/ChangePasswordForm';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -52,11 +55,13 @@ interface EmergencyInfo {
 
 interface Document {
   id: number;
+  dbId?: string;
   name: string;
   type: string;
   status: 'Verified' | 'Pending' | 'Missing';
   size: string;
   uploaded: string;
+  fileUrl?: string;
 }
 
 // ─── Helper Components ────────────────────────────────────────────────────────
@@ -142,9 +147,12 @@ const Toggle: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked,
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => {
+  const navigate = useNavigate();
   const { user, profile, updatePassword } = useAuth();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
+  const { documents: dbDocs } = useDocuments(user?.id);
+  const { applications } = useApplications(user?.id);
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
@@ -244,18 +252,19 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
 
   const [tempPersonal, setTempPersonal] = useState<PersonalInfo>({ ...personal });
 
-  // Education Details
-  const [education] = useState<EducationInfo>({
-    studyCountry: (profile as any)?.target_country || '',
-    university: (profile as any)?.target_university || 'University Applied For',
-    course: (profile as any)?.desired_program || 'Higher Studies',
-    intake: 'Feb 2026',
+  // Dynamic Education Details derived from active application & profile
+  const activeApp = applications[0];
+  const education: EducationInfo = {
+    studyCountry: activeApp?.universities?.country || (activeApp as any)?.country || (profile as any)?.target_country || 'Not Set',
+    university: activeApp?.universities?.name || activeApp?.university_name || (profile as any)?.target_university || 'Pending Selection',
+    course: (activeApp as any)?.program || (activeApp as any)?.course || (profile as any)?.desired_program || 'Higher Studies',
+    intake: activeApp?.intake || 'Upcoming Intake',
     campus: 'Main Campus',
     studentNumber: `STU-${user?.id?.slice(0, 6).toUpperCase() || '1001'}`,
-    applicationStatus: 'Under Review',
-    visaStatus: 'Active',
+    applicationStatus: activeApp?.status || 'In Progress',
+    visaStatus: (profile as any)?.visa_status || 'Active',
     counselor: (profile as any)?.assigned_counselor || '--',
-  });
+  };
 
   // Emergency Contact
   const [emergency, setEmergency] = useState<EmergencyInfo>({
@@ -267,15 +276,17 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
   });
   const [tempEmergency, setTempEmergency] = useState<EmergencyInfo>({ ...emergency });
 
-  // Documents
-  const [documents, setDocuments] = useState<Document[]>([
-    { id: 1, name: 'Passport', type: 'Identity', status: 'Verified', size: '1.2 MB', uploaded: 'Jan 12, 2026' },
-    { id: 2, name: 'IELTS Certificate', type: 'Language', status: 'Verified', size: '0.8 MB', uploaded: 'Jan 15, 2026' },
-    { id: 3, name: 'Bachelor\'s Degree', type: 'Academic', status: 'Verified', size: '2.1 MB', uploaded: 'Jan 10, 2026' },
-    { id: 4, name: 'Academic Transcript', type: 'Academic', status: 'Pending', size: '1.7 MB', uploaded: 'Feb 2, 2026' },
-    { id: 5, name: 'Curriculum Vitae', type: 'Professional', status: 'Verified', size: '0.4 MB', uploaded: 'Jan 8, 2026' },
-    { id: 6, name: 'Passport Photo', type: 'Identity', status: 'Missing', size: '—', uploaded: '—' },
-  ]);
+  // Live Documents derived from Supabase storage
+  const documents: Document[] = (dbDocs || []).map((d, idx) => ({
+    id: idx + 1,
+    dbId: d.id,
+    name: d.file_name || d.doc_type || 'Document File',
+    type: d.doc_type || 'Academic File',
+    status: (d.status === 'Approved' ? 'Verified' : d.status === 'Rejected' ? 'Missing' : 'Pending') as any,
+    size: d.file_size || '1.2 MB',
+    uploaded: d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—',
+    fileUrl: d.file_url,
+  }));
   const [docToDelete, setDocToDelete] = useState<number | null>(null);
   const [docToReplace, setDocToReplace] = useState<number | null>(null);
   const [docToPreview, setDocToPreview] = useState<Document | null>(null);
@@ -385,24 +396,13 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
   };
 
   const handleDocReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0] || docToReplace === null) return;
-    const now = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const size = `${(e.target.files[0].size / 1024 / 1024).toFixed(1)} MB`;
-    setDocuments(prev => prev.map(d =>
-      d.id === docToReplace ? { ...d, status: 'Pending', size, uploaded: now } : d
-    ));
     setDocToReplace(null);
-    if (docInputRef.current) docInputRef.current.value = '';
-    showToast('Document replaced. Pending verification.');
+    navigate('/student/documents');
   };
 
   const handleDocDelete = () => {
-    if (docToDelete === null) return;
-    setDocuments(prev => prev.map(d =>
-      d.id === docToDelete ? { ...d, status: 'Missing', size: '—', uploaded: '—' } : d
-    ));
     setDocToDelete(null);
-    showToast('Document removed from records.');
+    navigate('/student/documents');
   };
 
   // ── Config ─────────────────────────────────────────────────────────────────
@@ -787,57 +787,73 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="border border-slate-100 rounded-xl p-4 bg-slate-50/40 hover:border-slate-200 hover:bg-white transition-all group"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-[#58051E]" />
+                {documents.length === 0 ? (
+                  <div className="py-14 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-6">
+                    <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <p className="text-sm font-bold text-slate-700">No documents uploaded yet</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Upload your academic degrees, transcripts, and passport in the Documents hub.</p>
+                    <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate('/student/documents')}>
+                      Go to Documents Hub
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {documents.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="border border-slate-100 rounded-xl p-4 bg-slate-50/40 hover:border-slate-200 hover:bg-white transition-all group"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-[#58051E]" />
+                          </div>
+                          <StatusBadge status={doc.status} />
                         </div>
-                        <StatusBadge status={doc.status} />
-                      </div>
 
-                      <h4 className="text-sm font-extrabold text-slate-900 mb-0.5">{doc.name}</h4>
-                      <p className="text-[10px] font-semibold text-slate-400">{doc.type} · {doc.size}</p>
-                      <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Uploaded: {doc.uploaded}</p>
+                        <h4 className="text-sm font-extrabold text-slate-900 mb-0.5 truncate" title={doc.name}>{doc.name}</h4>
+                        <p className="text-[10px] font-semibold text-slate-400">{doc.type} · {doc.size}</p>
+                        <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Uploaded: {doc.uploaded}</p>
 
-                      <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-slate-100">
-                        <button
-                          onClick={() => setDocToPreview(doc)}
-                          className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-[#58051E]/30 hover:text-[#58051E] transition-all"
-                        >
-                          <Eye className="w-3 h-3" /> Preview
-                        </button>
-                        <button
-                          onClick={() => {
-                            const a = document.createElement('a');
-                            a.href = 'data:text/plain,Ferex Document Download Simulation';
-                            a.download = `${doc.name.replace(/\s+/g, '_')}.pdf`;
-                            a.click();
-                          }}
-                          className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-[#58051E]/30 hover:text-[#58051E] transition-all"
-                        >
-                          <Download className="w-3 h-3" /> Download
-                        </button>
-                        <button
-                          onClick={() => { setDocToReplace(doc.id); docInputRef.current?.click(); }}
-                          className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-amber-400/40 hover:text-amber-600 transition-all"
-                        >
-                          <RefreshCw className="w-3 h-3" /> Replace
-                        </button>
-                        <button
-                          onClick={() => setDocToDelete(doc.id)}
-                          className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-400 bg-white border border-slate-200 hover:border-red-300 hover:text-red-500 transition-all"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                        <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-slate-100">
+                          <button
+                            onClick={() => {
+                              if (doc.fileUrl) {
+                                window.open(doc.fileUrl, '_blank');
+                              } else {
+                                setDocToPreview(doc);
+                              }
+                            }}
+                            className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-[#58051E]/30 hover:text-[#58051E] transition-all cursor-pointer"
+                          >
+                            <Eye className="w-3 h-3" /> Preview
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (doc.fileUrl) {
+                                const a = document.createElement('a');
+                                a.href = doc.fileUrl;
+                                a.download = doc.name;
+                                a.target = '_blank';
+                                a.click();
+                              } else {
+                                setToast('Document file link pending.');
+                              }
+                            }}
+                            className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-[#58051E]/30 hover:text-[#58051E] transition-all cursor-pointer"
+                          >
+                            <Download className="w-3 h-3" /> Download
+                          </button>
+                          <button
+                            onClick={() => navigate('/student/documents')}
+                            className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-amber-400/40 hover:text-amber-600 transition-all cursor-pointer"
+                          >
+                            <RefreshCw className="w-3 h-3" /> Manage
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </Card>
             </div>
           )}

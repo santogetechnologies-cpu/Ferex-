@@ -75,7 +75,7 @@ export const Documents: React.FC = () => {
     const profileTarget = (profile as any)?.target_country;
     if (profileTarget && !isInvalid(profileTarget)) return profileTarget.trim();
 
-    const localTarget = localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country');
+    const localTarget = (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country');
     if (localTarget && !isInvalid(localTarget)) return localTarget.trim();
 
     return 'Poland';
@@ -89,7 +89,7 @@ export const Documents: React.FC = () => {
   useEffect(() => {
     loadRequirements();
     const handleCountryUpdate = () => {
-      const stored = localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country');
+      const stored = (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || localStorage.getItem('ferex_student_target_country') || localStorage.getItem('ferex_selected_country');
       if (stored) setSelectedCountryOverride(stored);
       loadRequirements();
     };

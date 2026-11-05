@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, CheckCircle2, X, Sparkles, Upload, FileText, Download, Award, RefreshCw, Globe, ArrowRight, Compass, ShieldCheck } from 'lucide-react';
+import { Search, Eye, CheckCircle2, X, Sparkles, Upload, FileText, Download, Award, RefreshCw, Globe, ArrowRight, Compass, ShieldCheck, Users } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useApplications } from '../../hooks/useApplications';
 import { uploadOfferPdfToSupabase } from '../../lib/api/applications';
@@ -80,6 +80,7 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
   const { profile, user } = useAuth();
   const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
   const counselorName = (profile?.full_name || '').toLowerCase().trim();
+  const [showAllForStaff, setShowAllForStaff] = useState(false);
   const [searchParams] = useSearchParams();
   const queryParam = searchParams.get('filter') || searchParams.get('tab');
   const resolvedFilter = queryParam === 'offers' || queryParam === 'offer' ? 'Offer Issued' : (queryParam || initialFilter || 'All');
@@ -102,9 +103,15 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
     const realDbApps = (dbApps || []).filter(a => {
       const sName = (a.student_name || (a.users as any)?.full_name || '').toLowerCase().trim();
       if (a.university_name === 'Pending University Selection') return false;
-      if (isStaff && (counselorEmail || counselorName)) {
-        const appCounselor = ((a as any).counselor || '').toLowerCase().trim();
-        return !appCounselor || appCounselor === counselorEmail || appCounselor === counselorName || appCounselor === 'unassigned';
+      if (isStaff && !showAllForStaff && (counselorEmail || counselorName)) {
+        const appCounselor = ((a as any).counselor || (a.users as any)?.assigned_counselor || '').toLowerCase().trim();
+        const matchesCounselor = Boolean(
+          appCounselor && (
+            (counselorEmail && appCounselor.includes(counselorEmail)) ||
+            (counselorName && appCounselor.includes(counselorName))
+          )
+        );
+        return matchesCounselor;
       }
       return true;
     });
@@ -572,6 +579,19 @@ startxref
         </div>
 
         <div className="flex items-center gap-2">
+          {isStaff && (
+            <button
+              onClick={() => setShowAllForStaff(prev => !prev)}
+              className={`flex items-center gap-1.5 px-3 h-10 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                showAllForStaff
+                  ? 'bg-slate-800 text-white border-slate-800'
+                  : 'bg-rose-50 text-[#58051E] border-rose-200 hover:bg-rose-100'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>{showAllForStaff ? 'Showing All Applications' : 'My Assigned Students Only'}</span>
+            </button>
+          )}
           <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 h-10 shadow-xs">
             <Globe className="w-4 h-4 text-[#58051E] shrink-0" />
             <select

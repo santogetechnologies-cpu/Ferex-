@@ -140,7 +140,7 @@ export const OfferLetters: React.FC = () => {
   );
 
   // Check payment status for offer acceptance
-  const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || 'Poland';
+  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || localStorage.getItem('ferex_student_target_country') || 'Poland';
   const payment2Status = checkPaymentStage(payments, 2, targetCountry);
 
   const inst2Paid = payments.some(p =>

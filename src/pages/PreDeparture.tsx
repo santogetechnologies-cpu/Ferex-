@@ -27,7 +27,7 @@ export const PreDeparture: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'checklist' | 'dorm' | 'contacts'>('overview');
   const [checkedMap, setCheckedMap] = useState<Record<string, boolean>>({});
 
-  const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || '';
+  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || localStorage.getItem('ferex_student_target_country') || '';
   const payment3Status = checkPaymentStage(payments, 3, targetCountry);
 
   const activeApp = applications[0];

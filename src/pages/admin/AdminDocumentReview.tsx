@@ -4,7 +4,7 @@ import {
   Search, Eye, CheckCircle2, XCircle, X, RefreshCw, Sparkles,
   FileText, MessageSquare, AlertCircle, Clock, Folder, FolderOpen,
   FileCheck2, UserCheck, GraduationCap, Scroll, Languages, Landmark,
-  ShieldCheck, Table
+  ShieldCheck, Table, Users
 } from 'lucide-react';
 import { useDocuments } from '../../hooks/useDocuments';
 import { useApplications } from '../../hooks/useApplications';
@@ -55,6 +55,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
   const { profile, user } = useAuth();
   const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
   const counselorName = (profile?.full_name || '').toLowerCase().trim();
+  const [showAllForStaff, setShowAllForStaff] = useState(false);
   const { documents: dbDocs, changeStatus } = useDocuments();
   const [docs, setDocs] = useState<DocItem[]>([]);
   const { applications: allApps } = useApplications();
@@ -71,17 +72,18 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
     };
   }, []);
 
-  const [studentsMap, setStudentsMap] = useState<Record<string, { full_name: string; email: string }>>({});
+  const [studentsMap, setStudentsMap] = useState<Record<string, { full_name: string; email: string; assigned_counselor?: string }>>({});
 
   const refreshStudentsMap = React.useCallback(() => {
     getStudents().then(list => {
       if (list && Array.isArray(list)) {
-        const map: Record<string, { full_name: string; email: string }> = {};
+        const map: Record<string, { full_name: string; email: string; assigned_counselor?: string }> = {};
         list.forEach((s: any) => {
           if (s.id) {
             map[s.id] = {
               full_name: s.full_name || s.name || s.email?.split('@')[0] || 'Student',
-              email: s.email || ''
+              email: s.email || '',
+              assigned_counselor: s.assigned_counselor || ''
             };
           }
         });
@@ -232,13 +234,22 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
     }
   };
 
-  const filtered = docs.filter(d =>
+  const scopedDocs = React.useMemo(() => {
+    if (!isStaff || showAllForStaff || (!counselorEmail && !counselorName)) return docs;
+    return docs.filter(d => {
+      const student = studentsMap[d.studentId];
+      const ac = (student?.assigned_counselor || '').toLowerCase().trim();
+      return Boolean(ac && ((counselorEmail && ac.includes(counselorEmail)) || (counselorName && ac.includes(counselorName))));
+    });
+  }, [docs, isStaff, showAllForStaff, counselorEmail, counselorName, studentsMap]);
+
+  const filtered = scopedDocs.filter(d =>
     (statusFilter === 'All' || d.status === statusFilter) &&
     (d.studentName.toLowerCase().includes(search.toLowerCase()) || d.docType.toLowerCase().includes(search.toLowerCase()) || d.category.toLowerCase().includes(search.toLowerCase()))
   );
 
   const statusCounts = ['All', 'Submitted', 'Under Review', 'Approved', 'Rejected'].map(s => ({
-    label: s, count: s === 'All' ? docs.length : docs.filter(d => d.status === s).length
+    label: s, count: s === 'All' ? scopedDocs.length : scopedDocs.filter(d => d.status === s).length
   }));
 
   const [viewMode, setViewMode] = useState<'folders' | 'table'>('folders');
@@ -246,7 +257,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
 
   const studentFolders = React.useMemo(() => {
     const map = new Map<string, { studentId: string; studentName: string; docs: DocItem[] }>();
-    docs.forEach(d => {
+    scopedDocs.forEach(d => {
       const sKey = d.studentId || d.studentName;
       if (!map.has(sKey)) {
         map.set(sKey, { studentId: d.studentId, studentName: d.studentName, docs: [] });
@@ -269,7 +280,22 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
           </p>
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-2 flex-wrap">
+          {isStaff && (
+            <button
+              type="button"
+              onClick={() => setShowAllForStaff(prev => !prev)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
+                showAllForStaff
+                  ? 'bg-slate-800 text-white border-slate-800'
+                  : 'bg-rose-50 text-[#58051E] border-rose-200 hover:bg-rose-100'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>{showAllForStaff ? 'Showing All Documents' : 'My Assigned Students Only'}</span>
+            </button>
+          )}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button
             type="button"
             onClick={() => setViewMode('folders')}
@@ -288,9 +314,10 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
             }`}
           >
             <Table className="w-3.5 h-3.5" />
-            <span>All Documents Table ({docs.length})</span>
+            <span>All Documents Table ({scopedDocs.length})</span>
           </button>
         </div>
+      </div>
       </div>
 
       {/* Filter Pills */}

@@ -86,10 +86,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
       getStudents()
     ]).then(([staffList, studentList]) => {
       const staff = (staffList || []).filter((u: any) => u.role !== 'Student');
-      const students = (studentList || []).filter((s: any) => {
-        const sName = (s.full_name || s.name || s.email || '').toLowerCase();
-        return !sName.includes('jishi') && !sName.includes('ajay') && !sName.includes('navaneeth') && sName !== 'rahul sharma';
-      });
+      const students = (studentList || []);
       setStaffUsers(staff);
       setStudentUsers(students);
       setNewTask(prev => ({

@@ -54,7 +54,7 @@ export const VisaTracker: React.FC = () => {
   const hasDirectTuition = directPayments.some(d => d.fee_category === 'university_tuition' && ['Verified', 'Pending Verification'].includes(d.verification_status));
   const inst2Paid = hasDirectTuition || payments.some(p => (checkPaymentStage(p, 2) || p.fee_id === 'tuition' || p.fee_id === 'visa-fee') && (p.status === 'Paid' || p.status === 'Verified'));
 
-  const targetCountry = (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || '';
+  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || localStorage.getItem('ferex_student_target_country') || '';
   const payment2Status = checkPayment(payments, 2, targetCountry);
 
   // Final Acceptance Letter check
