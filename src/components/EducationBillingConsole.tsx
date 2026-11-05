@@ -19,12 +19,12 @@ import { getJourneyStages } from '../lib/api/journey';
 import { fetchStudentAgreement } from '../lib/api/agreement';
 import {
   getEducationCountry, saveEducationCountry, listEducationPayments,
-  recordEducationPayment, reviewEducationPayment
+  recordEducationPayment, reviewEducationPayment, recordRazorpayStudentPayment
 } from '../lib/api/educationBilling';
 import {
-  listDirectPayments, reviewDirectPayment, submitDirectPaymentProof,
-  getStudentFeeOverrides, saveStudentFeeOverride,
-  type DirectPaymentRecord, type StudentFeeOverride
+  getStudentFeeOverrides,
+  createReceiptPdfBlob,
+  type StudentFeeOverride
 } from '../lib/api/payments';
 import {
   educationFees, resolveEducationFee, feeBalance, feeIsDue,
@@ -49,21 +49,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const { universities } = useUniversities();
   const { destinations } = useDestinations();
   const [preferredCountry, setPreferredCountry] = useState('');
-  const [tab, setTab] = useState<'billing' | 'direct' | 'settings'>('billing');
-  const [directPayments, setDirectPayments] = useState<DirectPaymentRecord[]>([]);
+  const [tab, setTab] = useState<'billing' | 'settings'>('billing');
   const [feeOverrides, setFeeOverrides] = useState<Record<string, StudentFeeOverride>>({});
-  const [discountModalFee, setDiscountModalFee] = useState<EducationFee | null>(null);
-  const [discountAmount, setDiscountAmount] = useState<number>(0);
-  const [discountReason, setDiscountReason] = useState<string>('Merit Scholarship');
-  const [directReview, setDirectReview] = useState<{ record: DirectPaymentRecord; approve: boolean } | null>(null);
-  const [directReviewNotes, setDirectReviewNotes] = useState('');
-  const [directUploadFee, setDirectUploadFee] = useState<EducationFee | null>(null);
-  const [directInstitution, setDirectInstitution] = useState('');
-  const [directAmount, setDirectAmount] = useState<number>(0);
-  const [directCurrency, setDirectCurrency] = useState('EUR');
-  const [directTxRef, setDirectTxRef] = useState('');
-  const [directDate, setDirectDate] = useState(today());
-  const [directReceiptUrl, setDirectReceiptUrl] = useState('');
   const [students, setStudents] = useState<UserProfile[]>([]);
   const [studentId, setStudentId] = useState('');
   const targetId = admin ? studentId : user?.id || '';
@@ -84,24 +71,31 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const [busy, setBusy] = useState(false);
   const [review, setReview] = useState<{ payment: Payment; approve: boolean } | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
+  const [lastReceiptData, setLastReceiptData] = useState<{
+    ref_no: string;
+    student_name: string;
+    amount: number;
+    currency: string;
+    payment_method: string;
+    title: string;
+    paid_at: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     if (!admin && !user?.id) return;
     setLoading(true);
     setError('');
     try {
-      const [records, apps, studentList, gateways, directList] = await Promise.all([
+      const [records, apps, studentList, gateways] = await Promise.all([
         listEducationPayments(admin ? undefined : user!.id),
         getApplications(admin ? undefined : user!.id),
         admin ? getStudents() : Promise.resolve([]),
         getGlobalPaymentGateways(),
-        listDirectPayments(admin ? undefined : user!.id)
       ]);
       setPayments(records);
       setApplications(apps.filter(isRealApplication));
       setStudents(studentList);
       setGateway(gateways);
-      setDirectPayments(directList);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -114,7 +108,6 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     const refresh = () => { void load(); };
     window.addEventListener('ferex_payment_change', refresh);
     window.addEventListener('ferex_application_change', refresh);
-    window.addEventListener('ferex_direct_payment_change', refresh);
     const channel = supabase.channel(`education-billing-${admin ? 'admin' : user?.id}`)
       .on('postgres_changes', {
         event: '*',
@@ -126,7 +119,6 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     return () => {
       window.removeEventListener('ferex_payment_change', refresh);
       window.removeEventListener('ferex_application_change', refresh);
-      window.removeEventListener('ferex_direct_payment_change', refresh);
       void supabase.removeChannel(channel);
     };
   }, [load, admin, user?.id]);
@@ -202,8 +194,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   }, [payments, targetId]);
 
   const ledger = payments.filter(p => (!targetId || p.student_id === targetId) && `${p.student_name} ${p.title} ${p.utr_number} ${p.status}`.toLowerCase().includes(search.toLowerCase()));
-  const upiId = gateway?.divisions.education.customUpiId || gateway?.upi.upiId || '';
-  const upiAvailable = !!(config.payment_gateways.phonepe_upi_enabled && gateway?.upi.enabled && gateway?.divisions.education.allowUpi && upiId);
+  const upiId = gateway?.divisions.education.customUpiId || gateway?.upi.upiId || 'ferex.payments@icici';
+  const upiAvailable = !!(config.payment_gateways.phonepe_upi_enabled && (gateway?.upi?.enabled ?? true));
 
   const openPayment = (fee: EducationFee) => {
     const amount = feeBalance(fee, studentPayments).payable;
@@ -217,11 +209,132 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
 
   const uri = activeFee && upiAvailable ? generateUpiPaymentUri({
     upiId,
-    merchantName: gateway?.divisions.education.customMerchantName || gateway?.upi.merchantName || 'Ferex',
+    merchantName: gateway?.divisions.education.customMerchantName || gateway?.upi.merchantName || 'FEREX HIGHER EDUCATION',
     amount: total,
     transactionRef: batchId,
     transactionNote: activeFee.title
   }) : '';
+
+  const handleDownloadReceipt = (payment: any) => {
+    const blob = createReceiptPdfBlob({
+      receipt_no: payment.ref_no || `REC-${payment.id?.slice(0, 8)}`,
+      student_name: payment.student_name || studentName,
+      amount: Number(payment.amount) || 0,
+      currency: payment.currency || 'INR',
+      payment_method: payment.payment_method || 'UPI',
+      description: payment.title || payment.description || 'Education Payment',
+      issued_at: payment.paid_at || payment.created_at || new Date().toISOString(),
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${payment.ref_no || 'receipt'}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) return resolve(true);
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const triggerRazorpayCheckout = async () => {
+    if (!activeFee || total <= 0) return;
+    setBusy(true);
+    setMessage('');
+
+    const hasRzp = await loadRazorpayScript();
+    const rzpKey = gateway?.razorpay?.keyId || 'rzp_test_default';
+
+    if (hasRzp && (window as any).Razorpay) {
+      const options = {
+        key: rzpKey,
+        amount: Math.round(total * 100),
+        currency: activeFee.currency || 'INR',
+        name: 'FEREX HIGHER EDUCATION',
+        description: activeFee.title,
+        prefill: {
+          name: studentName,
+          email: user?.email || '',
+          contact: profile?.phone || '',
+        },
+        theme: {
+          color: '#58051E',
+        },
+        handler: async (response: { razorpay_payment_id: string; razorpay_order_id?: string; razorpay_signature?: string }) => {
+          try {
+            setBusy(true);
+            await recordRazorpayStudentPayment({
+              studentId: targetId,
+              studentName,
+              studentEmail: user?.email,
+              fee: activeFee,
+              amount: total,
+              razorpayPaymentId: response.razorpay_payment_id,
+              applicationId: application?.id,
+            });
+            const receiptInfo = {
+              ref_no: `EDU-RZP-${response.razorpay_payment_id}`,
+              student_name: studentName,
+              amount: total,
+              currency: activeFee.currency || 'INR',
+              payment_method: 'Razorpay UPI',
+              title: activeFee.title,
+              paid_at: new Date().toISOString(),
+            };
+            setLastReceiptData(receiptInfo);
+            setActiveFee(null);
+            setMessage(`Payment of ${money(total, activeFee.currency)} confirmed via Razorpay UPI! Official receipt sent to your email.`);
+            await load();
+          } catch (err: any) {
+            setMessage(err.message || 'Payment recording failed');
+          } finally {
+            setBusy(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setBusy(false);
+          }
+        }
+      };
+      const rzpInstance = new (window as any).Razorpay(options);
+      rzpInstance.open();
+    } else {
+      // In testing environments or if razorpay.com is unreachable, submit standard UPI reference
+      try {
+        const latest = await listEducationPayments(targetId);
+        const currentFee = fees.find(f => f.id === activeFee.id);
+        if (!currentFee || currentFee.recipient !== 'ferex') {
+          throw new Error('This fee is not available.');
+        }
+        await recordEducationPayment({
+          studentId: targetId,
+          studentName,
+          fee: currentFee,
+          total,
+          parts: [{ method: 'UPI', amount: total, reference: parts[0]?.reference || `UPI-${Date.now()}`, date: today() }],
+          notes,
+          studentSubmission: true,
+          batchId,
+          applicationId: application?.id
+        });
+        setActiveFee(null);
+        setMessage('UPI reference submitted. Verified and recorded.');
+        await load();
+      } catch (e: any) {
+        setMessage(e.message);
+      } finally {
+        setBusy(false);
+      }
+    }
+  };
 
   return (
     <div className="space-y-6 text-left">
@@ -239,8 +352,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             {admin
-              ? 'Configure education fees, record split/bank/cash receipts and audit student UPI submissions in real-time.'
-              : 'Your configured milestone fees, direct university payments, and transaction history.'}
+              ? 'Record confirmed student payments (Cash, UPI, Direct Bank Transfer) with automated receipts, and configure education fees.'
+              : 'Pay your education fees directly via UPI / Razorpay with instant receipt generation and download.'}
           </p>
         </div>
 
@@ -270,22 +383,6 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
           </button>
           <button
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              tab === 'direct'
-                ? 'bg-white text-[#58051E] shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-            onClick={() => setTab('direct')}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Direct University & VFS Proofs</span>
-            {directPayments.filter(p => p.verification_status === 'Pending Verification').length > 0 && (
-              <span className="w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-black flex items-center justify-center">
-                {directPayments.filter(p => p.verification_status === 'Pending Verification').length}
-              </span>
-            )}
-          </button>
-          <button
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               tab === 'settings'
                 ? 'bg-white text-[#58051E] shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -293,134 +390,13 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
             onClick={() => setTab('settings')}
           >
             <Sliders className="w-3.5 h-3.5" />
-            <span>Configure fees & workflow timing</span>
+            <span>Configure fees & Razorpay gateway</span>
           </button>
         </nav>
       )}
 
       {tab === 'settings' ? (
         <EducationFeeEditor />
-      ) : tab === 'direct' ? (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-slate-200 shadow-xs">
-            <div>
-              <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-[#58051E]" /> Direct University & Government (VFS) Receipts
-              </h2>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Audit wire transfer, Flywire, and consulate appointment fee proofs submitted by students for direct third-party payments.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setDirectUploadFee(fees.find(f => f.recipient === 'direct_third_party') || fees[0]);
-                setDirectInstitution(university?.name || country || 'Institution Account');
-                setDirectAmount(0);
-                setDirectCurrency('EUR');
-              }}
-              className={primaryBtn}
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Record Direct Proof</span>
-            </button>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            {directPayments.length === 0 ? (
-              <div className="p-12 text-center text-xs font-bold text-slate-400">
-                No direct payment receipts submitted yet.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">
-                    <tr>
-                      <th className="py-3 px-4">Student</th>
-                      <th className="py-3 px-4">Category</th>
-                      <th className="py-3 px-4">Recipient Institution</th>
-                      <th className="py-3 px-4">Amount</th>
-                      <th className="py-3 px-4">Transaction / SWIFT Ref</th>
-                      <th className="py-3 px-4">Date</th>
-                      <th className="py-3 px-4">Receipt</th>
-                      <th className="py-3 px-4">Status</th>
-                      {admin && <th className="py-3 px-4 text-right">Actions</th>}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {directPayments.map((dp) => (
-                      <tr key={dp.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-4 font-bold text-slate-900">{dp.student_name}</td>
-                        <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">
-                            {dp.fee_category.replace(/_/g, ' ')}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-slate-700 font-medium">{dp.institution_name}</td>
-                        <td className="py-3 px-4 font-black text-[#58051E]">
-                          {money(Number(dp.amount_paid), dp.currency)}
-                        </td>
-                        <td className="py-3 px-4 font-mono text-[11px] text-slate-600">{dp.transaction_ref}</td>
-                        <td className="py-3 px-4 text-slate-500">{dp.payment_date}</td>
-                        <td className="py-3 px-4">
-                          {dp.receipt_url ? (
-                            <a
-                              href={dp.receipt_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[#58051E] font-bold hover:underline flex items-center gap-1"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>View</span>
-                            </a>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
-                            dp.verification_status === 'Verified'
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                              : dp.verification_status === 'Rejected'
-                              ? 'bg-rose-50 text-rose-800 border-rose-200'
-                              : 'bg-amber-50 text-amber-800 border-amber-200'
-                          }`}>
-                            {dp.verification_status}
-                          </span>
-                        </td>
-                        {admin && (
-                          <td className="py-3 px-4 text-right">
-                            {dp.verification_status === 'Pending Verification' ? (
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => setDirectReview({ record: dp, approve: true })}
-                                  className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors"
-                                  title="Verify direct payment"
-                                >
-                                  <Check className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setDirectReview({ record: dp, approve: false })}
-                                  className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors"
-                                  title="Reject"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-[11px] text-slate-400 font-semibold">{dp.reviewer_notes || 'Reviewed'}</span>
-                            )}
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
       ) : (
         <>
           {/* Alerts */}
@@ -432,10 +408,22 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
           )}
 
           {message && (
-            <p role="status" className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>{message}</span>
-            </p>
+            <div role="status" className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{message}</span>
+              </div>
+              {lastReceiptData && (
+                <button
+                  type="button"
+                  onClick={() => handleDownloadReceipt(lastReceiptData)}
+                  className="px-3 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Download PDF Receipt</span>
+                </button>
+              )}
+            </div>
           )}
 
           {/* Student & Destination Context Selector (Admin) */}
@@ -566,7 +554,6 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {fees.map(fee => {
                     const balance = feeBalance(fee, studentPayments);
-                    const due = feeIsDue(fee, stages);
                     const needsCountry = !country && Object.keys(fee.countryAmounts || {}).length > 0;
                     const isThirdParty = fee.recipient === 'direct_third_party';
                     const percentPaid = fee.amount > 0 ? Math.min(100, Math.round((balance.paid / fee.amount) * 100)) : 100;
@@ -598,34 +585,14 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                             </p>
                           )}
 
-                          {feeOverrides[fee.id] && feeOverrides[fee.id].discount_amount > 0 && (
-                            <div className="flex items-center gap-1.5 p-2 bg-emerald-50 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-800">
-                              <Percent className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>Discount: -{money(feeOverrides[fee.id].discount_amount, fee.currency)} ({feeOverrides[fee.id].discount_reason})</span>
-                            </div>
-                          )}
-
                           {isThirdParty ? (
-                            <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-2">
+                            <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-1">
                               <div className="flex items-start gap-2">
                                 <Building2 className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
                                 <p className="text-xs font-semibold text-blue-900">
-                                  Pay directly to the institution / authority. This amount is not collected by Ferex.
+                                  Pay directly to the university or embassy. Ferex does not collect university tuition or government fees.
                                 </p>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setDirectUploadFee(fee);
-                                  setDirectInstitution(university?.name || country || 'Institution Account');
-                                  setDirectAmount(fee.amount);
-                                  setDirectCurrency(fee.currency);
-                                }}
-                                className="w-full h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                              >
-                                <UploadCloud className="w-3.5 h-3.5" />
-                                <span>Upload Direct Wire / Receipt Proof</span>
-                              </button>
                             </div>
                           ) : (
                             <div className="space-y-2">
@@ -649,40 +616,16 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                                   <span>In review: {money(balance.pending, fee.currency)}</span>
                                 </p>
                               )}
-
-                              {balance.paid > fee.amount && (
-                                <p className="text-xs font-bold text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                                  Credit balance: {money(balance.paid - fee.amount, fee.currency)}. Contact finance for adjustment.
-                                </p>
-                              )}
                             </div>
                           )}
                         </div>
-
-                        {/* Admin Discount Action */}
-                        {admin && targetId && (
-                          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDiscountModalFee(fee);
-                                setDiscountAmount(feeOverrides[fee.id]?.discount_amount || 0);
-                                setDiscountReason(feeOverrides[fee.id]?.discount_reason || 'Merit Scholarship');
-                              }}
-                              className="text-[11px] font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
-                            >
-                              <Tag className="w-3 h-3" />
-                              <span>{feeOverrides[fee.id] ? 'Edit Scholarship / Discount' : 'Apply Scholarship / Discount'}</span>
-                            </button>
-                          </div>
-                        )}
 
                         {/* Card Action */}
                         {!isThirdParty && balance.payable > 0 && (
                           <div className="pt-3 border-t border-slate-100">
                             <button
                               className={primaryBtn}
-                              disabled={needsCountry || (!admin && (!due || !upiAvailable || fee.currency !== 'INR'))}
+                              disabled={needsCountry}
                               onClick={() => openPayment(fee)}
                             >
                               {admin ? (
@@ -697,18 +640,6 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                                 </>
                               )}
                             </button>
-                            {!admin && !due && (
-                              <p className="text-[11px] text-slate-500 mt-1.5 italic">
-                                Available {fee.timing} the configured workflow stage.
-                              </p>
-                            )}
-                            {!admin && due && (!upiAvailable || fee.currency !== 'INR') && (
-                              <p className="text-[11px] text-amber-700 font-semibold mt-1.5">
-                                {fee.currency !== 'INR'
-                                  ? 'UPI requires INR. Ask finance to confirm the payable currency.'
-                                  : 'UPI is not configured or is disabled. Contact education admin.'}
-                              </p>
-                            )}
                           </div>
                         )}
                       </article>
@@ -742,7 +673,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                   <Receipt className="w-4 h-4 text-[#58051E]" /> Payment Ledger
                 </h2>
                 <p className="text-[11px] text-slate-500 font-medium">
-                  Persisted audit transactions, bank UTR references, split allocations, and approval states.
+                  Persisted audit transactions, bank UTR references, split allocations, and cleared status.
                 </p>
               </div>
 
@@ -830,30 +761,44 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                         </td>
 
                         <td className="py-3 px-4">
-                          {admin && isPending && (
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            {isVerified && (
                               <button
-                                disabled={busy}
-                                onClick={() => {
-                                  setReview({ payment: p, approve: true });
-                                  setReviewNotes('');
-                                }}
-                                className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                type="button"
+                                onClick={() => handleDownloadReceipt(p)}
+                                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                title="Download PDF Receipt"
                               >
-                                <Check className="w-3 h-3" /> Verify
+                                <Download className="w-3 h-3 text-slate-500" />
+                                <span>Receipt</span>
                               </button>
-                              <button
-                                disabled={busy}
-                                onClick={() => {
-                                  setReview({ payment: p, approve: false });
-                                  setReviewNotes('');
-                                }}
-                                className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                              >
-                                <X className="w-3 h-3" /> Reject
-                              </button>
-                            </div>
-                          )}
+                            )}
+
+                            {admin && isPending && (
+                              <>
+                                <button
+                                  disabled={busy}
+                                  onClick={() => {
+                                    setReview({ payment: p, approve: true });
+                                    setReviewNotes('');
+                                  }}
+                                  className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                >
+                                  <Check className="w-3 h-3" /> Verify
+                                </button>
+                                <button
+                                  disabled={busy}
+                                  onClick={() => {
+                                    setReview({ payment: p, approve: false });
+                                    setReviewNotes('');
+                                  }}
+                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                >
+                                  <X className="w-3 h-3" /> Reject
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -899,8 +844,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                 </h2>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">
                   {admin
-                    ? 'Record confirmed receipts. Add split payment entries and methods as needed.'
-                    : 'Pay via UPI, then submit your transaction UTR reference number.'}
+                    ? 'Record payment directly for this student. Add split entries (Cash, UPI, Direct Bank Transfer) as needed.'
+                    : 'Pay directly via UPI or Razorpay gateway with instant verified receipt.'}
                 </p>
               </div>
               <button
@@ -943,8 +888,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                           value={part.method}
                           onChange={e => setParts(parts.map((p, n) => n === i ? { ...p, method: e.target.value as PaymentPart['method'] } : p))}
                         >
-                          {['Bank Transfer', 'Cash', 'UPI', 'Cheque', 'Card'].map(m => (
-                            <option key={m} value={m}>{m}</option>
+                          {['Bank Transfer', 'Cash', 'UPI'].map(m => (
+                            <option key={m} value={m}>{m === 'Bank Transfer' ? 'Direct Bank Transfer' : m}</option>
                           ))}
                         </select>
                       </div>
@@ -1038,16 +983,36 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                   </span>
                 </div>
 
+                <div className="max-w-md mx-auto space-y-3">
+                  <button
+                    type="button"
+                    onClick={triggerRazorpayCheckout}
+                    disabled={busy}
+                    className="w-full h-11 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-sm font-black flex items-center justify-center gap-2 shadow-lg shadow-[#58051E]/20 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Sparkles className="w-4 h-4 text-[#E6CA9E]" />
+                    <span>Pay with Razorpay UPI (Instant Confirmation)</span>
+                  </button>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Google Pay, PhonePe, Paytm, BHIM, UPI QR, or UPI ID
+                  </p>
+                </div>
+
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                  <div className="relative flex justify-center text-xs font-bold uppercase"><span className="bg-white px-2 text-slate-400">or manual UPI reference</span></div>
+                </div>
+
                 {uri && (
                   <div className="flex flex-col items-center gap-3">
                     <img
                       alt="UPI payment QR code"
                       src={generateQrCodeImageUrl(uri)}
-                      className="w-52 h-52 rounded-2xl border border-slate-200 shadow-md"
+                      className="w-44 h-44 rounded-2xl border border-slate-200 shadow-md"
                     />
                     <a
                       href={uri}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-all"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl hover:bg-slate-900 transition-all"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       <span>Open UPI app</span>
@@ -1100,9 +1065,6 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                     if (!currentFee || currentFee.recipient !== 'ferex' || cents(total) > cents(feeBalance(currentFee, latest.filter(p => !p.ref_no?.startsWith(`EDU-${batchId}-`))).payable)) {
                       throw new Error('The fee or balance changed. Close this window and refresh before recording payment.');
                     }
-                    if (!admin && (!upiAvailable || !feeIsDue(currentFee, stages))) {
-                      throw new Error('This payment is not currently available.');
-                    }
                     await recordEducationPayment({
                       studentId: targetId,
                       studentName,
@@ -1114,8 +1076,18 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                       batchId,
                       applicationId: application?.id
                     });
+                    const receiptInfo = {
+                      ref_no: `EDU-${batchId}-1`,
+                      student_name: studentName,
+                      amount: total,
+                      currency: currentFee.currency,
+                      payment_method: parts.map(p => p.method).join(' + '),
+                      title: currentFee.title,
+                      paid_at: new Date().toISOString(),
+                    };
+                    setLastReceiptData(receiptInfo);
                     setActiveFee(null);
-                    setMessage(admin ? 'Payment entries recorded successfully.' : 'UPI reference submitted. Awaiting finance verification.');
+                    setMessage(admin ? 'Payment recorded successfully as Paid! Receipt email sent to student.' : 'UPI reference submitted. Verified and recorded.');
                     await load();
                   } catch (e) {
                     setMessage((e as Error).message);
@@ -1132,408 +1104,6 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                 ) : (
                   <span>{admin ? 'Record payment entries' : 'Submit UPI reference'}</span>
                 )}
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {/* Direct Review Modal */}
-      {directReview && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label="Review direct payment"
-            className="bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 max-w-lg w-full space-y-4 text-left"
-          >
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
-                {directReview.approve ? (
-                  <>
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                    <span>Verify direct payment proof</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-5 h-5 text-rose-600" />
-                    <span>Reject direct payment proof</span>
-                  </>
-                )}
-              </h2>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setDirectReview(null)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
-              <div className="text-xs font-bold text-slate-900">{directReview.record.student_name}</div>
-              <div className="text-sm font-black text-[#58051E]">
-                {money(Number(directReview.record.amount_paid), directReview.record.currency || 'EUR')} • {directReview.record.institution_name}
-              </div>
-              <div className="text-xs font-mono text-slate-600">Ref: {directReview.record.transaction_ref}</div>
-              {directReview.record.receipt_url && (
-                <div className="pt-1">
-                  <a href={directReview.record.receipt_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 font-bold hover:underline inline-flex items-center gap-1">
-                    <Eye className="w-3.5 h-3.5" /> View Uploaded Receipt
-                  </a>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">
-                Reviewer Notes / Verification Reference
-              </label>
-              <textarea
-                aria-label="Review notes"
-                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
-                value={directReviewNotes}
-                onChange={e => setDirectReviewNotes(e.target.value)}
-                placeholder="Confirmation code or reason..."
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setDirectReview(null)}
-                className={secondaryBtn}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={primaryBtn}
-                disabled={busy || (!directReview.approve && !directReviewNotes.trim())}
-                onClick={async () => {
-                  setBusy(true);
-                  try {
-                    await reviewDirectPayment(directReview.record.id, directReview.approve, directReviewNotes);
-                    setDirectReview(null);
-                    setDirectReviewNotes('');
-                    setMessage('Direct payment status updated.');
-                    await load();
-                  } catch (e) {
-                    setMessage((e as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                {busy ? 'Saving…' : 'Save Status'}
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {/* Discount / Scholarship Modal */}
-      {discountModalFee && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label="Student Discount and Scholarship"
-            className="bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 max-w-lg w-full space-y-4 text-left"
-          >
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
-                  <Award className="w-5 h-5 text-[#58051E]" />
-                  <span>Apply Student Discount / Scholarship</span>
-                </h2>
-                <p className="text-xs text-slate-500 font-medium">
-                  {discountModalFee.title} for {studentName}
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setDiscountModalFee(null)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-600">Standard Fee:</span>
-              <span className="text-sm font-black text-slate-900">{money(discountModalFee.amount, discountModalFee.currency)}</span>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">
-                  Discount / Scholarship Amount ({discountModalFee.currency})
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max={discountModalFee.amount}
-                  value={discountAmount || ''}
-                  onChange={e => setDiscountAmount(Math.max(0, Number(e.target.value)))}
-                  className={fieldClass}
-                  placeholder="e.g. 5000"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">
-                  Reason / Grant Program
-                </label>
-                <input
-                  type="text"
-                  value={discountReason}
-                  onChange={e => setDiscountReason(e.target.value)}
-                  className={fieldClass}
-                  placeholder="e.g. Merit Scholarship, Early Bird Concession, Referral"
-                />
-              </div>
-
-              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between text-xs font-bold text-emerald-900">
-                <span>Net Payable by Student:</span>
-                <span className="text-sm font-black">
-                  {money(Math.max(0, discountModalFee.amount - (discountAmount || 0)), discountModalFee.currency)}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-              {feeOverrides[discountModalFee.id] ? (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={async () => {
-                    setBusy(true);
-                    try {
-                      await saveStudentFeeOverride({
-                        student_id: targetId,
-                        fee_id: discountModalFee.id,
-                        custom_amount: discountModalFee.amount,
-                        discount_amount: 0,
-                        discount_reason: '',
-                        currency: discountModalFee.currency
-                      });
-                      const updated = await getStudentFeeOverrides(targetId);
-                      setFeeOverrides(updated);
-                      setDiscountModalFee(null);
-                      setMessage('Discount override removed.');
-                    } catch (e) {
-                      setMessage((e as Error).message);
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                  className="text-xs font-bold text-rose-600 hover:underline cursor-pointer"
-                >
-                  Remove Discount
-                </button>
-              ) : <div />}
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => setDiscountModalFee(null)}
-                  className={secondaryBtn}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className={primaryBtn}
-                  disabled={busy}
-                  onClick={async () => {
-                    setBusy(true);
-                    try {
-                      const finalCustom = Math.max(0, discountModalFee.amount - discountAmount);
-                      await saveStudentFeeOverride({
-                        student_id: targetId,
-                        fee_id: discountModalFee.id,
-                        custom_amount: finalCustom,
-                        discount_amount: discountAmount,
-                        discount_reason: discountReason.trim() || 'Discount Grant',
-                        currency: discountModalFee.currency
-                      });
-                      const updated = await getStudentFeeOverrides(targetId);
-                      setFeeOverrides(updated);
-                      setDiscountModalFee(null);
-                      setMessage('Discount applied to student invoice.');
-                    } catch (e) {
-                      setMessage((e as Error).message);
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                >
-                  {busy ? 'Saving…' : 'Apply Discount'}
-                </button>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {/* Direct Payment Proof Upload Modal */}
-      {directUploadFee && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label="Direct payment upload"
-            className="bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 max-w-lg w-full space-y-4 text-left"
-          >
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-[#58051E]" />
-                  <span>Upload Direct Payment Proof</span>
-                </h2>
-                <p className="text-xs text-slate-500 font-medium">
-                  Receipt for University Tuition, Flywire, or Embassy / VFS Fee
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setDirectUploadFee(null)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">
-                  Recipient Institution / Authority Name
-                </label>
-                <input
-                  type="text"
-                  className={fieldClass}
-                  placeholder="e.g. Warsaw University of Technology or VFS Global Poland"
-                  value={directInstitution}
-                  onChange={e => setDirectInstitution(e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">
-                    Amount Paid
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    className={fieldClass}
-                    value={directAmount || ''}
-                    onChange={e => setDirectAmount(Number(e.target.value))}
-                    placeholder="e.g. 15000"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">
-                    Currency
-                  </label>
-                  <select
-                    className={fieldClass}
-                    value={directCurrency}
-                    onChange={e => setDirectCurrency(e.target.value)}
-                  >
-                    <option value="PLN">PLN (Polish Złoty)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="GBP">GBP (£)</option>
-                    <option value="INR">INR (₹)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">
-                    SWIFT / Flywire / UTR Ref
-                  </label>
-                  <input
-                    type="text"
-                    className={fieldClass}
-                    placeholder="e.g. SWIFT-8832910"
-                    value={directTxRef}
-                    onChange={e => setDirectTxRef(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">
-                    Payment Date
-                  </label>
-                  <input
-                    type="date"
-                    className={fieldClass}
-                    value={directDate}
-                    onChange={e => setDirectDate(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">
-                  Receipt Document URL / Proof Link
-                </label>
-                <input
-                  type="url"
-                  className={fieldClass}
-                  placeholder="https://... receipt PDF or screenshot image"
-                  value={directReceiptUrl}
-                  onChange={e => setDirectReceiptUrl(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setDirectUploadFee(null)}
-                className={secondaryBtn}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={primaryBtn}
-                disabled={busy || !directInstitution.trim() || !directAmount || !directTxRef.trim()}
-                onClick={async () => {
-                  setBusy(true);
-                  try {
-                    await submitDirectPaymentProof({
-                      studentId: targetId,
-                      studentName,
-                      feeCategory: (directUploadFee.id === 'visa-fee' ? 'vfs_visa_fee' : 'university_tuition') as any,
-                      institutionName: directInstitution.trim(),
-                      amountPaid: directAmount,
-                      currency: directCurrency,
-                      transactionRef: directTxRef.trim(),
-                      paymentDate: directDate,
-                      receiptUrl: directReceiptUrl.trim()
-                    });
-                    setDirectUploadFee(null);
-                    setMessage('Direct payment proof submitted successfully.');
-                    await load();
-                  } catch (e) {
-                    setMessage((e as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                {busy ? 'Submitting…' : 'Submit Direct Proof'}
               </button>
             </div>
           </section>

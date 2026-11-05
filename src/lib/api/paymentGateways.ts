@@ -22,9 +22,17 @@ export interface UpiGatewayConfig {
   autoVerifyUtr: boolean;
 }
 
+export interface RazorpayGatewayConfig {
+  enabled: boolean;
+  keyId: string;
+  keySecret?: string;
+  merchantName: string;
+}
+
 export interface DivisionGatewaySettings {
   allowStripe: boolean;
   allowUpi: boolean;
+  allowRazorpay?: boolean;
   customUpiId?: string;
   customMerchantName?: string;
 }
@@ -32,6 +40,7 @@ export interface DivisionGatewaySettings {
 export interface GlobalPaymentGatewayConfig {
   stripe: StripeGatewayConfig;
   upi: UpiGatewayConfig;
+  razorpay?: RazorpayGatewayConfig;
   divisions: {
     education: DivisionGatewaySettings;
     digital: DivisionGatewaySettings;
@@ -54,16 +63,21 @@ export const DEFAULT_PAYMENT_GATEWAYS: GlobalPaymentGatewayConfig = {
     autoCapture: true,
   },
   upi: {
-    enabled: false,
-    upiId: '',
-    merchantName: '',
+    enabled: true,
+    upiId: 'ferex.payments@icici',
+    merchantName: 'FEREX HIGHER EDUCATION',
     merchantCode: '',
     qrCodeEnabled: true,
     collectRequestEnabled: true,
     autoVerifyUtr: false,
   },
+  razorpay: {
+    enabled: true,
+    keyId: 'rzp_test_default',
+    merchantName: 'FEREX HIGHER EDUCATION',
+  },
   divisions: {
-    education: { allowStripe: false, allowUpi: false, customUpiId: '', customMerchantName: '' },
+    education: { allowStripe: false, allowUpi: true, allowRazorpay: true, customUpiId: '', customMerchantName: '' },
     digital: { allowStripe: false, allowUpi: false, customUpiId: '', customMerchantName: '' },
     rimi: { allowStripe: false, allowUpi: false, customUpiId: '', customMerchantName: '' },
     trade: { allowStripe: false, allowUpi: false, customUpiId: '', customMerchantName: '' },

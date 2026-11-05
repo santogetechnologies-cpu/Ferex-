@@ -8,6 +8,7 @@ import { useDestinations } from '../hooks/useDestinations';
 import { useUniversities } from '../hooks/useUniversities';
 import { educationFees, educationStages, type EducationFee } from '../lib/educationBilling';
 import { saveEducationFees } from '../lib/api/educationBilling';
+import { getGlobalPaymentGateways, saveGlobalPaymentGateways } from '../lib/api/paymentGateways';
 
 const inputClass = 'w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E] transition-all';
 const labelClass = 'block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5';
@@ -18,6 +19,8 @@ export function EducationFeeEditor() {
   const { universities } = useUniversities();
   const [fees, setFees] = useState<EducationFee[]>(() => educationFees(config));
   const [upiEnabled, setUpiEnabled] = useState(config.payment_gateways.phonepe_upi_enabled);
+  const [razorpayKeyId, setRazorpayKeyId] = useState('');
+  const [razorpaySecret, setRazorpaySecret] = useState('');
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -29,6 +32,13 @@ export function EducationFeeEditor() {
     if (!dirty) {
       setFees(educationFees(config));
       setUpiEnabled(config.payment_gateways.phonepe_upi_enabled);
+      getGlobalPaymentGateways().then(g => {
+        if (g.razorpay) {
+          setRazorpayKeyId(g.razorpay.keyId || '');
+          setRazorpaySecret(g.razorpay.keySecret || '');
+          if (g.razorpay.enabled !== undefined) setUpiEnabled(g.razorpay.enabled);
+        }
+      }).catch(() => {});
     }
   }, [config, dirty]);
 
@@ -42,9 +52,32 @@ export function EducationFeeEditor() {
     setMessage('');
     try {
       await saveEducationFees(fees, upiEnabled);
+      try {
+        const currentGw = await getGlobalPaymentGateways();
+        await saveGlobalPaymentGateways({
+          ...currentGw,
+          upi: { ...currentGw.upi, enabled: upiEnabled },
+          razorpay: {
+            enabled: upiEnabled,
+            keyId: razorpayKeyId.trim() || 'rzp_test_default',
+            keySecret: razorpaySecret.trim(),
+            merchantName: 'FEREX HIGHER EDUCATION',
+          },
+          divisions: {
+            ...currentGw.divisions,
+            education: {
+              ...currentGw.divisions.education,
+              allowUpi: upiEnabled,
+              allowRazorpay: upiEnabled,
+            }
+          }
+        });
+      } catch (gwErr) {
+        console.warn('Could not sync global gateway configuration:', gwErr);
+      }
       setDirty(false);
       setMessageType('success');
-      setMessage('Fee configuration saved to the database.');
+      setMessage('Fee configuration and Razorpay gateway settings saved successfully.');
     } catch (e) {
       setMessageType('error');
       setMessage((e as Error).message);
@@ -91,29 +124,62 @@ export function EducationFeeEditor() {
         </div>
       </div>
 
-      {/* UPI Global Enablement Card */}
-      <div className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-[#58051E]/10 text-[#58051E] rounded-xl border border-[#58051E]/20">
-            <Coins className="w-5 h-5" />
+      {/* Razorpay UPI Gateway Configuration Card */}
+      <div className="p-5 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-4">
+        <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-[#58051E]/10 text-[#58051E] rounded-xl border border-[#58051E]/20">
+              <Coins className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-slate-900">Razorpay UPI Payment Gateway</p>
+              <p className="text-[11px] text-slate-500">Allow students to pay configured education fees directly with UPI (Google Pay, PhonePe, Paytm, QR)</p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-bold text-slate-900">Student UPI Payments</p>
-            <p className="text-[11px] text-slate-500">Allow students to scan QR / submit UPI reference numbers for configured Ferex agency fees</p>
-          </div>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={upiEnabled}
+              onChange={e => {
+                setDirty(true);
+                setUpiEnabled(e.target.checked);
+              }}
+              className="w-4 h-4 rounded text-[#58051E] focus:ring-[#58051E] border-slate-300 cursor-pointer"
+            />
+            <span className="text-xs font-bold text-slate-700">Enable Razorpay UPI</span>
+          </label>
         </div>
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={upiEnabled}
-            onChange={e => {
-              setDirty(true);
-              setUpiEnabled(e.target.checked);
-            }}
-            className="w-4 h-4 rounded text-[#58051E] focus:ring-[#58051E] border-slate-300 cursor-pointer"
-          />
-          <span className="text-xs font-bold text-slate-700">Enable UPI</span>
-        </label>
+
+        {upiEnabled && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div>
+              <label className={labelClass}>Razorpay Key ID</label>
+              <input
+                type="text"
+                className={inputClass}
+                placeholder="rzp_test_... or rzp_live_..."
+                value={razorpayKeyId}
+                onChange={e => {
+                  setDirty(true);
+                  setRazorpayKeyId(e.target.value);
+                }}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Razorpay Key Secret</label>
+              <input
+                type="password"
+                className={inputClass}
+                placeholder="••••••••••••••••"
+                value={razorpaySecret}
+                onChange={e => {
+                  setDirty(true);
+                  setRazorpaySecret(e.target.value);
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Fees List */}
