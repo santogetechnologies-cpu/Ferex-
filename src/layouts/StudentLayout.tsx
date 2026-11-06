@@ -561,7 +561,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
         studentContext={{
           studentName: studentDetail.name || profile?.full_name || 'Student',
           email: studentDetail.email || profile?.email || user?.email,
-          targetCountry: (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || localStorage.getItem('ferex_student_target_country') || 'European Union',
+          targetCountry: (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || 'European Union',
           targetUniversity: 'European Partner Universities',
           program: 'Higher Education Program',
           currentStep: hasSignedAgreement ? 3 : 2,

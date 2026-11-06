@@ -151,7 +151,6 @@ export const SelectUniversity: React.FC = () => {
         void saveEducationCountry(user.id, c).catch(error => setSuccessToast(`Country selection could not be saved: ${error.message}`));
         localStorage.setItem(`ferex_student_target_country_${user.id}`, c);
       }
-      localStorage.setItem('ferex_student_target_country', c);
       window.dispatchEvent(new Event('ferex_country_change'));
     }
   };
@@ -199,7 +198,6 @@ export const SelectUniversity: React.FC = () => {
       if (applyUni.country) {
         void saveEducationCountry(user.id, applyUni.country).catch(() => {});
         localStorage.setItem(`ferex_student_target_country_${user.id}`, applyUni.country);
-        localStorage.setItem('ferex_student_target_country', applyUni.country);
       }
       const scopedUniKey = user?.id ? `ferex_student_selected_uni_${user.id}` : 'ferex_student_selected_uni';
       const scopedCourseKey = user?.id ? `ferex_selected_course_${user.id}` : 'ferex_selected_course';
@@ -217,8 +215,7 @@ export const SelectUniversity: React.FC = () => {
       });
       localStorage.setItem(scopedUniKey, uniPayload);
       localStorage.setItem(scopedCourseKey, coursePayload);
-      localStorage.setItem('ferex_student_selected_uni', uniPayload);
-      localStorage.setItem('ferex_selected_course', coursePayload);
+
       window.dispatchEvent(new Event('ferex_country_change'));
       window.dispatchEvent(new Event('ferex_application_change'));
 

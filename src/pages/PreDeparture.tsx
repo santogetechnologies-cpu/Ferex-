@@ -27,7 +27,7 @@ export const PreDeparture: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'checklist' | 'dorm' | 'contacts'>('overview');
   const [checkedMap, setCheckedMap] = useState<Record<string, boolean>>({});
 
-  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || localStorage.getItem('ferex_student_target_country') || '';
+  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || '';
   const payment3Status = checkPaymentStage(payments, 3, targetCountry);
 
   const activeApp = applications[0];
@@ -95,7 +95,7 @@ export const PreDeparture: React.FC = () => {
     dorm_address: 'Address will be provided upon room allotment',
     room_no: 'Pending Room Allocation',
     pickup_driver: 'Concierge Officer (Assigned upon flight confirmation)',
-    pickup_contact: '+48 22 552 0999',
+    pickup_contact: '',
     pickup_details: 'Airport welcome concierge will greet student at arrivals terminal exit.',
     clearance_status: isVisaApproved ? 'Clearance Granted' : 'Pending Verification',
     notes: 'Pre-departure arrival orientation & housing packet will be issued by FEREX.'
@@ -277,7 +277,7 @@ export const PreDeparture: React.FC = () => {
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <span className="text-slate-500 font-medium">Hotline Contact:</span>
                     <a
-                      href={`tel:${activeDepRecord.pickup_contact || '+48225520999'}`}
+                      href={activeDepRecord.pickup_contact ? `tel:${activeDepRecord.pickup_contact}` : '#emergency'}
                       className="font-extrabold text-[#58051E] hover:underline flex items-center gap-1"
                     >
                       <PhoneCall className="w-3.5 h-3.5" /> {activeDepRecord.pickup_contact || '+48 22 552 0999'}
@@ -410,7 +410,7 @@ export const PreDeparture: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-extrabold text-slate-900">Student Welfare Coordinator</h4>
-                      <p className="text-slate-500 mt-1">{activeDepRecord.pickup_contact || '+48 22 552 0999'} | support@ferex.com</p>
+                      <p className="text-slate-500 mt-1">{activeDepRecord.pickup_contact || 'Assigned 48h prior to departure'} | support@ferex.com</p>
                       <a
                         href={`tel:${activeDepRecord.pickup_contact || '+48225520999'}`}
                         className="inline-flex items-center gap-1.5 text-xs font-black text-[#58051E] mt-2 hover:underline"

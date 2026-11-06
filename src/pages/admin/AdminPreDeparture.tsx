@@ -136,6 +136,8 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
       });
       setSelectedStudent(null);
       showToast(`Pre-departure packet saved for ${record.student_name}!`);
+      window.dispatchEvent(new Event('ferex_predeparture_change'));
+      window.dispatchEvent(new Event('ferex_pre_departure_change'));
     } catch (err: any) {
       showToast(`Error saving: ${err.message || 'Failed to save'}`);
     }
@@ -189,6 +191,8 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
         notes: 'Pre-departure flight packet & campus dorm allotment ready.'
       });
       loadAllData();
+      window.dispatchEvent(new Event('ferex_predeparture_change'));
+      window.dispatchEvent(new Event('ferex_pre_departure_change'));
       showToast(`${studentObj.name} enrolled in Pre-Departure protocol.`);
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to add student'}`);

@@ -42,7 +42,7 @@ export const StudentDashboard: React.FC = () => {
   const { getWorkflowForCountry } = useCountryWorkflows();
 
   const perStudentKey = user?.id ? `ferex_student_target_country_${user.id}` : 'ferex_student_target_country';
-  const targetCountry = (user?.id ? localStorage.getItem(perStudentKey) : null) || applications[0]?.universities?.country || (applications[0] as any)?.country || (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || '';
+  const targetCountry = (user?.id ? localStorage.getItem(perStudentKey) : null) || applications[0]?.universities?.country || (applications[0] as any)?.country || (profile as any)?.target_country || '';
   const targetWf = targetCountry ? getWorkflowForCountry(targetCountry) : null;
 
   const [configuredReqs, setConfiguredReqs] = React.useState<any[]>([]);

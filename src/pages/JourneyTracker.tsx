@@ -100,7 +100,7 @@ export const JourneyTracker: React.FC = () => {
 
   const realApps = applications.filter(isRealApplication);
   const activeApp = realApps[0];
-  const targetCountry = (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || activeApp?.universities?.country || (activeApp as any)?.country || (profile as any)?.target_country || localStorage.getItem('ferex_student_target_country') || '';
+  const targetCountry = (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || activeApp?.universities?.country || (activeApp as any)?.country || (profile as any)?.target_country || '';
   const targetUniversity = activeApp?.university_name || 
     activeApp?.universities?.name || 
     (targetCountry && targetCountry !== '' ? `${targetCountry} Partner University` : 'No University Selected');

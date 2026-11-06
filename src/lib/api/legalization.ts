@@ -222,6 +222,7 @@ export async function updateLegalizationStatus(
   }
 
   window.dispatchEvent(new Event('ferex_legalization_change'));
+  window.dispatchEvent(new Event('ferex_nawa_change'));
   return updatedRecord;
 }
 

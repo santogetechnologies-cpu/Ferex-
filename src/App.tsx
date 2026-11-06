@@ -46,6 +46,7 @@ import { AdminReports } from './pages/admin/AdminReports';
 import { AdminStaffManagement } from './pages/admin/AdminStaffManagement';
 import { AdminNotifications } from './pages/admin/AdminNotifications';
 import { AdminSettings } from './pages/admin/AdminSettings';
+import { AdminCustomizationPolicies } from './pages/admin/AdminCustomizationPolicies';
 import { AdminFeeConfig } from './pages/admin/AdminFeeConfig';
 import { AdminMeetings } from './pages/admin/AdminMeetings';
 import { AdminNawaTracker } from './pages/admin/AdminNawaTracker';
@@ -350,6 +351,8 @@ function App() {
           <Route path="/admin/fee-config" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminFeeConfig /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/attendance" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminAttendance /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/timesheets" element={<Navigate to="/admin/attendance" replace />} />
+          <Route path="/admin/customization-policies" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminCustomizationPolicies /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/customization" element={<Navigate to="/admin/customization-policies" replace />} />
           <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSettings /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/emails" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><CentralEmailLogs defaultDivision="education" /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/ai-copilot" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><EnterpriseAIPage role="education_admin" portalName="Ferex Education" /></AdminLayout></ProtectedRoute>} />

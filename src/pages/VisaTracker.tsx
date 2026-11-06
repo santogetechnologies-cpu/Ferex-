@@ -54,7 +54,7 @@ export const VisaTracker: React.FC = () => {
   const hasDirectTuition = directPayments.some(d => d.fee_category === 'university_tuition' && ['Verified', 'Pending Verification'].includes(d.verification_status));
   const inst2Paid = hasDirectTuition || payments.some(p => (checkPaymentStage(p, 2) || p.fee_id === 'tuition' || p.fee_id === 'visa-fee') && (p.status === 'Paid' || p.status === 'Verified'));
 
-  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || localStorage.getItem('ferex_student_target_country') || '';
+  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || '';
   const payment2Status = checkPayment(payments, 2, targetCountry);
 
   // Final Acceptance Letter check
@@ -370,7 +370,7 @@ export const VisaTracker: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Tracking Reference:</span>
                 <span className="font-mono font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
-                  {visaRecord.vfs_ref_no || 'VFS-84920'}
+                  {visaRecord.vfs_ref_no || 'Awaiting Booking'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -379,11 +379,11 @@ export const VisaTracker: React.FC = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Target Mission:</span>
-                <span className="font-medium text-slate-900">{visaRecord.embassy_name || 'European Union'}</span>
+                <span className="font-medium text-slate-900">{visaRecord.embassy_name || 'Target Mission Awaiting Allocation'}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">VFS Center:</span>
-                <span className="font-medium text-[#58051E]">{visaRecord.vfs_center || 'Main Metro VFS Desk'}</span>
+                <span className="font-medium text-[#58051E]">{visaRecord.vfs_center || 'VFS Center Awaiting Allocation'}</span>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                 <span className="text-slate-400">Courier Dispatch:</span>

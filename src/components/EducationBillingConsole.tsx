@@ -291,6 +291,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
             setLastReceiptData(receiptInfo);
             setActiveFee(null);
             setMessage(`Payment of ${money(total, activeFee.currency)} confirmed via Razorpay UPI! Official receipt sent to your email.`);
+            window.dispatchEvent(new Event('ferex_payment_change'));
             await load();
           } catch (err: any) {
             setMessage(err.message || 'Payment recording failed');
@@ -327,6 +328,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
         });
         setActiveFee(null);
         setMessage('UPI reference submitted. Verified and recorded.');
+        window.dispatchEvent(new Event('ferex_payment_change'));
         await load();
       } catch (e: any) {
         setMessage(e.message);
@@ -1088,6 +1090,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                     setLastReceiptData(receiptInfo);
                     setActiveFee(null);
                     setMessage(admin ? 'Payment recorded successfully as Paid! Receipt email sent to student.' : 'UPI reference submitted. Verified and recorded.');
+                    window.dispatchEvent(new Event('ferex_payment_change'));
                     await load();
                   } catch (e) {
                     setMessage((e as Error).message);

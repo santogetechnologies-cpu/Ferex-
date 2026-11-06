@@ -325,7 +325,7 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
     reader.onload = (ev) => {
       const photoData = ev.target?.result as string;
       setProfilePhoto(photoData);
-      localStorage.setItem('ferex_student_profile_photo', photoData);
+      localStorage.setItem(user?.id ? `ferex_student_profile_photo_${user.id}` : 'ferex_student_profile_photo', photoData);
       window.dispatchEvent(new Event('ferex_avatar_change'));
       setShowPhotoModal(false);
       showToast('Profile photo updated successfully!');
