@@ -12,7 +12,8 @@
     "test:e2e": "playwright test",
     "test:auth": "node --env-file=.env.test --experimental-strip-types tests/global-setup.ts",
     "test:billing": "node --experimental-strip-types --test tests/education-billing.test.ts tests/education-billing-db.test.ts tests/payment-signature.test.ts tests/accounting-pdf.test.ts tests/role-access.test.ts tests/university-import.test.ts",
-    "test:billing:e2e": "playwright test --config playwright.education.config.ts"
+    "test:billing:e2e": "playwright test --config playwright.education.config.ts",
+    "test:razorpay": "node --env-file=.env --experimental-strip-types --test tests/razorpay-standard.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.2",
@@ -20,6 +21,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^13.0.0",
     "lucide-react": "^1.28.0",
+    "razorpay": "^2.9.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",

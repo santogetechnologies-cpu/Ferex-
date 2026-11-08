@@ -36,6 +36,7 @@ import {
 } from '../lib/api/paymentGateways';
 import type { Application, JourneyStage, Payment, UserProfile } from '../lib/types';
 import { EducationFeeEditor } from './EducationFeeEditor';
+import { openRazorpayCheckout } from '../lib/razorpayCheckout';
 import { supabase } from '../lib/supabase';
 
 const fieldClass = 'w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E] transition-all';
@@ -249,25 +250,24 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     setBusy(true);
     setMessage('');
 
-    const hasRzp = await loadRazorpayScript();
-    const rzpKey = gateway?.razorpay?.keyId || 'rzp_test_default';
-
-    if (hasRzp && (window as any).Razorpay) {
-      const options = {
-        key: rzpKey,
-        amount: Math.round(total * 100),
+    try {
+      await openRazorpayCheckout({
+        amount: total,
         currency: activeFee.currency || 'INR',
         name: 'FEREX HIGHER EDUCATION',
         description: activeFee.title,
+        receipt: `EDU-${batchId}-${Date.now().toString().slice(-4)}`,
+        notes: {
+          student_id: targetId,
+          fee_id: activeFee.id,
+          application_id: application?.id || '',
+        },
         prefill: {
           name: studentName,
           email: user?.email || '',
           contact: profile?.phone || '',
         },
-        theme: {
-          color: '#58051E',
-        },
-        handler: async (response: { razorpay_payment_id: string; razorpay_order_id?: string; razorpay_signature?: string }) => {
+        onSuccess: async (verified) => {
           try {
             setBusy(true);
             await recordRazorpayStudentPayment({
@@ -276,21 +276,21 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
               studentEmail: user?.email,
               fee: activeFee,
               amount: total,
-              razorpayPaymentId: response.razorpay_payment_id,
+              razorpayPaymentId: verified.payment_id,
               applicationId: application?.id,
             });
             const receiptInfo = {
-              ref_no: `EDU-RZP-${response.razorpay_payment_id}`,
+              ref_no: `EDU-RZP-${verified.payment_id}`,
               student_name: studentName,
               amount: total,
               currency: activeFee.currency || 'INR',
-              payment_method: 'Razorpay UPI',
+              payment_method: 'Razorpay Standard Checkout',
               title: activeFee.title,
               paid_at: new Date().toISOString(),
             };
             setLastReceiptData(receiptInfo);
             setActiveFee(null);
-            setMessage(`Payment of ${money(total, activeFee.currency)} confirmed via Razorpay UPI! Official receipt sent to your email.`);
+            setMessage(`Payment of ${money(total, activeFee.currency)} confirmed and verified via Razorpay! Official receipt sent to your email.`);
             window.dispatchEvent(new Event('ferex_payment_change'));
             await load();
           } catch (err: any) {
@@ -299,15 +299,16 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
             setBusy(false);
           }
         },
-        modal: {
-          ondismiss: () => {
-            setBusy(false);
-          }
-        }
-      };
-      const rzpInstance = new (window as any).Razorpay(options);
-      rzpInstance.open();
-    } else {
+        onError: (err) => {
+          setBusy(false);
+          setMessage(err.description || err.message || 'Razorpay payment was declined or verification failed.');
+        },
+        onDismiss: () => {
+          setBusy(false);
+          setMessage('Payment checkout was cancelled by the user.');
+        },
+      });
+    } catch {
       // In testing environments or if razorpay.com is unreachable, submit standard UPI reference
       try {
         const latest = await listEducationPayments(targetId);
