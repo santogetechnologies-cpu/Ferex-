@@ -222,3 +222,4 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
 
   rzpInstance.open();
 }
+
