@@ -251,7 +251,12 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     setMessage('');
 
     try {
+      const resolvedKeyId = (gateway?.razorpay?.keyId && gateway.razorpay.keyId !== 'rzp_test_default')
+        ? gateway.razorpay.keyId
+        : ((typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) || 'rzp_test_TvtcmQYBnXjb9R');
+
       await openRazorpayCheckout({
+        keyId: resolvedKeyId,
         amount: total,
         currency: activeFee.currency || 'INR',
         name: 'FEREX HIGHER EDUCATION',

@@ -47,11 +47,18 @@ const DEFAULT_STUDENT_NOTIFICATIONS = (userId: string): Notification[] => [
 
 export async function getNotifications(userId: string): Promise<Notification[]> {
   try {
-    const { data, error } = await supabase
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId || '');
+    let query = supabase
       .from('notifications')
-      .select('*')
-      .or(`user_id.eq.${userId},user_id.eq.admin,user_id.is.null`)
-      .order('created_at', { ascending: false });
+      .select('*');
+
+    if (isUuid) {
+      query = query.or(`user_id.eq.${userId},user_id.is.null`);
+    } else {
+      query = query.or('user_id.is.null');
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (!error && data && data.length > 0) {
       const normalized = data.map(n => ({

@@ -59,7 +59,9 @@ export function EducationFeeEditor() {
           upi: { ...currentGw.upi, enabled: upiEnabled },
           razorpay: {
             enabled: upiEnabled,
-            keyId: razorpayKeyId.trim() || 'rzp_test_default',
+            keyId: (razorpayKeyId.trim() && razorpayKeyId.trim() !== 'rzp_test_default')
+              ? razorpayKeyId.trim()
+              : ((typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) || 'rzp_test_TvtcmQYBnXjb9R'),
             keySecret: razorpaySecret.trim(),
             merchantName: 'FEREX HIGHER EDUCATION',
           },

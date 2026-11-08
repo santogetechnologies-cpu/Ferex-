@@ -73,7 +73,7 @@ export const DEFAULT_PAYMENT_GATEWAYS: GlobalPaymentGatewayConfig = {
   },
   razorpay: {
     enabled: true,
-    keyId: 'rzp_test_default',
+    keyId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) || 'rzp_test_TvtcmQYBnXjb9R',
     merchantName: 'FEREX HIGHER EDUCATION',
   },
   divisions: {
@@ -88,6 +88,18 @@ export const DEFAULT_PAYMENT_GATEWAYS: GlobalPaymentGatewayConfig = {
 
 const LOCAL_STORAGE_KEY = 'ferex_global_payment_gateways';
 
+function sanitizeGateways(gw: GlobalPaymentGatewayConfig): GlobalPaymentGatewayConfig {
+  const defaultKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) || 'rzp_test_TvtcmQYBnXjb9R';
+  if (!gw.razorpay?.keyId || gw.razorpay.keyId === 'rzp_test_default') {
+    gw.razorpay = {
+      enabled: true,
+      keyId: defaultKey,
+      merchantName: gw.razorpay?.merchantName || 'FEREX HIGHER EDUCATION',
+    };
+  }
+  return gw;
+}
+
 // Retrieve global gateway configuration
 export async function getGlobalPaymentGateways(): Promise<GlobalPaymentGatewayConfig> {
   // 1. Check Supabase system_config
@@ -99,7 +111,7 @@ export async function getGlobalPaymentGateways(): Promise<GlobalPaymentGatewayCo
       .maybeSingle();
 
     if (!error && data?.value) {
-      const merged = { ...DEFAULT_PAYMENT_GATEWAYS, ...data.value };
+      const merged = sanitizeGateways({ ...DEFAULT_PAYMENT_GATEWAYS, ...data.value });
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
       return merged;
     }
@@ -111,11 +123,11 @@ export async function getGlobalPaymentGateways(): Promise<GlobalPaymentGatewayCo
   const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (saved) {
     try {
-      return { ...DEFAULT_PAYMENT_GATEWAYS, ...JSON.parse(saved) };
+      return sanitizeGateways({ ...DEFAULT_PAYMENT_GATEWAYS, ...JSON.parse(saved) });
     } catch {}
   }
 
-  return DEFAULT_PAYMENT_GATEWAYS;
+  return sanitizeGateways({ ...DEFAULT_PAYMENT_GATEWAYS });
 }
 
 // Save global gateway configuration (from Super Admin)

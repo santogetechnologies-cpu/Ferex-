@@ -32,13 +32,13 @@ const LEGALIZATION_CATALOG_ID = 'ferex_legalization_catalog';
 async function fetchLegalizationCatalog(): Promise<LegalizationRecord[]> {
   try {
     const admin = await getAdminSupabaseClient();
-    const { data } = await admin
+    const { data, error } = await admin
       .from('system_config')
-      .select('config')
-      .eq('id', LEGALIZATION_CATALOG_ID)
+      .select('value')
+      .eq('key', LEGALIZATION_CATALOG_ID)
       .maybeSingle();
-    if (data?.config && Array.isArray(data.config)) {
-      return data.config;
+    if (!error && data?.value && Array.isArray(data.value)) {
+      return data.value;
     }
   } catch {}
   try {
@@ -58,10 +58,10 @@ async function syncLegalizationToCloudCatalog(record: LegalizationRecord) {
     } catch {}
     const admin = await getAdminSupabaseClient();
     await admin.from('system_config').upsert({
-      id: LEGALIZATION_CATALOG_ID,
-      config: updated,
+      key: LEGALIZATION_CATALOG_ID,
+      value: updated,
       updated_at: new Date().toISOString()
-    });
+    }, { onConflict: 'key' });
   } catch (e) {
     console.warn('[syncLegalizationToCloudCatalog notice]:', e);
   }
@@ -69,25 +69,30 @@ async function syncLegalizationToCloudCatalog(record: LegalizationRecord) {
 
 export async function getLegalizationRecords(country?: string, studentId?: string): Promise<LegalizationRecord[]> {
   try {
-    const admin = await getAdminSupabaseClient();
-    let query = admin
-      .from('legalization_records')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let dbRecs: LegalizationRecord[] = [];
+    try {
+      const admin = await getAdminSupabaseClient();
+      let query = admin
+        .from('legalization_records')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (country && country !== 'All') {
-      query = query.ilike('country', `%${country}%`);
-    }
+      if (country && country !== 'All') {
+        query = query.ilike('country', `%${country}%`);
+      }
 
-    if (studentId) {
-      query = query.eq('student_id', studentId);
-    }
+      if (studentId) {
+        query = query.eq('student_id', studentId);
+      }
 
-    const { data } = await query;
-    const dbRecs = ((data ?? []) as any[]).map((r: any) => ({
-      ...r,
-      nawa_ref_no: r.nawa_ref_no || r.ref_no
-    })) as LegalizationRecord[];
+      const { data, error } = await query;
+      if (!error && Array.isArray(data)) {
+        dbRecs = data.map((r: any) => ({
+          ...r,
+          nawa_ref_no: r.nawa_ref_no || r.ref_no
+        })) as LegalizationRecord[];
+      }
+    } catch {}
 
     const cloudCatalog = await fetchLegalizationCatalog();
     let targetCloud = cloudCatalog.map(r => ({ ...r, nawa_ref_no: r.nawa_ref_no || r.ref_no }));
