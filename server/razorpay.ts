@@ -66,7 +66,7 @@ export async function createOrder(params: CreateOrderParams): Promise<ServiceRes
       }),
     });
 
-    const data = await response.json();
+    const data: any = await response.json();
 
     if (!response.ok) {
       if (response.status === 401) {

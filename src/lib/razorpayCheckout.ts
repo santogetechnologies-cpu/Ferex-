@@ -130,7 +130,18 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
       }),
     });
 
-    const data = await res.json();
+    let data: any;
+    const resText = await res.text();
+    try {
+      data = JSON.parse(resText);
+    } catch {
+      throw new Error(
+        res.ok
+          ? 'Invalid response from payment server'
+          : `Payment server error (${res.status}): ${resText.slice(0, 120)}`
+      );
+    }
+
     if (!res.ok) {
       throw new Error(data.error || `Order creation failed with status ${res.status}`);
     }

@@ -1,25 +1,69 @@
 export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  const isWebStandard = typeof res === 'undefined' || typeof res?.status !== 'function';
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  function sendJson(statusCode, data, extraHeaders = {}) {
+    if (isWebStandard) {
+      return new Response(JSON.stringify(data), {
+        status: statusCode,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          ...extraHeaders,
+        },
+      });
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      for (const [k, v] of Object.entries(extraHeaders)) {
+        res.setHeader(k, v);
+      }
+      return res.status(statusCode).json(data);
+    }
   }
 
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Method Not Allowed. Use POST.' });
+  const method = req?.method || 'GET';
+
+  if (method === 'OPTIONS') {
+    if (isWebStandard) {
+      return new Response(null, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      });
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      return res.status(200).end();
+    }
+  }
+
+  if (method !== 'POST') {
+    return sendJson(405, { error: 'Method Not Allowed. Use POST.' }, { Allow: 'POST' });
   }
 
   try {
-    let body = req.body;
-    if (typeof body === 'string') {
+    let body;
+    if (isWebStandard) {
       try {
-        body = JSON.parse(body);
+        body = await req.json();
       } catch {
-        return res.status(400).json({ error: 'Invalid JSON request body' });
+        body = {};
+      }
+    } else {
+      body = req.body;
+      if (typeof body === 'string') {
+        try {
+          body = JSON.parse(body);
+        } catch {
+          return sendJson(400, { error: 'Invalid JSON request body' });
+        }
       }
     }
 
@@ -27,7 +71,7 @@ export default async function handler(req, res) {
 
     const numericAmount = Number(amount);
     if (typeof amount === 'undefined' || isNaN(numericAmount) || numericAmount < 100) {
-      return res.status(400).json({ error: 'Amount must be at least 100 paise' });
+      return sendJson(400, { error: 'Amount must be at least 100 paise' });
     }
 
     const key_id = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TvtcmQYBnXjb9R';
@@ -53,10 +97,10 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errMsg = data?.error?.description || data?.error?.message || 'Failed to create Razorpay order';
-      return res.status(response.status).json({ error: errMsg });
+      return sendJson(response.status, { error: errMsg });
     }
 
-    return res.status(200).json({
+    return sendJson(200, {
       order_id: data.id,
       amount: data.amount,
       currency: data.currency,
@@ -64,6 +108,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('Unhandled error in /api/create-order:', err);
-    return res.status(500).json({ error: err?.message || 'Internal Server Error' });
+    return sendJson(500, { error: err?.message || 'Internal Server Error' });
   }
 }

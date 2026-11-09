@@ -205,9 +205,10 @@ export const Documents: React.FC = () => {
 
   // Search & Filter
   const filteredDocs = documents.filter((doc) => {
-    const docName = (doc.name || doc.file_name || '').toLowerCase();
-    const docType = (doc.type || doc.doc_type || '').toLowerCase();
-    const docStatus = (doc.status || '').toLowerCase();
+    const docAny = doc as any;
+    const docName = (docAny.name || docAny.file_name || '').toLowerCase();
+    const docType = (docAny.type || docAny.doc_type || '').toLowerCase();
+    const docStatus = (docAny.status || '').toLowerCase();
 
     const matchesSearch =
       docName.includes(searchQuery.toLowerCase()) ||
