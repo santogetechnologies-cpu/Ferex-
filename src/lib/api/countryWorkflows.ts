@@ -3,6 +3,363 @@ import type { CountryWorkflowConfig } from '../types';
 
 export const DEFAULT_COUNTRY_WORKFLOWS: CountryWorkflowConfig[] = [
   {
+    id: 'wf-lithuania',
+    country: 'Lithuania',
+    authority_name: 'Centre for Quality Assessment in Higher Education (SKVC) & Migration Department (MIGRIS)',
+    authority_acronym: 'SKVC/MIGRIS',
+    authority_badge: 'Lithuania SKVC / MIGRIS National D',
+    authority_description: 'Official academic recognition by SKVC and National D Study Visa / TRP application through the MIGRIS electronic migration platform.',
+    estimated_processing_days: '15 - 28 Days',
+    authority_fee: '€120 + VFS ₹1,581',
+    website_url: 'https://www.migracija.lt/',
+    is_active: true,
+    stages: [
+      {
+        step_number: 1,
+        title: 'Academic Transcripts Audit & SKVC Equivalency',
+        short_name: 'SKVC Recognition',
+        description: 'Submission of 10th, 12th, or Bachelor marks to SKVC Lithuania for formal qualification recognition and credit transfer.',
+        responsible_party: 'ferex_admin',
+        required_docs: ['Original Degree Transcripts', 'Passport Copy', 'English MOI / IELTS', 'Apostille Certificate'],
+        estimated_days: '7-14 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 2,
+        title: 'University Admission & Conditional Offer',
+        short_name: 'University Offer',
+        description: 'Application submission to Lithuanian university (e.g., VMU, LSMU, MRU, LSU, KTU, VU, KVK) and acceptance interview.',
+        responsible_party: 'university',
+        required_docs: ['SKVC Recognition Certificate', 'Letter of Motivation', 'Passport Scan'],
+        estimated_days: '5-10 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 3,
+        title: 'Tuition Fee Payment & Mediation Letter Issuance',
+        short_name: 'Mediation Letter',
+        description: 'Settlement of 1st year tuition fee directly to the university and issuance of the official Lithuanian Mediation Letter number for MIGRIS.',
+        responsible_party: 'university',
+        required_docs: ['Swift Payment Receipt', 'Official Mediation Letter Number'],
+        estimated_days: '3-5 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 4,
+        title: 'MIGRIS Online Electronic Visa Application',
+        short_name: 'MIGRIS Filing',
+        description: 'Filing the National Visa D / TRP application through migracija.lt with proof of funds (€8,000) and police clearance certificate.',
+        responsible_party: 'student',
+        required_docs: ['Bank Statement Proof of Funds (€8,000)', 'Police Clearance Certificate (Apostilled)', 'Health Insurance (€30,000)'],
+        estimated_days: '5-7 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 5,
+        title: 'VFS Biometrics & Embassy Consular Verification',
+        short_name: 'VFS Biometrics',
+        description: 'Submission of biometric data and original passport at VFS Global for National Visa D stamping.',
+        responsible_party: 'authority',
+        required_docs: ['MIGRIS Application Form', 'Original Passport', 'VFS Appointment Letter'],
+        estimated_days: '14-21 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 6,
+        title: 'Visa Stamped, Dorm Onboarding & Kaunas/Vilnius Arrival',
+        short_name: 'Visa Stamped & Arrival',
+        description: 'Receipt of stamped passport, flight booking, campus dorm check-in, and TRP card collection in Lithuania.',
+        responsible_party: 'ferex_admin',
+        required_docs: ['Stamped National D Visa', 'Flight Tickets', 'Dorm Contract'],
+        estimated_days: '3-5 Days',
+        auto_unlocks_next: false
+      }
+    ],
+    checklist_documents: [
+      { id: 'doc-pass-lt', name: 'Valid International Passport (Min 2 years validity)', category: 'identity', is_mandatory: true, instructions: 'Clear color copy of all pages with past travel records.' },
+      { id: 'doc-acad-lt', name: '10th, 12th & Degree Transcripts with MEA Apostille', category: 'academic', is_mandatory: true, instructions: 'Apostilled marksheets recognized by SKVC Lithuania.' },
+      { id: 'doc-moi-lt', name: 'Medium of Instruction (MOI) Certificate in English', category: 'academic', is_mandatory: true, instructions: 'Official certificate confirming full instruction was in English.' },
+      { id: 'doc-pcc-lt', name: 'Police Clearance Certificate (PCC) with MEA Apostille', category: 'legalization', is_mandatory: true, instructions: 'Issued within 6 months and apostilled by MEA India.' },
+      { id: 'doc-funds-lt', name: 'Bank Solvency Statement (€8,000 minimum balance)', category: 'financial', is_mandatory: true, instructions: '3-6 months bank statement showing living expense funds.' },
+      { id: 'doc-ins-lt', name: 'Schengen Travel Medical Insurance (€30,000 cover)', category: 'visa', is_mandatory: true, instructions: 'Valid for 1 year across all Schengen countries.' }
+    ],
+    visa_procedures: {
+      visa_type: 'National Visa D (Multiple Entry Schengen)',
+      financial_proof_req: 'Minimum €8,000 - €9,000 in student or sponsor personal bank account',
+      insurance_req: '€30,000 international student health coverage for full duration',
+      appointment_channel: 'VFS Global Lithuanian Visa Application Center / MIGRIS',
+      interview_required: true,
+      notes: 'Applicants must quote their university mediation letter number generated via migracija.lt'
+    }
+  },
+  {
+    id: 'wf-uk',
+    country: 'United Kingdom',
+    authority_name: 'UK Visas and Immigration (UKVI)',
+    authority_acronym: 'UKVI',
+    authority_badge: 'UKVI Student Visa (Tier 4)',
+    authority_description: 'UK student route visa requiring CAS (Confirmation of Acceptance for Studies), TB clearance, and financial maintenance verification.',
+    estimated_processing_days: '15 - 25 Days',
+    authority_fee: '£490 + IHS £776/yr',
+    website_url: 'https://www.gov.uk/student-visa',
+    is_active: true,
+    stages: [
+      {
+        step_number: 1,
+        title: 'Academic Profile & English Language Eligibility Audit',
+        short_name: 'Academic Audit',
+        description: 'Evaluating academic qualifications (min 55-60%) and verifying English proficiency via Class 12 English (65%+) or MOI / IELTS waiver.',
+        responsible_party: 'ferex_admin',
+        required_docs: ['Transcripts', 'Class 12 Marksheet', 'Passport Scan', 'Academic LORs'],
+        estimated_days: '3-5 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 2,
+        title: 'University Application & Conditional Offer Letter',
+        short_name: 'Offer Letter',
+        description: 'Submission to affordable UK universities (e.g. Bolton, Teesside, Cumbria, Leeds Beckett, Chester, Wrexham, Bedfordshire).',
+        responsible_party: 'university',
+        required_docs: ['SOP', 'Letters of Recommendation', 'Passport Copy'],
+        estimated_days: '7-14 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 3,
+        title: 'Tuition Fee Deposit & CAS (Confirmation of Acceptance for Studies)',
+        short_name: 'CAS Issuance',
+        description: 'Payment of university initial tuition deposit (£3,000 - £5,000) and generation of the electronic CAS statement.',
+        responsible_party: 'university',
+        required_docs: ['Deposit Swift Receipt', 'Credibility Interview Clearance'],
+        estimated_days: '5-10 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 4,
+        title: 'TB Medical Screening & UKVI Financial Maintenance',
+        short_name: 'TB & Maintenance',
+        description: 'Undergoing IOM / UKVI approved Tuberculosis (TB) screening and holding living costs (£9,207 outer London / £12,006 inner London) for 28 consecutive days.',
+        responsible_party: 'student',
+        required_docs: ['UKVI TB Certificate', '28-Day Bank Statement', 'Sponsor Affidavit'],
+        estimated_days: '7-10 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 5,
+        title: 'VFS UK Visa Filing, IHS Surcharge & Biometrics',
+        short_name: 'UKVI Visa Filing',
+        description: 'Online visa application submission, Immigration Health Surcharge payment, and VFS biometrics appointment.',
+        responsible_party: 'authority',
+        required_docs: ['CAS Statement', 'VFS Appointment Confirmation', 'Original Passport'],
+        estimated_days: '15-21 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 6,
+        title: 'UK Entry Vignette Stamped & BRP Card Collection',
+        short_name: 'Visa Stamped & BRP',
+        description: 'Receiving 90-day vignette travel sticker, flight booking, and collection of Biometric Residence Permit (BRP) upon arrival in the UK.',
+        responsible_party: 'ferex_admin',
+        required_docs: ['UKVI Decision Letter', 'Stamped Passport', 'Flight Ticket'],
+        estimated_days: '3-5 Days',
+        auto_unlocks_next: false
+      }
+    ],
+    checklist_documents: [
+      { id: 'doc-pass-uk', name: 'Valid International Passport', category: 'identity', is_mandatory: true, instructions: 'Passport with valid pages for UK vignette.' },
+      { id: 'doc-cas-uk', name: 'CAS (Confirmation of Acceptance for Studies)', category: 'academic', is_mandatory: true, instructions: 'Unique reference number issued by the UK university.' },
+      { id: 'doc-tb-uk', name: 'UKVI Approved Tuberculosis (TB) Test Certificate', category: 'visa', is_mandatory: true, instructions: 'Screening done at IOM or UKVI designated clinics.' },
+      { id: 'doc-funds-uk', name: '28-Day Bank Statement (Tuition balance + Living funds)', category: 'financial', is_mandatory: true, instructions: 'Must be maintained for minimum 28 consecutive days.' },
+      { id: 'doc-acad-uk', name: 'Class 10, 12 & Degree Marksheets and Certificates', category: 'academic', is_mandatory: true, instructions: 'Original academic documents listed on the CAS statement.' }
+    ],
+    visa_procedures: {
+      visa_type: 'UK Student Visa (Points-Based System Route)',
+      financial_proof_req: 'Balance 1st year tuition + £9,207 (outer London) held for 28 days',
+      insurance_req: 'Immigration Health Surcharge (IHS) £776/year paid directly to NHS',
+      appointment_channel: 'VFS Global UK Visa Application Centre',
+      interview_required: false,
+      notes: 'Occasional UKVI credibility interview may be conducted via video link.'
+    }
+  },
+  {
+    id: 'wf-albania',
+    country: 'Albania',
+    authority_name: 'Ministry for Europe and Foreign Affairs (MEFA) & E-Albania',
+    authority_acronym: 'MEFA',
+    authority_badge: 'Albania E-Visa Type D',
+    authority_description: 'Streamlined E-Visa Type D application through the official E-Albania governmental portal for accredited universities like CIT & Mediterranean University.',
+    estimated_processing_days: '10 - 20 Days',
+    authority_fee: '€50 (~₹4,500)',
+    website_url: 'https://e-albania.al/',
+    is_active: true,
+    stages: [
+      {
+        step_number: 1,
+        title: 'Academic Transcripts Audit & Sworn Translation',
+        short_name: 'Document Audit',
+        description: 'Audit of high school or university transcripts, English MOI verification, and preparation of Albanian notarized translations.',
+        responsible_party: 'ferex_admin',
+        required_docs: ['Transcripts', 'Passport Scan', 'MOI Certificate'],
+        estimated_days: '3-5 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 2,
+        title: 'University Acceptance & Registration Fee Payment',
+        short_name: 'University Offer',
+        description: 'Admission confirmation from CIT Tirana or Mediterranean University and payment of €500 registration deposit.',
+        responsible_party: 'university',
+        required_docs: ['University Acceptance Letter', 'Deposit Swift Receipt'],
+        estimated_days: '4-7 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 3,
+        title: 'Ministry of Education Equivalency Clearance',
+        short_name: 'Equivalency',
+        description: 'Recognition of foreign qualifications by the Albanian Ministry of Education, Sports and Youth.',
+        responsible_party: 'authority',
+        required_docs: ['Apostilled Degree', 'Sworn Albanian Translation'],
+        estimated_days: '7-14 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 4,
+        title: 'E-Albania Electronic Type D Visa Submission',
+        short_name: 'E-Visa Filing',
+        description: 'Online application filing via the E-Albania portal with police clearance certificate and bank proof of funds (€3,000).',
+        responsible_party: 'student',
+        required_docs: ['E-Albania Form', 'Bank Statement (€3,000)', 'Apostilled PCC', 'Accommodation Proof'],
+        estimated_days: '5-10 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 5,
+        title: 'Electronic Visa Approval & Tirana Flight Clearance',
+        short_name: 'Visa Approved',
+        description: 'Receipt of official electronic Visa Type D with barcode, flight ticket issuance, and pre-departure briefing.',
+        responsible_party: 'ferex_admin',
+        required_docs: ['Approved E-Visa D Certificate', 'Flight Tickets'],
+        estimated_days: '2-4 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 6,
+        title: 'Arrival in Tirana & Temporary Residence Permit (Leje Qëndrimi)',
+        short_name: 'Residence Permit',
+        description: 'Airport reception in Tirana, university registration, and filing for the 1-year biometric residence permit.',
+        responsible_party: 'ferex_admin',
+        required_docs: ['Leje Qëndrimi Application', 'Dorm Contract'],
+        estimated_days: '7-14 Days',
+        auto_unlocks_next: false
+      }
+    ],
+    checklist_documents: [
+      { id: 'doc-pass-al', name: 'Valid International Passport', category: 'identity', is_mandatory: true, instructions: 'Passport with min 1.5 year validity.' },
+      { id: 'doc-acad-al', name: '10th, 12th & Degree Marksheets with MEA Apostille', category: 'academic', is_mandatory: true, instructions: 'Attested academic marksheets.' },
+      { id: 'doc-pcc-al', name: 'Police Clearance Certificate (PCC) with MEA Apostille', category: 'legalization', is_mandatory: true, instructions: 'Clean criminal record apostilled by MEA India.' },
+      { id: 'doc-funds-al', name: 'Bank Solvency Statement (€3,000 minimum)', category: 'financial', is_mandatory: true, instructions: 'Recent bank statement showing €3,000 equivalent.' },
+      { id: 'doc-ins-al', name: 'International Travel Health Insurance', category: 'visa', is_mandatory: true, instructions: 'Medical coverage for initial travel and stay.' }
+    ],
+    visa_procedures: {
+      visa_type: 'Albanian Type D Long-Stay Visa (Electronic)',
+      financial_proof_req: 'Minimum €3,000 equivalent in personal or parental bank account',
+      insurance_req: '€30,000 international medical insurance coverage',
+      appointment_channel: 'E-Albania Official E-Visa Online Portal',
+      interview_required: false,
+      notes: 'No physical embassy visit needed; the visa is issued electronically via email.'
+    }
+  },
+  {
+    id: 'wf-moldova',
+    country: 'Moldova',
+    authority_name: 'General Inspectorate for Migration (BMA) & Ministry of Education',
+    authority_acronym: 'GIM/BMA',
+    authority_badge: 'Moldova National Study Visa Type D',
+    authority_description: 'Ministry of Education credential validation, General Inspectorate for Migration invitation clearance, and National D Visa for USMF and USM.',
+    estimated_processing_days: '15 - 28 Days',
+    authority_fee: '€80 (~₹7,200)',
+    website_url: 'https://bma.gov.md/',
+    is_active: true,
+    stages: [
+      {
+        step_number: 1,
+        title: 'Academic Transcripts & Sworn Translation',
+        short_name: 'Document Audit',
+        description: 'Submission of 10th, 12th, or Bachelor marks, English MOI verification, and Romanian/Russian translation.',
+        responsible_party: 'ferex_admin',
+        required_docs: ['Transcripts', 'Passport Copy', 'English MOI'],
+        estimated_days: '3-5 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 2,
+        title: 'Ministry of Education Letter of Acceptance',
+        short_name: 'Ministry Approval',
+        description: 'Official clearance and equivalence certification issued by the Ministry of Education of the Republic of Moldova.',
+        responsible_party: 'authority',
+        required_docs: ['Apostilled Transcripts', 'Birth Certificate', 'Medical Certificate'],
+        estimated_days: '10-14 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 3,
+        title: 'Migration Department Official Invitation Clearance',
+        short_name: 'Migration Invitation',
+        description: 'The University applies for the official migration invitation letter from the General Inspectorate for Migration in Chisinau.',
+        responsible_party: 'university',
+        required_docs: ['Ministry Approval', 'Passport Copy'],
+        estimated_days: '7-10 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 4,
+        title: 'Tuition Deposit Payment & Enrollment Confirmation',
+        short_name: 'Tuition Deposit',
+        description: 'Direct payment of initial tuition fee to university bank account (e.g. USMF Medicine $6,500 or USM €2,000).',
+        responsible_party: 'student',
+        required_docs: ['Swift Payment Receipt'],
+        estimated_days: '3-5 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 5,
+        title: 'National Visa Type D Application & Stamping',
+        short_name: 'Visa Filing',
+        description: 'Submission of visa dossier to the Embassy of the Republic of Moldova or authorized consular portal with €3,800 bank balance.',
+        responsible_party: 'authority',
+        required_docs: ['Migration Invitation Original', 'Bank Statement (€3,800)', 'PCC Apostilled', 'Passport'],
+        estimated_days: '10-15 Days',
+        auto_unlocks_next: true
+      },
+      {
+        step_number: 6,
+        title: 'Chisinau Airport Reception & Residence Permit (Permis de Ședere)',
+        short_name: 'Arrival & Residence',
+        description: 'Airport meet & greet in Chisinau, university matriculation, medical check, and issuance of the 1-year student residence permit.',
+        responsible_party: 'ferex_admin',
+        required_docs: ['Stamped Visa', 'Dorm Contract', 'Medical Reports'],
+        estimated_days: '5-7 Days',
+        auto_unlocks_next: false
+      }
+    ],
+    checklist_documents: [
+      { id: 'doc-pass-md', name: 'Valid International Passport', category: 'identity', is_mandatory: true, instructions: 'Passport valid for minimum 18 months.' },
+      { id: 'doc-acad-md', name: '10th, 12th & Degree Marksheets with MEA Apostille', category: 'academic', is_mandatory: true, instructions: 'Attested certificates recognized by Moldovan Ministry.' },
+      { id: 'doc-pcc-md', name: 'Police Clearance Certificate with MEA Apostille', category: 'legalization', is_mandatory: true, instructions: 'Clean background check issued within 3 months.' },
+      { id: 'doc-med-md', name: 'Medical Fitness Certificate including HIV/Hepatitis', category: 'visa', is_mandatory: true, instructions: 'General health fitness and blood reports.' },
+      { id: 'doc-funds-md', name: 'Bank Solvency Statement (€3,800 minimum balance)', category: 'financial', is_mandatory: true, instructions: '1-month bank statement showing €3,800 or equivalent.' }
+    ],
+    visa_procedures: {
+      visa_type: 'National Long-Stay Study Visa Type D',
+      financial_proof_req: 'Minimum €3,800 in student or sponsor personal bank account',
+      insurance_req: 'International travel health insurance for 1 year',
+      appointment_channel: 'Embassy of Moldova / Consular Section',
+      interview_required: true,
+      notes: 'Official migration department invitation letter is required for visa application.'
+    }
+  },
+  {
     id: 'wf-poland',
     country: 'Poland',
     authority_name: 'Polish National Agency for Academic Exchange (NAWA)',

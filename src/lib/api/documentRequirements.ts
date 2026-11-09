@@ -19,6 +19,175 @@ export interface DocumentRequirement {
 const STORAGE_KEY = 'ferex_document_requirements_config';
 
 export const DEFAULT_DOCUMENT_REQUIREMENTS: DocumentRequirement[] = [
+  // Lithuania Requirements
+  {
+    id: 'doc-lt-1',
+    country: 'Lithuania',
+    document_name: 'Valid International Passport (Min 2 years validity)',
+    document_type: 'Identification',
+    is_required: true,
+    description: 'Color scan of all biometric pages and prior visa stamps for MIGRIS filing.',
+    processing_time: 'Immediate',
+    authority_fee: 'Free',
+    checklist_items: ['Biodata page', 'Signature page', 'Min. 2 blank pages']
+  },
+  {
+    id: 'doc-lt-2',
+    country: 'Lithuania',
+    document_name: 'Academic Transcripts & Certificates with MEA Apostille',
+    document_type: 'Academic',
+    is_required: true,
+    description: '10th, 12th / High School marksheets or Bachelor degree with Ministry of External Affairs Apostille for SKVC evaluation.',
+    processing_time: '7 - 10 Days',
+    authority_fee: 'Free',
+    checklist_items: ['10th & 12th certificates', 'Degree consolidated marksheet', 'MEA Apostille stamp']
+  },
+  {
+    id: 'doc-lt-3',
+    country: 'Lithuania',
+    document_name: 'SKVC Qualification Equivalency Certificate',
+    document_type: 'Legalization',
+    is_required: true,
+    description: 'Official academic recognition certificate issued by the Centre for Quality Assessment in Higher Education (SKVC) Vilnius.',
+    processing_time: '14 - 21 Days',
+    authority_fee: 'Free',
+    checklist_items: ['SKVC recognition decision', 'Comparability assessment letter']
+  },
+  {
+    id: 'doc-lt-4',
+    country: 'Lithuania',
+    document_name: 'Police Clearance Certificate (PCC) with Apostille',
+    document_type: 'Legalization',
+    is_required: true,
+    description: 'PCC issued by Regional Passport Office (RPO) within last 6 months and apostilled by MEA.',
+    processing_time: '7 - 14 Days',
+    authority_fee: '₹500 + Apostille',
+    checklist_items: ['RPO Police Clearance', 'MEA Apostille sticker', 'Issued within 6 months']
+  },
+  {
+    id: 'doc-lt-5',
+    country: 'Lithuania',
+    document_name: 'Bank Solvency Proof (€8,000 Minimum Balance)',
+    document_type: 'Financial',
+    is_required: true,
+    description: 'Official bank statement showing minimum €8,000 - €9,000 held in student or sponsor personal account.',
+    processing_time: '2 - 3 Days',
+    authority_fee: 'Bank charges',
+    checklist_items: ['3 to 6 months bank statement', 'Bank branch manager seal and sign', 'Sponsorship affidavit']
+  },
+  {
+    id: 'doc-lt-6',
+    country: 'Lithuania',
+    document_name: 'Schengen Travel Health Insurance (€30,000 cover)',
+    document_type: 'Insurance',
+    is_required: true,
+    description: 'Comprehensive medical insurance covering hospital care and medical repatriation across Schengen area.',
+    processing_time: '1 Day',
+    authority_fee: '€75',
+    checklist_items: ['€30,000 minimum medical coverage', 'Full Schengen validity', '1 year duration']
+  },
+  // Albania Requirements
+  {
+    id: 'doc-al-1',
+    country: 'Albania',
+    document_name: 'Valid International Passport',
+    document_type: 'Identification',
+    is_required: true,
+    description: 'Passport copy valid for at least 1.5 years from intended travel date.',
+    processing_time: 'Immediate',
+    authority_fee: 'Free',
+    checklist_items: ['All biodata pages', 'Clean scan']
+  },
+  {
+    id: 'doc-al-2',
+    country: 'Albania',
+    document_name: 'Academic Certificates with MEA Apostille',
+    document_type: 'Academic',
+    is_required: true,
+    description: 'Educational certificates apostilled by Ministry of External Affairs for Albanian Ministry equivalence.',
+    processing_time: '7 - 10 Days',
+    authority_fee: 'Free',
+    checklist_items: ['10th/12th/Degree marksheets', 'MEA Apostille']
+  },
+  {
+    id: 'doc-al-3',
+    country: 'Albania',
+    document_name: 'Police Clearance Certificate (PCC) Apostilled',
+    document_type: 'Legalization',
+    is_required: true,
+    description: 'PCC from Passport Seva Kendra apostilled by MEA for E-Visa Type D application.',
+    processing_time: '7 - 14 Days',
+    authority_fee: '₹500',
+    checklist_items: ['Clean criminal record', 'MEA Apostille stamp']
+  },
+  {
+    id: 'doc-al-4',
+    country: 'Albania',
+    document_name: 'Bank Solvency Statement (€3,000)',
+    document_type: 'Financial',
+    is_required: true,
+    description: 'Bank balance proof of minimum €3,000 equivalent in student or parental account.',
+    processing_time: '1 - 2 Days',
+    authority_fee: 'Free',
+    checklist_items: ['Bank statement with seal', 'CA net worth / sponsorship letter']
+  },
+  // Moldova Requirements
+  {
+    id: 'doc-md-1',
+    country: 'Moldova',
+    document_name: 'Valid International Passport',
+    document_type: 'Identification',
+    is_required: true,
+    description: 'Passport valid for minimum 18 months.',
+    processing_time: 'Immediate',
+    authority_fee: 'Free',
+    checklist_items: ['Front & back cover', 'Blank visa pages']
+  },
+  {
+    id: 'doc-md-2',
+    country: 'Moldova',
+    document_name: 'Educational Certificates with MEA Apostille & Translation',
+    document_type: 'Academic',
+    is_required: true,
+    description: 'Original transcripts with MEA Apostille and Romanian/Russian translation for USMF / USM admission.',
+    processing_time: '7 - 12 Days',
+    authority_fee: 'Translation charges',
+    checklist_items: ['Apostilled transcripts', 'Sworn Romanian translation']
+  },
+  {
+    id: 'doc-md-3',
+    country: 'Moldova',
+    document_name: 'General Inspectorate for Migration Invitation Letter',
+    document_type: 'Legalization',
+    is_required: true,
+    description: 'Official invitation issued by Chisinau Migration Department submitted for Type D visa.',
+    processing_time: '10 - 15 Days',
+    authority_fee: '€80',
+    checklist_items: ['Official migration seal', 'University registration reference']
+  },
+  {
+    id: 'doc-md-4',
+    country: 'Moldova',
+    document_name: 'Bank Proof of Funds (€3,800)',
+    document_type: 'Financial',
+    is_required: true,
+    description: '1-month bank statement showing minimum balance of €3,800.',
+    processing_time: '1 - 2 Days',
+    authority_fee: 'Bank charges',
+    checklist_items: ['Official bank statement', 'Sponsorship affidavit']
+  },
+  {
+    id: 'doc-md-5',
+    country: 'Moldova',
+    document_name: 'Medical Fitness Certificate (HIV / Hepatitis / X-Ray)',
+    document_type: 'Medical',
+    is_required: true,
+    description: 'Complete health checkup certificate from authorized pathology lab.',
+    processing_time: '2 - 3 Days',
+    authority_fee: 'Clinic charges',
+    checklist_items: ['HIV negative report', 'Hepatitis B & C', 'Chest X-ray report']
+  },
+
   // Poland Requirements
   {
     id: 'doc-pol-1',

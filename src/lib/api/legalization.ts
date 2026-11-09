@@ -242,10 +242,10 @@ export async function deleteLegalizationRecord(id: string): Promise<boolean> {
     const filtered = catalog.filter(r => r.id !== id);
     const admin = await getAdminSupabaseClient();
     await admin.from('system_config').upsert({
-      id: LEGALIZATION_CATALOG_ID,
-      config: filtered,
+      key: LEGALIZATION_CATALOG_ID,
+      value: filtered,
       updated_at: new Date().toISOString()
-    });
+    }, { onConflict: 'key' });
   } catch {}
 
   window.dispatchEvent(new Event('ferex_legalization_change'));
